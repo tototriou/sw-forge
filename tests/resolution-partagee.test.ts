@@ -17,7 +17,8 @@
 import { readFileSync } from 'node:fs';
 import { ArtifactArchetype, ArtifactDetail, ElementKey, RelicDetail } from '../src/types';
 import { RelicContext } from '../src/lib/relicOptim';
-import { BuildCandidate, OptionsDeClassement, SearchParams, aurasPropresParRunes, conditionsPaireFixePosees, optionsDeClassement, respecteConditionsPaireFixe, scoreDuCandidat, searchBuilds, sortCandidates } from '../src/lib/runeBuildOptim';
+import { BuildCandidate, OptionsDeClassement, SearchParams, aurasPropresParRunes, conditionsPaireFixePosees, optionsDeClassement, respecteConditionsPaireFixe, scoreDuCandidat, sortCandidates } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import { ResultatArtefacts, classementResolu, cleBuild } from '../src/lib/artifactQueue';
 import { EntreeResolution, entreeResolutionDuBuild, etatReliqueDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { ReglagesDifferentiel, maxStatsActifsDe, regimeDe, resoudreCandidat, runesDe } from '../scripts/lib/relicDifferentiel';

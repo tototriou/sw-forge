@@ -1,6 +1,5 @@
-// Contrôle PAIRE PAR PAIRE de la validation typée du prototype
-// (src/lib/validationRapide.ts, chantier perf-moteur, lot 2 ter) contre les
-// fonctions de PRODUCTION : `activeSets`/`missingSets`, `computeStats`,
+// Contrôle PAIRE PAR PAIRE de la validation typée
+// (src/lib/validationRapide.ts) contre les fonctions de RÉFÉRENCE : `activeSets`/`missingSets`, `computeStats`,
 // `aurasPropresDesSetsActifs`/`pointsAuraResPrePropres`, et la boucle du test
 // conjoint de `pairBuckets` (runeBuildOptim.ts), recopiée ici à l'identique.
 // Partagé par le test `validation-rapide` (pools générés) et le banc

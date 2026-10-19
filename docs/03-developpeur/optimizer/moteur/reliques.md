@@ -200,10 +200,11 @@ La présence par tranche ne s'observe que sur le chemin séquentiel
 (`searchBuilds`) : sur le chemin Workers, les moitiés se construisent dans
 un autre fil. Un rejet par pré-filtrage (`prepareSearch` rend `null`) ne
 perd pas la trace : `prepareSearch` la passe à `onReject`, et
-`searchBuildsSteps` la pose sur le résultat vide qu'il construit. Les deux
-adaptateurs qui reconstruisent `SearchResult` à la main
-(`scripts/lib/spawnSliceNode.ts`, `pairSliceInWorker` dans
-`src/workers/runeBuildOptim.worker.ts`) recopient `traceur`. Le harnais
+`searchBuildsSteps` la pose sur le résultat vide qu'il construit. Un
+traceur fait passer la construction par `buildBuckets` et l'appariement par
+`pairBuckets`, en séquentiel, qui seuls le remplissent ; `apparier` recopie
+`traceur` sur le résultat qu'il rend
+([noyau-appariement.md § Le contrat numérique](noyau-appariement.md)). Le harnais
 s'en sert pour `--suivre` (`scripts/lib/diagnosticHarness.ts`), le
 différentiel relique pour classer une perte
 (`scripts/lib/relicDifferentiel.ts`).

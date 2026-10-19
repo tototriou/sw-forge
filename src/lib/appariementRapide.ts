@@ -1,7 +1,9 @@
-// ⚠️ PROTOTYPE (chantier perf-moteur, lot 2) — noyau de l'appariement sur
-// tableaux typés, À CÔTÉ de `pairBuckets` (runeBuildOptim.ts), jamais à sa
-// place : aucun écran, aucun Worker de production ne l'appelle. Il ne
-// remplace que la boucle la plus intérieure (`for comboB of bB.combos`) :
+// Noyau de l'appariement sur tableaux typés : le chemin de production
+// (`apparier` dans src/lib/rechercheRunes.ts en séquentiel,
+// `appariementRapideParallele.ts` en parallèle). `pairBuckets`
+// (runeBuildOptim.ts) reste la RÉFÉRENCE et le repli hors contrat numérique.
+// Voir docs/03-developpeur/optimizer/moteur/pipeline.md § Appariement séquentiel.
+// Il ne remplace que la boucle la plus intérieure (`for comboB of bB.combos`) :
 // ordre des paires de compartiments, prédicats de compartiment et de comboA,
 // et tout ce qui suit `quickOk` restent ceux de la production.
 //
@@ -15,12 +17,13 @@
 // d'intégrité vérifiées avant toute paire (`verifierContrat`) ; sans elles,
 // le chemin actuel (`pairBuckets`) est pris tel quel.
 //
-// Conception complète, avec les bornes écrites : notes du lot 2 du chantier.
+// Les bornes écrites, leurs préconditions et l'ordre de visite :
+// docs/03-developpeur/optimizer/moteur/noyau-appariement.md.
 //
 // ⚠️ **Ce qui suit `quickOk`** : `Collecteur.valider` est une copie conforme
 // de `pairBuckets` (runeBuildOptim.ts, de `const runes` à `candidates.push`),
 // avec les deux fonctions privées dont il dépend (`totalCondition`,
-// `valueOf`) — c'est le chemin de RÉFÉRENCE. Le lot 2 ter y ajoute
+// `valueOf`) — c'est le chemin de RÉFÉRENCE. S'y ajoute
 // `Collecteur.validerTypee` : la même validation sur tableaux typés
 // (validationRapide.ts), prise dès que son contrat numérique tient, avec le
 // même quasi-succès (mêmes tentatives, mêmes remplacements) et des `StatRow`
@@ -278,7 +281,7 @@ export function constantesNoyau(prepared: PreparedSearch): ConstantesNoyau {
  * s'il tient, sinon le motif du repli sur le chemin actuel.
  */
 export function verifierContrat(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): string | null {
-  if (prepared.traceur) return 'traceur de diagnostic demandé (non porté par le prototype)';
+  if (prepared.traceur) return 'traceur de diagnostic demandé (le noyau ne le remplit pas)';
   const c = constantesNoyau(prepared);
   const { guaranteed, guaranteedMin, artFlatMax, artFlatMin, relPctMax, relPctMin } = prepared;
   for (let kk = 0; kk < c.m; kk++) {
@@ -775,7 +778,7 @@ export function runesAPlat(buckets: Bucket[]): RuneDetail[] {
 }
 
 /* --------------------------------------------------------------------------
- * Le prototype séquentiel
+ * L'appariement séquentiel
  * ----------------------------------------------------------------------- */
 
 export interface ResultatAppariementRapide extends SearchResult {
@@ -788,7 +791,7 @@ export interface ResultatAppariementRapide extends SearchResult {
   chemin: 'noyau' | 'actuel';
   /** Pourquoi le chemin actuel a été pris. */
   motifChemin?: string;
-  /** Validation des paires qui passent `quickOk` : typée (lot 2 ter) ou copie de `pairBuckets`. */
+  /** Validation des paires qui passent `quickOk` : typée ou copie de `pairBuckets`. */
   cheminValidation: 'typee' | 'reference';
   motifValidation?: string;
   compteurs: CompteursNoyau;
@@ -941,7 +944,19 @@ export interface Morceau {
   taille: number;
   segments: Int32Array;
   drapeaux: Uint8Array;
+  /**
+   * Arrêt déterministe (tests et banc) : la position globale `N` du point de
+   * passage où s'arrêter — les paires avant `N` sont jugées, `N` ne l'est pas.
+   */
+  limite?: number;
 }
+
+/**
+ * Pourquoi un morceau a rendu la main : achevé, filet de temps (`maxMs`
+ * depuis le `startedAt` global), plafond de candidats atteint DANS le
+ * morceau, arrêt déterministe à `Morceau.limite`, arrêt manuel.
+ */
+export type IssueMorceau = 'complet' | 'temps' | 'plafond' | 'limite' | 'arret';
 
 export interface ResultatMorceau {
   type: 'resultat';
@@ -951,9 +966,10 @@ export interface ResultatMorceau {
   visitees: number;
   candidats: BuildCandidate[];
   positions: number[];
+  /** Pour chaque candidat, les paires visitées du morceau jusqu'à lui compris : la fusion coupe les comptes au même endroit que les candidats. */
+  visitesAuCandidat: number[];
   ameliorations: Amelioration[];
-  /** Arrêté par `maxMs` (depuis `startedAt` global). */
-  tronqueTemps: boolean;
+  issue: IssueMorceau;
   /** Le Worker a validé sur tableaux typés (sinon : copie de `pairBuckets`). */
   validationTypee: boolean;
   compteurs: CompteursNoyau;
@@ -973,7 +989,9 @@ export interface ContexteTravailleur {
 export function initialiserTravailleur(init: InitTravailleur): ContexteTravailleur {
   const prepared = prepareSearch(init.params);
   if (!prepared) throw new Error('prepareSearch a rendu null dans un Worker alors que le coordinateur a des compartiments');
-  // Même correction que `runPairSlice` : le budget court depuis l'instant global.
+  // ⚠️ AVANT tout usage du filet de temps : le budget court depuis l'instant
+  // GLOBAL du lancement (construction des moitiés comprise), jamais depuis
+  // la préparation propre à ce Worker.
   prepared.startedAt = init.startedAt;
   const ct = init.compartiments;
   const c = constantesNoyau(prepared);
@@ -993,21 +1011,56 @@ export function initialiserTravailleur(init: InitTravailleur): ContexteTravaille
   return { prepared, ct, c, runeParId, L: new Float64Array(c.m), H: new Float64Array(c.m), sortie: new Int32Array(maxB), validation };
 }
 
+/** Un morceau d'un bloc, sans arrêt manuel possible : le générateur drainé. */
 export function traiterMorceau(ctx: ContexteTravailleur, morceau: Morceau): ResultatMorceau {
+  const gen = parcourirMorceau(ctx, morceau);
+  let step = gen.next(false);
+  while (!step.done) step = gen.next(false);
+  return step.value;
+}
+
+/**
+ * Le corps d'un morceau, sous forme de GÉNÉRATEUR : il rend la main après
+ * chaque ligne, et la valeur renvoyée par `next(true)` demande l'arrêt
+ * manuel (le morceau rend alors ce qu'il a trouvé, ligne achevée). Ce qui
+ * pilote un Worker (`servirAppariement`) s'en sert pour lire ses messages
+ * entre deux tranches de travail, sans rien changer à ce qui est jugé.
+ *
+ * Le filet de temps se teste à chaque paire visitée ET à chaque point de
+ * passage (`CHECKPOINT_EVERY` paires TRAITÉES, sautées comprises), comme
+ * dans `apparierRapide` : un saut de lignes entières ne le contourne pas.
+ * Les points de passage franchis par un saut le sont au même instant ; un
+ * seul test les couvre, et la troncature tombe sur le premier d'entre eux.
+ */
+export function* parcourirMorceau(ctx: ContexteTravailleur, morceau: Morceau): Generator<void, ResultatMorceau, boolean | undefined> {
   const { prepared, ct, c, runeParId, L, H, sortie, validation } = ctx;
   const { maxCollected, maxMs, startedAt } = prepared;
   const overBudget = () => Date.now() - startedAt > maxMs;
   const compteurs = compteursVides();
   const collecteur = new Collecteur(prepared, true, true, validation);
+  const visitesAuCandidat: number[] = [];
   const rune = (id: number) => {
     const r = runeParId.get(id);
     if (!r) throw new Error(`rune ${id} absente du pool préparé du Worker`);
     return r;
   };
+  const limite = morceau.limite ?? Infinity;
   let pos = morceau.offset;
   let visitees = 0;
-  let tronqueTemps = false;
-  let arret = false;
+  let issue: IssueMorceau = 'complet';
+  let prochainPoint = (Math.floor(morceau.offset / CHECKPOINT_EVERY) + 1) * CHECKPOINT_EVERY;
+  // Les points de passage jusqu'à la position `jusqua` : un test du temps
+  // pour tous ceux que l'on franchit. Vrai si le filet a expiré (`pos` posé
+  // sur le premier d'entre eux).
+  const passage = (jusqua: number): boolean => {
+    if (prochainPoint > jusqua) return false;
+    if (overBudget()) {
+      pos = prochainPoint;
+      return true;
+    }
+    prochainPoint = (Math.floor(jusqua / CHECKPOINT_EVERY) + 1) * CHECKPOINT_EVERY;
+    return false;
+  };
   let d = 0;
   const seg = morceau.segments;
   boucle: for (let s = 0; s + 3 < seg.length; s += 4) {
@@ -1018,7 +1071,7 @@ export function traiterMorceau(ctx: ContexteTravailleur, morceau: Morceau): Resu
     for (let a = seg[s + 2]; a < seg[s + 3]; a++) {
       if (!morceau.drapeaux[d++]) continue;
       if (overBudget()) {
-        tronqueTemps = true;
+        issue = 'temps';
         break boucle;
       }
       const debutLigne = pos;
@@ -1028,10 +1081,19 @@ export function traiterMorceau(ctx: ContexteTravailleur, morceau: Morceau): Resu
       for (let k = 0; k < nSurv; k++) {
         const j = sortie[k];
         const g = debutLigne + j + 1;
+        if (g >= limite) {
+          pos = limite;
+          issue = 'limite';
+          break boucle;
+        }
+        if (passage(g)) {
+          issue = 'temps';
+          break boucle;
+        }
         pos = g;
         visitees++;
         if (overBudget()) {
-          tronqueTemps = true;
+          issue = 'temps';
           break boucle;
         }
         const gb = offB + j;
@@ -1053,18 +1115,35 @@ export function traiterMorceau(ctx: ContexteTravailleur, morceau: Morceau): Resu
         }
         // Au-delà de `maxCollected` candidats dans CE morceau, la fusion
         // globale a forcément déjà coupé : inutile d'aller plus loin.
-        if (collecte && collecteur.candidates.length >= maxCollected) {
-          arret = true;
-          break boucle;
+        if (collecte) {
+          visitesAuCandidat.push(visitees);
+          if (collecteur.candidates.length >= maxCollected) {
+            issue = 'plafond';
+            break boucle;
+          }
         }
       }
-      pos = debutLigne + nB;
+      const fin = debutLigne + nB;
+      if (fin >= limite) {
+        pos = limite;
+        issue = 'limite';
+        break boucle;
+      }
+      if (passage(fin)) {
+        issue = 'temps';
+        break boucle;
+      }
+      pos = fin;
+      if (yield) {
+        issue = 'arret';
+        break boucle;
+      }
     }
   }
   return {
     type: 'resultat', id: morceau.id,
-    traitees: (tronqueTemps || arret ? pos : morceau.offset + morceau.taille) - morceau.offset,
-    visitees, candidats: collecteur.candidates, positions: collecteur.positions,
-    ameliorations: collecteur.ameliorations ?? [], tronqueTemps, validationTypee: validation != null, compteurs,
+    traitees: (issue === 'complet' ? morceau.offset + morceau.taille : pos) - morceau.offset,
+    visitees, candidats: collecteur.candidates, positions: collecteur.positions, visitesAuCandidat,
+    ameliorations: collecteur.ameliorations ?? [], issue, validationTypee: validation != null, compteurs,
   };
 }

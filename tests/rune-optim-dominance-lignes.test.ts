@@ -46,11 +46,11 @@ import {
   optionsDeClassement,
   prepareSearch,
   scoreDuCandidat,
-  searchBuilds,
   sortCandidates,
   statsLuesParLesLignes,
   totalPairCount,
 } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import type { BuildCandidate, RealDamageContext, SearchParams, SearchResult } from '../src/lib/runeBuildOptim';
 import { candidatsParSorte, paireRepresentative, type ArtifactSearchParams, type ChoixPrincipale } from '../src/lib/artifactOptim';
 import { artifactPairAllowed } from '../src/lib/artifacts';

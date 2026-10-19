@@ -1,8 +1,8 @@
-// ⚠️ PROTOTYPE (chantier perf-moteur, lot 2 ter) — la validation exacte des
-// paires qui passent `quickOk`, sur tableaux typés, À CÔTÉ de `pairBuckets`
-// (runeBuildOptim.ts) et de son double `Collecteur.valider`
-// (appariementRapide.ts), jamais à leur place : aucun écran, aucun Worker de
-// production ne l'appelle.
+// La validation exacte des paires qui passent `quickOk`, sur tableaux
+// typés : celle de l'appariement de production (`Collecteur.validerTypee`,
+// appariementRapide.ts), séquentiel et parallèle, dès que son contrat tient ;
+// sinon la référence, `Collecteur.valider`, copie du bloc de `pairBuckets`
+// (runeBuildOptim.ts). Voir docs/03-developpeur/optimizer/moteur/noyau-appariement.md.
 //
 // Ce que `pairBuckets` fait après `quickOk`, et ce que ce module en garde :
 //
@@ -32,8 +32,6 @@
 //    l'ordre des lignes LUS sur `computeStats` lui-même (sonde sans rune) ;
 //    `effTotal` est la même somme gauche-droite que `runes.reduce` (préfixe
 //    des trois runes de A, puis les trois de B une à une).
-//
-// Conception complète : notes du lot 2 ter du chantier.
 
 import { RuneDetail } from '../types';
 import { ARTIFACT_MAIN, INTANGIBLE_SET, RELIC_MAIN, RUNE_EFFECT, SET_STAT_BONUS, StatKey, runeEfficiency, runeScore, setPieces } from './effects';

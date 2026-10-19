@@ -7,7 +7,8 @@
 //
 // Usage : monster-search-cap-sweep.ts <export.json> <deckId> <nomMonstre> [cap]
 
-import { searchBuilds, BuildRequirement, SearchParams } from '../src/lib/runeBuildOptim';
+import { BuildRequirement, SearchParams } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import { computeStats } from '../src/lib/stats';
 import { activeSets } from '../src/lib/effects';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';

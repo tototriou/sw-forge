@@ -1,7 +1,8 @@
-// Le `LancerTravailleur` de Node pour le PROTOTYPE de noyau d'appariement
-// (chantier perf-moteur, lot 2) — pendant de `makeSpawnSliceNode`
-// (spawnSliceNode.ts) : bundle esbuild UNE fois, hors de l'arbre, puis un
-// `worker_threads` par Worker, tableaux typés transférés à la création.
+// Le `LancerTravailleur` de Node de l'appariement parallèle de production —
+// pendant de `lancerTravailleurNavigateur` (src/workers/runeBuildOptim.worker.ts) :
+// bundle esbuild UNE fois par processus, hors de l'arbre, puis un
+// `worker_threads` par Worker, tableaux typés transférés à la création. Le
+// harnais, le banc et les tests apparient par lui.
 
 import { Worker } from 'worker_threads';
 import { existsSync, mkdirSync } from 'fs';
@@ -38,9 +39,10 @@ export function lancerTravailleurNode(chemin: string): LancerTravailleur {
       surErreur: (rappel) => {
         worker.on('error', rappel);
         worker.on('exit', (code) => {
-          if (code !== 0) rappel(new Error(`Worker du prototype sorti avec le code ${code}`));
+          if (code !== 0) rappel(new Error(`Worker d’appariement sorti avec le code ${code}`));
         });
       },
+      arreter: () => worker.postMessage({ type: 'arret' }),
       // Fin coopérative (voir la coquille) ; le fil sort seul une fois son port fermé.
       terminer: () => {
         worker.postMessage({ type: 'fin' });

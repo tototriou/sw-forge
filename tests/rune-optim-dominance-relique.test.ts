@@ -56,9 +56,9 @@ import {
   prepareSearch,
   respecteConditionsAvecRelique,
   scoreDuCandidat,
-  searchBuilds,
   totalPairCount,
 } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import type { BuildCandidate, BuildRequirement, Objective, RealDamageContext, SearchParams, SearchResult } from '../src/lib/runeBuildOptim';
 import { prepareOrRefuse } from '../src/workers/prepareForSearch';
 import { drain } from '../scripts/lib/drain';

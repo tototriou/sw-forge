@@ -1,5 +1,5 @@
-// Validation typée du prototype d'appariement (src/lib/validationRapide.ts,
-// chantier perf-moteur, lot 2 ter) contre les fonctions de PRODUCTION.
+// Validation typée de l'appariement (src/lib/validationRapide.ts) contre les
+// fonctions de RÉFÉRENCE (`activeSets`, `computeStats`, `pairBuckets`).
 //
 // 1. **Cas écrits** : les règles d'`activeSets` qu'un compte par set doit
 //    reproduire — joker et deux sets incomplets, joker qui complète un set
@@ -233,6 +233,7 @@ function lancerSimule(rng: () => number): LancerTravailleur {
         rappel = r;
       },
       surErreur: () => {},
+      arreter: () => {},
       terminer: () => {},
     };
   };

@@ -20,10 +20,10 @@ avant terme rend. Les contraintes à ne pas casser sont dans
 | --- | --- | --- | --- |
 | Lancement | `src/hooks/useBuildOptimSearch.ts` | `useBuildOptimSearch` (`run`, `stop`, `cancel`) | [02-app/optimizer/feat-interruption.md](../../../02-app/optimizer/feat-interruption.md) |
 | Préparation | `src/workers/prepareForSearch.ts`, `src/lib/runeBuildOptim.ts` | `prepareOrRefuse`, `prepareSearch` | [elagages.md](elagages.md) |
-| Construction des moitiés | `src/workers/runeBuildOptim.worker.ts`, `src/workers/buildHalf.worker.ts`, `src/lib/runeBuildOptim.ts` | `buildHalfInWorker`, `buildBuckets` | [elagages.md](elagages.md) |
-| Choix du régime | `src/workers/runeBuildOptim.worker.ts`, `src/lib/runeBuildOptim.ts` | `totalPairCount` | [parallelisation.md](parallelisation.md) |
-| Appariement séquentiel | `src/workers/pairingDriver.ts`, `src/lib/runeBuildOptim.ts` | `drivePairing`, `pairBuckets` | [elagages.md](elagages.md), [02-app/optimizer/feat-interruption.md](../../../02-app/optimizer/feat-interruption.md) |
-| Appariement parallèle | `src/workers/parallelPairing.ts`, `src/workers/pairSliceBody.ts`, `src/workers/pairSlice.worker.ts` | `driveParallelPairing`, `runPairSlice`, `combineParallelPairingResults` | [parallelisation.md](parallelisation.md) |
+| Construction des moitiés | `src/workers/runeBuildOptim.worker.ts`, `src/workers/buildHalf.worker.ts`, `src/lib/rechercheRunes.ts`, `src/lib/constructionRapide.ts` | `buildHalfInWorker`, `construireMoitie`, `construireMoitieRapide` | [elagages.md](elagages.md) |
+| Choix du régime | `src/workers/runeBuildOptim.worker.ts`, `src/workers/parallelPairing.ts`, `src/lib/runeBuildOptim.ts` | `totalPairCount`, `verifierContrat`, `regimeAppariement`, `nombreDeTravailleurs` | [parallelisation.md](parallelisation.md) |
+| Appariement séquentiel | `src/workers/pairingDriver.ts`, `src/lib/rechercheRunes.ts`, `src/lib/appariementRapide.ts` | `drivePairing`, `apparier`, `apparierRapide` | [elagages.md](elagages.md), [02-app/optimizer/feat-interruption.md](../../../02-app/optimizer/feat-interruption.md) |
+| Appariement parallèle | `src/lib/appariementRapideParallele.ts`, `src/workers/appariementRapide.worker.ts`, `src/lib/appariementRapide.ts` | `apparierRapideEnParallele`, `traiterMorceau` | [parallelisation.md](parallelisation.md) |
 | Fin de l'appariement | `src/workers/runeBuildOptim.worker.ts`, `src/hooks/useBuildOptimSearch.ts` | `useBuildOptimSearch` | — |
 | Résolution de l'équipement d'un build | `src/lib/relicQueue.ts` | `entreeResolutionDuBuild`, `resoudreEquipementDuBuild` | [artefacts.md](artefacts.md), [reliques.md](reliques.md) |
 | Worker de résolution | `src/workers/resolution.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | `CorpsResolution`, `ResolutionDistante` | [parallelisation.md](parallelisation.md) |
@@ -109,22 +109,54 @@ pré-filtré et les champs de `PreparedSearch` utiles à la construction, plus
 Les deux moitiés sont indépendantes : chacune ne lit que des bornes
 calculées par la préparation, jamais l'autre moitié construite.
 
-Le Worker enfant pilote le générateur `buildBuckets` jusqu'au bout, poste sa
+Le Worker enfant pilote le générateur `construireMoitie`
+(`src/lib/rechercheRunes.ts`) jusqu'au bout, poste sa
 progression (runes du premier emplacement de la moitié déjà parcourues, sur
 leur total) au plus une fois par palier de temps, puis un dernier point de
 passage garanti, puis ses compartiments (`Bucket[]`). Le Worker parent les
 relaie sans palier supplémentaire (`phase: 'building'`), et le hook garde la
 progression des deux moitiés séparément (`halves.A`, `halves.B`).
 
-`buildBuckets` énumère les combinaisons des trois emplacements de la moitié
+La construction énumère les combinaisons des trois emplacements de la moitié
 et les range en compartiments, par le compte exact de pièces de chaque set
-demandé et le nombre de jokers (`bucketKeyOf`). Il coupe une branche qui
+demandé et le nombre de jokers (`bucketKeyOf`). Elle coupe une branche qui
 porterait deux jokers ou qui ne peut plus compléter un set demandé
 (`stillFeasible`), retient les combinaisons dans plusieurs tas en parallèle
 (`heapPush`), bornés à partir de `bucketCap`, et rend les compartiments triés
 par potentiel décroissant ; `combosOrderMode` ordonne les combinaisons à
 l'intérieur d'un compartiment. Détail :
 [elagages.md § Pré-filtrage heuristique et compartiments](elagages.md).
+
+`construireMoitie` confie ce travail à un noyau sur tableaux typés,
+`construireMoitieRapide` (`src/lib/constructionRapide.ts`), qui rend
+exactement les compartiments de `buildBuckets`, la référence :
+
+- aucune allocation par combinaison : les sommes de chaque triplet vont dans
+  un tampon, son compartiment est un entier (comptes en base 4, jokers en
+  tête), une entrée de tas un couple (score, code du triplet) ; les
+  `HalfCombo` ne se construisent qu'à la fin, pour les triplets restés dans
+  un tas ;
+- mêmes nombres au bit près : mêmes expressions dans le même ordre
+  (`p0 + p1 + p2`, `ceil(b × pct / 100) + flat`, la tranche combinée sommée
+  minimum par minimum) ; même tas, comparaison par comparaison et échange
+  par échange, donc mêmes ex æquo et même ordre final ;
+- le code d'un triplet, `(idx0 × n1 + idx1) × n2 + idx2`, croît dans l'ordre
+  d'énumération de `buildBuckets` : il donne l'ordre de création des
+  compartiments et celui des clés de `maxPct`/`maxFlat` ;
+- le même point de passage, une fois par rune du premier emplacement.
+
+Trois cas restent à `buildBuckets` (`motifRepliConstruction`, qui nomme le
+motif) : un traceur de diagnostic demandé (`SearchParams.traceur`, que le
+noyau ne remplit pas), une moitié de plus de 2³¹ triplets, que le code
+entier ne couvre plus, et des capacités de tas hors des entiers 32 bits du
+noyau — `bucketCap` non entier, négatif ou tel que `bucketCap × (2 + stats
+retenues)` dépasse 2³¹ − 1 (un override de mesure à 2³¹ ou `Infinity`
+deviendrait négatif ou nul dans un `Int32Array`, et la moitié rendrait zéro
+combinaison), ou, sous « Prioriser les stats les plus difficiles », une
+capacité redistribuée (`trancheReallocation`) hors de ces entiers. La
+même `construireMoitie` sert le CLI (`runSearchToCompletion`), les fils de
+construction de Node (`scripts/lib/build-half-worker.ts` : harnais,
+`perf-battery`) et `searchBuildsSteps`.
 
 Un arrêt pendant cette phase termine les deux Workers enfants
 (`terminate()`) et rejette l'attente (`stopBuildReject`) : la recherche rend
@@ -142,17 +174,19 @@ paire de compartiments et de combinaison A que `pairBuckets`
 ⚠️ Les deux boucles se modifient ensemble : leur égalité est vérifiée par
 `tests/rune-optim-differential.test.ts`.
 
-Ce total sert de dénominateur à la progression et décide du régime : sous
-`PARALLEL_PAIRING_THRESHOLD` (`src/workers/parallelPairing.ts`), appariement
-séquentiel dans ce Worker ; à partir du seuil, appariement parallèle. Le
-seuil est le seul critère. Détail du régime parallèle :
+Ce total sert de dénominateur à la progression et décide du régime, avec le
+contrat numérique du noyau (`verifierContrat`) : `regimeAppariement`
+(`src/workers/parallelPairing.ts`) rend le séquentiel, dans ce Worker, sous
+`PARALLEL_PAIRING_THRESHOLD` ou hors contrat ; le parallèle à partir du
+seuil, sur `nombreDeTravailleurs(navigator.hardwareConcurrency)` Workers.
+Détail du régime parallèle et de la règle du nombre de Workers :
 [parallelisation.md § Choix du régime](parallelisation.md).
 
 ## Appariement séquentiel
 
 `drivePairing` (`src/workers/pairingDriver.ts`) pilote pas à pas le
-générateur `pairBuckets(prepared, bucketsA, bucketsB)`
-(`src/lib/runeBuildOptim.ts`). Il poste la progression au plus une fois par
+générateur `apparier(prepared, bucketsA, bucketsB)`
+(`src/lib/rechercheRunes.ts`). Il poste la progression au plus une fois par
 `PROGRESS_THROTTLE_MS`, avec les seuls candidats nouveaux depuis le message
 précédent ; il rend la main à la boucle d'événements au plus une fois par
 `YIELD_THROTTLE_MS`, ce qui laisse arriver le message d'arrêt ; à l'arrêt
@@ -162,17 +196,25 @@ quasi-succès déjà accumulés. Le Worker ajoute à chaque message `found`,
 candidats reçus pour l'aperçu, dans la limite de `PREVIEW_CANDIDATES_CAP`.
 Barre et pourcentage : [02-app/optimizer/feat-interruption.md § Barre de progression](../../../02-app/optimizer/feat-interruption.md#barre-de-progression).
 
-`pairBuckets` parcourt toutes les paires de compartiments, par potentiel
+`apparier` confie l'appariement au noyau sur tableaux typés,
+`apparierRapide` (`src/lib/appariementRapide.ts`), qui rend exactement le
+résultat de `pairBuckets` (`src/lib/runeBuildOptim.ts`), la référence ; hors
+contrat numérique, ou avec un traceur de diagnostic, `pairBuckets` lui-même
+(détail du noyau : [elagages.md § Sauts exacts du noyau d'appariement](elagages.md)).
+L'un et l'autre parcourent toutes les paires de compartiments, par potentiel
 combiné décroissant (`orderedCompartmentPairs`). Pour chaque paire de
 compartiments : sets satisfaisables d'après les comptes agrégés
 (`satisfiesSets`), au plus un joker pour les deux, borne optimiste des
 minimums (`bucketPairFeasibleMin`). Pour chaque combinaison A :
-`comboAFeasible`. Pour chaque combinaison B, la paire compte comme examinée
-(`explored`) ; un point de passage tombe toutes les `CHECKPOINT_EVERY`
-paires, puis le filet de temps est testé (`maxMs`, couru depuis
-`prepared.startedAt`, construction des moitiés comprise).
+`comboAFeasible`. Pour chaque combinaison B, la paire compte comme TRAITÉE
+(`explored`) : `pairBuckets` la juge une à une ; le noyau saute sans les
+juger les paires qui échoueraient sûrement au test rapide (1 ci-dessous) et
+visite les autres dans le même ordre. Un point de passage tombe toutes les
+`CHECKPOINT_EVERY` paires traitées, sautées comprises, et le filet de temps
+est testé (`maxMs`, couru depuis `prepared.startedAt`, construction des
+moitiés comprise) à chaque point de passage et à chaque paire visitée.
 
-Une paire examinée passe ensuite :
+Une paire visitée passe ensuite :
 
 1. un test rapide des minimums et maximums sur les pourcentages et valeurs
    fixes cumulés par moitié, plus les apports maximaux (minimums) ou
@@ -197,23 +239,26 @@ diagnostic si elle a été demandée (`traceur`). Détail des tests :
 
 ## Appariement parallèle
 
-À partir du seuil, `driveParallelPairing` (`src/workers/parallelPairing.ts`)
-répartit les compartiments de la moitié A en tranches
-(`partitionBucketsALPT`), au plus `PARALLEL_PAIRING_WORKERS` et jamais plus
-que de compartiments, donne à chaque tranche une part égale du plafond de
-candidats, et lance une tranche par Worker (`pairSliceInWorker`, coquille
-`src/workers/pairSlice.worker.ts`). Chaque tranche reçoit la moitié B entière
-et l'instant de départ global. `runPairSlice` (`src/workers/pairSliceBody.ts`)
-y refait la préparation (`prepareSearch` : une `PreparedSearch` porte des
-fonctions et ne traverse pas `postMessage`), remplace son `startedAt` par
-l'instant global, puis pilote `pairBuckets` sur sa tranche par le même
-`drivePairing`.
+À partir du seuil, contrat tenu, `apparierRapideEnParallele`
+(`src/lib/appariementRapideParallele.ts`) découpe l'espace en morceaux de
+lignes consécutives, dans l'ordre de `pairBuckets`, et les distribue à la
+demande à ses Workers (`lancerTravailleurNavigateur`, coquille
+`src/workers/appariementRapide.worker.ts`). Chaque Worker reçoit une fois
+les paramètres, l'instant de départ global et sa copie des compartiments sur
+tableaux typés, transférée ; il y refait la préparation (`prepareSearch` :
+une `PreparedSearch` porte des fonctions et ne traverse pas `postMessage`),
+remplace son `startedAt` par l'instant global, puis apparie chaque morceau
+reçu par le noyau (`parcourirMorceau`, piloté par tranches par
+`servirAppariement`).
 
-Les progressions des tranches s'additionnent ; les résultats se fusionnent
-par `combineParallelPairingResults`, qui reçoit `totalPairs`. Un arrêt poste
-`{ stop: true }` à chaque tranche ; les Workers sont terminés une fois les
-résultats reçus. Une erreur d'une tranche est rattrapée : Workers terminés,
-résultat vide tronqué. Détail : [parallelisation.md § Répartition et partage du plafond](parallelisation.md),
+Les résultats se fusionnent dans l'ORDRE des morceaux : le parallèle rend le
+résultat du séquentiel, plafond de candidats global compris, à la seule
+différence d'une recherche coupée par le temps ou arrêtée. La progression
+compte les paires traitées et les candidats des morceaux déjà fusionnés,
+comme le résultat. Un arrêt cesse de distribuer, arrête chaque Worker à sa
+ligne suivante et rend tout ce qui a été trouvé ;
+une erreur d'un Worker est rattrapée : tous les Workers terminés, résultat
+vide tronqué. Détail : [parallelisation.md § Répartition et partage du plafond](parallelisation.md),
 [parallelisation.md § Fusion des résultats](parallelisation.md) et
 [parallelisation.md § Arrêt, erreur et nettoyage](parallelisation.md).
 
@@ -222,13 +267,16 @@ résultat vide tronqué. Détail : [parallelisation.md § Répartition et partag
 Le Worker poste le résultat (`type: 'result'`) ; le hook l'enregistre
 (`result`), efface la progression et passe en `done`.
 
-Le même enchaînement existe hors Worker : `searchBuildsSteps` appelle
-`prepareSearch`, `buildBuckets` pour A puis pour B dans le même fil, puis
-`pairBuckets` ; `searchBuilds` le draine en un appel, sans Worker ni
-appariement parallèle. Des tests et des scripts l'utilisent ; d'autres
-pilotent l'appariement parallèle sous Node (`driveParallelPairing` avec
-`makeSpawnSliceNode`, `worker_threads`), ou appellent `prepareSearch` et
-`pairBuckets` directement.
+Le même enchaînement existe hors Worker : `searchBuildsSteps`
+(`src/lib/rechercheRunes.ts`, à part de `runeBuildOptim.ts` pour qu'aucun
+import n'y fasse de cycle) appelle
+`prepareSearch`, `construireMoitie` pour A puis pour B dans le même fil, puis
+`apparier` ; `searchBuilds` le draine en un appel, sans Worker ni
+appariement parallèle. Des tests et le CLI (`runSearchToCompletion`, même
+séquence) l'utilisent ; le harnais pilote l'appariement parallèle sous Node
+(`apparierRapideEnParallele` avec `lancerTravailleurNode`, `worker_threads`).
+Des scripts de diagnostic appellent `buildBuckets` et `pairBuckets`
+directement : ils mesurent la référence, pas la production.
 
 ## Résolution de l'équipement d'un build
 
@@ -402,8 +450,12 @@ le plafond de candidats ou par l'arrêt manuel. Valeurs, réglages et
 messages : [02-app/optimizer/feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel](../../../02-app/optimizer/feat-interruption.md#interruption--filet-de-temps-pré-filtrage-et-arrêt-manuel).
 
 Le filet de temps, `maxMs` (défaut `DEFAULT_MAX_MS`), court depuis
-`prepared.startedAt`. `pairBuckets` le teste à chaque point de passage
-(§ Appariement séquentiel) et rend alors un résultat tronqué (`truncated`).
+`prepared.startedAt`. L'appariement le teste à chaque point de passage et à
+chaque paire visitée (§ Appariement séquentiel), chaque Worker du parallèle
+à chaque ligne et à chaque paire visitée, et rend alors un résultat tronqué
+(`truncated`). Une paire sautée par le noyau ne le teste pas une à une :
+l'arrêt peut tomber jusqu'à `CHECKPOINT_EVERY − 1` paires plus loin qu'avec
+`pairBuckets`, sur une recherche coupée par le temps seulement.
 Quand `maxMs` n'est pas fini, le terme de temps d'`estimatePct` vaut 0.
 
 L'arrêt manuel part du bouton « Arrêter » : il pose `stoppedManually` et
@@ -418,17 +470,18 @@ agit selon la phase :
   générateur et rend les candidats, `explored` et le quasi-succès
   accumulés, avec `truncated: true`. Le message d'arrêt n'est lu que quand le
   pilote rend la main (`YIELD_THROTTLE_MS`) ;
-- appariement parallèle : chaque tranche reçoit `{ stop: true }` et rend ce
-  qu'elle a trouvé ; `combineParallelPairingResults` fusionne.
+- appariement parallèle : le Worker appelle l'arrêt que le coordinateur lui
+  a donné (`arreterAppariement`) ; plus aucun morceau ne part, chaque
+  Worker reçoit l'arrêt entre deux tranches de `TRANCHE_MS` (100 ms) et rend
+  son morceau en cours tel quel, et tout ce qui a été trouvé est fusionné et
+  rendu, tronqué.
 
 Dans tous les cas, le Worker poste un résultat ordinaire (`type: 'result'`)
 et le hook passe en `done`. Le message affiché sous un résultat tronqué
 dépend de `stoppedManually`, remis à faux à chaque lancement par
 `handleSearch` : le meilleur trouvé jusque-là après un arrêt manuel, une
-invitation à resserrer les critères sinon. En parallèle, la fusion dérive un
-motif (`motifTroncature`) : `maxCollected`, puis `maxMs`, puis `quotaTranche`.
-Elle ignore l'arrêt manuel : une tranche arrêtée sous son quota y compte
-comme `maxMs`. L'écran ne lit que `truncated`.
+invitation à resserrer les critères sinon. Le résultat ne porte pas de
+motif : l'écran ne lit que `truncated`.
 
 « Arrêter » n'arrête que la recherche de runes. La file de résolution lit le
 résultat posté, tronqué ou non, et continue vers `K` confirmées. `cancel`, au

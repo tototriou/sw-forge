@@ -1,6 +1,11 @@
-// Banc du PROTOTYPE de noyau d'appariement (src/lib/appariementRapide.ts,
-// chantier perf-moteur, lot 2) : le prototype et `pairBuckets` sur les MÊMES
-// compartiments, et leur différentiel (contrat A.2 bis 4 du chantier).
+// Banc de l'appariement de production (noyau sur tableaux typés,
+// src/lib/appariementRapide.ts) : le chemin de production — `apparier` en
+// séquentiel, `apparierRapideEnParallele` en parallèle, moitiés construites
+// par les fils de production (`construireMoitie`) — et `pairBuckets`, la
+// référence, sur les MÊMES compartiments, avec leur différentiel : candidats
+// dans l'ordre (ids, stats, effTotal), paires traitées, quasi-succès, motif.
+// L'empreinte des compartiments se compare à celle d'une référence en cache,
+// calculée sur des moitiés construites par `buildBuckets`.
 //
 // Usage :
 //   npx tsx scripts/banc-appariement-rapide.ts --cas=<indice|nom|tous>
@@ -10,13 +15,14 @@
 //   --petit=<n>                   le petit plafond de candidats (défaut 1000)
 //   --arret=<N>                   arrêt déterministe au point de passage traitees = N
 //                                 (défaut : min(moitié de l'espace, 500 M), multiple de 500)
-//   --workers=4,8,16              les régimes parallèles du prototype (défaut 4,8,16 ; 0 = aucun)
+//   --workers=prod,4,8            les régimes parallèles (défaut prod : le nombre de Workers de la
+//                                 production sur cette machine, `nombreDeTravailleurs` ; 0 = aucun)
 //   --resoudre                    résolution de l'équipement du CLI (--resoudre-tout) sur
 //                                 les candidats du mode `petit`, des deux côtés
 //   --cache=<dossier>             garde les résultats de référence (runs longs) entre deux passes
 //   --sortie=<dossier>            écrit le rapport texte et le JSON du cas
 //   --suffixe=<texte>             ajouté au nom des fichiers de sortie (deux passes d'un même cas)
-//   --controle-validation         compare la validation typée (lot 2 ter) à la production, paire
+//   --controle-validation         compare la validation typée à la référence, paire
 //                                 par paire, sur chaque survivant de quickOk de l'espace entier
 //
 // ⚠️ **Fidélité** (skill `algo-verify`) : préparation par `prepareSearch`,
@@ -25,7 +31,7 @@
 // arguments, drainé sans budget de paires. Deux overrides, MARQUÉS en tête de
 // sortie : `maxMs` levé (aucune troncature par le temps) et `maxCollected`
 // fixé par le mode. Le régime de référence est SÉQUENTIEL : la fusion du
-// prototype parallèle redonne l'ordre séquentiel, c'est à lui qu'il se compare.
+// parallèle redonne l'ordre séquentiel, c'est à lui qu'il se compare.
 //
 // ⚠️ **Les temps affichés sont INDICATIFS** : une passe, sans protocole
 // (aucune répétition entrelacée, contention non contrôlée). Ils ne servent à
@@ -46,11 +52,14 @@ import {
   prepareSearch,
   totalPairCount,
 } from '../src/lib/runeBuildOptim';
+import { availableParallelism } from 'os';
 import { apparierRapide, runesAPlat, verifierContrat } from '../src/lib/appariementRapide';
 import { ValidationTypee } from '../src/lib/validationRapide';
 import { bilanVide, comparerPaire } from './lib/controleValidationRapide';
 import { drain } from './lib/drain';
 import { apparierRapideEnParallele } from '../src/lib/appariementRapideParallele';
+import { apparier } from '../src/lib/rechercheRunes';
+import { nombreDeTravailleurs } from '../src/workers/parallelPairing';
 import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { chargerRecette } from './lib/chargerRecette';
 import { resoudreCas, resoudreSelectionCas, verifierComptesDisponibles } from './lib/diagnosticLot';
@@ -69,7 +78,10 @@ type Mode = 'complet' | 'petit' | 'arret';
 const MODES = (valeur('modes') ?? 'complet,petit,arret').split(',').map((m) => m.trim()) as Mode[];
 for (const m of MODES) if (!['complet', 'petit', 'arret'].includes(m)) throw new Error(`--modes : « ${m} » inconnu (complet | petit | arret)`);
 const PETIT = Number(valeur('petit') ?? 1000);
-const WORKERS = (valeur('workers') ?? '4,8,16').split(',').map(Number).filter((n) => n > 0);
+const WORKERS = (valeur('workers') ?? 'prod')
+  .split(',')
+  .map((w) => (w.trim() === 'prod' ? nombreDeTravailleurs(availableParallelism()) : Number(w)))
+  .filter((n) => n > 0);
 // Le corpus du différentiel complet (A.2 bis 4) : au-delà de 2 M candidats, le
 // cas en sort ; le plafond est posé juste au-dessus pour le constater.
 const PLAFOND_CORPUS = 2_000_000;
@@ -117,7 +129,7 @@ interface Etat {
   traitees: number;
   nearMissByCondition: SearchResult['nearMissByCondition'];
   globalNearMiss: SearchResult['globalNearMiss'];
-  motif: 'aucun' | 'maxCollected' | 'maxMs' | 'arret';
+  motif: 'aucun' | 'maxCollected' | 'maxMs' | 'arret' | 'manuel';
   ms: number;
   extra?: Record<string, unknown>;
 }
@@ -227,7 +239,7 @@ async function banc(src: Source, lignes: string[], json: Record<string, unknown>
       `${bucketsB.reduce((s, b) => s + b.combos.length, 0)} · empreinte ${digest}`
   );
   dire(`totalPairCount = ${totalPaires.toLocaleString('fr-FR')} · contraintes min ${prepared0.minEntries.map((e) => e.k).join('/') || '—'}, max ${prepared0.maxEntries.map((e) => e.k).join('/') || '—'}`);
-  dire(`Chemin du prototype : ${contrat ? `ACTUEL (contrat numérique non tenu : ${contrat})` : 'noyau (contrat numérique tenu)'}`);
+  dire(`Chemin de production : ${contrat ? `REPLI pairBuckets, séquentiel seulement (contrat numérique non tenu : ${contrat})` : 'noyau (contrat numérique tenu)'}`);
   json.totalPaires = totalPaires;
   json.empreinteCompartiments = digest;
   json.contrat = contrat;
@@ -240,8 +252,8 @@ async function banc(src: Source, lignes: string[], json: Record<string, unknown>
   let candidatsPetit: { ref: BuildCandidate[]; proto: BuildCandidate[] } | null = null;
   const lanceur = WORKERS.length > 0 ? lancerTravailleurNode(await assurerBundleAppariementRapide()) : null;
 
-  // Contrôle paire par paire de la validation typée (lot 2 ter) sur les
-  // survivants RÉELS de `quickOk`, espace entier, contre la production.
+  // Contrôle paire par paire de la validation typée sur les survivants
+  // RÉELS de `quickOk`, espace entier, contre la référence.
   if (drapeau('controle-validation')) {
     const controle = new ValidationTypee(prepared0, runesAPlat(bucketsA), runesAPlat(bucketsB));
     if (controle.motif) {
@@ -301,29 +313,25 @@ async function banc(src: Source, lignes: string[], json: Record<string, unknown>
     };
     modes[mode] = m;
 
-    // Prototype séquentiel.
+    // Production, séquentiel (`apparier`, piloté comme le Worker de l'écran).
     {
       const debut = performance.now();
-      const gen = apparierRapide(prepared, bucketsA, bucketsB);
-      const { etat, fin } = piloter(gen, maxCollected, arret);
+      const gen = apparier(prepared, bucketsA, bucketsB);
+      const { etat } = piloter(gen, maxCollected, arret);
       const ms = performance.now() - debut;
       const proto: Etat = { ...etat, ms };
       const diff = difference(ref, proto);
       if (diff) toutEgal = false;
-      const fr = fin as (SearchResult & { visitees?: number; sautees?: number; chemin?: string; cheminValidation?: string; motifValidation?: string; compteurs?: unknown }) | null;
       dire(
-        `  prototype séquentiel : ${diff ? `DIFFÈRE — ${diff}` : 'ÉGAL'} · ${proto.candidates.length.toLocaleString('fr-FR')} candidats, traitees ${proto.traitees.toLocaleString('fr-FR')}` +
-          (fr?.visitees != null ? `, visitees ${fr.visitees.toLocaleString('fr-FR')}, sautees ${fr.sautees!.toLocaleString('fr-FR')}` : '') +
-          ` · ${(ms / 1000).toFixed(2)} s, ${(proto.traitees / ms / 1000).toFixed(1)} M paires/s [indicatif]` +
-          (fr?.cheminValidation ? ` · validation ${fr.cheminValidation}${fr.motifValidation ? ` (${fr.motifValidation})` : ''}` : '') +
-          (fr?.compteurs ? `\n    compteurs ${JSON.stringify(fr.compteurs)}` : '')
+        `  production séquentielle (apparier) : ${diff ? `DIFFÈRE — ${diff}` : 'ÉGAL'} · ${proto.candidates.length.toLocaleString('fr-FR')} candidats, traitees ${proto.traitees.toLocaleString('fr-FR')}` +
+          ` · ${(ms / 1000).toFixed(2)} s, ${(proto.traitees / ms / 1000).toFixed(1)} M paires/s [indicatif]`
       );
-      m.sequentiel = { egal: diff == null, difference: diff, candidats: proto.candidates.length, traitees: proto.traitees, empreinte: empreinteCandidats(proto.candidates), ms: Math.round(ms), visitees: fr?.visitees, sautees: fr?.sautees, chemin: fr?.chemin, cheminValidation: fr?.cheminValidation, compteurs: fr?.compteurs };
+      m.sequentiel = { egal: diff == null, difference: diff, candidats: proto.candidates.length, traitees: proto.traitees, empreinte: empreinteCandidats(proto.candidates), ms: Math.round(ms) };
       if (mode === 'petit') candidatsPetit = { ref: ref.candidates, proto: proto.candidates };
     }
 
-    // Prototype parallèle, à la demande.
-    for (const W of WORKERS) {
+    // Production, parallèle à la demande (le coordinateur du Worker de l'écran, lanceur Node).
+    for (const W of contrat ? [] : WORKERS) {
       const debut = performance.now();
       const { valeur: r, picMo } = await avecPicMemoire(() =>
         apparierRapideEnParallele({
@@ -336,7 +344,7 @@ async function banc(src: Source, lignes: string[], json: Record<string, unknown>
       const diff = difference(ref, proto);
       if (diff) toutEgal = false;
       dire(
-        `  prototype ${W} Workers : ${diff ? `DIFFÈRE — ${diff}` : 'ÉGAL'} · ${r.candidates.length.toLocaleString('fr-FR')} candidats, traitees ${r.traitees.toLocaleString('fr-FR')}` +
+        `  production parallèle, ${W} Workers : ${diff ? `DIFFÈRE — ${diff}` : 'ÉGAL'} · ${r.candidates.length.toLocaleString('fr-FR')} candidats, traitees ${r.traitees.toLocaleString('fr-FR')}` +
           ` · ${r.morceaux} morceaux (plus gros ${r.plusGrosMorceau.toLocaleString('fr-FR')} paires, ${r.morceauxTraites} traités : ${r.parTravailleur.join('/')}) · planification ${r.msPlanification} ms` +
           ` · ${(ms / 1000).toFixed(2)} s, ${(r.traitees / ms / 1000).toFixed(1)} M paires/s, pic RSS ${picMo} Mo [indicatif]` +
           ` · validation ${r.cheminValidation}${r.motifValidation ? ` (${r.motifValidation})` : ''}`
@@ -366,7 +374,7 @@ async function banc(src: Source, lignes: string[], json: Record<string, unknown>
       if (!egal) toutEgal = false;
       dire(
         `\n[résolution --resoudre-tout] ${a.resolu ? `${a.resolu.parBuild.size} builds résolus, ${a.resolu.rejetes} rejetés, ${a.classes.length} classés` : 'aucune file (optimisation d’artéfacts coupée)'} · ` +
-          `classement résolu ${egal ? 'ÉGAL' : 'DIFFÈRE'} entre référence et prototype · ${(msA / 1000).toFixed(1)} s par passe [indicatif]`
+          `classement résolu ${egal ? 'ÉGAL' : 'DIFFÈRE'} entre référence et production · ${(msA / 1000).toFixed(1)} s par passe [indicatif]`
       );
       json.resolution = { egal, resolus: a.resolu?.parBuild.size ?? 0, rejetes: a.resolu?.rejetes ?? 0, classes: a.classes.length, empreinte: empreinte(cle(a)), ms: Math.round(msA) };
     }

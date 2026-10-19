@@ -23,8 +23,8 @@ décrit le reste : construction observée, build cible, différentiel.
 | `scripts/lib/diagnosticTypes.ts` | le vocabulaire, types seuls |
 | `scripts/lib/randomPool.ts` | le pool synthétique à graine |
 | `scripts/lib/chargerRecette.ts` | recette + export de compte vers `SearchParams`, séquence partagée avec `scripts/optimizer-search.ts` |
-| `scripts/lib/buildHalvesNode.ts`, `scripts/lib/build-half-worker.ts` | les deux moitiés, sur deux `worker_threads`, par le vrai `buildBuckets` |
-| `scripts/lib/spawnSliceNode.ts`, `scripts/lib/pair-slice-worker.ts` | l'appariement parallèle : coquille Node du `runPairSlice` de production |
+| `scripts/lib/buildHalvesNode.ts`, `scripts/lib/build-half-worker.ts` | les deux moitiés, sur deux `worker_threads`, par la construction de production (`construireMoitie`) |
+| `scripts/lib/appariementRapideNode.ts`, `scripts/lib/appariement-rapide-worker.ts` | l'appariement parallèle : lanceur et coquille Node du corps de production (`initialiserTravailleur`, `traiterMorceau`) |
 | `scripts/lib/diagnosticLot.ts`, `scripts/lib/diagnosticProfils.ts`, `scripts/lib/diagnosticDifferentiel.ts` | modes lot (`--cas`), profils synthétiques (`--profils`, `--profil`) et différentiel entrelacé (`--differentiel`), dont l'usage est en tête du CLI (l. 31-58) |
 | `scripts/diagnostic-harness-parite.ts` | parité contre l'ancienne reconstruction (voir « Validation du harnais ») |
 | `scripts/monster-search-rank-diag.ts` | rang d'un demi-build dans les tranches internes de `buildBuckets`, que le harnais n'observe pas |
@@ -38,7 +38,7 @@ moteur utilisait déjà (`PER_STAT_KEEP`, `PER_STAT_KEEP_OBJECTIVE`,
 plutôt que recopiés. Le CLI se lance par `npx tsx scripts/diagnostic-harness.ts …`,
 comme `scripts/perf-battery.ts:506` se relance ; il bundle ses deux workers par
 esbuild dans le dossier temporaire du système, une fois, avant toute mesure
-(`scripts/lib/buildHalvesNode.ts:57-70`, `scripts/lib/spawnSliceNode.ts:27-41`).
+(`scripts/lib/buildHalvesNode.ts`, `scripts/lib/appariementRapideNode.ts`).
 
 ## Lancer un diagnostic
 
@@ -106,8 +106,8 @@ La séquence est celle de `src/workers/runeBuildOptim.worker.ts`
 | Phase | Fonctions de production | Ce que le harnais observe |
 |---|---|---|
 | **A — Préparation** | `prepareSearch` : principale → `pruneDominated` → `eliminateInfeasible` → `filterSlot` | 4 étages via `onStage`, puis le `PreparedSearch` |
-| **B — Demi-builds** | `buildBuckets` pour A et pour B, en parallèle | compartiments, demi-builds, `totalPairCount` |
-| **C — Appariement** | `pairBuckets` en séquentiel, ou `driveParallelPairing` | `SearchResult`, complétude |
+| **B — Demi-builds** | `construireMoitie` pour A et pour B, en parallèle | compartiments, demi-builds, `totalPairCount` |
+| **C — Appariement** | `apparier` en séquentiel, ou `apparierRapideEnParallele` | `SearchResult`, complétude |
 | **D — Classement** | `sortCandidates` | candidats classés |
 
 `--arret` désigne une phase, ou un étage de la phase A. S'arrêter à un étage
@@ -150,7 +150,7 @@ sinon rappeler les fonctions une par une — un second pipeline. D'où
   frappe échoue à la compilation (`:3917-3926`) ;
 - il reçoit la référence réelle de l'étage suivant et ne la mute jamais ;
 - omis, comportement strictement inchangé : quatre tests de branche par appel,
-  y compris dans `pairSlice.worker.ts`, qui rappelle `prepareSearch`.
+  y compris dans chaque Worker d'appariement parallèle, qui rappelle `prepareSearch`.
 
 `tests/rune-optim-onstage.test.ts:118-190` vérifie un `PreparedSearch`
 identique avec et sans observateur, les quatre étages signalés dans l'ordre
@@ -280,21 +280,18 @@ identifiant ; seules les runes y sont branchées. Qui l'étend :
 
 Après l'appariement, `evaluerCompletude`
 (`scripts/lib/diagnosticHarness.ts:1834-1868`) rend `complet`,
-`incomplet — raison : maxMs | maxCollected | quotaTranche`, ou
+`incomplet — raison : maxMs | maxCollected`, ou
 `INCOHÉRENT — incomplet, motif NON déductible`.
 
-- **Trois motifs seulement** (`MotifTroncature`, `src/lib/runeBuildOptim.ts:503`) ;
-  `quotaTranche`, en parallèle seulement, est une tranche arrêtée sur sa part
-  du plafond alors qu'il restait des paires.
-- **Le motif se LIT quand le résultat le porte** : `combineParallelPairingResults`
-  (`src/lib/runeBuildOptim.ts:4501`) le pose sur le résultat fusionné (ordre
-  fixe : plafond global, temps, quota de tranche), avec le `totalPairs` que le
-  harnais a calculé pour choisir le régime et transmis à `driveParallelPairing`
-  (`scripts/lib/diagnosticHarness.ts:1103-1117`). Sinon, en séquentiel, il se
-  DÉDUIT : `pairBuckets` teste le temps AVANT de pousser un candidat et le
-  plafond APRÈS ; tronquée au plafond atteint, c'est le plafond, sinon le temps.
+- **Deux motifs seulement** (`MotifTroncature`, `src/lib/runeBuildOptim.ts`) :
+  le plafond de candidats est global dans les deux régimes.
+- **Le motif se DÉDUIT**, dans les deux régimes : l'appariement teste le
+  temps AVANT de collecter un candidat et le plafond APRÈS ; tronquée au
+  plafond atteint, c'est le plafond, sinon le temps. Exact en parallèle aussi,
+  la fusion gardant le plafond global dans l'ordre séquentiel.
 - **Autodiagnostic** : `totalPairCount` est la borne exacte de l'espace (égale
-  à `explored` sans troncature, vérifié par `tests/rune-optim-differential.test.ts`).
+  à `explored`, les paires traitées, sans troncature, vérifié par
+  `tests/rune-optim-differential.test.ts`).
   Le harnais affiche toujours `explored / totalPairs` ; un run annoncé complet
   qui n'a pas tout exploré sort INCOHÉRENT, sans motif inventé — jamais
   `complet` avec une incohérence. Ne pas remplacer `complet` par un statut
@@ -360,34 +357,38 @@ Toute mesure suit le skill `optimizer-perf-testing`
 ## Régime d'appariement : le seuil de la production
 
 Le harnais ne choisit pas : une fois les moitiés construites,
-`totalPairs = totalPairCount(prepared, bucketsA, bucketsB)` ; à partir de
-`PARALLEL_PAIRING_THRESHOLD` (100 M de paires, `src/workers/parallelPairing.ts:58`),
-appariement parallèle sur au plus 4 workers, sinon séquentiel
-(`scripts/lib/diagnosticHarness.ts:1046-1051`) — la règle de
-`src/workers/runeBuildOptim.worker.ts:330-341`. Le régime s'affiche avec sa
-raison, « comme la production pour ce cas »
-(`scripts/lib/diagnosticHarness.ts:361-375`, `tests/diagnostic-harness.test.ts:360-370`).
+`totalPairs = totalPairCount(prepared, bucketsA, bucketsB)`, puis le contrat
+numérique du noyau, jugé SANS le traceur (que la production ne pose jamais :
+suivre une cible ne change pas le régime) ; `regimeAppariement` rend
+l'appariement parallèle à partir de `PARALLEL_PAIRING_THRESHOLD` (100 M de
+paires, `src/workers/parallelPairing.ts`), contrat tenu, sur
+`nombreDeTravailleurs(os.availableParallelism())` Workers, sinon le
+séquentiel — la règle de `src/workers/runeBuildOptim.worker.ts`, alimentée
+par la concurrence de la machine. Le régime s'affiche avec sa raison et le
+nombre de Workers, « comme la production pour ce cas »
+(`tests/diagnostic-harness.test.ts`). Avec une cible suivie, l'appariement
+séquentiel passe par `pairBuckets`, qui remplit la trace : mêmes résultats,
+plus lent ; en parallèle, le harnais apparie sans traceur.
 
 **La construction est toujours parallèle.** La production lance ses deux Web
-Workers de construction dans tous les cas
-(`src/workers/runeBuildOptim.worker.ts:305-310`) ; le harnais aussi, sur deux
-`worker_threads` qui appellent le vrai `buildBuckets`
-(`scripts/lib/buildHalvesNode.ts:116`), jamais selon la taille du cas. Ce
+Workers de construction dans tous les cas ; le harnais aussi, sur deux
+`worker_threads` qui appellent la vraie construction (`construireMoitie`,
+`scripts/lib/build-half-worker.ts`), jamais selon la taille du cas. Ce
 n'est pas qu'une question d'affichage : `maxMs` courant depuis `startedAt`, une
 construction séquentielle volerait du budget à l'appariement et trouverait
 moins de candidats sur un run tronqué par le temps
 (`scripts/lib/buildHalvesNode.ts:5-12`).
 
 **L'appariement parallèle est le code de production** :
-`driveParallelPairing` (même répartition, division du plafond et fusion que le
-navigateur) reçoit le lanceur Node (`scripts/lib/spawnSliceNode.ts:51`), qui
-exécute `runPairSlice` dans `scripts/lib/pair-slice-worker.ts`, coquille Node
-du même corps que `src/workers/pairSlice.worker.ts`
-(`scripts/lib/diagnosticHarness.ts:1077-1118`). Des implémentations Node de
+`apparierRapideEnParallele` (mêmes morceaux à la demande et même fusion dans
+l'ordre que le navigateur) reçoit le lanceur Node (`lancerTravailleurNode`,
+`scripts/lib/appariementRapideNode.ts`), dont les fils exécutent
+`scripts/lib/appariement-rapide-worker.ts`, coquille Node du même corps que
+`src/workers/appariementRapide.worker.ts` (`apparierEnParallele`,
+`scripts/lib/diagnosticHarness.ts`). Des implémentations Node de
 l'appariement parallèle, seule celle-là est le code de production :
-`scripts/lib/pairing-quota-worker.ts` est une reproduction au mode `shared`
-jamais mis en production, `scripts/lib/pairing-worker.ts` un prototype de débit
-brut.
+`scripts/lib/pairing-worker.ts` est un prototype de débit brut sur
+`pairBuckets`.
 
 ## Forcer un régime
 

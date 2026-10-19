@@ -1,9 +1,17 @@
-// PROTOTYPE (chantier perf-moteur, lot 2 bis) — construction des moitiés sur
-// tableaux typés, À CÔTÉ de `buildBuckets`, jamais à sa place : aucun appelant
-// de production ne l'importe. Contrat : rendre EXACTEMENT les compartiments de
+// Construction des moitiés sur tableaux typés : le chemin de production
+// (`construireMoitie`, src/lib/rechercheRunes.ts, appelé par les Workers de
+// moitié, le CLI, le harnais et `searchBuilds`). `buildBuckets` reste la
+// RÉFÉRENCE et le repli (traceur de diagnostic, moitié de plus de 2³¹
+// triplets). Contrat : rendre EXACTEMENT les compartiments de
 // `buildBuckets` (mêmes clés, comptes, jokers, `combos` dans le même ordre avec
 // leurs `pct`/`flat`/`relevanceScore`, mêmes `maxPct`/`maxFlat` jusqu'à l'ordre
-// de leurs clés, même `potential`), vérifié par `premiereDivergence`.
+// de leurs clés, même `potential`), vérifié par `premiereDivergence`
+// (tests/construction-rapide.test.ts). Voir
+// docs/03-developpeur/optimizer/moteur/pipeline.md § Construction des moitiés.
+//
+// Le découpage parallèle ci-dessous (`construireTranche`, `fusionnerTranches`)
+// n'est pas branché en production : seul le banc
+// (scripts/banc-construction-moities.ts) l'exerce.
 //
 // Ce qui change, et pourquoi le résultat ne bouge pas :
 // - Aucune allocation par combinaison. `buildBuckets` crée, pour CHAQUE triplet
@@ -201,7 +209,7 @@ function preparerNoyau(
   const pools: [RuneDetail[], RuneDetail[], RuneDetail[]] = [filtered[i0], filtered[i1], filtered[i2]];
   const n: [number, number, number] = [pools[0].length, pools[1].length, pools[2].length];
   if (n[0] * n[1] * n[2] > 0x7fffffff) {
-    throw new Error(`constructionRapide : ${n.join('×')} triplets dépassent le code entier 32 bits du prototype.`);
+    throw new Error(`constructionRapide : ${n.join('×')} triplets dépassent le code entier 32 bits du noyau.`);
   }
   const trackedKeys = Array.from(new Set<StatKey>([...constrainedKeys, ...retentionKeys]));
   const T = trackedKeys.length;
@@ -617,7 +625,7 @@ function materialiser(
 }
 
 function refuserTraceur(ctx: BuildBucketsContext | ContexteConstruction): void {
-  if ((ctx as BuildBucketsContext).traceur) throw new Error('constructionRapide : le traceur de diagnostic n’est pas pris en charge par le prototype.');
+  if ((ctx as BuildBucketsContext).traceur) throw new Error('constructionRapide : le traceur de diagnostic n’est pas pris en charge par le noyau (construireMoitie passe alors par buildBuckets).');
 }
 
 /* --------------------------------------------------------------------------

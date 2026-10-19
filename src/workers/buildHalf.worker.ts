@@ -1,10 +1,11 @@
 /// <reference lib="webworker" />
-// Worker DÉDIÉ à la construction d'UNE SEULE moitié (`buildBuckets`), spawné
+// Worker DÉDIÉ à la construction d'UNE SEULE moitié (`construireMoitie` :
+// le noyau sur tableaux typés, `buildBuckets` en repli), spawné
 // PAR `runeBuildOptim.worker.ts` (pas par l'app directement) pour paralléliser
 // la construction des deux moitiés A et B sur deux cœurs plutôt qu'un seul —
 // voir docs/03-developpeur/optimizer/ § Construction des moitiés.
 // Reste minimal, comme runeBuildOptim.worker.ts : aucune
-// logique propre, pilote juste `buildBuckets` pas à pas pour pouvoir relayer
+// logique propre, pilote juste la construction pas à pas pour pouvoir relayer
 // une progression pendant que ça tourne.
 //
 // ⚠️ Pas de protocole d'arrêt ICI (contrairement à runeBuildOptim.worker.ts) :
@@ -14,7 +15,8 @@
 // Worker n'a donc besoin de gérer qu'UN seul message (la demande initiale),
 // jamais un second message « stop ».
 
-import { buildBuckets, Bucket } from '../lib/runeBuildOptim';
+import { Bucket } from '../lib/runeBuildOptim';
+import { construireMoitie } from '../lib/rechercheRunes';
 import { StatKey } from '../lib/effects';
 import { RuneDetail, BaseStats } from '../types';
 
@@ -68,7 +70,7 @@ const PROGRESS_THROTTLE_MS = 150;
 self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
   const { half, slotIdxs, filtered, otherHalfMaxSets, adaptiveTrancheWeighting, combosOrderMode } = e.data;
   // Connu D'AVANCE (indépendant du générateur) : le total réel que
-  // `buildBuckets` utilisera pour CE premier emplacement de la moitié — sert
+  // la construction utilisera pour CE premier emplacement de la moitié — sert
   // au message de fin garanti ci-dessous, voir son commentaire.
   const total = filtered[slotIdxs[0]].length;
   // ⚠️ `e.data` (BuildHalfRequest) satisfait déjà STRUCTURELLEMENT
@@ -77,10 +79,7 @@ self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
   // trop (half/slotIdxs/otherHalfMaxSets/…) sont ignorés sans risque
   // puisque ce n'est pas un littéral d'objet (aucune vérification de
   // propriété excédentaire de TypeScript ici).
-  const gen = buildBuckets(
-    half, slotIdxs, e.data, otherHalfMaxSets,
-    undefined, adaptiveTrancheWeighting, combosOrderMode
-  );
+  const gen = construireMoitie(half, slotIdxs, e.data, otherHalfMaxSets, adaptiveTrancheWeighting, combosOrderMode);
   let lastPost = 0;
   let step = gen.next();
   while (!step.done) {

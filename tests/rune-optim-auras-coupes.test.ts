@@ -38,8 +38,8 @@ import {
   avecAurasConditions,
   diagnoseFeasibility,
   rankBlockingConditions,
-  searchBuilds,
 } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import type { Objective, SearchParams, SearchResult, TraceCandidat } from '../src/lib/runeBuildOptim';
 import { mulberry32, randomPool } from '../scripts/lib/randomPool';
 import type { BaseStats, RuneDetail } from '../src/types';

@@ -264,8 +264,9 @@ deux sont indépendants (`DecouverteBuildCible`, `scripts/lib/diagnosticTypes.ts
 `tests/diagnostic-decouverte.test.ts:47-61`). Trois marques partent avec la
 valeur (`rendreDecouverte`, `scripts/lib/diagnosticHarness.ts:827-866`) :
 c'est un MAJORANT, à `CHECKPOINT_EVERY` paires près en séquentiel
-(`granularitePaires`) ; en parallèle, relevé à intervalle de temps sur la
-somme des fils, deux runs identiques peuvent rendre deux instants
+(`granularitePaires`) ; en parallèle, relevé à chaque morceau reçu sur la
+somme des morceaux fusionnés (un préfixe du plan, qui avance par bonds
+selon l'arrivée des morceaux), deux runs identiques peuvent rendre deux instants
 (`reproductible: false`, `tests/diagnostic-decouverte.test.ts:80-101`), d'où
 une comparaison de configurations en séquentiel ou après mesure de la
 dispersion ; une absence (`absente`) ne conclut rien sur un run tronqué, et
@@ -434,7 +435,7 @@ Trois profils, du moins cher au plus cher (`PROFILS`,
 |---|---|---|---|
 | `fumee` | complet, séquentiel | aucun | vérifier que la boucle tourne : aucun plafond n'y mord, il ne détecte rien |
 | `complet-sensible` | complet, séquentiel | `bucketCap` | la référence : bras complets, population qui bouge avec `bucketCap` quand le rang de la cible ne bouge pas (`tests/diagnostic-differentiel.test.ts:100-112`) |
-| `quota-parallele` | `maxCollected`, parallèle | `bucketCap` | le versant au-dessus du seuil de régime, tronqué par quota |
+| `quota-parallele` | `maxCollected`, parallèle | `bucketCap` | le versant au-dessus du seuil de régime, tronqué par le plafond de candidats |
 
 Un profil est une valeur de `ConfigHarnais` écrite en TypeScript, pas un
 bouquet d'options : sa source porte le `BuildRequirement` entier et un

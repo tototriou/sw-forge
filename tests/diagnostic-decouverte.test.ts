@@ -86,11 +86,11 @@ export default async function testDiagnosticDecouverte() {
 
   egal(dt.regime, 'parallele', 'régime parallèle');
   // ⚠️ Ce n'est PAS un défaut du harnais : `explored` y est la somme des
-  // workers à l'instant d'un relevé TEMPOREL, et l'ordre d'arrivée des
-  // candidats dépend de l'ordonnancement des fils. Le masquer serait le
-  // mensonge que le harnais s'interdit.
+  // morceaux reçus, dans l'ordre où les fils les rendent — l'ordre des
+  // candidats est séquentiel, pas l'instant où ils apparaissent. Le masquer
+  // serait le mensonge que le harnais s'interdit.
   ok(!dt.reproductible, 'un run parallèle se déclare NON REPRODUCTIBLE sur cette grandeur');
-  egal(dt.granularitePaires, null, 'en parallèle la granularité est TEMPORELLE, donc pas un nombre de paires');
+  egal(dt.granularitePaires, null, 'en parallèle la granularité est le MORCEAU reçu, donc pas un nombre fixe de paires');
   ok(
     dt.jalons.some((j) => !j.atteint),
     'un run tronqué très tôt laisse des jalons NON ATTEINTS'

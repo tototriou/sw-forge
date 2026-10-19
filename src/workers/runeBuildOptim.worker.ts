@@ -3,26 +3,29 @@
 // lib/runeBuildOptim.ts et reste réutilisable dans les tests sans passer par
 // un Worker. Voir docs/02-app/compte/ §6 (Perf).
 //
-// ⚠️ Orchestre `prepareSearch` → `buildBuckets` (×2, EN PARALLÈLE, chacune
-// dans son propre Worker enfant — buildHalf.worker.ts) → `pairBuckets`,
-// plutôt que de piloter `searchBuildsSteps` d'un bloc comme avant : les deux
-// moitiés A et B sont indépendantes (aucune ne dépend du résultat construit
-// de l'autre, seulement de bornes calculées d'avance par `prepareSearch`),
-// donc les construire sur deux cœurs plutôt qu'un seul accélère cette phase
-// d'environ 2× — voir docs/03-developpeur/optimizer/ § Construction des moitiés.
-// La phase d'appariement (`pairBuckets`)
-// reste, elle, pilotée PAS À PAS dans CE Worker, exactement comme avant :
-// c'est ce qui permet de rendre la main à la boucle d'évènements entre deux
-// points de passage, condition nécessaire pour qu'un message d'arrêt envoyé
-// pendant que la recherche tourne soit reçu et traité (JS reste
-// single-threaded : un message ne peut être livré que quand le code en
-// cours d'exécution le permet).
+// ⚠️ Orchestre `prepareSearch` → `construireMoitie` (×2, EN PARALLÈLE, chacune
+// dans son propre Worker enfant — buildHalf.worker.ts) → l'appariement par le
+// noyau sur tableaux typés, plutôt que de piloter `searchBuildsSteps` d'un
+// bloc : les deux moitiés A et B sont indépendantes (aucune ne dépend du
+// résultat construit de l'autre, seulement de bornes calculées d'avance par
+// `prepareSearch`), donc les construire sur deux cœurs plutôt qu'un seul
+// accélère cette phase — voir docs/03-developpeur/optimizer/moteur/pipeline.md
+// § Construction des moitiés. L'appariement séquentiel (`apparier`) est piloté
+// PAS À PAS dans CE Worker : c'est ce qui permet de rendre la main à la
+// boucle d'évènements entre deux points de passage, condition nécessaire pour
+// qu'un message d'arrêt envoyé pendant que la recherche tourne soit reçu et
+// traité. Au-delà du seuil, l'appariement parallèle
+// (`apparierRapideEnParallele`) attend des Workers enfants, et la main revient
+// d'elle-même entre deux messages.
 
-import { pairBuckets, totalPairCount, PreparedSearch, SearchParams, SearchResult, Bucket, BuildCandidate } from '../lib/runeBuildOptim';
+import { totalPairCount, PreparedSearch, SearchParams, SearchResult, Bucket, BuildCandidate } from '../lib/runeBuildOptim';
 import { RelicVide } from '../lib/relicOptim';
+import { apparier } from '../lib/rechercheRunes';
+import { verifierContrat } from '../lib/appariementRapide';
+import { PoigneeTravailleur, apparierRapideEnParallele, enResultatDeRecherche, type LancerTravailleur } from '../lib/appariementRapideParallele';
 import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
-import { PairSliceRequest, PairSliceResponse } from './pairSliceBody';
-import { driveParallelPairing, PARALLEL_PAIRING_THRESHOLD, SliceHandle } from './parallelPairing';
+import { MessageVersAppariement } from './appariementRapide.worker';
+import { nombreDeTravailleurs, regimeAppariement } from './parallelPairing';
 import { drivePairing, PROGRESS_THROTTLE_MS } from './pairingDriver';
 import { prepareOrRefuse } from './prepareForSearch';
 
@@ -117,87 +120,40 @@ let activeHalfWorkers: Worker[] = [];
 // cette phase fasse sortir `await` immédiatement plutôt que de rester
 // bloqué indéfiniment (les Workers tués ne posteront plus jamais de message).
 let stopBuildReject: (() => void) | null = null;
-// Workers enfants EN COURS (phase d'APPARIEMENT parallèle uniquement, voir
-// `runParallelPairing`) — contrairement à `activeHalfWorkers`, un arrêt
-// manuel ici poste `{stop:true}` (coopératif) plutôt que `terminate()` :
-// chaque worker répond avec les candidats déjà trouvés sur SA tranche, pour
-// garder le même comportement qu'un arrêt en phase séquentielle (« garde le
-// meilleur trouvé jusque-là »).
-let activePairingWorkers: SliceHandle[] = [];
+// L'arrêt COOPÉRATIF de l'appariement parallèle en cours, reçu du
+// coordinateur (`surControle`) — contrairement à `activeHalfWorkers`, un arrêt
+// manuel ici ne termine rien : le coordinateur cesse de distribuer des
+// morceaux, demande à chaque Worker d'arrêter le sien à sa ligne suivante,
+// attend leurs réponses et rend tout ce qui a été trouvé, comme un
+// arrêt en phase séquentielle (« garde le meilleur trouvé jusque-là »).
+let arreterAppariement: (() => void) | null = null;
 
-// ⚠️ Parallélisation de l'APPARIEMENT — voir docs/03-developpeur/optimizer/
-// § Choix du régime. Historique en trois temps :
-// 1. Mesuré sur 3 itérations (scripts/pairing-parallel-diag.ts) : un
-//    découpage STATIQUE de bucketsA à budget INFINI (mode exhaustif
-//    seulement) est SÛR — aucune perte, quel que soit le découpage.
-//    Découpage à budget FIGÉ (round-robin ou LPT) en recherche NORMALE
-//    (tronquée) perdait des candidats valides — mais ce prototype figeait
-//    le budget au lieu de laisser chaque worker ESCALADER le sien, voir
-//    point 2.
-// 2. Chaque worker a ensuite reçu un budget ADAPTATIF (escalade par worker)
-//    au lieu d'un budget figé. Sous ce mécanisme, vérifié à grande échelle
-//    (49 essais réels, 7 cas × 7 durées, SOUS CONTENTION volontaire pour
-//    durcir le test — skill `optimizer-perf-testing`) : **0 perte
-//    détectée**, y compris en recherche NORMALE. La parallélisation
-//    s'applique donc depuis aux DEUX modes — seul le seuil de taille
-//    (`PARALLEL_PAIRING_THRESHOLD`, parallelPairing.ts) décide si ça vaut
-//    le coût de coordination.
-// 3. Le budget de paires a fini par être supprimé tout court (voir
-//    `totalPairCount`) : chaque worker parcourt sa tranche ENTIÈRE sous les
-//    seules bornes `maxMs`/quota de candidats. C'est le cas LIMITE du
-//    point 2 — l'escalade convergeait déjà vers « tout ce que le temps
-//    permet » —, donc la vérification ci-dessus reste valable, et le
-//    découpage du point 1 n'a plus de « budget figé » possible du tout.
-//
-// PARALLEL_PAIRING_THRESHOLD et PARALLEL_PAIRING_WORKERS ont tous deux
-// déménagé dans `parallelPairing.ts`, avec l'orchestration qui les utilise —
-// pour que le navigateur et Node emploient forcément les MÊMES valeurs. Voir
-// leurs commentaires là-bas pour la calibration.
-
-// Répartition GLOUTONNE par charge réelle (LPT) — voir `partitionBucketsALPT`
-// dans runeBuildOptim.ts (déplacée là pour être testable en Node, voir
-// tests/rune-optim-parallel-pairing.test.ts) pour la stratégie et sa preuve.
-
-// Adaptateur de plateforme passé à `driveParallelPairing` — la SEULE partie
+// Lanceur de plateforme passé à `apparierRapideEnParallele` — la SEULE partie
 // du chemin parallèle qui reste liée à Vite/navigateur (`new Worker(new
-// URL(...))`). Son pendant Node vit dans `scripts/lib/`.
-function pairSliceInWorker(
-  request: PairSliceRequest,
-  onProgress: (explored: number, newCandidates: BuildCandidate[]) => void
-): SliceHandle {
-  const worker = new Worker(new URL('./pairSlice.worker.ts', import.meta.url), { type: 'module' });
-  const done = new Promise<SearchResult>((resolve, reject) => {
-    worker.onmessage = (e: MessageEvent<PairSliceResponse>) => {
-      const msg = e.data;
-      if (msg.type === 'progress') {
-        onProgress(msg.explored, msg.newCandidates);
-        return;
-      }
-      // ⚠️ Reconstruction EXPLICITE, pas un spread de `msg` — un champ ajouté
-      // à `SearchResult` sans être listé ICI serait perdu en silence. Voir
-      // docs/03-developpeur/optimizer/
-      // § Types et transport du quasi-succès : un des sites qui reconstruisent
-      // un résultat champ par champ pour cette raison précise.
-      // ⚠️ `traceur` : sans lui ici, `combineParallelPairingResults` ne
-      // recevrait rien à fusionner sur ce chemin.
-      resolve({
-        candidates: msg.candidates,
-        explored: msg.explored,
-        truncated: msg.truncated,
-        nearMissByCondition: msg.nearMissByCondition,
-        globalNearMiss: msg.globalNearMiss,
-        ...(msg.traceur ? { traceur: msg.traceur } : {}),
-      });
-    };
-    worker.onerror = reject;
-  });
-  worker.postMessage(request);
+// URL(...))`). Son pendant Node : `lancerTravailleurNode`
+// (scripts/lib/appariementRapideNode.ts). L'initialisation part en premier,
+// ses tableaux typés transférés ; l'ordre des messages garantit qu'elle
+// précède tout morceau.
+const lancerTravailleurNavigateur: LancerTravailleur = (init, transfert): PoigneeTravailleur => {
+  const worker = new Worker(new URL('./appariementRapide.worker.ts', import.meta.url), { type: 'module' });
+  const message: MessageVersAppariement = { type: 'init', init };
+  worker.postMessage(message, transfert);
   return {
-    done,
-    stop: () => worker.postMessage({ stop: true }),
-    terminate: () => worker.terminate(),
+    envoyer: (morceau, t) => worker.postMessage(morceau, t),
+    surMessage: (rappel) => {
+      worker.onmessage = (e) => rappel(e.data);
+    },
+    surErreur: (rappel) => {
+      worker.onerror = (e) => rappel(e);
+      worker.onmessageerror = (e) => rappel(e);
+    },
+    arreter: () => {
+      const arret: MessageVersAppariement = { type: 'arret' };
+      worker.postMessage(arret);
+    },
+    terminer: () => worker.terminate(),
   };
-}
+};
 
 function buildHalfInWorker(request: BuildHalfRequest, onProgress: (scanned: number, total: number) => void): Promise<Bucket[]> {
   return new Promise((resolve, reject) => {
@@ -230,13 +186,12 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     for (const w of activeHalfWorkers) w.terminate();
     activeHalfWorkers = [];
     if (stopBuildReject) stopBuildReject();
-    for (const h of activePairingWorkers) h.stop();
+    arreterAppariement?.();
     return;
   }
   stopped = false;
   const params = e.data;
   const startedAt = Date.now();
-  const lastProgressPost = 0;
 
   // ⚠️ `prepareSearch` peut lever `RechercheRefusee` (pool de reliques vide
   // en mode `recherche`) — jamais un simple appel direct ICI : un rejet
@@ -333,68 +288,64 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   // poignée de compartiments de chaque côté, jamais les combos eux-mêmes.
   const totalPairs = totalPairCount(prepared, bucketsA, bucketsB);
 
-  // Voir la définition de `driveParallelPairing` et le commentaire de
-  // `PARALLEL_PAIRING_THRESHOLD` (parallelPairing.ts) : depuis la vérification à
-  // grande échelle (budget adaptatif par worker, 0 perte sur 49 essais),
-  // le SEUL critère de déclenchement est la taille de l'espace à explorer —
-  // plus de condition sur le mode (exhaustif ou normal).
-  if (totalPairs >= PARALLEL_PAIRING_THRESHOLD) {
-    const postProgress = (explored: number, found: number, newCandidates: BuildCandidate[]) => {
+  // Le régime (parallelPairing.ts) : parallèle à partir du seuil, séquentiel
+  // en dessous ET hors contrat numérique du noyau, où `apparier` retombe sur
+  // `pairBuckets` en rendant la main — le coordinateur parallèle, lui, n'a
+  // pas de repli.
+  if (regimeAppariement(totalPairs, verifierContrat(prepared, bucketsA, bucketsB)) === 'parallele') {
+    let envoyes = 0;
+    let dernierMessage = 0;
+    const postProgress = (explored: number, candidats: readonly BuildCandidate[]) => {
+      const now = Date.now();
+      if (now - dernierMessage <= PROGRESS_THROTTLE_MS) return;
+      dernierMessage = now;
       const message: WorkerPairingMessage = {
         type: 'progress',
         phase: 'pairing',
         explored,
-        found,
-        pct: estimatePct(prepared, totalPairs, explored, found, Date.now() - startedAt),
-        // ⚠️ `explored` est la SOMME des tranches et `totalPairs` l'espace
-        // GLOBAL : les deux restent comparables parce que les tranches de
-        // `bucketsA` partitionnent la moitié A, donc la somme des espaces
-        // par tranche vaut exactement `totalPairs`.
+        found: candidats.length,
+        pct: estimatePct(prepared, totalPairs, explored, candidats.length, now - startedAt),
         totalPairs,
-        newCandidates,
+        // Les candidats FUSIONNÉS, dans l'ordre séquentiel : l'aperçu est
+        // toujours un préfixe du résultat final.
+        newCandidates: candidats.slice(envoyes),
       };
+      envoyes = candidats.length;
       (self as unknown as Worker).postMessage(message);
     };
-    // ⚠️ `try/catch`, comme pour la phase de construction juste au-dessus. Si un des workers `pairSlice.worker.ts` lève une erreur
-    // (`worker.onerror = reject` dans `pairSliceInWorker`), la `Promise.all`
-    // de `runParallelPairing` rejette — et une rejection de promesse NON
-    // interceptée à l'intérieur d'un handler `async self.onmessage` de
-    // Worker ne remonte PAS via `Worker.onerror` au parent (piège JS/
-    // navigateur réel, vérifié) : sans ce `catch`, aucun message `result`/
-    // `error` n'était plus jamais posté — l'UI restait bloquée en
-    // `'running'` indéfiniment, ET les workers enfants NON fautifs
-    // fuyaient (le code qui les termine, juste après `Promise.all` dans
-    // `runParallelPairing`, n'était jamais atteint).
+    // ⚠️ `try/catch` à ne pas retirer, comme pour la phase de construction
+    // juste au-dessus : sur l'erreur d'un Worker enfant, le coordinateur
+    // termine tous les Workers puis rejette, et une rejection NON interceptée
+    // dans un handler `async self.onmessage` ne remonte PAS via
+    // `Worker.onerror` au parent — sans ce `catch`, aucun message `result`/
+    // `error` ne serait posté, l'UI resterait bloquée en `'running'`.
     try {
-      const finalResult = await driveParallelPairing(
-        pairSliceInWorker, params, prepared, bucketsA, bucketsB, totalPairs, postProgress, startedAt,
-        (handles) => { activePairingWorkers = handles; }
-      );
-      const result: WorkerResultMessage = { type: 'result', ...finalResult };
+      const resultat = await apparierRapideEnParallele({
+        params, prepared, bucketsA, bucketsB, totalPaires: totalPairs,
+        travailleurs: nombreDeTravailleurs(self.navigator?.hardwareConcurrency),
+        lancer: lancerTravailleurNavigateur, startedAt,
+        surControle: (controle) => {
+          arreterAppariement = controle.arreter;
+        },
+        surProgression: postProgress,
+      });
+      const result: WorkerResultMessage = { type: 'result', ...enResultatDeRecherche(resultat) };
       (self as unknown as Worker).postMessage(result);
     } catch {
-      // `runParallelPairing` a pu être interrompue avant son propre nettoyage
-      // (juste après `Promise.all`, voir son commentaire) — les workers
-      // enfants encore listés ici n'ont alors jamais été terminés.
-      for (const h of activePairingWorkers) h.terminate();
-      activePairingWorkers = [];
       const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null };
       (self as unknown as Worker).postMessage(result);
+    } finally {
+      arreterAppariement = null;
     }
     return;
   }
 
-  // ── Chemin séquentiel existant, INCHANGÉ (recherche normale, ou
-  // recherche exhaustive sous le seuil de parallélisation) ──
+  // ── Appariement séquentiel ──
   // ⚠️ **Aucun budget de paires à piloter ici** (voir
   // `totalPairCount` dans runeBuildOptim.ts) : l'appariement va au bout de
   // `totalPairs`, sauf arrêt par `maxMs`, par `maxCollected` ou par le bouton
-  // « Arrêter » (`stopped`). Repère de dimensionnement : sur un vrai
-  // compte (Sonia), un plafond adaptatif s'épuiserait en 22 s (38,4M paires,
-  // 0 résultat) alors qu'un plafond 13× plus large retrouve le build exact en
-  // 32 s (86,8M paires) — le budget-TEMPS n'est jamais sollicité. Ce cas se
-  // termine par construction.
-  const gen = pairBuckets(prepared, bucketsA, bucketsB);
+  // « Arrêter » (`stopped`).
+  const gen = apparier(prepared, bucketsA, bucketsB);
   const result = await drivePairing(gen, () => stopped, (explored, newCandidates, foundTotal) => {
     const message: WorkerPairingMessage = {
       type: 'progress',

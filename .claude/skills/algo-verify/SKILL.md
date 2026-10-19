@@ -22,10 +22,12 @@ d'une technique (branch-and-bound, meet-in-the-middle…).
 - Réécriture d'un algorithme existant vers une technique plus complexe
   (ex. branch-and-bound → meet-in-the-middle) pour des raisons de performance
   ou de complétude. La **parallélisation** d'un algorithme déjà correct
-  compte aussi (ex. `pairBuckets` séquentiel → `partitionBucketsALPT` +
-  `runParallelPairing` + `pairSlice.worker.ts`, plusieurs Workers) : changer
-  COMMENT le travail est réparti peut introduire une classe de bug propre
-  (perte de candidats par déséquilibre de charge entre workers), même sans
+  compte aussi (ex. l'appariement séquentiel → `apparierRapideEnParallele` +
+  `appariementRapide.worker.ts`, plusieurs Workers), comme un noyau qui
+  remplace une boucle de référence (`pairBuckets` → `apparierRapide`,
+  `buildBuckets` → `construireMoitieRapide`) : changer COMMENT le travail est
+  réparti ou parcouru peut introduire une classe de bug propre (perte de
+  candidats par répartition, saut à tort, ordre de fusion), même sans
   toucher au critère de sélection lui-même.
 - **Tout script ad hoc (diagnostic, reproduction d'un cas signalé, mesure) qui
   appelle les fonctions internes du moteur directement** (`prepareSearch`,
@@ -74,9 +76,9 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
    déséquilibre de charge initial entre workers se corrige, et qu'AUCUN
    réglage d'écran ni arrêt manuel réel ne descend à quelques centaines de
    millisecondes : un utilisateur ne met jamais de limite de temps, tout au
-   plus il arrête une recherche au bout de quelques dizaines de secondes. Voir
-   `tests/rune-optim-parallel-pairing.test.ts` (`maxMs=30000` committé
-   comme plancher vérifié). Un paramètre juste « assez
+   plus il arrête une recherche au bout de quelques dizaines de secondes
+   (30 s reste le plancher vérifié pour un test de parallélisation sous
+   troncature par le temps). Un paramètre juste « assez
    extrême pour déclencher le chemin de code » (peu de temps, un plafond
    serré…) peut être QUALITATIVEMENT différent d'un paramètre réaliste —
    vérifier À L'ÉCHELLE D'USAGE RÉELLE avant de conclure à un risque, pas
@@ -273,12 +275,13 @@ sa valeur.
 internes du moteur (pas l'API publique `searchBuilds`), le DIFFER
 explicitement, ligne par ligne, contre le vrai chemin de production —
 `runeBuildOptim.worker.ts` (recherche séquentielle) et/ou `perf-battery.ts`,
-**et `pairSliceBody.ts` si le script touche l'appariement PARALLÉLISÉ**
-(chaque tranche y reçoit sa PART du plafond de candidats,
-`perWorkerMaxCollected`, et le `startedAt` GLOBAL — un script qui donnerait à
-chaque tranche le plafond entier, ou un chrono frais, mesurerait autre chose
-que la production) — pas seulement « même noms de fonctions dans le même
-ordre ». En particulier vérifier :
+**et `appariementRapideParallele.ts` si le script touche l'appariement
+PARALLÉLISÉ** (le plafond y est global, coupé dans l'ordre séquentiel, et
+chaque Worker court sur le `startedAt` GLOBAL — un script qui couperait par
+Worker, ou donnerait un chrono frais, mesurerait autre chose que la
+production) — pas seulement « même noms de fonctions dans le même ordre ».
+Un script qui appelle `buildBuckets`/`pairBuckets` mesure la RÉFÉRENCE,
+pas la production (`construireMoitie`/`apparier`). En particulier vérifier :
 - Tout paramètre optionnel avec une valeur par défaut différente du
   comportement réel — ex. `maxMs` : `searchBuilds` retombe sur 15 s là où
   l'écran donne 10 min.

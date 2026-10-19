@@ -187,8 +187,7 @@ import testDiagnosticProfils from './diagnostic-profils.test';
 import testDiagnosticDifferentiel from './diagnostic-differentiel.test';
 import testDiagnosticDecouverte from './diagnostic-decouverte.test';
 import testRuneOptimScaleMonotonicity from './rune-optim-scale-monotonicity.test';
-import testRuneOptimParallelPairing from './rune-optim-parallel-pairing.test';
-import testRuneOptimParallelTruncated from './rune-optim-parallel-truncated.test';
+import { testAppariementParallele, testAppariementParalleleWorkers, testAppariementParalleleBranchement } from './appariement-parallele.test';
 import testAppariementRapide from './appariement-rapide.test';
 import testValidationRapide from './validation-rapide.test';
 import testRuneOptimNearMiss from './rune-optim-near-miss.test';
@@ -635,8 +634,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testDiagnosticDifferentiel', async () => { await testDiagnosticDifferentiel(); }],
   ['testDiagnosticDecouverte', async () => { await testDiagnosticDecouverte(); }],
   ['testRuneOptimScaleMonotonicity', testRuneOptimScaleMonotonicity],
-  ['testRuneOptimParallelPairing', async () => { await testRuneOptimParallelPairing(); }],
-  ['testRuneOptimParallelTruncated', testRuneOptimParallelTruncated],
+  ['testAppariementParallele', async () => { await testAppariementParallele(); }],
+  ['testAppariementParalleleWorkers', async () => { await testAppariementParalleleWorkers(); }],
+  ['testAppariementParalleleBranchement', async () => { await testAppariementParalleleBranchement(); }],
   ['testAppariementRapide', async () => { await testAppariementRapide(); }],
   ['testValidationRapide', async () => { await testValidationRapide(); }],
   ['testRuneOptimNearMiss', async () => { await testRuneOptimNearMiss(); }],

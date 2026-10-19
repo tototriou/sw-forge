@@ -43,12 +43,13 @@ import {
   rankBlockingConditions,
   respecteConditionsAvecRelique,
   respecteMinEtMax,
-  searchBuilds,
+  pairBuckets,
 } from '../src/lib/runeBuildOptim';
+import { apparier, searchBuilds } from '../src/lib/rechercheRunes';
 import { drain } from '../scripts/lib/drain';
 import { oracleSearch, oracleSearchRuns } from '../scripts/lib/relicOracle';
-import { runPairSlice } from '../src/workers/pairSliceBody';
-import { ensurePairSliceBundle, makeSpawnSliceNode } from '../scripts/lib/spawnSliceNode';
+import { verifierContrat } from '../src/lib/appariementRapide';
+import { PARALLEL_PAIRING_THRESHOLD, regimeAppariement } from '../src/workers/parallelPairing';
 import { prepareOrRefuse } from '../src/workers/prepareForSearch';
 import { egal, ok, titre } from './outils';
 
@@ -431,10 +432,10 @@ export default async function testRelicSearch() {
     ok(presentes(result.traceur!, 'feasibility').every((p) => !p), 'traceur rejet : étage feasibility à 0 (rejet à eliminateInfeasible)');
   }
 
-  /* ── Traceur : recopié par l'adaptateur Node d'appariement parallèle
-   * (sonde TRACE_WORKER, avec de VRAIS
-   * `worker_threads`). `runPairSlice` le rend déjà ; seule la
-   * reconstruction EXPLICITE de `spawnSliceNode.ts` l'omettait. */
+  /* ── Traceur : le noyau d'appariement ne le remplit pas, donc un traceur
+   * fait sortir l'appariement du contrat numérique — séquentiel quel que soit
+   * l'espace, par `pairBuckets`, qui rend la trace entière, identique sur le
+   * chemin de production (`apparier`). */
   {
     const poolFixe = [1, 2, 3, 4, 5, 6].map((slot) => rune(slot, slot, [8, 5]));
     const rel = relique(1, 101, 9);
@@ -447,22 +448,13 @@ export default async function testRelicSearch() {
     const prepared = prepareSearch(p0)!;
     const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA));
     const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB));
-    const requete = { params: p0, bucketASlice: bucketsA, bucketsB, startedAt: prepared.startedAt };
-
-    const direct = await runPairSlice(requete, () => false, () => {});
-    ok(direct.traceur != null, 'traceur worker : runPairSlice direct porte le traceur');
-
-    const bundle = await ensurePairSliceBundle();
-    const spawn = makeSpawnSliceNode(bundle);
-    const handle = spawn(requete, () => {});
-    let viaAdaptateur: Awaited<typeof handle.done>;
-    try {
-      viaAdaptateur = await handle.done;
-    } finally {
-      handle.terminate();
-    }
-    ok(viaAdaptateur.traceur != null, 'traceur worker : l’adaptateur Node (spawnSliceNode) recopie le traceur');
-    egal(viaAdaptateur.traceur, direct.traceur, 'traceur worker : trace identique entre appel direct et adaptateur worker_threads');
+    const motif = verifierContrat(prepared, bucketsA, bucketsB);
+    ok(motif != null && /traceur/.test(motif), `traceur : hors contrat du noyau, motif nommé (${motif})`);
+    egal(regimeAppariement(10 * PARALLEL_PAIRING_THRESHOLD, motif), 'sequentiel', 'traceur : séquentiel même au-delà du seuil');
+    const reference = drain(pairBuckets(prepareSearch(p0)!, bucketsA, bucketsB));
+    const production = drain(apparier(prepareSearch(p0)!, bucketsA, bucketsB));
+    ok(production.traceur != null, 'traceur : le chemin de production (apparier) rend la trace');
+    egal(production.traceur, reference.traceur, 'traceur : trace identique à celle de pairBuckets');
   }
 
   /* ── L'oracle ne consomme jamais le contexte (garantie E). */

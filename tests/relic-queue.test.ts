@@ -29,9 +29,9 @@ import {
   aurasPropresParRunes,
   objectiveScore,
   pvEffectifs,
-  searchBuilds,
   sortCandidates,
 } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import { ArtifactSearchParams, chercherPaires, respecteMinimums } from '../src/lib/artifactOptim';
 import { RegimeArtefacts, regimeArtefacts } from '../src/lib/artifactEvaluation';
 import { ResultatArtefacts, candidatAvecSaPaire, cleBuild, signatureReglages } from '../src/lib/artifactQueue';

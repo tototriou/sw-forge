@@ -1,7 +1,8 @@
 import { activeSets, runeEfficiency } from '../src/lib/effects';
 import { parseAccountBox, parseAccountInventory, parseAccountSource } from '../src/lib/importAccount';
 import { resoudreContexteRelique } from '../src/lib/relicOptim';
-import { BuildCandidate, RechercheRefusee, aurasPropresParRunes, avecAurasConditions, objectiveScore, SearchParams, prepareSearch, searchBuilds } from '../src/lib/runeBuildOptim';
+import { BuildCandidate, RechercheRefusee, aurasPropresParRunes, avecAurasConditions, objectiveScore, SearchParams, prepareSearch } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { computeStats } from '../src/lib/stats';
 import { DEFAULT_DAMAGE_SETUP, aurasPropresDesRunes } from '../src/lib/damage';

@@ -1,16 +1,11 @@
-// Pilote un générateur `pairBuckets` jusqu'à sa fin — la mécanique EXACTE
-// (progression throttlée avec delta de candidats, rendu de main throttlé à
-// la boucle d'événements, interruption coopérative ; plus l'escalade du
-// budget de nœuds, supprimée depuis, voir `totalPairCount` dans
-// runeBuildOptim.ts) était recopiée quasi ligne à ligne entre `pairSlice.worker.ts`
-// (une tranche, mode parallèle) et `runeBuildOptim.worker.ts` (chemin
-// séquentiel) — revue de code externe, duplication. Seule la FORME du
-// message de progression posté diffère entre les deux appelants (le
-// séquentiel y ajoute `phase`/`found`/`pct`/`totalPairs`) — laissée à
-// `onProgress`, jamais imposée ici.
+// Pilote un générateur d'appariement (`apparier`, ou `pairBuckets` en repli)
+// jusqu'à sa fin : progression throttlée avec delta de candidats, rendu de
+// main throttlé à la boucle d'événements, interruption coopérative. La FORME
+// du message de progression posté est laissée à `onProgress`, jamais
+// imposée ici.
 //
-// ⚠️ Paliers PARTAGÉS avec `runParallelPairing` (runeBuildOptim.worker.ts,
-// sa propre agrégation de progression multi-workers) — `PROGRESS_THROTTLE_MS`
+// ⚠️ Paliers PARTAGÉS avec l'appariement parallèle (runeBuildOptim.worker.ts,
+// qui espace lui-même la progression du coordinateur) — `PROGRESS_THROTTLE_MS`
 // y reste utilisé directement, importé d'ici plutôt que redéfini.
 
 import { PairingProgress, SearchResult, BuildCandidate } from '../lib/runeBuildOptim';
@@ -38,8 +33,7 @@ export const YIELD_THROTTLE_MS = 50;
 // jamais besoin, côté appelant, de distinguer les deux cas.
 // `foundTotal` (3ᵉ argument d'`onProgress`) = `candidates.length` CUMULÉ à
 // ce point de passage — pas seulement `newCandidates.length` (le delta) —
-// nécessaire à `WorkerPairingMessage.found` (runeBuildOptim.worker.ts) ;
-// `pairSlice.worker.ts`, qui n'en a pas besoin, l'ignore simplement.
+// nécessaire à `WorkerPairingMessage.found` (runeBuildOptim.worker.ts).
 export async function drivePairing(
   gen: Generator<PairingProgress, SearchResult, void>,
   isStopped: () => boolean,

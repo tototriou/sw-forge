@@ -12,8 +12,9 @@ import { bornesArtefacts, paireRepresentative, type ArtifactSearchParams } from 
 import { candidatAvecSaPaire, cleBuild, type ResultatArtefacts } from '../src/lib/artifactQueue';
 import { etatReliqueDuBuild, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { aurasPropresParRunes, optionsDeClassement, respecteConditionsPaireFixe,
-  scoreDeReference, scoreDuCandidat, searchBuilds, sortCandidates,
+  scoreDeReference, scoreDuCandidat, sortCandidates,
   type SearchParams, type SearchResult } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import { mulberry32 } from '../scripts/lib/randomPool';
 import { BASE_FICHE, DEGATS_FICHE, REF_FICHE, CONTEXTE_FICHE, artFiche, gearFiche, relFiche } from './artifact-fiche.test';
 import { egal, ok, titre } from './outils';

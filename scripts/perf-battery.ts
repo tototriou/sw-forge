@@ -105,9 +105,9 @@ import {
   RechercheRefusee,
   SearchParams,
   prepareSearch,
-  pairBuckets,
   Bucket,
 } from '../src/lib/runeBuildOptim';
+import { apparier } from '../src/lib/rechercheRunes';
 import { Case, CASES, loadCase, loadCaseSearchParams } from './lib/perfShared';
 import { caseAvecRelique, jetonsRelique, parseOptionsRelique } from './lib/perfRelicOptions';
 // ⚠️ `import type` impératif ici : build-half-worker.ts / monotonicity-worker.ts
@@ -203,7 +203,7 @@ interface CaseOutcome {
 
 // Bundle un script worker en .cjs (un worker_threads a besoin de JS pur, pas
 // de TypeScript transpilé à la volée) — même patron que
-// scripts/lib/spawnSliceNode.ts et scripts/lib/buildHalvesNode.ts. Mis en cache sur un chemin
+// scripts/lib/appariementRapideNode.ts et scripts/lib/buildHalvesNode.ts. Mis en cache sur un chemin
 // PROPRE À CETTE EXÉCUTION (dérivé du PID de l'orchestrateur, passé aux
 // enfants via `--bundle-dir=`), pas un chemin fixe partagé entre invocations
 // séparées : chaque cas de la batterie tourne dans son propre processus Node
@@ -384,8 +384,10 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
   // EXACT où le build cible apparaît (`foundMs`/`foundExplored`), ce qu'un
   // résultat final ne dit pas. Ce fut aussi l'endroit où l'escalade du budget
   // de paires devait être reproduite, sous peine de mesurer une recherche
-  // tronquée ; ce budget n'existe plus.
-  const gen = pairBuckets(prepared, bucketsA, bucketsB);
+  // tronquée ; ce budget n'existe plus. L'appariement est celui de la
+  // production en séquentiel (`apparier` : le noyau sur tableaux typés,
+  // `pairBuckets` en repli hors contrat numérique), même au-delà du seuil.
+  const gen = apparier(prepared, bucketsA, bucketsB);
   let step = gen.next();
   while (!step.done) {
     const progress = step.value;

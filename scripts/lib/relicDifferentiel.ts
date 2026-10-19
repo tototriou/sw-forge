@@ -43,9 +43,9 @@ import {
   objectiveScore,
   prepareSearch,
   respecteConditionsAvecRelique,
-  searchBuilds,
   sortCandidates,
 } from '../../src/lib/runeBuildOptim';
+import { searchBuilds } from '../../src/lib/rechercheRunes';
 import { LigneVerrouillee } from '../../src/lib/artifactOptim';
 import { PorteurArtefact } from '../../src/lib/artifacts';
 import { RegimeArtefacts, regimeArtefacts, regimeEquipementDe } from '../../src/lib/artifactEvaluation';

@@ -18,8 +18,7 @@ export interface ContexteGabarits {
   exclusionData: ExclusionSourceData;
 }
 
-// Un état d'une boîte (A.2.2-11 du cadrage privé ; ici : « liste vide »,
-// « sets choisis »…). `rendu` rend un élément : un état qui a besoin d'un
+// Un état d'une boîte (« liste vide », « sets choisis »…). `rendu` rend un élément : un état qui a besoin d'un
 // état local le porte dans son propre composant.
 export interface EtatGabarit {
   id: string;

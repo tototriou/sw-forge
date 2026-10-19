@@ -37,7 +37,7 @@ export interface MonstresDeLaListeProps {
   rappelAuras: boolean;
   listHasValidated: boolean;
   setReleaseAllConfirm: Dispatch<SetStateAction<string | null>>;
-  // Forme de bureau des essentiels (`optimizer/bureau/ListeDeTravailBureau.tsx`),
+  // Forme de bureau des essentiels (`bureau/ListeDeTravailBureau.tsx`),
   // que le téléphone ne prend pas : ce que la rangée du titre porte après lui
   // (« Rechercher un monstre… », le monstre actif), et les membres bornés à
   // ≈ 4 lignes au lieu de 308 px.

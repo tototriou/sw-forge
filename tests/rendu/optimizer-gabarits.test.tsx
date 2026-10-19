@@ -1,6 +1,6 @@
 // Tests de rendu — les gabarits de bureau de l'Optimizer
 // (`src/components/outils/optimizer/bureau/`) et leur vue de développement
-// (`gabarits/VueGabarits.tsx`, `#/outils/optimizer/gabarits`). Le sens, jamais
+// (`src/components/outils/optimizer/gabarits/VueGabarits.tsx`, `#/outils/optimizer/gabarits`). Le sens, jamais
 // la forme : libellés, choix, états et leur nom accessible.
 
 import { useOptimizerState } from '../../src/hooks/useOptimizerState';

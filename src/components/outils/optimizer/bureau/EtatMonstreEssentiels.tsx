@@ -1,8 +1,12 @@
 import EffetVignette from '../../EffetVignette';
 import { LeaderSkillPicker, RappelsEtatMonstre, TitreEtatMonstre } from '../../EtatMonstre';
 import { LARGEUR_COLONNE_ETROITE } from './PrincipalesImposeesBureau';
+import { type ComponentProps } from 'react';
 import { ATK_BUFF_ICON, DEF_BUFF_ICON, SPD_BUFF_ICON, type ArtifactDamageProfile, type DamageSetup } from '../../../../lib/damage';
-import type { RappelBuffDePassif } from '../../../../lib/buffsDePassif';
+
+// Le type des rappels vient de la carte : seuls l'écran et la carte importent
+// la table des buffs de passif (tests/buffs-de-passif.test.ts).
+type RappelsBuffs = ComponentProps<typeof RappelsEtatMonstre>['rappelsBuffs'];
 
 export interface EtatMonstreEssentielsProps {
   setup: DamageSetup;
@@ -11,7 +15,7 @@ export interface EtatMonstreEssentielsProps {
   motifLead?: string | null;
   etroit: boolean;
   artefacts: ArtifactDamageProfile;
-  rappelsBuffs: RappelBuffDePassif[];
+  rappelsBuffs: RappelsBuffs;
 }
 
 // « État de mon monstre » réduit aux buffs et au lead, dans les essentiels du

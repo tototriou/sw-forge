@@ -18,7 +18,7 @@ import {
 import { apportExclusive, statsAvecApport } from './relicExclusive';
 
 /**
- * Les emplacements figés sur « Garder l'artéfact équipé ». Une sorte absente
+ * Les emplacements figés sur « Comme équipé ». Une sorte absente
  * vaut « Libre ». Lue par l'éditeur de verrous (grisé) et par
  * `parametresArtefactsFiche` (neutralisation) : une seule définition.
  */
@@ -62,7 +62,7 @@ export const AUCUN_ARTEFACT_RESERVE: ReadonlySet<number> = new Set();
  *   monstre à la fois. Le CLI et le différentiel n'ont pas de liste :
  *   `AUCUN_ARTEFACT_RESERVE`. Sans réservation, l'inventaire est rendu
  *   tel quel (même tableau).
- * - `optimiserArtefacts` faux : « Garder l'artéfact équipé » IMPOSÉ des deux
+ * - `optimiserArtefacts` faux : « Comme équipé » IMPOSÉ des deux
  *   côtés. Le monstre garde ses pièces et leurs stats ; rien n'est cherché.
  * - `damageSetup` : celui du canal exclusive, d'où viennent les codes
  *   d'amplification de buff (`codesAmplificationActifs`) — sans eux, une

@@ -67,7 +67,7 @@ runes : la paire n'est pas figée avant la recherche.
    de la file : [pipeline.md § File de résolution](pipeline.md).
 
 Sans optimisation d'artéfacts, les paramètres de paires restent construits,
-avec « Garder l'artéfact équipé » imposé des deux côtés
+avec « Comme équipé » imposé des deux côtés
 (`parametresArtefactsFiche`, `src/lib/artifactFiche.ts`) : la seule paire
 possible est la portée, et il n'y a pas de file (`resoudreEquipement` est
 nul).
@@ -291,7 +291,7 @@ tout ce qui change le score d'une paire, l'inventaire ou les conditions :
 - les **artéfacts réservés** par les autres builds validés de la liste
   active, lus comme un ensemble — « Libérer les artéfacts » sur un autre
   monstre de la liste, ou changer de liste active, refait les paires ;
-- les **pièces des emplacements figés** sur « Garder l'artéfact équipé »
+- les **pièces des emplacements figés** sur « Comme équipé »
   (`piecesFigeesDe`, `src/lib/artifactFiche.ts`), seul candidat de leur
   emplacement : valider un build du monstre recherché, « Voir le runage
   réellement porté » ou changer d'exemplaire de la même espèce les

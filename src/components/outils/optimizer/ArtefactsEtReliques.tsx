@@ -45,7 +45,7 @@ export default function ArtefactsEtReliques({ optimiserArtefacts, setOptimiserAr
         <HelpPopover title="Artéfacts et reliques">
           <b className="text-ink">« Libre »</b> cherche parmi tous tes artéfacts équipables ; une{' '}
           <b className="text-ink">principale</b> restreint la recherche à ceux qui la portent.{' '}
-          <b className="text-ink">« Garder l&apos;artéfact équipé »</b> conserve la pièce entière portée sur le
+          <b className="text-ink">« Comme équipé »</b> conserve la pièce entière portée sur le
           build affiché ci-dessus, sans rien chercher.
           <br />
           <br />
@@ -83,7 +83,7 @@ export default function ArtefactsEtReliques({ optimiserArtefacts, setOptimiserAr
               <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>{label}</span>
               {/* ⚠️ **`'libre'`, parce que c'est ce que le MOTEUR fait**
                   d'une clé absente (`candidatsParSorte`, artifactOptim.ts).
-                  Ce sélecteur affichait « Garder l'artéfact équipé » tant
+                  Ce sélecteur affichait le choix de garder la pièce portée tant
                   qu'aucun choix n'avait été fait, pendant que la recherche
                   cherchait librement : l'écran annonçait le contraire de ce
                   qui se passait, et tout ce qui se fiait à cet affichage
@@ -103,14 +103,17 @@ export default function ArtefactsEtReliques({ optimiserArtefacts, setOptimiserAr
                 pleineLargeur={false}
                 className={LARGEUR_SELECTEUR_LISTE}
               >
-                {/* ⚠️ « Garder l'artéfact équipé », et non « Comme équipé » :
-                    ce choix conserve la PIÈCE entière — le pool tombe à un
-                    seul candidat, l'exemplaire porté avec ses quatre
-                    sous-propriétés (voir `candidatsParSorte`,
-                    artifactOptim.ts). L'ancien libellé, posé au milieu de
-                    trois statistiques principales, se lisait « la
-                    principale, comme équipé ». Signalé à l'usage. */}
-                <option value="equipped">Garder l&apos;artéfact équipé</option>
+                {/* ⚠️ « Comme équipé » (décision de l'utilisateur, qui l'a
+                    préféré à « Garder l'artéfact équipé », trop long pour une
+                    liste étroite) : ce choix conserve la PIÈCE entière — le
+                    pool tombe à un seul candidat, l'exemplaire porté avec ses
+                    quatre sous-propriétés (voir `candidatsParSorte`,
+                    artifactOptim.ts). Posé au milieu de trois statistiques
+                    principales, il peut se lire « la principale, comme
+                    équipé » : les entrées qui filtrent par principale disent
+                    « Principale … », et l'aide de la carte dit qu'il garde la
+                    pièce entière. */}
+                <option value="equipped">Comme équipé</option>
                 {/* ⚠️ « Libre » n’a de sens qu’avec une recherche d’artéfacts : il n’a
                     été ajouté qu’une fois celle-ci construite, pour ne pas laisser
                     une option morte dans le sélecteur. */}

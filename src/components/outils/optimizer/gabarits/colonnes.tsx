@@ -160,7 +160,7 @@ export const GABARITS_COLONNES: Gabarit[] = [
     ],
     etats: [
       { id: 'aucune', nom: '0 proposition : aucun artéfact n\'apporte de dégâts', rendu: (ctx) => <MeilleursGabarit ctx={ctx} proposition={{ explication: 'Aucun artéfact équipable n’apporte de dégâts supplémentaires pour ce critère.' }} /> },
-      { id: 'figes', nom: '0 proposition : deux emplacements figés', rendu: (ctx) => <MeilleursGabarit ctx={ctx} proposition={{ explication: 'Les deux emplacements sont sur « Garder l’artéfact équipé » : la paire est déjà décidée, il n’y a rien à chercher.', figees: ['element', 'archetype'] }} /> },
+      { id: 'figes', nom: '0 proposition : deux emplacements figés', rendu: (ctx) => <MeilleursGabarit ctx={ctx} proposition={{ explication: 'Les deux emplacements sont sur « Comme équipé » : la paire est déjà décidée, il n’y a rien à chercher.', figees: ['element', 'archetype'] }} /> },
       { id: 'paire', nom: 'Paire proposée (artéfacts du compte ; chiffres de vue, non calculés)', rendu: (ctx) => <MeilleursGabarit ctx={ctx} proposition={{ explication: null, chiffres: { degats: 1234, gain: 210 } }} /> },
       { id: 'un-fige', nom: 'Paire proposée, emplacement attribut figé (chiffres de vue)', rendu: (ctx) => <MeilleursGabarit ctx={ctx} proposition={{ explication: null, chiffres: { degats: 1234, gain: -35 }, figees: ['element'] }} /> },
     ],

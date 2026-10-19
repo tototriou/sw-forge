@@ -33,7 +33,7 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    - ⚠️ **Aucun champ ne descend sous ce qui est garanti sans la moindre
      rune** — le plancher, pas la valeur de conversion ci-dessus. La
      contribution d'artéfact se calcule séparément par emplacement :
-     l'artéfact réellement porté si le choix est « Garder l'artéfact
+     l'artéfact réellement porté si le choix est « Comme
      équipé », la principale imposée si elle est choisie, et zéro si le
      choix est « Libre ». Pour la relique, seule une pièce réellement portée
      avec le choix « Garder la relique équipée » garantit sa principale en

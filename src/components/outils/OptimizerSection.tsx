@@ -1451,7 +1451,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
 
   const artifactParams = useMemo(() => {
     // ⚠️ **Optimisation désactivée ≠ sans artéfact.** Les paramètres restent
-    // construits, avec « Garder l'artéfact équipé » IMPOSÉ des deux côtés : le
+    // construits, avec « Comme équipé » IMPOSÉ des deux côtés : le
     // monstre conserve les pièces qu'il porte réellement et leurs statistiques,
     // on cesse seulement d'en chercher d'autres. Le réglage retirait avant
     // TOUTE contribution d'artéfact, ce qui rendait les conditions minimales
@@ -1614,7 +1614,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
      */
     const explication =
       sortesFigees.length >= ARTIFACT_KINDS.length
-        ? 'Les deux emplacements sont sur « Garder l’artéfact équipé » : la paire est déjà décidée, il n’y a rien à chercher.'
+        ? 'Les deux emplacements sont sur « Comme équipé » : la paire est déjà décidée, il n’y a rien à chercher.'
         : scoreRetenu <= 0
           ? 'Aucun artéfact équipable n’apporte de dégâts supplémentaires pour ce critère.'
           : null;
@@ -2161,7 +2161,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // ts) — un monstre absent ici est silencieusement ignoré, pas une erreur.
       setExcludedSelectors(recipe.excludedSelectors ?? []);
       optimizer.poserCriteresAutomatiques({ optimiserArtefacts: !recipe.ignoreArtifacts });
-      // ⚠️ « Garder l'artéfact équipé » ne se partage pas — la règle, son
+      // ⚠️ « Comme équipé » ne se partage pas — la règle, son
       // pourquoi et le repli sur une provenance inconnue vivent dans
       // `mainsPourCeCompte` (optimizerRecipe.ts), fonction pure et testée.
       const { mains, bascules } = mainsPourCeCompte(recipe, accountName);
@@ -2183,11 +2183,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // SUFFIXE du message d'import — un verrou perdu change réellement le
       // résultat, contrairement à un sélecteur d'exclusion introuvable.
       const suffixeLocks = locksIgnores > 0 ? ` ${locksIgnores} rune(s) imposée(s) ignorée(s) : absentes de ton inventaire.` : ''
-        // ⚠️ La bascule « Garder l'artéfact équipé » → « Libre » se DIT : elle
+        // ⚠️ La bascule « Comme équipé » → « Libre » se DIT : elle
         // change ce que la recherche va renvoyer, exactement comme un verrou
         // perdu. Une recette qui se comporte autrement que chez son auteur,
         // sans un mot, serait pire que la donnée transportée telle quelle.
-        + (bascules ? ` Cette recette vient d'un autre compte : « Garder l'artéfact équipé » est passé sur « Libre ».` : '')
+        + (bascules ? ` Cette recette vient d'un autre compte : « Comme équipé » est passé sur « Libre ».` : '')
         + (relicBascule ? ` Cette recette vient d'un autre compte : « Garder la relique équipée » est passé sur « Libre ».` : '')
         // ⚠️ Ce que le parseur a CONVERTI (l'ancien mode critique « Moyenne »
         // → « Critique ») se dit aussi, mot pour mot
@@ -2362,7 +2362,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         // gardaient leur paire d'avant, même après une nouvelle recherche.
         // Un ensemble : l'ordre est sans effet.
         artefactsReserves,
-        // ⚠️ Un emplacement figé sur « Garder l'artéfact équipé » n'a qu'un
+        // ⚠️ Un emplacement figé sur « Comme équipé » n'a qu'un
         // candidat : la pièce que porte la fiche. Valider un build de CE
         // monstre, « Voir le runage réellement porté » ou changer d'exemplaire
         // de la même espèce la remplacent. Les sortes libres n'y

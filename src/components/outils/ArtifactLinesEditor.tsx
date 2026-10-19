@@ -67,7 +67,7 @@ export default function ArtifactLinesEditor({
   lignes: LigneVerrouillee[];
   onChange: (l: LigneVerrouillee[]) => void;
   /**
-   * Les sortes dont l'emplacement est FIGÉ — « Garder l'artéfact équipé »,
+   * Les sortes dont l'emplacement est FIGÉ — « Comme équipé »,
    * donc une seule pièce possible, déjà choisie.
    *
    * ⚠️ **Un verrou n'a de sens que sur un emplacement CHERCHÉ.** Sur une sorte
@@ -77,7 +77,7 @@ export default function ArtifactLinesEditor({
    * donc retirées du choix ; les lignes portables par les deux (200-299)
    * restent proposables tant qu'un emplacement cherche encore.
    *
-   * ⚠️ Le défaut de chaque sélecteur étant « Garder l'artéfact équipé », les
+   * ⚠️ Le défaut de chaque sélecteur étant « Comme équipé », les
    * DEUX sortes sont figées à l'ouverture : l'éditeur y était donc déjà inerte,
    * mais proposé quand même — une saisie sans effet, pire qu'une saisie absente.
    */
@@ -118,7 +118,7 @@ export default function ArtifactLinesEditor({
           Un contrôle grisé sans raison se lit comme une panne. */}
       {toutFige && (
         <p className="text-nano leading-tight text-ink-dimmer">
-          Les deux emplacements sont sur « Garder l&apos;artéfact équipé » : la paire est déjà décidée, un verrou
+          Les deux emplacements sont sur « Comme équipé » : la paire est déjà décidée, un verrou
           n&apos;a plus rien à chercher. Mets un emplacement sur « Libre » ou sur une principale pour en poser.
         </p>
       )}
@@ -137,7 +137,7 @@ export default function ArtifactLinesEditor({
         const voisins = codesEquivalentsAuVerrou(ligne.code);
         // ⚠️ Cette ligne est-elle devenue SANS EFFET ? C'est le cas dès que
         // TOUTES les sortes capables de la porter sont figées — les deux
-        // emplacements sur « Garder l'artéfact équipé », ou bien une ligne
+        // emplacements sur « Comme équipé », ou bien une ligne
         // exclusive à l'attribut alors que l'attribut est figé. On grise sa
         // valeur mais on garde la croix : c'est le seul geste qui reste utile.
         const inerte = !!def && def.sortes.every((k) => figees.includes(k));
@@ -186,7 +186,7 @@ export default function ArtifactLinesEditor({
               <span className="col-span-full text-nano leading-tight text-ink-dimmer">
                 Sans effet : {def?.sortes.length === 2 ? 'les deux emplacements sont figés' : `l’emplacement ${
                   def?.sortes[0] === 'element' ? 'attribut' : 'type'
-                } est figé`} sur « Garder l’artéfact équipé ». À retirer, ou remets cet emplacement sur « Libre ».
+                } est figé`} sur « Comme équipé ». À retirer, ou remets cet emplacement sur « Libre ».
               </span>
             )}
             <span

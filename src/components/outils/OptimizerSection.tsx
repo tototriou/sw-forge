@@ -28,7 +28,7 @@ import {
   Swords,
   Pencil,
 } from 'lucide-react';
-import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
+import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
 import { computeStats } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
 import { cibleDeLaFile, classementResolu, cleBuild, compositionDePage, compteAffichable, compteConfirme, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
@@ -170,7 +170,7 @@ import { useMediaQuery, SOUS_LG, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
 import IconeInterdite from '../IconeInterdite';
 import MonsterAvatar from '../MonsterAvatar';
-import MonsterGear, { type Selected as SelectionGear } from '../MonsterGear';
+import { type Selected as SelectionGear } from '../MonsterGear';
 import ArtifactFrameIcon from '../ArtifactFrameIcon';
 import ArtifactSubLigne from '../ArtifactSubLigne';
 import { WHEEL_IMG } from '../RuneWheel';
@@ -182,7 +182,6 @@ import {
   BoutonIcone,
   Champ,
   ConfirmDialog,
-  Flottant,
   FlottantAuto,
   Interrupteur,
   MobileSheet,
@@ -191,7 +190,6 @@ import {
   Selecteur,
   ZoneCliquable,
 } from '../../ui';
-import MonsterSourcePicker from './MonsterSourcePicker';
 import OptimizerListPicker from './OptimizerListPicker';
 import ExclusionCandidateRow from './ExclusionCandidateRow';
 import RuneExclusionPicker from './RuneExclusionPicker';
@@ -202,6 +200,10 @@ import EtatMonstre from './EtatMonstre';
 import BoutonValiderBuild from './optimizer/BoutonValiderBuild';
 import BandeauBuildValide from './optimizer/BandeauBuildValide';
 import type { EtatValidation } from './optimizer/types';
+import MonstreEquipementTelephone from './optimizer/MonstreEquipementTelephone';
+import ExemplaireEtFiche from './optimizer/ExemplaireEtFiche';
+import MonstreEtListe from './optimizer/MonstreEtListe';
+import MonstreEquipement from './optimizer/MonstreEquipement';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -387,20 +389,6 @@ function memesIds(a: number[], b: number[]): boolean {
   const sb = [...b].sort((x, y) => x - y);
   return sa.every((v, i) => v === sb[i]);
 }
-
-// Équipement NUL, affiché tant qu'aucun monstre n'est choisi — demande
-// explicite de l'utilisateur : la fiche (stats, artéfacts, roue, relique)
-// reste TOUJOURS visible, vide plutôt qu'absente, pour que choisir un
-// monstre ne fasse jamais apparaître un bloc entier là où il n'y avait rien
-// (voir docs/03-developpeur/interface/, « un clic ne déplace jamais ce qu'on vient de
-// cliquer »). `MonsterGear` n'a besoin d'aucune adaptation : `computeStats`
-// sur une base à zéro renvoie des lignes à zéro, `ArtifactSlots`/`RuneWheel`
-// gèrent déjà nativement un tableau vide (voir leurs propres commentaires).
-const EMPTY_GEAR: GearSet = {
-  base: { hp: 0, atk: 0, def: 0, spd: 0, cr: 0, cd: 0, res: 0, acc: 0 },
-  runes: [],
-  artifacts: [],
-};
 
 function formatBig(n: number): string {
   if (!Number.isFinite(n)) return '—';
@@ -3572,6 +3560,96 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     </div>
   );
 
+  // Assemblage des cartes de réglage (composants d'`optimizer/`). Les
+  // sélecteurs de listes restent écrits ici, branchés tels quels sur `lists` :
+  // naviguer entre les listes ou les gérer ne remet jamais la recherche à zéro.
+  const listesBureau = (
+    <OptimizerListPicker
+      action={<OptimizerImportButton enLigne sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />}
+      lists={lists.lists}
+      activeListId={lists.activeListId}
+      memberCounts={memberCountsByList}
+      listContents={lists.listContents}
+      onSelect={lists.setActiveListId}
+      onCreate={lists.createList}
+      onEdit={lists.editList}
+      onDelete={lists.deleteList}
+    />
+  );
+
+  const listesTelephone = (
+    <OptimizerListPicker
+      lists={lists.lists}
+      activeListId={lists.activeListId}
+      memberCounts={memberCountsByList}
+      listContents={lists.listContents}
+      onSelect={lists.setActiveListId}
+      onCreate={lists.createList}
+      onEdit={lists.editList}
+      onDelete={lists.deleteList}
+    />
+  );
+
+  const monstreEtListe = (
+    <MonstreEtListe
+      allMonsters={allMonsters}
+      pickSpecies={pickSpecies}
+      selected={selected}
+      listesBureau={listesBureau}
+      zoneCContent={zoneCContent}
+    />
+  );
+
+  const exemplaireEtFiche = (
+    <ExemplaireEtFiche
+      zoneDRef={zoneDRef}
+      sourceOptions={sourceOptions}
+      matchesValidatedBuild={matchesValidatedBuild}
+      unowned={unowned}
+      gearSource={gearSource}
+      pickSource={pickSource}
+      allSourcesEmpty={allSourcesEmpty}
+      zoneDOpen={zoneDOpen}
+      zoneDList={zoneDList}
+      validatedBadge={validatedBadge}
+      selected={selected}
+      selectionFiche={selectionFiche}
+      setSelectionFiche={setSelectionFiche}
+      relicUsageById={relicUsageById}
+      validateBuildButton={validateBuildButton}
+    />
+  );
+
+  const monstreEquipementTelephone = (
+    <MonstreEquipementTelephone
+      allMonsters={allMonsters}
+      pickSpecies={pickSpecies}
+      ligneMonstreTelephoneRef={ligneMonstreTelephoneRef}
+      selected={selected}
+      sourcesImport={sourcesImport}
+      importerDepuisEcran={importerDepuisEcran}
+      rapportImport={rapportImport}
+      setZoneCOpen={setZoneCOpen}
+      zoneCOpen={zoneCOpen}
+      eclatImport={eclatImport}
+      listesTelephone={listesTelephone}
+      sourceOptions={sourceOptions}
+      matchesValidatedBuild={matchesValidatedBuild}
+      unowned={unowned}
+      gearSource={gearSource}
+      pickSource={pickSource}
+      allSourcesEmpty={allSourcesEmpty}
+      zoneDOpen={zoneDOpen}
+      zoneDList={zoneDList}
+      zoneCContent={zoneCContent}
+      validatedBadge={validatedBadge}
+      selectionFiche={selectionFiche}
+      setSelectionFiche={setSelectionFiche}
+      relicUsageById={relicUsageById}
+      validateBuildButton={validateBuildButton}
+    />
+  );
+
   return (
     // ⚠️ **Pleine largeur**, comme RTA/Siège/Mon compte — l'ancienne colonne
     // bornée à 768 px était le seul écran de l'app à s'en imposer une, et
@@ -3654,199 +3732,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           une seule ligne sans repasser à la ligne. « Exclusion de runes » et
           « Réglages avancés » occupent la colonne 2, rangées 4 et 5 (voir
           plus bas). */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-span-2 xl:row-start-1">
-        <div className="mb-3 flex items-center gap-2">
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
-            <GameIcon name="monster" size={15} />
-          </div>
-          <p className="text-[13.5px] font-bold text-ink">Monstre &amp; équipement</p>
-        </div>
-        {/* ⚠️ Bureau et mobile ont des dispositions RÉELLEMENT DIFFÉRENTES
-            ici, une par bloc `hidden`/`lg:hidden`, pas l'une déclinée de
-            l'autre (voir docs/02-app/optimizer/) : recherche +
-            puces CÔTE À CÔTE avec zones C/D en encarts fixes sur bureau,
-            contre 3 blocs empilés avec un dépliement propre chacun au
-            doigt. La fiche (zone E) a deux `<MonsterGear>`, un par format (ici,
-            et dans le bloc 3 du téléphone), branchés sur le MÊME état
-            (`selectionFiche`) — son contenu ne change pas entre les deux
-            formats. */}
-        {/* ⚠️ Carte en PLEINE LARGEUR — nécessaire pour que la fiche
-            stats/artéfacts/roue/relique, déplacée ici SOUS les puces
-            (colonne de droite), tienne sur une seule ligne sans repasser à
-            la ligne (gabarit réel : ~200px stats + ~60px artéfacts + ~210px
-            roue + ~60px relique).
-            ⚠️ **`lg:grid-cols-[1.35fr_1fr]`, PAS `lg:grid-cols-2`** (demande
-            explicite) : la séparation entre « Monstre à optimiser » et
-            « Exemplaire » s'aligne ainsi avec celle des deux colonnes
-            PRINCIPALES de la grille (`xl:grid-cols-[1.35fr_1fr]`, voir le
-            commentaire d'ouverture de la grille) — un seul ratio de
-            colonnes pour tout l'écran, pas deux proportions différentes
-            qui se contrediraient visuellement l'une sous l'autre. */}
-        <div className="hidden lg:grid lg:grid-cols-[1.35fr_1fr] lg:items-start lg:gap-6">
-          {/* Zone A (recherche — résout une ESPÈCE dans tout le bestiaire,
-              possédée ou non) + liste active
-              + zone C (monstres de cette liste), à GAUCHE. */}
-          <div>
-            <p className="label mb-1.5">Monstre à optimiser</p>
-            {/* ⚠️ Mode BESTIAIRE (voir MonsterSourcePicker.tsx) : résout une
-                ESPÈCE (nom, icône, stats de base,
-                sorts) dans TOUT le bestiaire — la recherche ne se fait pas
-                PAR SOURCE (les 4 puces ne cherchent pas). Choisir
-                un résultat pose l'espèce et tente une résolution Box
-                silencieuse (`pickSpecies`, jamais en cas d'ambiguïté — voir
-                sa définition). */}
-            <MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />
-            {/* La sélection garde sa place même vide : l'import ne déplace pas les contrôles de liste. */}
-            <div className="mt-3 h-8 flex items-center gap-2">
-              {selected && <>
-                <MonsterAvatar monster={selected.monster} size={32} />
-                <span className="min-w-0 line-clamp-1 font-semibold text-[14px]" title={selected.monster.name}>{selected.monster.name}</span>
-              </>}
-            </div>
-            {/* ⚠️ Aucune liste FIXE (Box/RTA/Défense siège ne sont pas des
-                cas spéciaux, voir
-                docs/02-app/optimizer/,
-                « Créer, valider et réserver dans une liste ») —
-                tout est créé/renommé/supprimé par l'utilisateur. Flotte par-
-                dessus zone C, ne la pousse jamais (voir OptimizerListPicker.tsx). */}
-            <div className="mt-3">
-              <OptimizerListPicker
-                action={<OptimizerImportButton enLigne sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />}
-                lists={lists.lists}
-                activeListId={lists.activeListId}
-                memberCounts={memberCountsByList}
-                listContents={lists.listContents}
-                onSelect={lists.setActiveListId}
-                onCreate={lists.createList}
-                onEdit={lists.editList}
-                onDelete={lists.deleteList}
-              />
-            </div>
-            <div className="mt-3">{zoneCContent}</div>
-          </div>
-
-          {/* Zone B (les 4 puces — choisissent l'EXEMPLAIRE de l'espèce
-              déjà choisie à gauche dans un « contenu » précis) + zone D
-              (désambiguïsation
-              d'exemplaire, en `Flottant` sous les puces — ex. 2 équipes de
-              siège) + fiche, à DROITE. */}
-          <div className="flex flex-col gap-3">
-            <div ref={zoneDRef} className="relative">
-              <p className="label mb-1.5">Exemplaire</p>
-              {/* ⚠️ Puce individuellement grisée si l'espèce n'est PAS
-                  possédée dans CETTE source précise, tout le contrôle grisé
-                  si elle ne l'est dans AUCUNE des 4 — voir l'axe `disabled` par option, ajouté à
-                  Segmented.tsx pour ce cas précis. ⚠️ **`value={null}`
-                  quand le build VALIDÉ est ACTUELLEMENT affiché**
-                  (`matchesValidatedBuild`, PAS `ownValidatedBuild` seul —
-                  la bascule « voir le runage réellement porté »,
-                  `showRealGear`, peut en montrer l'équipement réel, qui
-                  LUI reste la source réelle d'une puce) **ou quand
-                  `sourceSelector` est `unowned`** (monstre non possédé,
-                  demande explicite) : dans les deux cas, aucune puce ne
-                  doit s'allumer — voir l'axe `value: T | null` ajouté à
-                  Segmented.tsx pour ce cas précis. */}
-              <Segmented
-                options={sourceOptions}
-                value={matchesValidatedBuild || unowned ? null : gearSource}
-                onChange={pickSource}
-                disabled={allSourcesEmpty}
-                size="lg"
-              />
-              {zoneDOpen && (
-                <Flottant aria-label="Choisir l'exemplaire" rembourrage="aucun" className="max-h-[300px] overflow-y-auto">
-                  {zoneDList}
-                </Flottant>
-              )}
-            </div>
-            <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
-              {validatedBadge}
-              <MonsterGear
-                gear={selected?.gear ?? EMPTY_GEAR}
-                selection={selectionFiche}
-                onSelectionChange={setSelectionFiche}
-                relicUsageById={relicUsageById}
-              />
-              {validateBuildButton}
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile : 3 blocs empilés, chacun son propre
-            dépliement — pas les zones fixes ci-dessus. */}
-        <div className="lg:hidden space-y-3">
-          {/* Bloc 1 — recherche TOUJOURS visible, liste active
-              rattachée EN DESSOUS en dépliement (`zoneCOpen`, repliée par
-              défaut). */}
-          <div>
-            <p className="label mb-1.5">Monstre à optimiser</p>
-            <MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />
-            <div ref={ligneMonstreTelephoneRef} className="mt-3 h-8 flex items-center gap-2">
-              {selected && <>
-                <MonsterAvatar monster={selected.monster} size={32} />
-                <span className="min-w-0 line-clamp-1 font-semibold text-[14px]" title={selected.monster.name}>{selected.monster.name}</span>
-              </>}
-            </div>
-            <div className="mt-3">
-              <OptimizerImportButton sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />
-            </div>
-            <ZoneCliquable
-              onClick={() => setZoneCOpen((v) => !v)}
-              aria-expanded={zoneCOpen}
-              className={`-mx-1 mt-3 flex w-[calc(100%+0.5rem)] items-center gap-1.5 rounded-md px-1 text-[12.5px] font-semibold transition-colors duration-300 motion-reduce:transition-none ${eclatImport ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
-            >
-              Gérer mes listes
-              <ChevronDown size={13} className={`ml-auto transition-transform ${zoneCOpen ? 'rotate-180' : ''}`} />
-            </ZoneCliquable>
-            {zoneCOpen && (
-              <div className={`-mx-1 mt-2 space-y-3 rounded-lg px-1 py-1 transition-colors duration-300 motion-reduce:transition-none ${eclatImport ? 'bg-accent-soft' : ''}`}>
-                <OptimizerListPicker
-                  lists={lists.lists}
-                  activeListId={lists.activeListId}
-                  memberCounts={memberCountsByList}
-                  listContents={lists.listContents}
-                  onSelect={lists.setActiveListId}
-                  onCreate={lists.createList}
-                  onEdit={lists.editList}
-                  onDelete={lists.deleteList}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Bloc 2 — puces TOUJOURS visibles, zone D rattachée EN DESSOUS
-              en dépliement (`zoneDOpen`, EN LIGNE plutôt qu'en `Flottant` —
-              un panneau flottant se prête mal à un écran étroit). */}
-          <div>
-            <p className="label mb-1.5">Exemplaire</p>
-            <Segmented
-              options={sourceOptions}
-              value={matchesValidatedBuild || unowned ? null : gearSource}
-              onChange={pickSource}
-              disabled={allSourcesEmpty}
-              size="lg"
-            />
-            {zoneDOpen && <div className="mt-2 rounded-lg border border-border-soft overflow-hidden">{zoneDList}</div>}
-            {/* Les ajouts ne déplacent pas la puce qui les déclenche. */}
-            {zoneCOpen && <div className="mt-3">{zoneCContent}</div>}
-          </div>
-
-          {/* Bloc 3 — fiche stats/artéfacts/runes/relique (même composant
-              `MonsterGear` que RTA/Siège), bandeau « build validé » +
-              bouton « Valider ce build » en plus, voir leur commentaire
-              plus haut (`validatedBadge`/`validateBuildButton`). */}
-          <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
-            {validatedBadge}
-            <MonsterGear
-              gear={selected?.gear ?? EMPTY_GEAR}
-              selection={selectionFiche}
-              onSelectionChange={setSelectionFiche}
-              relicUsageById={relicUsageById}
-            />
-              {validateBuildButton}
-          </div>
-        </div>
-      </div>
+      <MonstreEquipement
+        monstreEtListe={monstreEtListe}
+        exemplaireEtFiche={exemplaireEtFiche}
+        monstreEquipementTelephone={monstreEquipementTelephone}
+      />
 
       {/* Étape 3. ⚠️ **`w-fit` RETIRÉ** (demande explicite) : sans lui, la
           carte profite de toute la largeur de la colonne 1 plutôt que de se

@@ -137,7 +137,6 @@ import {
   Interrupteur,
   Selecteur,
 } from '../../ui';
-import OptimizerListPicker from './OptimizerListPicker';
 import SetComboPicker from './SetComboPicker';
 import BuildCandidateCard, { PlaceEnVerification, useHauteurDesCartes } from './BuildCandidateCard';
 import DamageSetupModale from './DamageSetupModale';
@@ -178,6 +177,7 @@ import ConfirmationsLiberation from './optimizer/ConfirmationsLiberation';
 import ReglagesAvancesContenu from './optimizer/ReglagesAvancesContenu';
 import ChoixExemplaire from './optimizer/ChoixExemplaire';
 import MonstresDeLaListe from './optimizer/MonstresDeLaListe';
+import SelecteurListes from './optimizer/SelecteurListes';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -3028,35 +3028,16 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     />
   );
 
-  // Assemblage des cartes de réglage (composants d'`optimizer/`). Les
-  // sélecteurs de listes restent écrits ici, branchés tels quels sur `lists` :
-  // naviguer entre les listes ou les gérer ne remet jamais la recherche à zéro.
+  // Assemblage des cartes de réglage (composants d'`optimizer/`).
   const listesBureau = (
-    <OptimizerListPicker
+    <SelecteurListes
       action={<OptimizerImportButton enLigne sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />}
-      lists={lists.lists}
-      activeListId={lists.activeListId}
+      lists={lists}
       memberCounts={memberCountsByList}
-      listContents={lists.listContents}
-      onSelect={lists.setActiveListId}
-      onCreate={lists.createList}
-      onEdit={lists.editList}
-      onDelete={lists.deleteList}
     />
   );
 
-  const listesTelephone = (
-    <OptimizerListPicker
-      lists={lists.lists}
-      activeListId={lists.activeListId}
-      memberCounts={memberCountsByList}
-      listContents={lists.listContents}
-      onSelect={lists.setActiveListId}
-      onCreate={lists.createList}
-      onEdit={lists.editList}
-      onDelete={lists.deleteList}
-    />
-  );
+  const listesTelephone = <SelecteurListes lists={lists} memberCounts={memberCountsByList} />;
 
   const setComboPicker = (
     <SetComboPicker

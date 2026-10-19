@@ -78,6 +78,7 @@ export function testRenduOptimizerGabaritsColonnes() {
   const avances = rendre(<ReglagesAvancesBureau><p>Contenu des réglages</p></ReglagesAvancesBureau>);
   ok(texteVisible(avances).includes('Réglages avancés') && texteVisible(avances).includes('Contenu des réglages') && !/aria-expanded/.test(avances),
     'avancés : en ligne, contenu visible, aucun dépliement');
+  ok(!/\bmin-h-|\bmax-h-|\bh-|height/.test(avances.match(/<section[^>]*>/)?.[0] ?? 'h-'),'avancés : une enveloppe sans hauteur fixe ni place réservée (un réglage retiré passe sans retouche)');
 }
 
 function props(p: Partial<ObjectifEtRechercherBureauProps> = {}): ObjectifEtRechercherBureauProps {

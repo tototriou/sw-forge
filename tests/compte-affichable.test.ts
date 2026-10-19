@@ -102,12 +102,10 @@ export function testCompteAffichable() {
     'écran : `compteAffiche` part du moteur, des reçus et des affichables');
   egal((ecran.match(/compteAffichable\(/g) ?? []).length, 1, 'écran : un seul appel à `compteAffichable`');
   egal((ecran.match(/progress\.found/g) ?? []).length, 1, 'écran : `progress.found` n’est lu qu’une fois, au compte du moteur');
-  ok(/combinaisons examinées · \$\{compteAffiche\.compte\.toLocaleString\('fr-FR'\)\} trouvée\(s\)`/.test(ecran),
-    'ligne de progression : le compte des trouvées, inchangé');
-  ok(/\{compteConfirmes\.aucune && compteAffiche\.raison && \(/.test(ecran),
-    'la ligne de raison s’affiche quand la fonction en rend une, sous « Aucune combinaison… »');
-  egal((ecran.match(/compteAffiche\.(compte|raison|ecartes)/g) ?? []).length, 3,
-    'écran : deux lecteurs seulement, la ligne de progression (une lecture) et la ligne de raison (condition et texte)');
-  egal((ecran.match(/\{result\?\.candidates\.length === 0 &&/g) ?? []).length, 3,
-    'le diagnostic (deux blocs) et le bloc « suffirait » gardent leur condition : moteur vide');
+  // Les lecteurs à l'écran : la ligne de progression (le compte des trouvées,
+  // `testRenduOptimizerResultatsEntete`) et la ligne de raison sous « Aucune
+  // combinaison… » (`testRenduOptimizerEcranResultats`, un build écarté à la
+  // vérification) ; les trois blocs de 0 résultat (faisabilité, diagnostic
+  // approfondi, quasi-succès) gardent leur condition, moteur vide
+  // (`testRenduOptimizerResultatsEntete`).
 }

@@ -1,0 +1,311 @@
+// Preuves au navigateur des BRANCHEMENTS de l'écran de l'Optimizer : ce que
+// fait un geste sur le vrai écran (vrais hooks, vrais composants), quel que
+// soit le composant qui porte le contrôle. Elles remplacent les lectures du
+// texte d'`OptimizerSection` qui épinglaient l'endroit où un contrôle était
+// écrit : un contrôle peut changer de composant, son effet doit rester.
+import type { OptimizerState } from '../../src/hooks/useOptimizerState';
+import type { UseOptimizerLists } from '../../src/hooks/useOptimizerLists';
+import type { ExclusionSelector } from '../../src/lib/optimizerExclusion';
+import { buildOptimizerRecipe } from '../../src/lib/optimizerRecipe';
+import { DEFAULT_DAMAGE_SETUP } from '../../src/lib/damage';
+import { AVERTISSEMENT_CRIT_MOYENNE } from '../../src/lib/optimizerRecipe';
+
+export interface BancEcran {
+  etat: () => OptimizerState;
+  listes: () => UseOptimizerLists;
+  geste: (faire: () => void) => Promise<void>;
+  premier: ExclusionSelector;
+  second: ExclusionSelector;
+  troisieme: ExclusionSelector;
+  // Le panneau « Options » du téléphone, tenu par le banc comme par App.tsx.
+  menuOuvert: () => boolean;
+  fermerMenu: () => void;
+  // Un résultat de recherche posé à la main (le banc n'a pas le Worker de la recherche).
+  forcerRecherche: (r: Record<string, unknown> | null) => void;
+}
+type Preuves = [boolean, string][];
+
+const visible = (e: Element) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden';
+const attendre = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const telephone = () => innerWidth < 1024;
+const bouton = (nom: string, racine: ParentNode = document) => [...racine.querySelectorAll<HTMLButtonElement>('button:not([role="switch"])')]
+  .find((e) => visible(e) && (e.textContent?.trim() === nom || e.getAttribute('aria-label') === nom));
+const interrupteur = (nom: string) => [...document.querySelectorAll<HTMLButtonElement>('button[role="switch"]')]
+  .find((e) => visible(e) && e.getAttribute('aria-label') === nom);
+const texteVisible = (morceau: string) => [...document.querySelectorAll<HTMLElement>('div, p, section')]
+  .some((e) => visible(e) && (e.textContent ?? '').includes(morceau));
+
+export const COMPTER = "Compter les effets d'auras Tolerance et Précision dans les conditions";
+export const VERIFIER = 'Vérifier toutes les combinaisons trouvées';
+const RAPPEL = 'Pense à vérifier les sets d\'aura externes.';
+
+// Le cadre d'attention de l'interrupteur des auras : le bloc qui contient
+// son libellé et l'interrupteur, et rien d'autre.
+const cadreCompter = () => interrupteur(COMPTER)?.parentElement?.parentElement ?? null;
+
+async function ouvrirReglages(b: BancEcran) {
+  if (telephone()) return; // au doigt, le panneau est ouvert par la guidance ou par le banc
+  const pli = [...document.querySelectorAll<HTMLElement>('[aria-expanded]')]
+    .find((e) => visible(e) && e.textContent?.trim() === 'Réglages avancés');
+  if (pli?.getAttribute('aria-expanded') === 'false') await b.geste(() => pli.click());
+}
+async function fermerSurfaces(b: BancEcran) {
+  if (b.menuOuvert()) await b.geste(() => b.fermerMenu());
+  if (b.etat().showAdvanced) await b.geste(() => b.etat().setShowAdvanced(false));
+}
+
+// « Réglages avancés » : les deux interrupteurs agissent sur l'état qu'ils
+// affichent, leur aide s'ouvre, « Vérifier toutes… » suit l'optimisation
+// d'artéfacts et l'interrupteur des auras reste rendu, en dernier.
+export async function preuvesReglagesAvances(b: BancEcran, ouvrirMenu: () => void): Promise<Preuves> {
+  const preuves: Preuves = [];
+  if (telephone()) await b.geste(ouvrirMenu);
+  await ouvrirReglages(b);
+  const compter = interrupteur(COMPTER);
+  preuves.push([!!compter && compter.getAttribute('aria-checked') === String(b.etat().compterAurasResPre),
+    'interrupteur des auras visible, affichant `compterAurasResPre`']);
+  if (!compter) return preuves;
+  const avant = b.etat().compterAurasResPre;
+  await b.geste(() => compter.click());
+  preuves.push([b.etat().compterAurasResPre === !avant && interrupteur(COMPTER)?.getAttribute('aria-checked') === String(!avant),
+    'clic : `compterAurasResPre` basculé, et l’interrupteur le montre']);
+  await b.geste(() => interrupteur(COMPTER)!.click());
+  preuves.push([b.etat().compterAurasResPre === avant, 'second clic : valeur d’origine']);
+
+  const verifier = interrupteur(VERIFIER);
+  preuves.push([!!verifier && b.etat().optimiserArtefacts, '« Vérifier toutes… » visible avec l’optimisation d’artéfacts']);
+  if (verifier) {
+    const v = b.etat().verifierToutesLesCombinaisons;
+    await b.geste(() => verifier.click());
+    preuves.push([b.etat().verifierToutesLesCombinaisons === !v, 'clic : `verifierToutesLesCombinaisons` basculé']);
+    await b.geste(() => interrupteur(VERIFIER)!.click());
+  }
+  const aide = bouton(VERIFIER);
+  if (aide) {
+    await b.geste(() => aide.click());
+    await attendre(250);
+    preuves.push([['100 combinaisons sont confirmées', '300', 'toutes les combinaisons trouvées sont vérifiées', 'plusieurs minutes'].every(texteVisible),
+      'aide de « Vérifier toutes… » : au-delà des confirmées, tout est vérifié, ce qui peut prendre plusieurs minutes']);
+    const fermer = telephone() ? [...document.querySelectorAll<HTMLButtonElement>('button[aria-label="Fermer"]')].filter(visible).pop() : bouton(VERIFIER);
+    if (fermer) await b.geste(() => fermer.click());
+    await attendre(250);
+  } else preuves.push([false, 'aide de « Vérifier toutes… » présente']);
+  preuves.push([!!bouton(COMPTER), 'l’interrupteur des auras a son aide']);
+
+  const ordre = () => [...document.querySelectorAll<HTMLButtonElement>('button[role="switch"]')].filter(visible).map((e) => e.getAttribute('aria-label'));
+  const avecFile = ordre();
+  await b.geste(() => b.etat().setOptimiserArtefacts(false));
+  const sansFile = ordre();
+  preuves.push([!sansFile.includes(VERIFIER) && avecFile.includes(VERIFIER), 'sans optimisation d’artéfacts : « Vérifier toutes… » masqué']);
+  preuves.push([avecFile[avecFile.length - 1] === COMPTER && sansFile[sansFile.length - 1] === COMPTER,
+    `l’interrupteur des auras, sans condition, en dernier (${JSON.stringify(sansFile.slice(-3))})`]);
+  await b.geste(() => b.etat().setOptimiserArtefacts(true));
+  return preuves;
+}
+
+// Ouverture guidée : choisir Accuracy comme set recherché, puis l'ajouter aux
+// auras externes d'« État de mon monstre », ouvre la surface des réglages et
+// colore le cadre de l'interrupteur, amené à l'écran, pendant trois secondes.
+export async function preuvesGuidage(b: BancEcran): Promise<Preuves> {
+  const preuves: Preuves = [];
+  const surfaceOuverte = () => (telephone() ? b.menuOuvert() : b.etat().showAdvanced);
+  const verifierGuidage = async (geste: string) => {
+    await attendre(1300);
+    const cadre = cadreCompter();
+    const r = cadre?.getBoundingClientRect();
+    preuves.push([surfaceOuverte(), `${geste} : la surface des réglages s’ouvre (${telephone() ? 'panneau « Options »' : 'flottant'})`]);
+    preuves.push([!!cadre && cadre.classList.contains('border-warn') && cadre.classList.contains('bg-warn-soft'),
+      `${geste} : le cadre de l’interrupteur passe au token d’attention`]);
+    preuves.push([!!r && r.top >= 0 && r.bottom <= innerHeight, `${geste} : l’interrupteur est amené à l’écran (${r?.top} → ${r?.bottom} / ${innerHeight})`]);
+    await attendre(3100);
+    const apres = cadreCompter();
+    preuves.push([!!apres && apres.classList.contains('border-transparent') && !apres.classList.contains('border-warn'),
+      `${geste} : surlignage effacé après trois secondes, cadre gardé (bord transparent)`]);
+  };
+  await fermerSurfaces(b);
+  const accuracy = bouton('Accuracy');
+  preuves.push([!!accuracy && !b.etat().comboSets.includes('accuracy'), 'set Accuracy proposé, pas encore choisi']);
+  if (!accuracy) return preuves;
+  await b.geste(() => accuracy.click());
+  preuves.push([b.etat().comboSets.includes('accuracy'), 'clic : Accuracy devient un set recherché']);
+  await verifierGuidage('Accuracy choisi comme set recherché');
+
+  await fermerSurfaces(b);
+  await b.geste(() => b.etat().setDamageSetup({ ...b.etat().damageSetup,
+    setsAuraExternes: [{ set: 'fight', nombre: 1 }, { set: 'determination', nombre: 1 }, { set: 'enhance', nombre: 1 }] }));
+  const ajouter = bouton("Ajouter un set d'aura");
+  preuves.push([!!ajouter && !surfaceOuverte(), '« Ajouter un set d’aura » présent, surfaces fermées']);
+  if (!ajouter) return preuves;
+  await b.geste(() => ajouter.click());
+  preuves.push([b.etat().damageSetup.setsAuraExternes?.some((a) => a.set === 'accuracy') === true, 'clic : Accuracy ajouté aux auras externes']);
+  await verifierGuidage('Accuracy ajouté aux auras externes');
+  return preuves;
+}
+
+// Rappel des auras au clic d'un membre de la liste de travail : le MÊME état
+// rend deux messages, dans la boîte des auras et sous la liste, à place
+// réservée (rien ne bouge quand ils paraissent).
+export async function preuvesRappelDeuxRendus(b: BancEcran): Promise<Preuves> {
+  const preuves: Preuves = [];
+  await b.geste(() => b.etat().choisirMembre('a', b.troisieme));
+  await b.geste(() => b.etat().setDamageSetup({ ...b.etat().damageSetup, setsAuraExternes: [{ set: 'fight', nombre: 2 }] }));
+  await b.geste(() => b.etat().choisirMembre('a', b.premier));
+  const pli = bouton('Gérer mes listes');
+  if (pli?.getAttribute('aria-expanded') === 'false') await b.geste(() => pli.click());
+  const zone = [...document.querySelectorAll<HTMLElement>('[aria-label="Rapport des critères"]')].find(visible)!.parentElement!;
+  const messages = () => [...document.querySelectorAll<HTMLElement>('p')].filter((e) => e.textContent?.trim() === RAPPEL);
+  const dansZone = () => messages().find((e) => zone.contains(e));
+  const dansBoite = () => messages().find((e) => !zone.contains(e) && !!e.closest('[aria-live="polite"]'));
+  // Position relative à son conteneur : le clic change l'exemplaire affiché,
+  // ce qui peut décaler la page entière — seul compte ce qui bouge AUTOUR du message.
+  const relatif = (e: HTMLElement | undefined, cadre: HTMLElement | null | undefined) => {
+    if (!e || !cadre) return null;
+    const r = e.getBoundingClientRect(), c = cadre.getBoundingClientRect();
+    return JSON.stringify([r.x - c.x, r.y - c.y, r.width, r.height]);
+  };
+  const positions = () => ({ zone: relatif(dansZone(), zone), boite: relatif(dansBoite(), dansBoite()?.closest('[aria-live="polite"]')?.parentElement) });
+  const avant = positions();
+  // La zone C ne lit le rappel qu'à un endroit : hors la classe du message,
+  // rien d'autre n'y change quand il paraît.
+  // Comparé après le clic, rappel affiché puis effacé : le clic lui-même change
+  // l'exemplaire affiché (et le rapport des critères), le rappel rien d'autre.
+  const sansMessage = () => { const m = dansZone(); const c = m?.className; if (m) m.className = ''; const h = zone.innerHTML; if (m) m.className = c!; return h; };
+  preuves.push([!!dansZone() && !visible(dansZone()!) && !!dansBoite() && !visible(dansBoite()!),
+    'hors rappel : les deux messages sont montés, invisibles (place réservée)']);
+  const lignes = [...zone.querySelectorAll<HTMLElement>('[role="button"]')];
+  const cible = lignes.find((e) => e.textContent?.includes('Premier') && e !== lignes[0]) ?? lignes[2];
+  await b.geste(() => cible.click());
+  await attendre(300); // l'apparition (200 ms) glisse le message de quelques pixels avant sa place
+  const apres = positions();
+  preuves.push([!!dansZone() && visible(dansZone()!), 'clic sur un autre exemplaire avec auras : rappel sous la liste']);
+  preuves.push([!!dansBoite() && visible(dansBoite()!), '… et dans la boîte des auras d’« État de mon monstre »']);
+  preuves.push([avant.zone !== null && avant.zone === apres.zone && avant.boite !== null && avant.boite === apres.boite,
+    `les deux messages paraissent à leur place réservée, rien ne bouge (${JSON.stringify([avant, apres])})`]);
+  const avecRappel = sansMessage();
+  await attendre(3100);
+  preuves.push([!!dansZone() && !visible(dansZone()!) && sansMessage() === avecRappel,
+    'zone C : rappel effacé après trois secondes, et seul le message a changé — rien d’autre n’y est monté sous sa condition']);
+  return preuves;
+}
+
+// Sélecteur de listes : choisir, créer et supprimer une liste à l'écran ne
+// remettent jamais la recherche à zéro (ni monstre, ni exemplaire changés).
+export async function preuvesListesEcran(b: BancEcran): Promise<Preuves> {
+  const preuves: Preuves = [];
+  const pli = bouton('Gérer mes listes');
+  if (pli?.getAttribute('aria-expanded') === 'false') await b.geste(() => pli.click());
+  const garde = () => JSON.stringify([b.etat().selectedId, b.etat().sourceSelector]);
+  const avant = garde();
+  const listeActive = () => [...document.querySelectorAll('p')].find((e) => visible(e) && e.textContent === 'Liste active')!
+    .parentElement!.querySelector<HTMLButtonElement>('button')!;
+  const ouvrir = async () => { if (listeActive().getAttribute('aria-expanded') !== 'true') await b.geste(() => listeActive().click()); };
+  const ligne = (nom: string) => [...document.querySelectorAll<HTMLElement>('[role="button"]')]
+    .find((e) => visible(e) && e.textContent?.trim().startsWith(`${nom} - `));
+  await ouvrir();
+  const beta = ligne('Bêta');
+  preuves.push([!!beta, 'la liste Bêta est proposée']);
+  if (!beta) return preuves;
+  await b.geste(() => beta.click());
+  preuves.push([b.listes().activeListId === 'b' && garde() === avant, 'choisir une liste : active, sans remise à zéro']);
+  await ouvrir();
+  await b.geste(() => bouton('Supprimer cette liste', ligne('Bêta')!.parentElement!)!.click());
+  await attendre(250);
+  const confirmation = document.querySelector<HTMLElement>('[role="dialog"]');
+  if (confirmation) await b.geste(() => bouton('Supprimer', confirmation)!.click());
+  preuves.push([!b.listes().lists.some((l) => l.id === 'b') && garde() === avant, 'supprimer une liste : retirée, sans remise à zéro']);
+  await ouvrir();
+  await b.geste(() => bouton('Nouvelle liste…')!.click());
+  await attendre(250);
+  const dialogue = document.querySelector<HTMLElement>('[role="dialog"]')!;
+  const menu = dialogue.querySelector<HTMLSelectElement>('[aria-label="Contenu de la liste"]')!;
+  await b.geste(() => { menu.value = 'arene'; menu.dispatchEvent(new Event('change', { bubbles: true })); });
+  const nombre = b.listes().lists.length;
+  await b.geste(() => bouton('Créer', dialogue)!.click());
+  preuves.push([b.listes().lists.length === nombre + 1 && b.listes().listContents.get(b.listes().activeListId!) === 'arene' && garde() === avant,
+    'créer une liste : créée avec son contenu et active, sans remise à zéro']);
+  return preuves;
+}
+
+// Une vraie recherche (Second, six runes Energy) : l'infobulle de l'en-tête
+// dit ce qu'est une combinaison confirmée et renvoie à « Vérifier toutes… ».
+export async function preuvesResultats(b: BancEcran): Promise<Preuves> {
+  const preuves: Preuves = [];
+  await b.geste(() => b.etat().choisirMembre('a', b.second));
+  // Le build des six runes de Second, rendu comme le moteur l'aurait trouvé ;
+  // la file le vérifie (repli sans Worker), comme après une vraie recherche.
+  const candidat = { runeIds: [101, 102, 103, 104, 105, 106], effTotal: 0,
+    stats: [{ key: 'atk', label: 'ATQ', suffix: '', base: 800, bonus: 0, total: 800 }] };
+  await b.geste(() => b.forcerRecherche({ status: 'done', progress: null,
+    result: { candidates: [candidat], explored: 1, truncated: false, nearMissByCondition: [], globalNearMiss: null } }));
+  const entete = () => [...document.querySelectorAll<HTMLElement>('p')]
+    .find((e) => visible(e) && /^\d[\d\s ]* combinaison\(s\) confirmée\(s\)$/.test(e.textContent?.trim() ?? ''));
+  for (let t = 0; t < 100 && !/^[1-9]/.test(entete()?.textContent?.trim() ?? ''); t++) await attendre(100);
+  preuves.push([/^1 combinaison/.test(entete()?.textContent?.trim() ?? ''), `résultat vérifié : « 1 combinaison(s) confirmée(s) » (${entete()?.textContent})`]);
+  const aide = bouton('Combinaisons confirmées');
+  preuves.push([!!aide, 'file active : l’infobulle « Combinaisons confirmées »']);
+  if (!aide) return preuves;
+  await b.geste(() => aide.click());
+  await attendre(250);
+  const bulle = [...document.querySelectorAll<HTMLElement>('div')].filter(visible)
+    .map((e) => e.textContent ?? '').filter((t) => t.includes('optimiste')).sort((x, y) => x.length - y.length)[0] ?? '';
+  preuves.push([/confirmée/.test(bulle) && /trouvée\(s\)/.test(bulle) && /optimiste/.test(bulle) && /écartée/.test(bulle),
+    'infobulle : la différence avec les trouvées (estimation optimiste, une partie écartée à la vérification)']);
+  preuves.push([/Vérifier toutes\s+les combinaisons trouvées/.test(bulle), 'infobulle : renvoie à « Vérifier toutes les combinaisons trouvées »']);
+  await b.geste(() => aide.click());
+
+  // Le même build, écarté par la vérification (condition que ses pièces réelles
+  // ne tiennent pas) : « Aucune combinaison… », la ligne de raison dessous,
+  // sans « Adapter… » ni « Trier par ».
+  await b.geste(() => b.forcerRecherche(null));
+  await b.geste(() => b.etat().setMinStats({ spd: 999 }));
+  await b.geste(() => b.forcerRecherche({ status: 'done', progress: null,
+    result: { candidates: [candidat], explored: 1, truncated: false, nearMissByCondition: [], globalNearMiss: null } }));
+  const aucune = () => [...document.querySelectorAll<HTMLElement>('p')].find((e) => visible(e) && e.textContent?.trim() === 'Aucune combinaison ne répond à ces critères');
+  for (let t = 0; t < 100 && !aucune(); t++) await attendre(100);
+  const raison = [...document.querySelectorAll<HTMLElement>('p')].find((e) => visible(e) && e.textContent?.includes('a été écartée'));
+  preuves.push([!!aucune(), 'build écarté à la vérification : « Aucune combinaison ne répond à ces critères »']);
+  preuves.push([raison?.textContent?.trim() === "1 combinaison trouvée par la recherche a été écartée : aucune paire d'artéfacts réelle ne tient toutes les conditions.",
+    `… et la ligne de raison dessous (${raison?.textContent})`]);
+  preuves.push([!interrupteur('Adapter les artéfacts et reliques au tri') && ![...document.querySelectorAll('select')].some((e) => visible(e) && e.textContent?.includes('Trier par')),
+    '… sans « Adapter… » ni « Trier par »']);
+
+  // Pendant l'appariement, la ligne de progression compte les trouvées moins
+  // les écartées (`compteAffichable`), pas le compte brut du moteur.
+  await b.geste(() => b.forcerRecherche(null));
+  await b.geste(() => b.forcerRecherche({ status: 'running', result: null,
+    progress: { phase: 'pairing', explored: 10, found: 5, pct: 0.1, totalPairs: 100, candidates: [candidat] } }));
+  const ligne = () => [...document.querySelectorAll<HTMLElement>('p')].find((e) => visible(e) && e.textContent?.includes('combinaisons examinées'))?.textContent ?? '';
+  for (let t = 0; t < 100 && !ligne().includes('4 trouvée(s)'); t++) await attendre(100);
+  preuves.push([ligne() === '10 / 100 combinaisons examinées · 4 trouvée(s)', `appariement : 5 trouvées, 1 écartée → « 4 trouvée(s) » (${ligne()})`]);
+  return preuves;
+}
+
+// Message d'import d'une recette : sa couleur suit le message (token d'avertissement
+// quand le parseur a converti quelque chose, de succès sinon).
+export async function preuvesMessageImport(b: BancEcran): Promise<Preuves> {
+  const preuves: Preuves = [];
+  const recette = (critMode: string) => {
+    const r = buildOptimizerRecipe({ monsterCom2usId: 10101, monsterName: 'Premier', damageSetup: DEFAULT_DAMAGE_SETUP,
+      requirement: { sets: [], minStats: {} }, objective: 'efficience', metric: 'eff', slotFilterPreset: 'moyen',
+      adaptiveTrancheWeighting: false, exhaustiveSearch: false, excludeUsedRunes: false, excludeUsedScope: 'box',
+      excludedSelectors: [], ignoreArtifacts: false, artifactMainByKind: {} });
+    return JSON.stringify({ ...r, damageSetup: { ...r.damageSetup, critMode } });
+  };
+  const importer = async (texte: string) => {
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    const fichiers = new DataTransfer(); fichiers.items.add(new File([texte], 'recette.json', { type: 'application/json' }));
+    await b.geste(() => { input.files = fichiers.files; input.dispatchEvent(new Event('change', { bubbles: true })); });
+    await attendre(100); await b.geste(() => {});
+    return [...document.querySelectorAll<HTMLElement>('p[role="status"]')].find((e) => visible(e) && e.textContent?.includes('Recette'))
+      ?? [...document.querySelectorAll<HTMLElement>('p[role="status"]')].filter(visible).pop();
+  };
+  const ordinaire = await importer(recette('crit'));
+  preuves.push([!!ordinaire && ordinaire.classList.contains('text-good') && !ordinaire.textContent?.includes(AVERTISSEMENT_CRIT_MOYENNE),
+    `import ordinaire : message au token de succès (${ordinaire?.className} · ${ordinaire?.textContent})`]);
+  const converti = await importer(recette('moyenne'));
+  preuves.push([!!converti && converti.classList.contains('text-warn') && !!converti.textContent?.includes(AVERTISSEMENT_CRIT_MOYENNE),
+    `import converti : message au token d’avertissement, qui cite la conversion (${converti?.className})`]);
+  const refus = await importer('{');
+  preuves.push([!!refus && refus.classList.contains('text-bad'), `import refusé : message au token d’erreur (${refus?.className})`]);
+  return preuves;
+}

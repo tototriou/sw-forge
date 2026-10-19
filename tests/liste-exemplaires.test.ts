@@ -141,8 +141,9 @@ export function testListeExemplaires() {
     'source : les quatre puces passent par libellePuceSource, sur le compte de leur source');
   ok(/const ajoutListe = etatAjoutListe\(\{[\s\S]{0,400}?candidatsBox: candidatesBySource\.box,/.test(ecran),
     'source : l’état du bouton vient de etatAjoutListe, sur les exemplaires Box de la zone D');
-  ok(/libelle=\{ajoutListe\.libelle\}/.test(ecran) && /disabled=\{!ajoutListe\.actif\}/.test(ecran),
-    'source : libellé et désactivation du bouton viennent de cet état');
+  // Libellé, infobulle et désactivation du bouton, rendus depuis cet état :
+  // `testRenduOptimizerListeDeTravail` ; le clic qui enchaîne sur l'exemplaire
+  // suivant : `testRendu…OptimizerRechercheExemplaireSuivant`.
   const ajout = entre(ecran, 'function handleAddToList(', 'const displayedRuneIds');
   ok(/const suivant = ajoutListe\.exemplaireSuivant;/.test(ajout)
     && /choisirExemplaire\(suivant\.selector, suivant\.monster\);\s*lists\.addMember\(lists\.activeListId, suivant\.selector, suivant\.monster\.com2usId!\);/.test(ajout),
@@ -177,8 +178,10 @@ export function testListeExemplaires() {
   ok(/const importReliqueTraite = useRef\(0\);/.test(hookEtat),
     'source : le suivi de l’import traité vit dans l’état partagé, qui survit au démontage de l’écran');
   ok(chemin.length > 0 && !/doitRappeler|setRappelAuras/.test(chemin), 'source : ce chemin ne rappelle rien par lui-même');
-  const zoneC = ecran.slice(Math.max(0, ecran.indexOf('const zoneCContent = (')));
-  const clic = entre(zoneC, 'onClick={() => {', 'className="flex min-w-0 flex-1 items-center gap-2 text-left"');
+  // Le geste d'un membre de la zone C, repéré par sa logique (le clic d'une
+  // ligne le déclenche et restaure les critères du membre :
+  // `testRendu…MemoireOptimizerRappelAurasDestination`).
+  const clic = entre(ecran, 'if (!resolved) return;', 'else setRappelAuras(null);');
   ok(/optimizer\.choisirMembre\(m\.listId, m\.selector\);/.test(clic), 'source : la zone C restaure les critères du membre par l’action partagée');
   egal(ecran.match(/effacerResultats\(\)/g)?.length ?? 0, 1, 'source : effacerResultats n’est appelé qu’à un endroit (pas de seconde écriture)');
 }

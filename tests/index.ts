@@ -303,6 +303,12 @@ import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testR
 import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompteArtefactsListe, testRenduCompteSouris, testRenduCompteEffacerFiltres } from './rendu/compte.test';
 import { testRenduSpeedTuneVide, testRenduSpeedTuneCamps, testRenduSpeedTuneAnalyse } from './rendu/speed-tune.test';
 import { testRenduOptimizerVide, testRenduOptimizerMonstre, testRenduOptimizerReglages, testRenduTelephoneOptimizer } from './rendu/optimizer.test';
+import { testRenduOptimizerReglagesAvancesContenu, testRenduOptimizerListeDeTravail, testRenduOptimizerResultatsEntete,
+  testRenduOptimizerResultatsCartes } from './rendu/optimizer-ecran.test';
+import { testRenduOptimizerEcranReglagesAvances, testRenduTelephoneOptimizerEcranReglagesAvances, testRenduOptimizerEcranGuidage,
+  testRenduTelephoneOptimizerEcranGuidage, testRenduOptimizerEcranRappel, testRenduTelephoneOptimizerEcranRappel,
+  testRenduOptimizerEcranListes, testRenduTelephoneOptimizerEcranListes, testRenduOptimizerEcranMessageImport,
+  testRenduOptimizerEcranResultats } from './rendu/optimizer-ecran-navigateur.test';
 import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerIdentiteEnregistree, testRenduMemoireOptimizerSansMemoire, testRenduMemoireOptimizerListes,
   testRenduMemoireOptimizerRetrait, testRenduMemoireOptimizerInclusion, testRenduMemoireOptimizerHorsListe,
   testRenduMemoireOptimizerIdentite, testRenduMemoireOptimizerRecette, testRenduMemoireOptimizerNavigation, testRenduTelephoneMemoireOptimizer,
@@ -462,6 +468,20 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduOptimizerMonstre', testRenduOptimizerMonstre],
   ['testRenduOptimizerReglages', testRenduOptimizerReglages],
   ['testRenduTelephoneOptimizer', testRenduTelephoneOptimizer],
+  ['testRenduOptimizerReglagesAvancesContenu', testRenduOptimizerReglagesAvancesContenu],
+  ['testRenduOptimizerListeDeTravail', testRenduOptimizerListeDeTravail],
+  ['testRenduOptimizerResultatsEntete', testRenduOptimizerResultatsEntete],
+  ['testRenduOptimizerResultatsCartes', testRenduOptimizerResultatsCartes],
+  ['testRenduOptimizerEcranReglagesAvances', testRenduOptimizerEcranReglagesAvances],
+  ['testRenduTelephoneOptimizerEcranReglagesAvances', testRenduTelephoneOptimizerEcranReglagesAvances],
+  ['testRenduOptimizerEcranGuidage', testRenduOptimizerEcranGuidage],
+  ['testRenduTelephoneOptimizerEcranGuidage', testRenduTelephoneOptimizerEcranGuidage],
+  ['testRenduOptimizerEcranRappel', testRenduOptimizerEcranRappel],
+  ['testRenduTelephoneOptimizerEcranRappel', testRenduTelephoneOptimizerEcranRappel],
+  ['testRenduOptimizerEcranListes', testRenduOptimizerEcranListes],
+  ['testRenduTelephoneOptimizerEcranListes', testRenduTelephoneOptimizerEcranListes],
+  ['testRenduOptimizerEcranMessageImport', testRenduOptimizerEcranMessageImport],
+  ['testRenduOptimizerEcranResultats', testRenduOptimizerEcranResultats],
   ['testRenduBestiaire', testRenduBestiaire],
   ['testRenduMecaniques', testRenduMecaniques],
   ['testRenduNouveautes', testRenduNouveautes],

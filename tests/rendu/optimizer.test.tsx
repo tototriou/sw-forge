@@ -25,13 +25,17 @@ import { auTelephone, bouton, boutons, rendre, texteVisible, valeurs } from './o
 const MONSTRES = monstersJson() as Monster[];
 const PAR_COM2US = new Map(MONSTRES.filter((m) => m.com2usId != null).map((m) => [m.com2usId as number, m]));
 const SOURCE = exportSynthetique();
-const BOX = mapBoxMonsters(parseAccountBox(SOURCE).monsters, PAR_COM2US);
+export const BOX = mapBoxMonsters(parseAccountBox(SOURCE).monsters, PAR_COM2US);
 const INVENTAIRE = parseAccountInventory(SOURCE);
 // Le premier monstre de la box (Devilmon), désigné par son id de monstre.
-const CHOISI = String(BOX[0].monster.id);
+export const CHOISI = String(BOX[0].monster.id);
 
-function Banc({ etat, menuOuvert }: { etat: Record<string, unknown>; menuOuvert: boolean }) {
-  const optimizer = { ...useOptimizerState(), ...etat } as ReturnType<typeof useOptimizerState>;
+// `etat` : les champs remplacés, ou une fonction de l'état réel — pour
+// remplacer un champ imbriqué (`search`) sans perdre le reste.
+type EtatBanc = Record<string, unknown> | ((reel: ReturnType<typeof useOptimizerState>) => Record<string, unknown>);
+function Banc({ etat, menuOuvert }: { etat: EtatBanc; menuOuvert: boolean }) {
+  const reel = useOptimizerState();
+  const optimizer = { ...reel, ...(typeof etat === 'function' ? etat(reel) : etat) } as ReturnType<typeof useOptimizerState>;
   const lists = useOptimizerLists();
   return (
     <OptimizerSection
@@ -55,12 +59,13 @@ function Banc({ etat, menuOuvert }: { etat: Record<string, unknown>; menuOuvert:
   );
 }
 
-export function rendreOptimizer(etat: Record<string, unknown> = {}, menuOuvert = false): string {
-  faussLocalStorage({});
+// `stockage` : le faux `localStorage` de départ (listes de travail…), lu par les hooks.
+export function rendreOptimizer(etat: EtatBanc = {}, menuOuvert = false, stockage: Record<string, string> = {}): string {
+  faussLocalStorage(stockage);
   return rendre(<Banc etat={etat} menuOuvert={menuOuvert} />);
 }
 
-const AVEC_MONSTRE = { selectedId: CHOISI, comboSets: ['violent'], showAdvanced: true };
+export const AVEC_MONSTRE = { selectedId: CHOISI, comboSets: ['violent'], showAdvanced: true };
 
 const BETA =
   "Optimizer en bêta. L'outil est encore en rodage : le moteur de recherche peut mettre du temps sur des critères serrés ou manquer un build sur un cas inhabituel — vérifie toujours le résultat avant de re-runer.";

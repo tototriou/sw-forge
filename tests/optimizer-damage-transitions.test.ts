@@ -51,7 +51,8 @@ export default function testOptimizerDamageTransitions() {
   ok(/if \(id !== selectedId\)\s*\{\s*resetSearch\(\)/.test(ecran), 'espèce : resetSearch de production');
   ok(ecran.includes('if (id !== selectedId) resetSearch();'), 'membre de liste : seule une autre espèce provoque le reset');
   ok(!ecran.includes('resetDamageSkill'), 'exemplaire et listes : aucun reset propre au sort');
-  ok(ecran.includes('onSelect={lists.setActiveListId}') && ecran.includes('onCreate={lists.createList}') && ecran.includes('onDelete={lists.deleteList}'), 'navigation et gestion des listes sans reset');
+  // Navigation et gestion des listes sans reset : choisir, supprimer et créer
+  // une liste à l'écran (`testRendu…OptimizerEcranListes`).
   ok(ecran.includes('const id = lists.createList(nom, contenu);'), 'création avec contenu et ajout depuis la fenêtre sans reset');
   ok(ecran.includes('damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP'), 'recette : import direct sans capture');
   ok(app.includes("optimizer.resetSearch('compte')"), 'compte : motif explicite');

@@ -7,6 +7,8 @@ import MeilleursArtefactsBureau from '../../src/components/outils/optimizer/bure
 import SetsAuraBureau from '../../src/components/outils/optimizer/bureau/SetsAuraBureau';
 import ExclusionRunesBureau from '../../src/components/outils/optimizer/bureau/ExclusionRunesBureau';
 import ReglagesAvancesBureau from '../../src/components/outils/optimizer/bureau/ReglagesAvancesBureau';
+import ExclusionMonstrePrecis from '../../src/components/outils/optimizer/ExclusionMonstrePrecis';
+import RunesImposees from '../../src/components/outils/optimizer/RunesImposees';
 import ExemplaireBureau from '../../src/components/outils/optimizer/bureau/ExemplaireBureau';
 import ObjectifEtRechercherBureau, { type ObjectifEtRechercherBureauProps } from '../../src/components/outils/optimizer/bureau/ObjectifEtRechercherBureau';
 import ResultatsBureau from '../../src/components/outils/optimizer/bureau/ResultatsBureau';
@@ -59,6 +61,18 @@ export function testRenduOptimizerGabaritsColonnes() {
   ok(tex.includes('Exclusion de runes') && !/aria-expanded/.test(exclusion), 'exclusion : en ligne, aucun en-tête qui déplie un flottant');
   ok(tex.indexOf('Bloc monstre') < tex.indexOf('Bloc déjà utilisées') && tex.indexOf('Bloc déjà utilisées') < tex.indexOf('Bloc imposées'),
     'exclusion : « Exclure les runes d\'un monstre », puis « déjà utilisées », puis les runes imposées');
+  // Variantes bureau : monstres exclus à hauteur bornée, slots en deux colonnes également espacées.
+  const equipe = BOX.find((b) => b.gear && b.gear.runes.length >= 2)!;
+  const donnees = { box: BOX, rtaEntries: {}, siegeDefenseTeams: [], siegeOffenseTeams: [], monsterById: new Map() };
+  const exclus = BOX.filter((b) => b !== equipe).map((b) => ({ source: 'box' as const, unitKey: b.key }));
+  const monstreBureau = rendre(<ExclusionMonstrePrecis exclusionData={donnees} selectedUnitKey={equipe.key} selected={{ monster: equipe.monster, gear: equipe.gear! }}
+    excludedSelectors={exclus} setExcludedSelectors={rien} bureau />);
+  ok(/max-h-24 overflow-y-auto overscroll-contain/.test(monstreBureau), 'exclusion du bureau : les monstres exclus défilent dans une hauteur bornée');
+  ok(!/max-h-24/.test(rendre(<ExclusionMonstrePrecis exclusionData={donnees} selectedUnitKey={equipe.key} selected={{ monster: equipe.monster, gear: equipe.gear! }}
+    excludedSelectors={exclus} setExcludedSelectors={rien} />)), 'exclusion hors bureau : aucune hauteur bornée (le téléphone ne change pas)');
+  const slotsBureau = rendre(<RunesImposees selected={{ monster: equipe.monster, gear: equipe.gear! }} lockedRunes={{}} setLockedRunes={rien} bureau />);
+  ok(/grid grid-cols-\[auto_auto\] justify-evenly/.test(slotsBureau), 'slots conservés du bureau : deux colonnes espacées également');
+  egal([...texteVisible(slotsBureau).matchAll(/Slot (\d)/g)].map((m) => m[1]), ['1', '2', '3', '4', '5', '6'], 'slots conservés du bureau : 1 · 2, 3 · 4, 5 · 6 (impairs à gauche, pairs à droite)');
 
   // Réglages avancés : en ligne, sans dépliement.
   const avances = rendre(<ReglagesAvancesBureau><p>Contenu des réglages</p></ReglagesAvancesBureau>);

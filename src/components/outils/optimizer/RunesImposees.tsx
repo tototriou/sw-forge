@@ -9,9 +9,14 @@ export interface RunesImposeesProps {
   selected: { monster: Monster; gear: GearSet; } | null;
   lockedRunes: Partial<Record<number, number>>;
   setLockedRunes: Dispatch<SetStateAction<Partial<Record<number, number>>>>;
+  // Colonne « Aura, exclusion, avancés » du bureau : deux colonnes, slots
+  // impairs puis pairs (1 · 2, 3 · 4, 5 · 6), espacées également entre les
+  // bords (`justify-evenly`). Le téléphone et la page d'aujourd'hui gardent la
+  // rangée qui passe à la ligne.
+  bureau?: boolean;
 }
 
-export default function RunesImposees({ selected, lockedRunes, setLockedRunes }: RunesImposeesProps) {
+export default function RunesImposees({ selected, lockedRunes, setLockedRunes, bureau = false }: RunesImposeesProps) {
   return (
     <div>
       <div className="mb-2.5 flex items-center gap-1.5">
@@ -26,7 +31,7 @@ export default function RunesImposees({ selected, lockedRunes, setLockedRunes }:
       {!selected || selected.gear.runes.length === 0 ? (
         <p className="text-micro text-ink-dim">Aucune rune équipée sur cet exemplaire — rien à conserver.</p>
       ) : (
-        <div className="flex flex-wrap gap-1.5">
+        <div className={bureau ? 'grid grid-cols-[auto_auto] justify-evenly justify-items-start gap-y-1.5' : 'flex flex-wrap gap-1.5'}>
           {[1, 2, 3, 4, 5, 6].map((slot) => {
             const portee = selected.gear.runes.find((r) => r.slot === slot);
             const verrouille = lockedRunes[slot] != null;

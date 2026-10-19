@@ -86,14 +86,19 @@ function AurasGabarit({ ctx, initial }: { ctx: ContexteGabarits; initial?: AuraE
   return <SetsAuraBureau setup={setup} maj={(p) => setSetup((s) => ({ ...s, ...p }))} rappel={false} onGuiderResPre={rien} />;
 }
 
-interface ReglagesExclusion { exclus?: boolean; selecteurs?: 'aucun' | 'compte'; imposees?: boolean }
+interface ReglagesExclusion { exclus?: boolean; selecteurs?: 'aucun' | 'compte' | 'beaucoup'; imposees?: boolean }
 function ExclusionGabarit({ ctx, initial }: { ctx: ContexteGabarits; initial: ReglagesExclusion }) {
   const exemplaire = exemplaireDuCompte(ctx);
   // « Remplie » : les autres monstres équipés de la Box, exclus un à un.
   const autres = ctx.box.filter((b) => b.gear && b.key !== exemplaire?.unitKey).map((b): ExclusionSelector => ({ source: 'box', unitKey: b.key }));
+  // « Beaucoup » : le compte d'exemple n'a pas assez de monstres pour remplir
+  // la hauteur bornée ; des entrées Box absentes du compte (jetons « exclusion
+  // introuvable ») la dépassent, et l'état le dit.
+  const beaucoup = [...autres, ...Array.from({ length: 12 }, (_, i): ExclusionSelector => ({ source: 'box', unitKey: `gabarit-absent-${i + 1}` }))];
   const [exclure, setExclure] = useState(initial.exclus ?? ctx.optimizer.excludeUsedRunes);
   const [portee, setPortee] = useState<AutoExclusionScope>(ctx.optimizer.excludeUsedScope);
-  const [selecteurs, setSelecteurs] = useState<ExclusionSelector[]>(initial.selecteurs === 'compte' ? autres : initial.selecteurs === 'aucun' ? [] : ctx.optimizer.excludedSelectors);
+  const [selecteurs, setSelecteurs] = useState<ExclusionSelector[]>(initial.selecteurs === 'compte' ? autres : initial.selecteurs === 'beaucoup' ? beaucoup
+    : initial.selecteurs === 'aucun' ? [] : ctx.optimizer.excludedSelectors);
   const [verrous, setVerrous] = useState<Partial<Record<number, number>>>(() => {
     if (!initial.imposees || !exemplaire) return initial.imposees === false ? {} : ctx.optimizer.lockedRunes;
     const r = exemplaire.gear.runes.slice(0, 2);
@@ -103,9 +108,9 @@ function ExclusionGabarit({ ctx, initial }: { ctx: ContexteGabarits; initial: Re
   return (
     <ExclusionRunesBureau
       monstrePrecisBlock={<ExclusionMonstrePrecis exclusionData={ctx.exclusionData} selectedUnitKey={exemplaire?.unitKey ?? null} selected={selected}
-        excludedSelectors={selecteurs} setExcludedSelectors={setSelecteurs} />}
+        excludedSelectors={selecteurs} setExcludedSelectors={setSelecteurs} bureau />}
       dejaUtiliseesBlock={<RunesDejaUtilisees excludeUsedRunes={exclure} setExcludeUsedRunes={setExclure} excludeUsedScope={portee} setExcludeUsedScope={setPortee} />}
-      runesImposeesBlock={<RunesImposees selected={selected} lockedRunes={verrous} setLockedRunes={setVerrous} />}
+      runesImposeesBlock={<RunesImposees selected={selected} lockedRunes={verrous} setLockedRunes={setVerrous} bureau />}
     />
   );
 }
@@ -181,15 +186,18 @@ export const GABARITS_COLONNES: Gabarit[] = [
   },
   {
     id: 'exclusion', nom: 'Exclusion de runes (en ligne)', largeur: LARGEUR_COMPLEMENTS, hauteurEstimee: 440,
-    composant: 'ExclusionRunesBureau (bureau/ExclusionRunesBureau.tsx) : ExclusionRunesContenu dans l\'ordre empilé du panneau',
-    telephone: `ExclusionRunesContenu et ses trois blocs repris tels quels ; ${TELEPHONE_INCHANGE}`,
+    composant: 'ExclusionRunesBureau (bureau/ExclusionRunesBureau.tsx) : ExclusionRunesContenu dans l\'ordre empilé du panneau, variantes bureau de ExclusionMonstrePrecis et RunesImposees',
+    telephone: 'ExclusionRunesContenu et RunesDejaUtilisees repris tels quels ; ExclusionMonstrePrecis (et RuneExclusionPicker) et RunesImposees partagés par une variante que le téléphone ne prend pas (prop bureau) ; le téléphone garde son panneau « Options ».',
     changements: [
       'En ligne dans sa colonne : plus d\'en-tête qui ouvre un flottant ; le contenu est toujours visible quand la colonne est ouverte.',
       '« Exclure les runes d\'un monstre » passe au-dessus d\'« Exclure les runes déjà utilisées », empilés (l\'ordre du panneau « Options »), au lieu de côte à côte.',
+      'Les monstres exclus défilent dans une hauteur bornée (≈ 3 rangées de jetons, 96 px) : en exclure beaucoup n\'allonge plus la colonne.',
+      '« Conserver ces slots… » : deux colonnes, slots impairs puis pairs, espacées également entre les bords de la carte (au lieu d\'une rangée qui passe à la ligne).',
     ],
     etats: [
       { id: 'vide', nom: 'Vide : aucun monstre exclu, déjà utilisées coupé, aucune rune imposée', rendu: (ctx) => <ExclusionGabarit ctx={ctx} initial={{ exclus: false, selecteurs: 'aucun', imposees: false }} /> },
       { id: 'remplie', nom: 'Remplie : monstres exclus, déjà utilisées actif, deux runes imposées', rendu: (ctx) => <ExclusionGabarit ctx={ctx} initial={{ exclus: true, selecteurs: 'compte', imposees: true }} /> },
+      { id: 'beaucoup', nom: 'Beaucoup d\'exclusions : hauteur bornée (entrées absentes du compte d\'exemple, « exclusion introuvable »)', rendu: (ctx) => <ExclusionGabarit ctx={ctx} initial={{ exclus: true, selecteurs: 'beaucoup', imposees: true }} /> },
       { id: 'reel', nom: 'Exclusion de l\'Optimizer', rendu: (ctx) => <ExclusionGabarit ctx={ctx} initial={{}} /> },
     ],
   },

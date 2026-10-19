@@ -9,20 +9,14 @@ import OptimizerImportButton, { type SourceImportOptimizer } from './OptimizerIm
 import { importerRecoOptimizer } from '../../lib/importRecoOptimizer';
 import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importerPrepaRtaOptimizer, type RapportImportOptimizer } from '../../lib/importEquipes';
 import {
-  Search,
-  Square,
   FlaskConical,
   Target,
-  Upload,
-  Download,
   ChevronLeft,
   ChevronRight,
   Plus,
   CheckCircle2,
   Unlock,
   Trash2,
-  Swords,
-  Pencil,
 } from 'lucide-react';
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
 import { computeStats } from '../../lib/stats';
@@ -198,6 +192,8 @@ import OptionsRechercheTelephone from './optimizer/OptionsRechercheTelephone';
 import EstimationPool from './optimizer/EstimationPool';
 import CarteExclusionRunes from './optimizer/CarteExclusionRunes';
 import CarteReglagesAvances from './optimizer/CarteReglagesAvances';
+import ObjectifEtActions from './optimizer/ObjectifEtActions';
+import ProgressionRecherche from './optimizer/ProgressionRecherche';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -3984,134 +3980,21 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         />
       )}
 
-      <div className="rounded-xl border border-border bg-panel p-3 shadow-lg">
-        {/* ⚠️ **L'objectif vit avec le bouton qui lance la recherche**, plus
-            dans une cellule de la grille de réglages. Il y était « une carte
-            À PART » parce qu'il portait AUSSI la description du combat, qui
-            réclamait de la place ; celle-ci partie en fenêtre, il ne reste
-            qu'un segmenté à quatre crans — et *quoi* chercher se lit mieux
-            juste au-dessus de *chercher* que parmi les critères.
-            ⚠️ Titre en `label`, sans le carré d'icône accentué qu'il portait
-            comme en-tête de carte : ce n'en est plus une, c'est une section
-            dans celle des actions — même traitement que « Set de runes
-            recherché » ou « Conditions ». */}
-        <div className="mb-3">
-          <div className="mb-1.5 flex items-center gap-1.5">
-            <p className="label">Objectif de recherche</p>
-            <HelpPopover title="Objectif de recherche">
-              Ce que la recherche maximise. <b className="text-ink">Dégâts réels</b> : les dégâts d&apos;un sort
-              précis contre l&apos;adversaire décrit.
-            </HelpPopover>
-          </div>
-          {/* ⚠️ Choisir « Dégâts réels » OUVRE la description du combat, il ne
-              fait pas que la révéler. La carte apparaissait auparavant sous
-              l'objectif, et rien n'obligeait à la regarder : on pouvait classer
-              des milliers de builds sur un sort, une cible et un mode de
-              critique jamais choisis. Le geste devient explicite — cet objectif
-              ne se choisit plus sans voir ses hypothèses. */}
-          <Segmented
-            options={OBJECTIVE_LABELS}
-            value={objective}
-            onChange={(o) => {
-              setObjective(o);
-              if (o === 'degats_reels') setSetupOuvert(true);
-            }}
-            size="lg"
-          />
-          {/* Le résumé remplace la carte dans le flux ET sert de porte de
-              réouverture : sans lui, une fenêtre fermée rendrait les
-              hypothèses inatteignables autant qu'invisibles. */}
-          {objective === 'degats_reels' && (
-            <ZoneCliquable
-              onClick={() => setSetupOuvert(true)}
-              className="mt-2.5 flex w-full items-center gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5 text-left"
-              aria-label="Modifier la description du combat"
-            >
-              <Swords size={13} className="flex-none text-ink-dim" />
-              <span className="text-micro leading-tight text-ink-dim">{resumeCombat}</span>
-              <Pencil size={12} className="ml-auto flex-none text-ink-dim" />
-            </ZoneCliquable>
-          )}
-        </div>
-
-        {/* ⚠️ Rangée d'actions inchangée — mêmes classes qu'avant que
-            l'objectif ne la rejoigne : elle était la carte entière, elle en
-            devient la seconde moitié. Une rangée à part, et non un `flex-wrap`
-            commun avec l'objectif : le segmenté et les boutons se seraient
-            réarrangés l'un autour de l'autre au gré de la largeur. */}
-        <div className="flex flex-wrap items-center gap-3">
-        {/* ⚠️ `comboSets.length === 0` reste HORS de `disabled` — un bouton
-            HTML natif `disabled` ne déclenche JAMAIS `onClick` (règle du
-            DOM, pas un oubli), ce qui aurait rendu le défilement vers « Set
-            de runes recherché » plus haut inatteignable : plus aucun clic
-            ne pouvait jamais arriver jusqu'à `handleSearch`. Grisé
-            visuellement à la place (mêmes classes que `disabled:*`,
-            appliquées manuellement) tout en restant cliquable, pour que le
-            clic sur un set manquant décale toujours vers la section fautive
-            plutôt que de ne rien faire silencieusement. */}
-        <Bouton
-          ton="accent"
-          onClick={handleSearch}
-          disabled={!selected || status === 'running'}
-          title={selected && status !== 'running' && comboSets.length === 0 ? 'Choisis d\'abord un set de runes recherché' : undefined}
-          icone={<Search size={15} />}
-          libelle={status === 'running' ? 'Recherche…' : 'Rechercher'}
-          className={comboSets.length === 0 ? 'opacity-40 cursor-not-allowed' : ''}
-        />
-
-        {/* Exporte les réglages de CETTE recherche (set, minimums, objectif…),
-            jamais le pool de runes ni le compte — pour reproduire fidèlement
-            un cas signalé, partager une recherche entre joueurs (chacun
-            l'applique à son propre inventaire), ou la réutiliser depuis un
-            script. Voir src/lib/optimizerRecipe.ts. */}
-        <Bouton
-          onClick={exportRecipe}
-          disabled={!selected || comboSets.length === 0}
-          title="Télécharger les réglages de cette recherche en fichier .json (set, minimums, objectif…) — pour la partager ou la reproduire, jamais tes runes ni ton compte."
-          icone={<Upload size={14} />}
-          libelle="Exporter les paramètres de recherche"
-          libelleCourt="Exporter"
-        />
-
-        {/* Reprend une recette importée (fichier reçu d'un autre joueur, ou
-            gardée de côté) — remplit les réglages et sélectionne le monstre
-            si son com2usId existe dans CETTE box. Aucune confirmation :
-            remplacer les réglages en cours n'est pas plus destructeur que
-            les modifier à la main un par un. */}
-        <Bouton
-          onClick={() => importFileRef.current?.click()}
-          title="Reprendre les réglages d'un fichier .json exporté depuis l'Optimizer (le tien ou celui d'un autre joueur)."
-          icone={<Download size={14} />}
-          libelle="Importer les paramètres de recherche"
-          libelleCourt="Importer"
-        />
-        <input
-          ref={importFileRef}
-          type="file"
-          accept=".json,application/json"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            e.target.value = ''; // permet de réimporter le même fichier
-            if (f) importRecipe(f);
-          }}
-        />
-
-        {status === 'running' && (
-          <Bouton
-            ton="danger"
-            fond="vide"
-            onClick={() => {
-              setStoppedManually(true);
-              stop();
-            }}
-            title="Arrêter la recherche et garder ce qui a déjà été trouvé"
-            icone={<Square size={13} />}
-            libelle="Arrêter"
-          />
-        )}
-        </div>
-      </div>
+      <ObjectifEtActions
+        objective={objective}
+        setObjective={setObjective}
+        setSetupOuvert={setSetupOuvert}
+        resumeCombat={resumeCombat}
+        handleSearch={handleSearch}
+        selected={selected}
+        status={status}
+        comboSets={comboSets}
+        exportRecipe={exportRecipe}
+        importFileRef={importFileRef}
+        importRecipe={importRecipe}
+        setStoppedManually={setStoppedManually}
+        stop={stop}
+      />
 
       {importMsg && (
         <p className={`text-[12.5px] ${classeMessageImport(importMsg)}`} role="status">
@@ -4119,99 +4002,43 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         </p>
       )}
 
-      {/* ⚠️ Deux phases distinctes affichées différemment, pas une seule
-          barre continue : `building` (construction des compartiments, avant
-          même de savoir combien de paires il y aura à explorer) et `pairing`
-          (l'ancienne barre, inchangée) ne partagent pas la même notion de
-          progression — les mélanger sous un seul repère aurait été plus
-          trompeur qu'utile (la barre aurait pu reculer en changeant de
-          phase). Avant ce correctif, `progress` restait `null` pendant toute
-          la phase `building` (jusqu'à ~1 minute sur un compte réel à
-          beaucoup de conditions) : la barre affichait 0 % sans bouger et le
-          texte « 0 combinaisons examinées », sans dire qu'un TRAVAIL était
-          en cours — voir docs/02-app/optimizer/,
-          « Barre de progression ». */}
-      {/* ⚠️ Deux barres empilées, une par moitié, pas une seule — depuis leur
-          construction EN PARALLÈLE (deux Workers, voir
-          runeBuildOptim.worker.ts), A et B avancent en même temps ; une seule
-          barre ne pourrait montrer que la dernière moitié à avoir posté un
-          message, faisant croire à tort que l'autre est à l'arrêt. */}
-      {status === 'running' && progress?.phase === 'building' && (
-        <div className="space-y-2">
-          {(['A', 'B'] as const).map((half) => {
-            const h = progress.halves[half];
-            return (
-              <div key={half}>
-                <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
-                  <div
-                    className="h-full bg-accent/60 transition-[width] duration-150 ease-out"
-                    style={{ width: `${Math.round((h?.pct ?? 0) * 100)}%` }}
-                  />
-                </div>
-                <p className="mt-1 font-mono text-micro text-ink-dim">
-                  Préparation — moitié {half} :{' '}
-                  {h ? `${h.scanned.toLocaleString('fr-FR')} / ${h.total.toLocaleString('fr-FR')} runes` : 'en attente…'}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      {status === 'running' && (progress === null || progress.phase === 'pairing') && (
-        <div>
-          <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
-            <div
-              className="h-full bg-accent transition-[width] duration-150 ease-out"
-              style={{ width: `${Math.round((progress?.pct ?? 0) * 100)}%` }}
-            />
+      <ProgressionRecherche
+        status={status}
+        progress={progress}
+        refusal={refusal}
+        appariement={status === 'running' && (progress === null || progress.phase === 'pairing') && (
+          <div>
+            <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
+              <div
+                className="h-full bg-accent transition-[width] duration-150 ease-out"
+                style={{ width: `${Math.round((progress?.pct ?? 0) * 100)}%` }}
+              />
+            </div>
+            {/* ⚠️ Le dénominateur ici est `totalPairs` (voir `totalPairCount`),
+                la taille EXACTE de l'espace à épuiser — un plafond de nœuds a
+                longtemps coexisté avec lui, écarté d'ici parce qu'il
+                grandissait en cours de route et aurait fait RECULER la barre.
+                C'est ce choix de l'interface qui a fini par emporter sa
+                suppression du moteur. */}
+            <p className="mt-1 font-mono text-micro text-ink-dim">
+              {progress === null
+                ? 'Préparation…'
+                : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${compteAffiche.compte.toLocaleString('fr-FR')} trouvée(s)`}
+            </p>
+            {progress !== null && (
+              <p className="mt-0.5 font-mono text-[11px] font-bold text-star">
+                Attendez la fin de la recherche pour être sûr de trouver votre build optimal.
+              </p>
+            )}
+            {progress !== null && (
+              <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
+                Le budget de recherche s'élargit automatiquement tant qu'il reste du temps et que le plafond de
+                résultats (100 000) n'est pas atteint — pas seulement tant que rien n'est trouvé.
+              </p>
+            )}
           </div>
-          {/* ⚠️ Le dénominateur ici est `totalPairs` (voir `totalPairCount`),
-              la taille EXACTE de l'espace à épuiser — un plafond de nœuds a
-              longtemps coexisté avec lui, écarté d'ici parce qu'il
-              grandissait en cours de route et aurait fait RECULER la barre.
-              C'est ce choix de l'interface qui a fini par emporter sa
-              suppression du moteur. */}
-          <p className="mt-1 font-mono text-micro text-ink-dim">
-            {progress === null
-              ? 'Préparation…'
-              : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${compteAffiche.compte.toLocaleString('fr-FR')} trouvée(s)`}
-          </p>
-          {progress !== null && (
-            <p className="mt-0.5 font-mono text-[11px] font-bold text-star">
-              Attendez la fin de la recherche pour être sûr de trouver votre build optimal.
-            </p>
-          )}
-          {progress !== null && (
-            <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
-              Le budget de recherche s'élargit automatiquement tant qu'il reste du temps et que le plafond de
-              résultats (100 000) n'est pas atteint — pas seulement tant que rien n'est trouvé.
-            </p>
-          )}
-        </div>
-      )}
-
-      {status === 'error' && (
-        <p className="text-xs text-bad">La recherche a échoué. Réessaie avec des critères moins stricts.</p>
-      )}
-
-      {/* ⚠️ Refus NOMMÉ : `search.status ===
-          'refused'` et `search.refusal.vide` sont la SEULE source de ce
-          texte — un par raison, jamais un pool recalculé pour deviner
-          pourquoi. `'refused'` se traite ici comme `'error'` l'est
-          juste au-dessus, à la place du lancement. */}
-      {status === 'refused' && refusal && (
-        <p className="text-xs text-bad">
-          {refusal.vide === 'seuil'
-            ? 'Aucune relique éligible : abaisse le niveau minimum.'
-            : refusal.vide === 'principale'
-              ? 'Aucune relique de cette principale dans ton inventaire.'
-              : refusal.vide === 'type'
-                ? 'Aucune relique de cette propriété unique dans ton inventaire.'
-                : refusal.vide === 'inventaire'
-                  ? "Aucune relique dans le compte importé : réimporte le compte, ou coupe l'optimisation d'artéfacts et reliques."
-                  : 'Ce monstre ne porte pas de relique.'}
-        </p>
-      )}
+        )}
+      />
 
       {/* ⚠️ S'affiche AUSSI pendant la phase d'appariement, dès qu'au moins
           un candidat est trouvé (`sortedCandidates` vient alors de l'aperçu

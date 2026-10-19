@@ -193,7 +193,7 @@ export const GABARITS_COLONNES: Gabarit[] = [
       'En ligne dans sa colonne : plus d\'en-tête qui ouvre un flottant ; le contenu est toujours visible quand la colonne est ouverte.',
       '« Exclure les runes d\'un monstre » passe au-dessus d\'« Exclure les runes déjà utilisées », empilés (l\'ordre du panneau « Options »), au lieu de côte à côte.',
       'Les monstres exclus défilent dans une hauteur bornée (≈ 3 rangées de jetons, 96 px) : en exclure beaucoup n\'allonge plus la colonne.',
-      '« Conserver ces slots… » : deux colonnes, slots impairs puis pairs, espacées également entre les bords de la carte (au lieu d\'une rangée qui passe à la ligne).',
+      '« Conserver ces slots… » : deux colonnes égales, slots impairs puis pairs, au lieu d\'une rangée qui passe à la ligne ; les six puces ont la même taille (la largeur de leur colonne, libellé centré), emplacement vide compris.',
     ],
     etats: [
       { id: 'vide', nom: 'Vide : aucun monstre exclu, déjà utilisées coupé, aucune rune imposée', rendu: (ctx) => <ExclusionGabarit ctx={ctx} initial={{ exclus: false, selecteurs: 'aucun', imposees: false }} /> },

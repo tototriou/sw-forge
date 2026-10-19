@@ -9,10 +9,11 @@ export interface RunesImposeesProps {
   selected: { monster: Monster; gear: GearSet; } | null;
   lockedRunes: Partial<Record<number, number>>;
   setLockedRunes: Dispatch<SetStateAction<Partial<Record<number, number>>>>;
-  // Colonne « Aura, exclusion, avancés » du bureau : deux colonnes, slots
-  // impairs puis pairs (1 · 2, 3 · 4, 5 · 6), espacées également entre les
-  // bords (`justify-evenly`). Le téléphone et la page d'aujourd'hui gardent la
-  // rangée qui passe à la ligne.
+  // Colonne « Aura, exclusion, avancés » du bureau : deux colonnes égales,
+  // slots impairs puis pairs (1 · 2, 3 · 4, 5 · 6), chaque puce à la largeur
+  // de sa colonne, libellé centré — six puces de même taille, emplacement
+  // vide compris. Le téléphone et la page d'aujourd'hui gardent la rangée qui
+  // passe à la ligne, puces à la largeur de leur libellé.
   bureau?: boolean;
 }
 
@@ -31,7 +32,7 @@ export default function RunesImposees({ selected, lockedRunes, setLockedRunes, b
       {!selected || selected.gear.runes.length === 0 ? (
         <p className="text-micro text-ink-dim">Aucune rune équipée sur cet exemplaire — rien à conserver.</p>
       ) : (
-        <div className={bureau ? 'grid grid-cols-[auto_auto] justify-evenly justify-items-start gap-y-1.5' : 'flex flex-wrap gap-1.5'}>
+        <div className={bureau ? 'grid grid-cols-2 gap-x-3 gap-y-1.5' : 'flex flex-wrap gap-1.5'}>
           {[1, 2, 3, 4, 5, 6].map((slot) => {
             const portee = selected.gear.runes.find((r) => r.slot === slot);
             const verrouille = lockedRunes[slot] != null;
@@ -39,7 +40,7 @@ export default function RunesImposees({ selected, lockedRunes, setLockedRunes, b
               return (
                 <span
                   key={slot}
-                  className="rounded-full border border-border bg-panel2 px-2.5 py-1 text-micro text-ink-dimmer opacity-50"
+                  className={`rounded-full border border-border bg-panel2 px-2.5 py-1 text-micro text-ink-dimmer opacity-50${bureau ? ' flex items-center justify-center' : ''}`}
                   title={`Aucune rune en emplacement ${slot}`}
                 >
                   Slot {slot} —
@@ -50,6 +51,7 @@ export default function RunesImposees({ selected, lockedRunes, setLockedRunes, b
               <Pastille
                 key={slot}
                 actif={verrouille}
+                className={bureau ? 'w-full justify-center' : ''}
                 onClick={() =>
                   setLockedRunes((prev) => {
                     const next = { ...prev };

@@ -72,7 +72,15 @@ export function testRenduOptimizerGabaritsColonnes() {
   ok(!/max-h-24/.test(rendre(<ExclusionMonstrePrecis exclusionData={donnees} selectedUnitKey={equipe.key} selected={{ monster: equipe.monster, gear: equipe.gear! }}
     excludedSelectors={exclus} setExcludedSelectors={rien} />)), 'exclusion hors bureau : aucune hauteur bornée (le téléphone ne change pas)');
   const slotsBureau = rendre(<RunesImposees selected={{ monster: equipe.monster, gear: equipe.gear! }} lockedRunes={{}} setLockedRunes={rien} bureau />);
-  ok(/grid grid-cols-\[auto_auto\] justify-evenly/.test(slotsBureau), 'slots conservés du bureau : deux colonnes espacées également');
+  ok(/class="grid grid-cols-2 gap-x-3 gap-y-1\.5"/.test(slotsBureau), 'slots conservés du bureau : deux colonnes égales');
+  // Les puces : après la grille (l'en-tête porte l'aide, un autre bouton rond).
+  const grilleBureau = slotsBureau.slice(slotsBureau.indexOf('class="grid grid-cols-2'));
+  const pucesBureau = [...grilleBureau.matchAll(/<(?:button|span)\b[^>]*class="([^"]*rounded-full[^"]*)"/g)].map((m) => m[1]);
+  ok(pucesBureau.length === 6 && pucesBureau.every((c) => /\bjustify-center\b/.test(c) && (/\bw-full\b/.test(c) || /(^|\s)flex(\s|$)/.test(c))),
+    'slots conservés du bureau : six puces à la largeur de leur colonne, libellé centré (emplacement vide compris)');
+  const slotsTel = rendre(<RunesImposees selected={{ monster: equipe.monster, gear: equipe.gear! }} lockedRunes={{}} setLockedRunes={rien} />);
+  const rangeeTel = slotsTel.slice(slotsTel.indexOf('class="flex flex-wrap gap-1.5"'));
+  ok(rangeeTel.length < slotsTel.length && !/justify-center/.test(rangeeTel), 'slots conservés hors bureau : la rangée et les puces d\'aujourd\'hui (le téléphone ne change pas)');
   egal([...texteVisible(slotsBureau).matchAll(/Slot (\d)/g)].map((m) => m[1]), ['1', '2', '3', '4', '5', '6'], 'slots conservés du bureau : 1 · 2, 3 · 4, 5 · 6 (impairs à gauche, pairs à droite)');
 
   // Réglages avancés : en ligne, sans dépliement.

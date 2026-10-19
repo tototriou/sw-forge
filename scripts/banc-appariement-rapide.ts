@@ -15,6 +15,7 @@
 //                                 les candidats du mode `petit`, des deux côtés
 //   --cache=<dossier>             garde les résultats de référence (runs longs) entre deux passes
 //   --sortie=<dossier>            écrit le rapport texte et le JSON du cas
+//   --suffixe=<texte>             ajouté au nom des fichiers de sortie (deux passes d'un même cas)
 //
 // ⚠️ **Fidélité** (skill `algo-verify`) : préparation par `prepareSearch`,
 // moitiés par les Workers de production (`construireMoitiesEnParallele`,
@@ -355,8 +356,9 @@ async function main(): Promise<void> {
     toutEgal &&= egal;
     if (sortie) {
       mkdirSync(sortie, { recursive: true });
-      writeFileSync(join(sortie, `banc-${src.slug}.json`), JSON.stringify(json, null, 2));
-      writeFileSync(join(sortie, `banc-${src.slug}.txt`), lignes.join('\n') + '\n');
+      const nom = `banc-${src.slug}${valeur('suffixe') ? `-${valeur('suffixe')}` : ''}`;
+      writeFileSync(join(sortie, `${nom}.json`), JSON.stringify(json, null, 2));
+      writeFileSync(join(sortie, `${nom}.txt`), lignes.join('\n') + '\n');
       lignes.length = 0;
     }
   }

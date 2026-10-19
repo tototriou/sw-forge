@@ -480,10 +480,11 @@ async function testCadenceTemps(liste: Espace[]): Promise<void> {
     Date.now = vraiNow;
   }
 
-  // Le serveur d'un Worker : chaque ligne dépasse la tranche, il rend la main après chacune.
+  // Le serveur d'un Worker : chaque lecture de l'horloge avance de 60 ms, la
+  // tranche (100 ms) expire après la première ligne, il rend la main.
   let t = 0;
   const rendus: ResultatMorceau[] = [];
-  const serveur = servirAppariement((v) => rendus.push(v), { maintenant: () => (t += 1000), ceder: () => Promise.resolve() });
+  const serveur = servirAppariement((v) => rendus.push(v), { maintenant: () => (t += 60), ceder: () => Promise.resolve() });
   await serveur.recevoir({ type: 'init', init: { params: e.params, startedAt: Date.now(), compartiments: encoderCompartiments(e.prepared, e.bucketsA, e.bucketsB) } });
   const [m0] = planifierMorceaux(e.prepared, e.bucketsA, e.bucketsB, e.total);
   const m1: Morceau = { ...m0, id: 1 };
@@ -495,6 +496,76 @@ async function testCadenceTemps(liste: Espace[]): Promise<void> {
     `arrêt reçu entre deux tranches : le morceau en cours s’arrête à la ligne suivante (${rendus[0]?.traitees} / ${m0.taille} paires)`);
   ok(estPrefixe(rendus[0].candidats, e.reference.candidates), 'ce qu’il a trouvé est un préfixe du séquentiel');
   egal(rendus[1], resultatVide(m1, rendus[0].validationTypee), 'le morceau qui attendait est rendu vide, sans calcul');
+}
+
+/** `n` morceaux d'UNE ligne ouverte chacun, les premières de l'ordre de `pairBuckets` (identifiants à partir de 1). */
+function morceauxDUneLigne(e: Espace, n: number): Morceau[] {
+  const out: Morceau[] = [];
+  let offset = 0;
+  for (const [iA, iB] of ordreDesCompartiments(e.bucketsA, e.bucketsB)) {
+    const bA = e.bucketsA[iA];
+    const bB = e.bucketsB[iB];
+    if (!paireDeCompartimentsOuverte(e.prepared, bA, bB)) continue;
+    for (let a = 0; a < bA.combos.length && out.length < n; a++) {
+      if (!comboAOuvert(e.prepared, bA.combos[a], bB)) continue;
+      out.push({ type: 'morceau', id: out.length + 1, offset, taille: bB.combos.length, segments: Int32Array.of(iA, iB, a, a + 1), drapeaux: Uint8Array.of(1) });
+      offset += bB.combos.length;
+    }
+    if (out.length >= n) break;
+  }
+  return out;
+}
+
+/**
+ * La tranche d'un Worker court d'un morceau au SUIVANT (horloge simulée, une
+ * unité par lecture) : entre deux cessions, jamais plus de `T` plus une
+ * ligne, même quand de petits morceaux s'enchaînent sans rendre la main —
+ * leur entrée ne remet pas le chrono à zéro. Un arrêt lu à une cession
+ * tombée entre deux morceaux rend vides tous ceux qui suivent.
+ */
+async function testTrancheEntreMorceaux(liste: Espace[]): Promise<void> {
+  titre('Appariement parallèle · la tranche d’un Worker court d’un morceau au suivant');
+  const e = liste.reduce((a, b) => (b.total > a.total ? b : a));
+  const [long] = planifierMorceaux(e.prepared, e.bucketsA, e.bucketsB, e.total);
+  const courts = morceauxDUneLigne(e, 12);
+  ok(courts.length === 12, `${courts.length} morceaux d'une ligne`);
+  const T = 5;
+  for (const avecArret of [false, true]) {
+    let t = 0;
+    const cessions: number[] = [];
+    const rendus: ResultatMorceau[] = [];
+    const attentes: Promise<void>[] = [];
+    let rendusALArret = -1;
+    const serveur = servirAppariement((v) => rendus.push(v), {
+      trancheMs: T,
+      maintenant: () => ++t,
+      ceder: async () => {
+        cessions.push(t);
+        // Les petits morceaux arrivent pendant que le Worker a rendu la main.
+        if (cessions.length === 1) for (const m of courts) attentes.push(serveur.recevoir(m));
+        if (avecArret && rendusALArret < 0 && rendus.length >= 1) {
+          rendusALArret = rendus.length;
+          await serveur.recevoir({ type: 'arret' });
+        }
+      },
+    });
+    await serveur.recevoir({ type: 'init', init: { params: e.params, startedAt: Date.now(), compartiments: encoderCompartiments(e.prepared, e.bucketsA, e.bucketsB) } });
+    const debut = t;
+    await serveur.recevoir(long);
+    await Promise.all(attentes);
+    const points = [debut, ...cessions, t];
+    const ecartMax = points.slice(1).reduce((m, p, i) => Math.max(m, p - points[i]), 0);
+    ok(rendus.length === 1 + courts.length && cessions.length > 1,
+      `${avecArret ? 'avec' : 'sans'} arrêt : ${rendus.length} morceaux rendus, ${cessions.length} cessions`);
+    ok(ecartMax <= T + 2, `${avecArret ? 'avec' : 'sans'} arrêt : au plus ${T} unités plus une ligne entre deux cessions, morceaux enchaînés compris (écart maximal ${ecartMax})`);
+    if (!avecArret) {
+      ok(rendus.every((v) => v.issue === 'complet'), 'sans arrêt : chaque morceau achevé');
+      continue;
+    }
+    const apres = rendus.slice(rendusALArret + 1);
+    ok(rendusALArret >= 1 && rendusALArret < rendus.length && apres.length > 0 && apres.every((v) => v.issue === 'arret' && v.traitees === 0),
+      `avec arrêt, lu entre deux petits morceaux (après ${rendusALArret} rendus) : le morceau en cours s'arrête, les ${apres.length} suivants sont rendus vides`);
+  }
 }
 
 /** Les mêmes décisions sur de VRAIS `worker_threads`, par le lanceur Node du harnais. */
@@ -552,4 +623,5 @@ export async function testAppariementParallele(): Promise<void> {
   await testTroncatureFusion(liste);
   await testCoupeReelle(liste);
   await testCadenceTemps(liste);
+  await testTrancheEntreMorceaux(liste);
 }

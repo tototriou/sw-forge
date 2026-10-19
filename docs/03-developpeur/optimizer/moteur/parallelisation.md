@@ -149,6 +149,12 @@ Aucun contact avec la plateforme.
    ligne. `servirAppariement` le pilote par TRANCHES de `TRANCHE_MS`
    (100 ms) : entre deux tranches, il rend la main à la boucle d'événements
    du Worker (un minuteur nul), qui lit les messages arrivés entre-temps.
+   Une tranche court d'un morceau au SUIVANT : son chrono ne repart
+   qu'après avoir rendu la main, jamais à l'entrée d'un morceau, et le temps
+   se teste avant chaque ligne, la première d'un morceau comprise ; un
+   message est donc lu au plus `TRANCHE_MS` plus une ligne après son
+   arrivée, même quand des morceaux s'enchaînent. Le test est synchrone :
+   rien n'est attendu par ligne, seulement pour rendre la main.
    Un `{ type: 'arret' }` reçu arrête le morceau en cours à la ligne
    suivante, rendu avec ce qu'il a trouvé (issue `arret`), et chaque
    morceau qui attendait est rendu aussitôt, vide (`resultatVide`). Un
@@ -288,7 +294,8 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
   l'arrêt inscrit (`arreterAppariement`). Le coordinateur ne distribue plus
   rien et envoie `arreter` à chaque Worker : celui-ci arrête son morceau en
   cours à la ligne qui suit sa tranche (au plus `TRANCHE_MS`, plus une
-  ligne), le rend avec ce qu'il a trouvé et rend vides ceux qui
+  ligne, la tranche courant d'un morceau au suivant), le rend avec ce
+  qu'il a trouvé et rend vides ceux qui
   attendaient. Le coordinateur attend ces réponses, fusionne tout ce qui a
   été trouvé et rend un résultat tronqué. Arrêté avant toute
   distribution, il ne lance aucun Worker et rend un résultat vide, tronqué.
@@ -426,7 +433,8 @@ contexte, annulations, demandes ; détail dans
     jamais et dont l'aperçu est un préfixe du résultat, arrêt manuel (avant
     et pendant la distribution), filet de temps déjà dépassé, panne d'un
     Worker (rejet, tous terminés), refus hors contrat, et le corps d'un
-    Worker qui court sur l'instant global ;
+    Worker qui court sur l'instant global, dont la tranche court d'un
+    morceau au suivant (horloge simulée) ;
   - `testAppariementParalleleWorkers` : le même coordinateur sur de VRAIS
     `worker_threads` (`lancerTravailleurNode`) — identique au séquentiel,
     non tronqué et sous petit plafond ; arrêt manuel ;

@@ -74,12 +74,9 @@ export default function ProgressionRecherche({ status, progress, refusal, compte
               Attendez la fin de la recherche pour être sûr de trouver votre build optimal.
             </p>
           )}
-          {progress !== null && (
-            <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
-              Le budget de recherche s'élargit automatiquement tant qu'il reste du temps et que le plafond de
-              résultats (100 000) n'est pas atteint — pas seulement tant que rien n'est trouvé.
-            </p>
-          )}
+          {/* ⚠️ Plus de phrase sur un budget qui s'élargit : l'escalade du
+              budget de paires n'existe plus dans le moteur (runeBuildOptim.ts,
+              « Il n'existe PLUS de budget de PAIRES »). */}
         </div>
       )}
 

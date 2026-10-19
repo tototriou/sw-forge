@@ -146,8 +146,8 @@ export function comboAOuvert(prepared: PreparedSearch, comboA: Bucket['combos'][
 export interface MoitieTypee {
   /** `debut[i]` : indice global du premier demi-build du compartiment `i` ; longueur = compartiments + 1. */
   debut: Int32Array;
-  /** Les trois runes de chaque demi-build. */
-  ids: Int32Array;
+  /** Les trois runes de chaque demi-build (Float64 : les identifiants du jeu dépassent l'Int32). */
+  ids: Float64Array;
   /** `pct[c·m + k]`, `flat[c·m + k]` : `combo.pct[cle] ?? 0`, `combo.flat[cle] ?? 0`. */
   pct: Int32Array;
   flat: Int32Array;
@@ -188,9 +188,9 @@ export function copierCompartiments(ct: CompartimentsTypes): CompartimentsTypes 
   return {
     cles: [...ct.cles],
     m: ct.m,
-    A: { debut: c(A.debut), ids: c(A.ids), pct: c(A.pct), flat: c(A.flat) },
+    A: { debut: c(A.debut), ids: A.ids.slice(), pct: c(A.pct), flat: c(A.flat) },
     B: {
-      debut: c(B.debut), ids: c(B.ids), pct: c(B.pct), flat: c(B.flat), W: c(B.W), tri: c(B.tri), perm: c(B.perm),
+      debut: c(B.debut), ids: B.ids.slice(), pct: c(B.pct), flat: c(B.flat), W: c(B.W), tri: c(B.tri), perm: c(B.perm),
       debutBlocs: c(B.debutBlocs), blocMin: c(B.blocMin), blocMax: c(B.blocMax),
     },
   };
@@ -294,6 +294,7 @@ export function verifierContrat(prepared: PreparedSearch, bucketsA: Bucket[], bu
   for (const [moitie, buckets] of [['A', bucketsA], ['B', bucketsB]] as const) {
     for (const bucket of buckets) {
       for (const combo of bucket.combos) {
+        for (const r of combo.runes) if (!Number.isSafeInteger(r.id)) return `identifiant de rune non entier (${r.id})`;
         for (let kk = 0; kk < c.m; kk++) {
           const k = c.cles[kk];
           const p = combo.pct[k] ?? 0;
@@ -315,7 +316,7 @@ function encoderMoitie(buckets: Bucket[], cles: StatKey[]): MoitieTypee {
   const debut = new Int32Array(buckets.length + 1);
   for (let i = 0; i < buckets.length; i++) debut[i + 1] = debut[i] + buckets[i].combos.length;
   const n = debut[buckets.length];
-  const ids = new Int32Array(3 * n);
+  const ids = new Float64Array(3 * n);
   const pct = new Int32Array(m * n);
   const flat = new Int32Array(m * n);
   let c = 0;

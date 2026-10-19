@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react';
 import type { EquipeOptimizer } from '../../lib/optimizerMemberStorage';
 import { leadEffectifMembreOptimizer } from '../../lib/equipesOptimizer';
 import LeadPill, { STAT_LABEL } from '../siege/LeadPill';
@@ -11,7 +11,6 @@ import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importer
 import {
   Search,
   Square,
-  RotateCcw,
   FlaskConical,
   Target,
   Upload,
@@ -19,7 +18,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  SlidersHorizontal,
   Wrench,
   Plus,
   CheckCircle2,
@@ -50,7 +48,6 @@ import { BoxItem } from '../../lib/applyAccount';
 import { regimeArtefacts, regimeEquipementDe, type RegimeArtefacts } from '../../lib/artifactEvaluation';
 import { evaluateursArtefactsFiche, parametresArtefactsFiche, piecesFigeesDe, sortesFigeesDe, statsLignesArtefactsEquipables } from '../../lib/artifactFiche';
 import {
-  CAPPED_STATS,
   RUNE_EFFECT,
   RELIC_MAIN,
   RELIC_MAIN_OPTIONS,
@@ -65,7 +62,6 @@ import {
 import RuneIcon from '../RuneIcon';
 import {
   BuildRequirement,
-  SLOT_MAIN_OPTIONS,
   estimateSearchSpace,
   diagnoseFeasibility,
   StatFeasibility,
@@ -200,10 +196,15 @@ import EtatMonstre from './EtatMonstre';
 import BoutonValiderBuild from './optimizer/BoutonValiderBuild';
 import BandeauBuildValide from './optimizer/BandeauBuildValide';
 import type { EtatValidation } from './optimizer/types';
+import { CONFIGURABLE_SLOTS } from './optimizer/constantes';
 import MonstreEquipementTelephone from './optimizer/MonstreEquipementTelephone';
 import ExemplaireEtFiche from './optimizer/ExemplaireEtFiche';
 import MonstreEtListe from './optimizer/MonstreEtListe';
 import MonstreEquipement from './optimizer/MonstreEquipement';
+import Conditions from './optimizer/Conditions';
+import StatPrincipaleImposee from './optimizer/StatPrincipaleImposee';
+import SetDeRunes from './optimizer/SetDeRunes';
+import CriteresRecherche from './optimizer/CriteresRecherche';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -257,21 +258,6 @@ interface Props {
   onMonstreHorsVue?: (monstre: Monster | null) => void;
 }
 
-// ⚠️ Le plafond de CAPPED_STATS (voir lib/effects.ts) ne s'applique QU'À la
-// saisie d'une condition (minimum ou maximum) : la RECHERCHE, elle, ne doit
-// surtout pas exclure un build dont la somme brute dépasse 100 % — c'est un
-// résultat légitime, seule la demande d'un seuil > 100 % n'a pas de sens.
-const CAPPED_100 = CAPPED_STATS;
-
-// « Stats de base exclues » n'affecte QUE ces 4 stats (PV/ATQ/DEF/VIT) : elles
-// ont une base qui grandit avec le niveau/l'éveil et que les runes viennent
-// gonfler en % ou en plat. Taux Crit/Dgts Crit/RES/Précision partent d'une
-// petite valeur d'éveil fixe et restent TOUJOURS en TOTAL, quel que soit ce
-// réglage — demandé explicitement : elles « évoluent suivant la valeur
-// d'éveil des monstres », pas selon un mode bonus/total.
-const BASE_TOGGLE_STATS = new Set<StatKey>(['hp', 'atk', 'def', 'spd']);
-
-const CONFIGURABLE_SLOTS: (2 | 4 | 6)[] = [2, 4, 6];
 
 // Candidats de COMPTE pour une espèce précise, un tableau par source (Box/
 // RTA/Défenses siège/Offenses siège) — fonction MODULE (pas un Hook) : appelée
@@ -3650,6 +3636,49 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     />
   );
 
+  const setComboPicker = (
+    <SetComboPicker
+      sets={comboSets}
+      onChange={(next) => {
+        setComboSets(next);
+        if (next.length > 0) setSetPickerInvalid(false);
+        // Ouverture guidée : Accuracy ou Tolerance
+        // CHOISI comme set recherché guide vers l'interrupteur des auras
+        // RES/PRE, sans toucher aux auras externes. Au geste seulement :
+        // l'import d'une recette pose `comboSets` sans passer par ici.
+        if (guideVersResPre({ setsRecherches: comboSets }, { setsRecherches: next })) guiderVersResPre();
+      }}
+    />
+  );
+
+  const setDeRunes = (
+    <SetDeRunes
+      setPickerSectionRef={setPickerSectionRef}
+      setPickerInvalid={setPickerInvalid}
+      setComboPicker={setComboPicker}
+    />
+  );
+
+  const statPrincipaleImposee = (
+    <StatPrincipaleImposee
+      mainStatsBySlot={mainStatsBySlot}
+      toggleMainStat={toggleMainStat}
+    />
+  );
+
+  const conditions = (
+    <Conditions
+      excludeBase={excludeBase}
+      setExcludeBase={setExcludeBase}
+      baseOf={baseOf}
+      artifactFloorOf={artifactFloorOf}
+      minStats={minStats}
+      maxStats={maxStats}
+      setMinStats={setMinStats}
+      setMaxStats={setMaxStats}
+    />
+  );
+
   return (
     // ⚠️ **Pleine largeur**, comme RTA/Siège/Mon compte — l'ancienne colonne
     // bornée à 768 px était le seul écran de l'app à s'en imposer une, et
@@ -3749,271 +3778,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           FACE, il ne décrit pas le contenu de celle-ci : toute carte ajoutée
           ou retirée à droite se répercute ici, et sur la rangée de la ligne
           d'estimation (pleine largeur, toujours en dernier). */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2 xl:row-span-4">
-        <div className="mb-3 flex items-center gap-2">
-          {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
-              cible générique pour « plusieurs critères ajustables », et
-              distinct du `Target` déjà utilisé plus bas pour un réglage
-              précis (« Prioriser les stats les plus difficiles »). */}
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
-            <SlidersHorizontal size={13} className="text-accent" />
-          </div>
-          <p className="text-[13.5px] font-bold text-ink">Critères de recherche</p>
-        </div>
-        {/* ⚠️ **Deux colonnes** (demande explicite) : Set de runes recherché
-            + Statistique principale imposée à GAUCHE (les deux contraintes
-            qui portent sur les runes elles-mêmes), Artéfacts + Conditions à
-            DROITE — vérifié sur un écran réel (capture d'écran) qu'il reste
-            assez de place pour « Objectif de recherche » à côté, malgré la
-            carte élargie par cette deuxième colonne. `items-start` : la
-            colonne la plus courte ne s'étire pas à la hauteur de l'autre.
-            Sous `lg`, retour à l'empilement (ordre du DOM inchangé : Set,
-            Statistique principale, Artéfacts, Conditions). */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
-        {/* ⚠️ **Trait vertical entre les deux colonnes** (demande explicite,
-            capture d'écran à l'appui) — `lg:border-r` posé sur la colonne de
-            GAUCHE uniquement (pas de `border-l` en plus sur la droite : deux
-            traits à 1 px l'un de l'autre se liraient comme un contour flou,
-            voir docs/03-developpeur/interface/). `lg:pr-6` : le trait respire du même
-            écart que `lg:gap-6` sur le conteneur, sans quoi il collerait au
-            texte de gauche. UNIQUEMENT à partir de `lg` — sous ce seuil, les
-            deux « colonnes » s'empilent (`flex-col`), un trait vertical n'y
-            aurait aucun sens. */}
-        <div className="lg:border-r lg:border-border-soft lg:pr-6">
-      {/* ⚠️ `max-w-md` — SEUL rempart (la carte elle-même n'a pas de
-          `w-fit`, voir le commentaire d'ouverture de cette carte) : sans lui, ce
-          bloc se laisserait pousser jusqu'à la largeur disponible de la
-          piste de grille, beaucoup plus large que ce set n'en a besoin. */}
-      <div
-        ref={setPickerSectionRef}
-        className={`max-w-md ${
-          setPickerInvalid
-            ? 'rounded-lg border border-bad bg-bad/15 p-2 -m-2 transition'
-            : 'transition'
-        }`}
-      >
-        <p className="label mb-1.5">Set de runes recherché</p>
-        <SetComboPicker
-          sets={comboSets}
-          onChange={(next) => {
-            setComboSets(next);
-            if (next.length > 0) setSetPickerInvalid(false);
-            // Ouverture guidée : Accuracy ou Tolerance
-            // CHOISI comme set recherché guide vers l'interrupteur des auras
-            // RES/PRE, sans toucher aux auras externes. Au geste seulement :
-            // l'import d'une recette pose `comboSets` sans passer par ici.
-            if (guideVersResPre({ setsRecherches: comboSets }, { setsRecherches: next })) guiderVersResPre();
-          }}
-        />
-        {setPickerInvalid && (
-          <p className="mt-1.5 text-micro font-semibold text-bad">
-            Sélectionne au moins un set avant de lancer la recherche.
-          </p>
-        )}
-      </div>
-
-      {/* ⚠️ Trait horizontal entre Set de runes recherché et Statistique
-          principale imposée (demande explicite) — `mt-4 border-t pt-4`
-          remplace le `space-y-4` qu'avait le conteneur parent (sinon la
-          marge automatique ET la bordure s'additionneraient, doublant
-          l'écart visuel). */}
-      <div className="mt-4 border-t border-border-soft pt-4">
-        <div className="mb-2.5 flex items-center gap-1.5">
-          <p className="label">Statistique principale imposée (slots pairs)</p>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          {CONFIGURABLE_SLOTS.map((slot) => (
-            <div key={slot} className="flex items-center gap-2 flex-wrap">
-              <span className="text-micro text-ink-dim w-14">Slot {slot}</span>
-              {SLOT_MAIN_OPTIONS[slot].map((code) => {
-                const active = (mainStatsBySlot[slot] ?? []).includes(code);
-                return (
-                  <Pastille
-                    key={code}
-                    actif={active}
-                    onClick={() => toggleMainStat(slot, code)}
-                    libelle={RUNE_EFFECT[code]?.label ?? code}
-                  />
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
-        </div>
-
-        <div>
-      {/* ⚠️ Le bloc « Artéfacts » vivait ICI, en tête de cette colonne, au-
-          dessus de Conditions. Déplacé dans sa PROPRE carte (colonne 2,
-          rangée 2 — voir plus bas) : son interrupteur « Ignorer les
-          statistiques » masquait sélecteurs et lignes verrouillées d'un coup,
-          ce qui faisait REMONTER Conditions sous le doigt. Cette colonne ne
-          porte donc plus que Conditions, et le trait qui les séparait a
-          disparu avec lui — un trait en TÊTE de colonne, sans rien au-dessus,
-          ne sépare plus rien. */}
-      <div>
-        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-          <p className="label">Conditions</p>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-ink-dim">Stats de base exclues</span>
-            <HelpPopover title="Stats de base exclues">
-              <b className="text-ink">PV/ATQ/DEF/VIT</b> : activé, la valeur est ce que l'équipement (runes ET
-              artéfacts comptés) doit apporter <b className="text-ink">au-dessus de la base</b> du monstre. Désactivé,
-              elle porte sur le total. <b className="text-ink">Taux Crit/Dgts Crit/RES/Précision</b> restent toujours
-              en total, quel que soit ce réglage — ils partent de la valeur d'éveil du monstre.
-            </HelpPopover>
-            <Interrupteur
-              actif={excludeBase}
-              onChange={setExcludeBase}
-              aria-label="Stats de base exclues des conditions PV/ATQ/DEF/VIT"
-            />
-          </div>
-        </div>
-        {/* ⚠️ `boxWidth` fixe sur CHAQUE NumberField ci-dessous (voir
-            NumberField.tsx) : sans ça, un champ avec suffixe « % » serait
-            TOUJOURS plus large qu'un champ sans suffixe à largeur de texte
-            égale (le suffixe prend de la place en plus), et les colonnes
-            Min/Max ne s'aligneraient pas d'une stat à l'autre. */}
-        {/* ⚠️ `gap-x` réduit sous `sm` : trois colonnes plus deux écarts de
-            16 px ne laissaient plus de place aux champs sur 348 px utiles. */}
-        {/* ⚠️ `w-fit` : sans lui, un conteneur `grid` en bloc prend TOUTE la
-            largeur de son parent, et les colonnes `auto` (Min/Max) SE
-            PARTAGENT l'espace libre restant (comportement CSS Grid par
-            défaut dès qu'aucune piste n'est en `fr`) — sur une carte large,
-            Min et Max se retrouvaient étirés à des dizaines de pixels l'un
-            de l'autre. `w-fit` borne la grille à son contenu réel : les
-            colonnes redeviennent SERRÉES, quelle que soit la largeur de la
-            carte qui l'entoure. Demande explicite : « resserré ». */}
-        <div className="grid w-fit grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4">
-          {/* ⚠️ En-têtes Min/Max AU DOIGT seulement. Sur téléphone, le libellé
-              « Min »/« Max » collé à chaque champ faisait déborder la rangée
-              (label + 2 champs + 2 mots > largeur utile) ; on les masque et on
-              pose ces deux en-têtes une seule fois. Au bureau (`sm:`), chaque
-              champ garde son libellé à côté et ces en-têtes disparaissent —
-              rendu inchangé. */}
-          <span className="sm:hidden" aria-hidden />
-          <span className="label sm:hidden text-center">Min</span>
-          <span className="label sm:hidden text-center">Max</span>
-          {RECO_STATS.map((st) => {
-            const affectedByToggle = BASE_TOGGLE_STATS.has(st.key);
-            const base = baseOf(st.key);
-            const capped = CAPPED_100.has(st.key);
-            const bonusMode = affectedByToggle && excludeBase;
-            const ceiling = capped ? (bonusMode ? 100 - base : 100) : undefined;
-            // ⚠️ Plancher affiché/autorisé, PAS la même chose que `base` (qui
-            // sert à la conversion affichage↔stockage, voir `baseOf`) : avec
-            // zéro rune, un monstre a déjà AU MOINS ce bonus/total en jeu
-            // (base nue + artéfacts éventuellement comptés) — voir
-            // `artifactFloorOf`. En mode bonus, seul l'artéfact compte (la
-            // base nue est déjà soustraite par la conversion elle-même) ; en
-            // mode total, base ET artéfact s'additionnent.
-            const floor = artifactFloorOf(st.key, base, bonusMode);
-
-            const minTotal = minStats[st.key] ?? null;
-            const minDisplayed = minTotal == null ? null : bonusMode ? minTotal - base : minTotal;
-            const maxTotalVal = maxStats[st.key] ?? null;
-            const maxDisplayed = maxTotalVal == null ? null : bonusMode ? maxTotalVal - base : maxTotalVal;
-
-            return (
-              <Fragment key={st.key}>
-                <span className="text-xs text-ink">{st.label}</span>
-                <div className="flex items-center gap-1.5">
-                  <NumberField
-                    value={minDisplayed}
-                    onChange={(v) =>
-                      setMinStats((prev) => {
-                        const next = { ...prev };
-                        if (v == null) delete next[st.key];
-                        else next[st.key] = bonusMode ? v + base : v;
-                        return next;
-                      })
-                    }
-                    allowEmpty
-                    // ⚠️ Le total (ou le bonus, artéfacts comptés) ne descend
-                    // jamais sous ce plancher — même sans la moindre rune, il
-                    // est déjà garanti (base nue en mode total, artéfacts en
-                    // mode bonus).
-                    min={floor}
-                    max={ceiling}
-                    placeholder={String(floor)}
-                    suffix={st.suffix || undefined}
-                    boxWidth="w-24"
-                    ariaLabel={`${st.label} minimum`}
-                    title="Minimum"
-                  />
-                  <span className="hidden sm:inline text-ink-dim text-micro">Min</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <NumberField
-                    value={maxDisplayed}
-                    onChange={(v) =>
-                      setMaxStats((prev) => {
-                        const next = { ...prev };
-                        if (v == null) delete next[st.key];
-                        else next[st.key] = bonusMode ? v + base : v;
-                        return next;
-                      })
-                    }
-                    allowEmpty
-                    min={floor}
-                    max={ceiling}
-                    placeholder={capped ? String(ceiling) : '—'}
-                    suffix={st.suffix || undefined}
-                    boxWidth="w-24"
-                    // ⚠️ **Un maximum sous le minimum retombe au défaut**
-                    // (demande explicite) : la condition serait insatisfaisable
-                    // par construction, et la recherche renverrait « 0 build »
-                    // sans que rien ne dise pourquoi.
-                    //
-                    // ⚠️ À la SORTIE du champ, jamais à la frappe : on ne
-                    // saurait pas distinguer un « 5 » définitif d'un « 50 » en
-                    // cours d'écriture — c'est le même piège que celui que
-                    // `NumberField` documente déjà pour le bornage par `min`.
-                    //
-                    // ⚠️ On EFFACE plutôt que de remonter à la valeur du
-                    // minimum : le champ retrouve alors son placeholder, donc
-                    // son défaut (le plafond pour une stat bornée à 100,
-                    // « aucun maximum » sinon). Le corriger silencieusement en
-                    // « max = min » poserait une contrainte que l'utilisateur
-                    // n'a pas demandée, et qui ne laisse passer qu'une valeur.
-                    onBlur={() => {
-                      const mn = minStats[st.key];
-                      const mx = maxStats[st.key];
-                      if (mn == null || mx == null || mx >= mn) return;
-                      setMaxStats((prev) => {
-                        const next = { ...prev };
-                        delete next[st.key];
-                        return next;
-                      });
-                    }}
-                    ariaLabel={`${st.label} maximum`}
-                    title="Maximum"
-                  />
-                  <span className="hidden sm:inline text-ink-dim text-micro">Max</span>
-                </div>
-              </Fragment>
-            );
-          })}
-        </div>
-        <div className="flex justify-end mt-1.5">
-          <Bouton
-            fond="vide"
-            trait="aucun"
-            taille="sm"
-            onClick={() => {
-              setMinStats({});
-              setMaxStats({});
-            }}
-            icone={<RotateCcw size={13} />}
-            libelle="Réinitialiser les conditions"
-            className="text-ink-dim hoverable:text-bad"
-          />
-        </div>
-      </div>
-
-        </div>
-        </div>
-      </div>
+      <CriteresRecherche
+        setDeRunes={setDeRunes}
+        statPrincipaleImposee={statPrincipaleImposee}
+        conditions={conditions}
+      />
 
       {/* Carte À PART, PAS un bloc dans « Critères de recherche » : une
           carte dédiée Artéfacts.

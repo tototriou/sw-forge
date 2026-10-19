@@ -1,4 +1,21 @@
 import type { GearSet } from '../../../types';
+import { CAPPED_STATS, type StatKey } from '../../../lib/effects';
+
+// ⚠️ Le plafond de CAPPED_STATS (voir lib/effects.ts) ne s'applique QU'À la
+// saisie d'une condition (minimum ou maximum) : la RECHERCHE, elle, ne doit
+// surtout pas exclure un build dont la somme brute dépasse 100 % — c'est un
+// résultat légitime, seule la demande d'un seuil > 100 % n'a pas de sens.
+export const CAPPED_100 = CAPPED_STATS;
+
+// « Stats de base exclues » n'affecte QUE ces 4 stats (PV/ATQ/DEF/VIT) : elles
+// ont une base qui grandit avec le niveau/l'éveil et que les runes viennent
+// gonfler en % ou en plat. Taux Crit/Dgts Crit/RES/Précision partent d'une
+// petite valeur d'éveil fixe et restent TOUJOURS en TOTAL, quel que soit ce
+// réglage — demandé explicitement : elles « évoluent suivant la valeur
+// d'éveil des monstres », pas selon un mode bonus/total.
+export const BASE_TOGGLE_STATS = new Set<StatKey>(['hp', 'atk', 'def', 'spd']);
+
+export const CONFIGURABLE_SLOTS: (2 | 4 | 6)[] = [2, 4, 6];
 
 // Équipement NUL, affiché tant qu'aucun monstre n'est choisi — demande
 // explicite de l'utilisateur : la fiche (stats, artéfacts, roue, relique)

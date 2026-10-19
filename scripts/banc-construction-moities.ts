@@ -1,7 +1,9 @@
-// Banc du PROTOTYPE de construction des moitiés (src/lib/constructionRapide.ts,
-// non branché en production) : sur des cas RÉELS, `prepareSearch` de
-// production, puis `buildBuckets` de production et les deux versions du
-// prototype (séquentielle, et tranches dans de vrais `worker_threads` + fusion),
+// Banc de la construction des moitiés sur tableaux typés
+// (src/lib/constructionRapide.ts) : sur des cas RÉELS, `prepareSearch` de
+// production, puis `buildBuckets` (la référence) et les deux versions du noyau
+// — séquentielle (`construireMoitieRapide`, le chemin de production), et
+// découpée en tranches dans de vrais `worker_threads` + fusion (`construireTranche`,
+// `fusionnerTranches`, non branchées en production) —,
 // avec l'égalité PROFONDE des compartiments (`premiereDivergence`) et le temps
 // par moitié.
 //
@@ -12,7 +14,7 @@
 //
 // Fidélité : les `SearchParams` viennent du chemin du harnais (`resoudreCas`
 // pour les cas de scripts/lib/perfShared.ts, `resoudreConfig` + `chargerRecette`
-// pour une recette), donc des mêmes réglages que le lot 1 ; `buildBuckets` reçoit
+// pour une recette), donc des mêmes réglages que le harnais ; `buildBuckets` reçoit
 // les arguments du Worker de moitié (`adaptiveTrancheWeighting` et
 // `combosOrderMode` des `SearchParams`, aucun `skylineKeys`). Un override
 // (`--ordre`, `--adaptatif`, `--slotFilterCap`) est imprimé « DIVERGE DE LA PROD ».

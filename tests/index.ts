@@ -187,7 +187,9 @@ import testDiagnosticProfils from './diagnostic-profils.test';
 import testDiagnosticDifferentiel from './diagnostic-differentiel.test';
 import testDiagnosticDecouverte from './diagnostic-decouverte.test';
 import testRuneOptimScaleMonotonicity from './rune-optim-scale-monotonicity.test';
-import { testAppariementParallele, testAppariementParalleleWorkers, testAppariementParalleleBranchement } from './appariement-parallele.test';
+import {
+  testAppariementParallele, testAppariementParalleleWorkers, testAppariementParalleleCoupeWorkers, testAppariementParalleleBranchement,
+} from './appariement-parallele.test';
 import testAppariementRapide from './appariement-rapide.test';
 import testValidationRapide from './validation-rapide.test';
 import testRuneOptimNearMiss from './rune-optim-near-miss.test';
@@ -636,6 +638,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRuneOptimScaleMonotonicity', testRuneOptimScaleMonotonicity],
   ['testAppariementParallele', async () => { await testAppariementParallele(); }],
   ['testAppariementParalleleWorkers', async () => { await testAppariementParalleleWorkers(); }],
+  ['testAppariementParalleleCoupeWorkers', async () => { await testAppariementParalleleCoupeWorkers(); }],
   ['testAppariementParalleleBranchement', async () => { await testAppariementParalleleBranchement(); }],
   ['testAppariementRapide', async () => { await testAppariementRapide(); }],
   ['testValidationRapide', async () => { await testValidationRapide(); }],

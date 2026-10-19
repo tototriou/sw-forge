@@ -924,7 +924,7 @@ export function* apparierRapide(
 /** Ce que reçoit un Worker, une fois. ⚠️ Neutre : ni `worker_threads`, ni `self`. */
 export interface InitTravailleur {
   params: SearchParams;
-  /** L'instant de départ GLOBAL, comme `PairSliceRequest.startedAt`. */
+  /** L'instant de départ GLOBAL du lancement (construction comprise), que le Worker pose sur sa préparation. */
   startedAt: number;
   compartiments: CompartimentsTypes;
   /** Tests seulement : la validation de référence (copie de `pairBuckets`). */

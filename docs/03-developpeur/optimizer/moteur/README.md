@@ -16,7 +16,7 @@ le couvrent sont dans [../verification.md](../verification.md).
 | `diagnoseFeasibility`, `rankBlockingConditions`, le « 0 résultat » | [diagnostics.md](diagnostics.md) |
 | `src/lib/artifactQueue.ts`, `src/lib/artifactFiche.ts`, `src/lib/artifactEvaluation.ts`, la paire d'artéfacts d'un build | [artefacts.md](artefacts.md) |
 | `src/lib/artifactOptim.ts`, l'éligibilité ou l'effet d'une ligne d'artéfact | [optimiseur-artefacts.md](optimiseur-artefacts.md) |
-| `src/lib/relicOptim.ts`, `src/lib/relicQueue.ts`, `src/lib/relicExclusive.ts` | [reliques.md](reliques.md) |
+| `src/lib/relicOptim.ts`, `src/lib/relicQueue.ts`, `src/lib/relicExclusive.ts`, `src/lib/resolutionRapide.ts` (prototype non branché) | [reliques.md](reliques.md) |
 
 ## Documents
 

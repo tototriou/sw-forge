@@ -17,7 +17,7 @@ tototriou-*.json
 *export*.json
 sw-account*.json
 # Dossier local des exports servant aux mesures du moteur : ignoré en entier,
-# un nom de fichier comme « Enz0b-… » échappant aux motifs ci-dessus.
+# un nom de fichier d'export pouvant échapper aux motifs ci-dessus.
 export-pour-vitesse-optimizer/
 
 # Outillage Claude Code — réglages personnels IGNORÉS, skills PARTAGÉS.

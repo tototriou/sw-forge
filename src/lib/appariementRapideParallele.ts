@@ -16,7 +16,9 @@
 // ⚠️ **La fusion se fait dans l'ORDRE DES MORCEAUX**, donc dans l'ordre
 // séquentiel : le résultat est celui de `pairBuckets` séquentiel, quel que
 // soit le nombre de Workers — plafond de candidats GLOBAL compris (aucune
-// part du plafond par Worker). Le quasi-succès
+// part du plafond par Worker). Coupé par le temps ou par l'arrêt manuel, il
+// en est une SOUS-SUITE, préfixe exact jusqu'au premier morceau coupé : les
+// morceaux suivants déjà partis se fusionnent encore. Le quasi-succès
 // se rejoue à partir des améliorations de chaque morceau, avec la règle de
 // production (remplacé seulement si strictement meilleur) : une tentative qui
 // n'améliore pas son propre morceau ne peut pas améliorer l'état global, donc
@@ -59,8 +61,12 @@ export const TAILLE_MIN_MORCEAU = 2_000_000;
 export const EN_VOL_PAR_TRAVAILLEUR = 2;
 
 export interface ResultatParallele extends ResultatAppariementRapide {
-  /** `arret` : l'arrêt déterministe des tests et du banc ; `manuel` : « Arrêter ». */
-  motif: 'aucun' | 'maxCollected' | 'maxMs' | 'arret' | 'manuel';
+  /**
+   * `arret` : l'arrêt déterministe des tests et du banc ; `manuel` :
+   * « Arrêter » ; `erreur` : un Worker a échoué (le résultat ne voyage alors
+   * que dans `ErreurAppariementParallele`).
+   */
+  motif: 'aucun' | 'maxCollected' | 'maxMs' | 'arret' | 'manuel' | 'erreur';
   morceaux: number;
   morceauxTraites: number;
   /** Morceaux traités par Worker : l'équilibrage tel qu'il s'est fait. */
@@ -68,6 +74,64 @@ export interface ResultatParallele extends ResultatAppariementRapide {
   /** Paires du plus gros morceau (granularité de la répartition). */
   plusGrosMorceau: number;
   msPlanification: number;
+}
+
+/**
+ * Le message d'une erreur de Worker : `Error`, `ErrorEvent` du navigateur
+ * (qui a un `message`), `Event` sans message (`messageerror` : son `type`,
+ * jamais « [object Event] »), ou autre chose.
+ */
+export function messageDe(erreur: unknown): string {
+  if (erreur instanceof Error) return erreur.message;
+  if (typeof erreur === 'object' && erreur !== null) {
+    if ('message' in erreur && typeof erreur.message === 'string' && erreur.message !== '') return erreur.message;
+    if ('type' in erreur && typeof erreur.type === 'string') return `événement ${erreur.type}`;
+  }
+  return String(erreur);
+}
+
+/**
+ * L'erreur d'un Worker, qui porte ce qui a été fusionné jusque-là
+ * (`resultat` : les morceaux contigus reçus avant l'erreur, tronqué, motif
+ * `erreur`) : tous les Workers sont terminés, et l'appelant rend ce qui a été
+ * trouvé plutôt qu'un résultat vide. Un rejet, pas un résultat : un appelant
+ * qui l'ignore échoue au lieu de prendre une recherche en panne pour une
+ * recherche coupée.
+ */
+export class ErreurAppariementParallele extends Error {
+  constructor(
+    /** Ce que le Worker a signalé (`ErrorEvent`, `Error`, sortie de code non nul). */
+    readonly erreur: unknown,
+    readonly resultat: ResultatParallele
+  ) {
+    super(`un Worker d’appariement a échoué (${messageDe(erreur)}) : ${resultat.candidates.length} candidat(s) fusionné(s) avant l’erreur`);
+    this.name = 'ErreurAppariementParallele';
+  }
+}
+
+/**
+ * Le résultat que le Worker principal poste quand l'appariement parallèle
+ * lève : ce qui a été fusionné avant l'erreur d'un Worker
+ * (`ErreurAppariementParallele`), sinon (refus hors contrat, plan incohérent,
+ * levés avant tout Worker) un résultat vide ; tronqué dans les deux cas.
+ */
+export function resultatApresErreur(erreur: unknown): SearchResult {
+  if (erreur instanceof ErreurAppariementParallele) return enResultatDeRecherche(erreur.resultat);
+  return { candidates: [], explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null };
+}
+
+/**
+ * Le gestionnaire `onerror` d'un Worker enfant au navigateur : il ANNULE
+ * l'événement (`preventDefault`) puis le remet au coordinateur. Non annulé,
+ * le standard HTML signale l'erreur à nouveau dans la portée qui a créé le
+ * Worker — le Worker de recherche —, d'où elle remonterait au `onerror` du
+ * hook (statut `error`), en concurrence avec le résultat posté.
+ */
+export function erreurDeWorkerEnfant(rappel: (erreur: unknown) => void): (evenement: { preventDefault(): void }) => void {
+  return (evenement) => {
+    evenement.preventDefault();
+    rappel(evenement);
+  };
 }
 
 /**
@@ -261,8 +325,11 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
   const nbTravailleurs = Math.max(1, Math.min(o.travailleurs, aDistribuer.length));
   const poignees: PoigneeTravailleur[] = [];
   let prochainADistribuer = 0;
+  // L'erreur d'un Worker termine l'attente comme une fin : l'état fusionné
+  // jusque-là est rendu, porté par `ErreurAppariementParallele`.
+  let enErreur: { erreur: unknown } | null = null;
 
-  await new Promise<void>((resolve, reject) => {
+  await new Promise<void>((resolve) => {
     let enVol = 0;
     let termine = false;
     const finir = () => {
@@ -296,8 +363,18 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
         transfert
       );
       poignees.push(p);
-      p.surErreur((e) => reject(e));
+      p.surErreur((e) => {
+        if (termine) return;
+        // Fusion déjà terminée (plafond, arrêt déterministe) : le résultat est
+        // complet pour sa coupe, et le morceau en vol qui a échoué aurait été
+        // jeté. L'attente se termine sans erreur, le motif reste le sien.
+        if (!fusionTerminee()) enErreur = { erreur: e };
+        finir();
+      });
       p.surMessage((r) => {
+        // Après une erreur, plus rien ne se fusionne : l'état rendu est celui
+        // de l'instant de l'erreur, et les Workers sont terminés.
+        if (termine) return;
         enVol--;
         parTravailleur[w]++;
         if (r.validationTypee) validationsTypees++;
@@ -325,18 +402,20 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
     for (const p of poignees) p.terminer();
   });
 
-  const motif: ResultatParallele['motif'] = plafond
-    ? 'maxCollected'
-    : limiteAtteinte
-      ? 'arret'
-      : morceauxComplets === aDistribuer.length
-        ? 'aucun'
-        : tempsEcoule || !arrete
-          ? 'maxMs'
-          : 'manuel';
+  const motif: ResultatParallele['motif'] = enErreur
+    ? 'erreur'
+    : plafond
+      ? 'maxCollected'
+      : limiteAtteinte
+        ? 'arret'
+        : morceauxComplets === aDistribuer.length
+          ? 'aucun'
+          : tempsEcoule || !arrete
+            ? 'maxMs'
+            : 'manuel';
 
   const truncated = motif !== 'aucun';
-  return {
+  const resultat: ResultatParallele = {
     candidates, explored: traitees, truncated,
     nearMissByCondition: Array.from(nearMissByCondition.values()), globalNearMiss,
     traitees, visitees, sautees: traitees - visitees, chemin: 'noyau',
@@ -347,6 +426,8 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
     motif, morceaux: plan.length, morceauxTraites: parTravailleur.reduce((s, v) => s + v, 0), parTravailleur,
     plusGrosMorceau: plan.reduce((s, m) => Math.max(s, m.taille), 0), msPlanification,
   };
+  if (enErreur) throw new ErreurAppariementParallele((enErreur as { erreur: unknown }).erreur, resultat);
+  return resultat;
 }
 
 /**

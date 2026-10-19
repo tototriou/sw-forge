@@ -62,18 +62,30 @@ export function servirAppariement(
     if (enCours) return;
     enCours = true;
     try {
+      // ⚠️ La tranche court d'un morceau au SUIVANT : son chrono ne repart
+      // qu'après avoir rendu la main, jamais à l'entrée d'un morceau, et le
+      // temps se teste avant chaque ligne, première ligne d'un morceau
+      // comprise. Un message (l'arrêt) est donc lu au plus `trancheMs` plus
+      // une ligne après son arrivée, même quand des morceaux s'enchaînent.
+      // Le test est synchrone : on n'attend (`await`) que pour céder, jamais
+      // une fois par ligne.
+      let debut = maintenant();
+      const expiree = () => maintenant() - debut > trancheMs;
       while (enAttente.length > 0) {
         const morceau = enAttente.shift()!;
+        if (expiree()) {
+          await ceder();
+          debut = maintenant();
+        }
         if (arrete) {
           envoyer(resultatVide(morceau, contexte?.validation != null));
           continue;
         }
         if (!contexte) throw new Error('Worker d’appariement : morceau reçu avant l’initialisation');
         const gen = parcourirMorceau(contexte, morceau);
-        let debut = maintenant();
         let step = gen.next(false);
         while (!step.done) {
-          if (maintenant() - debut > trancheMs) {
+          if (expiree()) {
             await ceder();
             debut = maintenant();
           }

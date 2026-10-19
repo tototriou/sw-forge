@@ -21,8 +21,10 @@ contient le filtre (registre : `tests/index.ts`), par exemple
 | `testDominanceReliqueCasMinimal`, `testDominanceReliqueCouverture`, `testDominanceReliqueRecherche`, `testDominanceReliqueTemoins`, `testDominanceReliqueWorkers`, `testDominanceReliqueDifferentiel`, `testDominanceReliqueDifferentielCible` | `tests/rune-optim-dominance-relique.test.ts` | un oracle noté : la dominance face à l'effet unique de la relique et aux lignes d'artéfact 218–221, paire tirée, différentiel ciblé |
 | `testDominanceLignesQuatrePorteurs`, `testDominanceLignesJoker`, `testDominanceLignesLibre`, `testDominanceLignesProducteurs`, `testDominanceLignesWorkers` | `tests/rune-optim-dominance-lignes.test.ts` | les cas fixes des lignes 218–221 : porteurs, joker, « Libre », producteurs, Workers |
 | `testRuneOptimScaleMonotonicity` | `tests/rune-optim-scale-monotonicity.test.ts` | à l'échelle d'un compte réel, élargir le pré-filtrage ne perd pas les demi-builds déjà retenus |
-| `testAppariementRapide` | `tests/appariement-rapide.test.ts` | le noyau d'appariement sur tableaux typés : seuils aux frontières, oracle paire par paire (aucune paire sautée ne passe `quickOk`), différentiel contre `pairBuckets` |
-| `testAppariementParallele`, `testAppariementParalleleWorkers`, `testAppariementParalleleBranchement` | `tests/appariement-parallele.test.ts` | le nombre de Workers et le régime ; le coordinateur parallèle contre le séquentiel (Workers simulés, puis vrais `worker_threads`) : plafond global, progression, arrêt manuel, filet de temps, panne ; le branchement du chemin de production |
+| `testAppariementRapide` | `tests/appariement-rapide.test.ts` | le noyau d'appariement sur tableaux typés : seuils aux frontières, oracle paire par paire (aucune paire sautée ne passe `quickOk`), différentiel contre `pairBuckets`, scènes à relique portée et paire d'artéfacts figée comprises |
+| `testAppariementParallele`, `testAppariementParalleleWorkers`, `testAppariementParalleleCoupeWorkers`, `testAppariementParalleleBranchement` | `tests/appariement-parallele.test.ts` | le nombre de Workers et le régime ; le coordinateur parallèle contre le séquentiel (Workers simulés, puis vrais `worker_threads`) : plafond global, progression, arrêt manuel, filet de temps, panne ; un morceau coupé avant un morceau suivant achevé ; la tranche d'un Worker d'un morceau au suivant ; sur vrais `worker_threads`, des morceaux coupés en cours par le temps et par l'arrêt ; le branchement du chemin de production |
+| `testValidationRapide` | `tests/validation-rapide.test.ts` | la validation typée de l'appariement (`ValidationTypee`) contre `activeSets`, `computeStats` et le test conjoint de `pairBuckets` : cas écrits, paire par paire, collecteur contre collecteur, appariement entier, contrat tenu ou non |
+| `testResolutionRapide`, `testResolutionRapideNaN` | `tests/resolution-rapide.test.ts` | le prototype non branché de résolution de l'équipement (`src/lib/resolutionRapide.ts`) contre `resoudreEquipementDuBuild`, build par build ; les notes NaN et leur repli |
 | `testConstructionRapide` | `tests/construction-rapide.test.ts` | la construction des moitiés sur tableaux typés (`construireMoitieRapide`, et son découpage en tranches) contre `buildBuckets` : égalité profonde des compartiments, préréglages Bas à Extrême, avec et sans « Prioriser les stats les plus difficiles », chaque `combosOrderMode`, évictions forcées ; et `construireMoitie` sur son repli |
 | `testRuneOptimNearMiss` | `tests/rune-optim-near-miss.test.ts` | le quasi-succès retenu à l'appariement, y compris après un arrêt manuel |
 | `testRuneOptimDeadHalfPruning` | `tests/rune-optim-dead-half-pruning.test.ts` | l'élagage exact des demi-builds sans aucune pièce d'un set demandé à plus de 3 pièces |
@@ -167,9 +169,13 @@ candidats compris : sa vérification est donc une égalité, jamais un seuil.
   route.
 - `testAppariementParalleleWorkers` rejoue l'égalité sur de vrais
   `worker_threads` concurrents, par le lanceur Node de production.
-- Sous une troncature par le TEMPS, le parallèle peut rendre davantage que
-  le séquentiel (il a parcouru plus dans le même délai) : aucune égalité n'y
-  est attendue, et aucun test ne l'exige.
+- Sous une troncature par le TEMPS ou par l'arrêt manuel, le parallèle peut
+  rendre davantage que le séquentiel (il a parcouru plus dans le même
+  délai) : aucune égalité n'y est attendue. Les tests y vérifient une
+  sous-suite des candidats du séquentiel non tronqué, qui en est le préfixe
+  exact jusqu'au premier morceau coupé, sur un morceau réellement coupé
+  avant un morceau suivant achevé, et sur de vrais `worker_threads` dont
+  les morceaux sont coupés en cours (`testAppariementParalleleCoupeWorkers`).
 - Aux volumes réels, hors `npm test`, `scripts/banc-appariement-rapide.ts`
   compare le chemin de production, séquentiel et parallèle, à
   `pairBuckets`, sur les cas de `CASES` et sur une recette et un export.

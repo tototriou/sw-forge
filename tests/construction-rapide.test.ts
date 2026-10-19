@@ -11,7 +11,7 @@
 // « Simulation séquentielle d'une coordination en direct »). Les vrais
 // `worker_threads` sont exercés par le banc (scripts/banc-construction-moities.ts).
 //
-// Matrice demandée par le lot : préréglages Bas à Extrême (`slotFilterCap`,
+// La matrice : préréglages Bas à Extrême (`slotFilterCap`,
 // `bucketCap` dérivé, le chemin de production), avec et sans
 // `adaptiveTrancheWeighting`, chaque `combosOrderMode`. En plus, des plafonds de
 // rétention minuscules (override de mesure, `SearchParams.bucketCap`) : ce sont
@@ -195,7 +195,7 @@ export default function testConstructionRapide() {
   for (const s of SCENARIOS) {
     const pool = randomPool(mulberry32(s.seed), s.parEmplacement, SETS_JOKER);
 
-    // 1. La matrice du lot, au chemin de production (`bucketCap` dérivé du préréglage).
+    // 1. La matrice, au chemin de production (`bucketCap` dérivé du préréglage).
     for (const preset of SLOT_FILTER_PRESETS) {
       for (const adaptatif of [false, true]) {
         for (const ordre of ORDRES) {

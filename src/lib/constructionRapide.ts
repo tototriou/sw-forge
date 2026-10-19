@@ -1,8 +1,9 @@
 // Construction des moitiés sur tableaux typés : le chemin de production
 // (`construireMoitie`, src/lib/rechercheRunes.ts, appelé par les Workers de
 // moitié, le CLI, le harnais et `searchBuilds`). `buildBuckets` reste la
-// RÉFÉRENCE et le repli (traceur de diagnostic, moitié de plus de 2³¹
-// triplets). Contrat : rendre EXACTEMENT les compartiments de
+// RÉFÉRENCE et le repli (`motifRepliConstruction` : traceur de diagnostic,
+// moitié de plus de 2³¹ triplets, `bucketCap` ou capacité redistribuée hors
+// des entiers 32 bits des tas). Contrat : rendre EXACTEMENT les compartiments de
 // `buildBuckets` (mêmes clés, comptes, jokers, `combos` dans le même ordre avec
 // leurs `pct`/`flat`/`relevanceScore`, mêmes `maxPct`/`maxFlat` jusqu'à l'ordre
 // de leurs clés, même `potential`), vérifié par `premiereDivergence`

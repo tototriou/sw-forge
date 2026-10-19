@@ -22,7 +22,9 @@ import { totalPairCount, PreparedSearch, SearchParams, SearchResult, Bucket, Bui
 import { RelicVide } from '../lib/relicOptim';
 import { apparier } from '../lib/rechercheRunes';
 import { verifierContrat } from '../lib/appariementRapide';
-import { PoigneeTravailleur, apparierRapideEnParallele, enResultatDeRecherche, type LancerTravailleur } from '../lib/appariementRapideParallele';
+import {
+  PoigneeTravailleur, apparierRapideEnParallele, enResultatDeRecherche, erreurDeWorkerEnfant, resultatApresErreur, type LancerTravailleur,
+} from '../lib/appariementRapideParallele';
 import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
 import { MessageVersAppariement } from './appariementRapide.worker';
 import { nombreDeTravailleurs, regimeAppariement } from './parallelPairing';
@@ -144,7 +146,9 @@ const lancerTravailleurNavigateur: LancerTravailleur = (init, transfert): Poigne
       worker.onmessage = (e) => rappel(e.data);
     },
     surErreur: (rappel) => {
-      worker.onerror = (e) => rappel(e);
+      // ⚠️ L'événement est annulé (voir `erreurDeWorkerEnfant`) : il ne doit
+      // pas remonter au hook, le coordinateur rend ce qui a été trouvé.
+      worker.onerror = erreurDeWorkerEnfant(rappel);
       worker.onmessageerror = (e) => rappel(e);
     },
     arreter: () => {
@@ -318,7 +322,9 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     // termine tous les Workers puis rejette, et une rejection NON interceptée
     // dans un handler `async self.onmessage` ne remonte PAS via
     // `Worker.onerror` au parent — sans ce `catch`, aucun message `result`/
-    // `error` ne serait posté, l'UI resterait bloquée en `'running'`.
+    // `error` ne serait posté, l'UI resterait bloquée en `'running'`. Le rejet
+    // porte ce qui a été fusionné avant l'erreur (`resultatApresErreur`) :
+    // l'écran garde les candidats déjà montrés, et l'erreur est journalisée.
     try {
       const resultat = await apparierRapideEnParallele({
         params, prepared, bucketsA, bucketsB, totalPaires: totalPairs,
@@ -331,8 +337,9 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       });
       const result: WorkerResultMessage = { type: 'result', ...enResultatDeRecherche(resultat) };
       (self as unknown as Worker).postMessage(result);
-    } catch {
-      const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null };
+    } catch (erreur) {
+      console.error('Appariement parallèle interrompu par une erreur ; résultat rendu tronqué, avec ce qui a été fusionné :', erreur);
+      const result: WorkerResultMessage = { type: 'result', ...resultatApresErreur(erreur) };
       (self as unknown as Worker).postMessage(result);
     } finally {
       arreterAppariement = null;

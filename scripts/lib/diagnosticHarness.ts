@@ -964,12 +964,11 @@ class ObservateurDecouverte {
    * fabriquée, exactement ce que le verdict du build cible interdit.
    */
   cloturer(resultat: SearchResult): void {
-    // ⚠️ L'`explored` FINAL vient du résultat, jamais du dernier point de
-    // passage vu : en parallèle les relevés sont throttlés dans le TEMPS, donc
-    // le dernier reçu peut être très en deçà de ce qui a réellement été
-    // parcouru (mesuré : 2 000 au dernier relevé contre 60 806 au total).
-    // S'en tenir au dernier relevé ferait annoncer une recherche vingt fois
-    // plus courte qu'elle ne l'a été.
+    // ⚠️ L'`explored` FINAL vient du résultat, jamais du dernier relevé vu :
+    // en séquentiel les relevés tombent aux points de passage, et la fin du
+    // parcours peut suivre le dernier ; en parallèle, un relevé par morceau
+    // reçu, dont le dernier vaut le résultat — le prendre au résultat vaut
+    // pour les deux régimes.
     this.dernierExplored = Math.max(this.dernierExplored, resultat.explored);
     this.derniersCandidats = Math.max(this.derniersCandidats, resultat.candidates.length);
     if (this.exploredALaDecouverte === null && resultat.candidates.some((c) => estLeBuildCible(c, this.cibles))) {
@@ -1097,7 +1096,8 @@ async function unPassage(
  * ⚠️ Le VRAI chemin parallèle de production : `apparierRapideEnParallele`
  * (les mêmes morceaux à la demande, la même fusion dans l'ordre séquentiel que
  * le navigateur) avec le lanceur Node injecté, dont les fils exécutent
- * `traiterMorceau` — le code de production lui-même. Rien n'est reproduit
+ * `servirAppariement` → `parcourirMorceau` — le code de production
+ * lui-même, par tranches, comme au navigateur. Rien n'est reproduit
  * ici. Le traceur est retiré (le noyau ne le remplit pas, voir `unPassage`).
  */
 async function apparierEnParallele(

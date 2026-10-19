@@ -18,7 +18,8 @@ casser : [../invariants.md § Workers](../invariants.md).
 | --- | --- | --- |
 | `src/workers/parallelPairing.ts` | le seuil du régime, la règle du nombre de Workers (`nombreDeTravailleurs`), le choix du régime (`regimeAppariement`) | neutre |
 | `src/lib/appariementRapideParallele.ts` | coordinateur : plan des morceaux, distribution à la demande, fusion dans l'ordre, progression, arrêt (`apparierRapideEnParallele`) | neutre |
-| `src/lib/appariementRapide.ts` | corps d'un Worker (`initialiserTravailleur`, `traiterMorceau`), le noyau, les types du protocole | neutre |
+| `src/lib/travailleurAppariement.ts` | ce que fait un Worker d'appariement : `servirAppariement` (messages, tranches de `TRANCHE_MS`, arrêt), `MessageVersTravailleur` | neutre |
+| `src/lib/appariementRapide.ts` | corps d'un morceau (`initialiserTravailleur`, `parcourirMorceau` ; `traiterMorceau`, le même d'un bloc, pour les tests), le noyau, les types du protocole | neutre |
 | `src/workers/runeBuildOptim.worker.ts` | choix du régime, lanceur `lancerTravailleurNavigateur`, arrêt et erreur | navigateur |
 | `src/workers/appariementRapide.worker.ts` | coquille d'un Worker d'appariement | navigateur |
 | `scripts/lib/appariementRapideNode.ts` | lanceur `lancerTravailleurNode`, paquet `assurerBundleAppariementRapide` | Node |
@@ -97,11 +98,18 @@ combinaison A ouverte face à un compartiment B ouvert, avec les prédicats de
 
 Ce que le plafond global change :
 
-- Le parallèle rend EXACTEMENT le résultat du séquentiel, tronqué ou non :
-  mêmes candidats dans le même ordre, mêmes paires traitées, même
-  quasi-succès, quel que soit le nombre de Workers. Seul le filet de temps
-  fait différer les deux, le parallèle ayant parcouru davantage dans le même
-  délai.
+- Le parallèle rend EXACTEMENT le résultat du séquentiel, non tronqué ou
+  coupé par le plafond : mêmes candidats dans le même ordre, mêmes paires
+  traitées, même quasi-succès, quel que soit le nombre de Workers.
+- Le filet de temps et l'arrêt manuel le font différer, de la même façon :
+  chaque morceau déjà parti revient et se fusionne, coupé ou non
+  (§ Fusion des résultats). Le résultat est une SOUS-SUITE des candidats du
+  séquentiel non tronqué, qui en est le préfixe exact jusqu'au premier
+  morceau coupé, celui-ci compris ; les morceaux suivants, achevés avant
+  d'avoir reçu l'arrêt, y ajoutent leurs candidats, si bien que des
+  candidats du séquentiel manquent entre deux morceaux. Rien de ce qui a
+  été parcouru n'est perdu, et le parallèle peut rendre davantage que le
+  séquentiel coupé au même instant ; ce n'est pas un préfixe.
 - Ne pas donner à chaque Worker une part fixe du plafond : un Worker arrêté
   sur sa part laisserait le reste de son travail non visité, et les
   candidats gardés dépendraient du découpage.
@@ -142,6 +150,12 @@ Aucun contact avec la plateforme.
    ligne. `servirAppariement` le pilote par TRANCHES de `TRANCHE_MS`
    (100 ms) : entre deux tranches, il rend la main à la boucle d'événements
    du Worker (un minuteur nul), qui lit les messages arrivés entre-temps.
+   Une tranche court d'un morceau au SUIVANT : son chrono ne repart
+   qu'après avoir rendu la main, jamais à l'entrée d'un morceau, et le temps
+   se teste avant chaque ligne, la première d'un morceau comprise ; un
+   message est donc lu au plus `TRANCHE_MS` plus une ligne après son
+   arrivée, même quand des morceaux s'enchaînent. Le test est synchrone :
+   rien n'est attendu par ligne, seulement pour rendre la main.
    Un `{ type: 'arret' }` reçu arrête le morceau en cours à la ligne
    suivante, rendu avec ce qu'il a trouvé (issue `arret`), et chaque
    morceau qui attendait est rendu aussitôt, vide (`resultatVide`). Un
@@ -257,7 +271,8 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
   exact.
 - Motif (`ResultatParallele.motif`) : `maxCollected` (le plafond, global),
   `maxMs` (un morceau coupé par le temps, ou plus rien de distribué une fois
-  le filet dépassé), `manuel` (l'arrêt manuel) ; `arret` est l'arrêt
+  le filet dépassé), `manuel` (l'arrêt manuel), `erreur` (un Worker a
+  échoué, § Arrêt, erreur et nettoyage) ; `arret` est l'arrêt
   déterministe à un nombre de paires donné, réservé aux tests et au banc. Le
   motif ne voyage pas dans le `SearchResult` : l'ordre étant séquentiel et
   le plafond global, il se déduit du plafond comme en séquentiel
@@ -265,10 +280,10 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
   L'écran ne lit que `truncated`.
 - Le filet de temps et l'arrêt manuel n'arrêtent que la DISTRIBUTION :
   chaque morceau déjà parti revient (coupé ou non) et se fusionne, dans
-  l'ordre, jusqu'au plafond global. Un morceau coupé par le temps
-  n'empêche donc pas de fusionner ceux qui le suivent : le résultat garde
-  tout ce qui a été trouvé, ses paires traitées sont un compte et non une
-  position, et une troncature par le temps peut rendre davantage que le
+  l'ordre, jusqu'au plafond global. Un morceau coupé (par le temps ou par
+  l'arrêt) n'empêche donc pas de fusionner ceux qui le suivent : le
+  résultat garde tout ce qui a été trouvé, ses paires traitées sont un
+  compte et non une position, et il peut rendre davantage que le
   séquentiel, jamais moins de ce qui a été parcouru. Seuls le plafond et
   l'arrêt déterministe arrêtent la fusion.
 - Aucune trace de diagnostic : le noyau ne remplit pas le traceur, et un
@@ -281,7 +296,8 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
   l'arrêt inscrit (`arreterAppariement`). Le coordinateur ne distribue plus
   rien et envoie `arreter` à chaque Worker : celui-ci arrête son morceau en
   cours à la ligne qui suit sa tranche (au plus `TRANCHE_MS`, plus une
-  ligne), le rend avec ce qu'il a trouvé et rend vides ceux qui
+  ligne, la tranche courant d'un morceau au suivant), le rend avec ce
+  qu'il a trouvé et rend vides ceux qui
   attendaient. Le coordinateur attend ces réponses, fusionne tout ce qui a
   été trouvé et rend un résultat tronqué. Arrêté avant toute
   distribution, il ne lance aucun Worker et rend un résultat vide, tronqué.
@@ -289,10 +305,29 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
   été trouvé.
 - Arrêt pendant la construction des moitiés :
   [pipeline.md § Interruption](pipeline.md).
-- Erreur d'un Worker : la promesse du coordinateur est rejetée, et il
-  termine TOUS les Workers avant de la rendre (`finally`) : aucun ne
-  survit, quelle que soit l'issue. Le Worker principal attrape le rejet et
-  poste un résultat vide, tronqué.
+- Erreur d'un Worker : le coordinateur cesse de fusionner (un résultat
+  arrivé ensuite est ignoré), termine TOUS les Workers (`finally`) : aucun
+  ne survit, quelle que soit l'issue. Puis il rejette par
+  `ErreurAppariementParallele`, qui porte l'erreur du Worker et l'état
+  fusionné jusque-là : les morceaux contigus reçus, comme à l'arrêt, motif
+  `erreur`, tronqué. Un rejet plutôt qu'un résultat : un appelant qui ne le
+  traite pas (harnais, banc, tests) échoue au lieu de prendre une panne pour
+  une recherche coupée. Le Worker principal attrape le rejet, le journalise
+  (`console.error`) et poste cet état (`resultatApresErreur`) : l'écran
+  garde les candidats déjà montrés, au lieu d'annoncer zéro combinaison
+  après les avoir affichés. Une erreur levée avant tout Worker (hors
+  contrat, plan incohérent) n'a rien à rendre : résultat vide, tronqué.
+  Une erreur reçue une fois la fusion terminée (plafond atteint, arrêt
+  déterministe), pendant le retour des morceaux en vol, ne change pas le
+  résultat, déjà complet pour sa coupe : l'attente se termine, tous les
+  Workers sont terminés, et le résultat est rendu avec son motif, sans
+  rejet.
+- Au navigateur, le lanceur annule l'événement `error` d'un Worker enfant
+  (`preventDefault`, `erreurDeWorkerEnfant`) avant de le remettre au
+  coordinateur : non annulé, le
+  standard HTML le signale à nouveau dans la portée qui a créé le Worker,
+  ici le Worker de recherche, d'où il remonterait au `onerror` du hook
+  (statut `error`), en concurrence avec le résultat posté.
 - ⚠️ Ne pas retirer ce `try/catch` du Worker principal : un rejet non
   intercepté dans un `self.onmessage` asynchrone n'atteint pas le `onerror`
   du parent. Aucun message n'arriverait, et l'écran resterait « en cours ».
@@ -418,11 +453,22 @@ contexte, annulations, demandes ; détail dans
     identique au séquentiel, plafond global, progression qui ne recule
     jamais et dont l'aperçu est un préfixe du résultat, arrêt manuel (avant
     et pendant la distribution), filet de temps déjà dépassé, panne d'un
-    Worker (rejet, tous terminés), refus hors contrat, et le corps d'un
-    Worker qui court sur l'instant global ;
+    Worker (rejet porteur de l'état fusionné, rien de fusionné après, tous
+    terminés ; `resultatApresErreur` et `erreurDeWorkerEnfant`, que le
+    Worker principal appelle), refus hors contrat, et le corps d'un
+    Worker qui court sur l'instant global, dont la tranche court d'un
+    morceau au suivant (horloge simulée) ;
   - `testAppariementParalleleWorkers` : le même coordinateur sur de VRAIS
     `worker_threads` (`lancerTravailleurNode`) — identique au séquentiel,
     non tronqué et sous petit plafond ; arrêt manuel ;
+  - `testAppariementParalleleCoupeWorkers` : sur de vrais `worker_threads`,
+    deux morceaux d'au moins 1,5 s chacun (validation de référence), coupés
+    EN COURS par le filet de temps puis par l'arrêt manuel, à un quart d'un
+    morceau étalonné DANS un Worker (marge ×2 sur la vitesse des Workers) ;
+    la précondition « coupé en cours » est vérifiée, jamais supposée. Chacun
+    rend le début de ses candidats, et le résultat est une sous-suite du
+    séquentiel, préfixe exact jusqu'au premier morceau coupé ; l'horloge n'y
+    sert qu'à couper, aucun temps n'est jugé ;
   - `testAppariementRapide` (`tests/appariement-rapide.test.ts`) : l'oracle
     du noyau et le différentiel contre `pairBuckets`, morceaux simulés
     compris ;

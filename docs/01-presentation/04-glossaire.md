@@ -167,7 +167,7 @@ fiche qui fait foi : les règles détaillées et les valeurs chiffrées restent 
   Code : `pairBuckets`. → [pipeline.md](../03-developpeur/optimizer/moteur/pipeline.md)
 - **Morceau** : suite de lignes d'appariement consécutives (une combinaison A face à un
   compartiment B) confiée à un Worker d'appariement, à la demande. Code : `Morceau`,
-  `traiterMorceau`. → [parallelisation.md](../03-developpeur/optimizer/moteur/parallelisation.md)
+  `parcourirMorceau` (piloté par tranches par `servirAppariement`). → [parallelisation.md](../03-developpeur/optimizer/moteur/parallelisation.md)
 - **Paires traitées** : les paires que l'appariement a parcourues, jugées ou sautées par le
   noyau parce qu'elles échoueraient sûrement au test rapide. Code : `explored`.
   → [noyau-appariement.md](../03-developpeur/optimizer/moteur/noyau-appariement.md)

@@ -93,7 +93,8 @@ export function testRenduUiEtats() {
   ok(bs[2].desactive && !bs[0].desactive, 'Segmented : une option désactivée l\'est, les autres non');
 
   // En grille (`colonnes`) : les mêmes crans, un seul cadre, un seul choix ; la
-  // grille porte le nombre de colonnes demandé, sans trait de séparation.
+  // grille porte le nombre de colonnes demandé, et ses bords intérieurs sont
+  // les écarts de 1 px d'une grille au fond `border` (pas de trait par cran).
   const grille = rendre(
     <Segmented value="ehp" onChange={rien} colonnes={2}
       options={[{ key: 'efficience', label: 'Efficience' }, { key: 'reel', label: 'Dégâts réels' }, { key: 'ehp', label: 'PV effectifs' }, { key: 'vitesse', label: 'Vitesse' }]} />,
@@ -102,7 +103,9 @@ export function testRenduUiEtats() {
   egal(crans.map((x) => x.texte), ['Efficience', 'Dégâts réels', 'PV effectifs', 'Vitesse'], 'Segmented en grille : chaque option reste un bouton libellé');
   egal(crans.filter((x) => x.presse).map((x) => x.texte), ['PV effectifs'], 'Segmented en grille : un seul choix actif');
   ok(/grid-template-columns:repeat\(2, minmax\(0, 1fr\)\)/.test(grille), 'Segmented en grille : deux colonnes de largeur égale');
-  ok(!/w-px self-stretch bg-border/.test(grille), 'Segmented en grille : aucun trait de séparation');
+  ok(!/w-px self-stretch bg-border/.test(grille), 'Segmented en grille : aucun trait de rangée par cran');
+  ok(/class="grid gap-px bg-border"/.test(grille) && (grille.match(/class="flex items-stretch bg-panel2"/g) ?? []).length === 4,
+    'Segmented en grille : bords intérieurs dessinés (grille au fond border, écarts de 1 px, chaque case au fond du cadre)');
 
   ok(/aria-pressed="true"/.test(rendre(<Option titre="Box" actif onClick={rien} />)), 'Option active : aria-pressed="true"');
 

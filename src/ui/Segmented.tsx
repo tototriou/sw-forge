@@ -138,15 +138,48 @@ export default function Segmented<T extends string>({
 
   const compact = dense ?? serre;
 
+  // ⚠️ **En grille, les bords intérieurs se dessinent** : une grille interne
+  // au fond `border`, écartée d'1 px (`gap-px`), dont chaque case reprend le
+  // fond du cadre — les écarts deviennent des traits de 1 px, verticaux ET
+  // horizontaux, qui séparent les crans comme le trait de la rangée `lg`.
+  // Sans eux, quatre crans en 2 × 2 se lisaient comme un seul bloc.
+  if (enGrille) {
+    return (
+      <div className={`bg-panel2 border border-border rounded-lg p-0.5 w-full ${disabled ? 'opacity-40' : ''} ${className}`}>
+        <div className="grid gap-px bg-border" style={{ gridTemplateColumns: `repeat(${colonnes}, minmax(0, 1fr))` }}>
+          {options.map((o) => {
+            const active = value === o.key;
+            return (
+              <div key={o.key} className="flex items-stretch bg-panel2">
+                <button
+                  onClick={() => onChange(o.key)}
+                  disabled={disabled || o.disabled}
+                  title={o.hint}
+                  aria-pressed={active}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-semibold text-center
+                              transition disabled:cursor-not-allowed ${dense ? CRAN_DENSE : CRAN_LARGE} ${
+                                o.disabled ? 'opacity-40 text-ink-dim' : active ? 'bg-accent text-accent-ink' : 'text-ink-dim hoverable:text-ink'
+                              }`}
+                >
+                  {o.icon}
+                  {o.label}
+                  {o.suffix}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={racineRef}
       // `relative` : contexte de positionnement de la copie de mesure
       // ci-dessous, qui doit sortir du flux sans peser sur la mise en page.
-      className={`relative ${
-        enGrille ? 'grid w-full gap-0.5' : `flex items-center ${size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'}`
+      className={`relative flex items-center ${size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'
       } bg-panel2 border border-border rounded-lg p-0.5 ${disabled ? 'opacity-40' : ''} ${className}`}
-      style={enGrille ? { gridTemplateColumns: `repeat(${colonnes}, minmax(0, 1fr))` } : undefined}
     >
       {/* ⚠️ **Copie de MESURE, jamais affichée** — sert uniquement à connaître
           la largeur NATURELLE du contrôle au cran normal (voir l'effet
@@ -184,15 +217,15 @@ export default function Segmented<T extends string>({
       {options.map((o, i) => {
         const active = value === o.key;
         return (
-          <div key={o.key} className={`flex items-stretch ${enGrille ? '' : size === 'lg' ? 'flex-1' : 'flex-none'}`}>
+          <div key={o.key} className={`flex items-stretch ${size === 'lg' ? 'flex-1' : 'flex-none'}`}>
             {/* ⚠️ Élément à part, PAS un `border-l` posé sur le bouton
                 arrondi : un `border-l` sur un `rounded-md` se courbe aux
                 coins au lieu de rester droit. Un trait dédié, sans rayon,
                 reste rigoureusement vertical sur toute la hauteur
                 (`self-stretch`). Toujours dessiné, même entre deux cases
-                adjacentes dont l'une est sélectionnée. En grille, aucun :
-                l'écart entre crans les sépare déjà. */}
-            {size === 'lg' && !enGrille && i > 0 && <span className="w-px self-stretch bg-border" />}
+                adjacentes dont l'une est sélectionnée. En grille, les
+                traits sont les écarts de la grille interne (plus haut). */}
+            {size === 'lg' && i > 0 && <span className="w-px self-stretch bg-border" />}
             <button
               onClick={() => onChange(o.key)}
               disabled={disabled || o.disabled}

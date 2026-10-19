@@ -248,7 +248,11 @@ autres — le cadre commun le dit sans un mot. L'option enfoncée est un
 > étroite (l'objectif de recherche du bloc « Objectif et Rechercher » de
 > l'Optimizer, au bureau). Le choix reste exclusif à l'œil — un seul cadre,
 > un seul aplat. ⚠️ Aucun resserrement automatique en grille : passer à la
-> rangée suivante EST la réponse au manque de place.
+> rangée suivante EST la réponse au manque de place. ⚠️ **Les bords
+> intérieurs se dessinent** : une grille interne au fond `border`, écartée
+> d'1 px, dont chaque case reprend le fond du cadre — des traits de 1 px
+> entre les crans, verticaux et horizontaux, comme le trait de la rangée
+> `lg`. Sans eux, quatre crans en 2 × 2 se lisaient comme un seul bloc.
 
 #### `Pastille`
 

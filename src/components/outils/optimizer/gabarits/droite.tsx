@@ -205,7 +205,7 @@ export const GABARITS_DROITE: Gabarit[] = [
     telephone: 'ObjectifEtActions (partagé) exporte TitreObjectifRecherche et ResumeCombat, rendu inchangé ; le téléphone garde ObjectifEtActions.',
     changements: [
       'L\'estimation du pool passe en tête du bloc, au-dessus de l\'objectif, à place réservée (deux lignes) : rien ne bouge quand elle paraît.',
-      'Les quatre objectifs en 2 × 2.',
+      'Les quatre objectifs en 2 × 2, séparés par leurs bords intérieurs (traits de 1 px).',
       'Le résumé « Dégâts réels » garde sa place, invisible, sous un autre objectif : choisir « Dégâts réels » ne pousse plus rien.',
       '« Rechercher » plus grand (taille lg) ; « Arrêter » prend sa place exacte pendant une recherche (carré plein), inactif 300 ms, au lieu de s\'ajouter à côté de « Recherche… ».',
       '« Exporter » · « Importer » en libellé court au bureau (le libellé long reste le nom et l\'infobulle).',

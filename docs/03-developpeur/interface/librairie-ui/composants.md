@@ -181,6 +181,23 @@ option ne sait pas dire.
   rembourrage : son contenu n'est pas une liste dont les entrées touchent le
   bord.
 
+Un axe de FORME, né des principales imposées du bureau : **`forme`
+`'surbrillance'`** fait de la surface une liste classique — chaque valeur est
+un bouton (`aria-pressed`), la valeur choisie en surbrillance (contour et fond
+d'accent, le marqueur des filtres), sans case. Le champ fermé ne change pas :
+celui d'un `Selecteur` (`sm` pour les principales), qui résume les choix ou dit
+« Libre ». Cliquer une valeur la choisit ou la retire, la liste reste ouverte.
+
+Un axe d'OUVERTURE : **`ouvert`** et **`onOuvertChange`** la rendent
+contrôlée par l'appelant — le set compact se ferme de lui-même au choix qui
+remplit les six emplacements. Sans eux, la liste gère seule son ouverture.
+
+- ⚠️ **Un focus perdu vers rien ne ferme pas la liste.** Un choix qui
+  désactive ou retire le bouton cliqué (un set de 4 rend les autres sets de 4
+  indisponibles) fait tomber le focus sur le document : ce n'est pas un
+  départ. La liste reste ouverte et le focus revient au déclencheur ; seuls
+  un focus parti ailleurs, un clic dehors et Échap la ferment.
+
 #### `Interrupteur`
 
 **`Interrupteur`** — glissière avec libellé. ⚠️ `role="switch"` et non `button` :

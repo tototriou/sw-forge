@@ -32,6 +32,22 @@ import Flottant from './Flottant';
 //    (les icônes des sets), avec son texte pour le nom accessible ;
 //  - `surface` : ce que porte la surface ouverte, à la place des cases (la
 //    grille d'ajout des sets, inchangée).
+//
+// Un axe de FORME, né des principales imposées du bureau : `forme`
+// 'surbrillance' fait de la surface une liste classique — chaque valeur est un
+// bouton (`aria-pressed`), la valeur choisie en surbrillance (contour et fond
+// d'accent, le marqueur des filtres), sans case. Le geste est le même :
+// cliquer une valeur la choisit ou la retire.
+//
+// Un axe d'OUVERTURE : `ouvert` et `onOuvertChange` la rendent contrôlée par
+// l'appelant (le set compact se ferme quand les six emplacements sont pleins).
+// Sans eux, la liste gère seule son ouverture.
+//
+// ⚠️ **Un focus perdu vers RIEN ne ferme pas la liste.** Un choix qui
+// désactive ou retire le bouton qu'on vient de cliquer (un set de 4 rend les
+// autres sets de 4 indisponibles) fait tomber le focus sur le document : ce
+// n'est pas un départ, la liste reste ouverte et le focus revient au
+// déclencheur (Échap et Tab gardent leur sens).
 
 export interface OptionChoixMultiple<V extends string | number> {
   valeur: V;
@@ -52,6 +68,12 @@ export interface SelecteurMultipleProps<V extends string | number> {
   vide: string;
   resume?: { visuel: ReactNode; texte: string };
   surface?: ReactNode;
+  // Forme de la surface ouverte quand l'appelant n'en fournit pas : une case
+  // par option (défaut), ou une liste classique à surbrillance.
+  forme?: 'cases' | 'surbrillance';
+  // Ouverture contrôlée (voir l'en-tête).
+  ouvert?: boolean;
+  onOuvertChange?: (ouvert: boolean) => void;
   taille?: 'md' | 'sm';
   // Largeur de la surface ouverte ; défaut : celle du déclencheur.
   largeurSurface?: string;
@@ -72,20 +94,44 @@ export default function SelecteurMultiple<V extends string | number>({
   vide,
   resume,
   surface,
+  forme = 'cases',
+  ouvert: ouvertControle,
+  onOuvertChange,
   taille = 'md',
   largeurSurface,
   disabled = false,
   title,
 }: SelecteurMultipleProps<V>) {
-  const [ouvert, setOuvert] = useState(false);
+  const [ouvertInterne, setOuvertInterne] = useState(false);
+  const ouvert = ouvertControle ?? ouvertInterne;
   const racine = useRef<HTMLDivElement>(null);
   const declencheur = useRef<HTMLButtonElement>(null);
+  // Le focus est-il dans la liste (déclencheur ou surface) ?
+  const focusDedans = useRef(false);
   const id = useId();
+  const changer = useRef<(o: boolean) => void>(() => {});
+  changer.current = (o: boolean) => {
+    if (ouvertControle === undefined) setOuvertInterne(o);
+    onOuvertChange?.(o);
+  };
+  const setOuvert = (o: boolean) => changer.current(o);
+
+  // Focus tombé sur le document alors qu'il était dans la liste ouverte :
+  // rendu au déclencheur, la liste reste ouverte.
+  const rendreLeFocus = () => {
+    if (focusDedans.current && (document.activeElement === document.body || document.activeElement === null)) declencheur.current?.focus();
+  };
+  useEffect(() => {
+    if (ouvert) rendreLeFocus();
+  });
 
   useEffect(() => {
     if (!ouvert) return;
     const dehors = (e: PointerEvent) => {
-      if (!racine.current?.contains(e.target as Node)) setOuvert(false);
+      if (!racine.current?.contains(e.target as Node)) {
+        focusDedans.current = false;
+        changer.current(false);
+      }
     };
     document.addEventListener('pointerdown', dehors);
     return () => document.removeEventListener('pointerdown', dehors);
@@ -110,8 +156,19 @@ export default function SelecteurMultiple<V extends string | number>({
           declencheur.current?.focus();
         }
       }}
+      onFocus={() => {
+        focusDedans.current = true;
+      }}
       onBlur={(e) => {
-        if (ouvert && !racine.current?.contains(e.relatedTarget as Node | null)) setOuvert(false);
+        const vers = e.relatedTarget as Node | null;
+        if (vers === null) {
+          // Vers rien : un bouton cliqué désactivé ou retiré. Pas un départ.
+          if (ouvert) requestAnimationFrame(rendreLeFocus);
+          return;
+        }
+        if (racine.current?.contains(vers)) return;
+        focusDedans.current = false;
+        if (ouvert) setOuvert(false);
       }}
     >
       <button
@@ -123,7 +180,7 @@ export default function SelecteurMultiple<V extends string | number>({
         aria-haspopup="true"
         aria-expanded={ouvert}
         aria-controls={id}
-        onClick={() => setOuvert((o) => !o)}
+        onClick={() => setOuvert(!ouvert)}
         // ⚠️ Le dessin du `Selecteur` fermé — cadre, fond, chevron peint en fond
         // (`--chevron-select`), rembourrage droit réservé — pour qu'une liste
         // simple et une liste multiple, côte à côte, se lisent comme une même
@@ -147,17 +204,37 @@ export default function SelecteurMultiple<V extends string | number>({
       >
         <div id={id} className={surface ? '' : 'flex flex-col gap-px p-1'}>
           {surface ??
-            options.map((o) => (
-              <Case
-                key={String(o.valeur)}
-                libelle={o.libelle}
-                checked={valeurs.includes(o.valeur)}
-                disabled={o.disabled}
-                title={o.title}
-                onChange={() => basculer(o.valeur)}
-                className="h-8 rounded-md px-2 hoverable:bg-panel2"
-              />
-            ))}
+            options.map((o) =>
+              forme === 'surbrillance' ? (
+                // ⚠️ Le marqueur des filtres (contour et fond d'accent) sur la
+                // valeur choisie, un contour transparent sur les autres : la
+                // valeur garde sa place, choisie ou non.
+                <button
+                  key={String(o.valeur)}
+                  type="button"
+                  aria-pressed={valeurs.includes(o.valeur)}
+                  disabled={o.disabled}
+                  title={o.title}
+                  onClick={() => basculer(o.valeur)}
+                  className={`flex h-8 w-full items-center rounded-md border px-2 text-left text-sm text-ink transition
+                    disabled:cursor-not-allowed disabled:opacity-40 ${
+                      valeurs.includes(o.valeur) ? 'border-accent bg-accent-soft' : 'border-transparent hoverable:bg-panel2'
+                    }`}
+                >
+                  {o.libelle}
+                </button>
+              ) : (
+                <Case
+                  key={String(o.valeur)}
+                  libelle={o.libelle}
+                  checked={valeurs.includes(o.valeur)}
+                  disabled={o.disabled}
+                  title={o.title}
+                  onChange={() => basculer(o.valeur)}
+                  className="h-8 rounded-md px-2 hoverable:bg-panel2"
+                />
+              ),
+            )}
         </div>
       </Flottant>
     </div>

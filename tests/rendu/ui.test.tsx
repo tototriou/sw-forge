@@ -219,6 +219,17 @@ export function testRenduUiSelecteurMultiple() {
   ok(!!bouton(libre, 'Set de runes recherché : Violent, Will'), 'résumé fourni : son texte nomme le déclencheur');
   ok(texteVisible(libre).includes('grille d\'ajout') && !/type="checkbox"/.test(libre), 'surface fournie : elle remplace les cases');
   ok(!!boutons(rendre(<SelecteurMultiple libelle="Slot 4" options={options} vide="Libre" disabled />))[0]?.desactive, 'désactivée : disabled posé sur le déclencheur');
+
+  // Forme « surbrillance » : une liste classique, sans case ; la valeur choisie
+  // est enfoncée et porte le marqueur d'accent.
+  const surb = rendre(<SelecteurMultiple libelle="Slot 2" options={options} valeurs={[4]} onChange={rien} vide="Libre" forme="surbrillance" />);
+  ok(!!bouton(surb, 'Slot 2 : ATQ%'), 'surbrillance : le champ fermé résume le choix');
+  egal((surb.match(/type="checkbox"/g) ?? []).length, 0, 'surbrillance : aucune case');
+  egal(boutons(surb).filter((b) => b.presse !== null).map((b) => [b.texte, b.presse]), [['PV%', false], ['ATQ%', true], ['VIT', false]], 'surbrillance : chaque valeur est un bouton, la choisie enfoncée');
+  ok(/aria-pressed="true"[^>]*class="[^"]*border-accent bg-accent-soft|class="[^"]*border-accent bg-accent-soft[^"]*"[^>]*aria-pressed="true"/.test(surb), 'surbrillance : la valeur choisie porte le marqueur d\'accent');
+  ok(!!boutons(surb).find((b) => b.texte === 'VIT')?.desactive, 'surbrillance : une option désactivée le reste');
+  // Ouverture contrôlée : l'appelant décide.
+  ok(/aria-expanded="true"/.test(rendre(<SelecteurMultiple libelle="Slot 2" options={options} vide="Libre" ouvert onOuvertChange={rien} />)), 'ouverture contrôlée : ouverte quand l\'appelant le dit');
 }
 
 export function testRenduUiNotification() {

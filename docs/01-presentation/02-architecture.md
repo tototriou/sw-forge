@@ -177,7 +177,13 @@ Les boîtes de la mise en page de bureau à venir
 travail (`ListeDeTravailBureau`), le set de runes compact (`SetDeRunesCompact`), les principales
 imposées (`PrincipalesImposeesBureau`), les conditions (`ConditionsBureau`), l'état du monstre
 réduit aux buffs et au lead (`EtatMonstreEssentiels`) et le contrôle à onglets des colonnes
-repliables (`OngletsColonnes`, décidé par `src/lib/optimizerColonnes.ts`). Elles se voient seules
+repliables (`OngletsColonnes`, décidé par `src/lib/optimizerColonnes.ts`) ; dans la colonne
+« Artéfacts et relique », la carte des artéfacts et de la relique (`ArtefactsEtReliqueBureau`) et
+celle des meilleurs artéfacts (`MeilleursArtefactsBureau`) ; dans la colonne « Aura, exclusion,
+avancés », les sets d'aura (`SetsAuraBureau`), l'exclusion de runes (`ExclusionRunesBureau`) et les
+réglages avancés (`ReglagesAvancesBureau`), en ligne ; dans la colonne de droite, « Exemplaire »
+(`ExemplaireBureau`), le bloc « Objectif et Rechercher » en forme étroite ou large
+(`ObjectifEtRechercherBureau`) et les résultats (`ResultatsBureau`). Elles se voient seules
 dans la vue de développement `#/outils/optimizer/gabarits`
 (`src/components/outils/optimizer/gabarits/`, adresse dans `src/lib/optimizerGabarits.ts`) :
 [03-developpeur/vue-des-gabarits.md](../03-developpeur/vue-des-gabarits.md).

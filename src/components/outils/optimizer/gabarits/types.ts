@@ -24,6 +24,9 @@ export interface EtatGabarit {
   id: string;
   nom: string;
   rendu: (ctx: ContexteGabarits) => ReactNode;
+  // Boîte élastique : la largeur à laquelle CET état est montré (px), au-dessus
+  // de la largeur minimale déclarée par le gabarit. La mesure s'y compare.
+  largeur?: number;
 }
 
 // Une boîte de la refonte du bureau, vue seule.
@@ -31,7 +34,10 @@ export interface Gabarit {
   id: string;
   nom: string;
   // Largeur déclarée par la direction (px) ; la vue mesure la largeur réelle.
+  // Boîte élastique : sa largeur MINIMALE, chaque état pouvant être montré
+  // plus large (`EtatGabarit.largeur`).
   largeur: number;
+  elastique?: boolean;
   // Hauteur estimée par la direction (px), pour la comparer à la mesure.
   hauteurEstimee: number;
   // Le composant de bureau, et ce qu'il partage avec le téléphone.

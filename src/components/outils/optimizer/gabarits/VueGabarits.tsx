@@ -28,7 +28,7 @@ export default function VueGabarits({ ctx, gabarits = GABARITS }: { ctx: Context
           <div className="space-y-1">
             <h2 id={`gabarit-${g.id}`} className="text-base font-bold text-ink">{g.nom}</h2>
             <p className="text-xs text-ink-dim">
-              Déclarée : {g.largeur} px de large, ≈ {g.hauteurEstimee} px de haut · {g.composant}
+              Déclarée : {g.elastique ? `élastique, ${g.largeur} px de large au moins` : `${g.largeur} px de large`}, ≈ {g.hauteurEstimee} px de haut · {g.composant}
             </p>
             <p className="text-xs text-ink-dim">Téléphone : {g.telephone}</p>
           </div>
@@ -40,9 +40,11 @@ export default function VueGabarits({ ctx, gabarits = GABARITS }: { ctx: Context
           </div>
           <div className="flex flex-wrap items-start gap-x-8 gap-y-6">
             {g.etats.map((e) => (
-              <figure key={e.id} data-etat={e.id} className="space-y-1.5">
-                <figcaption className="text-xs font-semibold text-ink-dim">{e.nom}</figcaption>
-                <Mesure largeur={g.largeur}>{e.rendu(ctx)}</Mesure>
+              <figure key={e.id} data-etat={e.id} data-largeur={e.largeur ?? g.largeur} className="space-y-1.5">
+                <figcaption className="text-xs font-semibold text-ink-dim">
+                  {e.nom}{e.largeur != null && e.largeur !== g.largeur ? ` · montré à ${e.largeur} px` : ''}
+                </figcaption>
+                <Mesure largeur={e.largeur ?? g.largeur}>{e.rendu(ctx)}</Mesure>
               </figure>
             ))}
           </div>

@@ -38,15 +38,31 @@ quand le contenu dépasse la largeur déclarée.
 
 ## Ajouter des gabarits
 
-Un groupe de boîtes = un fichier de gabarits (comme
-[essentiels.tsx](../../src/components/outils/optimizer/gabarits/essentiels.tsx)) qui exporte une
-liste de `Gabarit` (`types.ts`), et une ligne dans `registre.ts`. La vue n'a pas à changer. Chaque
-état est un élément rendu à partir du contexte (`ContexteGabarits`) ; un état qui a besoin d'un
-état local le porte dans son propre composant.
+Un groupe de boîtes = un fichier de gabarits qui exporte une liste de `Gabarit` (`types.ts`), et
+une ligne dans `registre.ts`. La vue n'a pas à changer. Trois groupes, dans l'ordre de la page :
+[essentiels.tsx](../../src/components/outils/optimizer/gabarits/essentiels.tsx) (et le contrôle à
+onglets), [colonnes.tsx](../../src/components/outils/optimizer/gabarits/colonnes.tsx) (les deux
+colonnes repliables) et [droite.tsx](../../src/components/outils/optimizer/gabarits/droite.tsx)
+(« Exemplaire », « Objectif et Rechercher » sous ses deux formes, résultats). Chaque état est un
+élément rendu à partir du contexte (`ContexteGabarits`) ; un état qui a besoin d'un état local le
+porte dans son propre composant.
+
+- **Boîte élastique** (`elastique: true`) : sa `largeur` est son minimum ; un état peut se montrer
+  plus large (`EtatGabarit.largeur`), dans une enveloppe à cette largeur, et la mesure s'y compare.
+- **Données de vue.** Ce que la vue ne peut pas calculer sans lancer le moteur (estimation du pool
+  filtré, chiffres des meilleurs artéfacts, progression, compte des combinaisons) est une valeur de
+  vue, et le nom de l'état le dit. Les builds des résultats sont des combinaisons réelles des runes
+  du compte (statistiques par `computeStats`) ; un compte trop petit pour vingt les répète sous des
+  identifiants de copie ([donnees.ts](../../src/components/outils/optimizer/gabarits/donnees.ts),
+  `droite.tsx`).
+- Dans la vue, « Rechercher » bascule sur « Arrêter » sans rien lancer : la place exacte et les
+  300 ms d'inactivité se voient sans moteur.
 
 ## Tests
 
-[tests/rendu/optimizer-gabarits.test.tsx](../../tests/rendu/optimizer-gabarits.test.tsx) : le sens
+[tests/rendu/optimizer-gabarits.test.tsx](../../tests/rendu/optimizer-gabarits.test.tsx) et
+[tests/rendu/optimizer-gabarits-droite.test.tsx](../../tests/rendu/optimizer-gabarits-droite.test.tsx)
+(colonnes repliables et colonne de droite) : le sens
 de chaque boîte (libellés, choix, états), la vue (chaque gabarit du registre, chacun de ses états,
 son encadré) et l'adresse (reconnue ; hors développement, la page de l'Optimizer). Le branchement
 en développement ne se voit qu'au navigateur : les tests construisent l'app avec

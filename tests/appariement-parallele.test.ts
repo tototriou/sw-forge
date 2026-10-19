@@ -12,7 +12,8 @@
 // délai déjà écoulé (déterministe) : un test de parallélisation ne simule
 // jamais séquentiellement un mécanisme qui dépend de l'horloge (invariants
 // § Workers). La différence au séquentiel n'est attendue que sous une
-// troncature par le temps.
+// troncature par le temps ou par l'arrêt manuel : une sous-suite du
+// séquentiel non tronqué, préfixe exact jusqu'au premier morceau coupé.
 
 import { availableParallelism } from 'node:os';
 import { BaseStats } from '../src/types';
@@ -23,8 +24,8 @@ import {
 } from '../src/lib/runeBuildOptim';
 import { apparier, construireMoitie } from '../src/lib/rechercheRunes';
 import {
-  InitTravailleur, Morceau, ResultatMorceau, apparierRapide, comboAOuvert, encoderCompartiments, initialiserTravailleur, ordreDesCompartiments,
-  paireDeCompartimentsOuverte, traiterMorceau,
+  ContexteTravailleur, InitTravailleur, Morceau, ResultatMorceau, apparierRapide, comboAOuvert, encoderCompartiments, initialiserTravailleur,
+  ordreDesCompartiments, paireDeCompartimentsOuverte, parcourirMorceau, traiterMorceau,
 } from '../src/lib/appariementRapide';
 import { MessageVersTravailleur, resultatVide, servirAppariement } from '../src/lib/travailleurAppariement';
 import { LancerTravailleur, OptionsParallele, apparierRapideEnParallele, enResultatDeRecherche, planifierMorceaux } from '../src/lib/appariementRapideParallele';
@@ -77,6 +78,44 @@ const cle = (c: BuildCandidate) => c.runeIds.join(',');
 const estPrefixe = (court: readonly BuildCandidate[], long: readonly BuildCandidate[]) =>
   court.length <= long.length && court.every((c, i) => cle(c) === cle(long[i]));
 const compteursDe = (r: { traitees: number; visitees: number; sautees: number }) => ({ traitees: r.traitees, visitees: r.visitees, sautees: r.sautees });
+
+/** Ce que chaque morceau a rendu, relevé au passage sans rien changer : son issue et son nombre de candidats. */
+type RecusParMorceau = Map<number, { issue: ResultatMorceau['issue']; candidats: number }>;
+function espionner(lancer: LancerTravailleur, recus: RecusParMorceau): LancerTravailleur {
+  return (init, transfert) => {
+    const p = lancer(init, transfert);
+    return {
+      ...p,
+      surMessage: (rappel) => p.surMessage((r) => {
+        recus.set(r.id, { issue: r.issue, candidats: r.candidats.length });
+        rappel(r);
+      }),
+    };
+  };
+}
+
+/**
+ * Le résultat d'une recherche coupée (temps, arrêt manuel), contre le
+ * séquentiel NON tronqué : une sous-suite de ses candidats, qui en est le
+ * préfixe exact jusqu'au premier morceau coupé, celui-ci compris
+ * (`prefixe` : sa longueur, lue sur les morceaux reçus, dans l'ordre).
+ */
+function sousSuiteCoupee(candidats: readonly BuildCandidate[], recus: RecusParMorceau, reference: readonly BuildCandidate[]) {
+  let prefixe = 0;
+  for (let id = 0; recus.has(id); id++) {
+    const r = recus.get(id)!;
+    prefixe += r.candidats;
+    if (r.issue !== 'complet') break;
+  }
+  prefixe = Math.min(prefixe, candidats.length);
+  let j = 0;
+  for (const c of candidats) {
+    while (j < reference.length && cle(reference[j]) !== cle(c)) j++;
+    if (j === reference.length) return { sousSuite: false, prefixe, prefixeExact: false };
+    j++;
+  }
+  return { sousSuite: true, prefixe, prefixeExact: estPrefixe(candidats.slice(0, prefixe), reference) };
+}
 
 /** Les paires visitées par le noyau séquentiel avant le point de passage `N` (multiple de `CHECKPOINT_EVERY`). */
 function visitesAuPoint(e: Espace, N: number): number {
@@ -134,10 +173,10 @@ function lanceurSimule(rng: () => number, journal: { lances: number; termines: n
 
 /**
  * Un Worker (un seul, deux morceaux en vol : tout le plan d'un espace coupé
- * en deux) qui rend le VRAI résultat de chaque morceau, retouché par
- * `retoucher`, les deux ensemble et dans l'ordre demandé.
+ * en deux) qui rend le résultat de chaque morceau par `traiter` (le vrai
+ * corps, retouché ou coupé), les deux ensemble et dans l'ordre demandé.
  */
-function lanceurScenarise(ordre: 'direct' | 'inverse', retoucher: (r: ResultatMorceau) => ResultatMorceau): LancerTravailleur {
+function lanceurScenarise(ordre: 'direct' | 'inverse', traiter: (ctx: ContexteTravailleur, m: Morceau) => ResultatMorceau): LancerTravailleur {
   return (init: InitTravailleur) => {
     const ctx = initialiserTravailleur(structuredClone(init));
     let rappel: (r: ResultatMorceau) => void = () => {};
@@ -148,7 +187,7 @@ function lanceurScenarise(ordre: 'direct' | 'inverse', retoucher: (r: ResultatMo
         if (recus.length < 2) return;
         const lot = ordre === 'direct' ? recus.splice(0) : recus.splice(0).reverse();
         setTimeout(() => {
-          for (const morceau of lot) rappel(retoucher(traiterMorceau(ctx, morceau)));
+          for (const morceau of lot) rappel(traiter(ctx, morceau));
         }, 1);
       },
       surMessage: (r) => {
@@ -231,7 +270,8 @@ async function testCoordination(liste: Espace[]): Promise<void> {
     const jArret = { lances: 0, termines: 0 };
     let arreter: (() => void) | null = null;
     let derniere = -1;
-    const rArret = await apparierRapideEnParallele(options(e, lanceurSimule(rng, jArret), {
+    const recusArret: RecusParMorceau = new Map();
+    const rArret = await apparierRapideEnParallele(options(e, espionner(lanceurSimule(rng, jArret), recusArret), {
       surControle: (c) => {
         arreter = c.arreter;
       },
@@ -241,7 +281,9 @@ async function testCoordination(liste: Espace[]): Promise<void> {
       },
     }));
     ok(rArret.truncated && rArret.motif === 'manuel' && rArret.explored < e.total, `${e.nom} : arrêt manuel → tronqué, motif manuel, ${rArret.explored} / ${e.total} paires`);
-    ok(estPrefixe(rArret.candidates, e.reference.candidates), `${e.nom} : arrêt manuel → ce qui a été trouvé, un préfixe du séquentiel (${rArret.candidates.length} candidats)`);
+    const vArret = sousSuiteCoupee(rArret.candidates, recusArret, e.reference.candidates);
+    ok(vArret.sousSuite && vArret.prefixeExact,
+      `${e.nom} : arrêt manuel → ce qui a été trouvé (${rArret.candidates.length} candidats), une sous-suite du séquentiel, préfixe exact jusqu'au premier morceau coupé (${vArret.prefixe})`);
     ok(derniere === rArret.explored && rArret.sautees >= 0, `${e.nom} : arrêt manuel → la dernière progression compte ce que compte le résultat (${derniere}), sautées ≥ 0`);
     egal(jArret.termines, jArret.lances, `${e.nom} : arrêt manuel → chaque Worker terminé`);
   }
@@ -305,7 +347,8 @@ async function testTroncatureFusion(liste: Espace[]): Promise<void> {
       for (const sorte of ['temps', 'manuel'] as const) {
         let arreter: (() => void) | null = null;
         let derniere: { traitees: number; n: number } | null = null;
-        const r = await apparierRapideEnParallele(options(e, lanceurScenarise(ordre, (v) => {
+        const r = await apparierRapideEnParallele(options(e, lanceurScenarise(ordre, (c, m) => {
+          const v = traiterMorceau(c, m);
           if (v.id !== 0) return v;
           if (sorte === 'manuel') arreter?.();
           return { ...v, issue: sorte === 'temps' ? 'temps' : 'arret' };
@@ -328,6 +371,65 @@ async function testTroncatureFusion(liste: Espace[]): Promise<void> {
     break;
   }
   ok(trouve, 'un espace dont le plan en deux morceaux porte des candidats dans chacun');
+}
+
+/** Le corps d'un morceau, arrêté manuellement après sa première ligne (`next(true)` au premier rendu de main). */
+function coupeApresPremiereLigne(ctx: ContexteTravailleur, m: Morceau): ResultatMorceau {
+  const gen = parcourirMorceau(ctx, m);
+  let step = gen.next(false);
+  if (!step.done) step = gen.next(true);
+  if (!step.done) throw new Error('le corps devait rendre son résultat sur l’arrêt');
+  return step.value;
+}
+
+/**
+ * Un morceau RÉELLEMENT coupé avant un morceau suivant achevé (arrêt reçu par
+ * le premier après sa première ligne, quand le second avait déjà fini) : le
+ * parallèle garde les candidats des deux, si bien que son résultat n'est PAS
+ * un préfixe du séquentiel — une sous-suite, préfixe exact jusqu'au morceau
+ * coupé, et rien de ce qui a été parcouru n'est perdu.
+ */
+async function testCoupeReelle(liste: Espace[]): Promise<void> {
+  titre('Appariement parallèle · arrêt manuel : un morceau coupé avant un morceau suivant achevé');
+  let trouve = false;
+  for (const e of liste) {
+    const cible = Math.ceil(e.total / 2);
+    const plan = planifierMorceaux(e.prepared, e.bucketsA, e.bucketsB, cible);
+    if (plan.length !== 2) continue;
+    const ctx = initialiserTravailleur({ params: e.params, startedAt: Date.now(), compartiments: encoderCompartiments(e.prepared, e.bucketsA, e.bucketsB) });
+    const coupe0 = coupeApresPremiereLigne(ctx, plan[0]);
+    const complet0 = traiterMorceau(ctx, plan[0]);
+    const complet1 = traiterMorceau(ctx, plan[1]);
+    // Un écart n'est visible que si le morceau 0 perd des candidats après sa première ligne, et que le 1 en porte.
+    if (coupe0.issue !== 'arret' || coupe0.candidats.length >= complet0.candidats.length || complet1.candidats.length === 0) continue;
+    trouve = true;
+    for (const ordre of ['direct', 'inverse'] as const) {
+      let arreter: (() => void) | null = null;
+      const recus: RecusParMorceau = new Map();
+      const r = await apparierRapideEnParallele(options(e, espionner(lanceurScenarise(ordre, (c, m) => {
+        if (m.id !== 0) return traiterMorceau(c, m);
+        arreter?.();
+        return coupeApresPremiereLigne(c, m);
+      }), recus), {
+        travailleurs: 1, cibleMorceau: cible,
+        surControle: (c) => {
+          arreter = c.arreter;
+        },
+      }));
+      const n0 = coupe0.candidats.length;
+      egal(r.candidates.map(cle), [...coupe0.candidats, ...complet1.candidats].map(cle),
+        `${e.nom}, ordre ${ordre} : morceau 0 coupé après sa première ligne (${n0} / ${complet0.candidats.length} candidats), morceau 1 achevé (${complet1.candidats.length}) : les deux sont gardés`);
+      ok(r.truncated && r.motif === 'manuel' && r.explored === coupe0.traitees + complet1.traitees && r.explored < e.total,
+        `${e.nom}, ordre ${ordre} : tronqué (motif ${r.motif}), ${r.explored} paires = celles parcourues dans les deux morceaux`);
+      const v = sousSuiteCoupee(r.candidates, recus, e.reference.candidates);
+      ok(v.sousSuite && v.prefixeExact && v.prefixe === n0,
+        `${e.nom}, ordre ${ordre} : une sous-suite du séquentiel, préfixe exact jusqu'au morceau coupé (${v.prefixe} candidats)`);
+      ok(!estPrefixe(r.candidates, e.reference.candidates) && cle(r.candidates[n0]) !== cle(e.reference.candidates[n0]),
+        `${e.nom}, ordre ${ordre} : PAS un préfixe du séquentiel — écart dès le rang ${n0 + 1}`);
+    }
+    break;
+  }
+  ok(trouve, 'un espace dont le morceau 0 perd des candidats après sa première ligne et dont le morceau 1 en porte');
 }
 
 /**
@@ -407,13 +509,16 @@ export async function testAppariementParalleleWorkers(): Promise<void> {
     const rPetit = await apparierRapideEnParallele(options(e, lancer, { params: { ...e.params, maxCollected: 5 }, prepared: { ...e.prepared, maxCollected: 5 } }));
     egal(etat(enResultatDeRecherche(rPetit)), etat(refPetit), `${e.nom} : maxCollected = 5, identique au séquentiel`);
     let arreter: (() => void) | null = null;
-    const rArret = await apparierRapideEnParallele(options(e, lancer, {
+    const recus: RecusParMorceau = new Map();
+    const rArret = await apparierRapideEnParallele(options(e, espionner(lancer, recus), {
       surControle: (c) => {
         arreter = c.arreter;
       },
       surProgression: () => arreter?.(),
     }));
-    ok(rArret.truncated && estPrefixe(rArret.candidates, e.reference.candidates), `${e.nom} : arrêt manuel → ${rArret.candidates.length} candidats gardés, préfixe du séquentiel`);
+    const v = sousSuiteCoupee(rArret.candidates, recus, e.reference.candidates);
+    ok(rArret.truncated && v.sousSuite && v.prefixeExact,
+      `${e.nom} : arrêt manuel → ${rArret.candidates.length} candidats gardés, sous-suite du séquentiel, préfixe exact jusqu'au premier morceau coupé (${v.prefixe})`);
   }
 }
 
@@ -445,5 +550,6 @@ export async function testAppariementParallele(): Promise<void> {
   const liste = espaces();
   await testCoordination(liste);
   await testTroncatureFusion(liste);
+  await testCoupeReelle(liste);
   await testCadenceTemps(liste);
 }

@@ -167,9 +167,12 @@ candidats compris : sa vérification est donc une égalité, jamais un seuil.
   route.
 - `testAppariementParalleleWorkers` rejoue l'égalité sur de vrais
   `worker_threads` concurrents, par le lanceur Node de production.
-- Sous une troncature par le TEMPS, le parallèle peut rendre davantage que
-  le séquentiel (il a parcouru plus dans le même délai) : aucune égalité n'y
-  est attendue, et aucun test ne l'exige.
+- Sous une troncature par le TEMPS ou par l'arrêt manuel, le parallèle peut
+  rendre davantage que le séquentiel (il a parcouru plus dans le même
+  délai) : aucune égalité n'y est attendue. Les tests y vérifient une
+  sous-suite des candidats du séquentiel non tronqué, qui en est le préfixe
+  exact jusqu'au premier morceau coupé, sur un morceau réellement coupé
+  avant un morceau suivant achevé.
 - Aux volumes réels, hors `npm test`, `scripts/banc-appariement-rapide.ts`
   compare le chemin de production, séquentiel et parallèle, à
   `pairBuckets`, sur les cas de `CASES` et sur une recette et un export.

@@ -97,11 +97,18 @@ combinaison A ouverte face à un compartiment B ouvert, avec les prédicats de
 
 Ce que le plafond global change :
 
-- Le parallèle rend EXACTEMENT le résultat du séquentiel, tronqué ou non :
-  mêmes candidats dans le même ordre, mêmes paires traitées, même
-  quasi-succès, quel que soit le nombre de Workers. Seul le filet de temps
-  fait différer les deux, le parallèle ayant parcouru davantage dans le même
-  délai.
+- Le parallèle rend EXACTEMENT le résultat du séquentiel, non tronqué ou
+  coupé par le plafond : mêmes candidats dans le même ordre, mêmes paires
+  traitées, même quasi-succès, quel que soit le nombre de Workers.
+- Le filet de temps et l'arrêt manuel le font différer, de la même façon :
+  chaque morceau déjà parti revient et se fusionne, coupé ou non
+  (§ Fusion des résultats). Le résultat est une SOUS-SUITE des candidats du
+  séquentiel non tronqué, qui en est le préfixe exact jusqu'au premier
+  morceau coupé, celui-ci compris ; les morceaux suivants, achevés avant
+  d'avoir reçu l'arrêt, y ajoutent leurs candidats, si bien que des
+  candidats du séquentiel manquent entre deux morceaux. Rien de ce qui a
+  été parcouru n'est perdu, et le parallèle peut rendre davantage que le
+  séquentiel coupé au même instant ; ce n'est pas un préfixe.
 - Ne pas donner à chaque Worker une part fixe du plafond : un Worker arrêté
   sur sa part laisserait le reste de son travail non visité, et les
   candidats gardés dépendraient du découpage.
@@ -265,10 +272,10 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
   L'écran ne lit que `truncated`.
 - Le filet de temps et l'arrêt manuel n'arrêtent que la DISTRIBUTION :
   chaque morceau déjà parti revient (coupé ou non) et se fusionne, dans
-  l'ordre, jusqu'au plafond global. Un morceau coupé par le temps
-  n'empêche donc pas de fusionner ceux qui le suivent : le résultat garde
-  tout ce qui a été trouvé, ses paires traitées sont un compte et non une
-  position, et une troncature par le temps peut rendre davantage que le
+  l'ordre, jusqu'au plafond global. Un morceau coupé (par le temps ou par
+  l'arrêt) n'empêche donc pas de fusionner ceux qui le suivent : le
+  résultat garde tout ce qui a été trouvé, ses paires traitées sont un
+  compte et non une position, et il peut rendre davantage que le
   séquentiel, jamais moins de ce qui a été parcouru. Seuls le plafond et
   l'arrêt déterministe arrêtent la fusion.
 - Aucune trace de diagnostic : le noyau ne remplit pas le traceur, et un

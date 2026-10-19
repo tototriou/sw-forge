@@ -16,7 +16,9 @@
 // ⚠️ **La fusion se fait dans l'ORDRE DES MORCEAUX**, donc dans l'ordre
 // séquentiel : le résultat est celui de `pairBuckets` séquentiel, quel que
 // soit le nombre de Workers — plafond de candidats GLOBAL compris (aucune
-// part du plafond par Worker). Le quasi-succès
+// part du plafond par Worker). Coupé par le temps ou par l'arrêt manuel, il
+// en est une SOUS-SUITE, préfixe exact jusqu'au premier morceau coupé : les
+// morceaux suivants déjà partis se fusionnent encore. Le quasi-succès
 // se rejoue à partir des améliorations de chaque morceau, avec la règle de
 // production (remplacé seulement si strictement meilleur) : une tentative qui
 // n'améliore pas son propre morceau ne peut pas améliorer l'état global, donc

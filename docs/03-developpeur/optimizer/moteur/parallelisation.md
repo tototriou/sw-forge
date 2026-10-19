@@ -462,11 +462,13 @@ contexte, annulations, demandes ; détail dans
     `worker_threads` (`lancerTravailleurNode`) — identique au séquentiel,
     non tronqué et sous petit plafond ; arrêt manuel ;
   - `testAppariementParalleleCoupeWorkers` : sur de vrais `worker_threads`,
-    deux morceaux qui durent chacun plusieurs `TRANCHE_MS` (validation de
-    référence), coupés EN COURS par le filet de temps puis par l'arrêt
-    manuel : chacun rend le début de ses candidats, et le résultat est une
-    sous-suite du séquentiel, préfixe exact jusqu'au premier morceau coupé ;
-    l'horloge n'y sert qu'à couper au milieu, aucun temps n'est jugé ;
+    deux morceaux d'au moins 1,5 s chacun (validation de référence), coupés
+    EN COURS par le filet de temps puis par l'arrêt manuel, à un quart d'un
+    morceau étalonné DANS un Worker (marge ×2 sur la vitesse des Workers) ;
+    la précondition « coupé en cours » est vérifiée, jamais supposée. Chacun
+    rend le début de ses candidats, et le résultat est une sous-suite du
+    séquentiel, préfixe exact jusqu'au premier morceau coupé ; l'horloge n'y
+    sert qu'à couper, aucun temps n'est jugé ;
   - `testAppariementRapide` (`tests/appariement-rapide.test.ts`) : l'oracle
     du noyau et le différentiel contre `pairBuckets`, morceaux simulés
     compris ;

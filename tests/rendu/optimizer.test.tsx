@@ -146,8 +146,8 @@ export function testRenduOptimizerMonstre() {
   // ⚠️ La v1.14.0 a fait entrer la relique dans ce
   // bloc : « Artéfacts » est devenu « Artéfacts et reliques », et son
   // interrupteur aussi. Le reste du bloc est inchangé.
-  ok(t.includes("Artéfacts et reliques Activer l'optimisation d'artéfacts et reliques Attribut Comme équipé Libre Principale ATQ +100 Principale DEF +100 Principale PV +1500 Type"), 'les deux artéfacts : garder, libre, ou une principale');
-  ok(t.includes('Principale Comme équipée Libre Principale ATQ % Principale DEF % Principale PV %') && !t.includes('Garder la relique équipée'), 'la relique : « Comme équipée », libre, ou une principale');
+  ok(t.includes("Artéfacts et reliques Activer l'optimisation d'artéfacts et reliques Attribut Comme équipé Libre ATQ +100 DEF +100 PV +1500 Type"), 'les deux artéfacts : garder, libre, ou une principale (libellés courts)');
+  ok(t.includes('Principale Comme équipée Libre ATQ % DEF % PV %') && !t.includes('Garder la relique équipée'), 'la relique : « Comme équipée », libre, ou une principale');
   ok(t.includes('Sous-propriétés verrouillées 0 / 8 + Sous-propriété…'), 'les sous-propriétés verrouillées, compteur sur 8');
   ok(t.includes('Meilleurs artéfacts offensifs pour ce build') && b.find((x) => x.texte === 'Dégâts supplémentaires')?.presse === true, 'les meilleurs artéfacts offensifs, en dégâts supplémentaires');
   ok(b.find((x) => x.ariaLabel === 'Buff ATQ — inactif')?.title === 'Augmente l’ATQ du monstre de 50 %.', 'l\'état du monstre : buffs, et ce qu\'ils font');

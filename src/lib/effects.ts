@@ -119,15 +119,15 @@ export const RELIC_MAIN: Record<number, { label: string; stat: StatKey }> = {
   102: { label: 'DEF', stat: 'def' },
 };
 
-// Options du sélecteur « Relique — principale » — qualifiées comme les entrées d'artéfact qui FILTRENT réellement
-// par stat principale (`ARTIFACT_MAIN_OPTIONS`, runeBuildOptim.ts) : « Comme
-// équipé » lu au milieu de trois statistiques se lirait « la principale,
-// comme équipé ». Le « % » distingue la relique de
+// Options du sélecteur « Relique — principale » — courtes comme celles de
+// l'artéfact (`ARTIFACT_MAIN_OPTIONS`, runeBuildOptim.ts), sans « Principale » :
+// la liste est déjà nommée « Principale », et « Comme équipée » garde la pièce
+// entière, ce que dit l'aide de la carte. Le « % » distingue la relique de
 // l'artéfact (plat) — même stat, sémantique différente.
 export const RELIC_MAIN_OPTIONS: { code: 100 | 101 | 102; label: string }[] = [
-  { code: 101, label: 'Principale ATQ %' },
-  { code: 102, label: 'Principale DEF %' },
-  { code: 100, label: 'Principale PV %' },
+  { code: 101, label: 'ATQ %' },
+  { code: 102, label: 'DEF %' },
+  { code: 100, label: 'PV %' },
 ];
 
 // Rareté → libellé + couleur de texte + fond de bannière (dégradé sombre),

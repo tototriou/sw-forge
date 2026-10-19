@@ -148,6 +148,7 @@ export const GABARITS_COLONNES: Gabarit[] = [
       'La carte vit dans la colonne repliable « Artéfacts et relique » : ouverte ou fermée par son onglet.',
       'Aux deux formats : « Garder l\'artéfact équipé » devient « Comme équipé » (listes, aide, messages).',
       'Aux deux formats : « Garder la relique équipée » devient « Comme équipée » (liste, aide, message d\'import).',
+      'Aux deux formats : options courtes « ATQ +100 », « DEF +100 », « PV +1500 » (Attribut, Type), « ATQ % », « DEF % », « PV % » (relique), sans « Principale ».',
     ],
     etats: [
       { id: 'defaut', nom: 'Activée, Libre, aucune ligne verrouillée, relique libre', rendu: (ctx) => <ArtefactsGabarit ctx={ctx} initial={{ actif: true, principales: {}, lignes: [], relique: 'libre', unique: 'libre', niveau: 0 }} /> },

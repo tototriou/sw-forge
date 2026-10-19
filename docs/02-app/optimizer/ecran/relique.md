@@ -18,8 +18,8 @@
    Trois réglages, **grammaire des artéfacts à la valeur près qui n'existe
    que pour la relique** (le type) :
    - **Principale** : **« Comme équipée »** (pièce entière,
-     rien n'est cherché), **Principale ATQ %**, **Principale DEF %**,
-     **Principale PV %**, **« Libre »** (cherche parmi toutes les reliques
+     rien n'est cherché), **ATQ %**, **DEF %**, **PV %** (courts comme
+     ceux de l'artéfact), **« Libre »** (cherche parmi toutes les reliques
      éligibles). **Défaut : « Comme équipée » si le monstre
      choisi porte une relique, « Libre » sinon** — calculé au choix du
      monstre, comme pour l'artéfact : bestiaire, « un autre exemplaire »,

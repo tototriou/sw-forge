@@ -109,9 +109,9 @@ export default function ArtefactsEtReliques({ optimiserArtefacts, setOptimiserAr
                     pool tombe à un seul candidat, l'exemplaire porté avec ses
                     quatre sous-propriétés (voir `candidatsParSorte`,
                     artifactOptim.ts). Posé au milieu de trois statistiques
-                    principales, il peut se lire « la principale, comme
-                    équipé » : les entrées qui filtrent par principale disent
-                    « Principale … », et l'aide de la carte dit qu'il garde la
+                    principales, courtes elles aussi (« ATQ +100 », décision
+                    de l'utilisateur), il peut se lire « la principale, comme
+                    équipé » : c'est l'aide de la carte qui dit qu'il garde la
                     pièce entière. */}
                 <option value="equipped">Comme équipé</option>
                 {/* ⚠️ « Libre » n’a de sens qu’avec une recherche d’artéfacts : il n’a

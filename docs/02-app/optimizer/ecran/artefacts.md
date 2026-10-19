@@ -15,9 +15,9 @@ Ce document décrit la carte « Artéfacts » de l'écran.
 
    Activé, deux listes déroulantes (Attribut, Type) proposent :
    **« Libre »** (**défaut** — cherche le meilleur artéfact parmi TOUS les
-   artéfacts équipables), **« Comme équipé »**, **Principale
-   ATQ +100**, **Principale DEF +100**, **Principale PV +1500** (les trois
-   statistiques principales d'artéfact du jeu).
+   artéfacts équipables), **« Comme équipé »**, **ATQ +100**,
+   **DEF +100**, **PV +1500** (les trois statistiques principales
+   d'artéfact du jeu).
 
    ⚠️ **Ces cinq choix ne dépendent pas des artéfacts portés** : les deux
    listes s'affichent dès que l'optimisation est active, toujours avec les
@@ -81,9 +81,11 @@ Ce document décrit la carte « Artéfacts » de l'écran.
    « Garder l'artéfact équipé », trop long pour une liste étroite. Le risque
    reste nommé : posé au milieu de trois statistiques principales, « Comme
    équipé » peut se lire « la principale, comme équipé » — une liste se lit
-   comme homogène. D'où « Principale » sur les entrées qui filtrent
-   **réellement** par stat principale, et l'aide de la carte, qui dit que ce
-   choix garde la pièce entière.
+   comme homogène. Les entrées qui filtrent par stat principale ont porté
+   « Principale … » pour l'éviter ; l'utilisateur les a raccourcies
+   (2026-10, « ATQ +100 ») pour qu'Attribut et Type tiennent dans une carte
+   étroite. Reste l'aide de la carte, qui dit que ce choix garde la pièce
+   entière.
 
 ## Place de la carte à l'écran
 

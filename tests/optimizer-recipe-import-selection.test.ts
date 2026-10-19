@@ -120,12 +120,12 @@ function testRecetteRelique() {
     egal(parseOptimizerRecipe(JSON.stringify(tropHaut)).recipe?.relicMinUpgrade, 15, 'seuil 99 → normalisé à 15');
   }
 
-  // « Garder la relique équipée » ne se partage pas — même règle que
+  // « Comme équipée » ne se partage pas — même règle que
   // l'artéfact (`mainsPourCeCompte` : « mêmes trois règles »).
   {
     const r = { relicMainChoice: 'equipped' as const, wizardName: 'Alice' };
     const autreCompte = relicMainPourCeCompte(r, 'Bob');
-    egal(autreCompte.main, 'libre', "compte différent : « Garder la relique équipée » passe sur « Libre »");
+    egal(autreCompte.main, 'libre', "compte différent : « Comme équipée » passe sur « Libre »");
     egal(autreCompte.bascule, true, '… et la bascule est signalée, pour le message d’import');
 
     const memeCompte = relicMainPourCeCompte(r, 'Alice');

@@ -17,17 +17,17 @@
 
    Trois réglages, **grammaire des artéfacts à la valeur près qui n'existe
    que pour la relique** (le type) :
-   - **Principale** : **« Garder la relique équipée »** (pièce entière,
+   - **Principale** : **« Comme équipée »** (pièce entière,
      rien n'est cherché), **Principale ATQ %**, **Principale DEF %**,
      **Principale PV %**, **« Libre »** (cherche parmi toutes les reliques
-     éligibles). **Défaut : « Garder la relique équipée » si le monstre
+     éligibles). **Défaut : « Comme équipée » si le monstre
      choisi porte une relique, « Libre » sinon** — calculé au choix du
      monstre, comme pour l'artéfact : bestiaire, « un autre exemplaire »,
      puce de source, zone D et réimport du compte. Un membre de liste
      restaure son choix mémorisé ; ce défaut n'est posé que sans mémoire
      applicable. Une recette pose son propre choix après validation.
      Entre deux exemplaires de la **même espèce** choisis hors liste, le choix de
-     l'utilisateur est conservé, sauf « Garder la relique équipée » sur un
+     l'utilisateur est conservé, sauf « Comme équipée » sur un
      exemplaire qui n'en porte pas, qui redevient « Libre »
      (`relicMainChoiceApresChangementExemplaire`) : ce mode ne refuse pas la
      recherche, il la ferait tourner sans relique, sans le dire. Une puce
@@ -37,8 +37,8 @@
      (`RELIC_UNIQUE`, `src/lib/effects.ts`), avec le libellé **« `<effet>` en
      fonction `<stat>` »** (`relicUniqueEffectLabel`, DÉRIVÉ de
      `RELIC_UNIQUE` — effet et stat sont chacun des mots du jeu, jamais une
-     table séparée) — **désactivée et sans effet** avec « Garder la relique
-     équipée » (la pièce est fixée), le bloc le dit. La carte candidat, elle,
+     table séparée) — **désactivée et sans effet** avec « Comme équipée »
+     (la pièce est fixée), le bloc le dit. La carte candidat, elle,
      donne la phrase complète de la fiche d'objet (`formatRelicUnique`,
      `RelicSlot.tsx`), trop longue pour un sélecteur (voir
      resultats.md § Validation d'un build et relique).
@@ -52,7 +52,7 @@
      raison (seuil trop haut, aucune relique de cette principale/ce type,
      aucune relique dans l'inventaire — réimporter le compte ou couper
      l'interrupteur).
-   - **Recette** : « Garder la relique équipée » ne se partage pas —
+   - **Recette** : « Comme équipée » ne se partage pas —
      importée d'un autre joueur, elle bascule sur « Libre » et le message
      d'import le dit (mêmes trois règles que l'artéfact) ; le script CLI ne
      bascule jamais.

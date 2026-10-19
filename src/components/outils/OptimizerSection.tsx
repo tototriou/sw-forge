@@ -962,7 +962,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // `disabled` du `Segmented`, plus bas).
   // Un autre exemplaire de la MÊME espèce est désigné (puce de source,
   // zone D, même espèce rechoisie au bestiaire) : le choix de relique de
-  // l'utilisateur est gardé, sauf « Garder la relique équipée » sur un
+  // l'utilisateur est gardé, sauf « Comme équipée » sur un
   // exemplaire qui n'en porte pas — la recherche tournerait alors sans
   // relique, sans rien en dire.
   function reliqueCoherenteAvecExemplaire(relique: RelicDetail | undefined) {
@@ -2188,7 +2188,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         // perdu. Une recette qui se comporte autrement que chez son auteur,
         // sans un mot, serait pire que la donnée transportée telle quelle.
         + (bascules ? ` Cette recette vient d'un autre compte : « Comme équipé » est passé sur « Libre ».` : '')
-        + (relicBascule ? ` Cette recette vient d'un autre compte : « Garder la relique équipée » est passé sur « Libre ».` : '')
+        + (relicBascule ? ` Cette recette vient d'un autre compte : « Comme équipée » est passé sur « Libre ».` : '')
         // ⚠️ Ce que le parseur a CONVERTI (l'ancien mode critique « Moyenne »
         // → « Critique ») se dit aussi, mot pour mot
         // comme le CLI (`chargerRecette`) : jamais une conversion silencieuse.

@@ -36,7 +36,7 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
      l'artéfact réellement porté si le choix est « Comme
      équipé », la principale imposée si elle est choisie, et zéro si le
      choix est « Libre ». Pour la relique, seule une pièce réellement portée
-     avec le choix « Garder la relique équipée » garantit sa principale en
+     avec le choix « Comme équipée » garantit sa principale en
      PV %, ATQ % ou DEF % : `ceil(base × valeur / 100)`, comme dans
      `computeStats`. Une principale forcée, « Libre » ou l'absence de relique
      garantit zéro. La contribution de relique ne modifie jamais Taux Crit,

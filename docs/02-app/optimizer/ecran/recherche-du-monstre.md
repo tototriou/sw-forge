@@ -162,7 +162,7 @@ l’import d’une recette. Cette dérivation ne réécrit aucune mémoire.
 | Réimport avec propriétaire valide après rattachement | Conservés | Conservés | Conservés ; runes imposées absentes retirées de l'affichage et dites, cohérence de relique conservée |
 
 La conservation hors liste garde la règle de cohérence de la relique :
-« Garder la relique équipée » redevient « Libre » si l'exemplaire choisi
+« Comme équipée » redevient « Libre » si l'exemplaire choisi
 n'en porte pas (voir relique.md § Relique). Cette pose automatique
 ne crée aucune mémoire.
 

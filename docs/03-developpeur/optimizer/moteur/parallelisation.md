@@ -317,6 +317,11 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
   garde les candidats déjà montrés, au lieu d'annoncer zéro combinaison
   après les avoir affichés. Une erreur levée avant tout Worker (hors
   contrat, plan incohérent) n'a rien à rendre : résultat vide, tronqué.
+  Une erreur reçue une fois la fusion terminée (plafond atteint, arrêt
+  déterministe), pendant le retour des morceaux en vol, ne change pas le
+  résultat, déjà complet pour sa coupe : l'attente se termine, tous les
+  Workers sont terminés, et le résultat est rendu avec son motif, sans
+  rejet.
 - Au navigateur, le lanceur annule l'événement `error` d'un Worker enfant
   (`preventDefault`, `erreurDeWorkerEnfant`) avant de le remettre au
   coordinateur : non annulé, le

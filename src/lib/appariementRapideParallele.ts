@@ -358,7 +358,10 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
       poignees.push(p);
       p.surErreur((e) => {
         if (termine) return;
-        enErreur = { erreur: e };
+        // Fusion déjà terminée (plafond, arrêt déterministe) : le résultat est
+        // complet pour sa coupe, et le morceau en vol qui a échoué aurait été
+        // jeté. L'attente se termine sans erreur, le motif reste le sien.
+        if (!fusionTerminee()) enErreur = { erreur: e };
         finir();
       });
       p.surMessage((r) => {

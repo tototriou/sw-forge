@@ -175,6 +175,80 @@ function lanceurSimule(rng: () => number, journal: { lances: number; termines: n
 }
 
 /**
+ * Un Worker (un seul, deux morceaux en vol) qui, les deux reçus, joue un
+ * SCÉNARIO dans l'ordre, une étape par tâche : rendre le vrai résultat d'un
+ * morceau, ou tomber en panne. L'ordre des retours et de la panne est donc
+ * déterministe.
+ */
+type EtapeScenario = { rendre: number } | 'panne';
+function lanceurScripte(scenario: EtapeScenario[]): LancerTravailleur {
+  return (init: InitTravailleur) => {
+    const ctx = initialiserTravailleur(structuredClone(init));
+    let rappel: (r: ResultatMorceau) => void = () => {};
+    let surErreur: (e: unknown) => void = () => {};
+    const recus: Morceau[] = [];
+    return {
+      envoyer: (m: Morceau) => {
+        recus.push(structuredClone(m));
+        if (recus.length < 2) return;
+        let fin = Promise.resolve();
+        for (const etape of scenario) {
+          fin = fin.then(() => new Promise<void>((resolve) => setTimeout(() => {
+            if (etape === 'panne') surErreur(new Error('Worker en panne (scénario)'));
+            else rappel(traiterMorceau(ctx, recus.find((x) => x.id === etape.rendre)!));
+            resolve();
+          }, 1)));
+        }
+      },
+      surMessage: (r) => {
+        rappel = r;
+      },
+      surErreur: (r) => {
+        surErreur = r;
+      },
+      arreter: () => {},
+      terminer: () => {},
+    };
+  };
+}
+
+/**
+ * Une panne reçue APRÈS la fin de la fusion (plafond atteint au premier
+ * morceau, le second encore en vol) : le résultat est complet pour sa coupe,
+ * rendu avec son motif, sans rejet — égal au séquentiel sous ce plafond.
+ */
+async function testPanneApresPlafond(liste: Espace[]): Promise<void> {
+  titre('Appariement parallèle · panne d’un Worker après la fin de la fusion (plafond atteint)');
+  let trouve = false;
+  for (const e of liste) {
+    const cible = Math.ceil(e.total / 2);
+    const plan = planifierMorceaux(e.prepared, e.bucketsA, e.bucketsB, cible);
+    if (plan.length !== 2) continue;
+    const petit = 3;
+    const ctx = initialiserTravailleur({ params: e.params, startedAt: Date.now(), compartiments: encoderCompartiments(e.prepared, e.bucketsA, e.bucketsB) });
+    if (traiterMorceau(ctx, plan[0]).candidats.length < petit) continue;
+    trouve = true;
+    const prepared = { ...e.prepared, maxCollected: petit };
+    const ref = drain(apparier(prepared, e.bucketsA, e.bucketsB));
+    let rejet: unknown = null;
+    let r: Awaited<ReturnType<typeof apparierRapideEnParallele>> | null = null;
+    try {
+      r = await apparierRapideEnParallele(options(e, lanceurScripte([{ rendre: 0 }, 'panne', { rendre: 1 }]), {
+        travailleurs: 1, cibleMorceau: cible, params: { ...e.params, maxCollected: petit }, prepared,
+      }));
+    } catch (x) {
+      rejet = x;
+    }
+    ok(rejet == null && r != null, `${e.nom} : panne après le plafond → aucun rejet${rejet instanceof Error ? ` (rejeté : ${rejet.message})` : ''}`);
+    if (!r) break;
+    ok(r.motif === 'maxCollected' && etat(enResultatDeRecherche(r)) === etat(ref),
+      `${e.nom} : résultat ordinaire, motif ${r.motif}, égal au séquentiel sous maxCollected = ${petit}`);
+    break;
+  }
+  ok(trouve, 'un espace en deux morceaux dont le premier atteint le plafond');
+}
+
+/**
  * Un Worker (un seul, deux morceaux en vol : tout le plan d'un espace coupé
  * en deux) qui rend le résultat de chaque morceau par `traiter` (le vrai
  * corps, retouché ou coupé), les deux ensemble et dans l'ordre demandé.
@@ -744,6 +818,7 @@ export async function testAppariementParallele(): Promise<void> {
   await testCoordination(liste);
   await testTroncatureFusion(liste);
   await testCoupeReelle(liste);
+  await testPanneApresPlafond(liste);
   await testCadenceTemps(liste);
   await testTrancheEntreMorceaux(liste);
   testErreurDeWorkerEnfant();

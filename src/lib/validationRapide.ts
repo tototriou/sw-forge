@@ -45,7 +45,7 @@ const voiePlate = (k: StatKey): number => CLES.indexOf(k);
 const voiePct = (k: StatKey): number => (k === 'hp' ? 8 : k === 'atk' ? 9 : k === 'def' ? 10 : -1);
 const estPct = (k: StatKey) => k === 'hp' || k === 'atk' || k === 'def';
 
-/** Borne d'une valeur sommée (A.2 bis 6) : 6 runes × ~10 lignes restent loin de 2^31 par moitié, et de 2^53 au total. */
+/** Borne d'une valeur sommée : 6 runes × ~10 lignes restent loin de 2^31 par moitié, et de 2^53 au total. */
 const BORNE_VALEUR = 2 ** 20;
 const entierBorne = (v: unknown): boolean => typeof v === 'number' && Number.isInteger(v) && Math.abs(v) <= BORNE_VALEUR;
 
@@ -277,7 +277,7 @@ export class ValidationTypee {
     this.idsB = b.ids;
   }
 
-  /** Le contrat numérique de la validation (A.2 bis 6). */
+  /** Le contrat numérique de la validation : valeurs entières, sommes bornées. */
   static contrat(prepared: PreparedSearch, runesA: readonly RuneDetail[], runesB: readonly RuneDetail[]): string | null {
     const { base, artifacts, relic, relicRelache } = prepared;
     for (const k of CLES) if (typeof base[k] !== 'number' || !Number.isFinite(base[k])) return `base ${k} non finie (${base[k]})`;

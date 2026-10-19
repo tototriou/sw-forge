@@ -1,5 +1,5 @@
 // Coquille Node (`worker_threads`) d'UNE tranche du prototype de construction
-// des moitiés (src/lib/constructionRapide.ts, chantier perf-moteur, lot 2 bis),
+// des moitiés (src/lib/constructionRapide.ts, non branché en production),
 // à l'usage du seul banc scripts/banc-construction-moities.ts. Aucune logique
 // propre : `construireTranche` sur `workerData`, puis le résultat en retour,
 // tableaux typés TRANSFÉRÉS (aucune mémoire partagée).

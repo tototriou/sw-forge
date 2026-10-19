@@ -1,4 +1,4 @@
-// ⚠️ PROTOTYPE (chantier perf-moteur, lots 2 quater et 2 quater bis) —
+// ⚠️ Non branché en production —
 // résolution de l'équipement d'un build, À CÔTÉ de `resoudreEquipementDuBuild`
 // (relicQueue.ts), jamais à sa place : aucun écran, aucun Worker ne l'appelle.
 // Même entrée (`EntreeResolution`, assemblée par `entreeResolutionDuBuild`) ;
@@ -21,7 +21,7 @@
 //
 // - **Aucune forme faisable pour une relique** → aucune paire ne l'est : la
 //   relique est « infaisable » sans qu'aucune paire ne soit notée.
-// - **Sinon, seules les paires FAISABLES sont notées** (D15) : la double
+// - **Sinon, seules les paires FAISABLES sont notées** : la double
 //   boucle de `collecterPaires`, mêmes entrées, même ordre, mais `evaluer`
 //   n'est appelé que sur une paire dont la forme est faisable ; la meilleure
 //   est la plus grande note, au PLUS PETIT indice parmi les ex æquo — la
@@ -32,15 +32,15 @@
 //   fois. ⚠️ Une note NaN portée par une paire INFAISABLE seule n'est jamais
 //   calculée : la production, qui trie avec elle, peut alors ordonner
 //   autrement les faisables ; le prototype rend la meilleure faisable. Écart
-//   accepté (D15) : la note du build est déjà incohérente.
+//   accepté : la note du build est déjà incohérente.
 // - **Le build n'a aucun couple faisable** → sans `diagnostic` (le chemin de
-//   l'app, D14), le résultat de la production quand aucune paire n'existe :
+//   l'app : sans le diagnostic d'un build rejeté, jamais montré à l'écran), le résultat de la production quand aucune paire n'existe :
 //   ni paire, ni artéfact, ni relique ; avec `diagnostic` (CLI, harnais), la
 //   production elle-même.
 //
 // ⚠️ **Lignes verrouillées avec `avecCoutDesVerrous`** : `meilleurSansVerrous`
 // lit TOUTES les notes ; la relique (ou la paire fixe) y est notée entière
-// par `pairesParScore`, comme au lot 2 quater (exact, NaN compris).
+// par `pairesParScore`, comme la production (exact, NaN compris).
 //
 // ⚠️ **Aucune borne ni heuristique** : aucune paire faisable n'est écartée sur
 // une note. Le choix entre reliques reste `bestRelicForBuild`, les caches
@@ -50,8 +50,6 @@
 // `respecteConditions` est mémoïsé par forme de paire (précondition : il ne
 // lit des artéfacts que leurs principales — vrai pour son seul producteur,
 // `entreeResolutionDuBuild`).
-//
-// Conception et preuve : notes des lots 2 quater et 2 quater bis du chantier.
 
 import { ARTIFACT_KINDS, ArtifactDetail, ArtifactKind, RelicDetail } from '../types';
 import {
@@ -99,7 +97,7 @@ export function compteursVides(): CompteursResolutionRapide {
 }
 
 export interface OptionsResolutionRapide {
-  // D14 : un build rejeté porte le diagnostic de la production (le CLI, le
+  // Un build rejeté porte le diagnostic de la production (le CLI, le
   // harnais). Absent ou faux : le chemin de l'app, sans diagnostic.
   diagnostic?: boolean;
 }
@@ -234,7 +232,7 @@ function resoudreReliqueFixeRapide(
   };
 
   if (coutDesVerrous(params)) {
-    // Toutes les notes (`meilleurSansVerrous`) : le parcours du lot 2 quater.
+    // Toutes les notes (`meilleurSansVerrous`) : le parcours de la production.
     if (compteurs) compteurs.noteesEntieres++;
     const r = pairesParScore(params, e.caches?.preFiltre);
     for (const p of r.paires) {
@@ -267,8 +265,8 @@ interface CoupleFaisable {
  * Le pendant de `resoudreEquipementDuBuild` : même entrée, mêmes erreurs ;
  * pour un build conforme, même résultat (paire, artéfacts, stats,
  * `meilleurSansVerrous`, relique, `sansEffetSurLeTri`) ; pour un build
- * rejeté, le diagnostic seulement sur demande (`options.diagnostic`, D14).
- * Écart documenté : une note NaN sur une paire infaisable seule (D15).
+ * rejeté, le diagnostic seulement sur demande (`options.diagnostic`).
+ * Écart documenté : une note NaN sur une paire infaisable seule.
  *
  * `rapide` : les représentants des formes, partagés par les builds d'une file
  * (absent : recalculés à chaque build). `compteurs` : pour le banc.
@@ -350,7 +348,7 @@ export function resoudreEquipementDuBuildRapide(
       let p: PaireArtefacts | null = null;
       let meilleurSansVerrous: number | null = null;
       if (coutDesVerrous(params)) {
-        // Toutes les notes (`meilleurSansVerrous`) : le parcours du lot 2 quater.
+        // Toutes les notes (`meilleurSansVerrous`) : le parcours de la production.
         if (compteurs) compteurs.noteesEntieres++;
         const r = pairesParScore(params, e.caches?.preFiltre);
         meilleurSansVerrous = r.meilleurSansVerrous;

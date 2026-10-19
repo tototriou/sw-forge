@@ -24,11 +24,14 @@ listant les noms disponibles, jamais en ne testant rien.
 | Outillage | hooks, renvois | les garde-fous du dépôt, dans des dépôts jetables |
 | Bureau | `bureau-*.test.ts` | les modules purs de l'application de bureau |
 
-**Ce qui ne l'est pas** : aucune vérification de `npm test` ne pilote un
-navigateur ni ne simule une interaction (clic, saisie) — le banc
-d'affichage, plus bas, le fait hors de la suite. Un rendu serveur n'exécute ni effet ni
-gestionnaire d'évènement : ce qui se passe *après* un clic ne se vérifie
-qu'à l'écran.
+**Ce qui ne l'est pas** : un rendu serveur n'exécute ni effet ni
+gestionnaire d'évènement. Ce qui se passe *après* un clic ne se vérifie
+donc qu'au navigateur : soit par les vérifications de l'Optimizer qui
+pilotent un Chromium sur des sources réelles compilées, sans serveur de
+l'application
+([rendu/optimizer-navigable-banc.ts](rendu/optimizer-navigable-banc.ts),
+dont [rendu/optimizer-ecran-navigateur.test.ts](rendu/optimizer-ecran-navigateur.test.ts)),
+soit par le banc d'affichage, plus bas, hors de la suite.
 
 Les premières vérifications ciblaient les endroits où une erreur est à la
 fois **grave et invisible** — ils restent le cœur de la suite :

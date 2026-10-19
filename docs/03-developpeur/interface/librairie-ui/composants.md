@@ -226,6 +226,13 @@ autres — le cadre commun le dit sans un mot. L'option enfoncée est un
 > sait mieux que la mesure — `AncientFilter` resserre par cohérence avec une
 > rangée voisine, pas par manque de place.
 
+> **`colonnes`** pose les crans **en grille**, `colonnes` par rangée, à
+> largeur égale, dans le même cadre : quatre crans en 2 × 2 dans une colonne
+> étroite (l'objectif de recherche du bloc « Objectif et Rechercher » de
+> l'Optimizer, au bureau). Le choix reste exclusif à l'œil — un seul cadre,
+> un seul aplat. ⚠️ Aucun resserrement automatique en grille : passer à la
+> rangée suivante EST la réponse au manque de place.
+
 #### `Pastille`
 
 **`Pastille`** — pilule de filtre à deux états, posée en RANGÉE de critères :

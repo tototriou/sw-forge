@@ -57,7 +57,7 @@ export type TraitBouton = 'aucun' | 'plein' | 'pointille';
 // façon fiable — l'ordre des classes dans l'attribut ne décide de rien, c'est
 // leur ordre dans la feuille de style qui tranche. D'où une taille à part
 // plutôt qu'une annulation après coup.
-export type TailleBouton = 'xs' | 'sm' | 'md' | 'carre';
+export type TailleBouton = 'xs' | 'sm' | 'md' | 'lg' | 'carre';
 
 // FORME. `pilule` pour ce qui vit dans une rangée, `boite` pour une action
 // posée dans un formulaire ou un dialogue.
@@ -111,6 +111,11 @@ const TAILLES: Record<TailleBouton, string> = {
   xs: 'px-2 py-0.5 text-micro',
   sm: 'px-2.5 py-1 text-xs lg:min-h-7 lg:py-0',
   md: 'px-3.5 py-2 text-sm lg:min-h-8 lg:px-3 lg:py-0',
+  // ⚠️ `lg` est réservé à L'ACTION QU'ON VIENT FAIRE dans un écran qui en a
+  // une, plus grosse que tout ce qui l'entoure : « Rechercher » de
+  // l'Optimizer (et « Arrêter », qui prend sa place exacte). 40 px à la
+  // souris, 44 au doigt ; même texte que `md`, c'est la boîte qui grandit.
+  lg: 'px-4 py-3 text-sm lg:min-h-10 lg:px-4 lg:py-0',
   // Voir la note sur le type : pas de rembourrage du tout, la boîte est un carré.
   carre: 'p-0 text-xs',
 };

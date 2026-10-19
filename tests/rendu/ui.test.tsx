@@ -39,6 +39,13 @@ export function testRenduUiBouton() {
   ok(/aria-pressed="false"/.test(rendre(<Bouton libelle="Vitesses" actif={false} onClick={rien} />)), 'Bouton inactif : aria-pressed="false"');
   ok(!/aria-pressed/.test(simple), 'Bouton d\'action ordinaire : pas d\'aria-pressed');
 
+  // `taille="lg"` : la même action, nommée et désactivable comme les autres
+  // tailles, plus haute que `md` (40 px à la souris contre 32).
+  const grand = rendre(<Bouton taille="lg" ton="accent" fond="plein" libelle="Rechercher" onClick={rien} />);
+  ok(bouton(grand, 'Rechercher')?.desactive === false, 'Bouton lg : libellé visible, actif');
+  ok(/lg:min-h-10/.test(grand) && !/lg:min-h-8/.test(grand), 'Bouton lg : plus haut que md (40 px à la souris)');
+  ok(!!bouton(rendre(<Bouton taille="lg" libelle="Arrêter" disabled onClick={rien} />), 'Arrêter')?.desactive, 'Bouton lg désactivé : disabled posé');
+
   // Libellé court (panneau mobile) : les DEUX libellés existent, le long reste le nom.
   const court = rendre(<Bouton libelle="Créer un monstre" libelleCourt="Monstre" onClick={rien} />);
   const t = texteVisible(court);
@@ -84,6 +91,18 @@ export function testRenduUiEtats() {
   egal(bs.map((x) => x.texte), ['Auto', 'Clair', 'Sombre'], 'Segmented : chaque option est un bouton libellé');
   egal(bs.filter((x) => x.presse).map((x) => x.texte), ['Clair'], 'Segmented : seule l\'option choisie est active (aria-pressed)');
   ok(bs[2].desactive && !bs[0].desactive, 'Segmented : une option désactivée l\'est, les autres non');
+
+  // En grille (`colonnes`) : les mêmes crans, un seul cadre, un seul choix ; la
+  // grille porte le nombre de colonnes demandé, sans trait de séparation.
+  const grille = rendre(
+    <Segmented value="ehp" onChange={rien} colonnes={2}
+      options={[{ key: 'efficience', label: 'Efficience' }, { key: 'reel', label: 'Dégâts réels' }, { key: 'ehp', label: 'PV effectifs' }, { key: 'vitesse', label: 'Vitesse' }]} />,
+  );
+  const crans = boutons(grille);
+  egal(crans.map((x) => x.texte), ['Efficience', 'Dégâts réels', 'PV effectifs', 'Vitesse'], 'Segmented en grille : chaque option reste un bouton libellé');
+  egal(crans.filter((x) => x.presse).map((x) => x.texte), ['PV effectifs'], 'Segmented en grille : un seul choix actif');
+  ok(/grid-template-columns:repeat\(2, minmax\(0, 1fr\)\)/.test(grille), 'Segmented en grille : deux colonnes de largeur égale');
+  ok(!/w-px self-stretch bg-border/.test(grille), 'Segmented en grille : aucun trait de séparation');
 
   ok(/aria-pressed="true"/.test(rendre(<Option titre="Box" actif onClick={rien} />)), 'Option active : aria-pressed="true"');
 

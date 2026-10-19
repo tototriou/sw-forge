@@ -147,12 +147,12 @@ sinon rappeler les fonctions une par une — un second pipeline. D'où
   traverse `postMessage`, où une fonction n'est pas sérialisable (`:3881-3896`) ;
 - appelé après chacun des quatre étages, dans l'ordre (`:3964-3976`) ;
 - `PrepareStage` est une union FERMÉE, jamais un `string` : une faute de
-  frappe échoue à la compilation (`:3845-3854`) ;
+  frappe échoue à la compilation (`:3846-3854`) ;
 - il reçoit la référence réelle de l'étage suivant et ne la mute jamais ;
 - omis, comportement strictement inchangé : quatre tests de branche par appel,
   y compris dans chaque Worker d'appariement parallèle, qui rappelle `prepareSearch`.
 
-`tests/rune-optim-onstage.test.ts:118-190` vérifie un `PreparedSearch`
+`tests/rune-optim-onstage.test.ts:118-191` vérifie un `PreparedSearch`
 identique avec et sans observateur, les quatre étages signalés dans l'ordre
 (même quand la préparation échoue), et qu'un étage ne fait que retirer, sans
 déplacer de rune. Le harnais y branche `releverPreparation`
@@ -163,7 +163,7 @@ déplacer de rune. Le harnais y branche `releverPreparation`
 Le palier 1 est instantané : `resoudreConfig`
 (`scripts/lib/diagnosticConfig.ts:85-228`) calcule la configuration sans rien
 exécuter, le CLI l'imprime toujours en premier, et `--apercu` s'arrête là
-(`scripts/diagnostic-harness.ts:1043-1061`). Elle est résolue UNE fois : le run
+(`scripts/diagnostic-harness.ts:1044-1061`). Elle est résolue UNE fois : le run
 exécute celle que le palier 1 a décrite, sans relire recette ni export
 (`scripts/lib/diagnosticHarness.ts:194-224`).
 
@@ -246,7 +246,7 @@ absent au départ, jamais « éliminé au premier étage »
 - une rune qui atteint l'entrée réelle de `filterSlot` (sortie de
   `feasibility`, lue par `onStage`) reçoit son rang exact sur `relevance()` et
   par stat, avec les budgets `PER_STAT_KEEP`/`PER_STAT_KEEP_OBJECTIVE`
-  (`detailFiltrage`, `scripts/lib/diagnosticHarness.ts:1288-1336`) ;
+  (`detailFiltrage`, `scripts/lib/diagnosticHarness.ts:1288-1335`) ;
 - les 3 identifiants d'une même moitié (emplacements 1-3 ou 4-6) donnent le
   rang du demi-build dans son compartiment et ses voisins (`:353-366`,
   `:1344-1374`) ;
@@ -344,7 +344,7 @@ interférence ne peut qu'ajouter du temps), la médiane, la dispersion
 `(max − min) / min`. Une mesure à une seule répétition porte « aucune
 conclusion comparative permise » ; `--repetitions` règle N.
 
-Toute sortie de temps porte l'avertissement de comparaison (`:1991-1999`) :
+Toute sortie de temps porte l'avertissement de comparaison (`:1991-2000`) :
 deux runs séparés puis soustraits forment un protocole en BLOCS, dont le biais
 de position (échauffement, ramasse-miettes, fréquence) se reproduit et
 ressemble à un résultat ; ne jamais conclure sur un écart plus petit que la
@@ -443,7 +443,7 @@ paie pas. Ce chiffre est ARITHMÉTIQUE, non mesuré, et ce n'est pas le seul
 n'est pas établie, un temps du harnais n'est ni un plancher ni un plafond pour
 le navigateur, et les temps Node ne sont pas directement transposables. La note
 est imprimée avec toute mesure de temps (`noteNavigateur`,
-`scripts/lib/diagnosticConfig.ts:341-350`), et le test interdit qu'elle
+`scripts/lib/diagnosticConfig.ts:341-351`), et le test interdit qu'elle
 affirme une direction (`tests/diagnostic-harness.test.ts:122-135`).
 
 ## Validation du harnais
@@ -454,7 +454,7 @@ affirme une direction (`tests/diagnostic-harness.test.ts:122-135`).
    `scripts/lib/perfShared.ts` (`CASES`, partagés avec `perf-battery`, qui
    exigent les exports de compte). L'ancienne reconstruction y est une copie
    littérale, à ne pas corriger. Attendus
-   (`scripts/diagnostic-harness-parite.ts:224-248`) : `mainstat` et
+   (`scripts/diagnostic-harness-parite.ts:224-249`) : `mainstat` et
    `dominance` IDENTIQUES ; en `feasibility`, le harnais garde AU MOINS autant
    de runes (l'ancien chemin ignore `guaranteedMin`, `artFlatMin` et les bornes
    d'inventaire) ; `filterslot` sans attente stricte. Une divergence inattendue

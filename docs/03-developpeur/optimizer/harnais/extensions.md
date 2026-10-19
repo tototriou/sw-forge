@@ -31,7 +31,7 @@ observations A, seule une mesure interne les départage —, jamais par « plus
 de détail » ; c'est à ce titre que `scripts/monster-search-rank-diag.ts`
 reste à part (mode-d-emploi.md § Limite : la rétention interne de buildBuckets).
 Le code étiquette ses instruments par niveau
-(`scripts/lib/diagnosticHarness.ts:475-490`, `scripts/lib/diagnosticHarness.ts:506-531`).
+(`scripts/lib/diagnosticHarness.ts:475-491`, `scripts/lib/diagnosticHarness.ts:506-531`).
 Ne pas reprendre une recherche depuis un état intermédiaire réinjecté tant
 qu'aucune équivalence avec une exécution normale n'est définie : ce serait
 une seconde sémantique du moteur, aux écarts difficiles à voir.
@@ -40,14 +40,14 @@ une seconde sémantique du moteur, aux écarts difficiles à voir.
 
 **Une résolution par run.** `executerHarnaisResolu(resolue, options)` est la
 fonction de travail ; `executerHarnais(config)` résout puis délègue
-(`scripts/lib/diagnosticHarness.ts:193-223`, `scripts/lib/diagnosticHarness.ts:461-473`).
+(`scripts/lib/diagnosticHarness.ts:194-224`, `scripts/lib/diagnosticHarness.ts:461-473`).
 Le CLI lui passe la `ConfigResolue` qu'il vient d'imprimer au palier 1
-(`scripts/diagnostic-harness.ts:1043-1068`) : une seconde résolution
+(`scripts/diagnostic-harness.ts:1044-1068`) : une seconde résolution
 relirait recette et export, et le palier 1 pourrait décrire une autre
 configuration que celle qui s'exécute. `OptionsHarnais` (`arretApres`,
 `suivre`, `blocages`, `horodaterProgression`, `repetitions`) porte
 l'orchestration, `ConfigResolue` la configuration du moteur
-(`scripts/lib/diagnosticHarness.ts:178-191`) ; `ConfigHarnais` satisfait
+(`scripts/lib/diagnosticHarness.ts:178-192`) ; `ConfigHarnais` satisfait
 `OptionsHarnais` par construction, et la façade la relaie telle quelle, sans
 recopie champ à champ où un champ ajouté s'oublierait sans que `tsc` le voie.
 Un régime forcé se lit sur `resolue.regimeForce`, jamais re-dérivé des
@@ -58,7 +58,7 @@ overrides (`scripts/lib/diagnosticHarness.ts:372-374`).
 `refuser`, qui nomme l'attendu : `scripts/diagnostic-harness.ts:125-200`)
 refusent aussi ce qui passait pour une autre valeur : une statistique
 inconnue dans `--min`/`--max`, dont le « 0 build » se lirait comme un verdict
-du moteur (`scripts/diagnostic-harness.ts:208-222`) ; un verrou hors des
+du moteur (`scripts/diagnostic-harness.ts:208-223`) ; un verrou hors des
 emplacements 1-6 (`scripts/diagnostic-harness.ts:366-375`) ; un
 `--assortiment` inconnu, qui mesurerait un autre pool
 (`scripts/diagnostic-harness.ts:382-386`) ; une graine non entière, qui ne
@@ -90,7 +90,7 @@ diverger `maxMs`, et cette ligne dit ce qui a été contredit.
 ## La construction observée
 
 Trois instruments rendent, sous `demiBuilds`, ce que `buildBuckets` a fait
-dans chaque moitié (`scripts/lib/diagnosticHarness.ts:332-351`) ; le CLI
+dans chaque moitié (`scripts/lib/diagnosticHarness.ts:332-352`) ; le CLI
 imprime chacun avec son avertissement (`scripts/diagnostic-harness.ts:705-785`).
 
 **Taux de rétention de la construction** (`demiBuilds.retention`,
@@ -139,7 +139,7 @@ horloge ni champ de plus (`scripts/lib/build-half-worker.ts:142-163`,
 `tests/diagnostic-harness.test.ts:252-262`) ; avec, le worker l'itère à la
 main, sans `yield` ajouté au moteur ni `drain.ts` touché, et le relevé part
 une seule fois avec le résultat, jamais un message par `yield`
-(`scripts/lib/build-half-worker.ts:47-63`, `scripts/lib/build-half-worker.ts:164-194`).
+(`scripts/lib/build-half-worker.ts:47-64`, `scripts/lib/build-half-worker.ts:164-194`).
 Trois périmètres d'horloge, jamais mélangés (`ProgressionMoitie`,
 `scripts/lib/build-half-worker.ts:86-130`) :
 
@@ -190,7 +190,7 @@ qu'une information a été perdue, chercher ensuite pourquoi.
 
 | Étage | Champ du résultat | Code |
 |---|---|---|
-| 0 — admissibilité à l'entrée | `admissibiliteBuildCible` | `admissibiliteBuild`, `scripts/lib/diagnosticHarness.ts:1543-1618` |
+| 0 — admissibilité à l'entrée | `admissibiliteBuildCible` | `admissibiliteBuild`, `scripts/lib/diagnosticHarness.ts:1543-1619` |
 | 1 à 3 — survie des runes, des deux demi-builds | `suivi`, `detailDemiBuilds` | le suivi d'une rune de mode-d-emploi.md |
 | 4 et 5 — paire de compartiments, rang | `appariementBuildCible` | `scripts/lib/diagnosticHarness.ts:1425-1516` |
 | verdict | `verdictBuildCible` | `scripts/lib/diagnosticHarness.ts:1683-1828` |
@@ -205,7 +205,7 @@ combo de sets lu par `activeSets` + `missingSets`, le test par lequel
 qui impose une autre rune, principale non portée, set manquant) ; l'étage est
 calculé avant tout retour anticipé, donc rendu même sur une configuration
 invalide (`scripts/lib/diagnosticHarness.ts:285-294`,
-`tests/diagnostic-harness.test.ts:552-671`).
+`tests/diagnostic-harness.test.ts:552-670`).
 
 **Étages 4 et 5.** La paire de compartiments s'arrête à `sets-compartiment`,
 `joker`, `borne-compartiment`, `borne-comboA` ou `explorée`, dans l'ordre de
@@ -232,7 +232,7 @@ Trois garde-fous :
 
 1. la complétude est COPIÉE dans le verdict et ses chiffres `explored /
    totalPairs` sont dans `avertissementTroncature` : extraire le seul verdict
-   d'un `--json` emporte la troncature (`scripts/lib/diagnosticHarness.ts:1624-1650`) ;
+   d'un `--json` emporte la troncature (`scripts/lib/diagnosticHarness.ts:1625-1650`) ;
 2. « paire explorée, cible absente » ne rend `PERDUE_À_L_APPARIEMENT` que sur
    un run complet, sinon `NON_OBSERVABLE` ;
 3. chaque branche écrit sa conséquence — un élagage sûr ne craint pas la
@@ -245,7 +245,7 @@ Trois garde-fous :
 défaut du moteur. `ABSENT_DES_COMPARTIMENTS` est une rétention heuristique
 (`bucketCap`), pas un élagage prouvé. Un test garde un run complet où la
 cible, trouvée, sort hors du top rendu : lire `candidates[0]` ou les vingt
-premiers conclurait à tort au build manqué (`tests/diagnostic-harness.test.ts:773-854`).
+premiers conclurait à tort au build manqué (`tests/diagnostic-harness.test.ts:773-853`).
 
 ## Instant de découverte et dispersion par tranche
 
@@ -309,7 +309,7 @@ reste tient en deux runs et un refus de comparer des préfixes différents.
 `tests/diagnostic-differentiel.test.ts:31-37`) cherche le premier point de
 divergence : une divergence de classement rapportée sans dire que les
 populations diffèrent déjà accuse le mauvais étage. Lecteurs :
-`scripts/lib/diagnosticDifferentiel.ts:728-1178`.
+`scripts/lib/diagnosticDifferentiel.ts:728-1163`.
 
 | Élément | Champ lu | Statut | Piège |
 |---|---|---|---|
@@ -324,7 +324,7 @@ populations diffèrent déjà accuse le mauvais étage. Lecteurs :
 ### Le portier, le préfixe et NON_COMPARABLE
 
 En cascade, pas en parallèle (`evaluerAdmissibilite`,
-`scripts/lib/diagnosticDifferentiel.ts:539-638`) :
+`scripts/lib/diagnosticDifferentiel.ts:539-639`) :
 
 1. **le portier** : si complétude, motif, incohérence ou invalidité de
    configuration diffèrent, les bras n'ont pas parcouru le même espace ; la
@@ -355,7 +355,7 @@ est déterministe (`scripts/lib/diagnosticDifferentiel.ts:494-522`).
 
 Chaque lecture porte quatre champs exigés (`LectureElement`,
 `scripts/lib/diagnosticDifferentiel.ts:168-189`,
-`tests/diagnostic-differentiel.test.ts:55-66`) : **OÙ** (le chemin du
+`tests/diagnostic-differentiel.test.ts:55-65`) : **OÙ** (le chemin du
 champ comparé ; le rang divergent précis va dans COMBIEN et dans les
 exemples), **COMBIEN** (dans son unité : rang, pourcentage de métrique,
 candidats, paires ; pour le quasi-succès, un nombre de conditions, le
@@ -366,7 +366,7 @@ l'écart de métrique à ce rang ; l'écart dit seulement si la divergence
 départage des ex æquo ou change l'ordre.
 
 L'avertissement (`AVERTISSEMENT_DIFFERENTIEL`,
-`scripts/lib/diagnosticDifferentiel.ts:288-312`) s'imprime AVANT le tableau,
+`scripts/lib/diagnosticDifferentiel.ts:289-313`) s'imprime AVANT le tableau,
 dans l'annonce du run, puis avec le résultat, et voyage dans `--json`
 (`scripts/lib/diagnosticDifferentiel.ts:1205-1245`, `scripts/lib/diagnosticDifferentiel.ts:1385-1385`).
 Il nomme ce que l'alternance ne corrige pas : deux colonnes ressemblent à une
@@ -377,7 +377,7 @@ position ; le régime d'appariement, à tenir constant ou à prendre pour axe,
 le seuil de la production le faisant basculer seul quand `bucketCap` change
 `totalPairs`. Les bras alternent (témoin, comparé, témoin…), un run à la
 fois, jamais en blocs (`scripts/lib/diagnosticDifferentiel.ts:315-356`,
-`tests/diagnostic-differentiel.test.ts:43-53`), ni en même temps comme les
+`tests/diagnostic-differentiel.test.ts:44-53`), ni en même temps comme les
 deux processus de `scripts/perf-battery-compare.ts` : le harnais ouvre déjà
 ses workers, et deux bras simultanés créeraient une contention inconnue de la
 production.
@@ -415,14 +415,14 @@ instrument de localisation.
 
 Le différentiel prend un profil synthétique nommé
 (`scripts/lib/diagnosticProfils.ts`), dont le test relit les promesses
-(`AttenduProfil`, `scripts/lib/diagnosticProfils.ts:83-115`,
+(`AttenduProfil`, `scripts/lib/diagnosticProfils.ts:84-115`,
 `tests/diagnostic-profils.test.ts:69-125`) : des bras COMPLETS de
 préférence, qui suppriment portier, préfixe, plancher et bruit ; à défaut, une
 troncature par quota vérifiée sur le `motif` rendu, un profil qui n'atteint
 pas son quota retombant sur `maxMs` en silence ; un régime qui ne bascule pas
 entre les bras, essayé bras par bras et consigné (`axesVerifies`) ; un build
 cible (`cible`) qui n'est pas au rang 1, où il masquerait la sensibilité du
-classement (`scripts/lib/diagnosticProfils.ts:117-170`) ; le générateur
+classement (`scripts/lib/diagnosticProfils.ts:117-166`) ; le générateur
 partagé, à côté des générateurs biaisés que `randomPool` ne remplace pas,
 jamais en les migrant (`scripts/lib/diagnosticProfils.ts:13-19` ;
 mode-d-emploi.md § Deux sources : une recette ou un pool synthétique).
@@ -480,7 +480,7 @@ passage (`annoncerDifferentiel`, `scripts/lib/diagnosticDifferentiel.ts:1205-124
 Suivent l'admissibilité et les sept éléments, tous rendus
 (`tests/diagnostic-differentiel.test.ts:55-61`), le piège d'un élément
 n'étant imprimé que là où il mord, `DIVERGENT` ou `NON_COMPARABLE`
-(`scripts/lib/diagnosticDifferentiel.ts:1324-1327`). Le verdict
+(`scripts/lib/diagnosticDifferentiel.ts:1324-1328`). Le verdict
 (`verdictGlobal`, `scripts/lib/diagnosticDifferentiel.ts:1180-1189`) vaut
 `DIVERGENCE_LOCALISÉE` avec son premier point,
 `AUCUNE_DIVERGENCE_SUR_UN_AXE_SENSIBLE`, `RIEN_DE_COMPARABLE`, ou

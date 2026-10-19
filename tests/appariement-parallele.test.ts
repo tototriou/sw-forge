@@ -29,7 +29,7 @@ import {
 } from '../src/lib/appariementRapide';
 import { MessageVersTravailleur, resultatVide, servirAppariement } from '../src/lib/travailleurAppariement';
 import {
-  ErreurAppariementParallele, LancerTravailleur, OptionsParallele, apparierRapideEnParallele, enResultatDeRecherche, erreurDeWorkerEnfant, planifierMorceaux,
+  ErreurAppariementParallele, LancerTravailleur, OptionsParallele, apparierRapideEnParallele, enResultatDeRecherche, erreurDeWorkerEnfant, messageDe, planifierMorceaux,
   resultatApresErreur,
 } from '../src/lib/appariementRapideParallele';
 import {
@@ -666,6 +666,9 @@ function testErreurDeWorkerEnfant(): void {
   const evenement = { message: 'boum', preventDefault: () => journal.push('preventDefault') };
   erreurDeWorkerEnfant((e) => journal.push(`rappel ${(e as { message: string }).message}`))(evenement);
   egal(journal, ['preventDefault', 'rappel boum'], 'preventDefault, puis l’événement remis au coordinateur');
+  egal([messageDe(new Error('boum')), messageDe({ message: 'boum', type: 'error' }), messageDe({ type: 'messageerror' }), messageDe('texte')],
+    ['boum', 'boum', 'événement messageerror', 'texte'],
+    'le message d’une erreur de Worker : Error, ErrorEvent, Event sans message (son type, jamais « [object Event] »), autre');
 }
 
 /** `n` morceaux d'UNE ligne ouverte chacun, les premières de l'ordre de `pairBuckets` (identifiants à partir de 1). */

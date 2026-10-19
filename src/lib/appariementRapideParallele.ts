@@ -76,10 +76,17 @@ export interface ResultatParallele extends ResultatAppariementRapide {
   msPlanification: number;
 }
 
-/** Le message d'une erreur de Worker : `Error`, `ErrorEvent` du navigateur (qui a un `message`), ou autre chose. */
-function messageDe(erreur: unknown): string {
+/**
+ * Le message d'une erreur de Worker : `Error`, `ErrorEvent` du navigateur
+ * (qui a un `message`), `Event` sans message (`messageerror` : son `type`,
+ * jamais « [object Event] »), ou autre chose.
+ */
+export function messageDe(erreur: unknown): string {
   if (erreur instanceof Error) return erreur.message;
-  if (typeof erreur === 'object' && erreur !== null && 'message' in erreur) return String(erreur.message);
+  if (typeof erreur === 'object' && erreur !== null) {
+    if ('message' in erreur && typeof erreur.message === 'string' && erreur.message !== '') return erreur.message;
+    if ('type' in erreur && typeof erreur.type === 'string') return `événement ${erreur.type}`;
+  }
   return String(erreur);
 }
 

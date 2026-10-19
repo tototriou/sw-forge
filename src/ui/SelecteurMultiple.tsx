@@ -43,6 +43,14 @@ import Flottant from './Flottant';
 // l'appelant (le set compact se ferme quand les six emplacements sont pleins).
 // Sans eux, la liste gère seule son ouverture.
 //
+// Un axe de RÉSUMÉ, né des principales du bureau : `resumeEntier` fait montrer
+// au champ fermé TOUTES les valeurs choisies, à la ligne entre deux valeurs
+// (jamais au milieu d'une), rien de tronqué.
+// ⚠️ **Sa hauteur est réservée pour le résumé de TOUTES les options** (un
+// double invisible dans la même case de grille) : un choix fait liste ouverte
+// ne fait jamais grandir le champ, donc la surface, posée dessous, ne descend
+// pas sous le doigt (un clic ne déplace jamais ce qu'on vient de cliquer).
+//
 // ⚠️ **Un focus perdu vers RIEN ne ferme pas la liste.** Un choix qui
 // désactive ou retire le bouton qu'on vient de cliquer (un set de 4 rend les
 // autres sets de 4 indisponibles) fait tomber le focus sur le document : ce
@@ -74,11 +82,24 @@ export interface SelecteurMultipleProps<V extends string | number> {
   // Ouverture contrôlée (voir l'en-tête).
   ouvert?: boolean;
   onOuvertChange?: (ouvert: boolean) => void;
+  // Champ fermé qui montre tout le résumé, hauteur réservée (voir l'en-tête).
+  resumeEntier?: boolean;
   taille?: 'md' | 'sm';
   // Largeur de la surface ouverte ; défaut : celle du déclencheur.
   largeurSurface?: string;
   disabled?: boolean;
   title?: string;
+}
+
+// Les libellés séparés par « , » ; chacun insécable, la ligne ne se coupe
+// qu'entre deux valeurs (« Taux Crit » ne se lit jamais « Taux » / « Crit »).
+function ValeursALaLigne({ libelles }: { libelles: string[] }) {
+  return libelles.map((l, i) => (
+    <span key={l}>
+      <span className="whitespace-nowrap">{i < libelles.length - 1 ? `${l},` : l}</span>
+      {i < libelles.length - 1 ? ' ' : null}
+    </span>
+  ));
 }
 
 const TAILLES = {
@@ -97,6 +118,7 @@ export default function SelecteurMultiple<V extends string | number>({
   forme = 'cases',
   ouvert: ouvertControle,
   onOuvertChange,
+  resumeEntier = false,
   taille = 'md',
   largeurSurface,
   disabled = false,
@@ -191,6 +213,15 @@ export default function SelecteurMultiple<V extends string | number>({
       >
         {resume ? (
           <span className="flex min-w-0 items-center gap-1 overflow-hidden">{resume.visuel}</span>
+        ) : resumeEntier ? (
+          <span className="grid min-w-0 flex-1">
+            <span className={`col-start-1 row-start-1 self-center ${choisies.length > 0 ? 'text-ink' : 'text-ink-dim'}`}>
+              {choisies.length > 0 ? <ValeursALaLigne libelles={choisies.map((o) => o.libelle)} /> : vide}
+            </span>
+            <span aria-hidden="true" data-reserve-resume className="invisible col-start-1 row-start-1">
+              <ValeursALaLigne libelles={options.map((o) => o.libelle)} />
+            </span>
+          </span>
         ) : (
           <span className={`min-w-0 truncate ${choisies.length > 0 ? 'text-ink' : 'text-ink-dim'}`}>{texte}</span>
         )}

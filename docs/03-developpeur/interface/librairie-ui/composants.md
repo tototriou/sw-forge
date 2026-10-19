@@ -167,7 +167,8 @@ décochant.
   bouge dessous. Échap la referme et rend le focus au déclencheur ; un clic
   dehors, ou un focus qui sort, la referme aussi.
 - Le nom accessible du déclencheur est `libelle : résumé` (« Slot 2 :
-  Libre »), son infobulle le résumé complet, tronqué à l'écran.
+  Libre »), son infobulle le résumé complet, tronqué à l'écran (sauf
+  `resumeEntier`, plus bas).
 - `onChange` reçoit les valeurs cochées dans l'ordre des options.
 
 Deux axes de STRUCTURE, nés de son second usage, le set de runes recherché :
@@ -197,6 +198,18 @@ remplit les six emplacements. Sans eux, la liste gère seule son ouverture.
   indisponibles) fait tomber le focus sur le document : ce n'est pas un
   départ. La liste reste ouverte et le focus revient au déclencheur ; seuls
   un focus parti ailleurs, un clic dehors et Échap la ferment.
+
+Un axe de RÉSUMÉ, né des principales du bureau : **`resumeEntier`** fait
+montrer au champ fermé toutes les valeurs choisies, à la ligne entre deux
+valeurs (chacune insécable : « Taux Crit » ne se coupe pas), rien de tronqué.
+
+- ⚠️ **Sa hauteur est réservée pour le résumé de TOUTES les options** : un
+  double invisible (`aria-hidden`), dans la même case de grille que le texte
+  visible, donne au champ la hauteur qu'il aurait si tout était choisi. Un
+  choix fait liste ouverte ne le fait donc jamais grandir, et la surface,
+  posée dessous, ne descend pas sous le doigt. Le prix : un champ qui dit
+  « Libre » a déjà la hauteur de son résumé le plus long (deux lignes pour
+  les principales du bureau).
 
 #### `Interrupteur`
 

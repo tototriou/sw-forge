@@ -300,7 +300,11 @@ place : aucun écran, aucun Worker ne l'appelle. Même entrée
 artéfacts que par leurs principales, il écarte sans note une relique qu'aucune
 forme de paire ne rend faisable, et ne note que les paires faisables. Pour
 un build conforme, il rend le résultat de la production champ pour champ ;
-une note NaN vue le fait repasser par la production, signalé ; un build
+une note NaN vue le fait repasser par la production, signalé. Écart
+accepté : une note NaN portée par une paire INFAISABLE seule n'est jamais
+calculée ; la production, qui trie avec elle, peut alors ordonner
+autrement les paires faisables, le prototype rendant la meilleure
+faisable — seulement sur un build dont la note est déjà incohérente. Un build
 sans couple faisable rend « aucune paire » sans le diagnostic d'un build
 rejeté (avec l'option `diagnostic`, celui de la production). Son en-tête
 dit ses préconditions. Vérification : `testResolutionRapide` et

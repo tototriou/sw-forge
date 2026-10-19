@@ -12,15 +12,15 @@ Le reste de l'outil (listes, import d'équipes, exclusion, interruption) est dan
 | « Monstre à optimiser », `src/components/outils/MonsterSourcePicker.tsx` | [recherche-du-monstre.md](recherche-du-monstre.md) |
 | « Meilleurs artéfacts offensifs pour ce build », `src/components/ArtifactSubLigne.tsx` | [meilleurs-artefacts-offensifs.md](meilleurs-artefacts-offensifs.md) |
 | « Équipement actuel » | [equipement-actuel.md](equipement-actuel.md) |
-| l'objectif de recherche, `src/components/outils/DamageSetupCard.tsx`, `src/components/outils/DamageSetupModale.tsx` | [objectif-de-recherche.md](objectif-de-recherche.md) |
+| l'objectif de recherche, `src/components/outils/DamageSetupCard.tsx`, `src/components/outils/DamageSetupModale.tsx`, `src/components/outils/optimizer/ObjectifEtActions.tsx` | [objectif-de-recherche.md](objectif-de-recherche.md) |
 | le set recherché et les principales imposées, `src/components/outils/SetComboPicker.tsx` | [set-et-principale.md](set-et-principale.md) |
 | la carte « Artéfacts » | [artefacts.md](artefacts.md) |
 | la carte « Relique », `src/components/RelicSlot.tsx` | [relique.md](relique.md) |
 | « État de mon monstre », `src/components/outils/EtatMonstre.tsx`, `src/lib/aurasExternes.ts`, `src/lib/buffsDePassif.ts` | [etat-de-mon-monstre.md](etat-de-mon-monstre.md) |
 | les sous-propriétés verrouillées | [sous-proprietes-verrouillees.md](sous-proprietes-verrouillees.md) |
 | les conditions, l'inventaire et les réglages avancés | [conditions-et-reglages.md](conditions-et-reglages.md) |
-| « Lancer la recherche » | [lancer-la-recherche.md](lancer-la-recherche.md) |
-| les résultats, `src/components/outils/BuildCandidateCard.tsx` | [resultats.md](resultats.md) |
+| « Lancer la recherche », `src/components/outils/optimizer/ObjectifEtActions.tsx`, `src/components/outils/optimizer/ProgressionRecherche.tsx` | [lancer-la-recherche.md](lancer-la-recherche.md) |
+| les résultats, `src/components/outils/BuildCandidateCard.tsx`, les blocs de résultats de `src/components/outils/optimizer/` (`DiagnosticFaisabilite`, `DiagnosticApprofondi`, `QuasiSucces`, `AvisRechercheTronquee`, `PaginationResultats`) | [resultats.md](resultats.md) |
 
 ## Documents
 

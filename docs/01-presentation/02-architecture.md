@@ -169,6 +169,16 @@ sélecteur de sets, l'appel d'`EtatMonstre` et le contenu des Réglages avancés
 partagées : `src/components/outils/optimizer/constantes.ts` ; types :
 `src/components/outils/optimizer/types.ts`.
 
+Sous la grille, même dossier, même règle : « Objectif de recherche » et les actions
+(`ObjectifEtActions` : Rechercher, Exporter, Importer, Arrêter), la progression, l'échec et le
+refus (`ProgressionRecherche`), les blocs des résultats (`DiagnosticFaisabilite`,
+`DiagnosticApprofondi`, `QuasiSucces`, `AvisRechercheTronquee`, `PaginationResultats`) et les
+confirmations de libération (`ConfirmationsLiberation`). Restent écrits dans `OptimizerSection` :
+le message d'import, la barre d'appariement (passée à `ProgressionRecherche`), l'en-tête des
+résultats (compte confirmé, « Adapter les artéfacts et reliques au tri », tri), la ligne de la
+file de vérification, la ligne de raison, les conditions des diagnostics, la grille des cartes
+et la fenêtre de création de liste.
+
 Autour de la liste, dans le même dossier : `OptimizerBackupBar` (point de sauvegarde des listes :
 sauvegarder, reprendre), `OptimizerCreateListDialog` (création d'une liste et choix de son contenu
 Guilde / Donjon / Arène), `OptimizerEquipeDialog` (édition des membres et du leader d'une équipe

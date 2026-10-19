@@ -311,7 +311,7 @@ hors modèle) : le sélecteur de **tri** des résultats ne propose pas
 il y reste Efficience/PV effectifs/Vitesse. Le bouton à choix unique de
 l'objectif, lui, reçoit `OBJECTIVE_LABELS` sans filtre et propose donc
 toujours « Dégâts réels »
-([OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx)).
+([ObjectifEtActions.tsx](src/components/outils/optimizer/ObjectifEtActions.tsx)).
 
 ⚠️ **Ni « Speed nuker » ni « Dégâts »** (formule générique
 `ATQ × (1 + TC × DC)`, sans sort ni adversaire) : « Dégâts réels » couvre

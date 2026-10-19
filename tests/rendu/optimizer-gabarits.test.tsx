@@ -59,10 +59,12 @@ export function testRenduOptimizerGabaritsComposants() {
   ok(!!bouton(repete, 'Set de runes recherché : Blade, Blade, Fight'), 'set : un même set choisi deux fois se résume deux fois');
   ok(!!bouton(repete, 'Retirer Blade') && texteVisible(repete).includes('6/6 runes'), 'set : chaque set choisi garde sa croix de retrait');
 
-  // Les conditions : la forme d'aujourd'hui, dans sa carte.
-  const conditions = texteVisible(rendre(<ConditionsBureau excludeBase setExcludeBase={rien} baseOf={() => 0} artifactFloorOf={() => 0}
-    minStats={{}} maxStats={{}} setMinStats={rien} setMaxStats={rien} />));
+  // Les conditions : les libellés d'aujourd'hui, dans sa carte, en variante bureau.
+  const conditionsHtml = rendre(<ConditionsBureau excludeBase setExcludeBase={rien} baseOf={() => 0} artifactFloorOf={() => 0}
+    minStats={{}} maxStats={{}} setMinStats={rien} setMaxStats={rien} />);
+  const conditions = texteVisible(conditionsHtml);
   ok(['Conditions', 'Stats de base exclues', 'Taux Crit', 'Réinitialiser les conditions'].every((t) => conditions.includes(t)), 'conditions : les libellés d\'aujourd\'hui');
+  ok(/grid-cols-\[auto_auto_auto\]/.test(conditionsHtml) && !/minmax\(90px,auto\)/.test(conditionsHtml), 'conditions : variante bureau, la colonne des libellés à la largeur du plus long');
 
   // État de mon monstre : buffs et lead, sans les sets d'aura.
   const etat = rendre(<EtatMonstreEssentiels setup={{ ...DEFAULT_DAMAGE_SETUP, atkBuff: true }} maj={rien} etroit={false}

@@ -195,9 +195,9 @@ export const GABARITS_ESSENTIELS: Gabarit[] = [
   },
   {
     id: 'conditions', nom: 'Conditions', largeur: LARGEUR_CONDITIONS, hauteurEstimee: 336,
-    composant: 'ConditionsBureau (bureau/ConditionsBureau.tsx) : une carte autour de Conditions',
-    telephone: 'Conditions (partagé) repris tel quel ; aucun composant modifié.',
-    changements: ['Aucun : la forme d\'aujourd\'hui, dans sa propre carte.'],
+    composant: 'ConditionsBureau (bureau/ConditionsBureau.tsx) : une carte autour de Conditions, variante bureau',
+    telephone: 'Partage Conditions avec le téléphone, par une variante qu\'il ne prend pas (prop bureau).',
+    changements: ['Dans sa propre carte de 362 px : la colonne des libellés prend la largeur du plus long d\'entre eux (plus 90 px au moins), Min et Max s\'en rapprochent ; les champs gardent leur largeur.'],
     etats: [
       { id: 'vides', nom: 'Conditions vides', rendu: (ctx) => <ConditionsGabarit ctx={ctx} min={{}} max={{}} /> },
       { id: 'remplies', nom: 'PV, VIT et Taux Crit minimum, Taux Crit maximum', rendu: (ctx) => <ConditionsGabarit ctx={ctx} min={{ hp: 20000, spd: 200, cr: 85 }} max={{ cr: 100 }} /> },

@@ -15,9 +15,14 @@ export interface ConditionsProps {
   maxStats: Partial<Record<StatKey, number>>;
   setMinStats: Dispatch<SetStateAction<Partial<Record<StatKey, number>>>>;
   setMaxStats: Dispatch<SetStateAction<Partial<Record<StatKey, number>>>>;
+  // Variante des essentiels du bureau (`bureau/ConditionsBureau.tsx`, carte de
+  // 362 px) : la colonne des libellés prend la largeur du plus long d'entre
+  // eux au lieu de 90 px au moins, Min et Max s'en rapprochent. Le téléphone et
+  // la page d'aujourd'hui ne la passent pas.
+  bureau?: boolean;
 }
 
-export default function Conditions({ excludeBase, setExcludeBase, baseOf, artifactFloorOf, minStats, maxStats, setMinStats, setMaxStats }: ConditionsProps) {
+export default function Conditions({ excludeBase, setExcludeBase, baseOf, artifactFloorOf, minStats, maxStats, setMinStats, setMaxStats, bureau = false }: ConditionsProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
@@ -52,7 +57,9 @@ export default function Conditions({ excludeBase, setExcludeBase, baseOf, artifa
           de l'autre. `w-fit` borne la grille à son contenu réel : les
           colonnes redeviennent SERRÉES, quelle que soit la largeur de la
           carte qui l'entoure. Demande explicite : « resserré ». */}
-      <div className="grid w-fit grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4">
+      <div className={bureau
+        ? 'grid w-fit grid-cols-[auto_auto_auto] items-center gap-x-4 gap-y-1.5'
+        : 'grid w-fit grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4'}>
         {/* ⚠️ En-têtes Min/Max AU DOIGT seulement. Sur téléphone, le libellé
             « Min »/« Max » collé à chaque champ faisait déborder la rangée
             (label + 2 champs + 2 mots > largeur utile) ; on les masque et on

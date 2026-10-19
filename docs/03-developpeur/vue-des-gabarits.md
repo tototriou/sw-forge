@@ -67,3 +67,8 @@ de chaque boîte (libellés, choix, états), la vue (chaque gabarit du registre,
 son encadré) et l'adresse (reconnue ; hors développement, la page de l'Optimizer). Le branchement
 en développement ne se voit qu'au navigateur : les tests construisent l'app avec
 `import.meta.env.DEV` faux.
+[tests/rendu/optimizer-gabarits-navigateur.test.ts](../../tests/rendu/optimizer-gabarits-navigateur.test.ts)
+pilote un Chromium sur les boîtes dont le sens tient à un geste
+([optimizer-gabarits-banc.tsx](../../tests/rendu/optimizer-gabarits-banc.tsx)) : le set compact
+ouvert pendant la composition et fermé à six emplacements pleins, les principales en surbrillance,
+l'aide et la colonne centrée d'« État de mon monstre ».

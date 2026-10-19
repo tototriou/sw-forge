@@ -146,6 +146,7 @@ export const GABARITS_COLONNES: Gabarit[] = [
     changements: [
       '« Meilleurs artéfacts offensifs pour ce build » quitte la carte (entre les sous-propriétés et la relique) pour sa propre carte, sous la relique.',
       'La carte vit dans la colonne repliable « Artéfacts et relique » : ouverte ou fermée par son onglet.',
+      'Aux deux formats : « Garder l\'artéfact équipé » devient « Comme équipé » (listes, aide, messages).',
     ],
     etats: [
       { id: 'defaut', nom: 'Activée, Libre, aucune ligne verrouillée, relique libre', rendu: (ctx) => <ArtefactsGabarit ctx={ctx} initial={{ actif: true, principales: {}, lignes: [], relique: 'libre', unique: 'libre', niveau: 0 }} /> },

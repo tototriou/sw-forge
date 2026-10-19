@@ -182,6 +182,10 @@ export async function testSelectionFichiersCasReels(): Promise<void> {
   ok(!s.complet && statut(s, 'tests/banc/run.mjs') === 'sans effet', 'tests/banc/run.mjs → sans effet');
   s = sel(['tests/banc/selection.ts']);
   ok(!s.complet && statut(s, 'tests/banc/selection.ts') === 'couvert' && /module de son graphe/.test(raisons(s, 'testBancSelection')), 'tests/banc/selection.ts → couvert par le graphe de banc-selection.test.ts');
+  // `.gitignore` ne change que ce que Git suit : les vérifications `depot`, jamais la suite complète.
+  s = sel(['.gitignore']);
+  ok(!s.complet && statut(s, '.gitignore') === 'sans effet' && s.transversalesSeulement && !!retenu(s, 'testRenvois'),
+    '.gitignore → sans effet, vérifications depot retenues (dont testRenvois), jamais la suite complète');
   s = sel(['bureau/fichier-inconnu.ts']);
   ok(s.complet && s.fichiers[0]?.detail === 'aucun lien spécifique', 'bureau/ est une racine : un fichier sans lien → non couvert, suite complète');
 

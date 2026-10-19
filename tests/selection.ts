@@ -53,6 +53,10 @@ export const SANS_EFFET: { motif: string; sauf?: string[]; justification: string
     sauf: ['tests/banc/selection.ts', 'tests/banc/ecrans.ts'],
     justification: 'le banc d\'affichage ne tourne pas dans la suite (son lanceur est tests/banc/run.mjs) ; tsc et ESLint le couvrent. Ses deux modules importés par banc-selection.test.ts en sont exclus : le graphe les couvre',
   },
+  {
+    motif: '.gitignore',
+    justification: 'jamais importé ni lu par une vérification ciblée : il ne change que ce que Git suit, donc ce que lisent les vérifications `depot` (git ls-files, parcours de la racine), toujours retenues',
+  },
 ];
 
 // Prérequis d'ordre relevés

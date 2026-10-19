@@ -138,7 +138,7 @@ par nom, elle ne le remplace pas ; les deux se combinent.
 - **Repli sur la suite complète**, cause écrite en sortie : un fichier
   modifié sans lien spécifique, une incohérence de l'inventaire, une lecture
   de Git qui échoue. Jamais moins sans le dire.
-- **Fichiers sans effet** (`*.md`, `tests/banc/**`) : ne retiennent que les
+- **Fichiers sans effet** (`*.md`, `tests/banc/**`, `.gitignore`) : ne retiennent que les
   vérifications qui lisent le dépôt entier (`depot`) ou un chemin non
   déterminable (`opaque`). Une retenue générale ne certifie jamais la
   couverture d'un fichier.

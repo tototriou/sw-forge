@@ -227,6 +227,12 @@ identités) ou `exception` (justification obligatoire, 25).
   composant et vérifier ce qu'il fait (rendu serveur, valeur rendue), plutôt
   que chercher un motif dans le texte de la source ; l'import fait entrer le
   module dans le graphe, et la sélection le retient sans déclaration.
+  Un morceau d'écran s'éprouve sur l'écran entier, où qu'il soit écrit :
+  rendu dans un état posé, ou geste au navigateur sur le vrai écran (pour
+  l'Optimizer, [rendu/optimizer-ecran.test.tsx](rendu/optimizer-ecran.test.tsx)
+  et [rendu/optimizer-ecran-navigateur.test.ts](rendu/optimizer-ecran-navigateur.test.ts)) ;
+  une lecture de la source qui reste porte sur la logique, pas sur
+  l'endroit où un contrôle est écrit.
 - **Angles morts** (listés en tête du fichier) : une racine importée ou
   passée en paramètre échappe au détecteur ; une chaîne à espace n'est pas
   un chemin ; la garde ne dit ni si la cible existe ni ce que le test en

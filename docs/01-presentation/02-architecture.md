@@ -157,27 +157,30 @@ Les cartes de la grille des réglages vivent dans `src/components/outils/optimiz
 fichier, sans état propre : `OptimizerSection` garde l'état et la logique et les leur passe par
 props. « Monstre & équipement » (`MonstreEquipement`, avec `MonstreEtListe` et
 `ExemplaireEtFiche` au bureau, `MonstreEquipementTelephone` au doigt, `BandeauBuildValide`,
-`BoutonValiderBuild`), « Critères de recherche » (`CriteresRecherche` : `SetDeRunes`,
+`BoutonValiderBuild` ; la liste de travail `MonstresDeLaListe` — zone C —, le choix de
+l'exemplaire `ChoixExemplaire` — zone D —, le sélecteur de listes `SelecteurListes`),
+« Critères de recherche » (`CriteresRecherche` : `SetDeRunes`,
 `StatPrincipaleImposee`, `Conditions`), « Artéfacts et reliques » (`ArtefactsEtReliques`,
 `MeilleursArtefacts`, `Relique`), `CarteEtatMonstre`, « Exclusion de runes »
 (`CarteExclusionRunes`, `ExclusionRunesContenu`, `RunesDejaUtilisees`, `ExclusionMonstrePrecis`,
 `RunesImposees`, `TitreExclusionRunes`), « Réglages avancés » (`CarteReglagesAvances`,
-`TitreReglagesAvances`), `EstimationPool`, et au doigt le panneau « Options de recherche »
-(`OptionsRechercheTelephone`). Restent écrits dans `OptimizerSection` et passés aux cartes : les
-zones C et D (monstres de la liste, choix de l'exemplaire), les sélecteurs de listes, le
-sélecteur de sets, l'appel d'`EtatMonstre` et le contenu des Réglages avancés. Constantes
+`ReglagesAvancesContenu`, `TitreReglagesAvances`), `EstimationPool`, et au doigt le panneau
+« Options de recherche » (`OptionsRechercheTelephone`). Les gestes restent dans
+`OptimizerSection`, nommés et passés aux cartes (`choisirMembreDeLaListe`,
+`choisirExemplaireZoneD`, `choisirSetsRecherches`). Constantes
 partagées : `src/components/outils/optimizer/constantes.ts` ; types :
 `src/components/outils/optimizer/types.ts`.
 
 Sous la grille, même dossier, même règle : « Objectif de recherche » et les actions
 (`ObjectifEtActions` : Rechercher, Exporter, Importer, Arrêter), la progression, l'échec et le
-refus (`ProgressionRecherche`), les blocs des résultats (`DiagnosticFaisabilite`,
-`DiagnosticApprofondi`, `QuasiSucces`, `AvisRechercheTronquee`, `PaginationResultats`) et les
-confirmations de libération (`ConfirmationsLiberation`). Restent écrits dans `OptimizerSection` :
-le message d'import, la barre d'appariement (passée à `ProgressionRecherche`), l'en-tête des
-résultats (compte confirmé, « Adapter les artéfacts et reliques au tri », tri), la ligne de la
-file de vérification, la ligne de raison, les conditions des diagnostics, la grille des cartes
-et la fenêtre de création de liste.
+refus, avec la barre d'appariement (`ProgressionRecherche`), le message d'import d'une recette
+(`MessageImportRecette`), l'en-tête des résultats — compte confirmé, « Adapter les artéfacts et
+reliques au tri », tri, ligne de la file de vérification, ligne de raison — (`EnteteResultats`),
+les blocs de 0 résultat (`DiagnosticsSansResultat` : `DiagnosticFaisabilite`,
+`DiagnosticApprofondi`, `QuasiSucces`), `AvisRechercheTronquee`, la grille des cartes
+(`GrilleResultats`), `PaginationResultats` et les confirmations de libération
+(`ConfirmationsLiberation`). Ce que reçoit chaque carte (`proprietesCarte`) et la création
+d'une liste depuis sa fenêtre (`creerListeDepuisDialogue`) restent calculés par l'écran.
 
 Autour de la liste, dans le même dossier : `OptimizerBackupBar` (point de sauvegarde des listes :
 sauvegarder, reprendre), `OptimizerCreateListDialog` (création d'une liste et choix de son contenu

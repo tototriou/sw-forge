@@ -18,8 +18,8 @@ import {
   candidateMetricTotal,
   objectiveScore,
   RealDamageContext,
-  searchBuilds,
 } from '../../src/lib/runeBuildOptim';
+import { searchBuilds } from '../../src/lib/rechercheRunes';
 import type { StatKey } from '../../src/lib/effects';
 import { computeStats } from '../../src/lib/stats';
 import { ArtifactDetail, ElementKey, RelicDetail, RuneDetail } from '../../src/types';

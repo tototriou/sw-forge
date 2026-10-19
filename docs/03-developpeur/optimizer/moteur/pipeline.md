@@ -222,7 +222,9 @@ résultat vide tronqué. Détail : [parallelisation.md § Répartition et partag
 Le Worker poste le résultat (`type: 'result'`) ; le hook l'enregistre
 (`result`), efface la progression et passe en `done`.
 
-Le même enchaînement existe hors Worker : `searchBuildsSteps` appelle
+Le même enchaînement existe hors Worker : `searchBuildsSteps`
+(`src/lib/rechercheRunes.ts`, à part de `runeBuildOptim.ts` pour qu'aucun
+import n'y fasse de cycle) appelle
 `prepareSearch`, `buildBuckets` pour A puis pour B dans le même fil, puis
 `pairBuckets` ; `searchBuilds` le draine en un appel, sans Worker ni
 appariement parallèle. Des tests et des scripts l'utilisent ; d'autres

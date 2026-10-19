@@ -43,8 +43,8 @@ import {
   rankBlockingConditions,
   respecteConditionsAvecRelique,
   respecteMinEtMax,
-  searchBuilds,
 } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import { drain } from '../scripts/lib/drain';
 import { oracleSearch, oracleSearchRuns } from '../scripts/lib/relicOracle';
 import { runPairSlice } from '../src/workers/pairSliceBody';

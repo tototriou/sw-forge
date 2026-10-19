@@ -4,7 +4,8 @@ import { baseCompleteCriteres, photoCriteres } from '../../src/lib/criteresOptim
 import { cleMemoireMembre } from '../../src/lib/optimizerMemberStorage';
 import { exclusionSelectorKey, type ExclusionSelector } from '../../src/lib/optimizerExclusion';
 import { buildOptimizerRecipe } from '../../src/lib/optimizerRecipe';
-import { searchBuilds, type SearchParams } from '../../src/lib/runeBuildOptim';
+import { type SearchParams } from '../../src/lib/runeBuildOptim';
+import { searchBuilds } from '../../src/lib/rechercheRunes';
 
 interface BancMemoire {
   etat: () => OptimizerState;

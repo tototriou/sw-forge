@@ -69,7 +69,8 @@
 import { readFileSync } from 'fs';
 import { BaseStats, RuneDetail } from '../src/types';
 import { BuildRequirement } from '../src/lib/runeBuildOptim';
-import { SearchParams, searchBuildsSteps } from '../src/lib/runeBuildOptim';
+import { SearchParams } from '../src/lib/runeBuildOptim';
+import { searchBuildsSteps } from '../src/lib/rechercheRunes';
 
 const BASE: BaseStats = { hp: 8000, atk: 500, def: 400, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 

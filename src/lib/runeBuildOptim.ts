@@ -4531,47 +4531,6 @@ export function combineParallelPairingResults(
   };
 }
 
-// ⚠️ Simple ORCHESTRATION de `prepareSearch` → `buildBuckets` (×2) →
-// `pairBuckets` — plus de logique propre depuis le découpage ci-dessus.
-// Conservée telle quelle (comportement IDENTIQUE, vérifié par le harnais
-// différentiel existant) pour tout appelant qui n'a pas besoin de paralléliser
-// les deux moitiés : `searchBuilds` (tests, scripts, benchmark), pas
-// `runeBuildOptim.worker.ts`, qui appelle `prepareSearch`/`buildBuckets`/
-// `pairBuckets` directement pour pouvoir construire A et B dans deux Workers
-// séparés, voir docs/03-developpeur/optimizer/ § Construction des moitiés.
-export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgress, SearchResult, void> {
-  // Le traceur d'un rejet par pré-filtrage : `prepareSearch` le construit puis le perd en rendant
-  // `null` — récupéré ici via `onReject` pour qu'un résultat vide reste
-  // diagnosticable (étage `feasibility`/`filterslot` à 0), au lieu de
-  // disparaître précisément quand l'instrumentation sert le plus.
-  let traceurRejet: TraceCandidat | undefined;
-  const prepared = prepareSearch(params, undefined, (t) => { traceurRejet = t; });
-  if (!prepared) {
-    return { candidates: [], explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null, ...(traceurRejet ? { traceur: traceurRejet } : {}) };
-  }
-  const bucketsA = yield* buildBuckets(
-    'A', [0, 1, 2], prepared, prepared.maxSetsForA,
-    undefined, params.adaptiveTrancheWeighting, params.combosOrderMode
-  );
-  const bucketsB = yield* buildBuckets(
-    'B', [3, 4, 5], prepared, prepared.maxSetsForB,
-    undefined, params.adaptiveTrancheWeighting, params.combosOrderMode
-  );
-  return yield* pairBuckets(prepared, bucketsA, bucketsB);
-}
-
-// API historique : drainer le générateur jusqu'au bout en un seul appel
-// synchrone. C'est ce que testent tests/rune-optim.test.ts,
-// tests/rune-optim-differential.test.ts et scripts/benchmark-optim.ts — le
-// comportement est identique à avant la restructuration en générateur, seuls
-// les points de passage internes ont changé.
-export function searchBuilds(params: SearchParams): SearchResult {
-  const gen = searchBuildsSteps(params);
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
-
 /* --------------------------------------------------------------------------
  * Exclusion des runes déjà portées par un AUTRE monstre — générique : ne
  * connaît que des ids de runes et une notion d'« à soi », pas la box en

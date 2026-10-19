@@ -17,7 +17,8 @@ import { BORNE_STATS_PAR_APPORT, StatRow, computeStats, statsParPaire } from '..
 import { ArtifactSearchParams, BORNE_MEMO_PREFILTRE, MemoPreFiltre, PaireArtefacts as PaireArtefactsT, chercherPaires, pairesParScore } from '../src/lib/artifactOptim';
 import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { RelicContext } from '../src/lib/relicOptim';
-import { SearchParams, searchBuilds, statTotal } from '../src/lib/runeBuildOptim';
+import { SearchParams, statTotal } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import { maxStatsActifsDe, runesDe } from '../scripts/lib/relicDifferentiel';
 import { cleBuild } from '../src/lib/artifactQueue';
 import { CORPUS_5A } from './relic-search.test';

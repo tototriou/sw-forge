@@ -29,7 +29,8 @@ import { DegatsContext, RegimeArtefacts } from '../src/lib/artifactEvaluation';
 import { ResultatArtefacts, cleBuild } from '../src/lib/artifactQueue';
 import { codesAmplificationActifs } from '../src/lib/damage';
 import { RelicContext } from '../src/lib/relicOptim';
-import { RechercheRefusee, SearchParams, searchBuilds } from '../src/lib/runeBuildOptim';
+import { RechercheRefusee, SearchParams } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import { CachesResolution, entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import {
   CorpsResolution,

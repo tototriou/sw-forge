@@ -397,7 +397,8 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   les deux cas, une borne pendant la recherche, une pièce réelle après.
 - Toutes les valeurs sont recalculées avec `computeStats`
   (`src/lib/stats.ts`), la même fonction que partout ailleurs dans l'app.
-- **Écrit comme un générateur** (`searchBuildsSteps` : `prepareSearch`,
+- **Écrit comme un générateur** (`searchBuildsSteps`,
+  `src/lib/rechercheRunes.ts` : `prepareSearch`,
   puis `buildBuckets` pour chaque moitié, puis `pairBuckets`), pas une seule
   boucle qui tourne jusqu'au bout : l'appariement rend un point de passage
   toutes les `CHECKPOINT_EVERY` (500) paires explorées, la construction à

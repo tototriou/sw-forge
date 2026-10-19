@@ -20,11 +20,15 @@
 // Les bornes écrites, leurs préconditions et l'ordre de visite :
 // docs/03-developpeur/optimizer/moteur/noyau-appariement.md.
 //
-// ⚠️ **Rien de ce qui suit `quickOk` n'est réécrit** : le bloc de validation
-// (`Collecteur.valider`) est une copie conforme de `pairBuckets`
-// (runeBuildOptim.ts, de `const runes` à `candidates.push`), avec les deux
-// fonctions privées dont il dépend (`totalCondition`, `valueOf`). Une
-// divergence de cette copie se voit au différentiel du banc.
+// ⚠️ **Ce qui suit `quickOk`** : `Collecteur.valider` est une copie conforme
+// de `pairBuckets` (runeBuildOptim.ts, de `const runes` à `candidates.push`),
+// avec les deux fonctions privées dont il dépend (`totalCondition`,
+// `valueOf`) — c'est le chemin de RÉFÉRENCE. S'y ajoute
+// `Collecteur.validerTypee` : la même validation sur tableaux typés
+// (validationRapide.ts), prise dès que son contrat numérique tient, avec le
+// même quasi-succès (mêmes tentatives, mêmes remplacements) et des `StatRow`
+// construits seulement quand ils sont gardés. Une divergence se voit au
+// différentiel du banc et au test `validation-rapide`.
 
 import { GearSet, RuneDetail } from '../types';
 import { StatKey, activeSets, runeEfficiency, runeScore } from './effects';
@@ -32,6 +36,7 @@ import { computeStats, StatRow } from './stats';
 import { missingSets } from './recoMatch';
 import { AurasPropres, aurasPropresDesSetsActifs, pointsAuraResPrePropres } from './damage';
 import { OptimMetric } from './runeOptim';
+import { ValidationTypee } from './validationRapide';
 import {
   Bucket,
   BuildCandidate,
@@ -586,8 +591,31 @@ export class Collecteur {
   readonly ameliorations: Amelioration[] | null;
   private pos = 0;
 
-  constructor(private readonly prepared: PreparedSearch, enregistrerAmeliorations: boolean, private readonly avecPositions: boolean) {
+  /**
+   * Chemin typé (`validerTypee`) : le miroir numérique de
+   * `nearMissByCondition` (existe, plus petit manque), par condition — la
+   * Map reste la vérité, le miroir évite de la lire à chaque tentative.
+   */
+  private readonly slotDe: Int32Array;
+  private readonly existe: Uint8Array;
+  private readonly meilleur: Float64Array;
+  /** Ce que la paire courante a déjà matérialisé (ids, lignes, effTotal), partagé entre ses apports. */
+  private materielCourant: { runeIds: number[]; stats: StatRow[]; effTotal: number } | null = null;
+
+  constructor(
+    private readonly prepared: PreparedSearch,
+    enregistrerAmeliorations: boolean,
+    private readonly avecPositions: boolean,
+    private readonly validation: ValidationTypee | null = null
+  ) {
     this.ameliorations = enregistrerAmeliorations ? [] : null;
+    const conditions = validation?.conditions ?? [];
+    this.slotDe = new Int32Array(conditions.length);
+    conditions.forEach((c, e) => {
+      this.slotDe[e] = conditions.findIndex((d) => d.cle === c.cle);
+    });
+    this.existe = new Uint8Array(conditions.length);
+    this.meilleur = new Float64Array(conditions.length);
   }
 
   // Copie de `nearMissSnapshot` ; même contenu, recalculé seulement quand il change.
@@ -658,6 +686,95 @@ export class Collecteur {
     if (this.avecPositions) this.positions.push(pos);
     return true;
   }
+
+  /**
+   * `valider` sur tableaux typés, pour la paire des demi-builds d'indices
+   * globaux `ga`/`gb` (ordre de `encoderCompartiments`). Même verdict, mêmes
+   * tentatives de quasi-succès dans le même ordre, mêmes objets gardés ; rien
+   * n'est alloué tant qu'une paire n'est ni collectée ni retenue au
+   * quasi-succès. ⚠️ Suppose `validation` construite et son contrat tenu.
+   */
+  validerTypee(ga: number, gb: number, pos: number): boolean {
+    const v = this.validation!;
+    this.pos = pos;
+    if (!v.setsEtStats(ga, gb)) return false;
+    this.materielCourant = null;
+    let ok = false;
+    for (let a = 0; a < v.nApports; a++) {
+      const n = v.ecarts(a);
+      if (n === 0) {
+        ok = true;
+        break;
+      }
+      this.considererTypee(v, n);
+    }
+    if (!ok) return false;
+    const { runeIds, stats, effTotal } = this.materiel(v);
+    this.candidates.push({ runeIds, stats, effTotal });
+    if (this.avecPositions) this.positions.push(pos);
+    return true;
+  }
+
+  private materiel(v: ValidationTypee): { runeIds: number[]; stats: StatRow[]; effTotal: number } {
+    return (this.materielCourant ??= { runeIds: v.runeIds(), stats: v.lignes(), effTotal: v.effTotal() });
+  }
+
+  // `considerNearMiss` sur les échecs du dernier `v.ecarts` : mêmes deux
+  // tests, sur les mêmes nombres ; les objets ne se construisent que si l'un
+  // des deux remplace l'état.
+  private considererTypee(v: ValidationTypee, n: number): void {
+    let slot = -1;
+    let parCondition = false;
+    if (n === 1) {
+      slot = this.slotDe[v.echecs[0]];
+      parCondition = !this.existe[slot] || v.manques[0] < this.meilleur[slot];
+    }
+    // `Math.max(...shortfalls.map(…))`, replié de gauche à droite (même valeur, NaN compris).
+    let distance = -Infinity;
+    for (let i = 0; i < n; i++) distance = Math.max(distance, v.manques[i] / v.conditions[v.echecs[i]].seuil);
+    const global = distance < this.globalNearMissDistance;
+    if (!parCondition && !global) return;
+    const { runeIds, stats, effTotal } = this.materiel(v);
+    const shortfalls = v.manquesDe(n);
+    if (parCondition) {
+      const s = shortfalls[0];
+      const mapKey = `${s.key}-${s.kind}`;
+      const entree: EntreeQuasiSucces = { key: s.key, kind: s.kind, miss: { runeIds, stats, effTotal, shortfalls } };
+      this.nearMissByCondition.set(mapKey, entree);
+      this.existe[slot] = 1;
+      this.meilleur[slot] = s.shortfall;
+      this.instantane = null;
+      this.ameliorations?.push({ pos: this.pos, type: 'condition', cle: mapKey, entree });
+    }
+    if (global) {
+      this.globalNearMissDistance = distance;
+      this.globalNearMiss = { runeIds, stats, effTotal, shortfalls };
+      this.ameliorations?.push({ pos: this.pos, type: 'global', distance, miss: this.globalNearMiss });
+    }
+  }
+}
+
+/**
+ * La validation typée d'un espace, ou `null` pour le chemin de référence
+ * (contrat non tenu, ou référence imposée par un test). `runesA[3·g + r]` :
+ * les runes des demi-builds dans l'ordre de `encoderCompartiments`.
+ */
+export function validationDe(
+  prepared: PreparedSearch,
+  runesA: readonly RuneDetail[],
+  runesB: readonly RuneDetail[],
+  forcer?: 'reference'
+): { validation: ValidationTypee | null; motif: string | null } {
+  if (forcer === 'reference') return { validation: null, motif: 'chemin de référence imposé' };
+  const v = new ValidationTypee(prepared, runesA, runesB);
+  return v.motif ? { validation: null, motif: v.motif } : { validation: v, motif: null };
+}
+
+/** Les runes des demi-builds, à plat, dans l'ordre de `encoderCompartiments`. */
+export function runesAPlat(buckets: Bucket[]): RuneDetail[] {
+  const out: RuneDetail[] = [];
+  for (const b of buckets) for (const c of b.combos) out.push(c.runes[0], c.runes[1], c.runes[2]);
+  return out;
 }
 
 /* --------------------------------------------------------------------------
@@ -674,12 +791,19 @@ export interface ResultatAppariementRapide extends SearchResult {
   chemin: 'noyau' | 'actuel';
   /** Pourquoi le chemin actuel a été pris. */
   motifChemin?: string;
+  /** Validation des paires qui passent `quickOk` : typée ou copie de `pairBuckets`. */
+  cheminValidation: 'typee' | 'reference';
+  motifValidation?: string;
   compteurs: CompteursNoyau;
 }
 
 export interface OptionsAppariementRapide {
   /** Tests seulement : impose le chemin de chaque ligne non sautée. */
   forcerChemin?: 'dichotomie' | 'lineaire';
+  /** Tests seulement : impose la validation de référence (copie de `pairBuckets`). */
+  forcerValidation?: 'reference';
+  /** Tests et banc : appelé pour chaque paire qui passe `quickOk`, avant sa validation (contrôle paire par paire). */
+  controleValidation?: { paire(ga: number, gb: number, runes: RuneDetail[]): void };
   /** Tests seulement : appelé pour chaque paire VISITÉE (indices de compartiment et locaux). */
   observateur?: { visite(iA: number, a: number, iB: number, b: number): void };
 }
@@ -699,7 +823,10 @@ export function* apparierRapide(
   const motif = verifierContrat(prepared, bucketsA, bucketsB);
   if (motif) {
     const r = yield* pairBuckets(prepared, bucketsA, bucketsB);
-    return { ...r, traitees: r.explored, visitees: r.explored, sautees: 0, chemin: 'actuel', motifChemin: motif, compteurs: compteursVides() };
+    return {
+      ...r, traitees: r.explored, visitees: r.explored, sautees: 0, chemin: 'actuel', motifChemin: motif,
+      cheminValidation: 'reference', motifValidation: 'chemin actuel (pairBuckets)', compteurs: compteursVides(),
+    };
   }
   const { maxCollected, maxMs, startedAt } = prepared;
   const overBudget = () => Date.now() - startedAt > maxMs;
@@ -711,7 +838,8 @@ export function* apparierRapide(
   for (const b of bucketsB) maxB = Math.max(maxB, b.combos.length);
   const sortie = new Int32Array(maxB);
   const compteurs = compteursVides();
-  const collecteur = new Collecteur(prepared, false, false);
+  const { validation, motif: motifValidation } = validationDe(prepared, runesAPlat(bucketsA), runesAPlat(bucketsB), options.forcerValidation);
+  const collecteur = new Collecteur(prepared, false, false, validation);
   const candidates = collecteur.candidates;
   const progression = (traitees: number): PairingProgress => ({
     phase: 'pairing', candidates, explored: traitees, nearMissByCondition: collecteur.snapshot(), globalNearMiss: collecteur.globalNearMiss,
@@ -758,9 +886,11 @@ export function* apparierRapide(
           compteurs.gardeRejets++;
           continue;
         }
-        const comboB = bB.combos[j];
-        const runes: RuneDetail[] = [...comboA.runes, ...comboB.runes];
-        if (!collecteur.valider(runes, g)) continue;
+        options.controleValidation?.paire(ga, offB + j, [...comboA.runes, ...bB.combos[j].runes]);
+        const collecte = validation
+          ? collecteur.validerTypee(ga, offB + j, g)
+          : collecteur.valider([...comboA.runes, ...bB.combos[j].runes], g);
+        if (!collecte) continue;
         if (candidates.length >= maxCollected) {
           truncated = true;
           break outer;
@@ -782,7 +912,8 @@ export function* apparierRapide(
 
   return {
     candidates, explored: traitees, truncated, nearMissByCondition: collecteur.snapshot(), globalNearMiss: collecteur.globalNearMiss,
-    traitees, visitees, sautees: traitees - visitees, chemin: 'noyau', compteurs,
+    traitees, visitees, sautees: traitees - visitees, chemin: 'noyau',
+    cheminValidation: validation ? 'typee' : 'reference', ...(motifValidation ? { motifValidation } : {}), compteurs,
   };
 }
 
@@ -796,6 +927,8 @@ export interface InitTravailleur {
   /** L'instant de départ GLOBAL, comme `PairSliceRequest.startedAt`. */
   startedAt: number;
   compartiments: CompartimentsTypes;
+  /** Tests seulement : la validation de référence (copie de `pairBuckets`). */
+  forcerValidation?: 'reference';
 }
 
 /**
@@ -837,6 +970,8 @@ export interface ResultatMorceau {
   visitesAuCandidat: number[];
   ameliorations: Amelioration[];
   issue: IssueMorceau;
+  /** Le Worker a validé sur tableaux typés (sinon : copie de `pairBuckets`). */
+  validationTypee: boolean;
   compteurs: CompteursNoyau;
 }
 
@@ -848,6 +983,7 @@ export interface ContexteTravailleur {
   L: Float64Array;
   H: Float64Array;
   sortie: Int32Array;
+  validation: ValidationTypee | null;
 }
 
 export function initialiserTravailleur(init: InitTravailleur): ContexteTravailleur {
@@ -864,7 +1000,15 @@ export function initialiserTravailleur(init: InitTravailleur): ContexteTravaille
   for (const list of prepared.filtered) for (const r of list) runeParId.set(r.id, r);
   let maxB = 0;
   for (let i = 0; i + 1 < ct.B.debut.length; i++) maxB = Math.max(maxB, ct.B.debut[i + 1] - ct.B.debut[i]);
-  return { prepared, ct, c, runeParId, L: new Float64Array(c.m), H: new Float64Array(c.m), sortie: new Int32Array(maxB) };
+  // Les tables de la validation typée se reconstruisent ici, depuis les
+  // identifiants transférés : aucun tableau de plus à copier vers chaque Worker.
+  const runesDe = (ids: Float64Array) => Array.from(ids, (id) => {
+    const r = runeParId.get(id);
+    if (!r) throw new Error(`rune ${id} absente du pool préparé du Worker`);
+    return r;
+  });
+  const { validation } = validationDe(prepared, runesDe(ct.A.ids), runesDe(ct.B.ids), init.forcerValidation);
+  return { prepared, ct, c, runeParId, L: new Float64Array(c.m), H: new Float64Array(c.m), sortie: new Int32Array(maxB), validation };
 }
 
 /** Un morceau d'un bloc, sans arrêt manuel possible : le générateur drainé. */
@@ -889,11 +1033,11 @@ export function traiterMorceau(ctx: ContexteTravailleur, morceau: Morceau): Resu
  * seul test les couvre, et la troncature tombe sur le premier d'entre eux.
  */
 export function* parcourirMorceau(ctx: ContexteTravailleur, morceau: Morceau): Generator<void, ResultatMorceau, boolean | undefined> {
-  const { prepared, ct, c, runeParId, L, H, sortie } = ctx;
+  const { prepared, ct, c, runeParId, L, H, sortie, validation } = ctx;
   const { maxCollected, maxMs, startedAt } = prepared;
   const overBudget = () => Date.now() - startedAt > maxMs;
   const compteurs = compteursVides();
-  const collecteur = new Collecteur(prepared, true, true);
+  const collecteur = new Collecteur(prepared, true, true, validation);
   const visitesAuCandidat: number[] = [];
   const rune = (id: number) => {
     const r = runeParId.get(id);
@@ -957,15 +1101,21 @@ export function* parcourirMorceau(ctx: ContexteTravailleur, morceau: Morceau): G
           compteurs.gardeRejets++;
           continue;
         }
-        const ia3 = 3 * ga;
-        const ib3 = 3 * gb;
-        const runes: RuneDetail[] = [
-          rune(ct.A.ids[ia3]), rune(ct.A.ids[ia3 + 1]), rune(ct.A.ids[ia3 + 2]),
-          rune(ct.B.ids[ib3]), rune(ct.B.ids[ib3 + 1]), rune(ct.B.ids[ib3 + 2]),
-        ];
+        let collecte: boolean;
+        if (validation) {
+          collecte = collecteur.validerTypee(ga, gb, g);
+        } else {
+          const ia3 = 3 * ga;
+          const ib3 = 3 * gb;
+          const runes: RuneDetail[] = [
+            rune(ct.A.ids[ia3]), rune(ct.A.ids[ia3 + 1]), rune(ct.A.ids[ia3 + 2]),
+            rune(ct.B.ids[ib3]), rune(ct.B.ids[ib3 + 1]), rune(ct.B.ids[ib3 + 2]),
+          ];
+          collecte = collecteur.valider(runes, g);
+        }
         // Au-delà de `maxCollected` candidats dans CE morceau, la fusion
         // globale a forcément déjà coupé : inutile d'aller plus loin.
-        if (collecteur.valider(runes, g)) {
+        if (collecte) {
           visitesAuCandidat.push(visitees);
           if (collecteur.candidates.length >= maxCollected) {
             issue = 'plafond';
@@ -994,6 +1144,6 @@ export function* parcourirMorceau(ctx: ContexteTravailleur, morceau: Morceau): G
     type: 'resultat', id: morceau.id,
     traitees: (issue === 'complet' ? morceau.offset + morceau.taille : pos) - morceau.offset,
     visitees, candidats: collecteur.candidates, positions: collecteur.positions, visitesAuCandidat,
-    ameliorations: collecteur.ameliorations ?? [], issue, compteurs,
+    ameliorations: collecteur.ameliorations ?? [], issue, validationTypee: validation != null, compteurs,
   };
 }

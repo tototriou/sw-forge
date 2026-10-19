@@ -27,11 +27,11 @@ export const TRANCHE_MS = 100;
 
 export type MessageVersTravailleur = { type: 'init'; init: InitTravailleur } | Morceau | { type: 'arret' };
 
-/** Le résultat d'un morceau jamais commencé, rendu après un arrêt. */
-export function resultatVide(morceau: Morceau): ResultatMorceau {
+/** Le résultat d'un morceau jamais commencé, rendu après un arrêt (`validationTypee` : celle du Worker). */
+export function resultatVide(morceau: Morceau, validationTypee: boolean): ResultatMorceau {
   return {
     type: 'resultat', id: morceau.id, traitees: 0, visitees: 0, candidats: [], positions: [], visitesAuCandidat: [],
-    ameliorations: [], issue: 'arret', compteurs: compteursVides(),
+    ameliorations: [], issue: 'arret', validationTypee, compteurs: compteursVides(),
   };
 }
 
@@ -65,7 +65,7 @@ export function servirAppariement(
       while (enAttente.length > 0) {
         const morceau = enAttente.shift()!;
         if (arrete) {
-          envoyer(resultatVide(morceau));
+          envoyer(resultatVide(morceau, contexte?.validation != null));
           continue;
         }
         if (!contexte) throw new Error('Worker d’appariement : morceau reçu avant l’initialisation');

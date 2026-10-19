@@ -189,6 +189,7 @@ import testDiagnosticDecouverte from './diagnostic-decouverte.test';
 import testRuneOptimScaleMonotonicity from './rune-optim-scale-monotonicity.test';
 import { testAppariementParallele, testAppariementParalleleWorkers, testAppariementParalleleBranchement } from './appariement-parallele.test';
 import testAppariementRapide from './appariement-rapide.test';
+import testValidationRapide from './validation-rapide.test';
 import testRuneOptimNearMiss from './rune-optim-near-miss.test';
 import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
@@ -257,6 +258,7 @@ import testRelicOptim from './relic-optim.test';
 import testRelicOracle, { testRelicOracleGroupesEffetUnique, testRelicOracleOptimumParScore } from './relic-oracle.test';
 import testRelicSearch from './relic-search.test';
 import testRelicQueue from './relic-queue.test';
+import testResolutionRapide, { testResolutionRapideNaN } from './resolution-rapide.test';
 import testPerfRelicOptions from './perf-relic-options.test';
 import testRelicDifferentiel from './relic-differentiel.test';
 import testRelicUniqueLabel from './relic-unique-label.test';
@@ -636,6 +638,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testAppariementParalleleWorkers', async () => { await testAppariementParalleleWorkers(); }],
   ['testAppariementParalleleBranchement', async () => { await testAppariementParalleleBranchement(); }],
   ['testAppariementRapide', async () => { await testAppariementRapide(); }],
+  ['testValidationRapide', async () => { await testValidationRapide(); }],
   ['testRuneOptimNearMiss', async () => { await testRuneOptimNearMiss(); }],
   ['testRuneOptimDeadHalfPruning', testRuneOptimDeadHalfPruning],
   ['testFilterSlotTopK', testFilterSlotTopK],
@@ -715,6 +718,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRelicOracleOptimumParScore', testRelicOracleOptimumParScore],
   ['testRelicSearch', testRelicSearch],
   ['testRelicQueue', testRelicQueue],
+  ['testResolutionRapide', testResolutionRapide],
+  ['testResolutionRapideNaN', testResolutionRapideNaN],
   ['testPerfRelicOptions', testPerfRelicOptions],
   ['testRelicDifferentiel', testRelicDifferentiel],
   ['testRelicUniqueLabel', testRelicUniqueLabel],

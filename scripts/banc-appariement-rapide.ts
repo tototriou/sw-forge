@@ -22,6 +22,8 @@
 //   --cache=<dossier>             garde les résultats de référence (runs longs) entre deux passes
 //   --sortie=<dossier>            écrit le rapport texte et le JSON du cas
 //   --suffixe=<texte>             ajouté au nom des fichiers de sortie (deux passes d'un même cas)
+//   --controle-validation         compare la validation typée à la référence, paire
+//                                 par paire, sur chaque survivant de quickOk de l'espace entier
 //
 // ⚠️ **Fidélité** (skill `algo-verify`) : préparation par `prepareSearch`,
 // moitiés par les Workers de production (`construireMoitiesEnParallele`,
@@ -51,7 +53,10 @@ import {
   totalPairCount,
 } from '../src/lib/runeBuildOptim';
 import { availableParallelism } from 'os';
-import { verifierContrat } from '../src/lib/appariementRapide';
+import { apparierRapide, runesAPlat, verifierContrat } from '../src/lib/appariementRapide';
+import { ValidationTypee } from '../src/lib/validationRapide';
+import { bilanVide, comparerPaire } from './lib/controleValidationRapide';
+import { drain } from './lib/drain';
 import { apparierRapideEnParallele } from '../src/lib/appariementRapideParallele';
 import { apparier } from '../src/lib/rechercheRunes';
 import { nombreDeTravailleurs } from '../src/workers/parallelPairing';
@@ -247,6 +252,28 @@ async function banc(src: Source, lignes: string[], json: Record<string, unknown>
   let candidatsPetit: { ref: BuildCandidate[]; proto: BuildCandidate[] } | null = null;
   const lanceur = WORKERS.length > 0 ? lancerTravailleurNode(await assurerBundleAppariementRapide()) : null;
 
+  // Contrôle paire par paire de la validation typée sur les survivants
+  // RÉELS de `quickOk`, espace entier, contre la référence.
+  if (drapeau('controle-validation')) {
+    const controle = new ValidationTypee(prepared0, runesAPlat(bucketsA), runesAPlat(bucketsB));
+    if (controle.motif) {
+      dire(`\n[contrôle de la validation] sans objet : contrat de la validation typée non tenu (${controle.motif}).`);
+    } else {
+      const bilan = bilanVide();
+      const prepared: PreparedSearch = { ...prepared0, maxCollected: PLAFOND_CORPUS + 1 };
+      const debut = performance.now();
+      drain(apparierRapide(prepared, bucketsA, bucketsB, { controleValidation: { paire: (ga, gb, runes) => comparerPaire(controle, prepared, ga, gb, runes, bilan) } }));
+      if (bilan.ecarts > 0) toutEgal = false;
+      dire(
+        `\n[contrôle de la validation] ${bilan.paires.toLocaleString('fr-FR')} survivants de quickOk comparés à activeSets/computeStats/pairBuckets : ` +
+          `${bilan.setsRefuses.toLocaleString('fr-FR')} refusés par les sets, ${bilan.statsComparees.toLocaleString('fr-FR')} StatRow, ` +
+          `${bilan.tentatives.toLocaleString('fr-FR')} tentatives, ${bilan.collectables.toLocaleString('fr-FR')} collectables · ` +
+          `${bilan.ecarts === 0 ? 'ÉGAL' : `${bilan.ecarts} ÉCART(S) — ${bilan.premierEcart}`} · ${((performance.now() - debut) / 1000).toFixed(1)} s [indicatif]`
+      );
+      json.controleValidation = { ...bilan };
+    }
+  }
+
   for (const mode of MODES) {
     const maxCollected = mode === 'petit' ? PETIT : PLAFOND_CORPUS + 1;
     const arret = mode === 'arret' ? N : undefined;
@@ -319,12 +346,13 @@ async function banc(src: Source, lignes: string[], json: Record<string, unknown>
       dire(
         `  production parallèle, ${W} Workers : ${diff ? `DIFFÈRE — ${diff}` : 'ÉGAL'} · ${r.candidates.length.toLocaleString('fr-FR')} candidats, traitees ${r.traitees.toLocaleString('fr-FR')}` +
           ` · ${r.morceaux} morceaux (plus gros ${r.plusGrosMorceau.toLocaleString('fr-FR')} paires, ${r.morceauxTraites} traités : ${r.parTravailleur.join('/')}) · planification ${r.msPlanification} ms` +
-          ` · ${(ms / 1000).toFixed(2)} s, ${(r.traitees / ms / 1000).toFixed(1)} M paires/s, pic RSS ${picMo} Mo [indicatif]`
+          ` · ${(ms / 1000).toFixed(2)} s, ${(r.traitees / ms / 1000).toFixed(1)} M paires/s, pic RSS ${picMo} Mo [indicatif]` +
+          ` · validation ${r.cheminValidation}${r.motifValidation ? ` (${r.motifValidation})` : ''}`
       );
       m[`parallele${W}`] = {
         egal: diff == null, difference: diff, candidats: r.candidates.length, traitees: r.traitees, empreinte: empreinteCandidats(r.candidates),
         ms: Math.round(ms), morceaux: r.morceaux, plusGrosMorceau: r.plusGrosMorceau, parTravailleur: r.parTravailleur, msPlanification: r.msPlanification, picRssMo: picMo,
-        chemin: r.chemin, compteurs: r.compteurs,
+        chemin: r.chemin, cheminValidation: r.cheminValidation, compteurs: r.compteurs,
       };
     }
   }

@@ -149,7 +149,7 @@ Lib `accountStore` (IndexedDB), `accountViews`, `runeSort`, `runeOptim`, `builds
 travail créées par l'utilisateur + runes validées scopées par liste — seul état PERSISTÉ de
 l'écran — fiche : [optimizer/feat-listes-et-reservation.md](../02-app/optimizer/feat-listes-et-reservation.md)).
 Moteur `src/lib/runeBuildOptim.ts`, ses noyaux sur tableaux typés (`constructionRapide.ts`,
-`appariementRapide.ts`, `appariementRapideParallele.ts`, `travailleurAppariement.ts`) et son orchestration hors Worker
+`appariementRapide.ts`, `validationRapide.ts`, `appariementRapideParallele.ts`, `travailleurAppariement.ts`) et son orchestration hors Worker
 (`rechercheRunes.ts`), exécuté dans `src/workers/runeBuildOptim.worker.ts`,
 `src/workers/buildHalf.worker.ts` et, au-delà du seuil, `src/workers/appariementRapide.worker.ts`
 — [03-developpeur/optimizer/](../03-developpeur/optimizer/README.md).
@@ -250,7 +250,7 @@ Fonctions **pures**, testables sans rendu. C'est ici que va toute logique, jamai
 | --- | --- |
 | Vitesse & stats | `speed.ts` (source de vérité), `stats.ts` |
 | Speed tuning | `speedTune.ts` (moteur de ticks), `speedTuneLignes.ts` (modèle de l'écran), `speedTuneAuto.ts` (analyse partagée outil/siège), `speedTuneKit.ts` + `speedTunePassif.ts` (lecture des kits), `speedTuneDeck.ts` (import d'un deck), `siegeStatut.ts` (statut d'une équipe de siège) |
-| Runes | `runeOptim.ts`, `runeBuildOptim.ts` (moteur, référence), `rechercheRunes.ts` (orchestration : `searchBuilds`, `construireMoitie`, `apparier`), `constructionRapide.ts` et `appariementRapide.ts` (noyaux sur tableaux typés), `appariementRapideParallele.ts` (appariement parallèle) et `travailleurAppariement.ts` (ce que fait chacun de ses Workers), `runeSort.ts`, `runeCurveShare.ts` |
+| Runes | `runeOptim.ts`, `runeBuildOptim.ts` (moteur, référence), `rechercheRunes.ts` (orchestration : `searchBuilds`, `construireMoitie`, `apparier`), `constructionRapide.ts`, `appariementRapide.ts` et `validationRapide.ts` (noyaux sur tableaux typés), `appariementRapideParallele.ts` (appariement parallèle) et `travailleurAppariement.ts` (ce que fait chacun de ses Workers), `runeSort.ts`, `runeCurveShare.ts` |
 | Reliques | `relicOptim.ts` (choix de la meilleure relique pour un build, pertinence et dominance structurelle) ; `relicQueue.ts` (résolution EXACTE de l'équipement d'un build — paire d'artéfacts ET relique, ensemble — la partie pure de la file `useArtifactOptimQueue`, et l'état de la relique d'un candidat pour l'écran) |
 | Tri | `tri.ts` (le SENS d'un tri, partagé par toutes les listes) |
 | Artéfacts | `artifacts.ts` |

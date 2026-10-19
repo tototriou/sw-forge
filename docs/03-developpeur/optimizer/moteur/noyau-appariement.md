@@ -15,12 +15,29 @@ Le noyau ne remplace que la boucle la plus intérieure de `pairBuckets`,
 celle des combinaisons B. L'ordre des paires de compartiments
 (`ordreDesCompartiments`, le même tas que `orderedCompartmentPairs`), les
 prédicats de compartiment et de combinaison A (`satisfiesSets`, jokers,
-`bucketPairFeasibleMin`, `comboAFeasible`, les fonctions mêmes) et tout ce
-qui suit le test rapide `quickOk` — sets réels, `computeStats`, test
-conjoint sur `artPossibles`, quasi-succès, collecte — sont ceux de
-`pairBuckets`. Il saute, sans les juger une à une, des paires qui
+``bucketPairFeasibleMin`, `comboAFeasible`, les fonctions mêmes) sont ceux
+de `pairBuckets`. Il saute, sans les juger une à une, des paires qui
 échoueraient SÛREMENT à `quickOk`, et rien d'autre : aucune heuristique de
 plus.
+
+Ce qui suit le test rapide — sets réels, stats, test conjoint sur
+`artPossibles`, quasi-succès, collecte — a deux écritures, de même
+résultat :
+
+- la **validation typée** (`ValidationTypee`, `src/lib/validationRapide.ts`,
+  appelée par `Collecteur.validerTypee`), prise dès que son contrat tient :
+  les sets se comptent sur les indices de set des six runes (joker compris),
+  les stats sont des sommes d'entiers exactes en `Float64` puis la même
+  expression que `computeStats`, opérande par opérande, et le test conjoint
+  suit la même suite d'opérations que `pairBuckets` ; les `StatRow` ne se
+  construisent que pour une paire gardée ou un quasi-succès amélioré ;
+- la **référence** (`Collecteur.valider`), copie conforme du bloc de
+  `pairBuckets`, quand le contrat de la validation typée ne tient pas
+  (une valeur sommée non entière ou non bornée : `ValidationTypee.motif`).
+
+L'appariement séquentiel et chaque Worker du parallèle décident de la même
+façon, sur le même pool ; le résultat dit lequel a servi
+(`cheminValidation`, `motifValidation`).
 
 Les demi-builds y sont rangés en tableaux typés (`encoderCompartiments`) :
 les trois runes de chacun (`Float64Array`, les identifiants du jeu dépassant
@@ -115,5 +132,13 @@ Tous fondés sur la même équivalence (`survivantsLigne`) :
   non tronqué, sous petit plafond, arrêté à un nombre de paires donné, puis
   réparti en morceaux rendus dans le désordre.
 
+`tests/validation-rapide.test.ts` (`testValidationRapide`) compare la
+validation typée à `activeSets`, `computeStats` et au test conjoint de
+`pairBuckets` : sur des cas écrits, paire par paire sur des demi-builds
+tirés, collecteur contre collecteur, puis l'appariement entier (séquentiel
+et parallèle simulé) contre `pairBuckets`, contrat tenu ou non.
+
 Sur les comptes réels, `scripts/banc-appariement-rapide.ts` compare le
-chemin de production à `pairBuckets` ([parallelisation.md § Vérifier un changement](parallelisation.md#vérifier-un-changement)).
+chemin de production à `pairBuckets` ([parallelisation.md § Vérifier un changement](parallelisation.md#vérifier-un-changement)),
+et `--controle-validation` y compare la validation typée à la référence,
+paire par paire, sur tout l'espace.

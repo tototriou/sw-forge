@@ -392,7 +392,7 @@ async function testCadenceTemps(liste: Espace[]): Promise<void> {
   ok(rendus.length === 2 && rendus[0].id === 0 && rendus[0].issue === 'arret' && rendus[0].traitees > 0 && rendus[0].traitees < m0.taille,
     `arrêt reçu entre deux tranches : le morceau en cours s’arrête à la ligne suivante (${rendus[0]?.traitees} / ${m0.taille} paires)`);
   ok(estPrefixe(rendus[0].candidats, e.reference.candidates), 'ce qu’il a trouvé est un préfixe du séquentiel');
-  egal(rendus[1], resultatVide(m1), 'le morceau qui attendait est rendu vide, sans calcul');
+  egal(rendus[1], resultatVide(m1, rendus[0].validationTypee), 'le morceau qui attendait est rendu vide, sans calcul');
 }
 
 /** Les mêmes décisions sur de VRAIS `worker_threads`, par le lanceur Node du harnais. */

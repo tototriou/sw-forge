@@ -149,6 +149,7 @@ import {
   testBladeSurgeLigneArtifactSearch,
 } from './blade-surge-propagation.test';
 import { testRecetteClesIdentifiant } from './recette-cles-identifiant.test';
+import { testChargerMonstreParIdentifiant } from './charger-monstre-identifiant.test';
 import testBladeDancersIgnoreDef,{ testBladeDancersRecette, testBladeDancersEcranEtCli } from './blade-dancers.test';
 import {
   testMecanismesSequenceDeCoups,
@@ -611,6 +612,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testAttaquesConjointesRecetteTransitions', testAttaquesConjointesRecetteTransitions],
   ['testAttaquesConjointesRecetteCli', testAttaquesConjointesRecetteCli],
   ['testRecetteClesIdentifiant', testRecetteClesIdentifiant],
+  ['testChargerMonstreParIdentifiant', testChargerMonstreParIdentifiant],
   ['testFormesEquivalentes', testFormesEquivalentes],
   ['testDegatsTempestFormule', testDegatsTempestFormule],
   ['testDegatsTempestDeclenchement', testDegatsTempestDeclenchement],

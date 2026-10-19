@@ -89,10 +89,10 @@ export function chargerRecette(
 
   const loaded =
     mode.type === 'rta'
-      ? loadRtaMonster(cheminCompte, recipe.monsterName)
+      ? loadRtaMonster(cheminCompte, recipe.monsterName, recipe.monsterCom2usId)
       : mode.type === 'siege'
         ? loadSiegeMonster({ exportPath: cheminCompte, deckId: mode.deckId, monsterName: recipe.monsterName, defense: mode.defense, rest: [] })
-        : loadBoxMonster(cheminCompte, recipe.monsterName);
+        : loadBoxMonster(cheminCompte, recipe.monsterName, recipe.monsterCom2usId);
   const modeLabel = mode.type === 'rta' ? 'RTA' : mode.type === 'siege' ? 'siège' : 'box';
 
   // Même nom, pas forcément le même monstre (homonymes de données,

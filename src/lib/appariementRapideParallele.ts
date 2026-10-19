@@ -120,6 +120,8 @@ export interface OptionsParallele {
   startedAt: number;
   /** Arrêt déterministe : l'état au point de passage `traitees = arretTraitees`. */
   arretTraitees?: number;
+  /** Tests seulement : la validation de référence dans chaque Worker. */
+  forcerValidation?: 'reference';
   /** Taille visée d'un morceau, en paires (défaut : `totalPaires / (travailleurs × 64)`, au moins 2 M). */
   cibleMorceau?: number;
 }
@@ -134,7 +136,8 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
     while (!step.done) step = gen.next();
     const r = step.value;
     return {
-      ...r, traitees: r.explored, visitees: r.explored, sautees: 0, chemin: 'actuel', motifChemin: motifContrat, compteurs: compteursVides(),
+      ...r, traitees: r.explored, visitees: r.explored, sautees: 0, chemin: 'actuel', motifChemin: motifContrat,
+      cheminValidation: 'reference', motifValidation: 'chemin actuel (pairBuckets)', compteurs: compteursVides(),
       motif: r.truncated ? (r.candidates.length >= prepared.maxCollected ? 'maxCollected' : 'maxMs') : 'aucun',
       morceaux: 0, morceauxTraites: 0, parTravailleur: [], plusGrosMorceau: 0, msPlanification: 0,
     };
@@ -154,6 +157,8 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
 
   const resultats: (ResultatMorceau | undefined)[] = new Array(aDistribuer.length);
   const parTravailleur: number[] = new Array(o.travailleurs).fill(0);
+  let validationsTypees = 0;
+  let validationsReference = 0;
 
   // État fusionné, dans l'ordre des morceaux.
   const candidates: BuildCandidate[] = [];
@@ -242,12 +247,17 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
     }
     for (let w = 0; w < nbTravailleurs; w++) {
       const { copie, transfert } = tampons();
-      const p = o.lancer({ params: o.params, startedAt: o.startedAt, compartiments: copie }, transfert);
+      const p = o.lancer(
+        { params: o.params, startedAt: o.startedAt, compartiments: copie, ...(o.forcerValidation ? { forcerValidation: o.forcerValidation } : {}) },
+        transfert
+      );
       poignees.push(p);
       p.surErreur((e) => reject(e));
       p.surMessage((r) => {
         enVol--;
         parTravailleur[w]++;
+        if (r.validationTypee) validationsTypees++;
+        else validationsReference++;
         resultats[r.id] = r;
         // Les tailles sont connues du plan : la fusion avance sur le préfixe contigu.
         while (!fini && prochainAFusionner < aDistribuer.length && resultats[prochainAFusionner]) {
@@ -282,7 +292,11 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
   return {
     candidates, explored: traitees, truncated,
     nearMissByCondition: Array.from(nearMissByCondition.values()), globalNearMiss,
-    traitees, visitees, sautees: traitees - visitees, chemin: 'noyau', compteurs,
+    traitees, visitees, sautees: traitees - visitees, chemin: 'noyau',
+    // Chaque Worker décide sur le même pool et le même contrat : un mélange serait une anomalie, dite.
+    cheminValidation: validationsReference === 0 ? 'typee' : 'reference',
+    ...(validationsReference > 0 ? { motifValidation: `${validationsReference} morceau(x) validé(s) par la référence, ${validationsTypees} typé(s)` } : {}),
+    compteurs,
     motif, morceaux: plan.length, morceauxTraites: parTravailleur.reduce((s, v) => s + v, 0), parTravailleur,
     plusGrosMorceau: plan.reduce((s, m) => Math.max(s, m.taille), 0), msPlanification,
   };

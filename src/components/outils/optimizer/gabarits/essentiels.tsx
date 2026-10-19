@@ -168,6 +168,7 @@ export const GABARITS_ESSENTIELS: Gabarit[] = [
       'Une seule liste (et non « Set principal » · « Set secondaire ») : deux fois le même set reste possible.',
       '« Sélectionne au moins un set… » tient sa place : il ne pousse plus les Conditions en paraissant.',
       'Liste fermée sans set : « Aucun ».',
+      'La liste reste ouverte pendant la composition (après un set de 4, il reste un set de 2 à choisir) ; elle se ferme d\'elle-même au choix qui remplit les six emplacements, sinon au clic ailleurs ou à Échap.',
     ],
     etats: [
       { id: 'aucun', nom: '0 set', rendu: () => <SetGabarit initial={[]} /> },
@@ -183,7 +184,8 @@ export const GABARITS_ESSENTIELS: Gabarit[] = [
     composant: 'PrincipalesImposeesBureau (bureau/PrincipalesImposeesBureau.tsx), composant à part, sur SelecteurMultiple (src/ui)',
     telephone: 'Aucun composant modifié : le téléphone garde StatPrincipaleImposee (puces).',
     changements: [
-      'Une rangée de puces par slot devient une liste à choix multiples par slot ; « Libre » quand rien n\'est coché ; un clic de plus pour voir ou changer les choix.',
+      'Une rangée de puces par slot devient une liste à choix multiples par slot ; « Libre » quand rien n\'est choisi ; un clic de plus pour voir ou changer les choix.',
+      'Ouverte, une liste classique (« forme 2 ») : chaque principale choisie en surbrillance, sans case ; un clic la choisit ou la retire, la liste reste ouverte.',
     ],
     etats: [
       { id: 'libres', nom: 'Principales libres', rendu: () => <PrincipalesGabarit initial={{}} /> },

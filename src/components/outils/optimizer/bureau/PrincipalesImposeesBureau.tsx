@@ -7,9 +7,11 @@ import { type StatPrincipaleImposeeProps } from '../StatPrincipaleImposee';
 export const LARGEUR_COLONNE_ETROITE = 170;
 
 // « Statistique principale imposée (slots pairs) », au bureau : une liste à
-// choix multiples par slot, « Libre » sans choix ; une ou plusieurs principales
-// cochées, comme les puces du téléphone (`StatPrincipaleImposee`, inchangé).
-// Mêmes props : le geste reste `toggleMainStat`, une principale à la fois.
+// choix multiples par slot, « Libre » sans choix, en « forme 2 » (liste
+// classique, chaque principale choisie en surbrillance, sans case) ; une ou
+// plusieurs principales, comme les puces du téléphone (`StatPrincipaleImposee`,
+// inchangé). Mêmes props : le geste reste `toggleMainStat`, une principale à la
+// fois. Surface de 160 px, plus large que le champ : « Dmg Crit » y tient.
 export default function PrincipalesImposeesBureau({ mainStatsBySlot, toggleMainStat }: StatPrincipaleImposeeProps) {
   return (
     <section
@@ -28,7 +30,8 @@ export default function PrincipalesImposeesBureau({ mainStatsBySlot, toggleMainS
                 libelle={`Slot ${slot}`}
                 taille="sm"
                 vide="Libre"
-                largeurSurface="w-36"
+                forme="surbrillance"
+                largeurSurface="w-40"
                 options={SLOT_MAIN_OPTIONS[slot].map((code) => ({ valeur: code, libelle: RUNE_EFFECT[code]?.label ?? String(code) }))}
                 valeurs={avant}
                 onChange={(suivantes) => {

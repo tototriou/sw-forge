@@ -1,4 +1,4 @@
-import { type RefObject } from 'react';
+import { useState, type RefObject } from 'react';
 import SetComboPicker from '../../SetComboPicker';
 import RuneIcon from '../../../RuneIcon';
 import { TitreCriteresRecherche } from '../CriteresRecherche';
@@ -25,8 +25,17 @@ export interface SetDeRunesCompactProps {
 //
 // ⚠️ **Le message « Sélectionne au moins un set… » tient sa place**, invisible
 // le reste du temps : il ne pousse plus les Conditions quand il paraît.
+//
+// ⚠️ **La liste reste ouverte pendant la composition** (après un set de 4, il
+// reste un set de 2 à choisir) : elle ne se ferme d'elle-même qu'au choix qui
+// remplit les six emplacements, sinon au clic ailleurs ou à Échap.
 export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvalid, comboSets, onChangeSets }: SetDeRunesCompactProps) {
+  const [ouvert, setOuvert] = useState(false);
   const noms = comboSets.map((key) => RUNE_SETS.find((s) => s.key === key)?.label ?? key);
+  const changer = (next: string[]) => {
+    onChangeSets(next);
+    if (setsCost(next) >= 6 && setsCost(next) > setsCost(comboSets)) setOuvert(false);
+  };
   return (
     <section aria-label="Critères de recherche" style={{ width: LARGEUR_ESSENTIELS }} className="rounded-xl border border-border bg-panel p-3">
       <TitreCriteresRecherche className="mb-2" />
@@ -54,7 +63,9 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
                 }
               : undefined
           }
-          surface={<SetComboPicker sets={comboSets} onChange={onChangeSets} />}
+          ouvert={ouvert}
+          onOuvertChange={setOuvert}
+          surface={<SetComboPicker sets={comboSets} onChange={changer} />}
         />
         <p className={`mt-1 text-micro font-semibold text-bad ${setPickerInvalid ? '' : 'invisible'}`} aria-hidden={!setPickerInvalid}>
           Sélectionne au moins un set avant de lancer la recherche.

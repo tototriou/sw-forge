@@ -39,9 +39,11 @@ export function testRenduOptimizerGabaritsComposants() {
   // Les principales : une liste à choix multiples par slot pair.
   const libres = rendre(<PrincipalesImposeesBureau mainStatsBySlot={{}} toggleMainStat={rien} />);
   ok(['Slot 2 : Libre', 'Slot 4 : Libre', 'Slot 6 : Libre'].every((n) => !!bouton(libres, n)), 'principales libres : trois listes, « Libre »');
-  egal((libres.match(/type="checkbox"/g) ?? []).length, 14, 'principales : chaque principale possible a sa case (4 + 5 + 5)');
+  egal((libres.match(/type="checkbox"/g) ?? []).length, 0, 'principales : aucune case (forme 2, surbrillance)');
+  egal((libres.match(/aria-pressed="false"/g) ?? []).length, 14, 'principales : chaque principale possible est une valeur de la liste (4 + 5 + 5)');
   const choisies = rendre(<PrincipalesImposeesBureau mainStatsBySlot={{ 4: [9, 10] }} toggleMainStat={rien} />);
   ok(!!bouton(choisies, 'Slot 4 : Taux Crit, Dmg Crit'), 'principales choisies : le slot résume ses choix');
+  egal(boutons(choisies).filter((b) => b.presse).map((b) => b.texte), ['Taux Crit', 'Dmg Crit'], 'principales choisies : en surbrillance dans la liste');
   ok(texteVisible(libres).includes('Statistique principale imposée (slots pairs)'), 'principales : le titre de l\'app');
 
   // Le set compact : fermé sur les sets choisis, la grille d'ajout dans la surface.

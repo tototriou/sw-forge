@@ -252,14 +252,15 @@ export const ECRANS: Ecran[] = [
         libelle: 'réglages avancés ouverts',
         // Au téléphone, « Réglages avancés » vit dans le panneau « Options de
         // recherche », ouvert par le bouton de la barre d'onglets ; à
-        // l'ordinateur, c'est une carte repliée qui s'ouvre d'un clic.
+        // l'ordinateur, en ligne dans la colonne repliable « Aura, exclusion,
+        // avancés », ouverte par son onglet.
         preparation: {
           telephone: [{ cliquer: { role: 'button', nom: 'Filtres et actions de la page' } }],
-          ordinateur: [{ cliquer: { role: 'button', nom: 'Réglages avancés' } }],
+          ordinateur: [{ cliquer: { role: 'button', nom: 'Aura, exclusion, avancés' } }],
         },
         atteint: {
           telephone: [{ role: 'dialog', nom: 'Options de recherche' }],
-          ordinateur: [{ role: 'button', nom: 'Réglages avancés', etendu: true }],
+          ordinateur: [{ role: 'switch', nom: "Rechercher jusqu'à épuisement complet" }],
         },
       },
       {

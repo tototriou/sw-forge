@@ -43,21 +43,28 @@ export function testRenduOptimizerReglagesAvancesContenu() {
   titre('rendu · Optimizer — contenu des réglages avancés, au bureau et au téléphone');
   const ANCRE = 'Pré-filtrage par emplacement';
   const noms = (html: string) => interrupteurs(html, ANCRE).map((x) => x.nom);
-  const bureau = rendreOptimizer(AVEC_MONSTRE);
-  const telephone = auTelephone(() => rendreOptimizer({ selectedId: CHOISI, comboSets: ['violent'] }, true));
-  egal(noms(bureau), [EPUISEMENT, DIAGNOSTIC, PRIORISER, VERIFIER, COMPTER], 'bureau (flottant ouvert) : les interrupteurs, l’interrupteur des auras en dernier');
-  egal(noms(telephone), [EPUISEMENT, DIAGNOSTIC, PRIORISER, VERIFIER, COMPTER], 'téléphone (panneau « Options ») : le même contenu');
-  const sansFile = rendreOptimizer({ ...AVEC_MONSTRE, optimiserArtefacts: false });
+  // Au bureau, le même contenu vit dans la colonne « Aura, exclusion,
+  // avancés », fermée par défaut : un rendu serveur ne l'ouvre pas (son
+  // ouverture et son contenu au bureau : `testRendu…OptimizerEcranReglagesAvances`,
+  // au navigateur). Le contenu se lit ici dans le panneau « Options ».
+  const options = (etat: Record<string, unknown>) => auTelephone(() => rendreOptimizer(etat, true));
+  // (Sans `showAdvanced` : au téléphone, l'ancien flottant du bureau, monté
+  // masqué, doublerait le contenu.)
+  const MONSTRE = { selectedId: CHOISI, comboSets: ['violent'] };
+  ok(!rendreOptimizer(AVEC_MONSTRE).includes(ANCRE), 'bureau : colonne « Aura, exclusion, avancés » fermée par défaut, aucun réglage avancé monté');
+  const telephone = options(MONSTRE);
+  egal(noms(telephone), [EPUISEMENT, DIAGNOSTIC, PRIORISER, VERIFIER, COMPTER], 'panneau « Options » : les interrupteurs, l’interrupteur des auras en dernier');
+  const sansFile = options({ ...MONSTRE, optimiserArtefacts: false });
   egal(noms(sansFile), [EPUISEMENT, DIAGNOSTIC, PRIORISER, COMPTER],
     'sans optimisation d’artéfacts : « Vérifier toutes… » masqué, l’interrupteur des auras rendu sans condition, en dernier');
 
   const etat = (html: string, nom: string) => interrupteurs(html, ANCRE).find((x) => x.nom === nom)?.coche;
-  ok(etat(bureau, COMPTER) === true && etat(rendreOptimizer({ ...AVEC_MONSTRE, compterAurasResPre: false }), COMPTER) === false,
+  ok(etat(telephone, COMPTER) === true && etat(options({ ...MONSTRE, compterAurasResPre: false }), COMPTER) === false,
     'l’interrupteur des auras affiche `compterAurasResPre`');
-  ok(etat(bureau, VERIFIER) === false && etat(rendreOptimizer({ ...AVEC_MONSTRE, verifierToutesLesCombinaisons: true }), VERIFIER) === true,
+  ok(etat(telephone, VERIFIER) === false && etat(options({ ...MONSTRE, verifierToutesLesCombinaisons: true }), VERIFIER) === true,
     '« Vérifier toutes… » affiche `verifierToutesLesCombinaisons`');
 
-  for (const [nom, html] of [['bureau', bureau], ['téléphone', telephone]] as const) {
+  for (const [nom, html] of [['téléphone', telephone]] as const) {
     const t = texteVisible(html);
     ok(t.includes(COMPTER) && t.includes(VERIFIER), `${nom} : les deux rangées portent leur libellé exact`);
     const aides = boutons(html).filter((b) => b.ariaLabel === COMPTER || b.ariaLabel === VERIFIER).map((b) => b.ariaLabel);

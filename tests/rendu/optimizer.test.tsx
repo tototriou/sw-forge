@@ -111,14 +111,26 @@ export function testRenduOptimizerVide() {
   const t = texteVisible(html);
   ok(t.startsWith(BETA), 'le bandeau bêta, en tête');
   ok(t.includes("Recherche parmi tes runes possédées ; rien n'est appliqué à ton compte, l'outil est purement indicatif — c'est à toi de re-runer dans le jeu."), 'ce que fait l\'outil, et ce qu\'il ne fait pas');
-  for (const carte of ['Monstre & équipement', 'Critères de recherche', 'Artéfacts', 'Sous-propriétés verrouillées', 'État de mon monstre', 'Réglages avancés', 'Exclusion de runes', 'Objectif de recherche'])
+  // Au bureau (rendu serveur : format bureau, largeur inconnue), la page en
+  // colonnes : essentiels, contrôle à onglets, « Artéfacts et relique »
+  // ouverte par défaut, « Aura, exclusion, avancés » fermée, colonne de droite.
+  for (const carte of ['Critères de recherche', 'Artéfacts', 'Sous-propriétés verrouillées', 'État de mon monstre', 'Objectif de recherche'])
     ok(t.includes(carte), `la carte « ${carte} »`);
+  ok(!t.includes('Monstre & équipement'), 'au bureau, plus de carte « Monstre & équipement » : la liste de travail ouvre les essentiels, « Exemplaire » a sa carte');
+  ok(bouton(html, 'Artéfacts et relique')?.presse === true && bouton(html, 'Aura, exclusion, avancés')?.presse === false,
+    'le contrôle à onglets : « Artéfacts et relique » ouverte, « Aura, exclusion, avancés » fermée');
+  ok(!t.includes('Réglages avancés') && !t.includes('Exclusion de runes') && !t.includes('Sets d\'aura des autres monstres'),
+    '« Réglages avancés », « Exclusion de runes » et les sets d\'aura attendent l\'ouverture de leur colonne');
   ok(valeurs(html, 'placeholder').includes('Rechercher un monstre…'), 'la recherche du monstre à optimiser');
   ok(/Liste active Aucune liste — choisir ou créer .*Importer une équipe.* Monstres de la liste/.test(t), 'les listes de travail : liste active et import sur une ligne, puis la zone des membres');
   ok(t.includes(`Exemplaire ${SOURCES}`), 'l\'exemplaire, avec ses quatre sources');
   ok(bouton(html, 'Valider ce build')?.desactive === true, '« Valider ce build » désactivé sans résultat');
   ok(bouton(html, 'Rechercher')?.desactive === true, '« Rechercher » désactivé sans monstre');
-  ok(t.includes('Set de runes recherché 0/6 runes Set principal Set secondaire'), 'le set recherché, vide');
+  ok(t.includes('Set de runes recherché 0/6 runes') && !!bouton(html, 'Set de runes recherché : Aucun'), 'le set recherché, vide : la liste compacte dit « Aucun »');
+  // Au téléphone, la grille d'aujourd'hui, inchangée.
+  const telephone = texteVisible(auTelephone(() => rendreOptimizer()));
+  ok(telephone.includes('Monstre & équipement') && telephone.includes('Set de runes recherché 0/6 runes Set principal Set secondaire'),
+    'au téléphone : « Monstre & équipement » et le set recherché en grille, comme avant');
 }
 
 export function testRenduOptimizerMonstre() {
@@ -126,17 +138,18 @@ export function testRenduOptimizerMonstre() {
   const html = rendreOptimizer(AVEC_MONSTRE);
   const t = texteVisible(html);
   const b = boutons(html);
-  ok(t.includes('Monstre à optimiser Devilmon'), 'le monstre choisi');
+  ok(/data-monstre-actif[^>]*>[\s\S]{0,400}?Devilmon/.test(html), 'le monstre choisi, sur la rangée du titre de la liste');
   ok(t.includes('PV 1 500 +180 ATQ 700 +160 DEF 500 — VIT 101 +80 Taux Crit 15% — Dmg Crit 50% +63% RES 15% +63% Précision 0% +7%'), 'ses stats : base et bonus de l\'équipement');
   ok(t.includes('Relique PV +11%'), 'sa relique');
   ok(!!bouton(html, 'Créer une liste et y ajouter Devilmon'), 'l\'ajouter à une nouvelle liste');
-  ok(t.includes('Set de runes recherché Violent 4/6 runes'), 'le set choisi et son coût en runes');
+  ok(t.includes('Set de runes recherché 4/6 runes') && !!bouton(html, 'Set de runes recherché : Violent'), 'le set choisi et son coût en runes');
   ok(!!b.find((x) => x.ariaLabel === 'Retirer Violent'), 'retirer le set choisi');
   for (const set of ['Swift', 'Despair', 'Rage', 'Fatal', 'Vampire'])
     ok(b.find((x) => x.ariaLabel === set)?.desactive === true, `${set} (4 pièces) désactivé : il ne reste pas la place`);
   for (const set of ['Will', 'Blade', 'Energy', 'Guard', 'Focus', 'Seal'])
     ok(b.find((x) => x.ariaLabel === set)?.desactive === false, `${set} (2 pièces) encore possible`);
-  ok(t.includes('Statistique principale imposée (slots pairs) Slot 2 PV% ATQ% DEF% VIT Slot 4 PV% ATQ% DEF% Taux Crit Dmg Crit Slot 6 PV% ATQ% DEF% RES Précision'), 'la statistique principale imposée, slot par slot');
+  ok(t.includes('Statistique principale imposée (slots pairs)') && ['Slot 2 : Libre', 'Slot 4 : Libre', 'Slot 6 : Libre'].every((n) => !!bouton(html, n)),
+    'la statistique principale imposée, une liste par slot');
   ok(t.includes('Conditions Stats de base exclues'), 'les conditions, stats de base exclues');
   ok(
     t.includes('Min Max PV Min Max ATQ Min Max DEF Min Max VIT Min Max Taux Crit % Min % Max Dmg Crit % Min % Max RES % Min % Max Précision % Min % Max'),
@@ -161,11 +174,19 @@ export function testRenduOptimizerReglages() {
   const html = rendreOptimizer(AVEC_MONSTRE);
   const t = texteVisible(html);
   const b = boutons(html);
-  ok(t.includes('Réglages avancés Pré-filtrage par emplacement'), 'le pré-filtrage par emplacement');
-  for (const p of PALIERS) ok(!!b.find((x) => x.texte === p && x.title), `le palier « ${p} », expliqué`);
-  ok(b.find((x) => x.texte === 'Moyen')?.presse === true, '« Moyen » par défaut');
+  // Au bureau, « Réglages avancés » vit dans la colonne « Aura, exclusion,
+  // avancés », fermée par défaut (son ouverture au clic de l'onglet :
+  // `testRendu…OptimizerEcranReglagesAvances`, au navigateur). Son contenu,
+  // le même composant, se lit ici dans le panneau « Options » du téléphone.
+  ok(!t.includes('Pré-filtrage par emplacement') && bouton(html, 'Aura, exclusion, avancés')?.presse === false,
+    'au bureau : les réglages avancés attendent l\'ouverture de leur colonne');
+  const panneau = auTelephone(() => rendreOptimizer(AVEC_MONSTRE, true));
+  const bp = boutons(panneau);
+  ok(texteVisible(panneau).includes('Réglages avancés Pré-filtrage par emplacement'), 'le pré-filtrage par emplacement');
+  for (const p of PALIERS) ok(!!bp.find((x) => x.texte === p && x.title), `le palier « ${p} », expliqué`);
+  ok(bp.find((x) => x.texte === 'Moyen')?.presse === true, '« Moyen » par défaut');
   for (const r of ["Rechercher jusqu'à épuisement complet", 'Diagnostic approfondi sur 0 résultat', 'Prioriser les stats les plus difficiles'])
-    ok(b.some((x) => x.ariaLabel === r), `l'option « ${r} »`);
+    ok(bp.some((x) => x.ariaLabel === r), `l'option « ${r} »`);
   ok(t.includes('Objectif de recherche Efficience'), 'l\'objectif de recherche');
   ok(b.find((x) => x.texte === 'Efficience')?.presse === true, 'l\'efficience par défaut');
   for (const o of ['PV effectifs', 'Vitesse']) ok(b.some((x) => x.texte === o), `l'objectif « ${o} »`);

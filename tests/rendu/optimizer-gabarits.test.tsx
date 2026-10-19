@@ -134,7 +134,10 @@ export function testRenduOptimizerGabaritsAdresse() {
   // Hors développement (`import.meta.env.DEV` faux, comme en production), la
   // page de l'Optimizer s'affiche, quelle que soit l'adresse.
   const page = texteVisible(rendre(pageOptimizer()));
-  ok(page.includes('Monstre & équipement') && !page.includes('Gabarits de l\'Optimizer'), 'hors développement : la page de l\'Optimizer, jamais la vue');
+  // La page de bureau (rendu serveur : format bureau) : son contrôle à onglets
+  // la signe, « Monstre & équipement » n'y est plus.
+  ok(page.includes('Critères de recherche') && page.includes('Aura, exclusion, avancés') && !page.includes('Gabarits de l\'Optimizer'),
+    'hors développement : la page de l\'Optimizer, jamais la vue');
 }
 
 // OutilsPage avec l'état réel du hook, rendu comme dans l'app.

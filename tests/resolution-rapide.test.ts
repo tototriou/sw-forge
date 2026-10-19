@@ -1,11 +1,10 @@
 // Différentiel du PROTOTYPE de résolution de l'équipement
-// (src/lib/resolutionRapide.ts, chantier perf-moteur, lots 2 quater et 2
-// quater bis) contre `resoudreEquipementDuBuild` de production, build par
+// (src/lib/resolutionRapide.ts, non branché en production) contre `resoudreEquipementDuBuild` de production, build par
 // build : pour un build conforme, résultat ENTIER identique (paire, artéfacts,
 // stats, `meilleurSansVerrous`, conformité, relique, `sansEffetSurLeTri`) ;
-// pour un build rejeté, sans diagnostic (D14, le chemin de l'app) le résultat
+// pour un build rejeté, sans diagnostic (le chemin de l'app) le résultat
 // « aucune paire », avec `diagnostic` celui de la production ; mêmes erreurs.
-// Les notes NaN (D15) : `testResolutionRapideNaN`.
+// Les notes NaN : `testResolutionRapideNaN`.
 //
 // Référence de contrôle (`algo-verify`) : la production elle-même, qui note
 // toutes les paires de toutes les reliques éligibles — exhaustive par
@@ -136,7 +135,7 @@ const memes = (a: Issue, b: Issue) => isDeepStrictEqual(a, b);
 const conformeDe = (i: Issue) => ('r' in i ? i.r.conforme : null);
 const apercu = (i: Issue) => JSON.stringify(i).slice(0, 160);
 
-// Ce que le prototype doit rendre SANS diagnostic (D14), lu sur la référence
+// Ce que le prototype doit rendre SANS diagnostic, lu sur la référence
 // de production : une erreur ou un build conforme à l'identique ; un build
 // rejeté, le résultat que la production rend quand aucune paire n'existe
 // (ni paire, ni artéfact ; stats du build sans artéfact, relique portée hors
@@ -284,7 +283,7 @@ function avecNaN(e: EntreeResolution, nan: (arts: ArtifactDetail[], faisable: bo
 }
 
 /**
- * D15 : notes NaN. Relique `recherche` et relique portée (`equipped`).
+ * Notes NaN. Relique `recherche` et relique portée (`equipped`).
  *
  * - NaN sur des paires FAISABLES (une sur trois, par identifiant de
  *   l'attribut) : le build est résolu par la production — même résultat, ou
@@ -296,7 +295,7 @@ function avecNaN(e: EntreeResolution, nan: (arts: ArtifactDetail[], faisable: bo
  *   sans ce NaN. Le résultat de la production AVEC ce NaN peut différer (son
  *   tri, comparateur incohérent, ordonne autrement les faisables) : le test
  *   le CONSTATE (compte des écarts), sans l'exiger égal. Cas non couvert,
- *   accepté par D15.
+ *   accepté.
  */
 export function testResolutionRapideNaN() {
   titre('Prototype de résolution — notes NaN : repli sur la production, cas non couvert documenté');

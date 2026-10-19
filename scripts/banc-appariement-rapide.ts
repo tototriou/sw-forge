@@ -82,7 +82,7 @@ const WORKERS = (valeur('workers') ?? 'prod')
   .split(',')
   .map((w) => (w.trim() === 'prod' ? nombreDeTravailleurs(availableParallelism()) : Number(w)))
   .filter((n) => n > 0);
-// Le corpus du différentiel complet (A.2 bis 4) : au-delà de 2 M candidats, le
+// Le corpus du différentiel complet (candidats, compteurs et quasi-succès comparés) : au-delà de 2 M candidats, le
 // cas en sort ; le plafond est posé juste au-dessus pour le constater.
 const PLAFOND_CORPUS = 2_000_000;
 const sortie = valeur('sortie');
@@ -121,7 +121,7 @@ function sources(): Source[] {
 }
 
 /* --------------------------------------------------------------------------
- * État comparé (A.2 bis 4) et empreintes
+ * État comparé (candidats, compteurs et quasi-succès) et empreintes
  * ----------------------------------------------------------------------- */
 
 interface Etat {

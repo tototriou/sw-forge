@@ -60,7 +60,7 @@ export const TAILLE_BLOC = 64;
 /** La dichotomie est prise quand la stat la plus sélective laisse au plus `n / FACTEUR_DICHOTOMIE` comboB. */
 export const FACTEUR_DICHOTOMIE = 4;
 
-// Bornes du contrat numérique (A.2 bis 6) : valeurs entières, produits
+// Bornes du contrat numérique : valeurs entières, produits
 // `b × p` exacts en Float64 avec une large marge, `W` dans un Int32.
 const BORNE_BASE = 2 ** 20;
 const BORNE_VALEUR = 2 ** 20;
@@ -277,7 +277,7 @@ export function constantesNoyau(prepared: PreparedSearch): ConstantesNoyau {
 }
 
 /**
- * Le contrat numérique (A.2 bis 6), vérifié AVANT toute paire. Rend `null`
+ * Le contrat numérique (valeurs entières, produits exacts), vérifié AVANT toute paire. Rend `null`
  * s'il tient, sinon le motif du repli sur le chemin actuel.
  */
 export function verifierContrat(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): string | null {

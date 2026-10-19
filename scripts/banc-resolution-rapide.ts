@@ -1,9 +1,10 @@
 // Banc du PROTOTYPE de résolution de l'équipement (src/lib/resolutionRapide.ts,
-// chantier perf-moteur, lots 2 quater et 2 quater bis) : la résolution du CLI
+// non branché en production) : la résolution du CLI
 // (`resoudreEquipementCli`, celle de la file de l'écran) et le prototype, sur
 // les MÊMES builds d'une recette réelle, comparés build par build — en
 // entier avec `--diagnostic`, hors le diagnostic d'un build rejeté sans lui
-// (D14 : le prototype rend alors le résultat « aucune paire »).
+// (le prototype rend alors le résultat « aucune paire », sans le diagnostic
+// d'un build rejeté, jamais montré à l'écran).
 //
 // Usage :
 //   npx tsx scripts/banc-resolution-rapide.ts --compte=<export.json> --recette=<recette.json>
@@ -21,9 +22,9 @@
 // ⚠️ **Fidélité** (skill `algo-verify`) : les candidats viennent de la
 // recherche de la recette au plafond de production (`MAX_COLLECTED`), `maxMs`
 // levé (override MARQUÉ en tête de sortie), préparation par `prepareSearch`,
-// moitiés par les Workers de production, appariement par le prototype du lot 2
-// (`apparierRapide`, séquentiel, égal à `pairBuckets` au différentiel du lot
-// 2). La référence est `resoudreEquipementCli` lui-même, sans copie ; le
+// moitiés par les Workers de production, appariement par le noyau rapide
+// (`apparierRapide`, séquentiel, égal à `pairBuckets` au différentiel
+// d'appariement). La référence est `resoudreEquipementCli` lui-même, sans copie ; le
 // prototype reçoit l'entrée assemblée comme lui (`entreeResolutionDuBuild`,
 // mêmes arguments) : une divergence d'assemblage se verrait comme un écart.
 // La référence résout dans l'ordre de collecte, le prototype à REBOURS, chacun
@@ -78,7 +79,7 @@ async function candidats(params: SearchParams, fichier: string | undefined, dire
   return ids;
 }
 
-// Ce que le prototype rend SANS diagnostic (D14), lu sur la référence : un
+// Ce que le prototype rend SANS diagnostic, lu sur la référence : un
 // build conforme à l'identique ; un build rejeté, le résultat de la
 // production quand aucune paire n'existe (stats du build sans artéfact ;
 // relique portée hors mode `recherche`, aucune en `recherche`).
@@ -161,7 +162,7 @@ async function main(): Promise<number> {
     fiche: loaded.gear, runes: runesDe(i), artifactParams: a.params, regime, degats: a.degats, exclusive,
     requirement: params.requirement, relicContext: params.relicContext, caches,
   });
-  dire(`Prototype : ${diagnostic ? 'AVEC diagnostic (option du CLI et du harnais) — comparé en entier' : 'SANS diagnostic (chemin de l’app, D14) — comparé hors le diagnostic d’un build rejeté'}`);
+  dire(`Prototype : ${diagnostic ? 'AVEC diagnostic (option du CLI et du harnais) — comparé en entier' : 'SANS diagnostic (chemin de l’app) — comparé hors le diagnostic d’un build rejeté'}`);
   const caches = nouveauxCachesResolution();
   const rapide = new CachesResolutionRapide();
   const compteurs = compteursVides();

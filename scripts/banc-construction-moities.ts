@@ -1,5 +1,5 @@
 // Banc du PROTOTYPE de construction des moitiés (src/lib/constructionRapide.ts,
-// chantier perf-moteur, lot 2 bis) : sur des cas RÉELS, `prepareSearch` de
+// non branché en production) : sur des cas RÉELS, `prepareSearch` de
 // production, puis `buildBuckets` de production et les deux versions du
 // prototype (séquentielle, et tranches dans de vrais `worker_threads` + fusion),
 // avec l'égalité PROFONDE des compartiments (`premiereDivergence`) et le temps

@@ -125,10 +125,14 @@ function ConditionsGabarit({ ctx, min, max }: { ctx: ContexteGabarits; min: Stat
 
 function EtatGabarit({ ctx, patch = {}, equipe = false }: { ctx: ContexteGabarits; patch?: Partial<DamageSetup>; equipe?: boolean }) {
   const [setup, setSetup] = useState<DamageSetup>(() => ({ ...ctx.optimizer.lireCombatMembre().setup, ...patch }));
-  // Le motif est celui que l'app calcule pour un membre d'équipe d'une liste
-  // sans contenu de combat (`leadEffectifMembreOptimizer`), jamais recopié ici.
+  // Le motif est celui que l'app calcule pour un membre d'une équipe dont le
+  // lead d'Arène est inactif en donjon (`leadEffectifMembreOptimizer`), jamais
+  // recopié ici. (Celui d'une liste sans contenu de combat ne s'affiche jamais.)
   const selecteur = { source: 'unowned' as const, monsterId: 'gabarit' };
-  const lead = leadEffectifMembreOptimizer({ teams: [{ id: 'e', listId: 'l', members: [selecteur], lead: null }], listContents: new Map() }, 'l', selecteur, 'fire');
+  const lead = leadEffectifMembreOptimizer({
+    teams: [{ id: 'e', listId: 'l', members: [selecteur], lead: { stat: 'Attack Speed', amount: 24, area: 'Arena', element: null } }],
+    listContents: new Map([['l', 'donjon']]),
+  }, 'l', selecteur, 'fire');
   return <EtatMonstreEssentiels setup={setup} maj={(p) => setSetup((s) => ({ ...s, ...p }))} equipe={equipe}
     motifLead={equipe && lead.type === 'aucun' ? lead.motif : null} etroit={false} artefacts={artifactDamageProfile([])} rappelsBuffs={[]} />;
 }

@@ -72,12 +72,14 @@
    hauteur ; sa place reste réservée avant le choix d'un lead.
 
    Pour un membre lié, le menu montre le **lead effectif**, ou « Aucun » avec
-   son motif si le lead n’agit pas sur lui. La phrase sous les deux groupes
-   dit que le modifier change le lead de toute l’équipe et que chaque membre
-   le garde en quittant l’équipe. Le type et la valeur changent le lead
-   partagé ; portée et élément se règlent dans le dialogue d’équipe. Cette
-   explication et le motif ont une place réservée, au bureau comme au
-   téléphone. Le lead effectif écrase le lead personnel du membre, dans ses
+   son motif si le lead n’agit pas sur lui. Le type et la valeur changent le
+   lead partagé ; portée et élément se règlent dans le dialogue d’équipe. Le
+   motif a une place réservée sous les deux groupes, au bureau comme au
+   téléphone. ⚠️ **Aucune phrase d’explication du lead d’équipe, et jamais le
+   motif « contenu de combat de la liste non défini »** (décision de
+   l’utilisateur : « Je ne veux jamais le voir ») : la carte filtre ce motif
+   (`motifLeadAffiche`, equipesOptimizer.ts), que le repère ⚠ de la liste et
+   le rapport d’import gardent. Le lead effectif écrase le lead personnel du membre, dans ses
    critères et sa mémoire, et lui reste quand il quitte l’équipe. Voir
    ../feat-listes-equipes-et-sauvegarde.md § Lead effectif d’un membre.
 

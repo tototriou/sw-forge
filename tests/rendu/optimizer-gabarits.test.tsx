@@ -16,6 +16,7 @@ import EtatMonstreEssentiels from '../../src/components/outils/optimizer/bureau/
 import { ADRESSE_GABARITS, estAdresseGabarits } from '../../src/lib/optimizerGabarits';
 import { parseAccountInventory } from '../../src/lib/importAccount';
 import { DEFAULT_DAMAGE_SETUP, artifactDamageProfile } from '../../src/lib/damage';
+import { MOTIF_CONTENU_NON_DEFINI } from '../../src/lib/equipesOptimizer';
 import type { Monster } from '../../src/types';
 import { egal, exportSynthetique, faussLocalStorage, monstersJson, ok, titre } from '../outils';
 import { bouton, boutons, rendre, texteVisible } from './outils-rendu';
@@ -67,9 +68,12 @@ export function testRenduOptimizerGabaritsComposants() {
   ok(['Buff ATQ', 'Buff DEF', 'Buff VIT'].every((b) => !!bouton(etat, b)), 'état : les trois buffs');
   ok(/aria-label="Type de leader skill"/.test(etat), 'état : le choix du lead');
   ok(!texteVisible(etat).includes('Sets d\'aura des autres monstres'), 'état : les sets d\'aura n\'y sont plus');
-  const motif = 'Le contenu de combat de la liste n’est pas défini : aucun lead d’équipe appliqué.';
-  ok(texteVisible(rendre(<EtatMonstreEssentiels setup={DEFAULT_DAMAGE_SETUP} maj={rien} etroit={false} equipe motifLead={motif}
-    artefacts={artifactDamageProfile([])} rappelsBuffs={[]} />)).includes(motif), 'état d\'un membre d\'équipe : le motif du lead inactif');
+  const membre = (motif: string) => texteVisible(rendre(<EtatMonstreEssentiels setup={DEFAULT_DAMAGE_SETUP} maj={rien} etroit={false} equipe motifLead={motif}
+    artefacts={artifactDamageProfile([])} rappelsBuffs={[]} />));
+  const inactive = 'Cette portée de lead est inactive pour ce contenu.';
+  ok(membre(inactive).includes(inactive), 'état d\'un membre d\'équipe : le motif du lead inactif');
+  ok(!membre(inactive).includes('Lead effectif de l’équipe'), 'état d\'un membre d\'équipe : aucune phrase d\'explication du lead d\'équipe');
+  ok(!membre(MOTIF_CONTENU_NON_DEFINI).includes('n’est pas défini'), 'état d\'un membre d\'équipe : jamais le motif « contenu de combat non défini »');
 }
 
 function BancVue() {

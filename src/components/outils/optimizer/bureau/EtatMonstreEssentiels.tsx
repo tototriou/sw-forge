@@ -2,6 +2,7 @@ import EffetVignette from '../../EffetVignette';
 import { LeaderSkillPicker, RappelsEtatMonstre, TitreEtatMonstre } from '../../EtatMonstre';
 import { LARGEUR_COLONNE_ETROITE } from './PrincipalesImposeesBureau';
 import { type ComponentProps } from 'react';
+import { motifLeadAffiche } from '../../../../lib/equipesOptimizer';
 import { ATK_BUFF_ICON, DEF_BUFF_ICON, SPD_BUFF_ICON, type ArtifactDamageProfile, type DamageSetup } from '../../../../lib/damage';
 
 // Le type des rappels vient de la carte : seuls l'écran et la carte importent
@@ -47,8 +48,7 @@ export default function EtatMonstreEssentiels({ setup, maj, equipe = false, moti
       </div>
       {equipe && (
         <p className="h-20 overflow-y-auto text-xs text-ink-dim">
-          Lead effectif de l’équipe : le modifier change le lead de toute l’équipe. Chaque membre le garde en quittant l’équipe.
-          {motifLead && <span className="block text-warn">{motifLead}</span>}
+          {motifLeadAffiche(motifLead) && <span className="block text-warn">{motifLeadAffiche(motifLead)}</span>}
         </p>
       )}
       <RappelsEtatMonstre setup={setup} artefacts={artefacts} rappelsBuffs={rappelsBuffs} />

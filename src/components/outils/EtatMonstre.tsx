@@ -6,6 +6,7 @@ import { Bouton, BoutonIcone, Jeton, NumberField, Selecteur } from '../../ui';
 import type { RappelBuffDePassif } from '../../lib/buffsDePassif';
 import HelpPopover from '../HelpPopover';
 import EffetVignette from './EffetVignette';
+import { motifLeadAffiche } from '../../lib/equipesOptimizer';
 import { ATK_BUFF_ICON, DEF_BUFF_ICON, SPD_BUFF_ICON } from '../../lib/damage';
 import {
   PLAFOND_AURAS_EXTERNES,
@@ -151,8 +152,12 @@ export default function EtatMonstre({
 
       <AurasExternesSaisie setup={setup} maj={maj} rappel={rappelAuras} onGuiderResPre={onGuiderResPre} />
       </div>
-      {equipe && <p className="h-20 overflow-y-auto text-xs text-ink-dim">Lead effectif de l’équipe : le modifier change le lead de toute l’équipe. Chaque membre le garde en quittant l’équipe.
-        {motifLead && <span className="block text-warn">{motifLead}</span>}
+      {/* ⚠️ Pour un membre d'équipe, seul le motif d'un lead inactif, à place
+          réservée (le choix du lead, juste au-dessus, peut le faire paraître).
+          Ni phrase d'explication du lead d'équipe ni motif « contenu de combat
+          non défini » : l'utilisateur ne veut jamais les voir (`motifLeadAffiche`). */}
+      {equipe && <p className="h-20 overflow-y-auto text-xs text-ink-dim">
+        {motifLeadAffiche(motifLead) && <span className="block text-warn">{motifLeadAffiche(motifLead)}</span>}
       </p>}
       {/* ⚠️ **Rappel des buffs posés par un passif** :
           même grammaire que les lignes d'amplification juste dessous (texte

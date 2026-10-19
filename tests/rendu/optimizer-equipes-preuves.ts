@@ -50,7 +50,7 @@ export async function preuvesLeadEquipeOptimizer(b: Banc): Promise<[boolean, str
   await choisirMenu(b, 'Valeur du leader skill', '44');
   verifier(b.listes().teams[0].lead?.stat === 'HP' && b.listes().teams[0].lead?.amount === 44 && b.listes().teams[0].lead?.area === 'Guild', 'État de mon monstre écrit dans le lead partagé en gardant sa portée');
   verifier(partout('HP', 44) && porte(memoire(b.second), 'HP', 44), 'le lead personnel de chaque membre suit le changement du lead d’équipe');
-  verifier(document.body.textContent!.includes('le modifier change le lead de toute l’équipe'), 'écriture partagée annoncée à l’écran');
+  verifier(!document.body.textContent!.includes('le modifier change le lead de toute l’équipe'), 'aucune phrase d’explication du lead d’équipe (l’utilisateur ne veut jamais la voir)');
   await b.geste(() => b.etat().choisirMembre('a', b.second));
   verifier(porte(b.etat().damageSetup, 'HP', 44) && porte(b.etat().lireCombatMembre().setup, 'HP', 44), 'autre membre : même lead partagé, affiché comme le sien');
   await b.geste(() => b.listes().setActiveListId('b'));

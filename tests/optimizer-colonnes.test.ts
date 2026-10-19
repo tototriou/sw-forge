@@ -15,6 +15,7 @@ export function testOptimizerColonnes() {
   const aux = basculerColonne(art, 'complements', false);
   egal(affichees(aux, false), { artefacts: false, complements: true }, 'une seule tient : cliquer l\'autre l\'ouvre et ferme la première');
   egal(affichees(basculerColonne(aux, 'complements', false), false), { artefacts: false, complements: false }, 'recliquer l\'onglet actif referme sa colonne : aucune');
+  egal(affichees(aux, true), { artefacts: false, complements: true }, 'fermée là où une seule tenait, la première ne revient pas quand la largeur s\'élargit');
 
   // Là où les deux tiennent.
   const deux = basculerColonne(basculerColonne(AUCUNE_COLONNE, 'artefacts', true), 'complements', true);

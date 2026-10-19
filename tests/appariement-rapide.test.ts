@@ -21,8 +21,12 @@
 //    l'ordre), simulée dans le processus avec des morceaux rendus dans le
 //    désordre : le résultat n'y dépend pas du temps, seulement de l'ordre de
 //    fusion, que la simulation exerce.
+//
+// Les espaces : générés (lâches et sélectifs), à relique PORTÉE et paire
+// d'artéfacts FIGÉE (leurs apports entrent dans les seuils du noyau et dans
+// la validation typée), et deux profils du harnais.
 
-import { BaseStats } from '../src/types';
+import { ArtifactDetail, BaseStats, RelicDetail } from '../src/types';
 import { StatKey } from '../src/lib/effects';
 import {
   Bucket,
@@ -251,6 +255,58 @@ function espacesGeneres(): Espace[] {
   return espaces;
 }
 
+// Relique PORTÉE (`SearchParams.relic`, hors mode `recherche` : `relPctMax` =
+// `relPctMin` = son pourcentage) et paire d'artéfacts FIGÉE (`artifacts` sans
+// `artifactBounds` : `artFlatMax` = `artFlatMin` = son apport), l'une et
+// l'autre sur une stat CONTRAINTE : leurs termes entrent dans les seuils du
+// noyau, jamais nuls. Lâches et sélectifs, comme ci-dessus.
+function espacesPortes(): Espace[] {
+  const espaces: Espace[] = [];
+  let selectifs = 0;
+  const artefact = (kind: 'element' | 'archetype', code: number, value: number): ArtifactDetail => ({
+    id: 0, kind, ...(kind === 'element' ? { element: 'fire' as const } : { archetype: 'attack' as const }), level: 15, rarity: 5, main: { code, value }, subs: [],
+  });
+  const VALEUR_ARTEFACT: Record<number, number> = { 100: 1500, 101: 100, 102: 100 };
+  const CLE: Record<number, 'hp' | 'atk' | 'def'> = { 100: 'hp', 101: 'atk', 102: 'def' };
+  for (let s = 0; espaces.length < 6 && s < 400; s++) {
+    const rng = mulberry32(7000 + s);
+    const selectif = s % 2 === 1;
+    if (!selectif && espaces.length - selectifs >= 3) continue;
+    if (selectif && selectifs >= 3) continue;
+    const pool = randomPool(rng, selectif ? 8 + Math.floor(rng() * 3) : 4 + Math.floor(rng() * 4));
+    const codeRelique = 100 + Math.floor(rng() * 3);
+    const codeA = 100 + Math.floor(rng() * 3);
+    const codeB = 100 + Math.floor(rng() * 3);
+    const relic: RelicDetail = { id: 1, upgrade: 15, main: { code: codeRelique, value: 8 + Math.floor(rng() * 13) } };
+    const artifacts = [artefact('element', codeA, VALEUR_ARTEFACT[codeA]), artefact('archetype', codeB, VALEUR_ARTEFACT[codeB])];
+    const serre = selectif ? 1 : 0;
+    const minStats: BuildRequirement['minStats'] = {
+      hp: 9000 + serre * 6000 + Math.floor(rng() * 5000),
+      atk: 600 + serre * 500 + Math.floor(rng() * 500),
+      def: 450 + serre * 400 + Math.floor(rng() * 400),
+    };
+    if (rng() < 0.5) minStats.spd = 100 + serre * 60 + Math.floor(rng() * 80);
+    const maxStats: NonNullable<BuildRequirement['maxStats']> = rng() < 0.4 ? { def: 1400 + Math.floor(rng() * 800) } : {};
+    const requirement: BuildRequirement = { sets: rng() < 0.5 ? [SETS_JOKER[Math.floor(rng() * (SETS_JOKER.length - 1))]] : [], minStats, maxStats };
+    const params: SearchParams = { base: BASE, artifacts, relic, pool, requirement, metric: 'eff', maxMs: Infinity, maxCollected: Infinity, slotFilterCap: 80 };
+    const e = construire(`porté ${selectif ? 'sélectif' : 'lâche'} ${s} (relique ${CLE[codeRelique]} %, paire ${CLE[codeA]}+${CLE[codeB]})`, params);
+    if (!e) continue;
+    const total = totalPairCount(e.prepared, e.bucketsA, e.bucketsB);
+    if (total === 0) continue;
+    // Les deux apports, non nuls, sur une stat contrainte (sinon la scène n'exerce rien de plus).
+    const contraintes = e.prepared.minEntries.map((m) => m.k);
+    if (!contraintes.some((k) => (e.prepared.relPctMax[k] ?? 0) > 0) || !contraintes.some((k) => (e.prepared.artFlatMax[k] ?? 0) > 0)) continue;
+    const { passantes } = enumerer(e.prepared, e.bucketsA, e.bucketsB);
+    if (passantes.size === 0) continue;
+    if (selectif) {
+      if (passantes.size * 10 > total || total > 3_000_000) continue;
+      selectifs++;
+    }
+    espaces.push(e);
+  }
+  return espaces;
+}
+
 function espacesDeProfils(): Espace[] {
   const out: Espace[] = [];
   for (const nom of ['fumee', 'complet-sensible']) {
@@ -382,7 +438,11 @@ async function testDifferentiel(espaces: Espace[]): Promise<void> {
 
 export default async function testAppariementRapide(): Promise<void> {
   testFrontieres();
-  const espaces = [...espacesGeneres(), ...espacesDeProfils()];
+  const portes = espacesPortes();
+  ok(portes.length === 6, `${portes.length} espaces à relique portée et paire d'artéfacts figée, apports non nuls sur une stat contrainte`);
+  ok(portes.every((e) => drain(apparierRapide(e.prepared, e.bucketsA, e.bucketsB)).cheminValidation === 'typee'),
+    'relique portée et paire figée : la validation typée les prend (contrat tenu), le différentiel l’exerce');
+  const espaces = [...espacesGeneres(), ...portes, ...espacesDeProfils()];
   ok(espaces.length >= 12, `${espaces.length} espaces d'oracle construits`);
   testPaireParPaire(espaces);
   await testDifferentiel(espaces);

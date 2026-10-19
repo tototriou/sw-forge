@@ -126,8 +126,10 @@ Tous fondés sur la même équivalence (`survivantsLigne`) :
   maximum, stat en pourcentage ou plate, aura RES/PRE externe comprise,
   seuil entier ou non), aux totaux `t − 1`, `t`, `t + 1` et sur tous les
   restes de l'arrondi ;
-- paire par paire, sur de petits espaces (pools générés, profils
-  synthétiques du harnais), qu'aucune paire qui passe `quickOk` n'est
+- paire par paire, sur de petits espaces (pools générés, dont six à relique
+  portée et paire d'artéfacts figée, leurs apports non nuls sur une stat
+  contrainte et pris par la validation typée ; profils synthétiques du
+  harnais), qu'aucune paire qui passe `quickOk` n'est
   sautée, sur les trois chemins de saut, et que `visitées + sautées =
   traitées = totalPairCount` ;
 - le résultat contre celui de `pairBuckets` sur les mêmes compartiments :

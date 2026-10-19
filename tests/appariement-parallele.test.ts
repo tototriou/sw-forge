@@ -27,7 +27,7 @@ import {
   ContexteTravailleur, InitTravailleur, Morceau, ResultatMorceau, apparierRapide, comboAOuvert, encoderCompartiments, initialiserTravailleur,
   ordreDesCompartiments, paireDeCompartimentsOuverte, parcourirMorceau, traiterMorceau,
 } from '../src/lib/appariementRapide';
-import { MessageVersTravailleur, resultatVide, servirAppariement } from '../src/lib/travailleurAppariement';
+import { MessageVersTravailleur, TRANCHE_MS, resultatVide, servirAppariement } from '../src/lib/travailleurAppariement';
 import {
   ErreurAppariementParallele, LancerTravailleur, OptionsParallele, apparierRapideEnParallele, enResultatDeRecherche, erreurDeWorkerEnfant, planifierMorceaux,
   resultatApresErreur,
@@ -83,14 +83,14 @@ const estPrefixe = (court: readonly BuildCandidate[], long: readonly BuildCandid
 const compteursDe = (r: { traitees: number; visitees: number; sautees: number }) => ({ traitees: r.traitees, visitees: r.visitees, sautees: r.sautees });
 
 /** Ce que chaque morceau a rendu, relevé au passage sans rien changer : son issue et son nombre de candidats. */
-type RecusParMorceau = Map<number, { issue: ResultatMorceau['issue']; candidats: number }>;
+type RecusParMorceau = Map<number, { issue: ResultatMorceau['issue']; candidats: number; traitees: number }>;
 function espionner(lancer: LancerTravailleur, recus: RecusParMorceau): LancerTravailleur {
   return (init, transfert) => {
     const p = lancer(init, transfert);
     return {
       ...p,
       surMessage: (rappel) => p.surMessage((r) => {
-        recus.set(r.id, { issue: r.issue, candidats: r.candidats.length });
+        recus.set(r.id, { issue: r.issue, candidats: r.candidats.length, traitees: r.traitees });
         rappel(r);
       }),
     };
@@ -642,6 +642,76 @@ export async function testAppariementParalleleWorkers(): Promise<void> {
     const v = sousSuiteCoupee(rArret.candidates, recus, e.reference.candidates);
     ok(rArret.truncated && v.sousSuite && v.prefixeExact,
       `${e.nom} : arrêt manuel → ${rArret.candidates.length} candidats gardés, sous-suite du séquentiel, préfixe exact jusqu'au premier morceau coupé (${v.prefixe})`);
+  }
+}
+
+/**
+ * Un morceau COUPÉ EN COURS sur de vrais `worker_threads` (lanceur Node de
+ * production), par le filet de temps puis par l'arrêt manuel, à une échelle
+ * où un morceau dure plusieurs `TRANCHE_MS` : deux Workers, un morceau
+ * chacun, coupés au milieu. La validation de référence (`forcerValidation`,
+ * le repli de production hors contrat de la validation typée) allonge chaque
+ * paire pour atteindre cette durée sans des millions de candidats. Le
+ * résultat : les candidats trouvés par chaque morceau avant la coupe, dans
+ * l'ordre des morceaux — une sous-suite du séquentiel, préfixe exact
+ * jusqu'au premier morceau coupé. Aucun temps n'y est jugé : l'horloge ne
+ * sert qu'à couper au milieu.
+ */
+export async function testAppariementParalleleCoupeWorkers(): Promise<void> {
+  titre('Appariement parallèle · vrais worker_threads : un morceau coupé en cours, par le temps et par l’arrêt manuel');
+  const DUREE_MIN = 6 * TRANCHE_MS;
+  let choisi: { e: Espace; cible: number; complets: ResultatMorceau[]; duree: number } | null = null;
+  for (let parEmplacement = 10; parEmplacement <= 13 && !choisi; parEmplacement++) {
+    const pool = randomPool(mulberry32(8100), parEmplacement, SETS_JOKER);
+    const requirement: BuildRequirement = { sets: [], minStats: { spd: 140 }, maxStats: {} };
+    const params: SearchParams = { base: BASE, artifacts: [], pool, requirement, metric: 'eff', maxMs: Infinity, maxCollected: Infinity, slotFilterCap: 80 };
+    const prepared = prepareSearch(params)!;
+    const bucketsA = drain(construireMoitie('A', [0, 1, 2], prepared, prepared.maxSetsForA));
+    const bucketsB = drain(construireMoitie('B', [3, 4, 5], prepared, prepared.maxSetsForB));
+    const total = totalPairCount(prepared, bucketsA, bucketsB);
+    const cible = Math.ceil(total / 2);
+    const plan = planifierMorceaux(prepared, bucketsA, bucketsB, cible);
+    const ctx = initialiserTravailleur({ params, startedAt: Date.now(), compartiments: encoderCompartiments(prepared, bucketsA, bucketsB), forcerValidation: 'reference' });
+    const debut = Date.now();
+    const complets = plan.map((m) => traiterMorceau(ctx, m));
+    const duree = (Date.now() - debut) / plan.length;
+    if (plan.length !== 2 || duree < DUREE_MIN) continue;
+    const e: Espace = { nom: `${parEmplacement} runes par emplacement (${total} paires)`, params, prepared, bucketsA, bucketsB, total, reference: { candidates: [], explored: total, truncated: false, nearMissByCondition: [], globalNearMiss: null } };
+    choisi = { e, cible, complets, duree };
+  }
+  ok(choisi != null, `un espace en deux morceaux dont chacun dure au moins ${DUREE_MIN} ms (validation de référence, dans ce processus)`);
+  if (!choisi) return;
+  const { e, cible, complets, duree } = choisi;
+  const lancer = lancerTravailleurNode(await assurerBundleAppariementRapide());
+  // Couper au milieu d'un morceau : un délai de démarrage des Workers, puis la moitié d'un morceau.
+  const coupeMs = 300 + Math.round(duree / 2);
+  for (const sorte of ['temps', 'manuel'] as const) {
+    const recus: RecusParMorceau = new Map();
+    let arreter: (() => void) | null = null;
+    let minuteur: ReturnType<typeof setTimeout> | null = null;
+    const startedAt = Date.now();
+    const r = await apparierRapideEnParallele(options(e, espionner(lancer, recus), {
+      travailleurs: 2, cibleMorceau: cible, forcerValidation: 'reference', startedAt,
+      ...(sorte === 'temps' ? { prepared: { ...e.prepared, maxMs: coupeMs }, params: { ...e.params, maxMs: coupeMs } } : {}),
+      surControle: (c) => {
+        arreter = c.arreter;
+        if (sorte === 'manuel') minuteur = setTimeout(() => arreter?.(), coupeMs);
+      },
+    }));
+    if (minuteur) clearTimeout(minuteur);
+    const issue = sorte === 'temps' ? 'temps' : 'arret';
+    const coupes = [0, 1].map((id) => recus.get(id));
+    ok(coupes.every((v, id) => v != null && v.issue === issue && v.traitees > 0 && v.traitees < complets[id].traitees),
+      `${e.nom}, ${sorte} : les deux morceaux coupés EN COURS (${coupes.map((v, id) => `${v?.issue} ${v?.traitees} / ${complets[id].traitees}`).join(' ; ')} paires ; un morceau ≈ ${Math.round(duree)} ms, coupe à ${coupeMs} ms)`);
+    ok(r.truncated && r.motif === (sorte === 'temps' ? 'maxMs' : 'manuel') && r.explored === coupes.reduce((s, v) => s + (v?.traitees ?? 0), 0),
+      `${e.nom}, ${sorte} : tronqué (motif ${r.motif}), ${r.explored} paires = celles parcourues par les deux morceaux`);
+    const attendus = [0, 1].flatMap((id) => complets[id].candidats.slice(0, coupes[id]?.candidats ?? 0)).map(cle);
+    egal(r.candidates.map(cle), attendus,
+      `${e.nom}, ${sorte} : chaque morceau rend le début de ses candidats (${coupes.map((v, id) => `${v?.candidats} / ${complets[id].candidats.length}`).join(' + ')}), dans l'ordre des morceaux`);
+    const seq = [...complets[0].candidats, ...complets[1].candidats];
+    const v = sousSuiteCoupee(r.candidates, recus, seq);
+    ok(v.sousSuite && v.prefixeExact && v.prefixe === (coupes[0]?.candidats ?? -1),
+      `${e.nom}, ${sorte} : une sous-suite du séquentiel, préfixe exact jusqu'au premier morceau coupé (${v.prefixe} candidats)`);
   }
 }
 

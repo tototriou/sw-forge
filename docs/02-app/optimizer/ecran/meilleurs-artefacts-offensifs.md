@@ -21,7 +21,7 @@ pas dans son coin. La question « quels sont mes meilleurs artéfacts » et la
 question « quelle paire supposer pendant la recherche de runes » partagent
 donc une seule réponse : deux blocs qui se contrediraient à l'écran
 coûteraient plus cher qu'un bloc parfois muet. Concrètement :
-- **un** emplacement sur « Garder l'artéfact équipé » → la proposition
+- **un** emplacement sur « Comme équipé » → la proposition
   reste faite, et **deux signaux** disent qu’une moitié est imposée :
   un **bandeau au-dessus de la paire** (« Emplacement attribut figé — il
   est gardé tel que porté, pas optimisé ») et un **marqueur « figé » sur
@@ -143,7 +143,7 @@ principales, verrous, amplifications de buff, maximums actifs) viennent
 eux aussi d'un seul producteur, `parametresArtefactsFiche`, que l'écran
 appelle dans son mémo, le script CLI et le différentiel relique aussi.
 Le script neutralise donc les verrous de sous-propriété comme l'écran
-quand les deux emplacements sont sur « Garder l'artéfact équipé » :
+quand les deux emplacements sont sur « Comme équipé » :
 sinon il chercherait une paire qui les tienne, n'en trouverait aucune et
 rejetterait chaque build d'une recette que l'écran résout. Seul écart : le script
 n'a pas de liste de travail, donc aucun artéfact réservé n'est retiré de

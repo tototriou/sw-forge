@@ -15,9 +15,9 @@ Ce document décrit la carte « Artéfacts » de l'écran.
 
    Activé, deux listes déroulantes (Attribut, Type) proposent :
    **« Libre »** (**défaut** — cherche le meilleur artéfact parmi TOUS les
-   artéfacts équipables), **« Garder l'artéfact équipé »**, **Principale
-   ATQ +100**, **Principale DEF +100**, **Principale PV +1500** (les trois
-   statistiques principales d'artéfact du jeu).
+   artéfacts équipables), **« Comme équipé »**, **ATQ +100**,
+   **DEF +100**, **PV +1500** (les trois statistiques principales
+   d'artéfact du jeu).
 
    ⚠️ **Ces cinq choix ne dépendent pas des artéfacts portés** : les deux
    listes s'affichent dès que l'optimisation est active, toujours avec les
@@ -30,12 +30,12 @@ Ce document décrit la carte « Artéfacts » de l'écran.
    reste vide — on ne peut pas équiper ce qu'on n'a pas. Ne pas fabriquer de
    pièce fictive (« et si j'avais un artéfact PV+1500 ? ») : sans aucune
    sous-propriété, elle ferait calculer les « Dégâts réels » sans aucune
-   ligne d'effet, quand « Garder l'artéfact équipé » les compte — deux
+   ligne d'effet, quand « Comme équipé » les compte — deux
    réglages voisins, deux modèles de dégâts, sans que rien ne le signale.
 
    ⚠️ **Sans choix, la liste affiche « Libre »**, parce que le moteur traite
    une absence de choix comme « Libre » (`candidatsParSorte`,
-   artifactOptim.ts). Afficher « Garder l'artéfact équipé » annoncerait le
+   artifactOptim.ts). Afficher « Comme équipé » annoncerait le
    contraire de ce qui se passe, et
    tout ce qui se fie à cet affichage (les emplacements considérés comme
    figés, donc l'éditeur de sous-propriétés verrouillées) raisonnerait sur un
@@ -51,13 +51,13 @@ Ce document décrit la carte « Artéfacts » de l'écran.
    encore « Aucun » le voit ramené sur **« Libre »** à l'import
    (`mainsPourCeCompte`, optimizerRecipe.ts).
 
-   ⚠️ **« Garder l'artéfact équipé » conserve la PIÈCE ENTIÈRE**, ses quatre
+   ⚠️ **« Comme équipé » conserve la PIÈCE ENTIÈRE**, ses quatre
    sous-propriétés comprises : le pool de cet emplacement tombe à **un seul
    candidat**, l'exemplaire réellement porté (ou rien, s'il n'est pas
    éligible pour ce monstre). Rien n'est cherché.
 
    ⚠️ **Ce choix ne se PARTAGE pas.** Importer une recette exportée par
-   **quelqu'un d'autre** bascule automatiquement « Garder l'artéfact équipé »
+   **quelqu'un d'autre** bascule automatiquement « Comme équipé »
    sur **« Libre »**, et le dit dans le message d'import. Raison : ce réglage
    garde l'artéfact porté par **celui qui lit**, pas par l'auteur — chez un
    autre joueur il ne transporte aucune intention, il impose une pièce
@@ -77,11 +77,15 @@ Ce document décrit la carte « Artéfacts » de l'écran.
      rejouer un cas signalé avec l'export de celui qui l'a signalé. Basculer
      rendrait la reproduction moins fidèle.
 
-   ⚠️ **« Garder l'artéfact équipé », jamais « Comme équipé »** : posé au
-   milieu de trois statistiques principales, « Comme équipé » se lirait « la
-   principale, comme équipé » — une liste se lit comme homogène. D'où
-   « Principale » sur les entrées qui filtrent **réellement** par stat
-   principale, et un choix qui garde la pièce et le dit.
+   ⚠️ **« Comme équipé »**, choisi par l'utilisateur (2026-10) à la place de
+   « Garder l'artéfact équipé », trop long pour une liste étroite. Le risque
+   reste nommé : posé au milieu de trois statistiques principales, « Comme
+   équipé » peut se lire « la principale, comme équipé » — une liste se lit
+   comme homogène. Les entrées qui filtrent par stat principale ont porté
+   « Principale … » pour l'éviter ; l'utilisateur les a raccourcies
+   (2026-10, « ATQ +100 ») pour qu'Attribut et Type tiennent dans une carte
+   étroite. Reste l'aide de la carte, qui dit que ce choix garde la pièce
+   entière.
 
 ## Place de la carte à l'écran
 

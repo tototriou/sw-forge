@@ -171,6 +171,23 @@ l'exemplaire `ChoixExemplaire` — zone D —, le sélecteur de listes `Selecteu
 partagées : `src/components/outils/optimizer/constantes.ts` ; types :
 `src/components/outils/optimizer/types.ts`.
 
+Les boîtes de la mise en page de bureau à venir
+([02-app/optimizer/ecran/](../02-app/optimizer/ecran/README.md)) vivent dans
+`src/components/outils/optimizer/bureau/`, pas encore assemblées dans la page : la liste de
+travail (`ListeDeTravailBureau`), le set de runes compact (`SetDeRunesCompact`), les principales
+imposées (`PrincipalesImposeesBureau`), les conditions (`ConditionsBureau`), l'état du monstre
+réduit aux buffs et au lead (`EtatMonstreEssentiels`) et le contrôle à onglets des colonnes
+repliables (`OngletsColonnes`, décidé par `src/lib/optimizerColonnes.ts`) ; dans la colonne
+« Artéfacts et relique », la carte des artéfacts et de la relique (`ArtefactsEtReliqueBureau`) et
+celle des meilleurs artéfacts (`MeilleursArtefactsBureau`) ; dans la colonne « Aura, exclusion,
+avancés », les sets d'aura (`SetsAuraBureau`), l'exclusion de runes (`ExclusionRunesBureau`) et les
+réglages avancés (`ReglagesAvancesBureau`), en ligne ; dans la colonne de droite, « Exemplaire »
+(`ExemplaireBureau`), le bloc « Objectif et Rechercher » en forme étroite ou large
+(`ObjectifEtRechercherBureau`) et les résultats (`ResultatsBureau`). Elles se voient seules
+dans la vue de développement `#/outils/optimizer/gabarits`
+(`src/components/outils/optimizer/gabarits/`, adresse dans `src/lib/optimizerGabarits.ts`) :
+[03-developpeur/vue-des-gabarits.md](../03-developpeur/vue-des-gabarits.md).
+
 Sous la grille, même dossier, même règle : « Objectif de recherche » et les actions
 (`ObjectifEtActions` : Rechercher, Exporter, Importer, Arrêter), la progression, l'échec et le
 refus, avec la barre d'appariement (`ProgressionRecherche`), le message d'import d'une recette
@@ -221,6 +238,7 @@ imposé + sort de chacun) dans le même moteur. Tout est testé dans `tests/spee
 | `ZoneCliquable.tsx` | une **surface** rendue cliquable (ligne dépliante, poignée) |
 | `Champ.tsx` / `NumberField.tsx` | saisie texte / numérique (⚠️ jamais `type="number"`) |
 | `Selecteur.tsx` | liste déroulante |
+| `SelecteurMultiple.tsx` | liste à **choix multiples** : fermée, le résumé des choix ; ouverte, une `Case` par option dans un flottant |
 | `Case.tsx` / `Interrupteur.tsx` | à cocher / à glissière |
 | `Option.tsx` | choix riche : icône + titre + explication ; action optionnelle juste à droite du titre (`actionTitre`, hors du bouton principal : le « ? » d'une prose de sort) |
 | `Dialogs.tsx` | `Modale` (portalisée), `ConfirmDialog`, `PromptDialog`, `KeepAccountDialog` |

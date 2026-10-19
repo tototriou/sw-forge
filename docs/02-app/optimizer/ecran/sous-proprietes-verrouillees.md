@@ -6,7 +6,7 @@
    garantissant une propriété qui n'y contribue pas.
 
    ⚠️ **Un verrou n'a de sens que sur un emplacement CHERCHÉ.** Sur une sorte
-   laissée sur « Garder l'artéfact équipé », la pièce est déjà décidée :
+   laissée sur « Comme équipé », la pièce est déjà décidée :
    exiger une sous-propriété n'en fait pas apparaître une meilleure — soit
    celle qui est portée la porte déjà, soit plus aucune paire ne passe et la
    recherche refuse de partir. Donc :

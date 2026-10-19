@@ -101,7 +101,7 @@ interface Cas {
   pool: RuneDetail[];
   sets: string[];
   sort: SortCle;
-  // La paire FIXE (« Garder l'artéfact équipé » ×2) : `SearchParams.artifacts`.
+  // La paire FIXE (« Comme équipé » ×2) : `SearchParams.artifacts`.
   paire: ArtifactDetail[];
   critMode?: DamageSetup['critMode'];
 }

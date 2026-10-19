@@ -270,7 +270,7 @@ statistiques et son chiffre comptent déjà la paire retenue, affichée à côt�
 ⚠️ **L'effet unique compte dans les trois modes de relique** — la
 relique est celle que la carte affiche
 (`etatReliqueDuBuild`, une seule expression pour la case et le score) :
-interrupteur coupé ou « Garder la relique équipée », **la relique de la
+interrupteur coupé ou « Comme équipée », **la relique de la
 fiche**, dès la collecte, sans attendre la file — ordre de BASE compris,
 celui que la file lit et qui s'affiche tel quel tant qu'elle n'a rien
 résolu, donc toujours quand l'optimisation d'artéfacts est coupée
@@ -343,8 +343,8 @@ même liste de travail), jusqu'à libération explicite : voir
 sous la roue à la souris, à sa droite au doigt (voir plus haut), même
 modèle que celui de la fiche d'équipement
 (`MonsterGear.tsx`) : composant partagé `RelicSlot`, jamais une copie.
-Hors mode `recherche` (interrupteur coupé, « Garder la relique
-équipée »), la relique portée ; sans relique, la case grisée « Relique »
+Hors mode `recherche` (interrupteur coupé, « Comme équipée »), la relique
+portée ; sans relique, la case grisée « Relique »
 barrée d'une icône, infobulle « Aucune relique équipée ». En mode `recherche`,
 `etatReliqueDuBuild` (seule source) pilote la case :
 - **en attente** — la file n'a pas encore traité ce build : **la même

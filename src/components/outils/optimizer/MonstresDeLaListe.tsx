@@ -9,7 +9,7 @@ import MonsterAvatar from '../../MonsterAvatar';
 import IconeInterdite from '../../IconeInterdite';
 import { WHEEL_IMG } from '../../RuneWheel';
 import GameIcon from '../../GameIcon';
-import { type Dispatch, type SetStateAction } from 'react';
+import { type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { type EquipeOptimizer } from '../../../lib/optimizerMemberStorage';
 import { type UseOptimizerLists } from '../../../hooks/useOptimizerLists';
 import { type OptimizerState } from '../../../hooks/useOptimizerState';
@@ -37,17 +37,33 @@ export interface MonstresDeLaListeProps {
   rappelAuras: boolean;
   listHasValidated: boolean;
   setReleaseAllConfirm: Dispatch<SetStateAction<string | null>>;
+  // Forme de bureau des essentiels (`bureau/ListeDeTravailBureau.tsx`),
+  // que le téléphone ne prend pas : ce que la rangée du titre porte après lui
+  // (« Rechercher un monstre… », le monstre actif), et les membres bornés à
+  // ≈ 4 lignes au lieu de 308 px.
+  enTete?: ReactNode;
+  compacte?: boolean;
 }
 
-export default function MonstresDeLaListe({ activeList, activeMembers, ajoutListe, handleAddToList, setEquipeOuverte, lists, optimizer, exclusionData, artifacts, rapportZoneC, groupesMembres, runeById, artifactById, choisirMembreDeLaListe, setReleaseConfirm, setReleaseArtifactsConfirm, setRemoveMemberConfirm, rappelAuras, listHasValidated, setReleaseAllConfirm }: MonstresDeLaListeProps) {
+export default function MonstresDeLaListe({ activeList, activeMembers, ajoutListe, handleAddToList, setEquipeOuverte, lists, optimizer, exclusionData, artifacts, rapportZoneC, groupesMembres, runeById, artifactById, choisirMembreDeLaListe, setReleaseConfirm, setReleaseArtifactsConfirm, setRemoveMemberConfirm, rappelAuras, listHasValidated, setReleaseAllConfirm, enTete, compacte = false }: MonstresDeLaListeProps) {
+  const titre = (
+    <>
+      <p className="text-[12px] font-semibold text-ink-dim truncate">
+        {activeList ? `Monstres de « ${activeList.name} »` : 'Monstres de la liste'}
+      </p>
+      {activeList && <span className="flex-none text-[11px] text-ink-dimmer">{activeMembers.length}</span>}
+    </>
+  );
   return (
     <div className="rounded-lg border border-border-soft bg-panel2/60 p-2.5">
-      <div className="mb-1.5 flex items-baseline justify-between gap-2">
-        <p className="text-[12px] font-semibold text-ink-dim truncate">
-          {activeList ? `Monstres de « ${activeList.name} »` : 'Monstres de la liste'}
-        </p>
-        {activeList && <span className="flex-none text-[11px] text-ink-dimmer">{activeMembers.length}</span>}
-      </div>
+      {enTete ? (
+        <div className="mb-1.5 flex items-center gap-2">
+          <div className="flex min-w-0 max-w-[150px] flex-none items-baseline gap-1.5">{titre}</div>
+          {enTete}
+        </div>
+      ) : (
+        <div className="mb-1.5 flex items-baseline justify-between gap-2">{titre}</div>
+      )}
 
       {/* Le rapport des critères se lit hors du flux, depuis une icône à place
           réservée au bout de la ligne d'annonce ; la liste garde la hauteur. */}
@@ -77,7 +93,7 @@ export default function MonstresDeLaListe({ activeList, activeMembers, ajoutList
           {activeList ? "Aucun monstre dans cette liste pour l'instant." : 'Choisis ou crée une liste ci-dessus.'}
         </p>
       ) : (
-        <div className="mt-1 max-h-[308px] space-y-1 overflow-y-auto">
+        <div className={`mt-1 ${compacte ? 'max-h-[164px]' : 'max-h-[308px]'} space-y-1 overflow-y-auto`}>
           {groupesMembres.filter(g => g.members.length > 0).map((g, numero) => {
             const membres = g.members.map(m => {
               const resolved = resolveExclusionEntry(m.selector, exclusionData);

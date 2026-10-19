@@ -11,9 +11,12 @@ export interface ExclusionMonstrePrecisProps {
   selected: { monster: Monster; gear: GearSet; } | null;
   excludedSelectors: ExclusionSelector[];
   setExcludedSelectors: Dispatch<SetStateAction<ExclusionSelector[]>>;
+  // Colonne « Aura, exclusion, avancés » du bureau : monstres exclus à hauteur
+  // bornée (`RuneExclusionPicker`, `hauteurBornee`).
+  bureau?: boolean;
 }
 
-export default function ExclusionMonstrePrecis({ exclusionData, selectedUnitKey, selected, excludedSelectors, setExcludedSelectors }: ExclusionMonstrePrecisProps) {
+export default function ExclusionMonstrePrecis({ exclusionData, selectedUnitKey, selected, excludedSelectors, setExcludedSelectors, bureau = false }: ExclusionMonstrePrecisProps) {
   return (
     <div>
       <div className="mb-2.5 flex items-center gap-1.5">
@@ -36,6 +39,7 @@ export default function ExclusionMonstrePrecis({ exclusionData, selectedUnitKey,
         excludeOwnCom2usId={selected?.monster.com2usId ?? null}
         selected={excludedSelectors}
         onChange={setExcludedSelectors}
+        hauteurBornee={bureau}
       />
     </div>
   );

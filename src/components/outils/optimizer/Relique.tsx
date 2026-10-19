@@ -23,7 +23,7 @@ export default function Relique({ relicMainChoice, setRelicMainChoice, relicUniq
           Les soins et boucliers (Régénération) ne sont mesurés par aucun objectif, donc jamais notés.
           <br />
           <br />
-          <b className="text-ink">« Garder la relique équipée »</b> conserve la pièce entière portée sur
+          <b className="text-ink">« Comme équipée »</b> conserve la pièce entière portée sur
           le build affiché ci-dessus, sans rien chercher.
         </HelpPopover>
       </div>
@@ -43,7 +43,7 @@ export default function Relique({ relicMainChoice, setRelicMainChoice, relicUniq
             pleineLargeur={false}
             className={LARGEUR_SELECTEUR_LISTE}
           >
-            <option value="equipped">Garder la relique équipée</option>
+            <option value="equipped">Comme équipée</option>
             <option value="libre">Libre</option>
             {RELIC_MAIN_OPTIONS.map((o) => (
               <option key={o.code} value={o.code}>
@@ -56,7 +56,7 @@ export default function Relique({ relicMainChoice, setRelicMainChoice, relicUniq
         <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
         <div className="flex items-center gap-1.5">
           <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>Propriété unique</span>
-          {/* ⚠️ **Sans effet avec « Garder la relique équipée »** (la
+          {/* ⚠️ **Sans effet avec « Comme équipée »** (la
               pièce est fixée) — désactivé plutôt que retiré ; la raison
               reste dans l'infobulle, sans texte à côté qui prendrait
               la place de « Niveau minimum ». */}
@@ -103,8 +103,8 @@ export default function Relique({ relicMainChoice, setRelicMainChoice, relicUniq
               reste rare, et un champ qui apparaît/disparaît selon un
               AUTRE champ de la même carte serait plus déroutant que
               sans effet à l'occasion (contrairement à « Propriété
-              unique », désactivée seulement par « Garder la relique
-              équipée », qui la rend vraiment inerte). */}
+              unique », désactivée seulement par « Comme équipée »,
+              qui la rend vraiment inerte). */}
           <NumberField
             value={relicMinUpgrade}
             onChange={(v) => setRelicMinUpgrade(v ?? DEFAULT_RELIC_MIN_UPGRADE)}

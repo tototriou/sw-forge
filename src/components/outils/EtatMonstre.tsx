@@ -6,6 +6,7 @@ import { Bouton, BoutonIcone, Jeton, NumberField, Selecteur } from '../../ui';
 import type { RappelBuffDePassif } from '../../lib/buffsDePassif';
 import HelpPopover from '../HelpPopover';
 import EffetVignette from './EffetVignette';
+import { motifLeadAffiche } from '../../lib/equipesOptimizer';
 import { ATK_BUFF_ICON, DEF_BUFF_ICON, SPD_BUFF_ICON } from '../../lib/damage';
 import {
   PLAFOND_AURAS_EXTERNES,
@@ -90,20 +91,7 @@ export default function EtatMonstre({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-1.5">
-        <p className="label">État de mon monstre</p>
-        <HelpPopover title="État de mon monstre">
-          Ce qui rend ton monstre plus fort, <b className="text-ink">quel que soit l&apos;adversaire</b> : buffs
-          reçus, leader skill de l&apos;équipe, compétences d&apos;invocateur, sets d&apos;aura des autres
-          monstres. Ces réglages changent ses statistiques, donc les{' '}
-          <b className="text-ink">dégâts supplémentaires</b> que lui apportent des artéfacts proportionnels
-          aux PV, à l&apos;ATQ, à la DEF ou à la VIT.
-          <br />
-          <br />
-          Ce qui décrit <b className="text-ink">le combat</b> — le sort, la cible, le coup critique — vit dans
-          la fenêtre « Dégâts réels », qui s&apos;ouvre depuis l&apos;objectif de recherche.
-        </HelpPopover>
-      </div>
+      <TitreEtatMonstre />
 
       {/* ⚠️ **Les deux groupes sur UNE rangée** : buffs et
           leader skill décrivent la même chose — l'état du
@@ -164,8 +152,12 @@ export default function EtatMonstre({
 
       <AurasExternesSaisie setup={setup} maj={maj} rappel={rappelAuras} onGuiderResPre={onGuiderResPre} />
       </div>
-      {equipe && <p className="h-20 overflow-y-auto text-xs text-ink-dim">Lead effectif de l’équipe : le modifier change le lead de toute l’équipe. Chaque membre le garde en quittant l’équipe.
-        {motifLead && <span className="block text-warn">{motifLead}</span>}
+      {/* ⚠️ Pour un membre d'équipe, seul le motif d'un lead inactif, à place
+          réservée (le choix du lead, juste au-dessus, peut le faire paraître).
+          Ni phrase d'explication du lead d'équipe ni motif « contenu de combat
+          non défini » : l'utilisateur ne veut jamais les voir (`motifLeadAffiche`). */}
+      {equipe && <p className="h-20 overflow-y-auto text-xs text-ink-dim">
+        {motifLeadAffiche(motifLead) && <span className="block text-warn">{motifLeadAffiche(motifLead)}</span>}
       </p>}
       {/* ⚠️ **Rappel des buffs posés par un passif** :
           même grammaire que les lignes d'amplification juste dessous (texte
@@ -178,6 +170,51 @@ export default function EtatMonstre({
           dans la carte du haut (avant celle-ci au téléphone, rangée 1 au
           bureau) — rien de ce qu'on vient de cliquer ne bouge. Les vignettes
           au-dessus ne bougent pas non plus : il vit sous elles. */}
+      <RappelsEtatMonstre setup={setup} artefacts={artefacts} rappelsBuffs={rappelsBuffs} />
+
+
+    </div>
+  );
+}
+
+// Le titre de la carte et son aide. Exporté pour la forme de bureau des
+// essentiels (`optimizer/bureau/EtatMonstreEssentiels.tsx`) : une seule prose.
+// ⚠️ `bureau` : l'aide de la forme des essentiels ne nomme pas les sets d'aura
+// (ils sont dans la colonne « Aura, exclusion, avancés ») et n'a pas le
+// paragraphe sur le combat (décision de l'utilisateur) ; le téléphone et la
+// page d'aujourd'hui ne la passent pas.
+export function TitreEtatMonstre({ bureau = false }: { bureau?: boolean }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <p className="label">État de mon monstre</p>
+      <HelpPopover title="État de mon monstre">
+        Ce qui rend ton monstre plus fort, <b className="text-ink">quel que soit l&apos;adversaire</b> : buffs
+        reçus, leader skill de l&apos;équipe, compétences d&apos;invocateur{bureau ? '' : <>, sets d&apos;aura des autres
+        monstres</>}. Ces réglages changent ses statistiques, donc les{' '}
+        <b className="text-ink">dégâts supplémentaires</b> que lui apportent des artéfacts proportionnels
+        aux PV, à l&apos;ATQ, à la DEF ou à la VIT.
+        {!bureau && (
+          <>
+            <br />
+            <br />
+            Ce qui décrit <b className="text-ink">le combat</b> — le sort, la cible, le coup critique — vit dans
+            la fenêtre « Dégâts réels », qui s&apos;ouvre depuis l&apos;objectif de recherche.
+          </>
+        )}
+      </HelpPopover>
+    </div>
+  );
+}
+
+// Les buffs posés par un passif et les amplifications d'artéfact, sous les
+// réglages. Exporté pour la forme de bureau des essentiels, comme le titre.
+export function RappelsEtatMonstre({ setup, artefacts, rappelsBuffs }: {
+  setup: DamageSetup;
+  artefacts: ArtifactDamageProfile;
+  rappelsBuffs: RappelBuffDePassif[];
+}) {
+  return (
+    <>
       {rappelsBuffs.length > 0 && (
         <div className="space-y-0.5 text-xs text-ink-dim">
           {rappelsBuffs.map((r) => (
@@ -208,9 +245,7 @@ export default function EtatMonstre({
           )}
         </div>
       ) : null}
-
-
-    </div>
+    </>
   );
 }
 
@@ -253,7 +288,10 @@ export default function EtatMonstre({
  * importée (qui écrit `damageSetup` directement) — le guidage n'est donc
  * jamais rejoué à l'import ni au changement de monstre.
  */
-function AurasExternesSaisie({
+// Exporté pour la carte « Sets d'aura des autres monstres » du bureau
+// (optimizer/bureau/SetsAuraBureau.tsx), en tête de la colonne « Aura,
+// exclusion, avancés » ; rendu inchangé ici.
+export function AurasExternesSaisie({
   setup,
   maj,
   rappel,
@@ -408,7 +446,7 @@ function AurasExternesSaisie({
 // divergé ». `leadIconUrl` attend un objet `LeaderSkill` complet
 // (portée/élément) que ce choix utilisateur n'a pas : traité comme portée
 // `'General'`, sans élément, pour obtenir l'icône DE BASE.
-function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Partial<DamageSetup>) => void }) {
+export function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Partial<DamageSetup>) => void }) {
   const lead = setup.leaderSkill;
   const icone = lead ? leadIconUrl({ stat: lead.stat, amount: lead.pct, area: 'General', element: null }) : null;
   const valeurs = lead ? LEADER_SKILL_VALEURS[lead.stat] : [];

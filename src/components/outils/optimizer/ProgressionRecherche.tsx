@@ -7,9 +7,14 @@ export interface ProgressionRechercheProps {
   refusal: { motif: 'relique-pool-vide'; vide: RelicVide } | null;
   // Le compte des trouvées de la ligne d'appariement (`compteAffichable`).
   compteAffiche: { compte: number };
+  // Forme compacte du bloc « Objectif et Rechercher » du bureau (décision de
+  // l'utilisateur) : sans barre, les lignes de texte seules — à l'appariement,
+  // « … combinaisons examinées · … trouvée(s) » et « Attendez la fin… ». Le
+  // téléphone et la page d'aujourd'hui ne la passent pas.
+  compacte?: boolean;
 }
 
-export default function ProgressionRecherche({ status, progress, refusal, compteAffiche }: ProgressionRechercheProps) {
+export default function ProgressionRecherche({ status, progress, refusal, compteAffiche, compacte = false }: ProgressionRechercheProps) {
   return (
     <>
       {/* ⚠️ Deux phases distinctes affichées différemment, pas une seule
@@ -30,18 +35,20 @@ export default function ProgressionRecherche({ status, progress, refusal, compte
           barre ne pourrait montrer que la dernière moitié à avoir posté un
           message, faisant croire à tort que l'autre est à l'arrêt. */}
       {status === 'running' && progress?.phase === 'building' && (
-        <div className="space-y-2">
+        <div className={compacte ? 'space-y-0.5' : 'space-y-2'}>
           {(['A', 'B'] as const).map((half) => {
             const h = progress.halves[half];
             return (
               <div key={half}>
-                <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
-                  <div
-                    className="h-full bg-accent/60 transition-[width] duration-150 ease-out"
-                    style={{ width: `${Math.round((h?.pct ?? 0) * 100)}%` }}
-                  />
-                </div>
-                <p className="mt-1 font-mono text-micro text-ink-dim">
+                {!compacte && (
+                  <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
+                    <div
+                      className="h-full bg-accent/60 transition-[width] duration-150 ease-out"
+                      style={{ width: `${Math.round((h?.pct ?? 0) * 100)}%` }}
+                    />
+                  </div>
+                )}
+                <p className={`${compacte ? '' : 'mt-1 '}font-mono text-micro text-ink-dim`}>
                   Préparation — moitié {half} :{' '}
                   {h ? `${h.scanned.toLocaleString('fr-FR')} / ${h.total.toLocaleString('fr-FR')} runes` : 'en attente…'}
                 </p>
@@ -52,19 +59,21 @@ export default function ProgressionRecherche({ status, progress, refusal, compte
       )}
       {status === 'running' && (progress === null || progress.phase === 'pairing') && (
         <div>
-          <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
-            <div
-              className="h-full bg-accent transition-[width] duration-150 ease-out"
-              style={{ width: `${Math.round((progress?.pct ?? 0) * 100)}%` }}
-            />
-          </div>
+          {!compacte && (
+            <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
+              <div
+                className="h-full bg-accent transition-[width] duration-150 ease-out"
+                style={{ width: `${Math.round((progress?.pct ?? 0) * 100)}%` }}
+              />
+            </div>
+          )}
           {/* ⚠️ Le dénominateur ici est `totalPairs` (voir `totalPairCount`),
               la taille EXACTE de l'espace à épuiser — un plafond de nœuds a
               longtemps coexisté avec lui, écarté d'ici parce qu'il
               grandissait en cours de route et aurait fait RECULER la barre.
               C'est ce choix de l'interface qui a fini par emporter sa
               suppression du moteur. */}
-          <p className="mt-1 font-mono text-micro text-ink-dim">
+          <p className={`${compacte ? '' : 'mt-1 '}font-mono text-micro text-ink-dim`}>
             {progress === null
               ? 'Préparation…'
               : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${compteAffiche.compte.toLocaleString('fr-FR')} trouvée(s)`}
@@ -74,12 +83,9 @@ export default function ProgressionRecherche({ status, progress, refusal, compte
               Attendez la fin de la recherche pour être sûr de trouver votre build optimal.
             </p>
           )}
-          {progress !== null && (
-            <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
-              Le budget de recherche s'élargit automatiquement tant qu'il reste du temps et que le plafond de
-              résultats (100 000) n'est pas atteint — pas seulement tant que rien n'est trouvé.
-            </p>
-          )}
+          {/* ⚠️ Plus de phrase sur un budget qui s'élargit : l'escalade du
+              budget de paires n'existe plus dans le moteur (runeBuildOptim.ts,
+              « Il n'existe PLUS de budget de PAIRES »). */}
         </div>
       )}
 

@@ -40,6 +40,7 @@ export default function Segmented<T extends string>({
   size = 'sm',
   disabled = false,
   dense,
+  colonnes,
 }: {
   // `disabled` par option : voir le `disabled` du contrôle entier plus bas
   // pour la distinction entre les deux axes.
@@ -85,8 +86,15 @@ export default function Segmented<T extends string>({
   // mieux que la mesure (voir `AncientFilter.tsx`, qui resserre par cohérence
   // avec une rangée voisine, pas par manque de place).
   dense?: boolean;
+  // **Les crans en grille**, `colonnes` par rangée, à largeur égale (quatre
+  // crans en 2 × 2 dans une colonne étroite, comme l'objectif de recherche du
+  // bloc « Objectif et Rechercher » au bureau). Toujours un seul cadre : le
+  // choix reste exclusif à l'œil. ⚠️ Pas de resserrement automatique : la
+  // grille EST la réponse au manque de place, `dense` reste forçable.
+  colonnes?: number;
 }) {
-  const large = size === 'lg' || size === 'md';
+  const large = size === 'lg' || size === 'md' || colonnes != null;
+  const enGrille = colonnes != null;
   // ⚠️ **Mesure de la place RÉELLEMENT disponible, pas de la largeur de la
   // FENÊTRE** — `useMediaQuery(SOUS_SM)` était utilisé pour ça avant : un
   // seuil de fenêtre (639 px) ne dit RIEN de la largeur d'un contrôle posé
@@ -97,7 +105,7 @@ export default function Segmented<T extends string>({
   const racineRef = useRef<HTMLDivElement>(null);
   const mesureRef = useRef<HTMLDivElement>(null);
   const [serre, setSerre] = useState(false);
-  const auto = dense === undefined;
+  const auto = dense === undefined && !enGrille;
 
   // ⚠️ `useLayoutEffect` et non `useEffect` : mesurer AVANT que le navigateur
   // peigne évite d'afficher un instant le rendu non resserré (donc débordant)
@@ -130,13 +138,47 @@ export default function Segmented<T extends string>({
 
   const compact = dense ?? serre;
 
+  // ⚠️ **En grille, les bords intérieurs se dessinent** : une grille interne
+  // au fond `border`, écartée d'1 px (`gap-px`), dont chaque case reprend le
+  // fond du cadre — les écarts deviennent des traits de 1 px, verticaux ET
+  // horizontaux, qui séparent les crans comme le trait de la rangée `lg`.
+  // Sans eux, quatre crans en 2 × 2 se lisaient comme un seul bloc.
+  if (enGrille) {
+    return (
+      <div className={`bg-panel2 border border-border rounded-lg p-0.5 w-full ${disabled ? 'opacity-40' : ''} ${className}`}>
+        <div className="grid gap-px bg-border" style={{ gridTemplateColumns: `repeat(${colonnes}, minmax(0, 1fr))` }}>
+          {options.map((o) => {
+            const active = value === o.key;
+            return (
+              <div key={o.key} className="flex items-stretch bg-panel2">
+                <button
+                  onClick={() => onChange(o.key)}
+                  disabled={disabled || o.disabled}
+                  title={o.hint}
+                  aria-pressed={active}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-semibold text-center
+                              transition disabled:cursor-not-allowed ${dense ? CRAN_DENSE : CRAN_LARGE} ${
+                                o.disabled ? 'opacity-40 text-ink-dim' : active ? 'bg-accent text-accent-ink' : 'text-ink-dim hoverable:text-ink'
+                              }`}
+                >
+                  {o.icon}
+                  {o.label}
+                  {o.suffix}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={racineRef}
       // `relative` : contexte de positionnement de la copie de mesure
       // ci-dessous, qui doit sortir du flux sans peser sur la mise en page.
-      className={`relative flex items-center ${
-        size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'
+      className={`relative flex items-center ${size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'
       } bg-panel2 border border-border rounded-lg p-0.5 ${disabled ? 'opacity-40' : ''} ${className}`}
     >
       {/* ⚠️ **Copie de MESURE, jamais affichée** — sert uniquement à connaître
@@ -181,7 +223,8 @@ export default function Segmented<T extends string>({
                 coins au lieu de rester droit. Un trait dédié, sans rayon,
                 reste rigoureusement vertical sur toute la hauteur
                 (`self-stretch`). Toujours dessiné, même entre deux cases
-                adjacentes dont l'une est sélectionnée. */}
+                adjacentes dont l'une est sélectionnée. En grille, les
+                traits sont les écarts de la grille interne (plus haut). */}
             {size === 'lg' && i > 0 && <span className="w-px self-stretch bg-border" />}
             <button
               onClick={() => onChange(o.key)}

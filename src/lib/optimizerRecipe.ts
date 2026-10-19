@@ -45,7 +45,7 @@ export const OPTIMIZER_RECIPE_VERSION = 1;
 /**
  * Les choix de principale d'une recette, adaptés au compte qui la LIT.
  *
- * ⚠️ **« Garder l'artéfact équipé » ne se partage pas.** Ce choix garde
+ * ⚠️ **« Comme équipé » ne se partage pas.** Ce choix garde
  * l'artéfact porté par le LECTEUR, pas par l'auteur : chez quelqu'un d'autre,
  * il n'exporte aucune intention — il impose une pièce arbitraire, parfois sans
  * rapport avec la recherche décrite. Tout le reste d'une recette se re-résout
@@ -119,7 +119,7 @@ export interface OptimizerRecipe {
    * UNIQUEMENT à reconnaître, à l'import, qu'une recette vient d'un AUTRE
    * compte.
    *
-   * ⚠️ **Pourquoi c'est nécessaire** : « Garder l'artéfact équipé » garde
+   * ⚠️ **Pourquoi c'est nécessaire** : « Comme équipé » garde
    * l'artéfact porté **par le lecteur**, pas par l'auteur. Chez quelqu'un
    * d'autre, ce réglage ne reproduit donc pas l'intention exportée — il
    * impose une pièce arbitraire, éventuellement sans rapport. `importRecipe`

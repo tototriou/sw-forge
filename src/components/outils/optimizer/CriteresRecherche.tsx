@@ -7,19 +7,27 @@ export interface CriteresRechercheProps {
   conditions: ReactNode;
 }
 
+// Le titre de la carte, exporté pour la forme de bureau des essentiels
+// (`bureau/SetDeRunesCompact.tsx`) : un seul dessin.
+export function TitreCriteresRecherche({ className }: { className: string }) {
+  return (
+    <div className={`${className} flex items-center gap-2`}>
+      {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
+          cible générique pour « plusieurs critères ajustables », et
+          distinct du `Target` déjà utilisé plus bas pour un réglage
+          précis (« Prioriser les stats les plus difficiles »). */}
+      <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
+        <SlidersHorizontal size={13} className="text-accent" />
+      </div>
+      <p className="text-[13.5px] font-bold text-ink">Critères de recherche</p>
+    </div>
+  );
+}
+
 export default function CriteresRecherche({ setDeRunes, statPrincipaleImposee, conditions }: CriteresRechercheProps) {
   return (
     <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2 xl:row-span-4">
-      <div className="mb-3 flex items-center gap-2">
-        {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
-            cible générique pour « plusieurs critères ajustables », et
-            distinct du `Target` déjà utilisé plus bas pour un réglage
-            précis (« Prioriser les stats les plus difficiles »). */}
-        <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
-          <SlidersHorizontal size={13} className="text-accent" />
-        </div>
-        <p className="text-[13.5px] font-bold text-ink">Critères de recherche</p>
-      </div>
+      <TitreCriteresRecherche className="mb-3" />
       {/* ⚠️ **Deux colonnes** (demande explicite) : Set de runes recherché
           + Statistique principale imposée à GAUCHE (les deux contraintes
           qui portent sur les runes elles-mêmes), Artéfacts + Conditions à

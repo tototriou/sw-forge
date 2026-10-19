@@ -10,9 +10,10 @@
 // build résolu). Le banc et ses états : optimizer.test.tsx.
 
 import { AVEC_MONSTRE, BOX, CHOISI, rendreOptimizer } from './optimizer.test';
-import { auTelephone, bouton, boutons, texteVisible } from './outils-rendu';
+import { auTelephone, bouton, boutons, rendre, texteVisible } from './outils-rendu';
 import { egal, ok, titre } from '../outils';
-import type { BuildCandidate } from '../../src/lib/runeBuildOptim';
+import type { BuildCandidate, SearchResult } from '../../src/lib/runeBuildOptim';
+import EnteteResultats, { type EnteteResultatsProps } from '../../src/components/outils/optimizer/EnteteResultats';
 
 const EPUISEMENT = "Rechercher jusqu'à épuisement complet";
 const DIAGNOSTIC = 'Diagnostic approfondi sur 0 résultat';
@@ -169,6 +170,36 @@ export function testRenduOptimizerResultatsEntete() {
   ok(tSans.includes('1 combinaison(s) confirmée(s)') && !bouton(sansFile, 'Combinaisons confirmées')
     && !interrupteurs(sansFile).some((x) => x.nom === 'Adapter les artéfacts et reliques au tri') && selecteurTri(sansFile),
   'sans file : les trouvées sont les confirmées, sans infobulle ni « Adapter… », « Trier par » gardé');
+}
+
+// La ligne de la file, sous l'en-tête : le reste de la file en vérification,
+// place gardée quand elle se vide. L'écran entier ne la montre pas non vide en
+// rendu serveur (la file n'y tourne pas) : l'en-tête est rendu seul, avec un
+// compte de file posé.
+export function testRenduOptimizerLigneFile() {
+  titre('rendu · Optimizer — ligne « N combinaison(s) en vérification… » de l’en-tête des résultats');
+  const entete = (avecFile: boolean, enAttente: number) => rendre(
+    <EnteteResultats
+      result={resultat(3) as unknown as SearchResult}
+      compteConfirmes={{ confirmees: 1, nonVerifies: 2, pages: 1, aucune: false }}
+      resoudreEquipement={avecFile ? ((() => null) as unknown as EnteteResultatsProps['resoudreEquipement']) : null}
+      optimiserArtefacts={avecFile}
+      adapterArtefactsAuTri
+      setAdapterArtefactsAuTri={() => {}}
+      sortBy="atk"
+      setSortBy={() => {}}
+      setResultsPage={() => {}}
+      realDamage={null}
+      fileArtefacts={{ enAttente, parBuild: new Map() } as unknown as EnteteResultatsProps['fileArtefacts']}
+      compteAffiche={{ compte: 3, ecartes: 0, raison: null }}
+    />,
+  );
+  ok(texteVisible(entete(true, 1234)).includes('1 234 combinaison(s) en vérification…'), 'file active, 1 234 en attente : la ligne le dit');
+  const vide = entete(true, 0);
+  ok(!texteVisible(vide).includes('en vérification') && /<p\b[^>]*>( |&nbsp;| )<\/p>/.test(vide),
+    'file vide : la ligne reste, réduite à un espace insécable (sa hauteur est gardée)');
+  ok(!texteVisible(entete(false, 5)).includes('en vérification') && !/<p\b[^>]*>( |&nbsp;| )<\/p>/.test(entete(false, 0)),
+    'sans file : aucune ligne');
 }
 
 export function testRenduOptimizerResultatsCartes() {

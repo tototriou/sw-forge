@@ -306,8 +306,8 @@ export function testCompositionDePage() {
   // `testRenduOptimizerResultatsCartes`.
   ok(!/pageCandidates|affichees\.slice\(/.test(src), 'écran : plus aucune page découpée à la main dans le classement');
   ok(!/paireProvisoire/.test(src), 'écran : plus de carte « artéfacts pas encore optimisés » — une carte affichée est vérifiée');
-  ok(/fileArtefacts\.enAttente > 0\s*\?\s*`\$\{fileArtefacts\.enAttente\.toLocaleString\('fr-FR'\)\} combinaison\(s\) en vérification…`\s*:\s*'( |\\u00a0)'/.test(src),
-    'compte : une ligne dit combien sont en vérification (le reste de la file), sa place réservée');
+  // La ligne « N combinaison(s) en vérification… », place réservée quand la
+  // file est vide : `testRenduOptimizerLigneFile`.
 
   const carte = readFileSync('src/components/outils/BuildCandidateCard.tsx', 'utf8').replace(/\r\n/g, '\n');
   const place = carte.slice(carte.indexOf('export function PlaceEnVerification'), carte.indexOf('export function useHauteurDesCartes'));

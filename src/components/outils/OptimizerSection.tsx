@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react';
-import type { EquipeOptimizer } from '../../lib/optimizerMemberStorage';
+import type { ContenuListeOptimizer, EquipeOptimizer } from '../../lib/optimizerMemberStorage';
 import OptimizerEquipeDialog from './OptimizerEquipeDialog';
 import OptimizerCreateListDialog from './OptimizerCreateListDialog';
 import OptimizerImportButton, { type SourceImportOptimizer } from './OptimizerImportButton';
@@ -8,7 +8,7 @@ import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importer
 import {
   FlaskConical,
 } from 'lucide-react';
-import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
+import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
 import { computeStats } from '../../lib/stats';
 import { cibleDeLaFile, classementResolu, cleBuild, compositionDePage, compteAffichable, compteConfirme, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
 import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
@@ -50,7 +50,6 @@ import {
   scoreDeReference,
   candidateMetricTotal,
   aurasPropresParRunes,
-  OBJECTIVE_LABELS,
   RealDamageContext,
   SLOT_FILTER_PRESETS,
   type BuildCandidate,
@@ -115,12 +114,11 @@ import {
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
 import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe, relicMainPourCeCompte } from '../../lib/optimizerRecipe';
-import { classeMessageImport, delaiEffacementImport, type MessageImport } from '../../lib/messageImport';
+import { delaiEffacementImport, type MessageImport } from '../../lib/messageImport';
 import { DUREE_ATTENTION_MS, doitRappeler, echoAurasExternes, guideVersResPre } from '../../lib/aurasExternes';
 import { jourLocal, telechargerTexte } from '../../lib/telechargement';
 import {
   OptimizerState,
-  OptimizerSortKey,
   RelicUniqueChoice,
   DEFAULT_RELIC_MIN_UPGRADE,
   defaultRelicMainChoice,
@@ -132,12 +130,7 @@ import { UseOptimizerLists } from '../../hooks/useOptimizerLists';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
 import { useMediaQuery, SOUS_LG, SOUS_SM } from '../../hooks/useMediaQuery';
 import { type Selected as SelectionGear } from '../MonsterGear';
-import HelpPopover from '../HelpPopover';
-import {
-  Interrupteur,
-  Selecteur,
-} from '../../ui';
-import BuildCandidateCard, { PlaceEnVerification, useHauteurDesCartes } from './BuildCandidateCard';
+import { useHauteurDesCartes } from './BuildCandidateCard';
 import DamageSetupModale from './DamageSetupModale';
 import BoutonValiderBuild from './optimizer/BoutonValiderBuild';
 import BandeauBuildValide from './optimizer/BandeauBuildValide';
@@ -166,16 +159,17 @@ import CarteExclusionRunes from './optimizer/CarteExclusionRunes';
 import CarteReglagesAvances from './optimizer/CarteReglagesAvances';
 import ObjectifEtActions from './optimizer/ObjectifEtActions';
 import ProgressionRecherche from './optimizer/ProgressionRecherche';
-import DiagnosticFaisabilite from './optimizer/DiagnosticFaisabilite';
 import PaginationResultats from './optimizer/PaginationResultats';
-import DiagnosticApprofondi from './optimizer/DiagnosticApprofondi';
-import QuasiSucces from './optimizer/QuasiSucces';
 import AvisRechercheTronquee from './optimizer/AvisRechercheTronquee';
 import ConfirmationsLiberation from './optimizer/ConfirmationsLiberation';
 import ReglagesAvancesContenu from './optimizer/ReglagesAvancesContenu';
 import ChoixExemplaire from './optimizer/ChoixExemplaire';
 import MonstresDeLaListe from './optimizer/MonstresDeLaListe';
 import SelecteurListes from './optimizer/SelecteurListes';
+import EnteteResultats from './optimizer/EnteteResultats';
+import DiagnosticsSansResultat from './optimizer/DiagnosticsSansResultat';
+import GrilleResultats from './optimizer/GrilleResultats';
+import MessageImportRecette from './optimizer/MessageImportRecette';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -3132,6 +3126,168 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     />
   );
 
+  // Le geste « Créer » de la fenêtre de création de liste : la liste créée,
+  // puis, selon l'intention qui l'a ouverte, l'ajout, la validation ou la
+  // recherche du monstre affiché.
+  function creerListeDepuisDialogue(valeur: string, contenu: ContenuListeOptimizer) {
+    const nom = valeur.trim();
+    const intent = addListPromptOpen;
+    setAddListPromptOpen(null);
+    if (!selected?.monster.com2usId || (!sourceSelector && intent !== 'recherche')) return;
+    const id = lists.createList(nom, contenu);
+    if (intent === 'recherche') {
+      inclureSelectionRecherche(sourceSelector, selected.monster, id);
+      return;
+    }
+    if (!sourceSelector) return;
+    if (intent === 'validate') {
+      if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds, selected.monster.com2usId);
+    } else {
+      lists.addMember(id, sourceSelector, selected.monster.com2usId);
+    }
+    if (intent !== 'validate' || canValidateDisplayed) optimizer.capturerMembre(id, sourceSelector);
+  }
+
+  // Ce que chaque carte de résultat reçoit de l'écran : sa paire, sa relique,
+  // ses chiffres de classement et ses gestes (comparer, valider).
+  function proprietesCarte(c: BuildCandidate) {
+    return {
+      // ⚠️ La paire de CE build, jamais une paire commune : deux
+      // builds voisins n'appellent pas les mêmes artéfacts, et ce
+      // sont ces pièces-là qui ont servi à calculer ses stats.
+      // Le repli sur la paire SUPPOSÉE ne sert que sans file
+      // (optimisation coupée : la paire portée, la seule possible) —
+      // avec file, une carte affichée est résolue.
+      artifacts: fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts,
+      // ⚠️ **Seule source** :
+      // `etatReliqueDuBuild` lit le cache de la file, jamais
+      // recalculé ici — `fixe` (hors mode `recherche`) n'affiche
+      // rien de nouveau, `rejete` n'arrive jamais jusqu'ici (le
+      // classement écarte déjà ces builds). Par
+      // `etatReliqueDe` : la relique que le score compte.
+      etatRelique: etatReliqueDe(c),
+      ...(() => {
+        // ⚠️ Comparaison contre les stats de la FICHE — donc contre
+        // le build validé quand il en existe un, sans avoir à le
+        // redemander ici (voir `statsReference`).
+        const cle = c.runeIds.join('-');
+        const compare = compareKey === cle && statsReference != null;
+        return {
+          onCompare: statsReference ? () => setCompareKey((k) => (k === cle ? null : cle)) : undefined,
+          // ⚠️ Affichée dès que les PV effectifs sont le critère de
+          // CLASSEMENT — objectif OU tri —, exactement comme les
+          // dégâts réels : on peut avoir cherché sur un objectif puis
+          // re-trié par PV effectifs, auquel cas le chiffre qui
+          // ordonne les cartes doit être visible dessus.
+          // ⚠️ `scoreDuCandidat` avec les options du classement
+          // affiché : le chiffre qui a CLASSÉ la carte, Ténacité et
+          // points de la relique retenue compris.
+          pvEffectifs:
+            objective === 'ehp' || sortBy === 'ehp'
+              ? (() => {
+                  const total = scoreDuCandidat(c, 'ehp', optionsDuTriAffiche)!;
+                  return { total, delta: compare && refEhp != null ? total - refEhp : undefined };
+                })()
+              : undefined,
+          metricDelta:
+            compare && refMetric != null
+              ? candidateMetricTotal(c, runeById, metric) - refMetric
+              : undefined,
+          // ⚠️ Le delta est calculé PAR STAT contre la référence, et
+          // seulement pour la carte comparée : le faire pour les 20
+          // cartes de la page coûterait 20 fois plus pour 19 valeurs
+          // qu'on n'affiche pas.
+          comparaison:
+            compareKey === cle && statsReference
+              ? c.stats.map((ligne) => ({
+                  key: ligne.key,
+                  label: ligne.label,
+                  suffix: ligne.suffix,
+                  delta: ligne.total - (statsReference.find((r) => r.key === ligne.key)?.total ?? 0),
+                }))
+              : undefined,
+        };
+      })(),
+      // ⚠️ Affiché dès qu'un sort est résolu ET que c'est bien le
+      // critère de classement courant (objectif OU tri) — pas
+      // seulement quand `objective` vaut « Dégâts réels » : on peut
+      // avoir lancé la recherche sur un autre objectif puis re-trier
+      // par dégâts réels, auquel cas le chiffre qui ordonne les
+      // cartes doit être visible dessus.
+      degatsReels:
+        realDamage && (objective === 'degats_reels' || sortBy === 'degats_reels')
+          ? (() => {
+              // ⚠️ Le chiffre qui a CLASSÉ la carte : `scoreDuCandidat`
+              // avec les options du classement affiché — profil
+              // d'artéfacts de CE build et Conquête de sa relique
+              // retenue compris. Une recopie de `computeTotalDamage`
+              // omettait la Conquête que le tri compte.
+              const total = scoreDuCandidat(c, 'degats_reels', optionsDuTriAffiche)!;
+              return {
+                total,
+                partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0,
+                // ⚠️ L'écart se calcule contre les dégâts de la
+                // RÉFÉRENCE (`refDegats`) : la fiche notée avec SES
+                // stats, SA paire d'artéfacts et SA relique — jamais
+                // contre le total d'un autre candidat, jamais avec
+                // la paire de la recherche.
+                delta:
+                  compareKey === c.runeIds.join('-') && refDegats != null
+                    ? total - refDegats
+                    : undefined,
+              };
+            })()
+          : undefined,
+      // « Valider » — réserve les 6 runes RÉELLES de CE
+      // candidat pour `sourceSelector`, qu'il pointe un exemplaire
+      // réel OU un sélecteur `unowned` (monstre non possédé,
+      // demande explicite — « essayer des runages de teams sans
+      // avoir mis à jour son json » : les runes trouvées restent de
+      // VRAIES runes du compte, réservables comme n'importe quel
+      // autre build validé). Absent uniquement si `sourceSelector`
+      // est `null` (aucune espèce choisie, ou possédée ailleurs
+      // sans exemplaire encore désambiguïsé — zone D).
+      // ⚠️ Exige `sourceSelector` non nul ET une liste active (un build
+      // validé appartient TOUJOURS à une liste, voir
+      // ValidatedBuild). Valider ajoute aussi implicitement le
+      // monstre à la liste s'il n'y était pas déjà (voir
+      // `validateBuild`, useOptimizerLists.ts).
+      onValidate:
+        sourceSelector && lists.activeListId
+          ? () => {
+              // ⚠️ Garde de DERNIÈRE minute en plus du bouton
+              // désactivé : le clic peut partir d'un rendu périmé.
+              if (conflitsDeRunes(c.runeIds).length > 0) return;
+              // ⚠️ La paire DE CE CANDIDAT, pas celle du monstre
+              // affiché : c’est elle que la carte montre et qui a
+              // servi à calculer ses stats.
+              lists.validateBuild(
+                lists.activeListId!,
+                sourceSelector,
+                c.runeIds,
+                (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id),
+                selected!.monster.com2usId!
+              );
+              optimizer.capturerMembre(lists.activeListId!, sourceSelector);
+            }
+          : undefined,
+      // ⚠️ La paire QUE CETTE CARTE MONTRE — celle de la file si
+      // elle l'a trouvée, la représentative sinon. Exactement la
+      // même expression que `onValidate` ci-dessus : comparer autre
+      // chose que ce qu'on validerait rendrait le libellé menteur.
+      validated: etatValidation(
+        c.runeIds,
+        (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id)
+      ),
+      conflit: (() => {
+        const conflits = conflitsDeRunes(c.runeIds);
+        if (conflits.length === 0) return null;
+        const noms = [...new Set(conflits.map((x) => x.monsterName))];
+        return `${conflits.length > 1 ? 'Runes déjà réservées' : 'Rune déjà réservée'} dans cette liste pour ${noms.join(', ')}`;
+      })(),
+    };
+  }
+
   return (
     // ⚠️ **Pleine largeur**, comme RTA/Siège/Mon compte — l'ancienne colonne
     // bornée à 768 px était le seul écran de l'app à s'en imposer une, et
@@ -3624,48 +3780,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         stop={stop}
       />
 
-      {importMsg && (
-        <p className={`text-[12.5px] ${classeMessageImport(importMsg)}`} role="status">
-          {importMsg.text}
-        </p>
-      )}
+      <MessageImportRecette message={importMsg} />
 
       <ProgressionRecherche
         status={status}
         progress={progress}
         refusal={refusal}
-        appariement={status === 'running' && (progress === null || progress.phase === 'pairing') && (
-          <div>
-            <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
-              <div
-                className="h-full bg-accent transition-[width] duration-150 ease-out"
-                style={{ width: `${Math.round((progress?.pct ?? 0) * 100)}%` }}
-              />
-            </div>
-            {/* ⚠️ Le dénominateur ici est `totalPairs` (voir `totalPairCount`),
-                la taille EXACTE de l'espace à épuiser — un plafond de nœuds a
-                longtemps coexisté avec lui, écarté d'ici parce qu'il
-                grandissait en cours de route et aurait fait RECULER la barre.
-                C'est ce choix de l'interface qui a fini par emporter sa
-                suppression du moteur. */}
-            <p className="mt-1 font-mono text-micro text-ink-dim">
-              {progress === null
-                ? 'Préparation…'
-                : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${compteAffiche.compte.toLocaleString('fr-FR')} trouvée(s)`}
-            </p>
-            {progress !== null && (
-              <p className="mt-0.5 font-mono text-[11px] font-bold text-star">
-                Attendez la fin de la recherche pour être sûr de trouver votre build optimal.
-              </p>
-            )}
-            {progress !== null && (
-              <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
-                Le budget de recherche s'élargit automatiquement tant qu'il reste du temps et que le plafond de
-                résultats (100 000) n'est pas atteint — pas seulement tant que rien n'est trouvé.
-              </p>
-            )}
-          </div>
-        )}
+        compteAffiche={compteAffiche}
       />
 
       {/* ⚠️ S'affiche AUSSI pendant la phase d'appariement, dès qu'au moins
@@ -3677,174 +3798,33 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           plus utile que les barres de progression déjà affichées. */}
       {(result || fullSortedCandidates.length > 0) && (
         <div>
-          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-            {/* ⚠️ Le compte des CONFIRMÉES (`compteConfirmes`) :
-                seulement les builds vérifiés (résolus et conformes), un
-                compte qui ne baisse jamais pendant une recherche. « Aucune
-                combinaison… » seulement quand tout est vérifié sans aucune
-                confirmée. La ligne de progression garde les trouvées :
-                l'infobulle dit la différence. */}
-            <div className="flex items-center gap-1.5">
-              <p className="label">
-                {result
-                  ? compteConfirmes.aucune
-                    ? 'Aucune combinaison ne répond à ces critères'
-                    : `${compteConfirmes.confirmees.toLocaleString('fr-FR')} combinaison(s) confirmée(s)`
-                  : `${compteConfirmes.confirmees.toLocaleString('fr-FR')} combinaison(s) confirmée(s) pour l'instant — recherche en cours…`}
-              </p>
-              {/* Seulement quand une file vérifie : sans elle, confirmées et
-                  trouvées sont le même nombre. */}
-              {resoudreEquipement != null && !compteConfirmes.aucune && (
-                <HelpPopover title="Combinaisons confirmées">
-                  Une combinaison est <b className="text-ink">confirmée</b> quand ses artéfacts et sa relique ont
-                  été vérifiés avec les pièces de ton inventaire : elle tient vraiment toutes les conditions.
-                  <br />
-                  <br />
-                  Le nombre « trouvée(s) » de la barre de progression compte tout ce que la recherche a retenu stat
-                  par stat : une estimation optimiste, pas encore vérifiée. Une partie de ces combinaisons est
-                  écartée à la vérification.
-                  <br />
-                  <br />
-                  La vérification s'arrête à 100 confirmées (300 quand la relique est cherchée) ; « Vérifier toutes
-                  les combinaisons trouvées », dans les réglages avancés, va jusqu'au bout.
-                </HelpPopover>
-              )}
-            </div>
-            {/* ⚠️ **Le tri est une VUE, l’optimisation d’artéfacts une
-                DÉCISION.** Les coupler d’office déplaçait la paire dès qu’on
-                changeait de tri pour explorer — alors qu’on veut souvent
-                garder celle qui maximise les PV effectifs tout en regardant
-                les builds classés par une stat.
+          <EnteteResultats
+            result={result}
+            compteConfirmes={compteConfirmes}
+            resoudreEquipement={resoudreEquipement}
+            optimiserArtefacts={optimiserArtefacts}
+            adapterArtefactsAuTri={adapterArtefactsAuTri}
+            setAdapterArtefactsAuTri={setAdapterArtefactsAuTri}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            setResultsPage={setResultsPage}
+            realDamage={realDamage}
+            fileArtefacts={fileArtefacts}
+            compteAffiche={compteAffiche}
+          />
 
-                ⚠️ MASQUÉ quand l’optimisation est désactivée : il n’y a alors
-                qu’une paire possible, celle qui est portée. Une saisie sans
-                effet est pire qu’une saisie absente — même règle que les
-                sélecteurs de principale et les sous-propriétés verrouillées. */}
-            {optimiserArtefacts && !compteConfirmes.aucune && (
-              <div className="ml-auto flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-ink-dim">Adapter les artéfacts et reliques au tri</span>
-                <HelpPopover title="Adapter les artéfacts et reliques au tri">
-                  Activé (défaut), chaque build reçoit les artéfacts ET la relique qui maximisent le{' '}
-                  <b className="text-ink">critère de tri</b> affiché : trier par ATQ ne retient pas les mêmes
-                  pièces que trier par PV effectifs.
-                  <br />
-                  <br />
-                  Désactivé, les artéfacts et la relique restent ceux qui servent l’<b className="text-ink">objectif de la
-                  recherche</b>, quel que soit le tri. Utile pour parcourir les résultats classés autrement sans
-                  que l’équipement bouge — et « Valider les artéfacts » propose alors toujours le même.
-                  <br />
-                  <br />
-                  Sans effet sur Efficience, Vitesse, Taux CRIT, Dgts CRIT, Résistance et Précision : aucun
-                  artéfact ni aucune propriété de relique n’entre dans ces classements.
-                </HelpPopover>
-                <Interrupteur
-                  actif={adapterArtefactsAuTri}
-                  onChange={setAdapterArtefactsAuTri}
-                  aria-label="Adapter les artéfacts et reliques au tri"
-                />
-              </div>
-            )}
-            {/* Masqués (avec « Adapter… ») seulement quand tout est vérifié
-                sans aucune confirmée. */}
-            {!compteConfirmes.aucune && (
-              <Selecteur
-                value={sortBy}
-                onChange={(e) => {
-                  setSortBy(e.target.value as OptimizerSortKey);
-                  // Classement entièrement différent : la page courante
-                  // n'a plus le même sens, on repart du meilleur résultat.
-                  setResultsPage(1);
-                }}
-                taille="sm"
-                surface="panel"
-                pleineLargeur={false}
-              >
-                <optgroup label="Stats">
-                  {RECO_STATS.map((st) => (
-                    <option key={st.key} value={st.key}>
-                      Trier par {st.label}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Objectifs">
-                  {/* ⚠️ « Dégâts réels » n'est proposé que si un sort est
-                      réellement calculable pour ce monstre : sans sort, ce
-                      tri n'aurait aucune formule à appliquer et laisserait la
-                      liste dans son ordre précédent, sans rien dire. */}
-                  {OBJECTIVE_LABELS.filter((o) => o.key !== 'degats_reels' || realDamage).map((o) => (
-                    <option key={o.key} value={o.key}>
-                      {o.label}
-                    </option>
-                  ))}
-                </optgroup>
-              </Selecteur>
-            )}
-          </div>
-
-          {/* Combien la file doit encore vérifier : les builds des
-              places en attente de la page, puis l'avance de fond vers K
-              confirmées — le compte
-              ci-dessus les inclut, la page ne les
-              montre qu'une fois vérifiés. `enAttente` est le reste de la file,
-              tenu par le hook pour l'affichage. ⚠️ Rangée TOUJOURS présente
-              quand la file tourne : quand elle se vide, l'espace insécable
-              garde sa hauteur, et la grille ne remonte pas. */}
-          {resoudreEquipement != null && (
-            <p className="mb-2 text-xs text-ink-dim">
-              {fileArtefacts.enAttente > 0
-                ? `${fileArtefacts.enAttente.toLocaleString('fr-FR')} combinaison(s) en vérification…`
-                : ' '}
-            </p>
-          )}
-
-          {/* ⚠️ Zéro dû aux seuls builds écartés par la résolution :
-              le moteur a trouvé, aucun couple réel ne tient. Sous « Aucune combinaison… » seulement — tout vérifié, aucune
-              confirmée —, la ligne qu'elle explique. Les blocs ci-dessous
-              (diagnostic, « suffirait ») gardent leur condition, moteur vide :
-              leurs chiffres viennent des bornes du moteur. */}
-          {compteConfirmes.aucune && compteAffiche.raison && (
-            <p className="mb-3 text-xs text-ink-dim">{compteAffiche.raison}</p>
-          )}
-
-          {/* ⚠️ Diagnostic affiché UNIQUEMENT sur 0 résultat — voir
-              `diagnoseFeasibility` dans runeBuildOptim.ts pour ce qu'il
-              prouve exactement. Deux cas : au moins une condition
-              PROUVÉE hors de portée (rouge, liste précise) ; ou aucune ne
-              l'est individuellement (message neutre — le blocage vient de
-              leur combinaison ou de la recherche elle-même, pas d'une seule
-              stat identifiable). */}
-          {result?.candidates.length === 0 && feasibilityDiagnosis.length > 0 && (
-            <DiagnosticFaisabilite
-              impossibleFeasibility={impossibleFeasibility}
-            />
-          )}
-
-          {/* ⚠️ Palier 2 — voir `rankBlockingConditions` dans
-              runeBuildOptim.ts : un INDICE (pas une preuve, contrairement au
-              palier 1 ci-dessus), désactivé par défaut (coûte plus cher).
-              Deux affichages selon l'état de la bascule : le classement s'il
-              est activé, une invitation discrète sinon. */}
-          {result?.candidates.length === 0 && (
-            <DiagnosticApprofondi blockingDiagnosis={blockingDiagnosis} diagnoseBlockingEnabled={diagnoseBlockingEnabled} />
-          )}
-
-          {/* ⚠️ Quasi-succès à l'appariement — sous-produit GRATUIT de la
-              vraie recherche (`pairBuckets`, jamais recalculé), affiché
-              SYSTÉMATIQUEMENT (contrairement au palier 2 ci-dessus, dont le
-              coût réel justifie un réglage) : voir docs/03-developpeur/optimizer/,
-              « Quasi-succès à l'appariement ». Ne voit que ce que la recherche a
-              RÉELLEMENT exploré avant troncature — une paire encore plus
-              proche, jamais atteinte, resterait invisible. */}
-          {result?.candidates.length === 0 && (result.globalNearMiss || result.nearMissByCondition.length > 0) && (
-            <QuasiSucces
-              result={result}
-              runeById={runeById}
-              metric={metric}
-              objective={objective}
-              aurasPropresDe={aurasPropresDe}
-              damageSetup={damageSetup}
-            />
-          )}
+          <DiagnosticsSansResultat
+            result={result}
+            feasibilityDiagnosis={feasibilityDiagnosis}
+            impossibleFeasibility={impossibleFeasibility}
+            blockingDiagnosis={blockingDiagnosis}
+            diagnoseBlockingEnabled={diagnoseBlockingEnabled}
+            runeById={runeById}
+            metric={metric}
+            objective={objective}
+            aurasPropresDe={aurasPropresDe}
+            damageSetup={damageSetup}
+          />
 
           {result?.truncated && (
             <AvisRechercheTronquee result={result} stoppedManually={stoppedManually} />
@@ -3861,165 +3841,17 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               recherche comme après. Une place a la hauteur d'une carte
               (`useHauteurDesCartes`), pour que rien ne saute quand la carte
               arrive. */}
-          <div ref={grilleResultatsRef} className="grid grid-cols-[repeat(auto-fill,minmax(min(360px,100%),1fr))] gap-3">
-            {composition.cartes.map((c, i) => (
-              <BuildCandidateCard
-                key={c.runeIds.join('-')}
-                rank={composition.premierRang + i}
-                candidate={c}
-                runeById={runeById}
-                // ⚠️ La paire de CE build, jamais une paire commune : deux
-                // builds voisins n'appellent pas les mêmes artéfacts, et ce
-                // sont ces pièces-là qui ont servi à calculer ses stats.
-                // Le repli sur la paire SUPPOSÉE ne sert que sans file
-                // (optimisation coupée : la paire portée, la seule possible) —
-                // avec file, une carte affichée est résolue.
-                artifacts={fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts}
-                // ⚠️ **Seule source** :
-                // `etatReliqueDuBuild` lit le cache de la file, jamais
-                // recalculé ici — `fixe` (hors mode `recherche`) n'affiche
-                // rien de nouveau, `rejete` n'arrive jamais jusqu'ici (le
-                // classement écarte déjà ces builds). Par
-                // `etatReliqueDe` : la relique que le score compte.
-                etatRelique={etatReliqueDe(c)}
-                relicUsageById={relicUsageById}
-                // Plus de mention « artéfacts pas encore optimisés » : avec
-                // file, une carte n'apparaît qu'une fois résolue ; sans file,
-                // rien n'est à attendre.
-                metric={metric}
-                openDetailKey={openDetailKey}
-                onToggleDetail={(key: string) => setOpenDetailKey((cur) => (cur === key ? null : key))}
-                {...(() => {
-                  // ⚠️ Comparaison contre les stats de la FICHE — donc contre
-                  // le build validé quand il en existe un, sans avoir à le
-                  // redemander ici (voir `statsReference`).
-                  const cle = c.runeIds.join('-');
-                  const compare = compareKey === cle && statsReference != null;
-                  return {
-                    onCompare: statsReference ? () => setCompareKey((k) => (k === cle ? null : cle)) : undefined,
-                    // ⚠️ Affichée dès que les PV effectifs sont le critère de
-                    // CLASSEMENT — objectif OU tri —, exactement comme les
-                    // dégâts réels : on peut avoir cherché sur un objectif puis
-                    // re-trié par PV effectifs, auquel cas le chiffre qui
-                    // ordonne les cartes doit être visible dessus.
-                    // ⚠️ `scoreDuCandidat` avec les options du classement
-                    // affiché : le chiffre qui a CLASSÉ la carte, Ténacité et
-                    // points de la relique retenue compris.
-                    pvEffectifs:
-                      objective === 'ehp' || sortBy === 'ehp'
-                        ? (() => {
-                            const total = scoreDuCandidat(c, 'ehp', optionsDuTriAffiche)!;
-                            return { total, delta: compare && refEhp != null ? total - refEhp : undefined };
-                          })()
-                        : undefined,
-                    metricDelta:
-                      compare && refMetric != null
-                        ? candidateMetricTotal(c, runeById, metric) - refMetric
-                        : undefined,
-                    // ⚠️ Le delta est calculé PAR STAT contre la référence, et
-                    // seulement pour la carte comparée : le faire pour les 20
-                    // cartes de la page coûterait 20 fois plus pour 19 valeurs
-                    // qu'on n'affiche pas.
-                    comparaison:
-                      compareKey === cle && statsReference
-                        ? c.stats.map((ligne) => ({
-                            key: ligne.key,
-                            label: ligne.label,
-                            suffix: ligne.suffix,
-                            delta: ligne.total - (statsReference.find((r) => r.key === ligne.key)?.total ?? 0),
-                          }))
-                        : undefined,
-                  };
-                })()}
-                // ⚠️ Affiché dès qu'un sort est résolu ET que c'est bien le
-                // critère de classement courant (objectif OU tri) — pas
-                // seulement quand `objective` vaut « Dégâts réels » : on peut
-                // avoir lancé la recherche sur un autre objectif puis re-trier
-                // par dégâts réels, auquel cas le chiffre qui ordonne les
-                // cartes doit être visible dessus.
-                degatsReels={
-                  realDamage && (objective === 'degats_reels' || sortBy === 'degats_reels')
-                    ? (() => {
-                        // ⚠️ Le chiffre qui a CLASSÉ la carte : `scoreDuCandidat`
-                        // avec les options du classement affiché — profil
-                        // d'artéfacts de CE build et Conquête de sa relique
-                        // retenue compris. Une recopie de `computeTotalDamage`
-                        // omettait la Conquête que le tri compte.
-                        const total = scoreDuCandidat(c, 'degats_reels', optionsDuTriAffiche)!;
-                        return {
-                          total,
-                          partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0,
-                          // ⚠️ L'écart se calcule contre les dégâts de la
-                          // RÉFÉRENCE (`refDegats`) : la fiche notée avec SES
-                          // stats, SA paire d'artéfacts et SA relique — jamais
-                          // contre le total d'un autre candidat, jamais avec
-                          // la paire de la recherche.
-                          delta:
-                            compareKey === c.runeIds.join('-') && refDegats != null
-                              ? total - refDegats
-                              : undefined,
-                        };
-                      })()
-                    : undefined
-                }
-                // « Valider » — réserve les 6 runes RÉELLES de CE
-                // candidat pour `sourceSelector`, qu'il pointe un exemplaire
-                // réel OU un sélecteur `unowned` (monstre non possédé,
-                // demande explicite — « essayer des runages de teams sans
-                // avoir mis à jour son json » : les runes trouvées restent de
-                // VRAIES runes du compte, réservables comme n'importe quel
-                // autre build validé). Absent uniquement si `sourceSelector`
-                // est `null` (aucune espèce choisie, ou possédée ailleurs
-                // sans exemplaire encore désambiguïsé — zone D).
-                // ⚠️ Exige `sourceSelector` non nul ET une liste active (un build
-                // validé appartient TOUJOURS à une liste, voir
-                // ValidatedBuild). Valider ajoute aussi implicitement le
-                // monstre à la liste s'il n'y était pas déjà (voir
-                // `validateBuild`, useOptimizerLists.ts).
-                onValidate={
-                  sourceSelector && lists.activeListId
-                    ? () => {
-                        // ⚠️ Garde de DERNIÈRE minute en plus du bouton
-                        // désactivé : le clic peut partir d'un rendu périmé.
-                        if (conflitsDeRunes(c.runeIds).length > 0) return;
-                        // ⚠️ La paire DE CE CANDIDAT, pas celle du monstre
-                        // affiché : c’est elle que la carte montre et qui a
-                        // servi à calculer ses stats.
-                        lists.validateBuild(
-                          lists.activeListId!,
-                          sourceSelector,
-                          c.runeIds,
-                          (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id),
-                          selected!.monster.com2usId!
-                        );
-                        optimizer.capturerMembre(lists.activeListId!, sourceSelector);
-                      }
-                    : undefined
-                }
-                // ⚠️ La paire QUE CETTE CARTE MONTRE — celle de la file si
-                // elle l'a trouvée, la représentative sinon. Exactement la
-                // même expression que `onValidate` ci-dessus : comparer autre
-                // chose que ce qu'on validerait rendrait le libellé menteur.
-                validated={etatValidation(
-                  c.runeIds,
-                  (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id)
-                )}
-                conflit={(() => {
-                  const conflits = conflitsDeRunes(c.runeIds);
-                  if (conflits.length === 0) return null;
-                  const noms = [...new Set(conflits.map((x) => x.monsterName))];
-                  return `${conflits.length > 1 ? 'Runes déjà réservées' : 'Rune déjà réservée'} dans cette liste pour ${noms.join(', ')}`;
-                })()}
-              />
-            ))}
-            {Array.from({ length: composition.placesEnAttente }, (_, j) => (
-              <PlaceEnVerification
-                key={`verification-${composition.premierRang + composition.cartes.length + j}`}
-                rank={composition.premierRang + composition.cartes.length + j}
-                hauteur={hauteurCarte}
-              />
-            ))}
-          </div>
+          <GrilleResultats
+            grilleResultatsRef={grilleResultatsRef}
+            composition={composition}
+            runeById={runeById}
+            relicUsageById={relicUsageById}
+            metric={metric}
+            openDetailKey={openDetailKey}
+            onToggleDetail={(key: string) => setOpenDetailKey((cur) => (cur === key ? null : key))}
+            proprietesCarte={proprietesCarte}
+            hauteurCarte={hauteurCarte}
+          />
 
           {/* Pagination — remplace l'ancienne troncature dure à 20 : la
               liste complète (jusqu'à MAX_COLLECTED, voir runeBuildOptim.ts)
@@ -4055,24 +3887,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         <OptimizerCreateListDialog
           listes={lists.lists}
           libelleAction={addListPromptOpen === 'validate' ? 'Créer et valider' : addListPromptOpen === 'recherche' ? 'Créer' : 'Créer et ajouter'}
-          onValider={(valeur, contenu) => {
-            const nom = valeur.trim();
-            const intent = addListPromptOpen;
-            setAddListPromptOpen(null);
-            if (!selected?.monster.com2usId || (!sourceSelector && intent !== 'recherche')) return;
-            const id = lists.createList(nom, contenu);
-            if (intent === 'recherche') {
-              inclureSelectionRecherche(sourceSelector, selected.monster, id);
-              return;
-            }
-            if (!sourceSelector) return;
-            if (intent === 'validate') {
-              if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds, selected.monster.com2usId);
-            } else {
-              lists.addMember(id, sourceSelector, selected.monster.com2usId);
-            }
-            if (intent !== 'validate' || canValidateDisplayed) optimizer.capturerMembre(id, sourceSelector);
-          }}
+          onValider={creerListeDepuisDialogue}
           onCancel={() => setAddListPromptOpen(null)}
         />
       )}

@@ -82,6 +82,7 @@ node tests/banc/run.mjs --ecrans <id>       # le banc d'affichage, aux deux form
 npm test                       # TOUTES les vérifications — seulement avant une fusion sur main ou dans une release
 npm run test:suivi [-- …]      # les mêmes, suivies en direct dans le terminal (--web : aussi dans le navigateur)
 npm run fetch-data             # régénère les données SWARFARM de public/data
+node scripts/inventaire-competences.mjs --aide   # balayer les compétences du corpus, formule retenue par l'app
 npm run bureau                 # l'application de bureau en développement
 npm run bureau:preuve          # la vérification de l'application de bureau
 ```
@@ -211,7 +212,8 @@ modifiés (`--depuis`, `--plage`), le manifeste et le banc d'affichage :
 ## Hooks Git et CI
 
 - **`pre-commit` refuse** : une erreur ESLint dans le code indexé, un commit sur `main`, un chemin
-  privé dans l'index (`.history/`, `.vscode/`), un fichier de plus de 5 Mo (un export de compte).
+  privé dans l'index (`.history/`, `.vscode/`), un fichier de plus de 5 Mo (un export de compte),
+  une référence à `src/` non déclarée dans un test.
 - **`commit-msg` refuse** un sujet hors de la forme `type(portée): description`, un corps collé au
   sujet et un message qui commence par un BOM.
 - **`post-checkout` et `post-merge` rappellent `npm ci`** quand `package-lock.json` change ; ils ne

@@ -220,7 +220,7 @@ désigne un chemin sous `src/` (lecture, `join`, `new URL`…). Un test qui lit
 par cette lecture, donc chaque usage est déclaré dans
 [fixtures/lecture-source-toleree.json](fixtures/lecture-source-toleree.json),
 une entrée par (fichier, cible) : `stock` (figé sur `54f8c6d6`, 179
-identités) ou `exception` (justification obligatoire, 25).
+identités) ou `exception` (justification obligatoire, 27).
 
 - **Un usage absent de la liste, un nombre d'occurrences trop petit ou trop
   grand, une entrée qui ne correspond plus : échec.** Le décompte baisse dans
@@ -236,10 +236,17 @@ identités) ou `exception` (justification obligatoire, 25).
   et [rendu/optimizer-ecran-navigateur.test.ts](rendu/optimizer-ecran-navigateur.test.ts)) ;
   une lecture de la source qui reste porte sur la logique, pas sur
   l'endroit où un contrôle est écrit.
-- **Angles morts** (listés en tête du fichier) : une racine importée ou
-  passée en paramètre échappe au détecteur ; une chaîne à espace n'est pas
-  un chemin ; la garde ne dit ni si la cible existe ni ce que le test en
-  fait.
+- **Une seule règle** : le relevé et la comparaison à la liste vivent dans
+  [scripts/lib/lectureSource.ts](../scripts/lib/lectureSource.ts) ; la
+  vérification y ajoute le corpus (tout `tests/`, suivi ou non suivi non
+  ignoré), le hook `pre-commit` l'applique aux seuls fichiers indexés, lus
+  dans l'index ([qualite-code.md](../docs/03-developpeur/qualite-code.md),
+  « Références à `src/` au commit »). Le hook charge ce module par `node`,
+  sans compilation : il n'y entre que de la syntaxe TypeScript effaçable.
+- **Angles morts** (listés en tête de `lectureSource.ts`) : une racine
+  importée ou passée en paramètre échappe au détecteur ; une chaîne à espace
+  n'est pas un chemin ; la garde ne dit ni si la cible existe ni ce que le
+  test en fait.
 
 ## Mesure du rappel en usage
 

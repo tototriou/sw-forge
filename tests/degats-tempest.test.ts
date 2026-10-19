@@ -2,8 +2,8 @@
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE ici : un passif dont SWARFARM ne porte
 // AUCUNE formule (`formule: ""`) écarté en silence par la garde historique
-// `!c.formule` de `monsterOffensivePassives`, alors que sa formule curée
-// existe dans `FORMULES_CUREES_PAR_ID`. Le joueur cocherait Tempest et ne
+// `!c.formule` de `monsterOffensivePassives`, alors que sa compétence
+// auxiliaire (3218) en porte une. Le joueur cocherait Tempest et ne
 // verrait rien changer, sans aucun message. Et Tempest choisi
 // comme sort compté DEUX fois (lui-même, puis le passif resté allumé), ou
 // devenu le sort par défaut de Teshar à la place de son S2.
@@ -104,9 +104,9 @@ function tempestDe(detail: DetailMonstre): PassifOffensifProfile | undefined {
   return monsterOffensivePassives(detail).find((p) => p.skillCom2usId === TEMPEST);
 }
 
-/** Point 1 — la formule curée d'un passif passe par la table curée. */
+/** Point 1 — la formule de l'auxiliaire d'un passif sans formule est lue. */
 export function testDegatsTempestFormule() {
-  titre('Tempest — la formule curée d’un passif sans formule SWARFARM est lue');
+  titre('Tempest — la formule de l’auxiliaire d’un passif sans formule SWARFARM est lue');
 
   for (const forme of [TESHAR, PHOENIX_VENT]) {
     const detail = fiche(forme);
@@ -116,10 +116,10 @@ export function testDegatsTempestFormule() {
       `${forme} : la donnée brute est bien un passif de slot 3, en zone, SANS formule (« » dans SWARFARM)`
     );
     const tempest = tempestDe(detail);
-    ok(tempest != null, `${forme} : Tempest est reconnu comme passif offensif malgré « formule: "" » (formule de la table curée)`);
+    ok(tempest != null, `${forme} : Tempest est reconnu comme passif offensif malgré « formule: "" » (formule de son auxiliaire)`);
     if (!tempest) continue;
     egal(tempest.profile.formule, '3.7*{ATK}', `${forme} : formule retenue = 3.7 × ATQ (utilisateur + audit other_skill=1181)`);
-    egal(tempest.profile.variables, ['ATK'], `${forme} : la formule curée est analysée comme une formule de données (ATQ seule)`);
+    egal(tempest.profile.variables, ['ATK'], `${forme} : la formule de l’auxiliaire est analysée comme une formule de données (ATQ seule)`);
     egal(tempest.profile.skillupDamagePct, 30, `${forme} : les trois « Damage +10% » s’appliquent (+30 %)`);
     egal(tempest.profile.aoe, true, `${forme} : en zone (donnée « aoe » du passif)`);
     egal(tempest.profile.slot, 3, `${forme} : slot 3 (celui des lignes d’artéfact 402/410)`);
@@ -377,7 +377,13 @@ export function testDegatsTempestCommeSort() {
     }
     if (defaultDamageSkill(sorts)?.passif) passifParDefaut.push(f);
   }
-  egal(selectionnables.sort(), ['14503:3213', '14513:3213'], 'corpus : seul Tempest (3213) est un passif sélectionnable, sur Phoenix vent et Teshar');
+  // Tempest, plus les passifs hors tour chiffrés par leur compétence
+  // auxiliaire (Rageful Return de Psamathe, Parrying de Hollyberry Cookie, Fat
+  // Macaron de Manon ; 2026-10-17), forme non éveillée comprise.
+  const ATTENDUS_SELECTIONNABLES = [
+    '14503:3213', '14513:3213', '21101:11911', '21111:11911', '26401:16211', '26411:16211', '26901:16711', '26911:16711',
+  ];
+  egal(selectionnables.sort(), ATTENDUS_SELECTIONNABLES, 'corpus : Tempest (3213) et les trois passifs hors tour à auxiliaire sont les seuls passifs sélectionnables');
   ok(
     ecartsListe.length === 0,
     ecartsListe.length === 0
@@ -386,8 +392,8 @@ export function testDegatsTempestCommeSort() {
   );
   passifsProposes.sort();
   ok(
-    JSON.stringify(passifsProposes) === JSON.stringify(['14503:3213', '14513:3213']),
-    `corpus : passifs réellement proposés comme sorts = Tempest sur Phoenix vent et Teshar, rien d’autre — reçu ${passifsProposes.length} : ${passifsProposes.slice(0, 6).join(', ')}${passifsProposes.length > 6 ? ', …' : ''}`
+    JSON.stringify(passifsProposes) === JSON.stringify(ATTENDUS_SELECTIONNABLES),
+    `corpus : passifs réellement proposés comme sorts = les sélectionnables attendus, rien d’autre — reçu ${passifsProposes.length} : ${passifsProposes.slice(0, 6).join(', ')}${passifsProposes.length > 6 ? ', …' : ''}`
   );
   egal(ajustementsInterdits, [], 'corpus : aucun passif sélectionnable ne porte d’ajustement propre à la boucle des passifs');
   egal(passifParDefaut, [], 'corpus : aucun monstre n’a un passif pour sort par défaut');
@@ -591,7 +597,8 @@ export function testDegatsTempestEcran() {
     carte.includes("const apresSort = cat.type === 'conditionnel' && p.slotsDeclencheurs != null;"),
     'passif qui frappe après certains sorts = conditionnel à slots déclencheurs curés'
   );
-  ok(/apresSort\s*\?\s*`\$\{nom\} \(S\$\{p\.profile\.slot\}\) se déclenche après ce sort`/.test(carte), 'son interrupteur s’intitule « <nom> (S<slot>) se déclenche après ce sort »');
+  ok(/apresSort\s*\?\s*`\$\{nom\} \(S\$\{p\.profile\.slot\}\) se déclenche \$\{p\.avantLeSort \? 'avant' : 'après'\} ce sort`/.test(carte),
+    'son interrupteur s’intitule « <nom> (S<slot>) se déclenche après ce sort » (« avant » pour une attaque qui précède le sort)');
   ok(
     carte.includes('{!apresSort && <p className="mt-1 text-xs leading-snug text-ink-dim">{texteCondition}</p>}'),
     'la phrase « Se déclenche si … » laisse la place à ce libellé'

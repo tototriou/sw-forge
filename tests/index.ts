@@ -130,7 +130,7 @@ import {
   testDegatsTempestEcran,
 } from './degats-tempest.test';
 import testDegatsBladeSurge from './degats-blade-surge.test';
-import { testDegatsSequencesApi, testDegatsFormulesApi, testDegatsPorteesParLaProse } from './degats-valeurs-api.test';
+import { testDegatsSequencesApi, testDegatsSequencesAuxiliaire, testDegatsFormulesApi, testDegatsPorteesParLaProse } from './degats-valeurs-api.test';
 import testDegatsSortsSansAttaque from './degats-sorts-sans-attaque.test';
 import { testDegatsCoupsSaisis } from './degats-coups-saisis.test';
 import {
@@ -265,6 +265,10 @@ import testRuneTri from './rune-tri.test';
 import testMonstreTri from './monstre-tri.test';
 import testMonstreFormes from './monstre-formes.test';
 import testCurationFormesJouables from './curation-formes-jouables.test';
+import testInventaireCompetences from './inventaire-competences.test';
+import testDonneesAuxiliaires from './donnees-auxiliaires.test';
+import testDegatsAutreForme from './degats-autre-forme.test';
+import testDegatsAttaquesAuxiliaires from './degats-attaques-auxiliaires.test';
 import testStockage from './stockage.test';
 import testMigrationStockage from './migration-stockage.test';
 import testBureauProtocole from './bureau-protocole.test';
@@ -571,6 +575,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testMonstreTri', testMonstreTri],
   ['testMonstreFormes', testMonstreFormes],
   ['testCurationFormesJouables', testCurationFormesJouables],
+  ['testInventaireCompetences', testInventaireCompetences],
+  ['testDonneesAuxiliaires', testDonneesAuxiliaires],
   ['testCouleursCourbes', testCouleursCourbes],
   ['testRechargement', testRechargement],
   ['testCollabPaires', testCollabPaires],
@@ -581,6 +587,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testCritiqueMoyenneMessageImport', testCritiqueMoyenneMessageImport],
   ['testDegatsBladeSurge', testDegatsBladeSurge],
   ['testDegatsSequencesApi', testDegatsSequencesApi],
+  ['testDegatsSequencesAuxiliaire', testDegatsSequencesAuxiliaire],
+  ['testDegatsAutreForme', testDegatsAutreForme],
+  ['testDegatsAttaquesAuxiliaires', testDegatsAttaquesAuxiliaires],
   ['testDegatsFormulesApi', testDegatsFormulesApi],
   ['testDegatsPorteesParLaProse', testDegatsPorteesParLaProse],
   ['testDegatsSortsSansAttaque', testDegatsSortsSansAttaque],

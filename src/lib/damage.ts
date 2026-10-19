@@ -2436,6 +2436,15 @@ export interface SkillDamageProfile {
   // même discipline que les autres tables de ce fichier — confirmé par
   // l'utilisateur sur Rigna (126 points, donnée communautaire SWGT).
   ignoreDefSelonVit?: { ecartMax: number };
+  // Ignore une fraction de la DEF proportionnelle aux PV que la cible a
+  // perdus : 0 % à pleine vie, 100 % quand elle a perdu `pvPerdusPourTout` %
+  // de ses PV ou plus. Recalculée à chaque coup sur les PV que les coups
+  // précédents laissent, depuis les « PV restants » saisis. Seul porteur : le
+  // mode « 3 ennemis ou moins » d'Unlimited Power (`MODES_PAR_AUXILIAIRE`).
+  ignoreDefSelonPvCiblePerdus?: { pvPerdusPourTout: number };
+  // Vrai = second mode d'un sort, chiffré par sa compétence auxiliaire
+  // (`sortsEnModeAuxiliaire`) : jamais le sort par défaut.
+  modeAuxiliaire?: true;
   // Ignore la DEF COUP PAR COUP, à partir d'un rang que l'utilisateur choisit
   // — les six sorts des Blade Dancers, curés par identifiant
   // (`IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID`). Distinct d'`ignoreDef` (tout ou
@@ -2971,42 +2980,62 @@ const FORMULES_CUREES_PAR_ID: Record<number, string> = {
   7808: '5.5*{ATK}',
   7810: '5.5*{ATK}',
   21010: '{MAX HP}*{Sacrifice Reserve %}/{Alive Enemies} (Fixed)',
-  // Tempest (Passive) — Teshar vent `14513` et Phoenix vent `14503`, seules
-  // formes du corpus à porter ce nom et cet identifiant (balayage des 8 434
-  // compétences). SWARFARM donne `formule: ""`. Le ratio
-  // `3.7 × ATQ` est fourni par l'utilisateur (joueur, 2026-09-23) ET concorde
-  // avec l'audit des dégâts conditionnels (`other_skill=1181`) :
-  // deux sources (valeurs-de-jeu-curees.md, « Tempest (Teshar) »). Les trois améliorations
-  // « Damage +10% » (+30 %) s'y appliquent, lues dans `ameliorations` comme
-  // pour tout passif (même source, confirmation explicite).
-  3213: '3.7*{ATK}',
-  // S3 dont la fiche porte `formule: ""` : la formule est celle de la
-  // « compétence auxiliaire » (`other_skill`) de l'API SWARFARM, lue par
-  // l'audit des dégâts conditionnels. Règle : la valeur de l'API par défaut,
-  // sauf si la prose la contredit. Les améliorations « Damage » de la fiche s'y
-  // appliquent comme pour tout sort.
-  // Cursed Tombstone — Ramon (31414 ; 31404 non éveillé). Auxiliaire 4592.
-  // « This attack will deal more damage according to your MAX HP » concorde
-  // avec le terme de PV. La portée de la donnée (`aoe: true`, fiche et
-  // auxiliaire) est en revanche contredite par la prose (« Attacks the enemy »)
-  // : la prose l'emporte, mono-cible (`PORTEE_CORRIGEE_PAR_ID`).
-  21114: '2.7*{ATK} + 0.29*{MAX HP}',
-  // Purification, Cooperation! — Nezuko Kamado (31915 ; 31905 et 32015 non
-  // proposées par `formesJouables`) ; Rite of Ashes — Vermilion Bird Dancer
-  // (32615 ; 32605 non éveillé). Auxiliaires 4626 et 4710. « attacks the enemy target together
-  // with the target allies » : seule l'attaque du monstre est comptée ; celles
-  // des deux alliés (effet « Ally Attack ») sont des dégâts d'autres monstres,
-  // hors calcul. `coups: 0` de la fiche : un coup, comme tout sort qui frappe.
-  21415: '4.5*{ATK}',
-  22015: '4.5*{ATK}',
 };
 
+// La formule d'une fiche à `formule: ""` que porte sa compétence auxiliaire :
+// celle de l'unique auxiliaire `versCeSort` à formule, sinon rien.
+//
+// ⚠️ **Règle générale, pas une liste** : SWARFARM range le ratio de certains
+// sorts dans une compétence auxiliaire (`other_skill`) et laisse la fiche
+// vide. La valeur de l'API vaut par défaut, sauf si la prose la contredit
+// (valeurs-de-jeu-curees.md). Sont concernés, parmi les formes jouables :
+// - Tempest (Passive) — Teshar et Phoenix vent, 3213 → 3218 `3.7*{ATK}`, ratio
+//   confirmé aussi par l'utilisateur (2026-09-23) ; les trois « Damage +10% »
+//   de la fiche s'y appliquent ;
+// - Cursed Tombstone — Ramon, 21114 → 21116 `2.7*{ATK} + 0.29*{MAX HP}` ; la
+//   portée de la donnée est contredite par la prose (`PORTEE_CORRIGEE_PAR_ID`) ;
+// - Purification, Cooperation! — Nezuko, et Rite of Ashes — Vermilion Bird
+//   Dancer, 21415 → 21416 et 22015 → 22016 `4.5*{ATK}` : l'attaque du monstre
+//   seule, celles des alliés sont des dégâts d'autres monstres ; `coups: 0` de
+//   la fiche vaut un coup, comme tout sort qui frappe ;
+// - Whispers of Mirkwood — Legolas, et Echo of the Shadow Forest — Elder Horn,
+//   23915 → 23916 et 24415 → 24416 `4.2*{ATK}` : l'attaque de l'état, une fois ;
+// - les passifs Rageful Return (Psamathe), Parrying (Hollyberry Cookie) et Fat
+//   Macaron (Manon), qui n'en profitent que s'ils sont curés offensifs
+//   (`PASSIFS_OFFENSIFS_CONNUS`).
+// Un lien `mutuel` (les « Horn of… » des anges jumeaux et les tirs de leur
+// forme archer) désigne un AUTRE sort, jamais la formule de celui-ci. Deux
+// auxiliaires à formule : aucune n'est choisie.
+function formuleAuxiliaire(c: Competence): string {
+  const aFormule = (c.auxiliaires ?? []).filter((a) => a.sens === 'versCeSort' && (a.competence.formule ?? '').trim());
+  return aFormule.length === 1 ? (aFormule[0].competence.formule ?? '').trim() : '';
+}
+
 // La formule que retient le calcul : celle de `FORMULES_CUREES_PAR_ID` pour
-// l'identifiant, sinon celle de la fiche. Une seule expression pour le sort
-// actif (`skillDamageProfile`), le passif (`monsterOffensivePassives`) et la
-// règle des attaques conjointes (`estSortCooperatif`).
+// l'identifiant, sinon celle de la fiche, sinon celle de sa compétence
+// auxiliaire (`formuleAuxiliaire`). Une seule expression pour le sort actif
+// (`skillDamageProfile`), le passif (`monsterOffensivePassives`) et la règle
+// des attaques conjointes (`estSortCooperatif`).
 function formuleRetenue(c: Competence): string {
-  return (FORMULES_CUREES_PAR_ID[c.com2usId ?? -1] ?? c.formule ?? '').trim();
+  return formuleRetenueAvecOrigine(c).formule;
+}
+
+/** D'où vient la formule retenue : table curée, fiche, ou compétence auxiliaire. */
+export type OrigineFormuleRetenue = 'curee' | 'fiche' | 'auxiliaire';
+
+/**
+ * La formule que retient le calcul (`formuleRetenue`) et sa provenance ;
+ * `origine: null` quand aucune ne l'est (`formule: ''`). Exportée pour les
+ * scripts qui balaient le corpus : ils lisent la formule de l'application,
+ * jamais `Competence.formule` seule.
+ */
+export function formuleRetenueAvecOrigine(c: Competence): { formule: string; origine: OrigineFormuleRetenue | null } {
+  const curee = FORMULES_CUREES_PAR_ID[c.com2usId ?? -1];
+  if (curee) return { formule: curee.trim(), origine: 'curee' };
+  const fiche = (c.formule ?? '').trim();
+  if (fiche) return { formule: fiche, origine: 'fiche' };
+  const auxiliaire = formuleAuxiliaire(c);
+  return auxiliaire ? { formule: auxiliaire, origine: 'auxiliaire' } : { formule: '', origine: null };
 }
 
 // Portée corrigée par identifiant, quand la prose du sort contredit le champ
@@ -3037,6 +3066,14 @@ const PORTEE_CORRIGEE_PAR_ID: Record<number, boolean> = {
   // blows up the Continuous Damage granted on each target … »
   1362: true,
 };
+
+/**
+ * La portée que retient le profil d'un sort : `PORTEE_CORRIGEE_PAR_ID`, sinon
+ * `Competence.aoe`. Exportée pour les scripts qui balaient le corpus.
+ */
+export function porteeRetenue(c: Competence): boolean {
+  return PORTEE_CORRIGEE_PAR_ID[c.com2usId ?? -1] ?? c.aoe;
+}
 
 const COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID: Record<number, string> = {
   21006: '{MAX HP}*{Sacrifice Reserve %}/{Alive Enemies}',
@@ -3208,7 +3245,7 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
 // celui d'avant ; la table dit seulement ce qu'il ne contient pas.
 //
 // Quatre sources, et rien d'autre :
-//   1. les six ignore DEF permanents :
+//   1. les cinq ignore DEF permanents :
 //      l'effet `Ignore DEF` est compté sur tout le sort alors que le jeu le
 //      conditionne — trop favorable, gardé avec la mention ;
 //   2. les lignes à profil « calculé » encore incomplètes au code actuel :
@@ -3219,7 +3256,7 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
 //      Jasmine, Daniel, Espresso Cookie feu et ténèbres ; Hibiscus et
 //      Espresso Cookie lumière par la règle des jumeaux collab) :
 //      « n'est pas calculée », sans « encore » ;
-//   4. deux parts connues du jeu, non modélisées, à marquer :
+//   4. les parts connues du jeu, non modélisées, à marquer :
 //      l'équilibrage ATQ/DEF
 //      d'Internal Force sur les deux sorts de dégâts de Leona, et le bonus
 //      de VIT de Summary Justice (Theonia) : « pas encore compté ».
@@ -3234,7 +3271,6 @@ const CALCUL_PARTIEL_PAR_ID: Readonly<Record<number, string>> = {
   // ── Ignore DEF compté en permanence ──
   13406: 'L’ignore DEF est compté en entier, en permanence ; la part du jeu, qui grandit quand tes PV baissent, n’est pas encore modélisée.', // Madness Judgement (Belial)
   13410: 'L’ignore DEF est compté en entier, en permanence ; la part du jeu, qui grandit quand tes PV baissent, n’est pas encore modélisée.', // Madness Judgement (Beelzebub)
-  15511: 'L’ignore DEF est compté en entier, en permanence ; la condition du jeu (3 ennemis ou moins, jusqu’à 100 % selon les PV de la cible) n’est pas encore modélisée.', // Unlimited Power (Liam)
   13611: 'L’ignore DEF est compté en entier, en permanence ; la condition du jeu (35 % par effet bénéfique retiré par la bête) n’est pas encore modélisée.', // Start of Attacking (Barbara)
   7713: 'L’ignore DEF est compté en permanence ; la condition du jeu (DEF de la cible sous 50 % de la tienne) n’est pas encore modélisée.', // Thunder Strike (Copper éveillé, sans second éveil)
   6013: 'L’ignore DEF est compté en permanence ; la condition du jeu (sort lancé sous Invincibilité) n’est pas encore modélisée.', // Sword of Discharge (Katarina)
@@ -3242,6 +3278,7 @@ const CALCUL_PARTIEL_PAR_ID: Readonly<Record<number, string>> = {
   11912: 'La perte de 40 % des PV de la cible (15 % pour un boss) avant le coup n’est pas encore comptée.', // Hellfire (Daphnis)
   6015: 'La perte de 15 % des PV de tous les ennemis avant le coup n’est pas encore comptée.', // Ragnarok (Trinity)
   15114: 'Le bonus de dégâts selon les PV détruits de la cible (15 à 60 %) n’est pas encore compté.', // Time of Destruction (Dorothy)
+  13312: 'Le bonus de 25 % par effet bénéfique ou nocif sur la cible, sur la phase de zone, n’est pas encore compté.', // Fatal Mortar Bullet (Scarlett)
   20413: 'La perte de PV des ennemis dont un effet bénéfique est retiré n’est pas encore comptée.', // Dragon Bombardment (Ereshion)
   13401: 'La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée.', // Sword of Destruction (Belial)
   13402: 'La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée.', // Sword of Destruction (Bael)
@@ -3305,6 +3342,9 @@ export function clesDesTablesParId(): Record<string, number[]> {
     SORTS_COOPERATIFS_SANS_EFFET_PAR_ID: [...SORTS_COOPERATIFS_SANS_EFFET_PAR_ID],
     SORTS_DES_FAMILLES_COOPERATIVES_PAR_ID: [...SORTS_DES_FAMILLES_COOPERATIVES_PAR_ID],
     ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID: [...ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID],
+    ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR: cles(ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR),
+    MODES_PAR_AUXILIAIRE: cles(MODES_PAR_AUXILIAIRE),
+    COUPS_DU_MODE_DE_LA_FICHE_PAR_ID: cles(COUPS_DU_MODE_DE_LA_FICHE_PAR_ID),
   };
 }
 
@@ -3430,7 +3470,17 @@ const IGNORE_DEF_COMPLET_CONNUS = new Set(['Hero Strike', 'Strike of Fighter']);
 const IGNORE_DEF_CONDITIONNEL_PAR_ID = new Set([
   7001, 7002, 7003, 7004, 7005, 3311, 8215, 6815,
   7808, 7810, 7763, 15907, 15908, 15910, 19215, 19615, 5315,
+  // Unlimited Power (Liam) : l'ignore DEF n'appartient qu'au mode « 3 ennemis
+  // ou moins », proposé à part (`MODES_PAR_AUXILIAIRE`) ; le sort de la fiche
+  // (4 ennemis ou plus) n'en a pas.
+  15511,
 ]);
+
+// Coups du sort tel que la fiche le décrit quand son `coups` appartient à un
+// autre mode : Unlimited Power (Liam) frappe tous les ennemis une fois avec 4
+// ennemis ou plus ; ses 6 coups sont ceux du mode « 3 ennemis ou moins »
+// (`MODES_PAR_AUXILIAIRE`).
+const COUPS_DU_MODE_DE_LA_FICHE_PAR_ID: Record<number, number> = { 15511: 1 };
 
 // ── Ignore DEF à partir d'un coup choisi — les Blade Dancers ──
 //
@@ -3516,7 +3566,8 @@ const COUPS_FIXES_CORRIGES: Record<string, number> = {
 const COUPS_FIXES_CORRIGES_PAR_ID: Record<number, number> = {};
 
 function coupsFixesCorrigesDe(c: { com2usId: number | null; nom: string }): number | undefined {
-  return (c.com2usId == null ? undefined : COUPS_FIXES_CORRIGES_PAR_ID[c.com2usId]) ?? COUPS_FIXES_CORRIGES[c.nom];
+  return (c.com2usId == null ? undefined : COUPS_FIXES_CORRIGES_PAR_ID[c.com2usId] ?? COUPS_DU_MODE_DE_LA_FICHE_PAR_ID[c.com2usId]) ??
+    COUPS_FIXES_CORRIGES[c.nom];
 }
 
 // Sorts dont les coups n'ont PAS tous la même formule ni la même portée.
@@ -3559,8 +3610,12 @@ function coupsFixesCorrigesDe(c: { com2usId: number | null; nom: string }): numb
 type SequenceCuree = {
   // La donnée de la fiche sur laquelle la séquence a été curée, telle quelle.
   empreinte: { formule: string; coups: number | null; aoe: boolean };
-  groupes: readonly { formule: string; coups: number; zone: boolean }[];
+  // `formule: AUXILIAIRE` : le ratio du groupe est celui de la compétence
+  // auxiliaire du sort (`formuleAuxiliaire`), jamais recopié ici. Absent de la
+  // donnée, le sort est refusé avec sa raison.
+  groupes: readonly { formule: string | typeof AUXILIAIRE; coups: number; zone: boolean }[];
 };
+const AUXILIAIRE = Symbol('formule de la compétence auxiliaire');
 const SEQUENCE_BLADE_SURGE: SequenceCuree = {
   empreinte: { formule: '0.5*{ATK}', coups: 2, aoe: false },
   groupes: [
@@ -3575,15 +3630,13 @@ const SEQUENCES_DE_COUPS_PAR_ID_CONNUS: Record<number, SequenceCuree> = {
   10618: SEQUENCE_BLADE_SURGE, // Lupinus (19813)
   10620: SEQUENCE_BLADE_SURGE, // Lanett (19815)
 
-  // Séquences dont la phase de zone n'est chiffrée que par l'API SWARFARM :
-  // la « compétence auxiliaire » (`other_skill`) du sort, lue par l'audit des
-  // dégâts conditionnels (annexes, « Compétences auxiliaires
-  // fournies par l'API ») et absente de l'import du corpus. Règle : la
-  // valeur de l'API par défaut, sauf si la
-  // prose du sort la contredit — aucune des quatre proses ne la contredit.
-  // Les phases et leur portée viennent de la prose (« Attacks
-  // the enemy … Afterwards, … all enemies ») ; « all enemies » compte la cible
-  // visée parmi les ennemis touchés.
+  // Séquences dont la phase de zone n'est chiffrée que par la compétence
+  // auxiliaire du sort (`formuleAuxiliaire`) : la fiche ne porte que la
+  // phase 1. Règle : la valeur de l'API par défaut, sauf si la prose du sort
+  // la contredit — aucune de ces proses ne la contredit. Les phases et leur
+  // portée viennent de la prose (« Attacks the enemy … Afterwards, … all
+  // enemies ») ; « all enemies » compte la cible visée parmi les ennemis
+  // touchés.
   // ⚠️ Non établi, nommé : les skillups de la fiche s'appliquent ici aux deux
   // phases, parce que le calcul recopie le profil sur chaque groupe ; rien ne
   // l'a confirmé pour ces sorts (contrairement à Blade Surge). Sur la phase 1
@@ -3592,43 +3645,64 @@ const SEQUENCES_DE_COUPS_PAR_ID_CONNUS: Record<number, SequenceCuree> = {
   // `4,0 × 1,15 + 5,2` au lieu de `(4,0 + 5,2) × 1,15` (9,8 contre 10,58,
   // −7 %) ; relevés R1/R2 du contrôle
   // 13b-sequences-zone.
-  // Fatal Extinctive Bullet — Abigail (22911). Donnée : la phase 1 seule.
-  // Auxiliaire 2476 `4.5*{ATK}`.
+  // Fatal Extinctive Bullet — Abigail (22911). Donnée : la phase 1 seule ;
+  // auxiliaire 13316 `4.5*{ATK}`.
   13311: {
     empreinte: { formule: '3.5*{ATK}', coups: 1, aoe: false },
     groupes: [
       { formule: '3.5*{ATK}', coups: 1, zone: false },
-      { formule: '4.5*{ATK}', coups: 1, zone: true },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
     ],
   },
-  // Fatal Armor Bullet — Emily (22914). Donnée : la phase 1 seule.
-  // Auxiliaire 2478 `4.5*{ATK}`.
+  // Fatal Mortar Bullet — Scarlett (22912). Même forme que ses sœurs ;
+  // auxiliaire 13317 `4.5*{ATK}`. Le +25 % par effet sur la cible de la phase
+  // de zone n'est pas compté (`CALCUL_PARTIEL_PAR_ID`).
+  13312: {
+    empreinte: { formule: '3.5*{ATK}', coups: 1, aoe: false },
+    groupes: [
+      { formule: '3.5*{ATK}', coups: 1, zone: false },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
+    ],
+  },
+  // Fatal Armor Bullet — Emily (22914). Donnée : la phase 1 seule ;
+  // auxiliaire 13319 `4.5*{ATK}`.
   13314: {
     empreinte: { formule: '3.5*{ATK}', coups: 1, aoe: false },
     groupes: [
       { formule: '3.5*{ATK}', coups: 1, zone: false },
-      { formule: '4.5*{ATK}', coups: 1, zone: true },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
     ],
   },
   // Head Press — M. BISON (24213 ; 24203 non éveillé). Donnée : `coups: 2`
   // compte les deux phases, `aoe: false` est la portée de la phase 1 ; la
   // prose décrit une attaque sur l'ennemi, puis une sur tous les ennemis.
-  // Auxiliaire 2762 `5.2*{ATK}`.
+  // Auxiliaire 14116 `5.2*{ATK}`.
   14113: {
     empreinte: { formule: '4.0*{ATK}', coups: 2, aoe: false },
     groupes: [
       { formule: '4.0*{ATK}', coups: 1, zone: false },
-      { formule: '5.2*{ATK}', coups: 1, zone: true },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
     ],
   },
   // Great Sword of the End — Sagar (24713 ; 24703 non éveillé). Donnée :
   // `coups: 2` compte les deux phases, `aoe: true` est la portée de la phase
-  // de zone ; même prose que Head Press. Auxiliaire 2830 `5.2*{ATK}`.
+  // de zone ; même prose que Head Press. Auxiliaire 14616 `5.2*{ATK}`.
   14613: {
     empreinte: { formule: '4.0*{ATK}', coups: 2, aoe: true },
     groupes: [
       { formule: '4.0*{ATK}', coups: 1, zone: false },
-      { formule: '5.2*{ATK}', coups: 1, zone: true },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
+    ],
+  },
+  // Undefeated Warrior — Kuna (18715). Donnée : `3.8*{ATK}`, un coup, `aoe:
+  // true` ; auxiliaire 9516 `3.0*{ATK}`. Le premier coup frappe une cible à
+  // 3,8 × ATQ, le second tous les ennemis à 3,0 × ATQ (utilisateur,
+  // 2026-10-17, valeurs-de-jeu-curees.md).
+  9515: {
+    empreinte: { formule: '3.8*{ATK}', coups: 1, aoe: true },
+    groupes: [
+      { formule: '3.8*{ATK}', coups: 1, zone: false },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
     ],
   },
 };
@@ -3669,10 +3743,11 @@ export function resumeSequenceDeCoups(sequence: readonly Pick<GroupeDeCoups, 'co
 // dit l'interrupteur « Attaque conjointe », allumé par défaut.
 //
 // « À formule » = la formule que RETIENT le calcul (`formuleRetenue` : celle de
-// `FORMULES_CUREES_PAR_ID`, sinon celle de la fiche), décision de
-// l'utilisateur (2026-10-16). Purification, Cooperation! (21415) et Rite of
-// Ashes (22015) portent `Ally Attack` sans formule de donnée : leur ratio
-// curé (4,5 × ATQ, l'attaque du monstre seule) les rend conjoints.
+// `FORMULES_CUREES_PAR_ID`, sinon celle de la fiche, sinon celle de sa
+// compétence auxiliaire), décision de l'utilisateur (2026-10-16).
+// Purification, Cooperation! (21415) et Rite of Ashes (22015) portent `Ally
+// Attack` sans formule dans leur fiche : le ratio de leur auxiliaire (4,5 ×
+// ATQ, l'attaque du monstre seule) les rend conjoints.
 
 // INCLUSION — sorts coopératifs à formule dont la donnée ne porte pas
 // `Ally Attack`, rangés parmi les attaques conjointes par l'utilisateur
@@ -3906,7 +3981,8 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
   if (SORTS_SANS_ATTAQUE_PAR_ID.has(c.com2usId)) return null;
   // Garde « formule vide » sur la formule RETENUE (même forme que
   // `monsterOffensivePassives`) : une fiche à `formule: ""` reste sans profil,
-  // sauf si `FORMULES_CUREES_PAR_ID` lui en donne une.
+  // sauf si `FORMULES_CUREES_PAR_ID` ou sa compétence auxiliaire lui en
+  // donne une.
   const brut = formuleRetenue(c);
   if (!brut) return null;
   const entete = { skillCom2usId: c.com2usId, slot: c.slot ?? 0, nom: c.nom, description: c.description };
@@ -3945,9 +4021,11 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     }
     sequenceDeCoups = [];
     for (const groupe of groupes) {
-      const analyseGroupe = analyser(groupe.formule);
+      const formule = groupe.formule === AUXILIAIRE ? formuleAuxiliaire(c) : groupe.formule;
+      if (!formule) return { ...entete, raison: 'La compétence auxiliaire qui chiffre une phase de ce sort manque à ses données.' };
+      const analyseGroupe = analyser(formule);
       if (!analyseGroupe) return { ...entete, raison: 'La séquence de coups curée pour ce sort n’est pas prise en charge.' };
-      sequenceDeCoups.push({ ...groupe, ...analyseGroupe });
+      sequenceDeCoups.push({ ...groupe, formule, ...analyseGroupe });
     }
   }
 
@@ -3999,7 +4077,7 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     formule: brut,
     hits,
     hitsRange: coupsVariables,
-    aoe: PORTEE_CORRIGEE_PAR_ID[c.com2usId] ?? c.aoe,
+    aoe: porteeRetenue(c),
     // ⚠️ `ignoreDefSelonVit` prévaut : SWARFARM tague Concentrated Stab d'un
     // effet « Ignore DEF » PLEIN (`quantite: 100`), la nuance « selon l'écart
     // de VIT » vivant uniquement dans son champ `note` en texte libre, jamais
@@ -4066,12 +4144,12 @@ export function estPrisEnCharge(p: SkillDamageProfile | SkillDamageUnsupported):
 // que les sorts actifs à chaque appel de `monsterOffensivePassives` — si
 // SWARFARM corrige un coefficient demain, la valeur suit sans toucher cette
 // liste. Seule la CATÉGORISATION (qui ne peut PAS être déduite du champ
-// `formule`) est curée. **Exception unique, et pas dans cette liste** : quand
-// les données ne portent AUCUNE formule (ou une fausse), elle vient de
-// `FORMULES_CUREES_PAR_ID`, par identifiant et avec sa source, la MÊME table
-// et la même priorité que pour un sort actif — Tempest (`3213`,
-// `formule: ""`). Sans entrée dans cette table, un passif sans formule reste
-// ignoré.
+// `formule`) est curée. **Exception, et pas dans cette liste** : quand la
+// fiche ne porte AUCUNE formule (ou une fausse), elle vient de sa compétence
+// auxiliaire, ou de `FORMULES_CUREES_PAR_ID` par identifiant et avec sa
+// source — la même lecture que pour un sort actif (`formuleRetenue`) : Tempest
+// (`3213`, `formule: ""`) prend celle de son auxiliaire. Sans l'une ni
+// l'autre, un passif sans formule reste ignoré.
 //
 // ⚠️ **Trois catégories, jamais une case « actif » à deviner** :
 // - `toujours` : le texte ne pose AUCUNE condition de combat (« whenever you
@@ -4291,7 +4369,7 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   { nom: 'Comeuppance (Passive)', critique: 'jamais', categorie: { type: 'conditionnel', condition: 'tu attaques la cible « Suppressed » (texte du jeu, condition non davantage précisée)' } }, // Onmyouji, Giou
   // « Attacks all enemies with a violent storm once more … after you attack
   // the enemy on your turn » — `formule: ""` dans SWARFARM : son `3.7 × ATQ`
-  // vient de `FORMULES_CUREES_PAR_ID` (3213, source citée là-bas). Le nom
+  // vient de sa compétence auxiliaire (`formuleAuxiliaire`, 3218). Le nom
   // n'est porté que par 3213, sur Teshar vent `14513` et Phoenix vent `14503`
   // (balayage du corpus). `conditionnel` : l'Optimizer ne
   // simule ni sa recharge ni sa remise à zéro sur une élimination, un
@@ -4317,6 +4395,38 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
     selectionnableCommeSort: true,
     categorie: { type: 'conditionnel', condition: 'sa recharge est terminée au moment où ton S1 ou ton S2 frappe (recharge non simulée)' },
   }, // Teshar, Phoenix (Vent)
+  // Passifs qui frappent HORS du tour du monstre, chiffrés par leur
+  // compétence auxiliaire (`formuleAuxiliaire`) : ils ne suivent aucun sort
+  // (`slotsDeclencheurs: []`, jamais d'interrupteur après un sort) et ne se
+  // calculent que choisis seuls dans « Compétence utilisée », comme Tempest.
+  // Une contribution, une fois. Noms portés par leurs seules formes (balayage
+  // du corpus, 2026-10-17).
+  // « If an ally excluding yourself takes damage from an enemy during the
+  // enemy's turn, you have a 15% chance to offset that damage, attack the enemy
+  // instantly to deal damage proportionate to your Defense » — auxiliaire
+  // `3.5*{DEF}` (16216, 16716).
+  {
+    nom: 'Parrying (Passive)',
+    slotsDeclencheurs: [],
+    selectionnableCommeSort: true,
+    categorie: { type: 'conditionnel', condition: 'un allié est frappé pendant le tour ennemi et la riposte part (15 %, probabilité du jeu non tirée)' },
+  }, // Hollyberry Cookie (eau)
+  {
+    nom: 'Fat Macaron (Passive)',
+    slotsDeclencheurs: [],
+    selectionnableCommeSort: true,
+    categorie: { type: 'conditionnel', condition: 'un allié est frappé pendant le tour ennemi et la riposte part (15 %, probabilité du jeu non tirée)' },
+  }, // Manon (eau)
+  // « The activation of [Rageful Return] deals significant damage to all
+  // enemies » — à sa résurrection ; auxiliaire `6.0*{ATK}` (11916). Zone : la
+  // prose dit « all enemies », comme la fiche (`aoe: true`) ; l'auxiliaire dit
+  // `aoe: false`, la prose l'emporte.
+  {
+    nom: 'Rageful Return (Passive)',
+    slotsDeclencheurs: [],
+    selectionnableCommeSort: true,
+    categorie: { type: 'conditionnel', condition: 'tu meurs et reviens au combat (une fois par combat)' },
+  }, // Psamathe (eau)
 ];
 
 // Attaque appelée ACTIVE : un sort qui enchaîne une AUTRE
@@ -4417,6 +4527,10 @@ export interface PassifOffensifProfile {
   // Donnée pure (traverse le Worker de résolution avec `RealDamageContext`) :
   // absent = déclenché après n'importe quel sort. Voir `passifCompte`.
   slotsDeclencheurs?: readonly number[];
+  // Donnée pure : vrai = l'attaque frappe AVANT le sort choisi (l'attaque en
+  // Menace de Shadow of Right Arm) : elle lit l'état de la cible d'avant le
+  // sort, sans la réduction de Défense qu'il pose, et l'écran dit « avant ».
+  avantLeSort?: true;
   // Donnée pure : vrai = `profile` est AUSSI proposé comme sort par
   // `monsterDamageSkills` (voir `PassifOffensifConnu`).
   selectionnableCommeSort?: boolean;
@@ -4426,8 +4540,7 @@ export interface PassifOffensifProfile {
 
 /**
  * Les passifs offensifs de CE monstre reconnus dans `PASSIFS_OFFENSIFS_CONNUS`
- * et dont la formule — celle de `FORMULES_CUREES_PAR_ID` pour son identifiant
- * si elle existe, sinon celle de sa propre fiche, comme `skillDamageProfile` —
+ * et dont la formule — `formuleRetenue`, comme `skillDamageProfile` —
  * reste analysable (une formule qui a changé de forme depuis la
  * catégorisation ci-dessus est silencieusement ignorée, jamais un plantage
  * ni un nombre inventé). Liste vide si la fiche est absente.
@@ -4447,7 +4560,7 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
     const connu = PASSIFS_OFFENSIFS_CONNUS.find((p) => p.nom === c.nom);
     if (!connu) continue;
     // ⚠️ La garde porte sur la formule RETENUE, jamais sur `c.formule` seule :
-    // Tempest (3213) porte `formule: ""` et n'existe que par la table curée.
+    // Tempest (3213) porte `formule: ""` et n'existe que par son auxiliaire.
     // Garder `!c.formule` ici l'écarterait en silence.
     const brut = formuleRetenue(c);
     if (!brut) continue;
@@ -4522,6 +4635,7 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
     });
   }
   out.push(...attaquesAppeleesDeLaFiche(detail));
+  out.push(...attaquesAuxiliairesDeLaFiche(detail));
   return out;
 }
 
@@ -4586,6 +4700,135 @@ function attaquesAppeleesDeLaFiche(detail: DetailMonstre): PassifOffensifProfile
   }));
 }
 
+// Attaque supplémentaire CONDITIONNELLE chiffrée par la compétence auxiliaire
+// du sort déclencheur : le coup en plus que la prose annonce sous condition,
+// dont la fiche ne porte pas le ratio. Même chemin que les attaques appelées
+// (`attaquesAppeleesDeLaFiche`) : un interrupteur éteint par défaut, après ce
+// seul sort, la probabilité du jeu jamais tirée (valeurs-de-jeu-curees.md,
+// « Attaques supplémentaires conditionnelles »).
+//
+// Clé = `com2usId` du SORT DÉCLENCHEUR. `libelle` nomme l'attaque à l'écran :
+// l'auxiliaire n'a souvent pas de nom de jeu (« skill_11016 »). `condition`
+// est la phrase de l'interrupteur.
+interface AttaqueAuxiliaireConnue {
+  libelle: string;
+  condition: string;
+  source: string;
+  // Slots des sorts que l'attaque accompagne ; absent = le seul slot du
+  // déclencheur.
+  slots?: readonly number[];
+  // L'attaque frappe AVANT le sort choisi (voir `PassifOffensifProfile.avantLeSort`).
+  avantLeSort?: true;
+  // Pour un déclencheur SANS auxiliaire dans l'API : celle d'un homonyme,
+  // empruntée sur décision de l'utilisateur, jamais par ressemblance. Le
+  // profil prend son identifiant et sa formule, un coup, sur une cible, et
+  // les améliorations du déclencheur.
+  auxiliaireEmpruntee?: { com2usId: number; formule: string };
+}
+export const ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR: Readonly<Record<number, AttaqueAuxiliaireConnue>> = {
+  // Exploding Hands — Jackie (20215) : « Attacks once more if the target is
+  // stunned by your attack ». Auxiliaire 11016 `7.4*{ATK}`.
+  11015: {
+    libelle: 'Exploding Hands — attaque en plus',
+    condition: 'l’étourdissement de ce sort réussit (probabilité du jeu non tirée)',
+    source: 'prose et auxiliaire 11016 ; une répétition à 7,4 × ATQ, sans nouvel étourdissement : utilisateur, 2026-09-23',
+  },
+  // Shadow of Right Arm — Minato (25911), Ren (25912), Ritsu (25915) : « you go
+  // under the Threat state while the enemy attacks with a single-target skill
+  // 1 time ». Auxiliaires 15716, 15717, 15720 `4.5*{ATK}` : l'attaque lancée
+  // consécutivement en état de Menace, activable ; elle frappe AVANT le sort
+  // choisi, S1 ou S2, et aussi S3 pour Ren (utilisateur, 2026-10-17).
+  15706: {
+    libelle: 'Shadow of Right Arm — attaque en Menace',
+    condition: 'tu es en état de Menace et l’ennemi t’attaque d’un sort mono-cible',
+    source: 'auxiliaire 15716 ; utilisateur, 2026-10-17',
+    slots: [1, 2],
+    avantLeSort: true,
+  },
+  15707: {
+    libelle: 'Shadow of Right Arm — attaque en Menace',
+    condition: 'tu es en état de Menace et l’ennemi t’attaque d’un sort mono-cible',
+    source: 'auxiliaire 15717 ; utilisateur, 2026-10-17',
+    slots: [1, 2, 3],
+    avantLeSort: true,
+  },
+  15710: {
+    libelle: 'Shadow of Right Arm — attaque en Menace',
+    condition: 'tu es en état de Menace et l’ennemi t’attaque d’un sort mono-cible',
+    source: 'auxiliaire 15720 ; utilisateur, 2026-10-17',
+    slots: [1, 2],
+    avantLeSort: true,
+  },
+  // Guilty Sentence — Theonia (34215) : « Attacks all enemies … In addition,
+  // attacks the enemy with the lowest Defense ». Auxiliaire 23517
+  // `3.3*{ATK}`. Agrenia (34212) et Driana (34213), même prose et mêmes
+  // améliorations, n'ont pas d'auxiliaire dans l'API : celle de Theonia vaut
+  // pour elles (utilisateur, 2026-10-17).
+  23510: {
+    libelle: 'Guilty Sentence — attaque sur la DEF la plus faible',
+    condition: 'ta cible est l’ennemi à la plus faible DEF',
+    source: 'prose et auxiliaire 23517 (valeur de l’API par défaut)',
+  },
+  23507: {
+    libelle: 'Guilty Sentence — attaque sur la DEF la plus faible',
+    condition: 'ta cible est l’ennemi à la plus faible DEF',
+    source: 'auxiliaire 23517 de Theonia : utilisateur, 2026-10-17',
+    auxiliaireEmpruntee: { com2usId: 23517, formule: '3.3*{ATK}' },
+  },
+  23508: {
+    libelle: 'Guilty Sentence — attaque sur la DEF la plus faible',
+    condition: 'ta cible est l’ennemi à la plus faible DEF',
+    source: 'auxiliaire 23517 de Theonia : utilisateur, 2026-10-17',
+    auxiliaireEmpruntee: { com2usId: 23517, formule: '3.3*{ATK}' },
+  },
+};
+
+/**
+ * Les attaques auxiliaires conditionnelles de cette fiche
+ * (`ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR`), au format du chemin des passifs :
+ * le profil de l'unique auxiliaire `versCeSort` à formule du déclencheur
+ * (`skillDamageProfile`, ses propres améliorations), nommé par `libelle` et
+ * décrit par la prose du déclencheur ; après ce seul sort, ou avant les sorts
+ * de `slots` quand l'entrée le dit.
+ *
+ * Gardes, chacune écarte l'entrée en silence : déclencheur passif ou sans
+ * slot, slot partagé par une autre compétence, auxiliaire absente, ambiguë ou
+ * sans profil calculable.
+ */
+function attaquesAuxiliairesDeLaFiche(detail: DetailMonstre): PassifOffensifProfile[] {
+  const out: PassifOffensifProfile[] = [];
+  for (const declencheur of detail.competences) {
+    if (declencheur.passif || declencheur.com2usId == null || declencheur.slot == null) continue;
+    const connue = ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR[declencheur.com2usId];
+    if (!connue) continue;
+    if (detail.competences.filter((k) => k.slot === declencheur.slot).length !== 1) continue;
+    const aFormule = (declencheur.auxiliaires ?? []).filter((a) => a.sens === 'versCeSort' && (a.competence.formule ?? '').trim());
+    const emprunt = connue.auxiliaireEmpruntee;
+    const attaque: Competence | undefined =
+      aFormule.length === 1
+        ? aFormule[0].competence
+        : aFormule.length === 0 && emprunt
+          ? { ...declencheur, com2usId: emprunt.com2usId, formule: emprunt.formule, coups: 1, aoe: false, effets: [], auxiliaires: undefined }
+          : undefined;
+    if (!attaque || attaque.passif) continue;
+    const profil = skillDamageProfile(attaque);
+    if (!profil || !estPrisEnCharge(profil)) continue;
+    const nomme = { ...profil, nom: connue.libelle, description: declencheur.description, icone: declencheur.icone };
+    out.push({
+      skillCom2usId: profil.skillCom2usId,
+      nom: connue.libelle,
+      description: declencheur.description,
+      critique: 'suit',
+      coupsDuSortActif: false,
+      slotsDeclencheurs: connue.slots ?? [declencheur.slot],
+      ...(connue.avantLeSort ? { avantLeSort: true as const } : {}),
+      categorie: { type: 'conditionnel', condition: connue.condition },
+      profile: nomme,
+    });
+  }
+  return out;
+}
+
 /**
  * Les sorts coopératifs SANS DÉGÂTS PROPRES de cette fiche qui appellent une
  * compétence active (`ATTAQUES_APPELEES_PAR_DECLENCHEUR`, entrées
@@ -4646,6 +4889,90 @@ function sortsCooperatifsQuiAppellentDeLaFiche(detail: DetailMonstre): SkillDama
   return out;
 }
 
+// Le second MODE d'un sort, chiffré par sa compétence auxiliaire : le sort
+// change de forme selon une situation que l'utilisateur choisit, et la fiche
+// ne décrit que l'un des deux. Le mode est proposé comme un sort de plus dans
+// « Compétence utilisée », sous le libellé `libelle` ; son profil est celui de
+// l'auxiliaire (formule, améliorations), avec les coups, la portée et l'ignore
+// DEF du mode, qu'elle ne porte pas.
+//
+// Unlimited Power — Liam (25711) : « Attacks all enemies … if there are 4 or
+// more enemies … Attacks the selected target 6 times if there are 3 or fewer
+// enemies and deals damage that ignores Defense up to 100% the lower the
+// target's current HP. » Avec 3 ennemis ou moins : 6 coups à 1,5 × ATQ
+// (auxiliaire 15516), ignore DEF linéaire de 0 % (PV pleins) à 100 % (70 % de
+// PV perdus) — utilisateur, 2026-10-17 (valeurs-de-jeu-curees.md).
+interface ModeAuxiliaire {
+  libelle: string;
+  coups: number;
+  zone: boolean;
+  ignoreDefSelonPvCiblePerdus?: { pvPerdusPourTout: number };
+}
+const MODES_PAR_AUXILIAIRE: Readonly<Record<number, ModeAuxiliaire>> = {
+  15511: { libelle: 'Unlimited Power — 3 ennemis ou moins', coups: 6, zone: false, ignoreDefSelonPvCiblePerdus: { pvPerdusPourTout: 70 } },
+};
+
+/**
+ * Les modes à auxiliaire de cette fiche (`MODES_PAR_AUXILIAIRE`), chacun rendu
+ * comme un sort de « Compétence utilisée » sous l'identifiant de l'auxiliaire
+ * (la recette le garde), au slot du sort, avec sa prose et son icône. Gardes,
+ * chacune écarte le mode en silence : sort passif, auxiliaire absente, ambiguë
+ * ou sans profil calculable.
+ */
+function sortsEnModeAuxiliaire(detail: DetailMonstre): SkillDamageProfile[] {
+  const out: SkillDamageProfile[] = [];
+  for (const c of detail.competences) {
+    const mode = c.com2usId == null ? undefined : MODES_PAR_AUXILIAIRE[c.com2usId];
+    if (!mode || c.passif) continue;
+    const aFormule = (c.auxiliaires ?? []).filter((a) => a.sens === 'versCeSort' && (a.competence.formule ?? '').trim());
+    if (aFormule.length !== 1 || aFormule[0].competence.passif) continue;
+    const profil = skillDamageProfile(aFormule[0].competence);
+    if (!profil || !estPrisEnCharge(profil)) continue;
+    out.push({
+      ...profil,
+      slot: c.slot ?? profil.slot,
+      nom: mode.libelle,
+      description: c.description,
+      icone: c.icone,
+      hits: mode.coups,
+      aoe: mode.zone,
+      ignoreDef: false,
+      ...(mode.ignoreDefSelonPvCiblePerdus ? { ignoreDefSelonPvCiblePerdus: mode.ignoreDefSelonPvCiblePerdus } : {}),
+      modeAuxiliaire: true,
+    });
+  }
+  return out;
+}
+
+/**
+ * Les sorts de l'AUTRE FORME d'un monstre à deux formes, que la fiche ne liste
+ * pas : la compétence auxiliaire liée en `mutuel` à un sort sans dégâts.
+ *
+ * Les anges jumeaux (Ramael et Judiah, Karuel et Lanoah…) n'ont dans leur fiche
+ * que les « Horn of… » de leur forme de soutien, sans dégât ; chacun est lié en
+ * `mutuel` au tir de la forme archer du même slot (Aim Shot, Focus Shot…).
+ * Décision de l'utilisateur (valeurs-de-jeu-curees.md, « Anges jumeaux ») :
+ * le sort de l'archer est choisi seul, sans tenir compte du Horn lancé avant.
+ * Son profil est celui de sa propre compétence (`skillDamageProfile`) :
+ * identifiant, slot, formule, coups, portée, améliorations.
+ *
+ * Gardes, chacune écarte le sort en silence : le sort de la fiche a déjà un
+ * profil (un sort qui frappe n'est pas remplacé), ou il est passif ; la
+ * compétence liée est passive ou sans profil.
+ */
+function sortsDeLAutreForme(detail: DetailMonstre): (SkillDamageProfile | SkillDamageUnsupported)[] {
+  const out: (SkillDamageProfile | SkillDamageUnsupported)[] = [];
+  for (const c of detail.competences) {
+    if (c.passif || skillDamageProfile(c) !== null) continue;
+    for (const aux of c.auxiliaires ?? []) {
+      if (aux.sens !== 'mutuel' || aux.competence.passif) continue;
+      const p = skillDamageProfile(aux.competence);
+      if (p) out.push(p);
+    }
+  }
+  return out;
+}
+
 /**
  * Les sorts offensifs d'un monstre, dans l'ordre des slots — pris en charge
  * ou non. Liste vide si la fiche du monstre est absente (monstre perso,
@@ -4660,6 +4987,9 @@ function sortsCooperatifsQuiAppellentDeLaFiche(detail: DetailMonstre): SkillDama
  * Défense saisis, au lieu de ceux que le sort laisse) — sans 411 dans les
  * deux cas (voir `computeTotalDamage`).
  *
+ * ⚠️ **Plus les sorts de l'autre forme** des monstres à deux formes (les tirs
+ * de la forme archer des anges jumeaux) : `sortsDeLAutreForme`.
+ *
  * ⚠️ **Plus les sorts coopératifs sans dégâts propres qui appellent le S1**
  * (Attack Command de Lisa, Concentrated Attack de Moria), au slot du
  * déclencheur : `sortsCooperatifsQuiAppellentDeLaFiche`. Sans eux, ces sorts
@@ -4672,6 +5002,8 @@ export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageP
     const p = skillDamageProfile(c);
     if (p) out.push(p);
   }
+  out.push(...sortsDeLAutreForme(detail));
+  out.push(...sortsEnModeAuxiliaire(detail));
   out.push(...sortsCooperatifsQuiAppellentDeLaFiche(detail));
   for (const p of monsterOffensivePassives(detail)) {
     if (p.selectionnableCommeSort) out.push(p.profile);
@@ -4694,9 +5026,13 @@ export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageP
  * Attack Command de Lisa au slot 3) : le défaut reste celui d'avant son
  * entrée dans la liste (S2 pour Lisa et Moria). Le changer est une décision
  * de l'utilisateur, jamais un effet de bord de l'ordre des slots.
+ *
+ * ⚠️ **Ni le second mode d'un sort** (`modeAuxiliaire`, Unlimited Power à 3
+ * ennemis ou moins) : le défaut reste le sort tel que la fiche le décrit.
  */
 export function defaultDamageSkill(skills: (SkillDamageProfile | SkillDamageUnsupported)[]): SkillDamageProfile | null {
-  const ok = skills.filter((s): s is SkillDamageProfile => estPrisEnCharge(s) && !s.passif && !s.appeleParSortCooperatif);
+  const ok = skills.filter((s): s is SkillDamageProfile =>
+    estPrisEnCharge(s) && !s.passif && !s.appeleParSortCooperatif && !s.modeAuxiliaire);
   return ok.length > 0 ? ok[ok.length - 1] : null;
 }
 
@@ -6193,7 +6529,14 @@ export function computeSkillDamageDetail(
       conditionIgnoreDefPct([p.condition], setup, p.skillCom2usId, element, pctDepart, combat)
     )
   ) / 100;
-  const fractionIgnoree = Math.max(fractionIgnoreeSelonVit, fractionIgnoreeConditionnelle);
+  // Selon les PV perdus par la cible (Unlimited Power à 3 ennemis ou moins) :
+  // recalculée à CHAQUE coup sur les PV que les coups précédents ont laissés
+  // (chemin séquentiel, plus bas) ; ici, la valeur du premier coup.
+  const fractionSelonPvPerdus = (pvPct: number) =>
+    profile.ignoreDefSelonPvCiblePerdus
+      ? Math.min(1, Math.max(0, (100 - pvPct) / profile.ignoreDefSelonPvCiblePerdus.pvPerdusPourTout))
+      : 0;
+  const fractionIgnoree = Math.max(fractionIgnoreeSelonVit, fractionIgnoreeConditionnelle, fractionSelonPvPerdus(pctDepart));
   // Deborah (« Blacksmith's Discernment ») amplifie la RÉDUCTION d'une
   // réduction de DEF déjà active — jamais une réduction à elle seule (sans
   // `defBreak`, rien à amplifier). `1 − (1 − DEF_BREAK_FACTOR) × 1,30`,
@@ -6505,8 +6848,11 @@ export function computeSkillDamageDetail(
   // Chemin COURT — le ratio ne dépend pas des PV de la cible : une seule
   // évaluation, exactement comme avant l'ajout de la simulation.
   const formuleLitPvCible = profile.variables.includes('Target Current HP %');
+  // L'ignore DEF selon les PV perdus change d'un coup à l'autre : il force le
+  // chemin séquentiel, et chaque coup y refait sa mitigation.
+  const ignoreDefParCoup = !!profile.ignoreDefSelonPvCiblePerdus && !profile.ignoreDef && !profile.fixed;
 
-  if (!formuleLitPvCible && !artefactsVarientParCoup) {
+  if (!formuleLitPvCible && !artefactsVarientParCoup && !ignoreDefParCoup) {
     const mult = evaluer(profile.noeud, valeurs) + ajoutParCoup;
     if (mult <= 0 && degatsBrutParCoup <= 0) return { total: 0, additionnel: 0, fixeProtege: 0, pvRestantsPct: pctDepart };
     // ⚠️ Le terme brut est DANS le `×coups`, plus ajouté à côté : les deux
@@ -6538,8 +6884,17 @@ export function computeSkillDamageDetail(
     const pvFrac = pvMax > 0 ? pvCourant / pvMax : pctDepart / 100;
     if (formuleLitPvCible) valeurs['Target Current HP %'] = pvFrac;
     const mult = (formuleLitPvCible ? evaluer(profile.noeud, valeurs) : multFixe) + ajoutParCoup;
-    // La seule part variable de `horsCoup` — voir `coefCdParCoup`.
-    const horsCoupIci = horsCoup + coefCdParCoup * deltaCdPoints(i === 0, pvFrac);
+    // Les deux parts variables de `horsCoup` : les Dgts Crit du coup (voir
+    // `coefCdParCoup`) et, pour un ignore DEF selon les PV perdus, la
+    // mitigation du coup — `horsCoup` et `coefCdParCoup` lui sont tous deux
+    // proportionnels, le rapport suffit.
+    const facteurMitigationIci = ignoreDefParCoup
+      ? defenseFactor(
+          Math.max(0, setup.enemyDef) * facteurDefBreak *
+            (1 - Math.max(fractionIgnoreeSelonVit, fractionIgnoreeConditionnelle, fractionSelonPvPerdus(pvFrac * 100)))
+        ) / mitigation
+      : 1;
+    const horsCoupIci = (horsCoup + coefCdParCoup * deltaCdPoints(i === 0, pvFrac)) * facteurMitigationIci;
     // ⚠️ `Math.max(0, mult)` et non un `continue` sur `mult <= 0` : un
     // multiplicateur nul n'annule PAS le terme brut, qui ne dépend pas de la
     // formule du sort. Le coup n'est sauté que s'il ne porte réellement rien.
@@ -6894,9 +7249,10 @@ export function computeTotalDamage(
         : p.profile;
       // Une contribution qui SUIT le sort lit l'état de la cible après son
       // dernier coup : sous scénario, les poses entre les coups comprises ;
-      // sinon le réglage, avec la réduction que le sort pose lui-même.
-      const etatCible = setupApresSort ?? setup;
-      const setupPassif = avecModeCritique({ ...etatCible, defBreak: defBreakApres(etatCible) });
+      // sinon le réglage, avec la réduction que le sort pose lui-même. Une
+      // attaque qui le PRÉCÈDE (`avantLeSort`) lit le réglage tel quel.
+      const etatCible = p.avantLeSort ? setup : setupApresSort ?? setup;
+      const setupPassif = avecModeCritique({ ...etatCible, defBreak: p.avantLeSort ? setup.defBreak : defBreakApres(etatCible) });
       detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, propres, element, pvCiblePct, artefactsDuPassif, monsterWide, reliqueDmgPct);
     }
     pvCiblePct = detail.pvRestantsPct;

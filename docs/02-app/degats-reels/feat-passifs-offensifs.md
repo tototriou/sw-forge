@@ -21,10 +21,11 @@ explicite de passifs vérifiés, par leur `Competence.nom` SWARFARM exact. La
 **formule elle-même** est lue en direct depuis les données (même parseur,
 même discipline tout-ou-rien que le sort actif) — seule l'**appartenance à
 la liste** et sa **catégorie** sont figées en dur. **Seule exception** :
-quand les données ne portent aucune formule, ou une fausse, elle vient de
-`FORMULES_CUREES_PAR_ID`, par identifiant et avec sa source — la même table,
-la même priorité et la même garde que pour un sort actif. Tempest (`3213`,
-Teshar et Phoenix vent) porte `formule: ""` et reçoit ainsi `3.7 × ATQ`
+quand la fiche ne porte aucune formule, ou une fausse, elle vient de sa
+[compétence auxiliaire](feat-competences-auxiliaires.md) ou de
+`FORMULES_CUREES_PAR_ID`, par identifiant et avec sa source — la même lecture
+et la même garde que pour un sort actif. Tempest (`3213`, Teshar et Phoenix
+vent) porte `formule: ""` et reçoit ainsi `3.7 × ATQ` de son auxiliaire
 ([valeurs curées](valeurs-de-jeu-curees.md), « Tempest (Teshar) »). Un passif absent de la liste (immense
 majorité du corpus) n'est simplement jamais
 proposé : pas de faux négatif dangereux, juste une couverture partielle et

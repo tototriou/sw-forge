@@ -86,6 +86,9 @@ const SEQUENCES: {
 }[] = [
   { id: 13311, nom: 'Fatal Extinctive Bullet', formes: [22911], monstre: 'Abigail', donnee: { formule: '3.5*{ATK}', coups: 1, aoe: false }, phase1: 3.5, phase2: 4.5, auxiliaire: 2476, skillup: 25 },
   { id: 13314, nom: 'Fatal Armor Bullet', formes: [22914], monstre: 'Emily', donnee: { formule: '3.5*{ATK}', coups: 1, aoe: false }, phase1: 3.5, phase2: 4.5, auxiliaire: 2478, skillup: 25 },
+  { id: 13312, nom: 'Fatal Mortar Bullet', formes: [22912], monstre: 'Scarlett', donnee: { formule: '3.5*{ATK}', coups: 1, aoe: false }, phase1: 3.5, phase2: 4.5, auxiliaire: 2477, skillup: 25 },
+  // Utilisateur, 2026-10-17 : le premier coup sur une cible à 3,8, le second en zone à 3,0.
+  { id: 9515, nom: 'Undefeated Warrior', formes: [18715], monstre: 'Kuna', donnee: { formule: '3.8*{ATK}', coups: 1, aoe: true }, phase1: 3.8, phase2: 3.0, auxiliaire: 2446, skillup: 20 },
   { id: 14113, nom: 'Head Press', formes: [24203, 24213], monstre: 'M. BISON', donnee: { formule: '4.0*{ATK}', coups: 2, aoe: false }, phase1: 4.0, phase2: 5.2, auxiliaire: 2762, skillup: 15 },
   { id: 14613, nom: 'Great Sword of the End', formes: [24703, 24713], monstre: 'Sagar', donnee: { formule: '4.0*{ATK}', coups: 2, aoe: true }, phase1: 4.0, phase2: 5.2, auxiliaire: 2830, skillup: 15 },
 ];
@@ -164,6 +167,20 @@ export function testDegatsSequencesApi() {
   }
 }
 
+// La phase de zone lit le ratio de la compétence auxiliaire, jamais une copie.
+export function testDegatsSequencesAuxiliaire() {
+  titre('Phase de zone — le ratio vient de la compétence auxiliaire de la fiche');
+  const abigail = fiche(22911).competences.find((c) => c.com2usId === 13311)!;
+  const aux = abigail.auxiliaires![0];
+  const avec = (formule: string) => skillDamageProfile({ ...abigail, auxiliaires: [{ ...aux, competence: { ...aux.competence, formule } }] });
+  const p = avec('6.0*{ATK}');
+  ok(!!p && estPrisEnCharge(p) && p.sequenceDeCoups?.[1].formule === '6.0*{ATK}',
+    'auxiliaire changé à 6.0*{ATK} : la phase de zone suit la donnée');
+  const sans = skillDamageProfile({ ...abigail, auxiliaires: undefined });
+  ok(!!sans && !estPrisEnCharge(sans) && sans.raison.includes('compétence auxiliaire'),
+    'sans auxiliaire : refusé, la raison nomme la compétence auxiliaire manquante');
+}
+
 // HT-1 : S3 à `formule: ""` dont la formule vient de l'auxiliaire de l'API ;
 // identifiant, formes porteuses, formule, terme de stats (ATQ 2 000, PV
 // 20 000), skillups « Damage » de la fiche, portée retenue.
@@ -173,6 +190,9 @@ const FORMULES: {
   { id: 21114, nom: 'Cursed Tombstone', formes: [31404, 31414], monstre: 'Ramon', formule: '2.7*{ATK} + 0.29*{MAX HP}', terme: 2.7 * ATQ + 0.29 * PV, skillup: 15, auxiliaire: 4592 },
   { id: 21415, nom: 'Purification, Cooperation!', formes: [31905, 31915, 32015], monstre: 'Nezuko Kamado', formule: '4.5*{ATK}', terme: 4.5 * ATQ, skillup: 20, auxiliaire: 4626 },
   { id: 22015, nom: 'Rite of Ashes', formes: [32605, 32615], monstre: 'Vermilion Bird Dancer', formule: '4.5*{ATK}', terme: 4.5 * ATQ, skillup: 20, auxiliaire: 4710 },
+  // L'attaque de l'état, une fois (2026-10-17) ; la fiche n'a qu'un « Cooltime Turn -1 ».
+  { id: 23915, nom: 'Whispers of Mirkwood', formes: [34705, 34715], monstre: 'Legolas', formule: '4.2*{ATK}', terme: 4.2 * ATQ, skillup: 0, auxiliaire: 5082 },
+  { id: 24415, nom: 'Echo of the Shadow Forest', formes: [35305, 35315], monstre: 'Elder Horn', formule: '4.2*{ATK}', terme: 4.2 * ATQ, skillup: 0, auxiliaire: 5272 },
 ];
 
 export function testDegatsFormulesApi() {
@@ -214,9 +234,21 @@ export function testDegatsFormulesApi() {
 
   titre('Formule vide — la garde « formule vide » porte sur la formule retenue');
   {
-    // Même fiche, autre identifiant : aucune formule curée, la garde tient.
+    // Même fiche, autre identifiant et sans auxiliaire : rien ne donne de formule, la garde tient.
     const ramon = fiche(31414).competences.find((c) => c.com2usId === 21114)!;
-    egal(skillDamageProfile({ ...ramon, com2usId: 999_114 }), null, 'formule vide sans formule curée : aucun profil');
+    egal(skillDamageProfile({ ...ramon, com2usId: 999_114, auxiliaires: undefined }), null,
+      'formule vide, ni formule curée ni auxiliaire : aucun profil');
+    // Sans formule curée, l'auxiliaire suffit : la formule vient de la donnée.
+    egal(sortDe(31414, 21114).formule, '2.7*{ATK} + 0.29*{MAX HP}', 'Cursed Tombstone : formule de l’auxiliaire 21116');
+    // Deux auxiliaires à formule : aucune n'est choisie.
+    const aux = ramon.auxiliaires![0];
+    egal(skillDamageProfile({ ...ramon, com2usId: 999_114, auxiliaires: [aux, aux] }), null,
+      'deux auxiliaires à formule : aucune n’est retenue, aucun profil');
+    // Un lien qui ne désigne pas ce sort (`depuisCeSort`, `mutuel`) ne donne pas sa formule.
+    for (const sens of ['depuisCeSort', 'mutuel'] as const) {
+      egal(skillDamageProfile({ ...ramon, com2usId: 999_114, auxiliaires: [{ ...aux, sens }] }), null,
+        `auxiliaire ${sens} : sa formule n’est pas celle du sort`);
+    }
     // Hors périmètre : les sorts « Horn » des Anges jumeaux restent sans profil.
     for (const id of [18801, 18811]) {
       const horn = fiche(29111).competences.find((c) => c.com2usId === id)!;

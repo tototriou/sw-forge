@@ -65,12 +65,14 @@ const FAMILLE: Record<number, number[]> = {
   10620: [19815],
 };
 const HORS_FAMILLE = [11015, 18314, 23507, 23508, 23510, 10601, 10603, 10605];
-// Les autres porteurs d'une séquence curée : les quatre séquences dont la phase
-// de zone vient de l'API, testées dans
+// Les autres porteurs d'une séquence curée : les six séquences dont la phase
+// de zone vient de la compétence auxiliaire, testées dans
 // `degats-valeurs-api.test.ts`. Listés ici pour que le balayage du corpus
 // continue de voir tout porteur inattendu.
 const SEQUENCES_API: Record<number, number[]> = {
+  9515: [18715],
   13311: [22911],
+  13312: [22912],
   13314: [22914],
   14113: [24203, 24213],
   14613: [24703, 24713],
@@ -124,10 +126,10 @@ export default function testDegatsBladeSurge() {
     }
   }
   for (const formes of Object.values(porteurs)) formes.sort((a, b) => a - b);
-  egal(porteurs, { ...FAMILLE, ...SEQUENCES_API }, 'corpus : exactement les cinq identifiants Blade Surge (et leurs sept formes) et les quatre séquences à valeur de l’API portent une séquence');
+  egal(porteurs, { ...FAMILLE, ...SEQUENCES_API }, 'corpus : exactement les cinq identifiants Blade Surge (et leurs sept formes) et les six séquences à phase d’auxiliaire portent une séquence');
   egal(Object.keys(FAMILLE).flatMap((id) => porteurs[Number(id)] ?? []).length, 7, 'corpus : sept formes pour Blade Surge');
   egal([...idsCapables].sort((a, b) => a - b), Object.keys({ ...FAMILLE, ...SEQUENCES_API }).map(Number).sort((a, b) => a - b),
-    'capacité « autres ennemis » : les cinq identifiants Blade Surge et les quatre séquences à valeur de l’API, aucun autre sort du corpus');
+    'capacité « autres ennemis » : les cinq identifiants Blade Surge et les six séquences à phase d’auxiliaire, aucun autre sort du corpus');
   for (const id of HORS_FAMILLE) {
     ok(!cibleSecondairePriseEnCharge(id), `hors famille : ${id} sans cible secondaire`);
   }

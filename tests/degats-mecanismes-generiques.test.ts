@@ -531,8 +531,16 @@ export function testMecanismesPassifMasqueEtStatsDeCombat() {
       }
     }
   }
-  egal([...masquables].sort((a, b) => a - b), [3213], 'corpus : seul Tempest (3213) peut être masqué par construction (slots déclencheurs, choix comme sort)');
-  egal([...masques].sort(), ['3213'], 'corpus : sur tous les sorts proposés par toutes les formes, seul Tempest est effectivement masqué');
+  // Tempest, plus les attaques chiffrées par une compétence auxiliaire
+  // (Jackie 11016 et Theonia 23517 : après leur seul sort ; Minato, Ren, Ritsu
+  // 15716/15717/15720 : avant leurs sorts de dégâts) et les passifs hors tour
+  // choisissables seuls (Psamathe 11911, Hollyberry Cookie 16211, Manon 16711),
+  // 2026-10-17. L'attaque en Menace accompagne tous les sorts de dégâts de
+  // son monstre : jamais masquée en pratique.
+  const MASQUABLES = [3213, 11016, 11911, 15716, 15717, 15720, 16211, 16711, 23517];
+  const MASQUES = ['11016', '11911', '16211', '16711', '23517', '3213'];
+  egal([...masquables].sort((a, b) => a - b), MASQUABLES, 'corpus : Tempest et les attaques à auxiliaire sont les seuls masquables par construction (slots déclencheurs, choix comme sort)');
+  egal([...masques].sort(), MASQUES, 'corpus : sur tous les sorts proposés par toutes les formes, seuls ceux-là sont effectivement masqués');
   // Flash Step (19014) et Turning Slash (19414) partagent
   // leur identifiant avec un compteur de VIT (quatre formes, mesure dans le
   // libellé) ; ce n'est plus un défaut : la règle le vérifie sur chaque

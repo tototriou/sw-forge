@@ -24,7 +24,7 @@ par tâche.
 
 | Le changement touche… | Skill à appliquer |
 | --- | --- |
-| un algorithme de recherche ou d'optimisation : `src/lib/runeBuildOptim.ts`, `artifactOptim.ts`, `relicOptim.ts`, `relicQueue.ts`, `src/workers/**`, ou un script ad hoc qui les appelle | `algo-verify` |
+| un algorithme de recherche ou d'optimisation : `src/lib/runeBuildOptim.ts`, ses noyaux et son orchestration (`rechercheRunes.ts`, `constructionRapide.ts`, `appariementRapide.ts`, `validationRapide.ts`, `appariementRapideParallele.ts`, `travailleurAppariement.ts`), `artifactOptim.ts`, `relicOptim.ts`, `relicQueue.ts`, `src/workers/**`, ou un script ad hoc qui les appelle | `algo-verify` |
 | un champ **traversant** de l'Optimizer (`OptimizerState`, `OptimizerRecipe`, `SearchParams`, `RealDamageContext`, entrée de résolution…) : ajout, renommage, type, défaut ou sens | `optimizer-field-propagation` |
 | une **mesure** du moteur : temps, budget, benchmark (`scripts/perf-battery*.ts`, `scripts/benchmark-*.mjs`) | `optimizer-perf-testing` |
 | une **mécanique de jeu** modélisée : tables `*_CONNUS` de `src/lib/damage.ts`, règle déduite des données SWARFARM, comportement supposé par ressemblance avec un autre ; demander un relevé en jeu | `game-data-curation` |

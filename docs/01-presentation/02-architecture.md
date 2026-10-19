@@ -171,6 +171,17 @@ l'exemplaire `ChoixExemplaire` — zone D —, le sélecteur de listes `Selecteu
 partagées : `src/components/outils/optimizer/constantes.ts` ; types :
 `src/components/outils/optimizer/types.ts`.
 
+Les boîtes de la mise en page de bureau à venir
+([02-app/optimizer/ecran/](../02-app/optimizer/ecran/README.md)) vivent dans
+`src/components/outils/optimizer/bureau/`, pas encore assemblées dans la page : la liste de
+travail (`ListeDeTravailBureau`), le set de runes compact (`SetDeRunesCompact`), les principales
+imposées (`PrincipalesImposeesBureau`), les conditions (`ConditionsBureau`), l'état du monstre
+réduit aux buffs et au lead (`EtatMonstreEssentiels`) et le contrôle à onglets des colonnes
+repliables (`OngletsColonnes`, décidé par `src/lib/optimizerColonnes.ts`). Elles se voient seules
+dans la vue de développement `#/outils/optimizer/gabarits`
+(`src/components/outils/optimizer/gabarits/`, adresse dans `src/lib/optimizerGabarits.ts`) :
+[03-developpeur/vue-des-gabarits.md](../03-developpeur/vue-des-gabarits.md).
+
 Sous la grille, même dossier, même règle : « Objectif de recherche » et les actions
 (`ObjectifEtActions` : Rechercher, Exporter, Importer, Arrêter), la progression, l'échec et le
 refus, avec la barre d'appariement (`ProgressionRecherche`), le message d'import d'une recette

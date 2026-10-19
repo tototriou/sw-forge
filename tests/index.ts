@@ -190,6 +190,7 @@ import testRuneOptimScaleMonotonicity from './rune-optim-scale-monotonicity.test
 import testRuneOptimParallelPairing from './rune-optim-parallel-pairing.test';
 import testRuneOptimParallelTruncated from './rune-optim-parallel-truncated.test';
 import testAppariementRapide from './appariement-rapide.test';
+import testValidationRapide from './validation-rapide.test';
 import testRuneOptimNearMiss from './rune-optim-near-miss.test';
 import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
@@ -636,6 +637,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRuneOptimParallelPairing', async () => { await testRuneOptimParallelPairing(); }],
   ['testRuneOptimParallelTruncated', testRuneOptimParallelTruncated],
   ['testAppariementRapide', async () => { await testAppariementRapide(); }],
+  ['testValidationRapide', async () => { await testValidationRapide(); }],
   ['testRuneOptimNearMiss', async () => { await testRuneOptimNearMiss(); }],
   ['testRuneOptimDeadHalfPruning', testRuneOptimDeadHalfPruning],
   ['testFilterSlotTopK', testFilterSlotTopK],

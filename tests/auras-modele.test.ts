@@ -878,7 +878,8 @@ export function testAurasCarteEgaleTri() {
 
   // L'écran : les deux cartes lisent `scoreDuCandidat`, plus de formule recopiée.
   const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
-  ok(/degatsReels=\{[\s\S]{0,700}?scoreDuCandidat\(c, 'degats_reels'/.test(ecran), 'écran : la carte « Dégâts réels » lit scoreDuCandidat');
+  // La valeur passée à la carte, en prop JSX ou dans ses propriétés calculées.
+  ok(/degatsReels(=\{|:)[\s\S]{0,700}?scoreDuCandidat\(c, 'degats_reels'/.test(ecran), 'écran : la carte « Dégâts réels » lit scoreDuCandidat');
   ok(/pvEffectifs:\s*[\s\S]{0,300}?scoreDuCandidat\(c, 'ehp'/.test(ecran), 'écran : la carte « PV effectifs » lit scoreDuCandidat');
   ok(!/computeTotalDamage\(\s*realDamage\.profile,\s*realDamage\.passifs,\s*c\.stats/.test(ecran),
     'écran : plus de computeTotalDamage recopié sur les stats du candidat');

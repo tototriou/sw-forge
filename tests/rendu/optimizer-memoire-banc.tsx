@@ -23,6 +23,7 @@ import { preuvesRechercheCreationOptimizer, preuvesEditionListeOptimizer, preuve
 import { preuvesRechercheOptimizer } from './optimizer-recherche-preuves';
 import { preuvesCreationObligatoire, preuvesEtatAuras, preuvesEnteteEquipe, preuvesDialogueElement, preuvesActionsZoneC } from './optimizer-retouches-preuves';
 import { preuvesEquipeImpossible } from './optimizer-equipe-impossible-preuves';
+import { preuvesReglagesAvances, preuvesGuidage, preuvesRappelDeuxRendus, preuvesListesEcran, preuvesMessageImport, preuvesResultats } from './optimizer-ecran-preuves';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -46,6 +47,8 @@ let changerRunes: (runes: RuneDetail[]) => void, compteActuel: ExclusionSourceDa
 let changerArtefacts: (arts: ArtifactDetail[]) => void, artefactsActuels: ArtifactDetail[];
 let changerDefenses: (teams: SiegeTeam[]) => void;
 let avecPoint = false;
+let menuOuvert = false, changerMenu: (ouvert: boolean) => void;
+let rechercheForcee: Record<string, unknown> | null = null, rafraichir: () => void;
 const artefactsPoint: ArtifactDetail[] = [
   { id: 71, kind: 'element', element: 'fire', level: 15, rarity: 5, main: { code: 100, value: 1500 }, subs: [] },
   { id: 72, kind: 'archetype', archetype: 'attack', level: 15, rarity: 5, main: { code: 101, value: 100 }, subs: [] },
@@ -78,9 +81,16 @@ function Banc() {
   const data: ExclusionSourceData = { box: compte, rtaEntries, siegeDefenseTeams: defenses, siegeOffenseTeams, monsterById: new Map(monstres.map(m => [String(m.id), m])) };
   compteActuel = data;
   etat = useOptimizerState({ lists: listes, data, runeIds: new Set(inventaire.map(r => r.id)) });
+  // Le panneau « Options » du téléphone, tenu ici comme App.tsx le tient.
+  const [menu, setMenu] = useState(false);
+  menuOuvert = menu; changerMenu = setMenu;
+  // Un résultat de recherche posé à la main : le banc n'a pas le Worker de la recherche.
+  const [, setTic] = useState(0);
+  rafraichir = () => setTic(n => n + 1);
+  const optimizer = rechercheForcee ? { ...etat, search: { ...etat.search, ...rechercheForcee } } as OptimizerState : etat;
   return visible ? <OptimizerSection box={compte} runes={inventaire} artifacts={arts} relics={[]} relicUsageById={{}}
-    optimizer={etat} onImporterEquipe={etat.importerEquipe} lists={listes} allMonsters={monstres} rtaEntries={rtaEntries} siegeDefenseTeams={defenses} siegeOffenseTeams={siegeOffenseTeams}
-    accountName="Synthétique" menuOuvert={false} onFermerMenu={() => {}} onOuvrirMenu={() => {}} /> : <div>Autre onglet</div>;
+    optimizer={optimizer} onImporterEquipe={etat.importerEquipe} lists={listes} allMonsters={monstres} rtaEntries={rtaEntries} siegeDefenseTeams={defenses} siegeOffenseTeams={siegeOffenseTeams}
+    accountName="Synthétique" menuOuvert={menu} onFermerMenu={() => setMenu(false)} onOuvrirMenu={() => setMenu(true)} /> : <div>Autre onglet</div>;
 }
 
 export async function geste(action: () => void) {
@@ -91,6 +101,7 @@ export async function geste(action: () => void) {
 
 export async function monter(avecRapport = false) {
   localStorage.clear();
+  rechercheForcee = null;
   const criteres = baseCompleteCriteres(undefined);
   criteres.minStats = { spd: 230 }; criteres.comboSets = ['swift']; criteres.critereArtefacts = 'reel';
   criteres.damageSetup.enemyDef = 2222; criteres.lockedRunes = { 1: 999 };
@@ -121,7 +132,7 @@ export async function monter(avecRapport = false) {
 
 export async function scenario(nom: string): Promise<[boolean, string][]> {
   avecPoint = nom.startsWith('point-');
-  avecRunes = nom.startsWith('rattachement') || avecPoint;
+  avecRunes = nom.startsWith('rattachement') || avecPoint || nom === 'ecran-resultats';
   await monter(nom === 'zone-c');
   if (nom.startsWith('recherche-auto-')) return preuvesRechercheOptimizer({ etat: () => etat, listes: () => listes,
     data: () => compteActuel, changerBox, changerDefenses, geste, premier, second, troisieme }, nom.slice('recherche-auto-'.length));
@@ -135,6 +146,14 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   if (avecPoint) return preuvesPointOptimizer({ etat: () => etat, listes: () => listes, data: () => compteActuel,
     runes: () => runesActuelles, arts: () => artefactsActuels, changerBox, changerRunes, changerArtefacts, changerDefenses, geste, premier, second, troisieme, siege }, nom);
   const bancEquipes = { etat: () => etat, listes: () => listes, geste, premier, second, troisieme };
+  const bancEcran = { ...bancEquipes, menuOuvert: () => menuOuvert, fermerMenu: () => changerMenu(false),
+    forcerRecherche: (r: Record<string, unknown> | null) => { rechercheForcee = r; rafraichir(); } };
+  if (nom === 'ecran-reglages-avances') return preuvesReglagesAvances(bancEcran, () => changerMenu(true));
+  if (nom === 'ecran-guidage') return preuvesGuidage(bancEcran);
+  if (nom === 'ecran-rappel') return preuvesRappelDeuxRendus(bancEcran);
+  if (nom === 'ecran-listes') return preuvesListesEcran(bancEcran);
+  if (nom === 'ecran-message-import') return preuvesMessageImport(bancEcran);
+  if (nom === 'ecran-resultats') return preuvesResultats(bancEcran);
   if (nom.startsWith('equipe-impossible-')) return preuvesEquipeImpossible(bancEquipes,nom.slice('equipe-impossible-'.length));
   if (nom === 'creation-obligatoire') return preuvesCreationObligatoire(bancEquipes);
   if (nom === 'etat-auras') return preuvesEtatAuras(bancEquipes);

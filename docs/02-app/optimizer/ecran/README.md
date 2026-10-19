@@ -20,7 +20,7 @@ Le reste de l'outil (listes, import d'équipes, exclusion, interruption) est dan
 | les sous-propriétés verrouillées | [sous-proprietes-verrouillees.md](sous-proprietes-verrouillees.md) |
 | les conditions, l'inventaire et les réglages avancés | [conditions-et-reglages.md](conditions-et-reglages.md) |
 | « Lancer la recherche », `src/components/outils/optimizer/ObjectifEtActions.tsx`, `src/components/outils/optimizer/ProgressionRecherche.tsx` | [lancer-la-recherche.md](lancer-la-recherche.md) |
-| les résultats, `src/components/outils/BuildCandidateCard.tsx`, les blocs de résultats de `src/components/outils/optimizer/` (`DiagnosticFaisabilite`, `DiagnosticApprofondi`, `QuasiSucces`, `AvisRechercheTronquee`, `PaginationResultats`) | [resultats.md](resultats.md) |
+| les résultats, `src/components/outils/BuildCandidateCard.tsx`, les blocs de résultats de `src/components/outils/optimizer/` (`EnteteResultats`, `DiagnosticsSansResultat`, `DiagnosticFaisabilite`, `DiagnosticApprofondi`, `QuasiSucces`, `AvisRechercheTronquee`, `GrilleResultats`, `PaginationResultats`) | [resultats.md](resultats.md) |
 
 ## Documents
 

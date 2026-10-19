@@ -96,17 +96,12 @@ export function testVerifierToutes() {
   const exportRecette = sansCommentaires.slice(sansCommentaires.indexOf('function exportRecipe()'), sansCommentaires.indexOf('const jour =', sansCommentaires.indexOf('function exportRecipe()')));
   ok(/\n\s*verifierToutesLesCombinaisons,\n/.test(exportRecette), 'écran : exporté dans la recette');
   ok(/setVerifierToutesLesCombinaisons\(recipe\.verifierToutesLesCombinaisons \?\? false\);/.test(sansCommentaires), 'écran : importé, repli `?? false`');
-  const avances = sansCommentaires.slice(sansCommentaires.indexOf('const reglagesAvancesInner = '), sansCommentaires.indexOf('const reglagesAvancesTitre = '));
-  const ligne = avances.match(/\{optimiserArtefacts && \(\s*<div className="flex items-center justify-between gap-2 py-3 last:pb-0">[\s\S]*?<\/div>\s*\)\}/)?.[0] ?? '';
-  ok(ligne.length > 0, 'Réglages avancés : une rangée, masquée sans optimisation d’artéfacts (pas de file, rien à vérifier)');
-  ok(/<span className="text-\[11\.5px\] text-ink-dim">Vérifier toutes les combinaisons trouvées<\/span>/.test(ligne), 'libellé : « Vérifier toutes les combinaisons trouvées »');
-  const aide = ligne.match(/<HelpPopover title="Vérifier toutes les combinaisons trouvées">([\s\S]*?)<\/HelpPopover>/)?.[1] ?? '';
-  ok(/100 combinaisons sont confirmées/.test(aide) && /300/.test(aide) && /toutes les combinaisons trouvées sont vérifiées/.test(aide) && /plusieurs minutes/.test(aide),
-    'aide : au-delà des K confirmées, tout est vérifié, ce qui peut prendre plusieurs minutes');
-  ok(/<Interrupteur\s+actif=\{verifierToutesLesCombinaisons\}\s+onChange=\{setVerifierToutesLesCombinaisons\}\s+aria-label="Vérifier toutes les combinaisons trouvées"\s*\/>/.test(ligne),
-    'interrupteur `src/ui` branché sur l’état');
-  const bulle = sansCommentaires.match(/<HelpPopover title="Combinaisons confirmées">([\s\S]*?)<\/HelpPopover>/)?.[1] ?? '';
-  ok(/Vérifier toutes\s+les combinaisons trouvées/.test(bulle), 'infobulle de l’en-tête : renvoie à l’interrupteur');
+  // À l'écran — la rangée des réglages avancés (libellé, masquée sans
+  // optimisation d'artéfacts, interrupteur affichant l'état) :
+  // `testRenduOptimizerReglagesAvancesContenu` ; son clic et son aide (au-delà
+  // des K confirmées, tout est vérifié, plusieurs minutes) :
+  // `testRendu…OptimizerEcranReglagesAvances` ; l'infobulle de l'en-tête qui
+  // renvoie à l'interrupteur : `testRenduOptimizerEcranResultats`.
 
   const cli = lire('scripts/optimizer-search.ts');
   ok(/vérifier toutes les combinaisons trouvées \$\{toutVerifierDeLaRecette\(recipe\) \? 'ON' : 'off'\}/.test(cli), 'CLI : la ligne de résumé de la recette cite l’interrupteur');

@@ -1,4 +1,3 @@
-import { type ReactNode } from 'react';
 import { type BuildOptimProgress, type BuildOptimStatus } from '../../../hooks/useBuildOptimSearch';
 import { type RelicVide } from '../../../lib/relicOptim';
 
@@ -6,10 +5,11 @@ export interface ProgressionRechercheProps {
   status: BuildOptimStatus;
   progress: BuildOptimProgress | null;
   refusal: { motif: 'relique-pool-vide'; vide: RelicVide } | null;
-  appariement: ReactNode;
+  // Le compte des trouvées de la ligne d'appariement (`compteAffichable`).
+  compteAffiche: { compte: number };
 }
 
-export default function ProgressionRecherche({ status, progress, refusal, appariement }: ProgressionRechercheProps) {
+export default function ProgressionRecherche({ status, progress, refusal, compteAffiche }: ProgressionRechercheProps) {
   return (
     <>
       {/* ⚠️ Deux phases distinctes affichées différemment, pas une seule
@@ -50,7 +50,38 @@ export default function ProgressionRecherche({ status, progress, refusal, appari
           })}
         </div>
       )}
-      {appariement}
+      {status === 'running' && (progress === null || progress.phase === 'pairing') && (
+        <div>
+          <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
+            <div
+              className="h-full bg-accent transition-[width] duration-150 ease-out"
+              style={{ width: `${Math.round((progress?.pct ?? 0) * 100)}%` }}
+            />
+          </div>
+          {/* ⚠️ Le dénominateur ici est `totalPairs` (voir `totalPairCount`),
+              la taille EXACTE de l'espace à épuiser — un plafond de nœuds a
+              longtemps coexisté avec lui, écarté d'ici parce qu'il
+              grandissait en cours de route et aurait fait RECULER la barre.
+              C'est ce choix de l'interface qui a fini par emporter sa
+              suppression du moteur. */}
+          <p className="mt-1 font-mono text-micro text-ink-dim">
+            {progress === null
+              ? 'Préparation…'
+              : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${compteAffiche.compte.toLocaleString('fr-FR')} trouvée(s)`}
+          </p>
+          {progress !== null && (
+            <p className="mt-0.5 font-mono text-[11px] font-bold text-star">
+              Attendez la fin de la recherche pour être sûr de trouver votre build optimal.
+            </p>
+          )}
+          {progress !== null && (
+            <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
+              Le budget de recherche s'élargit automatiquement tant qu'il reste du temps et que le plafond de
+              résultats (100 000) n'est pas atteint — pas seulement tant que rien n'est trouvé.
+            </p>
+          )}
+        </div>
+      )}
 
       {status === 'error' && (
         <p className="text-xs text-bad">La recherche a échoué. Réessaie avec des critères moins stricts.</p>

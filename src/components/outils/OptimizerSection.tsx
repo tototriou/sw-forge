@@ -1,22 +1,14 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react';
-import type { EquipeOptimizer } from '../../lib/optimizerMemberStorage';
-import { leadEffectifMembreOptimizer } from '../../lib/equipesOptimizer';
-import LeadPill, { STAT_LABEL } from '../siege/LeadPill';
+import type { ContenuListeOptimizer, EquipeOptimizer } from '../../lib/optimizerMemberStorage';
 import OptimizerEquipeDialog from './OptimizerEquipeDialog';
 import OptimizerCreateListDialog from './OptimizerCreateListDialog';
-import OptimizerBackupBar from './OptimizerBackupBar';
 import OptimizerImportButton, { type SourceImportOptimizer } from './OptimizerImportButton';
 import { importerRecoOptimizer } from '../../lib/importRecoOptimizer';
 import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importerPrepaRtaOptimizer, type RapportImportOptimizer } from '../../lib/importEquipes';
 import {
   FlaskConical,
-  Target,
-  Plus,
-  CheckCircle2,
-  Unlock,
-  Trash2,
 } from 'lucide-react';
-import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
+import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
 import { computeStats } from '../../lib/stats';
 import { cibleDeLaFile, classementResolu, cleBuild, compositionDePage, compteAffichable, compteConfirme, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
 import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
@@ -58,7 +50,6 @@ import {
   scoreDeReference,
   candidateMetricTotal,
   aurasPropresParRunes,
-  OBJECTIVE_LABELS,
   RealDamageContext,
   SLOT_FILTER_PRESETS,
   type BuildCandidate,
@@ -106,6 +97,7 @@ import {
   ExclusionSelector,
   ExclusionSource,
   ExclusionSourceData,
+  type OptimizerListMember,
   SOURCE_OPTIONS,
   ValidatedBuild,
   autoExcludedRuneIds,
@@ -122,12 +114,11 @@ import {
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
 import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe, relicMainPourCeCompte } from '../../lib/optimizerRecipe';
-import { classeMessageImport, delaiEffacementImport, type MessageImport } from '../../lib/messageImport';
+import { delaiEffacementImport, type MessageImport } from '../../lib/messageImport';
 import { DUREE_ATTENTION_MS, doitRappeler, echoAurasExternes, guideVersResPre } from '../../lib/aurasExternes';
 import { jourLocal, telechargerTexte } from '../../lib/telechargement';
 import {
   OptimizerState,
-  OptimizerSortKey,
   RelicUniqueChoice,
   DEFAULT_RELIC_MIN_UPGRADE,
   defaultRelicMainChoice,
@@ -138,32 +129,13 @@ import {
 import { UseOptimizerLists } from '../../hooks/useOptimizerLists';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
 import { useMediaQuery, SOUS_LG, SOUS_SM } from '../../hooks/useMediaQuery';
-import GameIcon from '../GameIcon';
-import IconeInterdite from '../IconeInterdite';
-import MonsterAvatar from '../MonsterAvatar';
 import { type Selected as SelectionGear } from '../MonsterGear';
-import { WHEEL_IMG } from '../RuneWheel';
-import Segmented from '../../ui/Segmented';
-import HelpPopover from '../HelpPopover';
-import OptimizerLeadInactif, { MotifHorsFlux } from './OptimizerLeadInactif';
-import {
-  Bouton,
-  BoutonIcone,
-  Interrupteur,
-  Selecteur,
-  ZoneCliquable,
-} from '../../ui';
-import OptimizerListPicker from './OptimizerListPicker';
-import ExclusionCandidateRow from './ExclusionCandidateRow';
-import SetComboPicker from './SetComboPicker';
-import BuildCandidateCard, { PlaceEnVerification, useHauteurDesCartes } from './BuildCandidateCard';
+import { useHauteurDesCartes } from './BuildCandidateCard';
 import DamageSetupModale from './DamageSetupModale';
-import EtatMonstre from './EtatMonstre';
 import BoutonValiderBuild from './optimizer/BoutonValiderBuild';
 import BandeauBuildValide from './optimizer/BandeauBuildValide';
 import type { EtatValidation } from './optimizer/types';
 import { CONFIGURABLE_SLOTS } from './optimizer/constantes';
-import { formatBig } from '../../lib/formatBig';
 import MonstreEquipementTelephone from './optimizer/MonstreEquipementTelephone';
 import ExemplaireEtFiche from './optimizer/ExemplaireEtFiche';
 import MonstreEtListe from './optimizer/MonstreEtListe';
@@ -187,12 +159,17 @@ import CarteExclusionRunes from './optimizer/CarteExclusionRunes';
 import CarteReglagesAvances from './optimizer/CarteReglagesAvances';
 import ObjectifEtActions from './optimizer/ObjectifEtActions';
 import ProgressionRecherche from './optimizer/ProgressionRecherche';
-import DiagnosticFaisabilite from './optimizer/DiagnosticFaisabilite';
 import PaginationResultats from './optimizer/PaginationResultats';
-import DiagnosticApprofondi from './optimizer/DiagnosticApprofondi';
-import QuasiSucces from './optimizer/QuasiSucces';
 import AvisRechercheTronquee from './optimizer/AvisRechercheTronquee';
 import ConfirmationsLiberation from './optimizer/ConfirmationsLiberation';
+import ReglagesAvancesContenu from './optimizer/ReglagesAvancesContenu';
+import ChoixExemplaire from './optimizer/ChoixExemplaire';
+import MonstresDeLaListe from './optimizer/MonstresDeLaListe';
+import SelecteurListes from './optimizer/SelecteurListes';
+import EnteteResultats from './optimizer/EnteteResultats';
+import DiagnosticsSansResultat from './optimizer/DiagnosticsSansResultat';
+import GrilleResultats from './optimizer/GrilleResultats';
+import MessageImportRecette from './optimizer/MessageImportRecette';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -2735,32 +2712,23 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     return out;
   }, [lists.members]);
 
-  // Contenu de la zone D (désambiguïsation d'exemplaire) — factorisé, PAS un
-  // composant à part : réutilisé tel quel dans le `Flottant` du bureau et le
-  // bloc en ligne du mobile (voir le rendu plus bas), qui ne diffèrent QUE
-  // par leur présentation (flottant vs en ligne), pas par leur contenu.
+  // Contenu de la zone D (désambiguïsation d'exemplaire) — construit UNE fois :
+  // réutilisé tel quel dans le `Flottant` du bureau et le bloc en ligne du
+  // mobile (voir le rendu plus bas), qui ne diffèrent QUE par leur
+  // présentation (flottant vs en ligne), pas par leur contenu.
+  // Le geste d'un exemplaire de la zone D : il devient l'exemplaire optimisé.
+  function choisirExemplaireZoneD(c: ExclusionCandidate) {
+    setSourceSelector(c.selector);
+    reliqueCoherenteAvecExemplaire(c.gear.relic);
+    setZoneDOpen(false);
+    inclureSelectionRecherche(c.selector, c.monster);
+  }
   const zoneDList =
-    candidatesBySource[gearSource].length === 0 ? (
-      <div className="px-3 py-2 text-ink-dim text-[12.5px]">Aucun exemplaire.</div>
-    ) : (
-      candidatesBySource[gearSource].map((c) => (
-        <button
-          key={exclusionSelectorKey(c.selector)}
-          type="button"
-          onClick={() => {
-            setSourceSelector(c.selector);
-            reliqueCoherenteAvecExemplaire(c.gear.relic);
-            setZoneDOpen(false);
-            inclureSelectionRecherche(c.selector, c.monster);
-          }}
-          className={`flex w-full items-center gap-3 px-3 text-left transition hoverable:bg-accent-soft ${
-            c.teamContext ? 'py-1' : 'py-1.5'
-          }`}
-        >
-          <ExclusionCandidateRow candidate={c} />
-        </button>
-      ))
-    );
+    <ChoixExemplaire
+      candidatesBySource={candidatesBySource}
+      gearSource={gearSource}
+      choisirExemplaireZoneD={choisirExemplaireZoneD}
+    />;
 
   // Zone C — les monstres de la liste ACTIVE : chaque ligne porte
   // directement son état validé, une section séparée ailleurs dans l'écran
@@ -3052,56 +3020,34 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     />
   );
 
-  // Assemblage des cartes de réglage (composants d'`optimizer/`). Les
-  // sélecteurs de listes restent écrits ici, branchés tels quels sur `lists` :
-  // naviguer entre les listes ou les gérer ne remet jamais la recherche à zéro.
+  // Assemblage des cartes de réglage (composants d'`optimizer/`).
   const listesBureau = (
-    <OptimizerListPicker
+    <SelecteurListes
       action={<OptimizerImportButton enLigne sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />}
-      lists={lists.lists}
-      activeListId={lists.activeListId}
+      lists={lists}
       memberCounts={memberCountsByList}
-      listContents={lists.listContents}
-      onSelect={lists.setActiveListId}
-      onCreate={lists.createList}
-      onEdit={lists.editList}
-      onDelete={lists.deleteList}
     />
   );
 
-  const listesTelephone = (
-    <OptimizerListPicker
-      lists={lists.lists}
-      activeListId={lists.activeListId}
-      memberCounts={memberCountsByList}
-      listContents={lists.listContents}
-      onSelect={lists.setActiveListId}
-      onCreate={lists.createList}
-      onEdit={lists.editList}
-      onDelete={lists.deleteList}
-    />
-  );
+  const listesTelephone = <SelecteurListes lists={lists} memberCounts={memberCountsByList} />;
 
-  const setComboPicker = (
-    <SetComboPicker
-      sets={comboSets}
-      onChange={(next) => {
-        setComboSets(next);
-        if (next.length > 0) setSetPickerInvalid(false);
-        // Ouverture guidée : Accuracy ou Tolerance
-        // CHOISI comme set recherché guide vers l'interrupteur des auras
-        // RES/PRE, sans toucher aux auras externes. Au geste seulement :
-        // l'import d'une recette pose `comboSets` sans passer par ici.
-        if (guideVersResPre({ setsRecherches: comboSets }, { setsRecherches: next })) guiderVersResPre();
-      }}
-    />
-  );
+  // Le geste du set recherché.
+  function choisirSetsRecherches(next: string[]) {
+    setComboSets(next);
+    if (next.length > 0) setSetPickerInvalid(false);
+    // Ouverture guidée : Accuracy ou Tolerance
+    // CHOISI comme set recherché guide vers l'interrupteur des auras
+    // RES/PRE, sans toucher aux auras externes. Au geste seulement :
+    // l'import d'une recette pose `comboSets` sans passer par ici.
+    if (guideVersResPre({ setsRecherches: comboSets }, { setsRecherches: next })) guiderVersResPre();
+  }
 
   const setDeRunes = (
     <SetDeRunes
       setPickerSectionRef={setPickerSectionRef}
       setPickerInvalid={setPickerInvalid}
-      setComboPicker={setComboPicker}
+      comboSets={comboSets}
+      onChangeSets={choisirSetsRecherches}
     />
   );
 
@@ -3125,235 +3071,222 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     />
   );
 
-  const etatMonstre = (
-    <EtatMonstre
-      setup={damageSetup}
-      maj={majDamageSetup}
-      equipe={combatMembre.equipe !== null}
-      motifLead={combatMembre.motif}
-      etroit={etroit}
-      artefacts={artefactsDegats}
-      rappelAuras={rappelAuras !== null}
-      onGuiderResPre={guiderVersResPre}
-      rappelsBuffs={rappelsBuffs}
-    />
-  );
+  // Le geste d'un membre de la liste de travail (zone C) : il devient le
+  // monstre optimisé, avec ses critères.
+  function choisirMembreDeLaListe(m: OptimizerListMember, resolved: ReturnType<typeof resolveExclusionEntry>) {
+    if (!resolved) return;
+    const id = String(resolved.monster.id);
+    const key = exclusionSelectorKey(m.selector);
+    // L'action partagée valide l'identité puis restaure la
+    // mémoire ou la base complète, sans déclencher de guide.
+    const criteres = optimizer.choisirMembre(m.listId, m.selector);
+    setZoneDOpen(false);
+    // ⚠️ **Rappel des auras externes — ICI,
+    // dans le geste de la liste de travail, et nulle part
+    // ailleurs** : ni dans `resetSearch`, ni dans un effet sur
+    // `selectedId` — l'import d'une recette ou d'un compte pose
+    // aussi le monstre, et le bestiaire, les puces de source et
+    // la zone D restent sans rappel. Autre espèce OU autre exemplaire de la
+    // même espèce ; la décision lit la destination réellement
+    // appliquée, jamais les auras du membre précédent.
+    if (
+      criteres && doitRappeler(
+        'liste',
+        { espece: selectedId, exemplaire: ownSelectorKey, aurasExternes: damageSetup.setsAuraExternes },
+        { espece: id, exemplaire: key, aurasExternes: criteres.damageSetup.setsAuraExternes }
+      )
+    ) {
+      setRappelAuras((n) => (n ?? 0) + 1);
+    } else setRappelAuras(null);
+  }
 
   const rapportZoneC = [...lists.rapportStockage, ...optimizer.rapportCriteres];
   const zoneCContent = (
-    <div className="rounded-lg border border-border-soft bg-panel2/60 p-2.5">
-      <div className="mb-1.5 flex items-baseline justify-between gap-2">
-        <p className="text-[12px] font-semibold text-ink-dim truncate">
-          {activeList ? `Monstres de « ${activeList.name} »` : 'Monstres de la liste'}
-        </p>
-        {activeList && <span className="flex-none text-[11px] text-ink-dimmer">{activeMembers.length}</span>}
-      </div>
-
-      {/* Le rapport des critères se lit hors du flux, depuis une icône à place
-          réservée au bout de la ligne d'annonce ; la liste garde la hauteur. */}
-      <OptimizerBackupBar debut={<><Bouton
-        trait="pointille"
-        taille="sm"
-        pleineLargeur
-        icone={<Plus size={14} />}
-        libelle={ajoutListe.libelle}
-        title={ajoutListe.libelle}
-        disabled={!ajoutListe.actif}
-        onClick={handleAddToList}
-        className="min-w-0 [&>span]:min-w-0 [&>span]:truncate"
-      />
-      <Bouton libelle="Lier une équipe" title="Lier une équipe" taille="sm" pleineLargeur disabled={!activeList}
-        onClick={() => activeList && setEquipeOuverte({ listId: activeList.id, equipe: null })} /></>} listes={lists} optimizer={optimizer} data={exclusionData} artifactIds={new Set(artifacts.map(a => a.id))}
-        fin={<span className="inline-flex h-6 w-6 flex-none compact:h-10 compact:w-10">
-          {rapportZoneC.length > 0 && <MotifHorsFlux titre="Rapport des critères" messages={rapportZoneC}
-            libelle={`Rapport des critères : ${rapportZoneC.length} message${rapportZoneC.length > 1 ? 's' : ''}`} />}
-        </span>} />
-      <div className="sr-only" role="status" aria-label="Rapport des critères">
-        {rapportZoneC.map((message, index) => <p key={index}>{message}</p>)}
-      </div>
-
-      {activeMembers.length === 0 ? (
-        <p className="px-0.5 py-3 text-center text-[12px] italic text-ink-dim">
-          {activeList ? "Aucun monstre dans cette liste pour l'instant." : 'Choisis ou crée une liste ci-dessus.'}
-        </p>
-      ) : (
-        <div className="mt-1 max-h-[308px] space-y-1 overflow-y-auto">
-          {groupesMembres.filter(g => g.members.length > 0).map((g, numero) => {
-            const membres = g.members.map(m => {
-              const resolved = resolveExclusionEntry(m.selector, exclusionData);
-              const lead = resolved ? leadEffectifMembreOptimizer(lists, m.listId, m.selector, resolved.monster.element) : null;
-              return { m, resolved, motif: g.equipe?.lead && lead?.type === 'aucun' ? lead.motif : undefined };
-            });
-            const inactifs = membres.filter(m => m.motif).length;
-            return <section key={g.equipe?.id ?? 'sans-equipe'} aria-label={g.equipe ? `Équipe ${numero + 1}` : 'Sans équipe'} className={`space-y-0.5 ${g.equipe ? `rounded-lg p-1.5 ${numero % 2 === 0 ? 'bg-equipe-a' : 'bg-equipe-b'}` : ''}`}>
-            {g.equipe && <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-1 py-0.5">
-              {/* Lead, numéro et leader se lisent sur une seule ligne. */}
-              <span className="flex h-7 items-center whitespace-nowrap">
-                {g.equipe.lead ? <LeadPill ls={g.equipe.lead} titre={`Lead de l’équipe : +${g.equipe.lead.amount} % ${STAT_LABEL[g.equipe.lead.stat ?? ''] ?? g.equipe.lead.stat ?? ''} · ${g.equipe.lead.area === 'Guild' ? 'Guilde' : g.equipe.lead.area === 'Dungeon' ? 'Donjon' : g.equipe.lead.area === 'Arena' ? 'Arène' : g.equipe.lead.area === 'Element' ? 'Élément' : 'Général'}`} /> : <span className="text-xs text-ink-dim">Sans lead</span>}
-              </span>
-              <span title={`Équipe ${numero + 1}${g.equipe.leader ? ` · Leader : ${resolveExclusionEntry(g.equipe.leader, exclusionData)?.monster.name ?? 'Introuvable'}` : ''}`} className="min-w-0 truncate text-xs font-semibold text-ink">Équipe {numero + 1}
-                {g.equipe.leader && <span className="ml-1 font-normal text-ink-dim">· Leader : {resolveExclusionEntry(g.equipe.leader, exclusionData)?.monster.name ?? 'Introuvable'}</span>}
-              </span>
-              <span className="inline-grid whitespace-nowrap text-micro text-warn">
-                <span className="invisible col-start-1 row-start-1" aria-hidden>⚠ 5 leads inactifs</span>
-                <span className={`col-start-1 row-start-1 ${inactifs ? '' : 'invisible'}`} aria-hidden={!inactifs}>⚠ {inactifs} lead{inactifs > 1 ? 's' : ''} inactif{inactifs > 1 ? 's' : ''}</span>
-              </span>
-              <Bouton taille="xs" fond="vide" libelle="Modifier l’équipe" onClick={() => setEquipeOuverte({ listId: g.equipe!.listId, equipe: g.equipe })} />
-            </div>}
-            {!g.equipe && <p className="py-1 text-xs font-semibold text-ink-dim">Sans équipe</p>}
-          {membres.map(({ m, resolved, motif }) => {
-            const key = exclusionSelectorKey(m.selector);
-            const build = findValidatedBuild(lists.validated, lists.activeListId, key);
-            const absentes = build ? runesManquantesDuBuild(build, runeById) : [];
-            const artsAbsents = build ? artefactsManquantsDuBuild(build, artifactById) : [];
-            return (
-              <div key={key} className="flex flex-wrap items-center gap-x-2 rounded-lg border border-border-soft bg-panel/60 px-2 py-1.5">
-                <ZoneCliquable
-                  imbrique
-                  disabled={!resolved}
-                  onClick={() => {
-                    if (!resolved) return;
-                    const id = String(resolved.monster.id);
-                    // L'action partagée valide l'identité puis restaure la
-                    // mémoire ou la base complète, sans déclencher de guide.
-                    const criteres = optimizer.choisirMembre(m.listId, m.selector);
-                    setZoneDOpen(false);
-                    // ⚠️ **Rappel des auras externes — ICI,
-                    // dans le geste de la liste de travail, et nulle part
-                    // ailleurs** : ni dans `resetSearch`, ni dans un effet sur
-                    // `selectedId` — l'import d'une recette ou d'un compte pose
-                    // aussi le monstre, et le bestiaire, les puces de source et
-                    // la zone D restent sans rappel. Autre espèce OU autre exemplaire de la
-                    // même espèce ; la décision lit la destination réellement
-                    // appliquée, jamais les auras du membre précédent.
-                    if (
-                      criteres && doitRappeler(
-                        'liste',
-                        { espece: selectedId, exemplaire: ownSelectorKey, aurasExternes: damageSetup.setsAuraExternes },
-                        { espece: id, exemplaire: key, aurasExternes: criteres.damageSetup.setsAuraExternes }
-                      )
-                    ) {
-                      setRappelAuras((n) => (n ?? 0) + 1);
-                    } else setRappelAuras(null);
-                  }}
-                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
-                >
-                  <MonsterAvatar monster={resolved?.monster ?? null} size={24} className="flex-none" />
-                  <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-ink">
-                    {resolved?.monster.name ?? 'Introuvable'}
-                    {m.selector.source === 'unowned' && (
-                      <span className="ml-1 text-[10px] font-normal text-ink-dimmer">(non possédé)</span>
-                    )}
-                  </span>
-                </ZoneCliquable>
-                <OptimizerLeadInactif motif={motif} />
-                {build ? (
-                  <>
-                    <span className={`flex flex-none items-center gap-1 text-[10.5px] font-semibold ${absentes.length || artsAbsents.length ? 'text-warn' : 'text-accent'}`}
-                      title={absentes.length || artsAbsents.length ? 'Build conservé ; les pièces absentes du compte ne sont plus réservées.' : undefined}>
-                      <CheckCircle2 size={12} />
-                      {absentes.length || artsAbsents.length ? [absentes.length ? `${absentes.length} rune(s) absente(s)` : '',
-                        artsAbsents.length ? `${artsAbsents.length} artéfact(s) absent(s)` : ''].filter(Boolean).join(' · ') : 'Validé'}
-                    </span>
-                    {/* ⚠️ **L’icône disait le contraire de l’action.** Ce
-                        bouton LIBÈRE, et portait le `CheckCircle2` de la
-                        validation — le même pictogramme que le badge
-                        « Validé » posé juste à sa gauche. Il porte désormais
-                        la roue barrée d’une interdiction, celle d’« Exclure
-                        les runes déjà utilisées » : du point de vue du
-                        monstre, libérer, c’est lui retirer ses runes. */}
-                    <BoutonIcone
-                      cadre
-                      libelle="Libérer ce build (runes et artéfacts)"
-                      icone={
-                        <IconeInterdite cadre={false} taille={16}>
-                          <img src={WHEEL_IMG} alt="" className="h-3.5 w-3.5 object-contain" />
-                        </IconeInterdite>
-                      }
-                      onClick={() => setReleaseConfirm({ listId: m.listId, selector: m.selector })}
-                      className="h-6 w-6 flex-none"
-                    />
-                    {/* ⚠️ **Rendre la PAIRE sans défaire le runage.** Un
-                        artéfact physique ne se porte que sur un monstre à la
-                        fois : on veut souvent le récupérer pour un autre sans
-                        renoncer au runage déjà planifié. Affiché seulement
-                        s’il y a quelque chose à rendre — un bouton qui ne
-                        ferait rien serait pire qu’un bouton absent. */}
-                    {(build.artifactIds ?? []).length > 0 && (
-                      <BoutonIcone
-                        cadre
-                        libelle="Libérer les artéfacts (le runage reste réservé)"
-                        icone={
-                          <IconeInterdite cadre={false} taille={16}>
-                            <GameIcon name="artifact" size={13} />
-                          </IconeInterdite>
-                        }
-                        onClick={() => setReleaseArtifactsConfirm({ listId: m.listId, selector: m.selector })}
-                        className="h-6 w-6 flex-none"
-                      />
-                    )}
-                  </>
-                ) : (
-                  <span className="flex-none text-[10.5px] text-ink-dimmer">pas encore validé</span>
-                )}
-                <BoutonIcone
-                  cadre
-                  libelle="Retirer de la liste"
-                  icone={<Trash2 size={14} className="text-ink-dim" />}
-                  onClick={() =>
-                    build
-                      ? setRemoveMemberConfirm({ listId: m.listId, selector: m.selector })
-                      : lists.removeMember(m.listId, m.selector)
-                  }
-                  className="h-6 w-6 flex-none"
-                />
-              </div>
-            );
-          })}
-          </section>; })}
-        </div>
-      )}
-
-      {/* ⚠️ **Le rappel des auras, AUSSI sous la liste**
-          — là où l'on vient de cliquer : « État de mon monstre » est souvent
-          hors de l'écran à ce moment, toujours au téléphone. Le MÊME rappel que la boîte des
-          auras : même état (`rappelAuras`, posé par le seul `onClick` d'un
-          membre ci-dessus), donc même minuterie (`DUREE_ATTENTION_MS`) —
-          jamais un second minuteur ni une seconde condition —, même message,
-          même token (`warn` / `warn-soft`, un seul contour de 1 px).
-          Rendu SANS condition du rappel, invisible le reste du temps : sa
-          place est réservée sous la liste, rien ne bouge quand il paraît ni
-          quand il s'efface (docs/03-developpeur/interface/, réponse n° 1). Monté avec
-          la liste seulement : sans membre, aucun clic ne peut le poser.
-          Pas d'`aria-live` : la boîte des auras, montée en permanence,
-          l'annonce déjà — deux régions liraient deux fois la même phrase.
-          Commun aux deux formats : au téléphone, il vit dans le dépliement
-          de la zone C, ouvert au moment du clic. */}
-      {activeMembers.length > 0 && (
-        <p
-          className={`mt-1 rounded-lg border border-warn bg-warn-soft px-2 py-1 text-xs font-semibold text-warn ${
-            rappelAuras !== null ? 'animate-[apparition_200ms_var(--ease-out)]' : 'invisible'
-          }`}
-        >
-          Pense à vérifier les sets d&apos;aura externes.
-        </p>
-      )}
-
-      {listHasValidated && activeList && (
-        <Bouton
-          ton="neutre"
-          fond="vide"
-          trait="plein"
-          taille="sm"
-          pleineLargeur
-          icone={<Unlock size={13} />}
-          libelle={`Libérer toutes les runes de « ${activeList.name} »`}
-          onClick={() => setReleaseAllConfirm(activeList.id)}
-          className="mt-2"
-        />
-      )}
-    </div>
+    <MonstresDeLaListe
+      activeList={activeList}
+      activeMembers={activeMembers}
+      ajoutListe={ajoutListe}
+      handleAddToList={handleAddToList}
+      setEquipeOuverte={setEquipeOuverte}
+      lists={lists}
+      optimizer={optimizer}
+      exclusionData={exclusionData}
+      artifacts={artifacts}
+      rapportZoneC={rapportZoneC}
+      groupesMembres={groupesMembres}
+      runeById={runeById}
+      artifactById={artifactById}
+      choisirMembreDeLaListe={choisirMembreDeLaListe}
+      setReleaseConfirm={setReleaseConfirm}
+      setReleaseArtifactsConfirm={setReleaseArtifactsConfirm}
+      setRemoveMemberConfirm={setRemoveMemberConfirm}
+      rappelAuras={rappelAuras !== null}
+      listHasValidated={listHasValidated}
+      setReleaseAllConfirm={setReleaseAllConfirm}
+    />
   );
+
+  // Le geste « Créer » de la fenêtre de création de liste : la liste créée,
+  // puis, selon l'intention qui l'a ouverte, l'ajout, la validation ou la
+  // recherche du monstre affiché.
+  function creerListeDepuisDialogue(valeur: string, contenu: ContenuListeOptimizer) {
+    const nom = valeur.trim();
+    const intent = addListPromptOpen;
+    setAddListPromptOpen(null);
+    if (!selected?.monster.com2usId || (!sourceSelector && intent !== 'recherche')) return;
+    const id = lists.createList(nom, contenu);
+    if (intent === 'recherche') {
+      inclureSelectionRecherche(sourceSelector, selected.monster, id);
+      return;
+    }
+    if (!sourceSelector) return;
+    if (intent === 'validate') {
+      if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds, selected.monster.com2usId);
+    } else {
+      lists.addMember(id, sourceSelector, selected.monster.com2usId);
+    }
+    if (intent !== 'validate' || canValidateDisplayed) optimizer.capturerMembre(id, sourceSelector);
+  }
+
+  // Ce que chaque carte de résultat reçoit de l'écran : sa paire, sa relique,
+  // ses chiffres de classement et ses gestes (comparer, valider).
+  function proprietesCarte(c: BuildCandidate) {
+    return {
+      // ⚠️ La paire de CE build, jamais une paire commune : deux
+      // builds voisins n'appellent pas les mêmes artéfacts, et ce
+      // sont ces pièces-là qui ont servi à calculer ses stats.
+      // Le repli sur la paire SUPPOSÉE ne sert que sans file
+      // (optimisation coupée : la paire portée, la seule possible) —
+      // avec file, une carte affichée est résolue.
+      artifacts: fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts,
+      // ⚠️ **Seule source** :
+      // `etatReliqueDuBuild` lit le cache de la file, jamais
+      // recalculé ici — `fixe` (hors mode `recherche`) n'affiche
+      // rien de nouveau, `rejete` n'arrive jamais jusqu'ici (le
+      // classement écarte déjà ces builds). Par
+      // `etatReliqueDe` : la relique que le score compte.
+      etatRelique: etatReliqueDe(c),
+      ...(() => {
+        // ⚠️ Comparaison contre les stats de la FICHE — donc contre
+        // le build validé quand il en existe un, sans avoir à le
+        // redemander ici (voir `statsReference`).
+        const cle = c.runeIds.join('-');
+        const compare = compareKey === cle && statsReference != null;
+        return {
+          onCompare: statsReference ? () => setCompareKey((k) => (k === cle ? null : cle)) : undefined,
+          // ⚠️ Affichée dès que les PV effectifs sont le critère de
+          // CLASSEMENT — objectif OU tri —, exactement comme les
+          // dégâts réels : on peut avoir cherché sur un objectif puis
+          // re-trié par PV effectifs, auquel cas le chiffre qui
+          // ordonne les cartes doit être visible dessus.
+          // ⚠️ `scoreDuCandidat` avec les options du classement
+          // affiché : le chiffre qui a CLASSÉ la carte, Ténacité et
+          // points de la relique retenue compris.
+          pvEffectifs:
+            objective === 'ehp' || sortBy === 'ehp'
+              ? (() => {
+                  const total = scoreDuCandidat(c, 'ehp', optionsDuTriAffiche)!;
+                  return { total, delta: compare && refEhp != null ? total - refEhp : undefined };
+                })()
+              : undefined,
+          metricDelta:
+            compare && refMetric != null
+              ? candidateMetricTotal(c, runeById, metric) - refMetric
+              : undefined,
+          // ⚠️ Le delta est calculé PAR STAT contre la référence, et
+          // seulement pour la carte comparée : le faire pour les 20
+          // cartes de la page coûterait 20 fois plus pour 19 valeurs
+          // qu'on n'affiche pas.
+          comparaison:
+            compareKey === cle && statsReference
+              ? c.stats.map((ligne) => ({
+                  key: ligne.key,
+                  label: ligne.label,
+                  suffix: ligne.suffix,
+                  delta: ligne.total - (statsReference.find((r) => r.key === ligne.key)?.total ?? 0),
+                }))
+              : undefined,
+        };
+      })(),
+      // ⚠️ Affiché dès qu'un sort est résolu ET que c'est bien le
+      // critère de classement courant (objectif OU tri) — pas
+      // seulement quand `objective` vaut « Dégâts réels » : on peut
+      // avoir lancé la recherche sur un autre objectif puis re-trier
+      // par dégâts réels, auquel cas le chiffre qui ordonne les
+      // cartes doit être visible dessus.
+      degatsReels:
+        realDamage && (objective === 'degats_reels' || sortBy === 'degats_reels')
+          ? (() => {
+              // ⚠️ Le chiffre qui a CLASSÉ la carte : `scoreDuCandidat`
+              // avec les options du classement affiché — profil
+              // d'artéfacts de CE build et Conquête de sa relique
+              // retenue compris. Une recopie de `computeTotalDamage`
+              // omettait la Conquête que le tri compte.
+              const total = scoreDuCandidat(c, 'degats_reels', optionsDuTriAffiche)!;
+              return {
+                total,
+                partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0,
+                // ⚠️ L'écart se calcule contre les dégâts de la
+                // RÉFÉRENCE (`refDegats`) : la fiche notée avec SES
+                // stats, SA paire d'artéfacts et SA relique — jamais
+                // contre le total d'un autre candidat, jamais avec
+                // la paire de la recherche.
+                delta:
+                  compareKey === c.runeIds.join('-') && refDegats != null
+                    ? total - refDegats
+                    : undefined,
+              };
+            })()
+          : undefined,
+      // « Valider » — réserve les 6 runes RÉELLES de CE
+      // candidat pour `sourceSelector`, qu'il pointe un exemplaire
+      // réel OU un sélecteur `unowned` (monstre non possédé,
+      // demande explicite — « essayer des runages de teams sans
+      // avoir mis à jour son json » : les runes trouvées restent de
+      // VRAIES runes du compte, réservables comme n'importe quel
+      // autre build validé). Absent uniquement si `sourceSelector`
+      // est `null` (aucune espèce choisie, ou possédée ailleurs
+      // sans exemplaire encore désambiguïsé — zone D).
+      // ⚠️ Exige `sourceSelector` non nul ET une liste active (un build
+      // validé appartient TOUJOURS à une liste, voir
+      // ValidatedBuild). Valider ajoute aussi implicitement le
+      // monstre à la liste s'il n'y était pas déjà (voir
+      // `validateBuild`, useOptimizerLists.ts).
+      onValidate:
+        sourceSelector && lists.activeListId
+          ? () => {
+              // ⚠️ Garde de DERNIÈRE minute en plus du bouton
+              // désactivé : le clic peut partir d'un rendu périmé.
+              if (conflitsDeRunes(c.runeIds).length > 0) return;
+              // ⚠️ La paire DE CE CANDIDAT, pas celle du monstre
+              // affiché : c’est elle que la carte montre et qui a
+              // servi à calculer ses stats.
+              lists.validateBuild(
+                lists.activeListId!,
+                sourceSelector,
+                c.runeIds,
+                (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id),
+                selected!.monster.com2usId!
+              );
+              optimizer.capturerMembre(lists.activeListId!, sourceSelector);
+            }
+          : undefined,
+      // ⚠️ La paire QUE CETTE CARTE MONTRE — celle de la file si
+      // elle l'a trouvée, la représentative sinon. Exactement la
+      // même expression que `onValidate` ci-dessus : comparer autre
+      // chose que ce qu'on validerait rendrait le libellé menteur.
+      validated: etatValidation(
+        c.runeIds,
+        (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id)
+      ),
+      conflit: (() => {
+        const conflits = conflitsDeRunes(c.runeIds);
+        if (conflits.length === 0) return null;
+        const noms = [...new Set(conflits.map((x) => x.monsterName))];
+        return `${conflits.length > 1 ? 'Runes déjà réservées' : 'Rune déjà réservée'} dans cette liste pour ${noms.join(', ')}`;
+      })(),
+    };
+  }
 
   return (
     // ⚠️ **Pleine largeur**, comme RTA/Siège/Mon compte — l'ancienne colonne
@@ -3566,7 +3499,15 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           cartes empilées, d'où le `row-span-4` de « Critères de recherche » et
           le décalage d'une rangée de tout ce qui suit. */}
       <CarteEtatMonstre
-        etatMonstre={etatMonstre}
+        setup={damageSetup}
+        maj={majDamageSetup}
+        equipe={combatMembre.equipe !== null}
+        motifLead={combatMembre.motif}
+        etroit={etroit}
+        artefacts={artefactsDegats}
+        rappelAuras={rappelAuras !== null}
+        onGuiderResPre={guiderVersResPre}
+        rappelsBuffs={rappelsBuffs}
       />
 
       {/* ⚠️ « Objectif de recherche » N'EST PAS ICI — il est dans la carte
@@ -3608,182 +3549,26 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               dessous de ~520 px, une seule colonne ; au-delà, deux. Ça vaut
               aussi pour le panneau « Options » au doigt, sans une seule classe
               conditionnelle. */
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3">
-          {/* ⚠️ Mêmes classes de boîte que les trois groupes d'« État de mon
-              monstre » (EtatMonstre.tsx) : deux façons de cadrer un groupe
-              dans cet écran se liraient comme deux natures différentes. */}
-          <div className="rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
-            <p className="text-[11.5px] text-ink-dim mb-1">Pré-filtrage par emplacement</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Segmented
-                options={SLOT_FILTER_PRESETS}
-                value={slotFilterPreset}
-                onChange={handleSlotFilterPresetChange}
-                // Dans le panneau « Options » : pleine largeur, comme les autres
-                // contrôles du tiroir. En ligne au bureau : serré à son contenu.
-                size={dansPanneau ? 'lg' : undefined}
-                className={dansPanneau ? '' : 'w-fit'}
-              />
-              {dansPanneau && estimate && (
-                <span className="font-mono text-micro text-ink-dim">
-                  Pool de runes = {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))}
-                </span>
-              )}
-            </div>
-            <p className="mt-1 text-micro text-warn max-w-[280px]">
-              ⚠️ {SLOT_FILTER_PRESETS.find((p) => p.key === slotFilterPreset)?.hint}
-            </p>
-          </div>
-
-          {/* ⚠️ `divide-y` et non un `border-t` par interrupteur : un trait ne
-              se pose qu'ENTRE deux voisins, jamais au-dessus du premier. Avec
-              des bordures individuelles, le premier interrupteur portait un
-              trait en tête de colonne — anodin quand tout était empilé sous le
-              pré-filtrage, mais lu comme une ligne perdue une fois le groupe
-              posé en colonne à côté. */}
-          <div className="divide-y divide-border rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
-            {/* Toggle, même patron que « Prioriser les stats les plus
-                difficiles » : désactivé par défaut, lu par `handleSearch` au
-                clic sur « Rechercher », jamais un bouton qui lance sa propre
-                recherche. */}
-            <div className="flex items-center justify-between gap-2 py-3 first:pt-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11.5px] text-ink-dim">Rechercher jusqu'à épuisement complet</span>
-                <HelpPopover title="Rechercher jusqu'à épuisement complet">
-                  Retire la limite de temps de 10 minutes : la recherche continue tant qu'il reste des combinaisons
-                  à examiner. Peut prendre très longtemps sur une recherche avec peu de conditions — le bouton{' '}
-                  <b className="text-ink">« Arrêter »</b> reste disponible et garde le meilleur trouvé jusque-là.
-                  Le plafond de 100 000 résultats collectés, lui, reste actif.
-                </HelpPopover>
-              </div>
-              <Interrupteur
-                actif={exhaustiveSearch}
-                onChange={setExhaustiveSearch}
-                aria-label="Rechercher jusqu'à épuisement complet"
-              />
-            </div>
-
-            <div className="flex items-center justify-between gap-2 py-3">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11.5px] text-ink-dim">Diagnostic approfondi sur 0 résultat</span>
-                <HelpPopover title="Diagnostic approfondi sur 0 résultat">
-                  Après une recherche à 0 résultat, identifie quelle condition posée libère le plus de candidats si
-                  on la retire — <b className="text-ink">un indice, pas une preuve</b>.
-                </HelpPopover>
-              </div>
-              <Interrupteur
-                actif={diagnoseBlockingEnabled}
-                onChange={setDiagnoseBlockingEnabled}
-                aria-label="Diagnostic approfondi sur 0 résultat"
-              />
-            </div>
-
-            {/* Déplacé depuis son ancien emplacement (juste avant les
-                boutons d'action) — même toggle, même logique, regroupé ici
-                avec les autres réglages secondaires. */}
-            <div className="flex items-center justify-between gap-2 py-3 last:pb-0">
-              <div className="flex items-center gap-1.5">
-                <Target size={15} className="text-ink-dim" />
-                <span className="text-[11.5px] text-ink-dim">Prioriser les stats les plus difficiles</span>
-                <HelpPopover title="Prioriser les stats les plus difficiles">
-                  Peut trouver un build qu'une recherche normale rate quand une stat est rare, au prix d'une
-                  recherche plus longue.
-                </HelpPopover>
-              </div>
-              <Interrupteur
-                actif={adaptiveTrancheWeighting}
-                onChange={setAdaptiveTrancheWeighting}
-                aria-label="Prioriser les stats les plus difficiles"
-              />
-            </div>
-
-            {/* « Vérifier toutes les combinaisons trouvées » : désactivé par défaut, lu EN DIRECT par la file
-                (`cibleDeLaFile`), jamais par `handleSearch` — il ne change pas
-                la recherche de runes, seulement jusqu'où la file vérifie.
-                MASQUÉ sans optimisation d'artéfacts : sans file, rien n'est
-                vérifié, et une saisie sans effet est pire qu'une saisie
-                absente (même règle que « Adapter les artéfacts et reliques
-                au tri »). L'interrupteur qui le masque vit dans une autre
-                carte : rien ne bouge sous le clic. */}
-            {optimiserArtefacts && (
-              <div className="flex items-center justify-between gap-2 py-3 last:pb-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11.5px] text-ink-dim">Vérifier toutes les combinaisons trouvées</span>
-                  <HelpPopover title="Vérifier toutes les combinaisons trouvées">
-                    Par défaut, la vérification des artéfacts et de la relique s'arrête dès que{' '}
-                    <b className="text-ink">100 combinaisons sont confirmées</b> (300 quand la relique est cherchée) :
-                    les suivantes ne sont vérifiées que si tu ouvres leur page.
-                    <br />
-                    <br />
-                    Activé, toutes les combinaisons trouvées sont vérifiées, au-delà de ces confirmées : le compte
-                    devient complet, mais cela peut prendre plusieurs minutes.
-                  </HelpPopover>
-                </div>
-                <Interrupteur
-                  actif={verifierToutesLesCombinaisons}
-                  onChange={setVerifierToutesLesCombinaisons}
-                  aria-label="Vérifier toutes les combinaisons trouvées"
-                />
-              </div>
-            )}
-
-            {/* « Compter les effets d'auras Tolerance et Précision dans les
-                conditions » (libellé de l'utilisateur) :
-                activé par défaut, branché sur `compterAurasResPre`, qu'une
-                recette porte déjà et que la recherche lit au clic sur
-                « Rechercher » (`avecAurasConditions`).
-                ⚠️ **Rendu SANS condition**, même sans aucune aura RES/PRE
-                saisie : les activations Tolerance/Accuracy PROPRES d'un build
-                comptent aussi, et un réglage qui apparaît et disparaît avec
-                la saisie d'une autre carte ne se retrouve pas. Ce contenu est
-                commun aux deux formats — le flottant du bureau et le panneau
-                « Options » au doigt.
-                ⚠️ EN DERNIER : la rangée conditionnelle du dessus
-                (« Vérifier toutes… ») ne le décale qu'au geste d'une autre
-                carte, jamais sous le clic.
-                ⚠️ **Cible de l'ouverture guidée** : le
-                cadre intérieur porte le surlignage d'attention, au même token
-                que le rappel (`warn` / `warn-soft`). Il existe EN PERMANENCE,
-                transparent : se colorer ne bouge rien. Intérieur et non sur la
-                rangée elle-même, dont le trait du haut vient de `divide-y` :
-                un contour posé dessus en ferait deux superposés. `-mx-1` le
-                tient à 4 px du cadre de la boîte ; `px-[3px]` + 1 px de bord
-                gardent le libellé aligné sur ceux du dessus, et `py-2` +
-                `py-[3px]` + 1 px refont les 12 px de `py-3`. Une ref par
-                surface (flottant, panneau), pour y défiler. */}
-            <div className="py-2 last:pb-0">
-              <div
-                ref={dansPanneau ? interrupteurResPrePanneauRef : interrupteurResPreFlottantRef}
-                className={`-mx-1 flex items-center justify-between gap-3 rounded-md border px-[3px] py-[3px] transition-colors duration-200 ${
-                  attentionResPre !== null ? 'border-warn bg-warn-soft' : 'border-transparent'
-                }`}
-              >
-                <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                  <span className="min-w-0 text-[11.5px] text-ink-dim">
-                    Compter les effets d'auras Tolerance et Précision dans les conditions
-                  </span>
-                  <HelpPopover title="Compter les effets d'auras Tolerance et Précision dans les conditions">
-                    Activé, chaque set <b className="text-ink">Tolerance</b> ou <b className="text-ink">Accuracy</b> ajoute
-                    8 points de RES ou de Précision aux <b className="text-ink">minimums et aux maximums</b> de ces deux
-                    conditions : ceux des autres monstres, saisis dans « État de mon monstre », et ceux que forment les
-                    runes de chaque build.
-                    <br />
-                    <br />
-                    Désactivé, ces deux conditions portent sur les statistiques sans aucune aura. Les dégâts et les PV
-                    effectifs comptent les auras dans les deux cas.
-                  </HelpPopover>
-                </div>
-                <span className="flex-none">
-                  <Interrupteur
-                    actif={compterAurasResPre}
-                    onChange={setCompterAurasResPre}
-                    aria-label="Compter les effets d'auras Tolerance et Précision dans les conditions"
-                  />
-                </span>
-              </div>
-            </div>
-          </div>
-          </div>
+          <ReglagesAvancesContenu
+            slotFilterPreset={slotFilterPreset}
+            handleSlotFilterPresetChange={handleSlotFilterPresetChange}
+            dansPanneau={dansPanneau}
+            estimate={estimate}
+            exhaustiveSearch={exhaustiveSearch}
+            setExhaustiveSearch={setExhaustiveSearch}
+            diagnoseBlockingEnabled={diagnoseBlockingEnabled}
+            setDiagnoseBlockingEnabled={setDiagnoseBlockingEnabled}
+            adaptiveTrancheWeighting={adaptiveTrancheWeighting}
+            setAdaptiveTrancheWeighting={setAdaptiveTrancheWeighting}
+            optimiserArtefacts={optimiserArtefacts}
+            verifierToutesLesCombinaisons={verifierToutesLesCombinaisons}
+            setVerifierToutesLesCombinaisons={setVerifierToutesLesCombinaisons}
+            interrupteurResPrePanneauRef={interrupteurResPrePanneauRef}
+            interrupteurResPreFlottantRef={interrupteurResPreFlottantRef}
+            attentionResPre={attentionResPre}
+            compterAurasResPre={compterAurasResPre}
+            setCompterAurasResPre={setCompterAurasResPre}
+          />
         );
 
         const reglagesAvancesTitre = (
@@ -3995,48 +3780,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         stop={stop}
       />
 
-      {importMsg && (
-        <p className={`text-[12.5px] ${classeMessageImport(importMsg)}`} role="status">
-          {importMsg.text}
-        </p>
-      )}
+      <MessageImportRecette message={importMsg} />
 
       <ProgressionRecherche
         status={status}
         progress={progress}
         refusal={refusal}
-        appariement={status === 'running' && (progress === null || progress.phase === 'pairing') && (
-          <div>
-            <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
-              <div
-                className="h-full bg-accent transition-[width] duration-150 ease-out"
-                style={{ width: `${Math.round((progress?.pct ?? 0) * 100)}%` }}
-              />
-            </div>
-            {/* ⚠️ Le dénominateur ici est `totalPairs` (voir `totalPairCount`),
-                la taille EXACTE de l'espace à épuiser — un plafond de nœuds a
-                longtemps coexisté avec lui, écarté d'ici parce qu'il
-                grandissait en cours de route et aurait fait RECULER la barre.
-                C'est ce choix de l'interface qui a fini par emporter sa
-                suppression du moteur. */}
-            <p className="mt-1 font-mono text-micro text-ink-dim">
-              {progress === null
-                ? 'Préparation…'
-                : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${compteAffiche.compte.toLocaleString('fr-FR')} trouvée(s)`}
-            </p>
-            {progress !== null && (
-              <p className="mt-0.5 font-mono text-[11px] font-bold text-star">
-                Attendez la fin de la recherche pour être sûr de trouver votre build optimal.
-              </p>
-            )}
-            {progress !== null && (
-              <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
-                Le budget de recherche s'élargit automatiquement tant qu'il reste du temps et que le plafond de
-                résultats (100 000) n'est pas atteint — pas seulement tant que rien n'est trouvé.
-              </p>
-            )}
-          </div>
-        )}
+        compteAffiche={compteAffiche}
       />
 
       {/* ⚠️ S'affiche AUSSI pendant la phase d'appariement, dès qu'au moins
@@ -4048,174 +3798,33 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           plus utile que les barres de progression déjà affichées. */}
       {(result || fullSortedCandidates.length > 0) && (
         <div>
-          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-            {/* ⚠️ Le compte des CONFIRMÉES (`compteConfirmes`) :
-                seulement les builds vérifiés (résolus et conformes), un
-                compte qui ne baisse jamais pendant une recherche. « Aucune
-                combinaison… » seulement quand tout est vérifié sans aucune
-                confirmée. La ligne de progression garde les trouvées :
-                l'infobulle dit la différence. */}
-            <div className="flex items-center gap-1.5">
-              <p className="label">
-                {result
-                  ? compteConfirmes.aucune
-                    ? 'Aucune combinaison ne répond à ces critères'
-                    : `${compteConfirmes.confirmees.toLocaleString('fr-FR')} combinaison(s) confirmée(s)`
-                  : `${compteConfirmes.confirmees.toLocaleString('fr-FR')} combinaison(s) confirmée(s) pour l'instant — recherche en cours…`}
-              </p>
-              {/* Seulement quand une file vérifie : sans elle, confirmées et
-                  trouvées sont le même nombre. */}
-              {resoudreEquipement != null && !compteConfirmes.aucune && (
-                <HelpPopover title="Combinaisons confirmées">
-                  Une combinaison est <b className="text-ink">confirmée</b> quand ses artéfacts et sa relique ont
-                  été vérifiés avec les pièces de ton inventaire : elle tient vraiment toutes les conditions.
-                  <br />
-                  <br />
-                  Le nombre « trouvée(s) » de la barre de progression compte tout ce que la recherche a retenu stat
-                  par stat : une estimation optimiste, pas encore vérifiée. Une partie de ces combinaisons est
-                  écartée à la vérification.
-                  <br />
-                  <br />
-                  La vérification s'arrête à 100 confirmées (300 quand la relique est cherchée) ; « Vérifier toutes
-                  les combinaisons trouvées », dans les réglages avancés, va jusqu'au bout.
-                </HelpPopover>
-              )}
-            </div>
-            {/* ⚠️ **Le tri est une VUE, l’optimisation d’artéfacts une
-                DÉCISION.** Les coupler d’office déplaçait la paire dès qu’on
-                changeait de tri pour explorer — alors qu’on veut souvent
-                garder celle qui maximise les PV effectifs tout en regardant
-                les builds classés par une stat.
+          <EnteteResultats
+            result={result}
+            compteConfirmes={compteConfirmes}
+            resoudreEquipement={resoudreEquipement}
+            optimiserArtefacts={optimiserArtefacts}
+            adapterArtefactsAuTri={adapterArtefactsAuTri}
+            setAdapterArtefactsAuTri={setAdapterArtefactsAuTri}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            setResultsPage={setResultsPage}
+            realDamage={realDamage}
+            fileArtefacts={fileArtefacts}
+            compteAffiche={compteAffiche}
+          />
 
-                ⚠️ MASQUÉ quand l’optimisation est désactivée : il n’y a alors
-                qu’une paire possible, celle qui est portée. Une saisie sans
-                effet est pire qu’une saisie absente — même règle que les
-                sélecteurs de principale et les sous-propriétés verrouillées. */}
-            {optimiserArtefacts && !compteConfirmes.aucune && (
-              <div className="ml-auto flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-ink-dim">Adapter les artéfacts et reliques au tri</span>
-                <HelpPopover title="Adapter les artéfacts et reliques au tri">
-                  Activé (défaut), chaque build reçoit les artéfacts ET la relique qui maximisent le{' '}
-                  <b className="text-ink">critère de tri</b> affiché : trier par ATQ ne retient pas les mêmes
-                  pièces que trier par PV effectifs.
-                  <br />
-                  <br />
-                  Désactivé, les artéfacts et la relique restent ceux qui servent l’<b className="text-ink">objectif de la
-                  recherche</b>, quel que soit le tri. Utile pour parcourir les résultats classés autrement sans
-                  que l’équipement bouge — et « Valider les artéfacts » propose alors toujours le même.
-                  <br />
-                  <br />
-                  Sans effet sur Efficience, Vitesse, Taux CRIT, Dgts CRIT, Résistance et Précision : aucun
-                  artéfact ni aucune propriété de relique n’entre dans ces classements.
-                </HelpPopover>
-                <Interrupteur
-                  actif={adapterArtefactsAuTri}
-                  onChange={setAdapterArtefactsAuTri}
-                  aria-label="Adapter les artéfacts et reliques au tri"
-                />
-              </div>
-            )}
-            {/* Masqués (avec « Adapter… ») seulement quand tout est vérifié
-                sans aucune confirmée. */}
-            {!compteConfirmes.aucune && (
-              <Selecteur
-                value={sortBy}
-                onChange={(e) => {
-                  setSortBy(e.target.value as OptimizerSortKey);
-                  // Classement entièrement différent : la page courante
-                  // n'a plus le même sens, on repart du meilleur résultat.
-                  setResultsPage(1);
-                }}
-                taille="sm"
-                surface="panel"
-                pleineLargeur={false}
-              >
-                <optgroup label="Stats">
-                  {RECO_STATS.map((st) => (
-                    <option key={st.key} value={st.key}>
-                      Trier par {st.label}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Objectifs">
-                  {/* ⚠️ « Dégâts réels » n'est proposé que si un sort est
-                      réellement calculable pour ce monstre : sans sort, ce
-                      tri n'aurait aucune formule à appliquer et laisserait la
-                      liste dans son ordre précédent, sans rien dire. */}
-                  {OBJECTIVE_LABELS.filter((o) => o.key !== 'degats_reels' || realDamage).map((o) => (
-                    <option key={o.key} value={o.key}>
-                      {o.label}
-                    </option>
-                  ))}
-                </optgroup>
-              </Selecteur>
-            )}
-          </div>
-
-          {/* Combien la file doit encore vérifier : les builds des
-              places en attente de la page, puis l'avance de fond vers K
-              confirmées — le compte
-              ci-dessus les inclut, la page ne les
-              montre qu'une fois vérifiés. `enAttente` est le reste de la file,
-              tenu par le hook pour l'affichage. ⚠️ Rangée TOUJOURS présente
-              quand la file tourne : quand elle se vide, l'espace insécable
-              garde sa hauteur, et la grille ne remonte pas. */}
-          {resoudreEquipement != null && (
-            <p className="mb-2 text-xs text-ink-dim">
-              {fileArtefacts.enAttente > 0
-                ? `${fileArtefacts.enAttente.toLocaleString('fr-FR')} combinaison(s) en vérification…`
-                : ' '}
-            </p>
-          )}
-
-          {/* ⚠️ Zéro dû aux seuls builds écartés par la résolution :
-              le moteur a trouvé, aucun couple réel ne tient. Sous « Aucune combinaison… » seulement — tout vérifié, aucune
-              confirmée —, la ligne qu'elle explique. Les blocs ci-dessous
-              (diagnostic, « suffirait ») gardent leur condition, moteur vide :
-              leurs chiffres viennent des bornes du moteur. */}
-          {compteConfirmes.aucune && compteAffiche.raison && (
-            <p className="mb-3 text-xs text-ink-dim">{compteAffiche.raison}</p>
-          )}
-
-          {/* ⚠️ Diagnostic affiché UNIQUEMENT sur 0 résultat — voir
-              `diagnoseFeasibility` dans runeBuildOptim.ts pour ce qu'il
-              prouve exactement. Deux cas : au moins une condition
-              PROUVÉE hors de portée (rouge, liste précise) ; ou aucune ne
-              l'est individuellement (message neutre — le blocage vient de
-              leur combinaison ou de la recherche elle-même, pas d'une seule
-              stat identifiable). */}
-          {result?.candidates.length === 0 && feasibilityDiagnosis.length > 0 && (
-            <DiagnosticFaisabilite
-              impossibleFeasibility={impossibleFeasibility}
-            />
-          )}
-
-          {/* ⚠️ Palier 2 — voir `rankBlockingConditions` dans
-              runeBuildOptim.ts : un INDICE (pas une preuve, contrairement au
-              palier 1 ci-dessus), désactivé par défaut (coûte plus cher).
-              Deux affichages selon l'état de la bascule : le classement s'il
-              est activé, une invitation discrète sinon. */}
-          {result?.candidates.length === 0 && (
-            <DiagnosticApprofondi blockingDiagnosis={blockingDiagnosis} diagnoseBlockingEnabled={diagnoseBlockingEnabled} />
-          )}
-
-          {/* ⚠️ Quasi-succès à l'appariement — sous-produit GRATUIT de la
-              vraie recherche (`pairBuckets`, jamais recalculé), affiché
-              SYSTÉMATIQUEMENT (contrairement au palier 2 ci-dessus, dont le
-              coût réel justifie un réglage) : voir docs/03-developpeur/optimizer/,
-              « Quasi-succès à l'appariement ». Ne voit que ce que la recherche a
-              RÉELLEMENT exploré avant troncature — une paire encore plus
-              proche, jamais atteinte, resterait invisible. */}
-          {result?.candidates.length === 0 && (result.globalNearMiss || result.nearMissByCondition.length > 0) && (
-            <QuasiSucces
-              result={result}
-              runeById={runeById}
-              metric={metric}
-              objective={objective}
-              aurasPropresDe={aurasPropresDe}
-              damageSetup={damageSetup}
-            />
-          )}
+          <DiagnosticsSansResultat
+            result={result}
+            feasibilityDiagnosis={feasibilityDiagnosis}
+            impossibleFeasibility={impossibleFeasibility}
+            blockingDiagnosis={blockingDiagnosis}
+            diagnoseBlockingEnabled={diagnoseBlockingEnabled}
+            runeById={runeById}
+            metric={metric}
+            objective={objective}
+            aurasPropresDe={aurasPropresDe}
+            damageSetup={damageSetup}
+          />
 
           {result?.truncated && (
             <AvisRechercheTronquee result={result} stoppedManually={stoppedManually} />
@@ -4232,165 +3841,17 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               recherche comme après. Une place a la hauteur d'une carte
               (`useHauteurDesCartes`), pour que rien ne saute quand la carte
               arrive. */}
-          <div ref={grilleResultatsRef} className="grid grid-cols-[repeat(auto-fill,minmax(min(360px,100%),1fr))] gap-3">
-            {composition.cartes.map((c, i) => (
-              <BuildCandidateCard
-                key={c.runeIds.join('-')}
-                rank={composition.premierRang + i}
-                candidate={c}
-                runeById={runeById}
-                // ⚠️ La paire de CE build, jamais une paire commune : deux
-                // builds voisins n'appellent pas les mêmes artéfacts, et ce
-                // sont ces pièces-là qui ont servi à calculer ses stats.
-                // Le repli sur la paire SUPPOSÉE ne sert que sans file
-                // (optimisation coupée : la paire portée, la seule possible) —
-                // avec file, une carte affichée est résolue.
-                artifacts={fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts}
-                // ⚠️ **Seule source** :
-                // `etatReliqueDuBuild` lit le cache de la file, jamais
-                // recalculé ici — `fixe` (hors mode `recherche`) n'affiche
-                // rien de nouveau, `rejete` n'arrive jamais jusqu'ici (le
-                // classement écarte déjà ces builds). Par
-                // `etatReliqueDe` : la relique que le score compte.
-                etatRelique={etatReliqueDe(c)}
-                relicUsageById={relicUsageById}
-                // Plus de mention « artéfacts pas encore optimisés » : avec
-                // file, une carte n'apparaît qu'une fois résolue ; sans file,
-                // rien n'est à attendre.
-                metric={metric}
-                openDetailKey={openDetailKey}
-                onToggleDetail={(key: string) => setOpenDetailKey((cur) => (cur === key ? null : key))}
-                {...(() => {
-                  // ⚠️ Comparaison contre les stats de la FICHE — donc contre
-                  // le build validé quand il en existe un, sans avoir à le
-                  // redemander ici (voir `statsReference`).
-                  const cle = c.runeIds.join('-');
-                  const compare = compareKey === cle && statsReference != null;
-                  return {
-                    onCompare: statsReference ? () => setCompareKey((k) => (k === cle ? null : cle)) : undefined,
-                    // ⚠️ Affichée dès que les PV effectifs sont le critère de
-                    // CLASSEMENT — objectif OU tri —, exactement comme les
-                    // dégâts réels : on peut avoir cherché sur un objectif puis
-                    // re-trié par PV effectifs, auquel cas le chiffre qui
-                    // ordonne les cartes doit être visible dessus.
-                    // ⚠️ `scoreDuCandidat` avec les options du classement
-                    // affiché : le chiffre qui a CLASSÉ la carte, Ténacité et
-                    // points de la relique retenue compris.
-                    pvEffectifs:
-                      objective === 'ehp' || sortBy === 'ehp'
-                        ? (() => {
-                            const total = scoreDuCandidat(c, 'ehp', optionsDuTriAffiche)!;
-                            return { total, delta: compare && refEhp != null ? total - refEhp : undefined };
-                          })()
-                        : undefined,
-                    metricDelta:
-                      compare && refMetric != null
-                        ? candidateMetricTotal(c, runeById, metric) - refMetric
-                        : undefined,
-                    // ⚠️ Le delta est calculé PAR STAT contre la référence, et
-                    // seulement pour la carte comparée : le faire pour les 20
-                    // cartes de la page coûterait 20 fois plus pour 19 valeurs
-                    // qu'on n'affiche pas.
-                    comparaison:
-                      compareKey === cle && statsReference
-                        ? c.stats.map((ligne) => ({
-                            key: ligne.key,
-                            label: ligne.label,
-                            suffix: ligne.suffix,
-                            delta: ligne.total - (statsReference.find((r) => r.key === ligne.key)?.total ?? 0),
-                          }))
-                        : undefined,
-                  };
-                })()}
-                // ⚠️ Affiché dès qu'un sort est résolu ET que c'est bien le
-                // critère de classement courant (objectif OU tri) — pas
-                // seulement quand `objective` vaut « Dégâts réels » : on peut
-                // avoir lancé la recherche sur un autre objectif puis re-trier
-                // par dégâts réels, auquel cas le chiffre qui ordonne les
-                // cartes doit être visible dessus.
-                degatsReels={
-                  realDamage && (objective === 'degats_reels' || sortBy === 'degats_reels')
-                    ? (() => {
-                        // ⚠️ Le chiffre qui a CLASSÉ la carte : `scoreDuCandidat`
-                        // avec les options du classement affiché — profil
-                        // d'artéfacts de CE build et Conquête de sa relique
-                        // retenue compris. Une recopie de `computeTotalDamage`
-                        // omettait la Conquête que le tri compte.
-                        const total = scoreDuCandidat(c, 'degats_reels', optionsDuTriAffiche)!;
-                        return {
-                          total,
-                          partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0,
-                          // ⚠️ L'écart se calcule contre les dégâts de la
-                          // RÉFÉRENCE (`refDegats`) : la fiche notée avec SES
-                          // stats, SA paire d'artéfacts et SA relique — jamais
-                          // contre le total d'un autre candidat, jamais avec
-                          // la paire de la recherche.
-                          delta:
-                            compareKey === c.runeIds.join('-') && refDegats != null
-                              ? total - refDegats
-                              : undefined,
-                        };
-                      })()
-                    : undefined
-                }
-                // « Valider » — réserve les 6 runes RÉELLES de CE
-                // candidat pour `sourceSelector`, qu'il pointe un exemplaire
-                // réel OU un sélecteur `unowned` (monstre non possédé,
-                // demande explicite — « essayer des runages de teams sans
-                // avoir mis à jour son json » : les runes trouvées restent de
-                // VRAIES runes du compte, réservables comme n'importe quel
-                // autre build validé). Absent uniquement si `sourceSelector`
-                // est `null` (aucune espèce choisie, ou possédée ailleurs
-                // sans exemplaire encore désambiguïsé — zone D).
-                // ⚠️ Exige `sourceSelector` non nul ET une liste active (un build
-                // validé appartient TOUJOURS à une liste, voir
-                // ValidatedBuild). Valider ajoute aussi implicitement le
-                // monstre à la liste s'il n'y était pas déjà (voir
-                // `validateBuild`, useOptimizerLists.ts).
-                onValidate={
-                  sourceSelector && lists.activeListId
-                    ? () => {
-                        // ⚠️ Garde de DERNIÈRE minute en plus du bouton
-                        // désactivé : le clic peut partir d'un rendu périmé.
-                        if (conflitsDeRunes(c.runeIds).length > 0) return;
-                        // ⚠️ La paire DE CE CANDIDAT, pas celle du monstre
-                        // affiché : c’est elle que la carte montre et qui a
-                        // servi à calculer ses stats.
-                        lists.validateBuild(
-                          lists.activeListId!,
-                          sourceSelector,
-                          c.runeIds,
-                          (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id),
-                          selected!.monster.com2usId!
-                        );
-                        optimizer.capturerMembre(lists.activeListId!, sourceSelector);
-                      }
-                    : undefined
-                }
-                // ⚠️ La paire QUE CETTE CARTE MONTRE — celle de la file si
-                // elle l'a trouvée, la représentative sinon. Exactement la
-                // même expression que `onValidate` ci-dessus : comparer autre
-                // chose que ce qu'on validerait rendrait le libellé menteur.
-                validated={etatValidation(
-                  c.runeIds,
-                  (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id)
-                )}
-                conflit={(() => {
-                  const conflits = conflitsDeRunes(c.runeIds);
-                  if (conflits.length === 0) return null;
-                  const noms = [...new Set(conflits.map((x) => x.monsterName))];
-                  return `${conflits.length > 1 ? 'Runes déjà réservées' : 'Rune déjà réservée'} dans cette liste pour ${noms.join(', ')}`;
-                })()}
-              />
-            ))}
-            {Array.from({ length: composition.placesEnAttente }, (_, j) => (
-              <PlaceEnVerification
-                key={`verification-${composition.premierRang + composition.cartes.length + j}`}
-                rank={composition.premierRang + composition.cartes.length + j}
-                hauteur={hauteurCarte}
-              />
-            ))}
-          </div>
+          <GrilleResultats
+            grilleResultatsRef={grilleResultatsRef}
+            composition={composition}
+            runeById={runeById}
+            relicUsageById={relicUsageById}
+            metric={metric}
+            openDetailKey={openDetailKey}
+            onToggleDetail={(key: string) => setOpenDetailKey((cur) => (cur === key ? null : key))}
+            proprietesCarte={proprietesCarte}
+            hauteurCarte={hauteurCarte}
+          />
 
           {/* Pagination — remplace l'ancienne troncature dure à 20 : la
               liste complète (jusqu'à MAX_COLLECTED, voir runeBuildOptim.ts)
@@ -4426,24 +3887,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         <OptimizerCreateListDialog
           listes={lists.lists}
           libelleAction={addListPromptOpen === 'validate' ? 'Créer et valider' : addListPromptOpen === 'recherche' ? 'Créer' : 'Créer et ajouter'}
-          onValider={(valeur, contenu) => {
-            const nom = valeur.trim();
-            const intent = addListPromptOpen;
-            setAddListPromptOpen(null);
-            if (!selected?.monster.com2usId || (!sourceSelector && intent !== 'recherche')) return;
-            const id = lists.createList(nom, contenu);
-            if (intent === 'recherche') {
-              inclureSelectionRecherche(sourceSelector, selected.monster, id);
-              return;
-            }
-            if (!sourceSelector) return;
-            if (intent === 'validate') {
-              if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds, selected.monster.com2usId);
-            } else {
-              lists.addMember(id, sourceSelector, selected.monster.com2usId);
-            }
-            if (intent !== 'validate' || canValidateDisplayed) optimizer.capturerMembre(id, sourceSelector);
-          }}
+          onValider={creerListeDepuisDialogue}
           onCancel={() => setAddListPromptOpen(null)}
         />
       )}

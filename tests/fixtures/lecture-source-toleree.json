@@ -51,7 +51,7 @@
     {
       "fichier": "tests/auras-ecran.test.ts",
       "cible": "src/components/outils/OptimizerSection.tsx",
-      "occurrences": 4,
+      "occurrences": 3,
       "statut": "stock"
     },
     {

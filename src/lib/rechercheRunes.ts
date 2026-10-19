@@ -21,6 +21,7 @@ import {
   TraceCandidat,
   buildBuckets,
   prepareSearch,
+  trancheReallocation,
 } from './runeBuildOptim';
 import { OrdreCombos, construireMoitieRapide } from './constructionRapide';
 import { apparierRapide } from './appariementRapide';
@@ -57,10 +58,30 @@ const TRIPLETS_MAX_NOYAU = 0x7fffffff;
  * traceur de diagnostic (le noyau ne le remplit pas), une moitié de plus de
  * 2³¹ triplets (≈ 1 290 runes par emplacement).
  */
-export function motifRepliConstruction(ctx: BuildBucketsContext, slotIdxs: readonly [number, number, number]): string | null {
+export function motifRepliConstruction(
+  ctx: BuildBucketsContext,
+  slotIdxs: readonly [number, number, number],
+  adaptiveTrancheWeighting = false
+): string | null {
   if (ctx.traceur) return 'traceur de diagnostic demandé';
   const triplets = slotIdxs.reduce((p, i) => p * ctx.filtered[i].length, 1);
   if (triplets > TRIPLETS_MAX_NOYAU) return `${triplets} triplets dépassent le code entier 32 bits du noyau`;
+  // Les capacités des tas entrent dans un `Int32Array` : `bucketCap` (un
+  // override de mesure peut valoir 2³¹ ou `Infinity`) et celles que
+  // « Prioriser les stats les plus difficiles » en redistribue, dont aucune ne
+  // dépasse le budget total (une tranche par stat retenue, plus la générique
+  // et la combinée).
+  const tranches = 2 + ctx.retentionKeys.length;
+  if (!Number.isInteger(ctx.bucketCap) || ctx.bucketCap < 0 || ctx.bucketCap * tranches > TRIPLETS_MAX_NOYAU) {
+    return `bucketCap ${ctx.bucketCap} hors des capacités entières du noyau (${tranches} tranches)`;
+  }
+  if (adaptiveTrancheWeighting && ctx.retentionKeys.length > 0) {
+    const { reallocatedCap } = trancheReallocation(ctx.filtered, [...slotIdxs], ctx.retentionKeys, ctx.base, ctx.bucketCap);
+    for (const k of ctx.retentionKeys) {
+      const cap = reallocatedCap[k];
+      if (!Number.isInteger(cap) || cap < 0 || cap > TRIPLETS_MAX_NOYAU) return `capacité redistribuée de ${k} (${cap}) hors des entiers 32 bits du noyau`;
+    }
+  }
   return null;
 }
 
@@ -81,7 +102,7 @@ export function* construireMoitie(
   adaptiveTrancheWeighting = false,
   combosOrderMode: OrdreCombos = 'objective'
 ): Generator<BuildingProgress, Bucket[], void> {
-  if (motifRepliConstruction(ctx, slotIdxs) != null) {
+  if (motifRepliConstruction(ctx, slotIdxs, adaptiveTrancheWeighting) != null) {
     return yield* buildBuckets(half, slotIdxs, ctx, otherHalfMaxSets, undefined, adaptiveTrancheWeighting, combosOrderMode);
   }
   return yield* construireMoitieRapide(half, slotIdxs, ctx, otherHalfMaxSets, adaptiveTrancheWeighting, combosOrderMode);

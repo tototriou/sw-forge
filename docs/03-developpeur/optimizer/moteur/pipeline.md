@@ -145,9 +145,15 @@ exactement les compartiments de `buildBuckets`, la référence :
   compartiments et celui des clés de `maxPct`/`maxFlat` ;
 - le même point de passage, une fois par rune du premier emplacement.
 
-Deux cas restent à `buildBuckets` (`motifRepliConstruction`) : un traceur de
-diagnostic demandé (`SearchParams.traceur`, que le noyau ne remplit pas) et
-une moitié de plus de 2³¹ triplets, que le code entier ne couvre plus. La
+Trois cas restent à `buildBuckets` (`motifRepliConstruction`, qui nomme le
+motif) : un traceur de diagnostic demandé (`SearchParams.traceur`, que le
+noyau ne remplit pas), une moitié de plus de 2³¹ triplets, que le code
+entier ne couvre plus, et des capacités de tas hors des entiers 32 bits du
+noyau — `bucketCap` non entier, négatif ou tel que `bucketCap × (2 + stats
+retenues)` dépasse 2³¹ − 1 (un override de mesure à 2³¹ ou `Infinity`
+deviendrait négatif ou nul dans un `Int32Array`, et la moitié rendrait zéro
+combinaison), ou, sous « Prioriser les stats les plus difficiles », une
+capacité redistribuée (`trancheReallocation`) hors de ces entiers. La
 même `construireMoitie` sert le CLI (`runSearchToCompletion`), les fils de
 construction de Node (`scripts/lib/build-half-worker.ts` : harnais,
 `perf-battery`) et `searchBuildsSteps`.

@@ -168,6 +168,23 @@ function testCheminDeProduction() {
   ok(/32 bits/.test(motifRepliConstruction(enorme, [0, 1, 2]) ?? ''), '1 300³ triplets : repli sur buildBuckets, motif nommé');
   ok(motifRepliConstruction({ ...enorme, filtered: [new Array(1290), new Array(1290), new Array(1290)] } as unknown as typeof prepared, [0, 1, 2]) === null,
     '1 290³ triplets (< 2³¹) : le noyau garde la construction');
+  // Capacités des tas hors des entiers 32 bits (override de mesure) : un
+  // `Int32Array` les rendrait négatives (2³¹) ou nulles (`Infinity`), et le
+  // noyau rendrait zéro combinaison. Repli sur buildBuckets, motif nommé.
+  for (const bucketCap of [2 ** 31, Infinity]) {
+    for (const adaptatif of [false, true]) {
+      const p = prepareSearch(parametres(s, pool, 80, bucketCap, adaptatif, 'objective'))!;
+      ok(/bucketCap|capacité/.test(motifRepliConstruction(p, [0, 1, 2], adaptatif) ?? ''), `bucketCap = ${bucketCap}, adaptatif=${adaptatif} : repli sur buildBuckets, motif nommé`);
+      const ref = drain(buildBuckets('A', [0, 1, 2], p, p.maxSetsForA, undefined, adaptatif, 'objective'));
+      const prod = drain(construireMoitie('A', [0, 1, 2], p, p.maxSetsForA, adaptatif, 'objective'));
+      ok(ref.some((b) => b.combos.length > 0) && premiereDivergence(ref, prod) === null,
+        `bucketCap = ${bucketCap}, adaptatif=${adaptatif} : construireMoitie = buildBuckets, combinaisons comprises (${ref.reduce((n, b) => n + b.combos.length, 0)})`);
+    }
+  }
+  const tranches = 2 + prepared.retentionKeys.length;
+  ok(motifRepliConstruction({ ...prepared, bucketCap: Math.floor(0x7fffffff / tranches) }, [0, 1, 2]) === null,
+    `bucketCap × ${tranches} tranches ≤ 2³¹ − 1 : le noyau garde la construction`);
+  ok(motifRepliConstruction({ ...prepared, bucketCap: 2.5 }, [0, 1, 2]) !== null, 'bucketCap non entier : repli, motif nommé');
 }
 
 export default function testConstructionRapide() {

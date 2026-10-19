@@ -11,8 +11,6 @@ import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importer
 import {
   FlaskConical,
   Target,
-  ChevronLeft,
-  ChevronRight,
   Plus,
   CheckCircle2,
   Unlock,
@@ -51,8 +49,6 @@ import {
   StatFeasibility,
   rankBlockingConditions,
   BlockingConditionsDiagnosis,
-  NearMiss,
-  StatShortfall,
   statTotal,
   objectiveScore,
   avecAurasConditions,
@@ -61,7 +57,6 @@ import {
   optionsDeClassement,
   scoreDeReference,
   candidateMetricTotal,
-  pvEffectifs,
   aurasPropresParRunes,
   OBJECTIVE_LABELS,
   RealDamageContext,
@@ -141,7 +136,7 @@ import {
   relicMainChoiceApresChangementExemplaire,
 } from '../../hooks/useOptimizerState';
 import { UseOptimizerLists } from '../../hooks/useOptimizerLists';
-import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
+import { useRuneMetric } from '../../hooks/useRuneMetric';
 import { useMediaQuery, SOUS_LG, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
 import IconeInterdite from '../IconeInterdite';
@@ -154,8 +149,6 @@ import OptimizerLeadInactif, { MotifHorsFlux } from './OptimizerLeadInactif';
 import {
   Bouton,
   BoutonIcone,
-  Champ,
-  ConfirmDialog,
   Interrupteur,
   Selecteur,
   ZoneCliquable,
@@ -194,6 +187,12 @@ import CarteExclusionRunes from './optimizer/CarteExclusionRunes';
 import CarteReglagesAvances from './optimizer/CarteReglagesAvances';
 import ObjectifEtActions from './optimizer/ObjectifEtActions';
 import ProgressionRecherche from './optimizer/ProgressionRecherche';
+import DiagnosticFaisabilite from './optimizer/DiagnosticFaisabilite';
+import PaginationResultats from './optimizer/PaginationResultats';
+import DiagnosticApprofondi from './optimizer/DiagnosticApprofondi';
+import QuasiSucces from './optimizer/QuasiSucces';
+import AvisRechercheTronquee from './optimizer/AvisRechercheTronquee';
+import ConfirmationsLiberation from './optimizer/ConfirmationsLiberation';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -4186,38 +4185,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               leur combinaison ou de la recherche elle-même, pas d'une seule
               stat identifiable). */}
           {result?.candidates.length === 0 && feasibilityDiagnosis.length > 0 && (
-            <div className="mb-3 rounded-lg border border-border bg-panel p-3">
-              {impossibleFeasibility.length > 0 ? (
-                <>
-                  <p className="mb-1.5 text-xs font-semibold text-bad">
-                    {impossibleFeasibility.length === 1
-                      ? 'Une condition est'
-                      : `${impossibleFeasibility.length} conditions sont`}{' '}
-                    mathématiquement hors de portée, quel que soit le runage choisi :
-                  </p>
-                  <ul className="space-y-1">
-                    {impossibleFeasibility.map((f) => {
-                      const st = RECO_STATS.find((s) => s.key === f.key)!;
-                      return (
-                        <li key={`${f.key}-${f.kind}`} className="text-xs text-ink-dim">
-                          <span className="font-semibold text-ink">{st.label}</span>{' '}
-                          {f.kind === 'min'
-                            ? `minimum demandé ${f.requested}${st.suffix} — maximum atteignable ${f.bound}${st.suffix} avec ce pool, ce set et ces statistiques principales.`
-                            : `maximum demandé ${f.requested}${st.suffix} — ${f.bound}${st.suffix} déjà garanti sans la moindre rune (base, artéfacts, bonus de set).`}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </>
-              ) : (
-                <p className="text-xs text-ink-dim">
-                  Aucune condition n'est, à elle seule, mathématiquement hors de portée — le blocage
-                  vient probablement de leur <b className="text-ink">combinaison</b> (rare qu'un seul
-                  build satisfasse tout à la fois), ou du pré-filtrage de la recherche elle-même. Essaie
-                  de desserrer une condition, ou un pré-filtrage plus large (Réglages avancés).
-                </p>
-              )}
-            </div>
+            <DiagnosticFaisabilite
+              impossibleFeasibility={impossibleFeasibility}
+            />
           )}
 
           {/* ⚠️ Palier 2 — voir `rankBlockingConditions` dans
@@ -4225,48 +4195,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               palier 1 ci-dessus), désactivé par défaut (coûte plus cher).
               Deux affichages selon l'état de la bascule : le classement s'il
               est activé, une invitation discrète sinon. */}
-          {result?.candidates.length === 0 &&
-            (blockingDiagnosis && blockingDiagnosis.impacts.length > 0 ? (
-              <div className="mb-3 rounded-lg border border-border bg-panel p-3">
-                <p className="mb-1.5 text-xs font-semibold text-ink">
-                  Diagnostic approfondi — pool le plus restreint : {blockingDiagnosis.baselineMinSlot} candidat(s)
-                  actuellement.
-                </p>
-                <ul className="space-y-1">
-                  {blockingDiagnosis.impacts.map((imp) => {
-                    const st = RECO_STATS.find((s) => s.key === imp.key)!;
-                    return (
-                      <li key={`${imp.key}-${imp.kind}`} className="text-xs text-ink-dim">
-                        {imp.delta == null ? (
-                          <>
-                            <span className="font-semibold text-ink">{st.label}</span> ({imp.kind === 'min' ? '≥' : '≤'}{' '}
-                            {imp.requested}
-                            {st.suffix}) : aucun gain, même desserrée entièrement.
-                          </>
-                        ) : (
-                          <>
-                            <span className="font-semibold text-ink">{st.label}</span>{' '}
-                            {imp.kind === 'min' ? `−${imp.delta}` : `+${imp.delta}`}
-                            {st.suffix} suffit ({imp.kind === 'min' ? '≥' : '≤'} {imp.threshold}
-                            {st.suffix}) : {imp.poolMinSlotAtThreshold} candidat(s).
-                          </>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-                <p className="mt-1.5 text-micro text-ink-dim">
-                  Un indice, pas une preuve — basé sur le pré-filtrage sûr, pas sur une recherche complète.
-                </p>
-              </div>
-            ) : (
-              !diagnoseBlockingEnabled && (
-                <p className="mb-3 text-[11px] text-ink-dim">
-                  Astuce : active le diagnostic approfondi (Réglages avancés) pour identifier quelle
-                  condition libère le plus de candidats.
-                </p>
-              )
-            ))}
+          {result?.candidates.length === 0 && (
+            <DiagnosticApprofondi blockingDiagnosis={blockingDiagnosis} diagnoseBlockingEnabled={diagnoseBlockingEnabled} />
+          )}
 
           {/* ⚠️ Quasi-succès à l'appariement — sous-produit GRATUIT de la
               vraie recherche (`pairBuckets`, jamais recalculé), affiché
@@ -4275,80 +4206,19 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               « Quasi-succès à l'appariement ». Ne voit que ce que la recherche a
               RÉELLEMENT exploré avant troncature — une paire encore plus
               proche, jamais atteinte, resterait invisible. */}
-          {result?.candidates.length === 0 && (result.globalNearMiss || result.nearMissByCondition.length > 0) && (() => {
-            // ⚠️ Même vocabulaire que le palier 2 ci-dessus (« −15 suffit ») :
-            // un seul réflexe de lecture
-            // pour tout l'écran diagnostic, plutôt que deux formulations
-            // (« manque »/« suffit ») pour la même idée de desserrage.
-            // ⚠️ Le score affiché doit être celui que l'utilisateur reconnaît
-            // des cartes de résultat (`BuildCandidateCard.tsx`) : la moyenne
-            // PAR RUNE (pas la somme brute), formatée par `formatRuneMetric`
-            // (« 140.2% », jamais un nombre nu) ; « PV effectifs » en plus
-            // quand c'est l'objectif choisi — sinon un nombre sans légende
-            // reconnaissable ressemble à une erreur, pas à un score (« 1309.0 »
-            // affiché pour une recherche PV effectifs n'aurait aucun rapport
-            // avec ce qui est cherché).
-            const nearMissScoreText = (miss: NearMiss): string => {
-              const moyenne = candidateMetricTotal(miss, runeById, metric) / 6;
-              const base = `${metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} ${formatRuneMetric(moyenne, metric)}`;
-              if (objective !== 'ehp') return base;
-              return `${base}, PV effectifs ${Math.round(pvEffectifs(miss.stats, aurasPropresDe(miss), damageSetup)).toLocaleString('fr-FR')}`;
-            };
-            const suffiraitText = (s: StatShortfall) => {
-              const st = RECO_STATS.find((r) => r.key === s.key)!;
-              const nouveauSeuil = s.kind === 'min' ? s.requested - s.shortfall : s.requested + s.shortfall;
-              return (
-                <span key={`${s.key}-${s.kind}`}>
-                  <span className="font-semibold text-ink">{st.label}</span> {s.kind === 'min' ? '−' : '+'}
-                  {s.shortfall}
-                  {st.suffix} suffirait ({s.kind === 'min' ? '≥' : '≤'} {nouveauSeuil}
-                  {st.suffix})
-                </span>
-              );
-            };
-            return (
-              <div className="mb-3 rounded-lg border border-border bg-panel p-3">
-                <p className="mb-1.5 text-xs font-semibold text-ink">Quoi ajuster pour trouver des builds</p>
-                {result.globalNearMiss && (
-                  <p className="mb-1.5 text-xs text-ink-dim">
-                    Build le plus proche, toutes conditions confondues :{' '}
-                    {result.globalNearMiss.shortfalls.map((s, i) => (
-                      <span key={`${s.key}-${s.kind}`}>
-                        {i > 0 ? ', ' : ''}
-                        {suffiraitText(s)}
-                      </span>
-                    ))}{' '}
-                    — {nearMissScoreText(result.globalNearMiss)}.
-                  </p>
-                )}
-                {result.nearMissByCondition.length > 0 && (
-                  <>
-                    <p className="mb-1 text-xs text-ink-dim">
-                      Par condition (satisfait tout le reste, ne manque que celle-ci) :
-                    </p>
-                    <ul className="space-y-1">
-                      {result.nearMissByCondition.map(({ key, kind, miss }: { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }) => (
-                        <li key={`${key}-${kind}`} className="text-xs text-ink-dim">
-                          {suffiraitText(miss.shortfalls[0])} — {nearMissScoreText(miss)}.
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-                <p className="mt-1.5 text-micro text-ink-dim">
-                  Ne voit que ce que la recherche a réellement exploré avant troncature — une paire encore
-                  plus proche, jamais atteinte, resterait invisible.
-                </p>
-              </div>
-            );
-          })()}
+          {result?.candidates.length === 0 && (result.globalNearMiss || result.nearMissByCondition.length > 0) && (
+            <QuasiSucces
+              result={result}
+              runeById={runeById}
+              metric={metric}
+              objective={objective}
+              aurasPropresDe={aurasPropresDe}
+              damageSetup={damageSetup}
+            />
+          )}
 
           {result?.truncated && (
-            <p className="mb-2 text-micro text-warn">
-              {stoppedManually
-                ? `Recherche arrêtée après examen de ${result.explored.toLocaleString('fr-FR')} combinaisons — voici le meilleur trouvé jusque-là.`
-                : `Recherche interrompue après examen de ${result.explored.toLocaleString('fr-FR')} combinaisons — resserre tes critères pour un résultat exhaustif.`}
-            </p>
+            <AvisRechercheTronquee result={result} stoppedManually={stoppedManually} />
           )}
 
           {/* ⚠️ minmax calibré à 360px pour que DEUX cartes tiennent par
@@ -4530,113 +4400,28 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               "numeric"`, jamais de flèches natives de navigateur — voir
               NumberField.tsx). */}
           {totalResultsPages > 1 && (
-            <div className="mt-4 flex items-center justify-center gap-3">
-              <BoutonIcone
-                cadre
-                libelle="Page précédente"
-                icone={<ChevronLeft size={16} />}
-                onClick={() => setResultsPage((p) => Math.max(1, p - 1))}
-                disabled={resultsPage <= 1}
-                className="h-8 w-8"
-              />
-
-              <div className="flex items-center gap-1.5 font-mono text-[12.5px] text-ink-dim">
-                <span>Page</span>
-                <Champ
-                  inputMode="numeric"
-                  value={pageDraft ?? String(resultsPage)}
-                  aria-label="Aller à la page"
-                  pleineLargeur={false}
-                  onChange={(e) => {
-                    const brut = e.target.value.trim();
-                    // ⚠️ La chaîne VIDE est un état de brouillon valide (tout
-                    // sélectionner puis taper) — contrairement à l'ancienne
-                    // version, ne JAMAIS `return` sans mettre à jour l'état
-                    // ici, sinon le champ contrôlé revient aussitôt à
-                    // l'ancienne valeur et le chiffre ne peut plus disparaître.
-                    if (brut !== '' && !/^\d+$/.test(brut)) return; // frappe invalide ignorée
-                    setPageDraft(brut);
-                  }}
-                  onBlur={() => {
-                    if (pageDraft !== null && pageDraft !== '') {
-                      setResultsPage(Math.min(Math.max(Number(pageDraft), 1), totalResultsPages));
-                    }
-                    setPageDraft(null);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                  }}
-                  className="w-11 px-1 py-1 text-center"
-                />
-                <span>/ {totalResultsPages}</span>
-              </div>
-
-              <BoutonIcone
-                cadre
-                libelle="Page suivante"
-                icone={<ChevronRight size={16} />}
-                onClick={() => setResultsPage((p) => Math.min(totalResultsPages, p + 1))}
-                disabled={resultsPage >= totalResultsPages}
-                className="h-8 w-8"
-              />
-            </div>
+            <PaginationResultats
+              setResultsPage={setResultsPage}
+              resultsPage={resultsPage}
+              pageDraft={pageDraft}
+              setPageDraft={setPageDraft}
+              totalResultsPages={totalResultsPages}
+            />
           )}
         </div>
       )}
 
-      {/* Confirmations de libération — demande explicite de l'utilisateur.
-          `Modale` est portalisée : sa position dans l'arbre n'a pas
-          d'importance pour son rendu. */}
-      {releaseConfirm && (
-        <ConfirmDialog
-          titre="Libérer ce build validé ?"
-          message="Ces 6 runes ET la paire d’artéfacts redeviendront disponibles pour les autres monstres de cette liste."
-          libelleAction="Libérer"
-          onConfirm={() => {
-            lists.releaseBuild(releaseConfirm.listId, releaseConfirm.selector);
-            setReleaseConfirm(null);
-          }}
-          onCancel={() => setReleaseConfirm(null)}
-        />
-      )}
-      {releaseArtifactsConfirm && (
-        <ConfirmDialog
-          titre="Libérer les artéfacts validés ?"
-          message="Cette paire redeviendra disponible pour les autres monstres de cette liste. Les 6 runes du build restent réservées."
-          libelleAction="Libérer"
-          onConfirm={() => {
-            lists.releaseArtifacts(releaseArtifactsConfirm.listId, releaseArtifactsConfirm.selector);
-            setReleaseArtifactsConfirm(null);
-          }}
-          onCancel={() => setReleaseArtifactsConfirm(null)}
-        />
-      )}
-      {releaseAllConfirm && (
-        <ConfirmDialog
-          titre="Libérer toutes les runes validées de cette liste ?"
-          message="Tous les builds validés de cette liste seront libérés d'un coup — leurs runes redeviennent disponibles."
-          libelleAction="Tout libérer"
-          destructif
-          onConfirm={() => {
-            lists.releaseAllInList(releaseAllConfirm);
-            setReleaseAllConfirm(null);
-          }}
-          onCancel={() => setReleaseAllConfirm(null)}
-        />
-      )}
-      {removeMemberConfirm && (
-        <ConfirmDialog
-          titre="Retirer ce monstre de la liste ?"
-          message="Ses runes validées seront aussi libérées — elles redeviennent disponibles pour les recherches des autres monstres de cette liste."
-          libelleAction="Retirer"
-          destructif
-          onConfirm={() => {
-            lists.removeMember(removeMemberConfirm.listId, removeMemberConfirm.selector);
-            setRemoveMemberConfirm(null);
-          }}
-          onCancel={() => setRemoveMemberConfirm(null)}
-        />
-      )}
+      <ConfirmationsLiberation
+        lists={lists}
+        releaseConfirm={releaseConfirm}
+        setReleaseConfirm={setReleaseConfirm}
+        releaseArtifactsConfirm={releaseArtifactsConfirm}
+        setReleaseArtifactsConfirm={setReleaseArtifactsConfirm}
+        releaseAllConfirm={releaseAllConfirm}
+        setReleaseAllConfirm={setReleaseAllConfirm}
+        removeMemberConfirm={removeMemberConfirm}
+        setRemoveMemberConfirm={setRemoveMemberConfirm}
+      />
       {addListPromptOpen && (
         <OptimizerCreateListDialog
           listes={lists.lists}

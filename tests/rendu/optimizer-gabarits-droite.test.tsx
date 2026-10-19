@@ -13,6 +13,7 @@ import ExemplaireBureau from '../../src/components/outils/optimizer/bureau/Exemp
 import ObjectifEtRechercherBureau, { type ObjectifEtRechercherBureauProps } from '../../src/components/outils/optimizer/bureau/ObjectifEtRechercherBureau';
 import ResultatsBureau from '../../src/components/outils/optimizer/bureau/ResultatsBureau';
 import EstimationPool from '../../src/components/outils/optimizer/EstimationPool';
+import ProgressionRecherche from '../../src/components/outils/optimizer/ProgressionRecherche';
 import { GABARITS } from '../../src/components/outils/optimizer/gabarits/registre';
 import { DEFAULT_DAMAGE_SETUP } from '../../src/lib/damage';
 import { SOURCE_OPTIONS } from '../../src/lib/optimizerExclusion';
@@ -119,6 +120,16 @@ export function testRenduOptimizerGabaritsDroite() {
   ok(cache(enCours, 'Rechercher') === true, 'en cours : « Rechercher » s\'efface, sa place reste');
   ok(cache(enCours, 'Arrêter') === false && !!bouton(enCours, 'Arrêter')?.desactive, 'en cours : « Arrêter » se lit, inactif au lancement');
   ok(texteVisible(enCours).includes('Préparation…'), 'en cours : la progression d\'aujourd\'hui');
+  // Progression compacte : à l'appariement, les deux lignes seules, sans barre (réserve comprise).
+  const appariement = { phase: 'pairing' as const, explored: 12_345_678, found: 1_234, pct: 0.42, totalPairs: 29_393_280, candidates: [] };
+  const compacte = rendre(<ObjectifEtRechercherBureau {...props({ status: 'running', progression: { progress: appariement, refusal: null, compteAffiche: { compte: 1_234 } } })} />);
+  const lu = texteVisible(compacte);
+  ok(lu.includes('12 345 678 / 29 393 280 combinaisons examinées · 1 234 trouvée(s)') && lu.includes('Attendez la fin de la recherche pour être sûr de trouver votre build optimal.'),
+    'progression compacte : les deux lignes d\'aujourd\'hui, vrais chiffres');
+  ok(!/h-2 w-full overflow-hidden rounded-full/.test(compacte), 'progression compacte : aucune barre au bureau');
+  ok(!/budget de recherche/.test(compacte), 'progression : plus de phrase sur un budget qui s\'élargit');
+  const telephone = rendre(<ProgressionRecherche status="running" progress={appariement} refusal={null} compteAffiche={{ compte: 1_234 }} />);
+  ok(/h-2 w-full overflow-hidden rounded-full/.test(telephone) && !/budget de recherche/.test(telephone), 'progression hors bureau : la barre reste, sans la phrase du budget');
 
   const sansMonstre = rendre(<ObjectifEtRechercherBureau {...props({ selected: null, forme: 'large' })} />);
   ok(!!bouton(sansMonstre, 'Rechercher')?.desactive && !/grid-template-columns:repeat\(2/.test(sansMonstre), 'large, sans monstre : « Rechercher » désactivé, objectifs sur une ligne');

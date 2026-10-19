@@ -27,7 +27,11 @@ export interface ObjectifEtRechercherBureauProps extends ObjectifEtActionsProps 
 // La progression la plus haute que la recherche affiche (phase d'appariement,
 // grands nombres) : copie invisible qui RÉSERVE sa place, à la largeur du bloc.
 // Sans elle, la progression qui paraît au lancement pousserait ce qui suit le
-// bloc (le contrôle à onglets en A2) au moment du clic.
+// bloc (le contrôle à onglets en A2) au moment du clic. ⚠️ Progression
+// COMPACTE (décision de l'utilisateur) : ni barre ni explication, les deux
+// lignes d'appariement seules ; la réserve tombe à leur hauteur. Préparation,
+// erreur et refus tiennent dans cette même place (états de la vue des
+// gabarits, mesurés).
 const PROGRESSION_LA_PLUS_HAUTE: Omit<ProgressionRechercheProps, 'status'> = {
   progress: { phase: 'pairing', explored: 999_999_999_999, found: 999_999, pct: 1, totalPairs: 999_999_999_999, candidates: [] },
   refusal: null,
@@ -171,11 +175,11 @@ export default function ObjectifEtRechercherBureau({
 
       <div className="grid">
         <div aria-hidden className="invisible col-start-1 row-start-1">
-          <ProgressionRecherche status="running" {...PROGRESSION_LA_PLUS_HAUTE} />
+          <ProgressionRecherche status="running" {...PROGRESSION_LA_PLUS_HAUTE} compacte />
         </div>
         <div className="col-start-1 row-start-1 space-y-1">
           {messageImport}
-          <ProgressionRecherche status={status} {...progression} />
+          <ProgressionRecherche status={status} {...progression} compacte />
         </div>
       </div>
     </section>

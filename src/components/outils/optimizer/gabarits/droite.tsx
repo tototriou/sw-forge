@@ -23,6 +23,7 @@ import type { OptimizerSortKey } from '../../../../hooks/useOptimizerState';
 import type { BuildCandidate, Objective, SearchResult } from '../../../../lib/runeBuildOptim';
 import type { SetAura } from '../../../../lib/damage';
 import type { RuneDetail } from '../../../../types';
+import type { RelicVide } from '../../../../lib/relicOptim';
 
 // Les gabarits de la COLONNE DE DROITE du bureau : « Exemplaire », le bloc
 // « Objectif et Rechercher » (formes étroite et large) et les résultats.
@@ -82,6 +83,7 @@ interface EtatObjectif {
   statut?: BuildOptimStatus;
   progression?: BuildOptimProgress | null;
   message?: boolean;
+  refus?: RelicVide;
 }
 function ObjectifGabarit({ ctx, forme, etat }: { ctx: ContexteGabarits; forme: FormeObjectif; etat: EtatObjectif }) {
   const exemplaire = etat.sansMonstre ? null : exemplaireDuCompte(ctx);
@@ -94,7 +96,8 @@ function ObjectifGabarit({ ctx, forme, etat }: { ctx: ContexteGabarits; forme: F
       forme={forme}
       estimation={exemplaire && sets.length > 0 ? <EstimationPool estimate={estimationDeVue(ctx.runes)} /> : null}
       messageImport={<MessageImportRecette message={etat.message && exemplaire ? { text: `Réglages importés pour ${exemplaire.monster.name} — monstre sélectionné automatiquement.` } : null} />}
-      progression={{ progress: statut === 'running' ? etat.progression ?? null : null, refusal: null, compteAffiche: { compte: 1234 } }}
+      progression={{ progress: statut === 'running' ? etat.progression ?? null : null,
+        refusal: statut === 'refused' && etat.refus ? { motif: 'relique-pool-vide', vide: etat.refus } : null, compteAffiche: { compte: 1234 } }}
       objective={objectif} setObjective={setObjectif} setSetupOuvert={rien} resumeCombat="S3 · vs Feu · PV 50 000 · DEF 1 000 · Critique moyen"
       // Dans la vue, « Rechercher » bascule sur « Arrêter » sans rien lancer : on voit la place exacte et les 300 ms.
       handleSearch={() => setStatut('running')} selected={exemplaire} status={statut} comboSets={sets}
@@ -104,6 +107,7 @@ function ObjectifGabarit({ ctx, forme, etat }: { ctx: ContexteGabarits; forme: F
 }
 
 const APPARIEMENT: BuildOptimProgress = { phase: 'pairing', explored: 12_345_678, found: 1_234, pct: 0.42, totalPairs: 29_393_280, candidates: [] };
+const CONSTRUCTION: BuildOptimProgress = { phase: 'building', halves: { A: { scanned: 1_234, total: 2_468, pct: 0.5 }, B: null } };
 
 function etatsObjectif(forme: FormeObjectif, largeur?: number) {
   const r = (e: EtatObjectif) => (ctx: ContexteGabarits) => <ObjectifGabarit ctx={ctx} forme={forme} etat={e} />;
@@ -112,7 +116,10 @@ function etatsObjectif(forme: FormeObjectif, largeur?: number) {
     { id: 'efficience', nom: 'Efficience, prêt à lancer (estimation : runes du compte non filtrées, chiffres de vue)', rendu: r({ objectif: 'efficience' }), largeur },
     { id: 'degats-reels', nom: 'Dégâts réels : résumé du combat (résumé de vue)', rendu: r({ objectif: 'degats_reels' }), largeur },
     { id: 'preparation', nom: 'Recherche lancée : « Arrêter », préparation', rendu: r({ objectif: 'efficience', statut: 'running', progression: null }), largeur },
+    { id: 'construction', nom: 'Recherche lancée : préparation des deux moitiés (chiffres de vue)', rendu: r({ objectif: 'efficience', statut: 'running', progression: CONSTRUCTION }), largeur },
     { id: 'appariement', nom: 'Recherche en cours : progression (chiffres de vue)', rendu: r({ objectif: 'efficience', statut: 'running', progression: APPARIEMENT }), largeur },
+    { id: 'erreur', nom: 'Recherche échouée', rendu: r({ objectif: 'efficience', statut: 'error' }), largeur },
+    { id: 'refus', nom: 'Recherche refusée : aucune relique dans le compte (le plus long des refus)', rendu: r({ objectif: 'efficience', statut: 'refused', refus: 'inventaire' }), largeur },
     { id: 'import', nom: 'Après un import de paramètres (message de vue)', rendu: r({ objectif: 'efficience', message: true }), largeur },
     { id: 'reel', nom: 'Objectif de l\'Optimizer', rendu: r({}), largeur },
   ];
@@ -209,7 +216,8 @@ export const GABARITS_DROITE: Gabarit[] = [
       'Le résumé « Dégâts réels » garde sa place, invisible, sous un autre objectif : choisir « Dégâts réels » ne pousse plus rien.',
       '« Rechercher » plus grand (taille lg) ; « Arrêter » prend sa place exacte pendant une recherche (carré plein), inactif 300 ms, au lieu de s\'ajouter à côté de « Recherche… ».',
       '« Exporter » · « Importer » en libellé court au bureau (le libellé long reste le nom et l\'infobulle).',
-      'La progression a une place réservée, à la hauteur de sa forme la plus haute : le lancement ne pousse rien.',
+      'Progression compacte : plus de barre ; à l\'appariement, deux lignes seules (« … combinaisons examinées · … trouvée(s) », « Attendez la fin de la recherche… ») ; préparation, erreur et refus dans la même place réservée, à la hauteur de ces deux lignes : le lancement ne pousse rien.',
+      'Aux deux formats : plus de phrase « Le budget de recherche s\'élargit automatiquement… » (l\'escalade n\'existe plus dans le moteur).',
       'Dans cette vue : « Rechercher » bascule sur « Arrêter » sans lancer de recherche.',
     ],
     etats: etatsObjectif('etroite'),

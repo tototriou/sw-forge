@@ -70,5 +70,6 @@ en développement ne se voit qu'au navigateur : les tests construisent l'app ave
 [tests/rendu/optimizer-gabarits-navigateur.test.ts](../../tests/rendu/optimizer-gabarits-navigateur.test.ts)
 pilote un Chromium sur les boîtes dont le sens tient à un geste
 ([optimizer-gabarits-banc.tsx](../../tests/rendu/optimizer-gabarits-banc.tsx)) : le set compact
-ouvert pendant la composition et fermé à six emplacements pleins, les principales en surbrillance,
-l'aide et la colonne centrée d'« État de mon monstre ».
+ouvert pendant la composition et fermé à six emplacements pleins, les principales en surbrillance
+(résumé fermé entier sans que rien bouge au choix, listes espacées dans une carte plus haute que
+son contenu), l'aide et la colonne centrée d'« État de mon monstre ».

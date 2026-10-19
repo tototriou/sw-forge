@@ -11,26 +11,37 @@ export const LARGEUR_COLONNE_ETROITE = 170;
 // classique, chaque principale choisie en surbrillance, sans case) ; une ou
 // plusieurs principales, comme les puces du téléphone (`StatPrincipaleImposee`,
 // inchangé). Mêmes props : le geste reste `toggleMainStat`, une principale à la
-// fois. Surface de 160 px, plus large que le champ : « Dmg Crit » y tient.
+// fois. Surface de 160 px : « Dmg Crit » y tient.
+//
+// ⚠️ **Le champ fermé montre toutes les valeurs choisies** (`resumeEntier`), à
+// la ligne entre deux valeurs, sa hauteur réservée pour le slot entier : rien
+// n'est tronqué, rien ne bouge au choix. Le nom du slot passe AU-DESSUS du
+// champ, qui prend toute la largeur de la carte : à côté, le texte n'aurait
+// que 76 px, et les cinq principales du slot 4 y prendraient quatre lignes au
+// lieu de deux.
+// ⚠️ **Les trois listes s'espacent dans la hauteur de la carte** (`flex-1`,
+// `justify-between`) quand la mise en page lui en donne plus que son contenu ;
+// sinon, 12 px entre deux listes.
 export default function PrincipalesImposeesBureau({ mainStatsBySlot, toggleMainStat }: StatPrincipaleImposeeProps) {
   return (
     <section
       aria-label="Statistique principale imposée (slots pairs)"
       style={{ width: LARGEUR_COLONNE_ETROITE }}
-      className="rounded-xl border border-border bg-panel p-3"
+      className="flex flex-col rounded-xl border border-border bg-panel p-3"
     >
       <p className="label mb-2">Statistique principale imposée (slots pairs)</p>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-1 flex-col justify-between gap-3">
         {CONFIGURABLE_SLOTS.map((slot) => {
           const avant = mainStatsBySlot[slot] ?? [];
           return (
-            <div key={slot} className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
+            <div key={slot} className="flex flex-col gap-1">
               <span className="text-micro text-ink-dim">Slot {slot}</span>
               <SelecteurMultiple
                 libelle={`Slot ${slot}`}
                 taille="sm"
                 vide="Libre"
                 forme="surbrillance"
+                resumeEntier
                 largeurSurface="w-40"
                 options={SLOT_MAIN_OPTIONS[slot].map((code) => ({ valeur: code, libelle: RUNE_EFFECT[code]?.label ?? String(code) }))}
                 valeurs={avant}

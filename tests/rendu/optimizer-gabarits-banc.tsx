@@ -31,10 +31,14 @@ function EtatBanc() {
 }
 
 let root: Root | null = null;
-export async function monter(nom: 'set' | 'principales' | 'etat') {
+// `principales-haute` : la carte dans une rangée de 420 px (étirée, comme à côté
+// d'une carte plus haute), pour voir les listes s'espacer dans sa hauteur.
+export async function monter(nom: 'set' | 'principales' | 'principales-haute' | 'etat') {
   if (root) { const r = root; flushSync(() => r.unmount()); }
   root = createRoot(document.getElementById('racine')!);
   const r = root;
-  flushSync(() => r.render(<div style={{ padding: 24 }}>{nom === 'set' ? <SetBanc /> : nom === 'etat' ? <EtatBanc /> : <PrincipalesBanc />}</div>));
+  const contenu = nom === 'set' ? <SetBanc /> : nom === 'etat' ? <EtatBanc />
+    : nom === 'principales-haute' ? <div style={{ display: 'flex', height: 420 }}><PrincipalesBanc /></div> : <PrincipalesBanc />;
+  flushSync(() => r.render(<div style={{ padding: 24 }}>{contenu}</div>));
   await new Promise((fin) => setTimeout(fin, 50));
 }

@@ -45,6 +45,9 @@ export function testRenduOptimizerGabaritsComposants() {
   ok(!!bouton(choisies, 'Slot 4 : Taux Crit, Dmg Crit'), 'principales choisies : le slot résume ses choix');
   egal(boutons(choisies).filter((b) => b.presse).map((b) => b.texte), ['Taux Crit', 'Dmg Crit'], 'principales choisies : en surbrillance dans la liste');
   ok(texteVisible(libres).includes('Statistique principale imposée (slots pairs)'), 'principales : le titre de l\'app');
+  egal((libres.match(/data-reserve-resume/g) ?? []).length, 3, 'principales : chaque champ fermé montre tout son résumé, hauteur réservée (resumeEntier)');
+  ok(/class="flex flex-1 flex-col justify-between gap-3"/.test(libres) && (libres.match(/class="flex flex-col gap-1"><span class="text-micro text-ink-dim">Slot/g) ?? []).length === 3,
+    'principales : le nom du slot au-dessus de son champ, les trois listes espacées dans la hauteur de la carte');
 
   // Le set compact : fermé sur les sets choisis, la grille d'ajout dans la surface.
   const sansSet = rendre(<SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid={false} comboSets={[]} onChangeSets={rien} />);

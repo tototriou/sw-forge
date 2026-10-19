@@ -186,6 +186,8 @@ export const GABARITS_ESSENTIELS: Gabarit[] = [
     changements: [
       'Une rangée de puces par slot devient une liste à choix multiples par slot ; « Libre » quand rien n\'est choisi ; un clic de plus pour voir ou changer les choix.',
       'Ouverte, une liste classique (« forme 2 ») : chaque principale choisie en surbrillance, sans case ; un clic la choisit ou la retire, la liste reste ouverte.',
+      'Fermée, la liste montre toutes les principales choisies, à la ligne entre deux, rien de tronqué ; chaque champ a d\'avance la hauteur de son slot entier (deux lignes), un choix ne le fait pas grandir.',
+      'Le nom du slot au-dessus de sa liste, qui prend la largeur de la carte ; les trois listes s\'espacent dans la hauteur de la carte (12 px au moins).',
     ],
     etats: [
       { id: 'libres', nom: 'Principales libres', rendu: () => <PrincipalesGabarit initial={{}} /> },

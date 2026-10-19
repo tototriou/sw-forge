@@ -46,6 +46,30 @@ export async function testRenduOptimizerGabaritsGestes() {
     ok(/border-accent/.test((await tauxCrit.getAttribute('class')) ?? ''), 'principales : la valeur choisie porte le marqueur d’accent');
     ok(await surface.isVisible(), 'principales : la liste reste ouverte après un choix');
     ok((await page.getByRole('button', { name: 'Slot 4 : Taux Crit' }).count()) === 1, 'principales : le champ fermé résume le choix');
+    // Toutes les valeurs du slot 4, liste ouverte : ni le champ ni la surface ne bougent.
+    const champ4 = page.getByRole('button', { name: /^Slot 4 :/ });
+    const avantTout = { champ: (await champ4.boundingBox())!, surface: (await surface.boundingBox())! };
+    for (const v of ['PV%', 'ATQ%', 'DEF%', 'Dmg Crit']) await surface.getByRole('button', { name: v, exact: true }).click();
+    const apresTout = { champ: (await champ4.boundingBox())!, surface: (await surface.boundingBox())! };
+    ok(apresTout.champ.height === avantTout.champ.height && apresTout.surface.y === avantTout.surface.y,
+      `principales : cinq choix, liste ouverte, rien ne bouge (champ ${avantTout.champ.height} → ${apresTout.champ.height} px, surface ${avantTout.surface.y} → ${apresTout.surface.y})`);
+    await page.keyboard.press('Escape');
+    const resume = await champ4.evaluate((b) => {
+      const t = b.querySelector(':scope > span > span:not([data-reserve-resume])') as HTMLElement;
+      return { texte: t.innerText.replace(/\s+/g, ' '), entier: t.scrollWidth <= t.clientWidth && b.scrollHeight <= b.clientHeight, lignes: Math.round(t.getBoundingClientRect().height / parseFloat(getComputedStyle(t).lineHeight)) };
+    });
+    ok(resume.texte === 'PV%, ATQ%, DEF%, Taux Crit, Dmg Crit' && resume.entier && resume.lignes === 2,
+      `principales : fermé, les cinq valeurs se lisent en entier, sur deux lignes (« ${resume.texte} », ${resume.lignes} ligne(s))`);
+
+    // Dans une carte plus haute que son contenu, les trois listes s'espacent.
+    await page.evaluate(monter('principales-haute'));
+    const espaces = await page.evaluate(() => {
+      const champs = [...document.querySelectorAll('section[aria-label^="Statistique principale"] button[aria-haspopup]')].map((b) => b.getBoundingClientRect());
+      const carte = document.querySelector('section[aria-label^="Statistique principale"]')!.getBoundingClientRect();
+      return { carte: carte.height, ecarts: champs.slice(1).map((c, i) => Math.round(c.top - champs[i].bottom)), basDernier: Math.round(carte.bottom - champs[2].bottom) };
+    });
+    ok(espaces.carte === 420 && espaces.ecarts[0] === espaces.ecarts[1] && espaces.ecarts[0] > 40 && espaces.basDernier === 13,
+      `principales : carte de 420 px, listes réparties dans sa hauteur (écarts ${espaces.ecarts.join(' / ')} px, dernière au bas de la carte)`);
 
     // État de mon monstre : l'aide du bureau, colonne des buffs centrée.
     await page.evaluate(monter('etat'));

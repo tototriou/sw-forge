@@ -1025,13 +1025,22 @@ function classerParNote(candidates: BuildCandidate[], score: ((c: BuildCandidate
 // Les copies portant les stats résolues gardent le tableau de runes d'origine.
 const NOTES_CLASSEMENT = new WeakMap<number[], { contexte: string; entrees: string; note: number }>();
 
-/** Même tri stable que `sortCandidates`, avec les notes inchangées gardées. */
-export function trierCandidatsIncrementalement(candidates: BuildCandidate[], sortBy: StatKey | Objective, opts: OptionsDeClassement): BuildCandidate[] {
+/** Même tri stable, seules les notes de dégâts réels sont mémorisées. */
+export function trierCandidatsIncrementalement(
+  candidates: BuildCandidate[], sortBy: StatKey | Objective, opts: OptionsDeClassement,
+  surNote?: (c: BuildCandidate, note: number) => void
+): BuildCandidate[] {
+  // Les autres notes coûtent moins que leur empreinte ; aucun parcours des
+  // entrées de dégâts ni aucune sérialisation ne doit accompagner leur tri.
+  if (sortBy !== 'degats_reels') return sortCandidates(candidates, sortBy, opts);
   // Les empreintes sont relues à CHAQUE publication, même à identité égale.
   // Pendant un tri les entrées sont pures : les sous-objets communs ne se
   // sérialisent qu'une fois (profil de sort, paire neutre, réglage…).
   const empreintes = new WeakMap<object, string>();
+  const fonctionRencontree = Symbol();
   function empreinte(v: unknown): string {
+    // Une fermeture mutable ne se compare ni par identité ni par son texte.
+    if (typeof v === 'function') throw fonctionRencontree;
     if (v === null) return 'null';
     if (typeof v === 'number') return `n${Object.is(v, -0) ? '-0' : String(v)}`;
     if (typeof v !== 'object') return `${typeof v}:${JSON.stringify(v)}`;
@@ -1044,8 +1053,12 @@ export function trierCandidatsIncrementalement(candidates: BuildCandidate[], sor
   }
   const memoriser: MemoriserNote = (contexte, entreesDe, calculer) => {
     const commun = empreinte([sortBy, contexte]);
+    const entreesParCandidat = new WeakMap<BuildCandidate, string>();
+    // Détecter une fonction AVANT tout hit ou écriture, même si elle ne
+    // concerne que le dernier build : le repli porte sur le tri entier.
+    for (const c of candidates) entreesParCandidat.set(c, empreinte(entreesDe(c)));
     return (c) => {
-      const entrees = empreinte(entreesDe(c));
+      const entrees = entreesParCandidat.get(c)!;
       const connue = NOTES_CLASSEMENT.get(c.runeIds);
       if (connue?.contexte === commun && connue.entrees === entrees) return connue.note;
       const note = calculer(c);
@@ -1053,7 +1066,21 @@ export function trierCandidatsIncrementalement(candidates: BuildCandidate[], sor
       return note;
     };
   };
-  return classerParNote(candidates, scorerPour(sortBy, opts, memoriser));
+  let score: ReturnType<typeof scorerPour>;
+  try {
+    score = scorerPour(sortBy, opts, memoriser);
+  } catch (e) {
+    if (e !== fonctionRencontree) throw e;
+    score = scorerPour(sortBy, opts);
+  }
+  // L'observateur lit la note EFFECTIVEMENT utilisée, hit compris, pour
+  // comparer les notes à une référence sans exposer la mémoire globale.
+  const noter = score;
+  return classerParNote(candidates, surNote && noter ? (c) => {
+    const note = noter(c);
+    surNote(c, note);
+    return note;
+  } : noter);
 }
 
 type MemoriserNote = (contexte: unknown, entreesDe: (c: BuildCandidate) => unknown, calculer: (c: BuildCandidate) => number) => (c: BuildCandidate) => number;
@@ -1200,12 +1227,15 @@ function scorerPour(
   if (sortBy === 'efficience') {
     const { runeById, metric } = opts;
     if (!runeById || !metric) return null;
-    const calculer = (c: BuildCandidate) => candidateMetricTotal(c, runeById, metric);
-    return memoriser ? memoriser(metric, (c) => c.runeIds.map((id) => runeById.get(id)), calculer) : calculer;
+    return (c) => candidateMetricTotal(c, runeById, metric);
   }
   if (sortBy === 'degats_reels') {
     const ctx = opts.realDamage;
     if (!ctx) return null;
+    if (!memoriser) return (c) => {
+      const propre = opts.artefactsDuBuild?.(c);
+      return objectiveScore(c, sortBy, opts.aurasPropresDe(c), propre ? { ...ctx, artefacts: propre } : ctx, apportDe(c));
+    };
     // Matérialiser les accesseurs une fois par build : le calcul et sa clé
     // lisent EXACTEMENT les mêmes valeurs, même si les closures ont changé.
     const lire = (c: BuildCandidate) => ({ propres: opts.aurasPropresDe(c), artefacts: opts.artefactsDuBuild?.(c) ?? ctx.artefacts, apport: apportDe(c) });
@@ -1216,36 +1246,20 @@ function scorerPour(
       return v;
     };
     const calculer = (c: BuildCandidate) => {
-      if (memoriser) {
-        const v = de(c);
-        return objectiveScore(c, sortBy, v.propres, { ...ctx, artefacts: v.artefacts }, v.apport);
-      }
-      const propre = opts.artefactsDuBuild?.(c);
-      return objectiveScore(c, sortBy, opts.aurasPropresDe(c), propre ? { ...ctx, artefacts: propre } : ctx, apportDe(c));
+      const v = de(c);
+      return objectiveScore(c, sortBy, v.propres, { ...ctx, artefacts: v.artefacts }, v.apport);
     };
     const { artefacts: _repli, ...commun } = ctx;
-    return memoriser ? memoriser(commun, (c) => [c.stats, de(c)], calculer) : calculer;
+    return memoriser(commun, (c) => [c.stats, de(c)], calculer);
   }
-  if (sortBy === 'ehp' || sortBy === 'vitesse') {
-    const valeurs = new WeakMap<BuildCandidate, { propres: AurasPropres; apport: ApportExclusive }>();
-    const de = (c: BuildCandidate) => {
-      let v = valeurs.get(c);
-      if (!v) { v = { propres: opts.aurasPropresDe(c), apport: apportDe(c) }; valeurs.set(c, v); }
-      return v;
-    };
-    const calculer = (c: BuildCandidate) => {
-      const v = memoriser ? de(c) : { propres: opts.aurasPropresDe(c), apport: apportDe(c) };
-      return objectiveScore(c, sortBy, v.propres, undefined, v.apport, opts.damageSetup);
-    };
-    return memoriser ? memoriser(sortBy === 'ehp' ? opts.damageSetup : undefined, (c) => [c.stats, de(c)], calculer) : calculer;
-  }
+  if (sortBy === 'ehp' || sortBy === 'vitesse')
+    return (c) => objectiveScore(c, sortBy, opts.aurasPropresDe(c), undefined, apportDe(c), opts.damageSetup);
   // ⚠️ **Un tri par stat juge la FICHE** (`c.stats`), comme la carte
   // (`StatPanel`, `row.total`) et les conditions min/max : jamais les points
   // Bravoure/Éternité/Origine, acquis au début du combat comme les auras, le
   // lead et l'invocateur, qu'il ne compte pas non plus (option (a) de l'utilisateur). La MÊME expression
   // note une paire dans les régimes `hp`/`atk`/`def` (`evaluerPourRegime`).
-  const calculer = (c: BuildCandidate) => statTotal(c.stats, sortBy);
-  return memoriser ? memoriser(undefined, (c) => c.stats, calculer) : calculer;
+  return (c) => statTotal(c.stats, sortBy);
 }
 
 // ⚠️ **Il n'existe PLUS de budget de PAIRES** (`DEFAULT_MAX_NODES`, puis

@@ -21,8 +21,8 @@ const monstre = (nom: string, el: string) =>
 
 // ⚠️ **L'état de l'outil vit dans le magasin de `useStickyState`**, privé au
 // module et rempli par un effet — qui ne tourne pas en rendu serveur. Le
-// modifier pour l'exposer toucherait `src/hooks/`, interdit à la refonte
-// (A.2). On intercepte donc, LE TEMPS DU RENDU seulement, la lecture de ce
+// modifier pour l'exposer toucherait `src/hooks/`, interdit à la refonte.
+// On intercepte donc, LE TEMPS DU RENDU seulement, la lecture de ce
 // magasin : `Map.prototype.has`/`get` répondent pour les clés fournies, et
 // laissent passer toutes les autres (React s'en sert aussi).
 function avecEtat<T>(etat: Record<string, unknown>, faire: () => T): T {

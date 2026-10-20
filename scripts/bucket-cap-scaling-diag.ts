@@ -5,8 +5,10 @@
 // constante doit être relevée à nouveau (règle algo-verify : mesurer,
 // jamais deviner).
 //
-// - Dégâts, `adaptiveTrancheWeighting` off : 3 demi-builds trouvés à Moyen (slotFilterCap=80).
-// - Vitesse, `adaptiveTrancheWeighting` ON : 5 demi-builds trouvés à Bas (slotFilterCap=40) —
+// - Dégâts : 3 demi-builds trouvés à Moyen (slotFilterCap=80).
+// - Vitesse : 5 demi-builds trouvés à Bas (slotFilterCap=40), relevés avec
+//   la répartition adaptative des tranches (« Prioriser les stats les plus
+//   difficiles »), que le moteur n'a plus : ce script les rejoue sans elle —
 //   le cas le plus exigeant : Moyen n'en retient que 3/5 à `bucketCap=3000`
 //   fixe, MÊME valeur qu'à Bas — la dilution touche donc déjà 40→80, pas
 //   seulement au-delà de 80 comme le cas Dégâts le laisserait croire.
@@ -34,12 +36,7 @@
 // `--slotFilterCap=<p> --bucketCap=<formule(p)>`, un run par couple.
 //
 // ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** : l'absorber tel quel dans
-// `--arret=demi-builds` ne tient pas, sur trois points, dont deux
-// sont structurels et non ergonomiques :
-//   · `adaptiveTrancheWeighting` (le cas « Vitesse, `adaptiveTrancheWeighting` ON ») n'est PAS
-//     dans `OverridesHarnais` et PAS dans `SourceHarnais.synthetique` — il
-//     s'affiche « recette (non surchargeable) ». Le faire varier demande
-//     autant de recettes que de conditions ;
+// `--arret=demi-builds` ne tient pas, sur deux points structurels :
 //   · `objectiveStats: ['atk','cd']` (par `resolveObjectifCli('degats')`)
 //     n'existe pas non plus sur une source synthétique, qui ne porte
 //     qu'`objective` ;
@@ -104,11 +101,10 @@ const requirement: BuildRequirement = {
 // il est traduit en `efficience` + `objectiveStats: ['atk','cd']` au moment de
 // lancer la recherche (`resolveObjectifCli`) — sinon `objectiveKeysOf` rendrait
 // `[]` et cette batterie mesurerait sans le biais qu'elle est là pour mesurer.
-const REFERENCES: { label: string; objective: 'degats' | 'vitesse'; adaptiveTrancheWeighting: boolean; builds: number[][] }[] = [
+const REFERENCES: { label: string; objective: 'degats' | 'vitesse'; builds: number[][] }[] = [
   {
-    label: 'Dégâts, adaptiveTrancheWeighting off',
+    label: 'Dégâts',
     objective: 'degats',
-    adaptiveTrancheWeighting: false,
     builds: [
       [50634967736, 36200884729, 50706822949, 35448425552, 20215349278, 52233557074],
       [61019921058, 36200884729, 24242342660, 56667443786, 15415339199, 49776626530],
@@ -116,9 +112,8 @@ const REFERENCES: { label: string; objective: 'degats' | 'vitesse'; adaptiveTran
     ],
   },
   {
-    label: 'Vitesse, adaptiveTrancheWeighting ON (cas le plus exigeant)',
+    label: 'Vitesse (cas le plus exigeant, relevé avec l’ancienne répartition adaptative)',
     objective: 'vitesse',
-    adaptiveTrancheWeighting: true,
     builds: [
       [50634967736, 36200884729, 50706822949, 35448425552, 20215349278, 52233557074],
       [31515553228, 36200884729, 58172565462, 56667443786, 15415339199, 49776626530],
@@ -143,21 +138,20 @@ function checkRetention(
   slotFilterCap: number,
   bucketCap: number,
   objectifCas: 'degats' | 'vitesse',
-  adaptiveTrancheWeighting: boolean,
   builds: number[][]
 ): { survivedA: number; survivedB: number; buildMs: number } {
   const { objective, objectiveStats } = resolveObjectifCli(objectifCas);
   const params: SearchParams = {
     base: sonia.gear.base, artifacts, relic: sonia.gear.relic, pool, requirement, metric: 'eff',
-    objective, objectiveStats, maxMs: 10 * 60 * 1000, slotFilterCap, bucketCap, adaptiveTrancheWeighting,
+    objective, objectiveStats, maxMs: 10 * 60 * 1000, slotFilterCap, bucketCap,
   };
   const prepared = prepareSearch(params)!;
   const t0 = performance.now();
   const bucketsA = drain(
-    buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, adaptiveTrancheWeighting)
+    buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA)
   );
   const bucketsB = drain(
-    buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, adaptiveTrancheWeighting)
+    buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB)
   );
   const buildMs = performance.now() - t0;
 
@@ -181,7 +175,7 @@ for (const ref of REFERENCES) {
   for (const preset of SLOT_FILTER_PRESETS) {
     for (const f of FORMULAS) {
       const bucketCap = f.bucketCapFor(preset.cap);
-      const { survivedA, survivedB, buildMs } = checkRetention(preset.cap, bucketCap, ref.objective, ref.adaptiveTrancheWeighting, ref.builds);
+      const { survivedA, survivedB, buildMs } = checkRetention(preset.cap, bucketCap, ref.objective, ref.builds);
       const total = ref.builds.length;
       const flag = survivedA < total || survivedB < total ? '  ⚠️ PERTE' : '';
       console.log(

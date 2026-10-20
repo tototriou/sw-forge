@@ -288,15 +288,16 @@ export interface OptimizerState {
   // remplace pas) — voir lib/optimizerExclusion.ts. Vide par défaut.
   excludedSelectors: ExclusionSelector[];
   setExcludedSelectors: Dispatch<SetStateAction<ExclusionSelector[]>>;
-  // Toggle « Prioriser les stats les plus difficiles » (voir
-  // docs/03-developpeur/optimizer/ § Pré-filtrage heuristique et
-  // compartiments) — désactivé par défaut, lu par `handleSearch` au moment du
-  // clic sur « Rechercher », pas un bouton séparé qui lance sa propre
-  // recherche.
+  // Toggle « Prioriser les stats les plus difficiles » — ⚠️ SANS EFFET : le
+  // moteur n'a plus de répartition adaptative des tranches et ignore
+  // `SearchParams.adaptiveTrancheWeighting`
+  // (docs/04-decisions/adr/retention-a-parts-egales.md). L'état
+  // reste tant que l'écran affiche l'interrupteur ; il part avec lui, comme
+  // sa portée (criteresOptimizer.ts) et sa clé de session (sessionOptimizer.ts).
   adaptiveTrancheWeighting: boolean;
   setAdaptiveTrancheWeighting: Dispatch<SetStateAction<boolean>>;
   // Toggle « Rechercher jusqu'à épuisement complet » — désactivé par défaut,
-  // lu par `handleSearch` comme `adaptiveTrancheWeighting` ci-dessus. Retire
+  // lu par `handleSearch` au moment du clic sur « Rechercher ». Retire
   // la limite de temps de 10 minutes (`maxMs: Infinity`, déjà supporté par le
   // moteur — voir OptimizerSection.tsx) ; ne touche PAS au plafond de 100 000
   // candidats collectés, qui reste une limite indépendante.

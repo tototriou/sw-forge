@@ -2,8 +2,8 @@
 // (`construireMoitie`, src/lib/rechercheRunes.ts, appelé par les Workers de
 // moitié, le CLI, le harnais et `searchBuilds`). `buildBuckets` reste la
 // RÉFÉRENCE et le repli (`motifRepliConstruction` : traceur de diagnostic,
-// moitié de plus de 2³¹ triplets, `bucketCap` ou capacité redistribuée hors
-// des entiers 32 bits des tas). Contrat : rendre EXACTEMENT les compartiments de
+// moitié de plus de 2³¹ triplets, `bucketCap` hors des entiers 32 bits des
+// tas). Contrat : rendre EXACTEMENT les compartiments de
 // `buildBuckets` (mêmes clés, comptes, jokers, `combos` dans le même ordre avec
 // leurs `pct`/`flat`/`relevanceScore`, mêmes `maxPct`/`maxFlat` jusqu'à l'ordre
 // de leurs clés, même `potential`), vérifié par `premiereDivergence`
@@ -61,7 +61,6 @@ import {
   BuildingProgress,
   HalfCombo,
   runeContribution,
-  trancheReallocation,
   weightedContribution,
 } from './runeBuildOptim';
 
@@ -75,7 +74,6 @@ export interface EntreeTranche {
   ctx: ContexteConstruction;
   slotIdxs: readonly [number, number, number];
   otherHalfMaxSets: number[];
-  adaptiveTrancheWeighting: boolean;
   /** Indices de runes du premier emplacement de la moitié, CROISSANTS. */
   idx0s: number[];
 }
@@ -202,8 +200,7 @@ interface Noyau {
 function preparerNoyau(
   ctx: ContexteConstruction,
   slotIdxs: readonly [number, number, number],
-  otherHalfMaxSets: number[],
-  adaptiveTrancheWeighting: boolean
+  otherHalfMaxSets: number[]
 ): Noyau {
   const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base } = ctx;
   const [i0, i1, i2] = slotIdxs;
@@ -273,15 +270,8 @@ function preparerNoyau(
   const retIdx = Int32Array.from(retentionKeys.map((k) => trackedKeys.indexOf(k)));
 
   const sliceCount = 1 + (hasCombined ? 1 : 0) + retentionKeys.length;
-  const caps = new Int32Array(sliceCount);
-  const reallocatedCap: Record<string, number> =
-    adaptiveTrancheWeighting && retentionKeys.length > 0
-      ? trancheReallocation(filtered, [i0, i1, i2], retentionKeys, base, bucketCap).reallocatedCap
-      : {};
-  caps[0] = bucketCap;
-  if (hasCombined) caps[1] = bucketCap;
-  const off = hasCombined ? 2 : 1;
-  for (let i = 0; i < retentionKeys.length; i++) caps[off + i] = adaptiveTrancheWeighting ? reallocatedCap[retentionKeys[i]] : bucketCap;
+  // Chaque tranche a `bucketCap` places, comme dans `buildBuckets`.
+  const caps = new Int32Array(sliceCount).fill(bucketCap);
 
   return {
     pools, n, D, T, trackedKeys,
@@ -642,11 +632,10 @@ export function* construireMoitieRapide(
   slotIdxs: readonly [number, number, number],
   ctx: BuildBucketsContext,
   otherHalfMaxSets: number[],
-  adaptiveTrancheWeighting = false,
   combosOrderMode: OrdreCombos = 'objective'
 ): Generator<BuildingProgress, Bucket[], void> {
   refuserTraceur(ctx);
-  const noyau = preparerNoyau(ctx, slotIdxs, otherHalfMaxSets, adaptiveTrancheWeighting);
+  const noyau = preparerNoyau(ctx, slotIdxs, otherHalfMaxSets);
   const etat = nouvelEtat(noyau, false);
   const total = noyau.n[0];
   for (let idx0 = 0; idx0 < total; idx0++) {
@@ -659,7 +648,7 @@ export function* construireMoitieRapide(
 /** Une tranche du découpage parallèle : à exécuter dans un Worker, sur une partie des runes du premier emplacement. */
 export function construireTranche(entree: EntreeTranche): ResultatTranche {
   refuserTraceur(entree.ctx);
-  const noyau = preparerNoyau(entree.ctx, entree.slotIdxs, entree.otherHalfMaxSets, entree.adaptiveTrancheWeighting);
+  const noyau = preparerNoyau(entree.ctx, entree.slotIdxs, entree.otherHalfMaxSets);
   const etat = nouvelEtat(noyau, true);
   let prec = -1;
   for (const idx0 of entree.idx0s) {
@@ -701,12 +690,11 @@ export function fusionnerTranches(
   ctx: ContexteConstruction,
   slotIdxs: readonly [number, number, number],
   otherHalfMaxSets: number[],
-  adaptiveTrancheWeighting: boolean,
   combosOrderMode: OrdreCombos,
   tranches: ResultatTranche[]
 ): Bucket[] {
   refuserTraceur(ctx);
-  const noyau = preparerNoyau(ctx, slotIdxs, otherHalfMaxSets, adaptiveTrancheWeighting);
+  const noyau = preparerNoyau(ctx, slotIdxs, otherHalfMaxSets);
   const { D, T, n, cPct, cFlat, eff, joker, setIdx, constr, sliceCount } = noyau;
   const vus = new Uint8Array(n[0]);
   for (const t of tranches) for (const i of t.idx0s) vus[i]++;

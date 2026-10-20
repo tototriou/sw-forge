@@ -124,7 +124,7 @@ for (const a of chargee.avertissements) console.warn(`⚠️ ${a}`);
 console.log(
   `Recette : ${recipe.monsterName} — sets ${recipe.requirement.sets.join('+')} — objectif ${recipe.objective} — ` +
     `métrique ${recipe.metric} — préfiltrage ${recipe.slotFilterPreset} — ` +
-    `prioriser les stats les plus difficiles ${recipe.adaptiveTrancheWeighting ? 'ON' : 'off'} — exclure les runes déjà utilisées ${
+    `exclure les runes déjà utilisées ${
       recipe.excludeUsedRunes ? `ON (${recipe.excludeUsedScope})` : 'off'
     } — vérifier toutes les combinaisons trouvées ${toutVerifierDeLaRecette(recipe) ? 'ON' : 'off'}`
 );

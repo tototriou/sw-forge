@@ -239,9 +239,9 @@ export function resoudreConfig(config: ConfigHarnais): ConfigResolue {
  *
  * ⚠️ La règle est « chaque paramètre EFFECTIF affiche son origine », pas
  * seulement chaque paramètre SURCHARGEABLE.
- * L'écart n'est pas cosmétique : un run lancé avec `adaptiveTrancheWeighting`
- * sans le savoir mesure une autre rétention, et l'aperçu annonçait
- * « conforme à la production » sans jamais montrer le réglage.
+ * L'écart n'est pas cosmétique : un run dont l'objectif change les stats
+ * retenues mesure une autre rétention, et un aperçu qui ne montrerait pas
+ * le réglage annoncerait « conforme à la production » sans le dire.
  *
  * ⚠️ **Ce n'est PAS une infidélité** — la valeur appliquée est bien celle de
  * la production. C'est un ANGLE MORT de l'aperçu : `valeurProd` vaut donc
@@ -279,7 +279,6 @@ function parametresNonSurchargeables(
       `stats d’objectif (garde ${PER_STAT_KEEP_OBJECTIVE}, sinon ${PER_STAT_KEEP})`,
       clesObjectif.length > 0 ? clesObjectif.join(', ') : 'aucune'
     ),
-    effectif('adaptiveTrancheWeighting', params.adaptiveTrancheWeighting ?? false),
     effectif('metric', params.metric),
     // La recherche exhaustive ne se lit PAS ailleurs : elle se manifeste
     // uniquement par `maxMs = Infinity`, ce qu'aucun lecteur n'a de raison de

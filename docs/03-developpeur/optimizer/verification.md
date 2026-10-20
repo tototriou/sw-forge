@@ -25,7 +25,8 @@ contient le filtre (registre : `tests/index.ts`), par exemple
 | `testAppariementParallele`, `testAppariementParalleleWorkers`, `testAppariementParalleleCoupeWorkers`, `testAppariementParalleleBranchement` | `tests/appariement-parallele.test.ts` | le nombre de Workers et le régime ; le coordinateur parallèle contre le séquentiel (Workers simulés, puis vrais `worker_threads`) : plafond global, progression, arrêt manuel, filet de temps, panne ; un morceau coupé avant un morceau suivant achevé ; la tranche d'un Worker d'un morceau au suivant ; sur vrais `worker_threads`, des morceaux coupés en cours par le temps et par l'arrêt ; le branchement du chemin de production |
 | `testValidationRapide` | `tests/validation-rapide.test.ts` | la validation typée de l'appariement (`ValidationTypee`) contre `activeSets`, `computeStats` et le test conjoint de `pairBuckets` : cas écrits, paire par paire, collecteur contre collecteur, appariement entier, contrat tenu ou non |
 | `testResolutionRapide`, `testResolutionRapideNaN` | `tests/resolution-rapide.test.ts` | la résolution rapide de l'équipement (`src/lib/resolutionRapide.ts`) et le point d'entrée de l'app (`resoudreEquipementDuBuild`, avec les formes de la file) contre le calcul exhaustif (`resoudreEquipementDuBuildExhaustif`), build par build, sans et avec diagnostic ; les notes NaN et leur repli |
-| `testConstructionRapide` | `tests/construction-rapide.test.ts` | la construction des moitiés sur tableaux typés (`construireMoitieRapide`, et son découpage en tranches) contre `buildBuckets` : égalité profonde des compartiments, préréglages Bas à Extrême, avec et sans « Prioriser les stats les plus difficiles », chaque `combosOrderMode`, évictions forcées ; et `construireMoitie` sur son repli |
+| `testConstructionRapide` | `tests/construction-rapide.test.ts` | la construction des moitiés sur tableaux typés (`construireMoitieRapide`, et son découpage en tranches) contre `buildBuckets` : égalité profonde des compartiments, préréglages Bas à Extrême, chaque `combosOrderMode`, évictions forcées ; et `construireMoitie` sur son repli |
+| `testPrioriteStatsRetiree` | `tests/priorite-stats-retiree.test.ts` | `SearchParams.adaptiveTrancheWeighting` sans effet : même résultat champ vrai, faux ou absent, aux préréglages Haut et Extrême et sous `bucketCap` minuscule ; une recette qui le porte s'importe sans erreur, le CLI ne le relaie pas, et Haut ou Extrême ne change que `slotFilterCap` |
 | `testRuneOptimNearMiss` | `tests/rune-optim-near-miss.test.ts` | le quasi-succès retenu à l'appariement, y compris après un arrêt manuel |
 | `testRuneOptimDeadHalfPruning` | `tests/rune-optim-dead-half-pruning.test.ts` | l'élagage exact des demi-builds sans aucune pièce d'un set demandé à plus de 3 pièces |
 | `testFilterSlotTopK` | `tests/rune-optim-filterslot-topk.test.ts` | le top-K de `filterSlot` par le vrai tas (`heapPush`) contre un tri complet |
@@ -279,7 +280,7 @@ script sur la machine du moment, en suivant le skill
 Il n'existe pas de budget de paires : la recherche n'est bornée que par le
 plafond de candidats collectés (`MAX_COLLECTED`, surchargeable par
 `SearchParams.maxCollected`), par le temps (`maxMs`) et par la taille exacte
-de l'espace (`totalPairCount`) (`src/lib/runeBuildOptim.ts:1167-1190`). Un
+de l'espace (`totalPairCount`) (`src/lib/runeBuildOptim.ts:1166-1189`). Un
 en-tête de script qui cite `DEFAULT_MAX_NODES` décrit un budget supprimé.
 Le plafond de collecte privilégie la qualité du résultat sur la vitesse ;
 au préréglage le plus large, c'est la construction des compartiments, un
@@ -313,5 +314,5 @@ propres stats comme critères.
 Sur un compte de plusieurs milliers de runes, le moteur a retrouvé
 exactement le runage d'un monstre existant ; le préréglage « Extrême »
 (300) est la valeur qui l'a permis sur un très gros compte
-(`src/lib/runeBuildOptim.ts:605-608`). Un export de compte ne se commite
+(`src/lib/runeBuildOptim.ts:604-607`). Un export de compte ne se commite
 pas : le `pre-commit` refuse un fichier de plus de 5 Mo.

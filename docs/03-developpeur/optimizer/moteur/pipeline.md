@@ -105,7 +105,8 @@ enfant (`buildHalfInWorker`, sur `src/workers/buildHalf.worker.ts`) : la
 moitié A sur les indices d'emplacement 0 à 2 avec `maxSetsForA`, la moitié B
 sur 3 à 5 avec `maxSetsForB`. La requête (`BuildHalfRequest`) porte le pool
 pré-filtré et les champs de `PreparedSearch` utiles à la construction, plus
-`adaptiveTrancheWeighting` et `combosOrderMode` repris des `SearchParams`.
+`combosOrderMode` repris des `SearchParams` ; `adaptiveTrancheWeighting`,
+sans effet, n'y est pas relayé.
 Les deux moitiés sont indépendantes : chacune ne lit que des bornes
 calculées par la préparation, jamais l'autre moitié construite.
 
@@ -152,8 +153,7 @@ entier ne couvre plus, et des capacités de tas hors des entiers 32 bits du
 noyau — `bucketCap` non entier, négatif ou tel que `bucketCap × (2 + stats
 retenues)` dépasse 2³¹ − 1 (un override de mesure à 2³¹ ou `Infinity`
 deviendrait négatif ou nul dans un `Int32Array`, et la moitié rendrait zéro
-combinaison), ou, sous « Prioriser les stats les plus difficiles », une
-capacité redistribuée (`trancheReallocation`) hors de ces entiers. La
+combinaison). La
 même `construireMoitie` sert le CLI (`runSearchToCompletion`), les fils de
 construction de Node (`scripts/lib/build-half-worker.ts` : harnais,
 `perf-battery`) et `searchBuildsSteps`.

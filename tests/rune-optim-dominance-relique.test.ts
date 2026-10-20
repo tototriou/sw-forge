@@ -259,8 +259,8 @@ function runesDuCandidat(p: SearchParams, c: { runeIds: number[] }): RuneDetail[
 function espaceExact(p: SearchParams): number {
   const prepared = prepareSearch(p);
   if (!prepared) return 0;
-  const a = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, p.adaptiveTrancheWeighting, p.combosOrderMode));
-  const b = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, p.adaptiveTrancheWeighting, p.combosOrderMode));
+  const a = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, p.combosOrderMode));
+  const b = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, p.combosOrderMode));
   return totalPairCount(prepared, a, b);
 }
 

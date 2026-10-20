@@ -160,17 +160,13 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
     et `scripts/lib/build-half-worker.ts`.
   - `tests/rune-optim-onstage.test.ts` garde sa propre copie du générateur
     de pool, identique à `scripts/lib/randomPool.ts`.
-  - `scripts/retention-dispersion-diag.ts` recopie `retentionScore`
-    (`retentionScoreLocal`), et sa liste locale de cas a dérivé de
-    `CASES` (`'degats_reels'` contre `'efficience'` et `objectiveStats`).
   - `scripts/monster-search-rank-diag.ts` prend l'apport d'artéfact de la
     paire portée, pas les bornes de la production : il mesure un moteur
     plus contraint.
 - **Idée** : un corps neutre et deux coquilles pour la construction, comme
   pour l'appariement
   ([03-developpeur/optimizer/moteur/parallelisation.md § Coquilles et lanceurs](../03-developpeur/optimizer/moteur/parallelisation.md#coquilles-et-lanceurs)) ;
-  migrer le générateur du test, sans changer son tirage ; exporter
-  `retentionScore` et reprendre `CASES` ; brancher le script de rang sur
+  migrer le générateur du test, sans changer son tirage ; brancher le script de rang sur
   `artifactBounds` avant de lui faire produire une mesure.
 - **Bloque** : des changements de code, jamais faits.
 

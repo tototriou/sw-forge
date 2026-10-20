@@ -48,10 +48,10 @@ export function runSearchToCompletion(params: SearchParams): TimedSearchResult {
   }
 
   const bucketsA = drain(
-    construireMoitie('A', [0, 1, 2], prepared, prepared.maxSetsForA, params.adaptiveTrancheWeighting, params.combosOrderMode)
+    construireMoitie('A', [0, 1, 2], prepared, prepared.maxSetsForA, params.combosOrderMode)
   );
   const bucketsB = drain(
-    construireMoitie('B', [3, 4, 5], prepared, prepared.maxSetsForB, params.adaptiveTrancheWeighting, params.combosOrderMode)
+    construireMoitie('B', [3, 4, 5], prepared, prepared.maxSetsForB, params.combosOrderMode)
   );
   const tBuild = performance.now();
 

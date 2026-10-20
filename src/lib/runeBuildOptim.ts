@@ -270,14 +270,13 @@ export interface SearchParams {
   // `damageRelevantStats` (damage.ts) et les transmet ici. Absent =
   // comportement inchangé.
   objectiveStats?: StatKey[];
-  // Bouton « Prioriser les stats les plus difficiles » (OptimizerSection.tsx)
-  // — voir docs/03-developpeur/optimizer/
-  // § Pré-filtrage heuristique et compartiments. `false`/absent (défaut, bouton « Rechercher » normal) :
-  // comportement inchangé, coût nul (vérifié par mesure dos-à-dos). `true` :
-  // réalloue le budget de rétention par tranche entre les stats demandées
-  // selon leur dispersion mesurée — peut retrouver un build qu'une
-  // répartition uniforme raterait, au prix d'un temps de recherche plus
-  // long (+20 % de temps de construction mesuré en moyenne).
+  // ⚠️ SANS EFFET : le moteur ne lit pas ce champ. Chaque tranche de
+  // rétention par stat a `bucketCap` places, sans répartition selon la
+  // dispersion (docs/04-decisions/adr/retention-a-parts-egales.md).
+  // Accepté seulement parce que l'écran le transmet encore
+  // (`handleSearch`, interrupteur « Prioriser les stats les plus
+  // difficiles ») ; il part avec cet interrupteur. Aucun autre appelant ne
+  // le pose.
   adaptiveTrancheWeighting?: boolean;
   // Voir `buildBuckets`, paramètre `combosOrderMode` : l'ordre des demi-builds
   // au sein d'un compartiment. `undefined` : le défaut de `buildBuckets`,
@@ -1296,7 +1295,8 @@ const BUCKET_CAP = 3000;
 // le NOMBRE de builds valides retenus. Ancrer `bucketCapFor` pour reproduire EXACTEMENT 3000 à `slotFilterCap=
 // 80`, en supposant que « les 7 cas de perf-battery passent à
 // bucketCap=3000/cap=80 » prouve que ce point est sûr, est FAUX : sur le cas
-// Sonia objectif Vitesse + « Prioriser les stats les plus difficiles » activé, `slotFilterCap=40` (Bas) trouve
+// Sonia objectif Vitesse + répartition adaptative des tranches (retirée du
+// moteur depuis, voir `SearchParams.adaptiveTrancheWeighting`), `slotFilterCap=40` (Bas) trouve
 // RÉELLEMENT 5 builds valides, mais `slotFilterCap=80` (Moyen) — MÊME
 // `bucketCap=3000`, valeur INCHANGÉE entre les deux — n'en retient que 3 :
 // 2 des 5 demi-builds (moitié A, slots 1-3) trouvés à Bas ne survivaient déjà
@@ -1418,35 +1418,6 @@ function runeContributionAllKeys(rune: RuneDetail): Record<StatKey, { pct: numbe
   if (rune.innate) add(rune.innate.code, rune.innate.value);
   for (const s of rune.subs) add(s.code, s.value);
   return out;
-}
-
-// ⚠️ Comme `runeContribution`, mais SANS la principale — sous-stats et
-// innée uniquement. Sert à la pondération adaptative des tranches de
-// rétention (voir docs/03-developpeur/optimizer/
-// § Pré-filtrage heuristique et compartiments) : la principale d'un slot est une valeur GARANTIE et relativement
-// stable pour toute rune candidate de ce slot (surtout sur un slot à
-// principale imposée — VIT slot 2, TC/DCC slot 4, RES/PRE slot 6) — elle
-// NOIE la vraie dispersion (sous-stats, aléatoires) derrière une moyenne
-// artificiellement stable. Une rune ne peut d'ailleurs JAMAIS avoir sa
-// propre principale dupliquée en sous-stat (règle du jeu, voir la mémoire
-// sw-rune-mainstat-rules) : sur un slot dont la principale EST la stat
-// suivie, la contribution hors-principale est structurellement nulle —
-// exactement le signal recherché (ce slot n'apporte rien à la VARIABILITÉ
-// de cette stat, seulement un plancher fixe). Validé sur le prototype
-// conservé dans scripts/patches/piste-a-tranche-weighting.patch avant
-// d'être reprise ici.
-function runeSubOnlyContribution(rune: RuneDetail, key: StatKey): { pct: number; flat: number } {
-  let pct = 0;
-  let flat = 0;
-  const add = (code: number, value: number) => {
-    const def = RUNE_EFFECT[code];
-    if (!def || def.stat !== key) return;
-    if (def.pct) pct += value;
-    else flat += value;
-  };
-  if (rune.innate) add(rune.innate.code, rune.innate.value);
-  for (const s of rune.subs) add(s.code, s.value);
-  return { pct, flat };
 }
 
 function valueOf(rune: RuneDetail, metric: OptimMetric): number {
@@ -2391,84 +2362,6 @@ export interface BuildBucketsContext {
 // bouton Arrêter ne réagiraient pendant cette phase (voir
 // docs/03-developpeur/optimizer/ § Construction des moitiés). `half` sert uniquement à étiqueter la progression émise (A ou
 // B), aucun effet sur le calcul lui-même.
-/**
- * Le CV par tranche et la réallocation qu'il produit (« Prioriser les stats les plus difficiles »).
- *
- * ⚠️ **EXTRAITE de `buildBuckets`, pas recopiée, et c'est toute la raison
- * d'être de cette fonction.** Son corps vivait en ligne, non exporté : un
- * diagnostic qui aurait voulu rendre ce CV n'avait d'autre choix que de le
- * retaper — et aurait alors mesuré SA copie, pas la valeur qui pilote
- * réellement la répartition. C'est la raison d'être de la discipline
- * « fidélité des scripts de diagnostic », et le précédent exact de
- * `releverPreparation` (docs/03-developpeur/optimizer/ § L'observateur
- * onStage) : extraire
- * est la condition de possibilité de la mesure, pas un découpage de confort.
- * `buildBuckets` l'appelle lui-même — il ne peut donc pas y avoir deux
- * versions.
- *
- * ⚠️ **Ce que le CV mesure, et sur quoi.** Pour chaque `retentionKey`, la
- * dispersion de la contribution HORS PRINCIPALE
- * (`runeSubOnlyContribution`) sur le pool DÉJÀ FILTRÉ de chacun des trois
- * emplacements de la moitié — donc APRÈS `filterSlot`, sur une population
- * stable, jamais sur des demi-builds en cours de construction.
- * ⚠️ L'exclusion de la principale est DÉLIBÉRÉE : une principale garantie
- * (la VIT d'un emplacement 2, par exemple) noie sinon la vraie dispersion et
- * fait passer une stat tendue pour une stat molle. Un CV calculé principale
- * COMPRISE n'est pas une approximation de celui-ci — c'est un autre nombre.
- *
- * ⚠️ Variance d'une somme = somme des variances : l'indépendance entre les
- * trois emplacements est une HYPOTHÈSE, approximative et assumée comme telle
- * (premier ordre défendable), pas une identité.
- */
-export interface RepartitionTranches {
-  /** Le coefficient de variation par `retentionKey`. */
-  cv: Record<string, number>;
-  /** Les places allouées à chaque tranche — budget total inchangé, plancher à 10 % de la part égale. */
-  reallocatedCap: Record<string, number>;
-}
-
-export function trancheReallocation(
-  filtered: RuneDetail[][],
-  slotIdxs: readonly [number, number, number],
-  retentionKeys: string[],
-  base: BaseStats,
-  perOtherSliceCap: number
-): RepartitionTranches {
-  const cv: Record<string, number> = {};
-  for (const k of retentionKeys) {
-    let sumMean = 0;
-    let sumVariance = 0;
-    for (const i of slotIdxs) {
-      const slotPool = filtered[i];
-      if (slotPool.length === 0) continue;
-      let sum = 0;
-      let sumSq = 0;
-      for (const r of slotPool) {
-        const c = runeSubOnlyContribution(r, k as StatKey);
-        const v = weightedContribution(base, k as StatKey, c.pct, c.flat);
-        sum += v;
-        sumSq += v * v;
-      }
-      const mean = sum / slotPool.length;
-      const variance = Math.max(0, sumSq / slotPool.length - mean * mean);
-      sumMean += mean;
-      sumVariance += variance;
-    }
-    cv[k] = sumMean > 0 ? Math.sqrt(sumVariance) / sumMean : 0;
-  }
-  const cv2: Record<string, number> = {};
-  for (const k of retentionKeys) cv2[k] = cv[k] * cv[k];
-  const totalCv2 = retentionKeys.reduce((s, k) => s + cv2[k], 0);
-  const totalBudget = retentionKeys.length * perOtherSliceCap;
-  const floorCap = Math.max(1, Math.round(perOtherSliceCap * 0.1));
-  const reallocatedCap: Record<string, number> = {};
-  for (const k of retentionKeys) {
-    const share = totalCv2 > 0 ? cv2[k] / totalCv2 : 1 / retentionKeys.length;
-    reallocatedCap[k] = Math.max(floorCap, Math.round(share * totalBudget));
-  }
-  return { cv, reallocatedCap };
-}
-
 export function* buildBuckets(
   half: 'A' | 'B',
   slotIdxs: readonly [number, number, number],
@@ -2482,15 +2375,6 @@ export function* buildBuckets(
   // (scripts de mesure) tant que le coût réel (taille de la skyline sur un
   // compte réel) n'est pas mesuré.
   skylineKeys?: StatKey[],
-  // Pondération adaptative par tranche (docs/03-developpeur/optimizer/
-  // § Pré-filtrage heuristique et compartiments). `false`/`undefined` :
-  // le bloc `reallocatedCap` ci-dessous ne s'exécute pas, chaque tranche par
-  // stat reçoit `perOtherSliceCap`, coût nul. `true` — l'interrupteur
-  // « Prioriser les stats les plus difficiles », que l'écran et le Worker
-  // transmettent — réalloue le budget de rétention entre les tranches par
-  // stat, à budget total égal (validé sur Sonia deck 6, cas de stress
-  // atteignable).
-  adaptiveTrancheWeighting = false,
   // Ordre des demi-builds au sein d'un compartiment. Quatre valeurs,
   // toutes INTERNES — jamais exposées dans l'UI, aucun appel de production
   // n'en passe une explicitement (le défaut ci-dessous s'applique donc
@@ -2561,35 +2445,6 @@ export function* buildBuckets(
   // `bucketCap` places, comme avant.
   const genericCap = bucketCap;
   const perOtherSliceCap = genericCap;
-
-  // ⚠️ Pondération adaptative par tranche (docs/03-developpeur/optimizer/
-  // § Pré-filtrage heuristique et compartiments).
-  // PROXY ANALYTIQUE calculé AVANT la triple boucle — pour chaque
-  // `retentionKey`, estime la variance du demi-build complet en sommant la
-  // variance de la contribution HORS PRINCIPALE (`runeSubOnlyContribution`,
-  // même exclusion que le prototype conservé dans
-  // scripts/patches/piste-a-tranche-weighting.patch — une principale
-  // garantie noie sinon la vraie dispersion) sur le pool DÉJÀ FILTRÉ de
-  // CHAQUE slot de cette moitié (`filtered[i0/i1/i2]`, une centaine à
-  // quelques centaines de candidats — une POPULATION STABLE, pas un
-  // échantillon de demi-builds en cours de construction comme le prototype).
-  // Hypothèse d'indépendance entre les 3 slots (variance d'une somme = somme
-  // des variances) : approximative, pas garantie exacte, mais un premier
-  // ordre défendable — à confirmer par la mesure, pas à supposer. Coût :
-  // O(taille des 3 pools filtrés), négligeable face au O(pool³) de la
-  // triple boucle qui suit. Réutilise ENSUITE la même formule de
-  // réallocation déjà validée sur le prototype (part au CARRÉ du CV, budget
-  // total inchangé = `retentionKeys.length × bucketCap`, plancher à 10 % de
-  // la part égale) — mais pour fixer la BONNE taille de chaque tas par stat
-  // DÈS LE DÉPART, sans jamais surprovisionner ni élaguer après coup : le
-  // défaut principal mesuré sur le prototype (coût de construction accru sur
-  // la majorité des cas réels, même quand la réallocation ne change rien à
-  // l'issue) ne devrait structurellement pas exister ici — à VÉRIFIER par
-  // la même batterie de mesure, pas à présumer.
-  const reallocatedCap: Record<string, number> =
-    adaptiveTrancheWeighting && retentionKeys.length > 0
-      ? trancheReallocation(filtered, [i0, i1, i2], retentionKeys, base, perOtherSliceCap).reallocatedCap
-      : {};
 
   // Meilleur cas atteignable par CHAQUE slot de cette moitié, pour chaque set
   // demandé — calculé une fois, réutilisé à chaque étape du triple flux.
@@ -2791,8 +2646,7 @@ export function* buildBuckets(
           heapPush(bucketSlices![1], { item: combo, score: combinedRetentionScore(base, pct, flat, minEntries) }, perOtherSliceCap);
         }
         for (let i = 0; i < retentionKeys.length; i++) {
-          const cap = adaptiveTrancheWeighting ? reallocatedCap[retentionKeys[i]] : perOtherSliceCap;
-          heapPush(bucketSlices![retentionOffset + i], { item: combo, score: retentionScore(base, pct, flat, retentionKeys[i]) }, cap);
+          heapPush(bucketSlices![retentionOffset + i], { item: combo, score: retentionScore(base, pct, flat, retentionKeys[i]) }, perOtherSliceCap);
         }
         if (skylines) {
           let skyline = skylines.get(key);
@@ -2937,7 +2791,7 @@ export function* buildBuckets(
     traceMoitie.tranches = bucketSlices.map((slice, i) => ({
       nom: noms[i] ?? `tranche${i}`,
       retenue: slice.some((e) => e.item === traceCombo),
-      cap: i === 0 ? genericCap : adaptiveTrancheWeighting && i >= (hasCombined ? 2 : 1) ? reallocatedCap[retentionKeys[i - (hasCombined ? 2 : 1)]] : perOtherSliceCap,
+      cap: i === 0 ? genericCap : perOtherSliceCap,
       taille: slice.length,
     }));
     const b = buckets.get(traceMoitie.compartiment);

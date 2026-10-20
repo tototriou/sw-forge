@@ -12,8 +12,7 @@
 // `worker_threads` sont exercés par le banc (scripts/banc-construction-moities.ts).
 //
 // La matrice : préréglages Bas à Extrême (`slotFilterCap`,
-// `bucketCap` dérivé, le chemin de production), avec et sans
-// `adaptiveTrancheWeighting`, chaque `combosOrderMode`. En plus, des plafonds de
+// `bucketCap` dérivé, le chemin de production), chaque `combosOrderMode`. En plus, des plafonds de
 // rétention minuscules (override de mesure, `SearchParams.bucketCap`) : ce sont
 // eux qui forcent les évictions et les ex æquo à la racine des tas, là où une
 // fusion approximative divergerait. Un témoin à plafond immense donne le nombre
@@ -69,12 +68,12 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
-function parametres(s: Scenario, pool: SearchParams['pool'], slotFilterCap: number, bucketCap: number | undefined, adaptatif: boolean, ordre: OrdreCombos): SearchParams {
+function parametres(s: Scenario, pool: SearchParams['pool'], slotFilterCap: number, bucketCap: number | undefined, ordre: OrdreCombos): SearchParams {
   return {
     base: BASE, artifacts: [], pool, requirement: s.requirement, metric: 'eff',
     objective: s.objective, objectiveStats: s.objectiveStats, slotFilterCap,
     ...(bucketCap != null ? { bucketCap } : {}),
-    adaptiveTrancheWeighting: adaptatif, combosOrderMode: ordre,
+    combosOrderMode: ordre,
   };
 }
 
@@ -88,10 +87,9 @@ function comparer(params: SearchParams, half: 'A' | 'B', slots: readonly [number
   const prepared = prepareSearch(params);
   if (!prepared) return { divergence: 'préparation vide (scénario à revoir)', ref: [] };
   const autre = half === 'A' ? prepared.maxSetsForA : prepared.maxSetsForB;
-  const adaptatif = params.adaptiveTrancheWeighting ?? false;
   const ordre = params.combosOrderMode ?? 'objective';
-  const ref = drain(buildBuckets(half, slots, prepared, autre, undefined, adaptatif, ordre));
-  const seq = drain(construireMoitieRapide(half, slots, prepared, autre, adaptatif, ordre));
+  const ref = drain(buildBuckets(half, slots, prepared, autre, undefined, ordre));
+  const seq = drain(construireMoitieRapide(half, slots, prepared, autre, ordre));
   const dSeq = premiereDivergence(ref, seq);
   if (dSeq) return { divergence: `séquentiel : ${dSeq}`, ref };
   const ctx = contexteDe(prepared);
@@ -99,8 +97,8 @@ function comparer(params: SearchParams, half: 'A' | 'B', slots: readonly [number
   const coupe = Math.max(1, Math.floor(n0 / 5));
   const partitions = [repartirIdx0(n0, 3), [Array.from({ length: coupe }, (_, i) => i), Array.from({ length: n0 - coupe }, (_, i) => coupe + i)]];
   for (const [p, partition] of partitions.entries()) {
-    const tranches = partition.map((idx0s) => construireTranche({ ctx, slotIdxs: slots, otherHalfMaxSets: autre, adaptiveTrancheWeighting: adaptatif, idx0s }));
-    const par = fusionnerTranches(ctx, slots, autre, adaptatif, ordre, tranches);
+    const tranches = partition.map((idx0s) => construireTranche({ ctx, slotIdxs: slots, otherHalfMaxSets: autre, idx0s }));
+    const par = fusionnerTranches(ctx, slots, autre, ordre, tranches);
     const d = premiereDivergence(ref, par);
     if (d) return { divergence: `tranches (partition ${p}) : ${d}`, ref };
   }
@@ -111,8 +109,8 @@ function comparer(params: SearchParams, half: 'A' | 'B', slots: readonly [number
 function temoinsNegatifs() {
   const s = SCENARIOS[0];
   const pool = randomPool(mulberry32(s.seed), 20, SETS_JOKER);
-  const prepared = prepareSearch(parametres(s, pool, 40, 5, false, 'objective'))!;
-  const ref = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, false, 'objective'));
+  const prepared = prepareSearch(parametres(s, pool, 40, 5, 'objective'))!;
+  const ref = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, 'objective'));
   const copie = (): Bucket[] => ref.map((b) => ({ ...b, combos: b.combos.map((c) => ({ ...c, pct: { ...c.pct }, flat: { ...c.flat } })), maxPct: { ...b.maxPct }, maxFlat: { ...b.maxFlat } }));
   ok(premiereDivergence(ref, copie()) === null, 'témoin : une copie profonde est identique');
   const b = ref.findIndex((x) => x.combos.length >= 2);
@@ -137,7 +135,7 @@ function temoinsNegatifs() {
 function testCheminDeProduction() {
   const s = SCENARIOS[0];
   const pool = randomPool(mulberry32(s.seed), 30, SETS_JOKER);
-  const prepared = prepareSearch(parametres(s, pool, 80, undefined, false, 'objective'))!;
+  const prepared = prepareSearch(parametres(s, pool, 80, undefined, 'objective'))!;
   for (const { half, slots } of MOITIES) {
     const autre = half === 'A' ? prepared.maxSetsForA : prepared.maxSetsForB;
     ok(motifRepliConstruction(prepared, slots) === null, `moitié ${half} : le noyau prend la construction (aucun motif de repli)`);
@@ -150,18 +148,18 @@ function testCheminDeProduction() {
       }
       return { vus, buckets: step.value };
     };
-    const ref = pas(buildBuckets(half, slots, prepared, autre, undefined, false, 'objective'));
-    const prod = pas(construireMoitie(half, slots, prepared, autre, false, 'objective'));
+    const ref = pas(buildBuckets(half, slots, prepared, autre, undefined, 'objective'));
+    const prod = pas(construireMoitie(half, slots, prepared, autre, 'objective'));
     ok(premiereDivergence(ref.buckets, prod.buckets) === null, `moitié ${half} : construireMoitie = buildBuckets (égalité profonde)`);
     egal(prod.vus, ref.vus, `moitié ${half} : mêmes points de passage (une rune du premier emplacement chacun)`);
   }
   // Traceur : le repli, qui remplit la trace de la moitié.
   const ids = [0, 1, 2, 3, 4, 5].map((i) => prepared.filtered[i][0].id);
-  const traceAvec = prepareSearch({ ...parametres(s, pool, 80, undefined, false, 'objective'), traceur: { runeIds: ids } })!;
+  const traceAvec = prepareSearch({ ...parametres(s, pool, 80, undefined, 'objective'), traceur: { runeIds: ids } })!;
   ok(motifRepliConstruction(traceAvec, [0, 1, 2]) !== null, 'traceur demandé : motif de repli nommé');
-  const avecTrace = drain(construireMoitie('A', [0, 1, 2], traceAvec, traceAvec.maxSetsForA, false, 'objective'));
+  const avecTrace = drain(construireMoitie('A', [0, 1, 2], traceAvec, traceAvec.maxSetsForA, 'objective'));
   ok(traceAvec.traceur?.moities.A != null, 'traceur demandé : buildBuckets a rempli la trace de la moitié A');
-  ok(premiereDivergence(drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, false, 'objective')), avecTrace) === null,
+  ok(premiereDivergence(drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, 'objective')), avecTrace) === null,
     'traceur demandé : mêmes compartiments que sans traceur');
   // Au-delà de 2³¹ triplets : seul le nombre de runes par emplacement compte.
   const enorme = { ...prepared, filtered: [new Array(1300), new Array(1300), new Array(1300), [], [], []] } as unknown as typeof prepared;
@@ -172,14 +170,12 @@ function testCheminDeProduction() {
   // `Int32Array` les rendrait négatives (2³¹) ou nulles (`Infinity`), et le
   // noyau rendrait zéro combinaison. Repli sur buildBuckets, motif nommé.
   for (const bucketCap of [2 ** 31, Infinity]) {
-    for (const adaptatif of [false, true]) {
-      const p = prepareSearch(parametres(s, pool, 80, bucketCap, adaptatif, 'objective'))!;
-      ok(/bucketCap|capacité/.test(motifRepliConstruction(p, [0, 1, 2], adaptatif) ?? ''), `bucketCap = ${bucketCap}, adaptatif=${adaptatif} : repli sur buildBuckets, motif nommé`);
-      const ref = drain(buildBuckets('A', [0, 1, 2], p, p.maxSetsForA, undefined, adaptatif, 'objective'));
-      const prod = drain(construireMoitie('A', [0, 1, 2], p, p.maxSetsForA, adaptatif, 'objective'));
-      ok(ref.some((b) => b.combos.length > 0) && premiereDivergence(ref, prod) === null,
-        `bucketCap = ${bucketCap}, adaptatif=${adaptatif} : construireMoitie = buildBuckets, combinaisons comprises (${ref.reduce((n, b) => n + b.combos.length, 0)})`);
-    }
+    const p = prepareSearch(parametres(s, pool, 80, bucketCap, 'objective'))!;
+    ok(/bucketCap/.test(motifRepliConstruction(p, [0, 1, 2]) ?? ''), `bucketCap = ${bucketCap} : repli sur buildBuckets, motif nommé`);
+    const ref = drain(buildBuckets('A', [0, 1, 2], p, p.maxSetsForA, undefined, 'objective'));
+    const prod = drain(construireMoitie('A', [0, 1, 2], p, p.maxSetsForA, 'objective'));
+    ok(ref.some((b) => b.combos.length > 0) && premiereDivergence(ref, prod) === null,
+      `bucketCap = ${bucketCap} : construireMoitie = buildBuckets, combinaisons comprises (${ref.reduce((n, b) => n + b.combos.length, 0)})`);
   }
   const tranches = 2 + prepared.retentionKeys.length;
   ok(motifRepliConstruction({ ...prepared, bucketCap: Math.floor(0x7fffffff / tranches) }, [0, 1, 2]) === null,
@@ -197,35 +193,31 @@ export default function testConstructionRapide() {
 
     // 1. La matrice, au chemin de production (`bucketCap` dérivé du préréglage).
     for (const preset of SLOT_FILTER_PRESETS) {
-      for (const adaptatif of [false, true]) {
-        for (const ordre of ORDRES) {
-          for (const { half, slots } of MOITIES) {
-            const { divergence, ref } = comparer(parametres(s, pool, preset.cap, undefined, adaptatif, ordre), half, slots);
-            ok(
-              divergence === null && ref.length > 0,
-              `${s.nom} · ${preset.label} · adaptatif=${adaptatif} · ${ordre} · moitié ${half} : ` +
-                (divergence ?? `identique (${ref.length} compartiments, ${ref.reduce((n, b) => n + b.combos.length, 0)} combos)`)
-            );
-          }
+      for (const ordre of ORDRES) {
+        for (const { half, slots } of MOITIES) {
+          const { divergence, ref } = comparer(parametres(s, pool, preset.cap, undefined, ordre), half, slots);
+          ok(
+            divergence === null && ref.length > 0,
+            `${s.nom} · ${preset.label} · ${ordre} · moitié ${half} : ` +
+              (divergence ?? `identique (${ref.length} compartiments, ${ref.reduce((n, b) => n + b.combos.length, 0)} combos)`)
+          );
         }
       }
     }
 
     // 2. Rétention sous pression : plafonds minuscules, évictions et ex æquo à la racine.
     for (const { half, slots } of MOITIES) {
-      const temoin = comparer(parametres(s, pool, 80, 1_000_000, false, 'objective'), half, slots);
+      const temoin = comparer(parametres(s, pool, 80, 1_000_000, 'objective'), half, slots);
       const generees = new Map(temoin.ref.map((b) => [`${b.counts.join(',')}|${b.jokers}`, b.combos.length]));
       for (const bucketCap of [1, 7, 50]) {
-        for (const adaptatif of [false, true]) {
-          for (const ordre of ORDRES) {
-            const { divergence, ref } = comparer(parametres(s, pool, 80, bucketCap, adaptatif, ordre), half, slots);
-            const evince = ref.some((b) => b.combos.length < (generees.get(`${b.counts.join(',')}|${b.jokers}`) ?? 0));
-            ok(
-              divergence === null && evince,
-              `${s.nom} · bucketCap=${bucketCap} (override de mesure) · adaptatif=${adaptatif} · ${ordre} · moitié ${half} : ` +
-                (divergence ?? (evince ? 'identique, avec évictions' : 'AUCUNE éviction : le scénario ne teste pas le tas'))
-            );
-          }
+        for (const ordre of ORDRES) {
+          const { divergence, ref } = comparer(parametres(s, pool, 80, bucketCap, ordre), half, slots);
+          const evince = ref.some((b) => b.combos.length < (generees.get(`${b.counts.join(',')}|${b.jokers}`) ?? 0));
+          ok(
+            divergence === null && evince,
+            `${s.nom} · bucketCap=${bucketCap} (override de mesure) · ${ordre} · moitié ${half} : ` +
+              (divergence ?? (evince ? 'identique, avec évictions' : 'AUCUNE éviction : le scénario ne teste pas le tas'))
+          );
         }
       }
     }

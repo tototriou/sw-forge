@@ -80,7 +80,7 @@ trait fin (`border-soft`) — décision de l'utilisateur à l'arrêt 4 de la
 refonte : des cartes côte à côte se lisaient comme une mosaïque aérée.
 Écarts **serrés dans un panneau** (8 px de rembourrage, 8 px de part et
 d'autre d'un trait), **larges entre deux** : 24 px. Classes communes :
-`bureau/panneau.ts` (`PANNEAU`, `SECTIONS`).
+`src/components/outils/optimizer/bureau/panneau.ts` (`PANNEAU`, `SECTIONS`).
 
 Les largeurs ci-dessus sont des **places** (`LARGEURS_BUREAU`,
 src/lib/optimizerColonnes.ts), d'où se calculent les seuils : un panneau

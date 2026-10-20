@@ -322,6 +322,16 @@ vingt fois moins de notes. Les représentants des formes vivent dans
 les caches de la file (`CachesResolution.rapide`,
 `nouveauxCachesResolution`) : un jeu par file, recréé avec les autres.
 
+Le verdict d'une forme est le jugement de `respecteConditionsAvecRelique`
+(`respecteMinEtMax` sur les stats de la paire, la candidate à la place de
+la portée, auras propres du build), dont les entrées se calculent une
+fois : les auras propres par build, les stats sans artéfact par principale
+de relique (`statsParPaire`, qui rend au bit près le `computeStats` de
+chaque paire). Une paire se juge par l'indice de la forme de chacune de ses
+pièces, lu une fois par pièce et par relique (`FormesDePaire`) : aucune clé
+n'est construite par paire. La paire retenue repasse
+`respecteConditionsAvecRelique` lui-même, dont elle garde les stats.
+
 - Pour un build conforme, le résultat est celui du calcul exhaustif, champ
   pour champ (paire, artéfacts, stats, `meilleurSansVerrous`, relique,
   `sansEffetSurLeTri`).

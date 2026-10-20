@@ -20,6 +20,14 @@
 // SUR-ENSEMBLE fini des formes de paire : (principale distincte d'attribut ou
 // vide) × (principale distincte de type ou vide), 16 formes sur Kinki.
 //
+// Le verdict d'une forme, par principale de relique, est le jugement même de
+// `respecteConditionsAvecRelique` (`respecteMinEtMax` sur les stats de la
+// paire, auras propres du build) ; ses entrées se calculent une fois : les
+// auras propres par build, les stats sans artéfact par principale de relique
+// (`statsParPaire`, au bit près le `computeStats` de chaque paire). Une paire
+// se juge par l'indice de la forme de chacune de ses pièces (`FormesDePaire`),
+// lu une fois par pièce et par relique, jamais une clé construite par paire.
+//
 // - **Aucune forme faisable pour une relique** → aucune paire ne l'est : la
 //   relique est « infaisable » sans qu'aucune paire ne soit notée.
 // - **Sinon, seules les paires FAISABLES sont notées** : la double
@@ -50,8 +58,9 @@
 // formes compris (`caches.rapide`).
 //
 // Hors mode `recherche` (relique portée fixe) : le prédicat
-// `respecteConditions` est mémoïsé par forme de paire (précondition : il ne
-// lit des artéfacts que leurs principales — vrai pour son seul producteur,
+// `respecteConditions` est mémoïsé par forme de paire, au premier jugement
+// d'une paire de cette forme (précondition : il ne lit des artéfacts que
+// leurs principales — vrai pour son seul producteur,
 // `entreeResolutionDuBuild`).
 
 import { ARTIFACT_KINDS, ArtifactDetail, ArtifactKind, RelicDetail } from '../types';
@@ -65,14 +74,15 @@ import {
   pairesParScore,
 } from './artifactOptim';
 import { artifactPairAllowed } from './artifacts';
-import { RechercheRefusee, respecteConditionsAvecRelique } from './runeBuildOptim';
+import { RechercheRefusee, respecteConditionsAvecRelique, respecteMinEtMax } from './runeBuildOptim';
+import { aurasPropresDesRunes } from './damage';
 import { bestRelicForBuild } from './relicOptim';
 import type { ResultatArtefacts } from './artifactQueue';
 // Type seul : relicQueue.ts importe ce module (son point d'entrée et ses
 // caches), un import de valeur ferait un cycle.
 import type { EntreeResolution } from './relicQueue';
 import { resoudreEquipementDuBuildExhaustif } from './resolutionExhaustive';
-import { StatRow, computeStats } from './stats';
+import { StatRow, computeStats, statsParPaire } from './stats';
 
 /** Ce que la résolution rapide compte, pour le banc et les tests (aucun effet sur le résultat). */
 export interface CompteursResolutionRapide {
@@ -109,6 +119,20 @@ export interface OptionsResolutionRapide {
 }
 
 /**
+ * Les formes de paire d'une file : par sorte, les représentants (une pièce par
+ * principale `(code, valeur)` distincte, l'emplacement vide en tête) et
+ * l'indice de chaque forme dans ce tableau. Une paire se juge par le couple
+ * d'indices de ses deux pièces : la forme d'une pièce se calcule une fois
+ * par pièce et par relique, jamais une fois par paire.
+ */
+export interface FormesDePaire {
+  element: (ArtifactDetail | null)[];
+  archetype: (ArtifactDetail | null)[];
+  indiceElement: Map<string, number>;
+  indiceArchetype: Map<string, number>;
+}
+
+/**
  * Les représentants des formes de paire : par sorte, une pièce par principale
  * `(code, valeur)` distincte de `candidatsParSorte`, plus l'emplacement vide.
  * Mémoïsés sur les entrées que lit `candidatsParSorte`, par identité (comme
@@ -117,9 +141,9 @@ export interface OptionsResolutionRapide {
  */
 export class CachesResolutionRapide {
   private entrees: unknown[] | null = null;
-  private formes: { element: (ArtifactDetail | null)[]; archetype: (ArtifactDetail | null)[] } | null = null;
+  private formes: FormesDePaire | null = null;
 
-  representants(params: ArtifactSearchParams): { element: (ArtifactDetail | null)[]; archetype: (ArtifactDetail | null)[] } {
+  representants(params: ArtifactSearchParams): FormesDePaire {
     const entrees = [params.inventaire, params.equipes, params.porteur, params.principaleParSorte];
     if (!this.formes || !this.entrees || entrees.some((v, i) => v !== this.entrees![i])) {
       const parSorte = (kind: ArtifactKind) => {
@@ -131,7 +155,10 @@ export class CachesResolutionRapide {
         // `candidatsParSorte` ne le rend pas (« Garder l'artéfact équipé »).
         return [null, ...vus.values()];
       };
-      this.formes = { element: parSorte('element'), archetype: parSorte('archetype') };
+      const indices = (formes: (ArtifactDetail | null)[]) => new Map(formes.map((a, i) => [formeDe(a), i]));
+      const element = parSorte('element');
+      const archetype = parSorte('archetype');
+      this.formes = { element, archetype, indiceElement: indices(element), indiceArchetype: indices(archetype) };
       this.entrees = entrees;
     }
     return this.formes;
@@ -140,6 +167,12 @@ export class CachesResolutionRapide {
 
 function formeDe(a: ArtifactDetail | null): string {
   return a ? `${a.main.code}:${a.main.value}` : '-';
+}
+
+// L'indice de la forme d'une pièce, −1 hors des formes (une paire qui le
+// porte se signale au moment où elle est jugée, jamais avant).
+function indiceDe(indices: Map<string, number>, a: ArtifactDetail | null): number {
+  return indices.get(formeDe(a)) ?? -1;
 }
 
 // La forme d'une paire : principales de l'attribut puis du type, l'ordre même
@@ -173,7 +206,9 @@ const NAN = Symbol('note NaN');
 function meilleurePaireFaisable(
   params: ArtifactSearchParams,
   memo: MemoPreFiltre | undefined,
-  faisable: (element: ArtifactDetail | null, archetype: ArtifactDetail | null, paire: ArtifactDetail[]) => boolean,
+  formes: FormesDePaire,
+  // `ie`, `ia` : indices des formes des deux pièces (`formes`), −1 hors des formes.
+  faisable: (ie: number, ia: number, element: ArtifactDetail | null, archetype: ArtifactDetail | null, paire: ArtifactDetail[]) => boolean,
   compteurs: CompteursResolutionRapide | undefined
 ): PaireArtefacts | null | typeof NAN {
   // Les sondes de pertinence restent sur le vrai `evaluer`, à chaque appel.
@@ -181,18 +216,25 @@ function meilleurePaireFaisable(
   // Sans memo de file, un memo neuf rend `candidatsPourRecherche` lui-même.
   const m = memo ?? new MemoPreFiltre();
   const [candidatsElement, candidatsArchetype] = ARTIFACT_KINDS.map(({ key }) => m.candidats(params, key, pertinence));
+  // La forme de chaque candidat, une fois par appel (et non une fois par paire).
+  const indicesElement = candidatsElement!.map((a) => indiceDe(formes.indiceElement, a));
+  const indicesArchetype = candidatsArchetype!.map((a) => indiceDe(formes.indiceArchetype, a));
   const verrous = params.lignesVerrouillees?.filter((l) => l.min > 0) ?? [];
   let meilleure: PaireArtefacts | null = null;
   // Réutilisé d'un tour à l'autre, comme dans `collecterPaires`.
   const paire: ArtifactDetail[] = [];
-  for (const element of candidatsElement!) {
-    for (const archetype of candidatsArchetype!) {
+  // La double boucle de `collecterPaires`, dans le même ordre.
+  for (let i = 0; i < candidatsElement!.length; i++) {
+    const element = candidatsElement![i] as ArtifactDetail | null;
+    const ie = indicesElement[i]!;
+    for (let j = 0; j < candidatsArchetype!.length; j++) {
+      const archetype = candidatsArchetype![j] as ArtifactDetail | null;
       if (!artifactPairAllowed(element, archetype)) continue;
       paire.length = 0;
       if (element) paire.push(element);
       if (archetype) paire.push(archetype);
       if (!paireRespecteLignes(paire, verrous)) continue;
-      if (!faisable(element, archetype, paire)) continue;
+      if (!faisable(ie, indicesArchetype[j]!, element, archetype, paire)) continue;
       const score = params.evaluer(paire);
       if (compteurs) compteurs.notesFaisables++;
       if (Number.isNaN(score)) return NAN;
@@ -219,14 +261,29 @@ function resoudreReliqueFixeRapide(
   options: OptionsResolutionRapide | undefined
 ): ResultatArtefacts {
   const params = e.faireParams(relique);
-  const verdicts = new Map<string, boolean>();
-  const respecte = (element: ArtifactDetail | null, archetype: ArtifactDetail | null, arts: ArtifactDetail[]) => {
+  // Les formes de la file (`caches.rapide`, un jeu par file).
+  const formes = (e.caches?.rapide ?? new CachesResolutionRapide()).representants(params);
+  // Le verdict de chaque forme de paire, au premier jugement d'une paire de
+  // cette forme (indice `ie × nA + ia`) ; une pièce hors des formes garde le
+  // verdict par forme écrite (même prédicat, même mémoïsation).
+  const nA = formes.archetype.length;
+  const verdicts: (boolean | undefined)[] = [];
+  const horsFormes = new Map<string, boolean>();
+  const respecte = (ie: number, ia: number, element: ArtifactDetail | null, archetype: ArtifactDetail | null, arts: ArtifactDetail[]) => {
     if (!e.respecteConditions) return true;
-    const forme = formeDePaire(element, archetype);
-    let v = verdicts.get(forme);
+    if (ie < 0 || ia < 0) {
+      const forme = formeDePaire(element, archetype);
+      let v = horsFormes.get(forme);
+      if (v === undefined) {
+        v = e.respecteConditions(arts);
+        horsFormes.set(forme, v);
+      }
+      return v;
+    }
+    let v = verdicts[ie * nA + ia];
     if (v === undefined) {
       v = e.respecteConditions(arts);
-      verdicts.set(forme, v);
+      verdicts[ie * nA + ia] = v;
     }
     return v;
   };
@@ -244,7 +301,7 @@ function resoudreReliqueFixeRapide(
     const r = pairesParScore(params, e.caches?.preFiltre);
     for (const p of r.paires) {
       const arts = artefactsDe(p);
-      if (respecte(p.element, p.archetype, arts)) {
+      if (respecte(indiceDe(formes.indiceElement, p.element), indiceDe(formes.indiceArchetype, p.archetype), p.element, p.archetype, arts)) {
         return {
           paire: p, artefacts: arts, stats: computeStats({ ...e.gear, artifacts: arts, relic: relique }),
           meilleurSansVerrous: r.meilleurSansVerrous, conforme: true,
@@ -254,7 +311,7 @@ function resoudreReliqueFixeRapide(
     return rejete();
   }
 
-  const p = meilleurePaireFaisable(params, e.caches?.preFiltre, respecte, compteurs);
+  const p = meilleurePaireFaisable(params, e.caches?.preFiltre, formes, respecte, compteurs);
   if (p === NAN) return avertirNaN(e, compteurs);
   if (!p) return rejete();
   const arts = artefactsDe(p);
@@ -307,17 +364,25 @@ export function resoudreEquipementDuBuildRapide(
 
   // Le verdict de chaque forme, par principale de relique : `computeStats` ne
   // lit d'une relique que sa principale, deux reliques de même principale
-  // ont la même table.
-  const tables = new Map<string, Map<string, boolean>>();
+  // ont la même table. Indice d'une forme de paire : `ie × nA + ia`.
+  const nA = formes.archetype.length;
+  // Le jugement même de `respecteConditionsAvecRelique` — `respecteMinEtMax`
+  // sur les stats de la paire, la candidate à la place de la portée —, ses
+  // deux entrées calculées une fois : les auras propres par build, les stats
+  // sans artéfact par principale de relique (`statsParPaire`, qui rend au bit
+  // près le `computeStats` de chaque paire, testé).
+  const propres = aurasPropresDesRunes(e.gear.runes);
+  const tables = new Map<string, boolean[]>();
   const tableDe = (relique: RelicDetail) => {
     const cle = `${relique.main.code}:${relique.main.value}`;
     let t = tables.get(cle);
     if (!t) {
-      t = new Map();
+      t = [];
+      const statsAvec = statsParPaire({ ...e.gear, relic: relique });
       for (const pe of formes.element) {
         for (const pa of formes.archetype) {
           const arts = [pe, pa].filter((a): a is ArtifactDetail => a != null);
-          t.set(formeDePaire(pe, pa), respecteConditionsAvecRelique({ ...e.gear, artifacts: arts }, relique, e.requirement).respecte);
+          t.push(respecteMinEtMax(statsAvec(arts), e.requirement, propres));
           if (compteurs) compteurs.formesJugees++;
         }
       }
@@ -327,12 +392,11 @@ export function resoudreEquipementDuBuildRapide(
   };
   // Une paire hors du sur-ensemble invaliderait l'écart des reliques sans
   // forme faisable : c'est un bug, jamais un cas à absorber.
-  const verdict = (table: Map<string, boolean>, element: ArtifactDetail | null, archetype: ArtifactDetail | null) => {
-    const v = table.get(formeDePaire(element, archetype));
-    if (v === undefined) {
+  const verdict = (table: boolean[], ie: number, ia: number, element: ArtifactDetail | null, archetype: ArtifactDetail | null) => {
+    if (ie < 0 || ia < 0) {
       throw new Error(`resoudreEquipementDuBuildRapide : paire de forme ${formeDePaire(element, archetype)} hors des formes de candidatsParSorte — bug.`);
     }
-    return v;
+    return table[ie * nA + ia]!;
   };
 
   const parRelique = new Map<number, CoupleFaisable>();
@@ -346,7 +410,7 @@ export function resoudreEquipementDuBuildRapide(
       if (compteurs) compteurs.reliques++;
       const table = tableDe(relique);
       let uneFaisable = false;
-      for (const v of table.values()) if (v) uneFaisable = true;
+      for (const v of table) if (v) uneFaisable = true;
       if (!uneFaisable) {
         if (compteurs) compteurs.reliquesSansFormeFaisable++;
         return 'infaisable';
@@ -361,13 +425,13 @@ export function resoudreEquipementDuBuildRapide(
         const r = pairesParScore(params, e.caches?.preFiltre);
         meilleurSansVerrous = r.meilleurSansVerrous;
         for (const q of r.paires) {
-          if (verdict(table, q.element, q.archetype)) {
+          if (verdict(table, indiceDe(formes.indiceElement, q.element), indiceDe(formes.indiceArchetype, q.archetype), q.element, q.archetype)) {
             p = q;
             break;
           }
         }
       } else {
-        const q = meilleurePaireFaisable(params, e.caches?.preFiltre, (el, ar) => verdict(table, el, ar), compteurs);
+        const q = meilleurePaireFaisable(params, e.caches?.preFiltre, formes, (ie, ia, el, ar) => verdict(table, ie, ia, el, ar), compteurs);
         if (q === NAN) {
           nanVu = true;
           return 'infaisable';

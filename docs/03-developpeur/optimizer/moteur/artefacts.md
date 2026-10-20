@@ -367,7 +367,8 @@ changer aucun résultat :
   l'emplacement vide — ne se recalculent que si les entrées de
   `candidatsParSorte` changent (`CachesResolutionRapide`,
   `src/lib/resolutionRapide.ts`, mémoïsé par identité comme
-  `MemoPreFiltre`) : [reliques.md § Résolution rapide — le chemin de l'app](reliques.md#résolution-rapide--le-chemin-de-lapp) ;
+  `MemoPreFiltre`), avec l'indice de chaque forme, par lequel une paire se
+  juge : [reliques.md § Résolution rapide — le chemin de l'app](reliques.md#résolution-rapide--le-chemin-de-lapp) ;
 - la résolution ne note d'ordinaire que les **paires faisables** et ne lit
   que la meilleure d'entre elles, en un parcours de l'ordre de
   `chercherPaires` — plus grand score, premier dans l'ordre de l'inventaire

@@ -25,7 +25,7 @@ avant terme rend. Les contraintes à ne pas casser sont dans
 | Appariement séquentiel | `src/workers/pairingDriver.ts`, `src/lib/rechercheRunes.ts`, `src/lib/appariementRapide.ts` | `drivePairing`, `apparier`, `apparierRapide` | [elagages.md](elagages.md), [02-app/optimizer/feat-interruption.md](../../../02-app/optimizer/feat-interruption.md) |
 | Appariement parallèle | `src/lib/appariementRapideParallele.ts`, `src/workers/appariementRapide.worker.ts`, `src/lib/travailleurAppariement.ts`, `src/lib/appariementRapide.ts` | `apparierRapideEnParallele`, `servirAppariement`, `parcourirMorceau` | [parallelisation.md](parallelisation.md) |
 | Fin de l'appariement | `src/workers/runeBuildOptim.worker.ts`, `src/hooks/useBuildOptimSearch.ts` | `useBuildOptimSearch` | — |
-| Résolution de l'équipement d'un build | `src/lib/relicQueue.ts` | `entreeResolutionDuBuild`, `resoudreEquipementDuBuild` | [artefacts.md](artefacts.md), [reliques.md](reliques.md) |
+| Résolution de l'équipement d'un build | `src/lib/relicQueue.ts`, `src/lib/resolutionRapide.ts`, `src/lib/resolutionExhaustive.ts` | `entreeResolutionDuBuild`, `resoudreEquipementDuBuild`, `resoudreEquipementDuBuildRapide`, `resoudreEquipementDuBuildExhaustif` | [artefacts.md](artefacts.md), [reliques.md](reliques.md) |
 | Worker de résolution | `src/workers/resolution.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | `CorpsResolution`, `ResolutionDistante` | [parallelisation.md](parallelisation.md) |
 | File de résolution | `src/hooks/useArtifactOptimQueue.ts`, `src/lib/artifactQueue.ts` | `useArtifactOptimQueue`, `prochainsATraiter`, `voieDeLaFile` | [artefacts.md](artefacts.md) |
 | Résultat affiché | `src/lib/artifactQueue.ts`, `src/components/outils/OptimizerSection.tsx` | `classementResolu`, `compositionDePage`, `compteConfirme` | [02-app/optimizer/ecran/resultats.md](../../../02-app/optimizer/ecran/resultats.md) |
@@ -188,8 +188,8 @@ Détail du régime parallèle et de la règle du nombre de Workers :
 générateur `apparier(prepared, bucketsA, bucketsB)`
 (`src/lib/rechercheRunes.ts`). Il poste la progression au plus une fois par
 `PROGRESS_THROTTLE_MS`, avec les seuls candidats nouveaux depuis le message
-précédent ; il rend la main à la boucle d'événements au plus une fois par
-`YIELD_THROTTLE_MS`, ce qui laisse arriver le message d'arrêt ; à l'arrêt
+précédent ; il rend la main à la boucle d'événements (`cederLaMain` : message de
+canal, non bridé) au plus une fois par `YIELD_THROTTLE_MS`, ce qui laisse arriver le message d'arrêt ; à l'arrêt
 (`isStopped`), il rend un résultat tronqué fait des candidats et du
 quasi-succès déjà accumulés. Le Worker ajoute à chaque message `found`,
 `totalPairs` et un pourcentage (`estimatePct`) ; le hook accumule les
@@ -294,11 +294,10 @@ rend les paramètres de `chercherPaires`, avec un `evaluer` du régime effectif
 
 Deux cas :
 
-- hors mode `recherche`, la relique portée est fixe : `resoudreReliqueFixe`
-  parcourt les paires par score décroissant (`pairesParScore`) et retient la
-  première qui tient les conditions (`respecteConditions`, nul quand
-  `conditionsPaireFixePosees` ne trouve aucune condition à tester) ; si
-  aucune ne les tient, la meilleure au score, avec `conforme: false` ;
+- hors mode `recherche`, la relique portée est fixe : la paire retenue est
+  la première, par score décroissant, qui tient les conditions
+  (`respecteConditions`, nul quand `conditionsPaireFixePosees` ne trouve
+  aucune condition à tester) ; si aucune ne les tient, `conforme: false` ;
 - en mode `recherche`, chaque relique éligible du contexte (`eligibles`)
   remplace la portée ; pour chacune, le premier couple, par score
   décroissant, qui tient minimums et maximums
@@ -306,6 +305,15 @@ Deux cas :
   `bestRelicForBuild` (`src/lib/relicOptim.ts`) choisit le meilleur couple
   faisable entre reliques. Aucun couple faisable : `conforme: false`. Un pool
   d'éligibles vide lève `RechercheRefusee`.
+
+Ce point d'entrée passe par la résolution rapide (`src/lib/resolutionRapide.ts`),
+qui juge la faisabilité d'une paire sur ses principales avant de la noter :
+une relique dont aucune forme de paire n'est faisable n'est pas notée, et
+seules les paires faisables le sont. Pour un build conforme, le résultat est
+celui du calcul exhaustif (`resoudreEquipementDuBuildExhaustif`,
+`src/lib/resolutionExhaustive.ts`), qui note toutes les paires ; un build
+rejeté ne porte ni paire ni relique, son diagnostic ne se calculant qu'à la
+demande : [reliques.md § Résolution rapide — le chemin de l'app](reliques.md#résolution-rapide--le-chemin-de-lapp).
 
 Le résultat (`ResultatArtefacts`, `src/lib/artifactQueue.ts`) porte la paire,
 ses artéfacts, les stats recalculées avec l'équipement retenu, la conformité

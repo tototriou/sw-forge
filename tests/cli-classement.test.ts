@@ -31,6 +31,7 @@
 // stat séparément (meilleure relique, meilleur artéfact), une relique n'a
 // qu'une principale et une paire deux emplacements, d'où des rejets.
 
+import { isDeepStrictEqual } from 'node:util';
 import { ArtifactDetail, RelicDetail, RuneDetail } from '../src/types';
 import { buildOptimizerRecipe, OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { DEFAULT_DAMAGE_SETUP, artifactDamageProfile } from '../src/lib/damage';
@@ -48,7 +49,8 @@ import {
 import { K_BUILDS_OPTIMISES, K_BUILDS_RECHERCHE_RELIQUE, ResultatArtefacts, cibleDeLaFile, classementResolu, cleBuild, prochainsATraiter } from '../src/lib/artifactQueue';
 import { entreeResolutionDuBuild, etatReliqueDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { regimeArtefacts, regimeEquipementDe } from '../src/lib/artifactEvaluation';
-import { artefactsDuCli, recipeToSearchParams } from '../scripts/lib/recipeToSearchParams';
+import { artefactsDuCli, recipeToSearchParams, resoudreEquipementCli } from '../scripts/lib/recipeToSearchParams';
+import { resoudreEquipementDuBuildExhaustif } from '../src/lib/resolutionExhaustive';
 import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import { LoadedMonster } from '../scripts/lib/loadMonster';
 import { runSearchToCompletion } from '../scripts/lib/runSearch';
@@ -225,6 +227,29 @@ export function testCliClassementParMode() {
           rel, params.requirement).respecte)));
       const parCle = new Map(res.candidates.map((c) => [cleBuild(c), c]));
       egal(rejetes.filter((k) => faisable(parCle.get(k)!)), [], `recherche : les ${rejetes.length} rejetés n’ont aucun couple faisable (énumération exhaustive)`);
+      // L'option `diagnostic` du CLI, contre le calcul exhaustif sur l'entrée
+      // assemblée comme le CLI l'assemble : avec elle, le résultat entier du
+      // calcul exhaustif ; sans elle (le chemin de l'app), un conforme
+      // identique, un rejeté sans paire ni artéfact.
+      const sansDiagnostic = resoudreEquipementCli(recipe, LOADED, params)!;
+      const avecDiagnostic = resoudreEquipementCli(recipe, LOADED, params, { diagnostic: true })!;
+      const a = artefactsDuCli(recipe, LOADED)!;
+      const exhaustif = (c: BuildCandidate) => resoudreEquipementDuBuildExhaustif(entreeResolutionDuBuild({
+        fiche: LOADED.gear, runes: c.runeIds.map((id) => runeById.get(id)!), artifactParams: a.params,
+        regime: regimeEquipementDe(regimeArtefacts(recipe.objective), a.degats != null), degats: a.degats,
+        exclusive: { setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP, element: a.element },
+        requirement: params.requirement, relicContext: params.relicContext, caches: null,
+      }));
+      let diagnostics = 0;
+      const ecartsDiagnostic = res.candidates.filter((c) => {
+        const app = sansDiagnostic(c);
+        const diag = avecDiagnostic(c);
+        const ref = exhaustif(c);
+        if (!diag.conforme && diag.paire) diagnostics++;
+        return !isDeepStrictEqual(diag, ref) || (ref.conforme ? !isDeepStrictEqual(app, ref) : app.conforme || app.paire !== null || app.artefacts.length > 0);
+      }).map(cleBuild);
+      egal(ecartsDiagnostic, [], `recherche : option diagnostic du CLI = calcul exhaustif sur les ${res.candidates.length} candidats ; sans elle, conformes identiques et rejetés sans paire`);
+      ok(diagnostics > 0, `… ${diagnostics} rejeté(s) portent le diagnostic (un couple au score) avec l’option`);
       egal(cli.classes.filter((c) => !respecteConditionsAvecRelique(
         { base: BASE, runes: c.runeIds.map((id) => runeById.get(id)!), artifacts: resolu.parBuild.get(cleBuild(c))!.artefacts },
         resolu.parBuild.get(cleBuild(c))!.relique!, params.requirement).respecte).map(cleBuild), [],

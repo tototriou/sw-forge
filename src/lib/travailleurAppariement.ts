@@ -12,6 +12,7 @@
 // trouvé) et répond aussitôt, sans rien calculer, aux morceaux en attente.
 // Voir docs/03-developpeur/optimizer/moteur/parallelisation.md.
 
+import { cederLaMain } from './cession';
 import {
   ContexteTravailleur,
   InitTravailleur,
@@ -35,9 +36,9 @@ export function resultatVide(morceau: Morceau, validationTypee: boolean): Result
   };
 }
 
-// Rendre la main à la boucle d'événements : un minuteur nul, que les deux
-// plateformes ont et qui laisse passer un message déjà arrivé.
-const cederParDefaut = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+// Rendre la main à la boucle d'événements : un message de canal, non bridé à
+// 4 ms contrairement à des `setTimeout(0)` enchaînés (voir cession.ts).
+const cederParDefaut = () => cederLaMain();
 
 /**
  * Le serveur d'un Worker : `recevoir(message)` pour chaque message entrant ;

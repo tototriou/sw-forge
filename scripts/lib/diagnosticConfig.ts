@@ -338,15 +338,17 @@ export function evaluerFidelite(parametres: ParametreEffectif[]): Fidelite {
     ecarts,
     horsPerimetre: HORS_PERIMETRE_FIDELITE,
     // ⚠️ Le mot « PLANCHER » est proscrit : c'est une
-    // affirmation de DIRECTION, et la direction n'est pas établie. La taxe
-    // de `setTimeout(0)` est bien un terme à sens unique, mais elle n'est
-    // pas le seul écart entre les deux plateformes.
+    // affirmation de DIRECTION, et la direction n'est pas établie. La
+    // cession du navigateur passe par un message de canal, non bridé
+    // (`cederLaMain`, src/lib/cession.ts) : le plafond de ~4 ms d'un
+    // `setTimeout(0)` enchaîné ne vaut plus qu'au repli sans `MessageChannel`.
     noteNavigateur:
-      'Temps mesurés en Node : surcoût attendu d’ordre ~7 % dans le modèle actuel, NON MESURÉ — ' +
+      'Temps mesurés en Node : l’écart avec le navigateur est NON MESURÉ — ' +
       'les temps Node ne sont pas directement transposables au navigateur. Le navigateur rend la main ' +
-      'toutes les 50 ms et plafonne à ~4 ms un setTimeout(0) enchaîné : ce terme-là va bien dans un seul ' +
-      'sens, mais ce n’est pas le seul écart entre les deux plateformes (JIT, démarrage des workers, ' +
-      'sérialisation). Chiffre ARITHMÉTIQUE, pas mesuré.',
+      'pendant l’appariement (toutes les 50 ms en séquentiel, entre deux tranches de 100 ms dans chaque ' +
+      'Worker du parallèle) par un message de canal, non bridé ; seul le repli sans MessageChannel paie ' +
+      'le plafond de ~4 ms d’un setTimeout(0) enchaîné. D’autres écarts restent (JIT, démarrage des ' +
+      'workers, sérialisation), et leur direction n’est pas établie.',
   };
 }
 

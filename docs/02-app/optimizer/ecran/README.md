@@ -90,8 +90,9 @@ seuil n'a bougé ; une section garde la largeur de contenu de la carte qu'elle
 remplace (294 px dans « Artéfacts et relique », 314 dans « Aura, exclusion,
 avancés », 598 pour « Exemplaire »). La colonne de droite n'est pas une
 boîte : en A3, son panneau est un fond, case de la grille sous les siennes
-(`data-zone="fond-droite"`, décoratif) ; en A1 et A2, « Exemplaire » en
-dessine le haut et les résultats le bas.
+(`data-zone="fond-droite"`, décoratif), qui s'arrête sous les résultats (une
+dernière rangée flexible absorbe la hauteur des colonnes fixes plus hautes) ;
+en A1 et A2, « Exemplaire » en dessine le haut et les résultats le bas.
 
 Chaque boîte a une **largeur fixe**, sauf deux, **élastiques** : le bloc
 « Objectif et Rechercher » (340 px au moins) et les résultats (360 px au
@@ -373,10 +374,13 @@ une colonne insérée, jamais au lancement d'une recherche.
 En A1, le bloc suit les essentiels, à sa place, dans son panneau : estimation,
 objectifs, « Exporter » · « Importer ». ⚠️ **Seule sa barre fine reste collée
 au bas de la fenêtre** tant que sa place est sous le pli : « Rechercher » (ou
-« Arrêter », à sa place exacte) et, à sa droite, la progression, ≈ 60 px
-(décision de l'utilisateur, arrêt 4 : le bloc entier collé couvrait 264 px).
-Elle suit le bloc dans la page (`data-zone="barre"`), et y reprend sa place
-une fois le bloc atteint.
+« Arrêter », à sa place exacte) et, à sa droite, la progression, 69 px
+mesurés (décision de l'utilisateur, arrêt 4 : le bloc entier collé couvrait
+264 px). Elle suit le bloc dans la page (`data-zone="barre"`), et y reprend
+sa place une fois le bloc atteint. ⚠️ **Sa hauteur ne change jamais** : la
+progression y tient dans la place de la plus haute (copie invisible) ;
+collée par le bas, une barre qui grandirait ferait monter « Rechercher » /
+« Arrêter » sous le pointeur.
 
 ### Zone des résultats et place en plus
 

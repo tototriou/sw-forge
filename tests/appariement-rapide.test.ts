@@ -50,9 +50,11 @@ import {
   MoitieTypee,
   ResultatMorceau,
   apparierRapide,
+  comboAOuvert,
   constantesNoyau,
   encoderCompartiments,
   initialiserTravailleur,
+  paireDeCompartimentsOuverte,
   seuilsLigne,
   traiterMorceau,
   verifierContrat,
@@ -530,6 +532,55 @@ export function testAppariementHorloge(): void {
   }
 }
 
+function testTempsPendantUnSaut(espaces: Espace[]): void {
+  titre('Appariement rapide · expiration du filet pendant une ligne entièrement sautée');
+  let scene: { e: Espace; bA: Bucket; bB: Bucket; comboA: Bucket['combos'][number] } | null = null;
+  recherche: for (const e of espaces) {
+    for (const bA of e.bucketsA) for (const bB of e.bucketsB) {
+      if (bB.combos.length === 0 || !paireDeCompartimentsOuverte(e.prepared, bA, bB)) continue;
+      const comboA = bA.combos.find((a) => comboAOuvert(e.prepared, a, bB)
+        && bB.combos.every((b) => !quickOkRecords(e.prepared, a, b)));
+      if (comboA) {
+        scene = { e, bA, bB, comboA };
+        break recherche;
+      }
+    }
+  }
+  if (!scene) throw new Error('aucune ligne ouverte entièrement rejetée par quickOk');
+  const { e, bA, bB, comboA } = scene;
+  const n = Math.max(3 * CHECKPOINT_EVERY + 1, bB.combos.length);
+  // Répéter les vraies combinaisons conserve leurs bornes et l'absence de
+  // survivants ; la ligne franchit plusieurs points sans ouvrir la boucle de visite.
+  const bucketsA = [{ ...bA, combos: [comboA] }];
+  const bucketsB = [{ ...bB, combos: Array.from({ length: n }, (_, j) => bB.combos[j % bB.combos.length]) }];
+  const entier = drain(apparierRapide(e.prepared, bucketsA, bucketsB));
+  egal({ chemin: entier.chemin, traitees: entier.traitees, visitees: entier.visitees, sautees: entier.sautees, truncated: entier.truncated },
+    { chemin: 'noyau', traitees: n, visitees: 0, sautees: n, truncated: false },
+    'précondition : ligne ouverte, toutes les paires sautées, plusieurs points de passage franchis');
+  const vraiNow = Date.now;
+  let lectures = 0;
+  const points: number[] = [];
+  try {
+    // Expiration juste après le contrôle réussi au point 500 : toutes les
+    // paires suivantes sont sautées, et le point 1000 doit lire le temps.
+    Date.now = () => (lectures++ === 0 ? e.prepared.startedAt : e.prepared.startedAt + 2);
+    const gen = apparierRapide({ ...e.prepared, maxMs: 1 }, bucketsA, bucketsB);
+    let pas = gen.next();
+    while (!pas.done) {
+      points.push(pas.value.explored);
+      pas = gen.next();
+    }
+    const r = pas.value;
+    egal({ traitees: r.traitees, visitees: r.visitees, sautees: r.sautees, candidats: r.candidates.length, truncated: r.truncated, lectures },
+      { traitees: 2 * CHECKPOINT_EVERY, visitees: 0, sautees: 2 * CHECKPOINT_EVERY, candidats: 0, truncated: true, lectures: 2 },
+      'filet expiré pendant le saut : coupure au premier point suivant, zéro paire visitée, truncated vrai');
+    egal(r.traitees - (CHECKPOINT_EVERY + 1), CHECKPOINT_EVERY - 1, 'saut séquentiel : dépassement maximal de 499 paires');
+    egal(points, [CHECKPOINT_EVERY, 2 * CHECKPOINT_EVERY], 'le saut ne poursuit pas les points de passage après expiration');
+  } finally {
+    Date.now = vraiNow;
+  }
+}
+
 export default async function testAppariementRapide(): Promise<void> {
   testFrontieres();
   const portes = espacesPortes();
@@ -538,6 +589,7 @@ export default async function testAppariementRapide(): Promise<void> {
     'relique portée et paire figée : la validation typée les prend (contrat tenu), le différentiel l’exerce');
   const espaces = [...espacesGeneres(), ...portes, ...espacesDeProfils()];
   ok(espaces.length >= 12, `${espaces.length} espaces d'oracle construits`);
+  testTempsPendantUnSaut(espaces);
   testPaireParPaire(espaces);
   await testDifferentiel(espaces);
 }

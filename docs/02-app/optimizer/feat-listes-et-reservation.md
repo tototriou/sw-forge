@@ -125,7 +125,11 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   Une espèce non possédée, résolue par `unowned`, est ajoutée immédiatement.
   Au téléphone, le sélecteur de liste reste au-dessus des puces et les cartes
   de la zone C se déplient dessous : l’ajout ne déplace pas la puce cliquée.
-- **Zone C, « Monstres de la liste »** — juste sous les puces de source
+- **Zone C, « Monstres de la liste »** — au bureau, la carte de la liste de
+  travail, en tête des essentiels (voir
+  [ecran/recherche-du-monstre.md](ecran/recherche-du-monstre.md), section
+  « Au bureau ») ;
+  au téléphone, juste sous les puces de source
   dans « Monstre & équipement » : chaque monstre de la liste active, son
   statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable
   pour rappeler son exemplaire et ses critères personnels mémorisés dans la

@@ -2,12 +2,6 @@
 
 Ce document décrit la carte de recherche du monstre à optimiser.
 
-0. **Bandeau bêta** — permanent, pas refermable (contrairement à
-   `MobileNotice` : ce n'est pas un avertissement ponctuel mais un statut qui
-   reste vrai tant que l'outil est en rodage). Rappelle que le moteur de
-   recherche peut être lent sur des critères serrés ou manquer un build sur
-   un cas inhabituel, et qu'il faut vérifier le résultat avant de re-runer.
-
 ## Choix du monstre et de l’exemplaire
 
 1. **Recherche bestiaire, puis puces d'exemplaire** — la recherche

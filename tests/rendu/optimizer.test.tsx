@@ -67,8 +67,6 @@ export function rendreOptimizer(etat: EtatBanc = {}, menuOuvert = false, stockag
 
 export const AVEC_MONSTRE = { selectedId: CHOISI, comboSets: ['violent'], showAdvanced: true };
 
-const BETA =
-  "Optimizer en bêta. L'outil est encore en rodage : le moteur de recherche peut mettre du temps sur des critères serrés ou manquer un build sur un cas inhabituel — vérifie toujours le résultat avant de re-runer.";
 const SOURCES = 'Box RTA Défenses siège Offenses siège';
 const STATS_CONDITIONS = ['PV', 'ATQ', 'DEF', 'VIT', 'Taux Crit', 'Dmg Crit', 'RES', 'Précision'];
 const PALIERS = ['Bas', 'Moyen', 'Haut', 'Extrême'];
@@ -109,7 +107,7 @@ export function testRenduOptimizerVide() {
 
   const html = rendreOptimizer();
   const t = texteVisible(html);
-  ok(t.startsWith(BETA), 'le bandeau bêta, en tête');
+  ok(!t.includes('Optimizer en bêta') && !t.includes('en rodage'), 'aucun bandeau « Optimizer en bêta » : l’outil n’est plus en bêta');
   ok(t.includes("Recherche parmi tes runes possédées ; rien n'est appliqué à ton compte, l'outil est purement indicatif — c'est à toi de re-runer dans le jeu."), 'ce que fait l\'outil, et ce qu\'il ne fait pas');
   // Au bureau (rendu serveur : format bureau, largeur inconnue), la page en
   // colonnes : essentiels, contrôle à onglets, « Artéfacts et relique »
@@ -127,10 +125,11 @@ export function testRenduOptimizerVide() {
   ok(bouton(html, 'Valider ce build')?.desactive === true, '« Valider ce build » désactivé sans résultat');
   ok(bouton(html, 'Rechercher')?.desactive === true, '« Rechercher » désactivé sans monstre');
   ok(t.includes('Set de runes recherché 0/6 runes') && !!bouton(html, 'Set de runes recherché : Aucun'), 'le set recherché, vide : la liste compacte dit « Aucun »');
-  // Au téléphone, la grille d'aujourd'hui, inchangée.
+  // Au téléphone, la grille des cartes, inchangée.
   const telephone = texteVisible(auTelephone(() => rendreOptimizer()));
   ok(telephone.includes('Monstre & équipement') && telephone.includes('Set de runes recherché 0/6 runes Set principal Set secondaire'),
     'au téléphone : « Monstre & équipement » et le set recherché en grille, comme avant');
+  ok(!telephone.includes('Optimizer en bêta') && !telephone.includes('en rodage'), 'au téléphone non plus, aucun bandeau « Optimizer en bêta »');
 }
 
 export function testRenduOptimizerMonstre() {

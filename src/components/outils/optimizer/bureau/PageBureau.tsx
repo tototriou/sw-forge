@@ -118,8 +118,7 @@ function useColle(racine: RefObject<HTMLDivElement>, onglets: RefObject<HTMLDivE
 }
 
 export interface PageBureauProps {
-  // Au-dessus de la page (bandeau et phrase d'introduction, jusqu'à leur
-  // retrait).
+  // Au-dessus de la page : la phrase d'introduction.
   entete?: ReactNode;
   // Les essentiels, de haut en bas : liste de travail, set de runes, puis
   // Conditions et, à leur droite, les principales et l'état du monstre.

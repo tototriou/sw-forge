@@ -175,6 +175,23 @@ export function resoudreConfig(config: ConfigHarnais): ConfigResolue {
     valeurProd: bucketCapFor(capProd),
   });
 
+  // ⚠️ La même cascade, un cran plus loin : les préréglages emboîtés, dont la
+  // rétention s'ajoute à celle du run (tous ceux de `slotFilterCap`
+  // inférieur, chacun à SON `bucketCap` dérivé, qu'un override de `bucketCap`
+  // ne touche pas — moteur/elagages.md § Préréglages emboîtés).
+  const emboites = (cap: number): string => {
+    const l = SLOT_FILTER_PRESETS.filter((p) => p.cap < cap).sort((a, b) => b.cap - a.cap)
+      .map((p) => `${p.label} (${p.cap}, bucketCap ${bucketCapFor(p.cap)})`);
+    return l.length ? l.join(', ') : 'aucun';
+  };
+  parametres.push({
+    nom: 'préréglages emboîtés',
+    valeur: emboites(capEffectif),
+    origine: 'dérivé',
+    derivéDe: 'slotFilterCap',
+    valeurProd: emboites(capProd),
+  });
+
   const maxCollectedEffectif = overrides.maxCollected ?? params.maxCollected ?? MAX_COLLECTED;
   params.maxCollected = maxCollectedEffectif;
   parametres.push({

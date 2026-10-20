@@ -15,32 +15,15 @@ import { Bucket } from '../../src/lib/runeBuildOptim';
 // La construction de production (noyau sur tableaux typés, `buildBuckets` en
 // repli), la même que `src/workers/buildHalf.worker.ts`.
 import { construireMoitie } from '../../src/lib/rechercheRunes';
-import { StatKey } from '../../src/lib/effects';
-import { RuneDetail, BaseStats } from '../../src/types';
+import type { RequeteMoitie } from '../../src/lib/constructionEmboitee';
 import { drain } from './drain';
 
-export interface BuildHalfWorkerData {
-  half: 'A' | 'B';
-  slotIdxs: readonly [number, number, number];
-  filtered: RuneDetail[][];
-  distinctKeys: string[];
-  constrainedKeys: StatKey[];
-  retentionKeys: StatKey[];
-  minEntries: { k: StatKey; min: number }[];
-  bucketCap: number;
-  otherHalfMaxSets: number[];
-  jokerCredit: number;
-  requiredPieces: number[];
-  // ⚠️ Nécessaire à `retentionScore`/`combinedRetentionScore` (pondération
-  // pct/flat par base) — voir BuildBucketsContext dans runeBuildOptim.ts.
-  base: BaseStats;
-  // PROTOTYPE (combosOrderMode='objective') — même discipline que `base`.
-  objectiveKeys: StatKey[];
-  // ⚠️ Relayé depuis `SearchParams` : sans lui, ce worker (utilisé par
-  // perf-battery.ts pour mesurer la construction « comme en prod »)
-  // retomberait sur le défaut interne de buildBuckets quel que soit ce que
-  // SearchParams portait — même trou que côté src/workers/buildHalf.worker.ts.
-  combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
+/**
+ * La requête d'UN préréglage d'une moitié, la même que celle des Web Workers
+ * de moitié (`RequeteMoitie`, produite par `requetesDeLaMoitie` : préréglages
+ * emboîtés, un fil par moitié et par préréglage), plus l'horodatage opt-in.
+ */
+export interface BuildHalfWorkerData extends RequeteMoitie {
   /**
    * A₂ — horodater les `BuildingProgress` que
    * `buildBuckets` émet DÉJÀ, pour cartographier son ÉLAGAGE.

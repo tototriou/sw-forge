@@ -3,8 +3,9 @@
 // lib/runeBuildOptim.ts et reste réutilisable dans les tests sans passer par
 // un Worker. Voir docs/02-app/compte/ §6 (Perf).
 //
-// ⚠️ Orchestre `prepareSearch` → `construireMoitie` (×2, EN PARALLÈLE, chacune
-// dans son propre Worker enfant — buildHalf.worker.ts) → l'appariement par le
+// ⚠️ Orchestre `prepareSearch` → `construireMoitie` (une par moitié ET par
+// préréglage construit, EN PARALLÈLE, chacune dans son propre Worker enfant —
+// buildHalf.worker.ts, `construireMoitiesEmboitees`) → l'appariement par le
 // noyau sur tableaux typés, plutôt que de piloter `searchBuildsSteps` d'un
 // bloc : les deux moitiés A et B sont indépendantes (aucune ne dépend du
 // résultat construit de l'autre, seulement de bornes calculées d'avance par
@@ -26,6 +27,7 @@ import {
   PoigneeTravailleur, apparierRapideEnParallele, enResultatDeRecherche, erreurDeWorkerEnfant, resultatApresErreur, type LancerTravailleur,
 } from '../lib/appariementRapideParallele';
 import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
+import { construireMoitiesEmboitees } from '../lib/constructionEmboitee';
 import { MessageVersAppariement } from './appariementRapide.worker';
 import { nombreDeTravailleurs, regimeAppariement } from './parallelPairing';
 import { drivePairing, PROGRESS_THROTTLE_MS } from './pairingDriver';
@@ -230,20 +232,6 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   let bucketsA: Bucket[];
   let bucketsB: Bucket[];
   try {
-    const requestA: BuildHalfRequest = {
-      half: 'A', slotIdxs: [0, 1, 2], filtered: prepared.filtered, distinctKeys: prepared.distinctKeys,
-      constrainedKeys: prepared.constrainedKeys, retentionKeys: prepared.retentionKeys, minEntries: prepared.minEntries,
-      bucketCap: prepared.bucketCap, otherHalfMaxSets: prepared.maxSetsForA, jokerCredit: prepared.jokerCredit,
-      requiredPieces: prepared.requiredPieces, base: prepared.base, objectiveKeys: prepared.objectiveKeys,
-      combosOrderMode: params.combosOrderMode,
-    };
-    const requestB: BuildHalfRequest = {
-      half: 'B', slotIdxs: [3, 4, 5], filtered: prepared.filtered, distinctKeys: prepared.distinctKeys,
-      constrainedKeys: prepared.constrainedKeys, retentionKeys: prepared.retentionKeys, minEntries: prepared.minEntries,
-      bucketCap: prepared.bucketCap, otherHalfMaxSets: prepared.maxSetsForB, jokerCredit: prepared.jokerCredit,
-      requiredPieces: prepared.requiredPieces, base: prepared.base, objectiveKeys: prepared.objectiveKeys,
-      combosOrderMode: params.combosOrderMode,
-    };
     // ⚠️ Pas de throttle ICI (contrairement à la phase d'appariement plus
     // bas) : chacun des deux Workers enfants (buildHalf.worker.ts) throttle
     // déjà SES PROPRES messages indépendamment — un throttle commun aux DEUX
@@ -252,8 +240,9 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     // et vice-versa), aggravant le risque qu'aucun des deux ne semble jamais
     // atteindre 100 % — voir le point de passage final garanti dans
     // buildHalf.worker.ts. Relayer sans throttle supplémentaire reste sûr :
-    // le débit combiné des deux Workers enfants (chacun ≤ ~1 message/150ms)
-    // ne peut pas flooder le fil principal.
+    // le débit combiné des Workers enfants (2 à 8 selon les préréglages
+    // emboîtés, chacun ≤ ~1 message/150ms) ne peut pas flooder le fil
+    // principal. Le compte d'une moitié somme ceux de ses Workers.
     const postBuildProgress = (half: 'A' | 'B', scanned: number, total: number) => {
       const message: WorkerBuildingMessage = { type: 'progress', phase: 'building', half, scanned, total, pct: total > 0 ? scanned / total : 0 };
       (self as unknown as Worker).postMessage(message);
@@ -261,13 +250,13 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     const abortPromise = new Promise<never>((_, reject) => {
       stopBuildReject = () => reject(new Error('stopped'));
     });
-    [bucketsA, bucketsB] = await Promise.race([
-      Promise.all([
-        buildHalfInWorker(requestA, (scanned, total) => postBuildProgress('A', scanned, total)),
-        buildHalfInWorker(requestB, (scanned, total) => postBuildProgress('B', scanned, total)),
-      ]),
+    // Un Worker enfant par moitié ET par préréglage construit (préréglages
+    // emboîtés), tous lancés ensemble ; l'union des rétentions se fait ici,
+    // par moitié, dans l'ordre des préréglages (`construireMoitiesEmboitees`).
+    ({ bucketsA, bucketsB } = await Promise.race([
+      construireMoitiesEmboitees(prepared, params.combosOrderMode, buildHalfInWorker, postBuildProgress),
       abortPromise,
-    ]);
+    ]));
   } catch {
     // Arrêt manuel pendant la construction : rien n'existe encore à ressortir
     // (aucune paire n'a pu être évaluée) — un résultat vide, tronqué, est le

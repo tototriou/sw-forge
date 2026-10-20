@@ -2140,7 +2140,9 @@ export interface Bucket {
   skyline?: HalfCombo[];
 }
 
-function bucketKeyOf(counts: number[], jokers: number): string {
+// Exportée pour l'union des rétentions (retentionEmboitee.ts), qui range les
+// demi-builds d'un cran plus étroit dans le compartiment de même clé.
+export function bucketKeyOf(counts: number[], jokers: number): string {
   return `${counts.join(',')}|${jokers}`;
 }
 
@@ -2349,6 +2351,72 @@ function objectiveRetentionScore(base: BaseStats, pct: Record<string, number>, f
   return score;
 }
 
+/** Ce que lit l'ordre des demi-builds d'un compartiment (`ordonnerCombos`). */
+export type ContexteOrdreCombos = Pick<BuildBucketsContext, 'base' | 'minEntries' | 'retentionKeys' | 'objectiveKeys'>;
+
+/**
+ * Les scores de tranche d'un demi-build, dans l'ordre des tranches de
+ * `buildBuckets` : générique (`relevanceScore`), combinée des minimums si un
+ * minimum est posé, puis une par stat de `retentionKeys`.
+ */
+export function scoresDeTranche(combo: HalfCombo, ctx: ContexteOrdreCombos): number[] {
+  const s: number[] = [combo.relevanceScore];
+  if (ctx.minEntries.length > 0) s.push(combinedRetentionScore(ctx.base, combo.pct, combo.flat, ctx.minEntries));
+  for (const k of ctx.retentionKeys) s.push(retentionScore(ctx.base, combo.pct, combo.flat, k));
+  return s;
+}
+
+/**
+ * L'ordre des demi-builds DANS un compartiment, selon `combosOrderMode` (voir
+ * `buildBuckets`), par un tri STABLE : à score égal, l'ordre reçu. Une seule
+ * écriture, que partagent `buildBuckets` et l'union des rétentions
+ * (retentionEmboitee.ts). `globalBestBySlice` (le meilleur score de chaque
+ * tranche sur toute la moitié) n'est lu que par l'ordre `'potential'`.
+ */
+export function ordonnerCombos(
+  combos: HalfCombo[],
+  ctx: ContexteOrdreCombos,
+  combosOrderMode: 'potential' | 'relevance' | 'combined' | 'objective',
+  globalBestBySlice: readonly number[]
+): HalfCombo[] {
+  const { base, minEntries, objectiveKeys } = ctx;
+  const hasCombined = minEntries.length > 0;
+  const scored = combos.map((combo) => {
+    const combined = hasCombined ? combinedRetentionScore(base, combo.pct, combo.flat, minEntries) : null;
+    const objectiveVal = objectiveKeys.length > 0 ? objectiveRetentionScore(base, combo.pct, combo.flat, objectiveKeys) : null;
+    const sliceScores = scoresDeTranche(combo, ctx);
+    let potential = -Infinity;
+    for (let s = 0; s < sliceScores.length; s++) {
+      const g = globalBestBySlice[s];
+      const normalized = g > 0 ? sliceScores[s] / g : sliceScores[s];
+      if (normalized > potential) potential = normalized;
+    }
+    return { combo, potential, combined, objectiveVal };
+  });
+  if (combosOrderMode === 'relevance') {
+    scored.sort((x, y) => y.combo.relevanceScore - x.combo.relevanceScore);
+  } else if (combosOrderMode === 'combined') {
+    // PROTOTYPE (forge/order-as-weight-contrib) — trie UNIQUEMENT par
+    // combinedRetentionScore (Σ contribution/seuil sur TOUS les minimums
+    // posés à la fois), jamais par relevanceScore ni par une tranche par
+    // stat isolée. Repli sur relevanceScore si aucun minimum n'est posé
+    // (`combined` vaut alors `null` pour tous les demi-builds — rien à
+    // comparer sinon, un tri par `undefined - undefined` serait instable).
+    scored.sort((x, y) => (y.combined ?? y.combo.relevanceScore) - (x.combined ?? x.combo.relevanceScore));
+  } else if (combosOrderMode === 'objective') {
+    // PROTOTYPE (forge/order-as-weight-contrib) — trie UNIQUEMENT par
+    // objectiveRetentionScore (Σ contribution réelle sur les stats de
+    // L'OBJECTIF choisi, ex. ATQ+Dmg Crit pour Dégâts) — jamais les
+    // minimums posés, jamais l'efficience générique. Repli sur
+    // relevanceScore si aucun objectif n'est choisi (« Efficience »,
+    // `objectiveVal` vaut alors `null` pour tout le monde).
+    scored.sort((x, y) => (y.objectiveVal ?? y.combo.relevanceScore) - (x.objectiveVal ?? x.combo.relevanceScore));
+  } else {
+    scored.sort((x, y) => y.potential - x.potential);
+  }
+  return scored.map((s) => s.combo);
+}
+
 // ⚠️ Regroupe les 11 champs (10 obligatoires, `traceur` facultatif) que
 // `buildBuckets` lit de la préparation — tous déjà des champs de
 // `PreparedSearch` (voir plus bas), à ne pas passer SÉPARÉMENT : à plat, la
@@ -2433,7 +2501,7 @@ export function* buildBuckets(
   //   automatisé committé comme la mesure `'relevance'` ci-dessus.
   combosOrderMode: 'potential' | 'relevance' | 'combined' | 'objective' = 'objective'
 ): Generator<BuildingProgress, Bucket[], void> {
-  const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base, objectiveKeys } = ctx;
+  const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base } = ctx;
   const [i0, i1, i2] = slotIdxs;
   // Diagnostic (voir `SearchParams.traceur`) : la moitié traceuse, repérée
   // par ses INDICES dans les trois pools filtrés — un entier à comparer par
@@ -2742,43 +2810,7 @@ export function* buildBuckets(
   // fin de plusieurs millions de paires explorées).
   for (const b of out) {
     const key = bucketKeyOf(b.counts, b.jokers);
-    const combos = bucketSeen.get(key)!;
-    const scored = combos.map((combo) => {
-      const combined = hasCombined ? combinedRetentionScore(base, combo.pct, combo.flat, minEntries) : null;
-      const objectiveVal = objectiveKeys.length > 0 ? objectiveRetentionScore(base, combo.pct, combo.flat, objectiveKeys) : null;
-      const sliceScores: number[] = [combo.relevanceScore];
-      if (combined != null) sliceScores.push(combined);
-      for (const k of retentionKeys) sliceScores.push(retentionScore(base, combo.pct, combo.flat, k));
-      let potential = -Infinity;
-      for (let s = 0; s < sliceCount; s++) {
-        const g = globalBestBySlice[s];
-        const normalized = g > 0 ? sliceScores[s] / g : sliceScores[s];
-        if (normalized > potential) potential = normalized;
-      }
-      return { combo, potential, combined, objectiveVal };
-    });
-    if (combosOrderMode === 'relevance') {
-      scored.sort((x, y) => y.combo.relevanceScore - x.combo.relevanceScore);
-    } else if (combosOrderMode === 'combined') {
-      // PROTOTYPE (forge/order-as-weight-contrib) — trie UNIQUEMENT par
-      // combinedRetentionScore (Σ contribution/seuil sur TOUS les minimums
-      // posés à la fois), jamais par relevanceScore ni par une tranche par
-      // stat isolée. Repli sur relevanceScore si aucun minimum n'est posé
-      // (`combined` vaut alors `null` pour tous les demi-builds — rien à
-      // comparer sinon, un tri par `undefined - undefined` serait instable).
-      scored.sort((x, y) => (y.combined ?? y.combo.relevanceScore) - (x.combined ?? x.combo.relevanceScore));
-    } else if (combosOrderMode === 'objective') {
-      // PROTOTYPE (forge/order-as-weight-contrib) — trie UNIQUEMENT par
-      // objectiveRetentionScore (Σ contribution réelle sur les stats de
-      // L'OBJECTIF choisi, ex. ATQ+Dmg Crit pour Dégâts) — jamais les
-      // minimums posés, jamais l'efficience générique. Repli sur
-      // relevanceScore si aucun objectif n'est choisi (« Efficience »,
-      // `objectiveVal` vaut alors `null` pour tout le monde).
-      scored.sort((x, y) => (y.objectiveVal ?? y.combo.relevanceScore) - (x.objectiveVal ?? x.combo.relevanceScore));
-    } else {
-      scored.sort((x, y) => y.potential - x.potential);
-    }
-    b.combos = scored.map((s) => s.combo);
+    b.combos = ordonnerCombos(bucketSeen.get(key)!, ctx, combosOrderMode, globalBestBySlice);
     if (skylines) b.skyline = skylines.get(key) ?? [];
   }
   // ⚠️ Compartiments triés par POTENTIEL décroissant — le meilleur score
@@ -3716,6 +3748,74 @@ export interface PreparedSearch {
   maxSetsForA: number[];
   maxSetsForB: number[];
   bucketCap: number;
+  // Les préréglages plus étroits que celui de la recherche, dont la
+  // rétention s'ajoute à la sienne (préréglages emboîtés : `construireMoitie`,
+  // retentionEmboitee.ts). Vide pour Bas ou en deçà.
+  cransEmboites: CranEmboite[];
+}
+
+/**
+ * Un préréglage de pré-filtrage plus étroit que celui de la recherche, avec
+ * SES paramètres de construction, ceux qu'aurait une recherche lancée à ce
+ * préréglage : son pool par emplacement (`indices`, positions dans
+ * `PreparedSearch.filtered`, dans l'ordre que lui donne `filterSlot` — le
+ * pool d'un préréglage plus étroit est inclus dans celui de la recherche,
+ * emplacement par emplacement), son `bucketCap` dérivé, et ce que la
+ * préparation tire de son pool (`jokerCredit`, `maxSetsForA`/`maxSetsForB`).
+ * Sérialisable tel quel vers les Workers de moitié.
+ */
+export interface CranEmboite {
+  slotFilterCap: number;
+  indices: number[][];
+  bucketCap: number;
+  jokerCredit: number;
+  maxSetsForA: number[];
+  maxSetsForB: number[];
+}
+
+/**
+ * Les préréglages strictement plus étroits que `slotCap`, du plus large au
+ * plus étroit, chacun avec ses paramètres (`CranEmboite`). Le pool d'un
+ * préréglage plus étroit se recalcule par `filterSlot` sur le MÊME pool
+ * (après principale imposée, dominance et faisabilité, qui ne dépendent pas
+ * du préréglage) : `filterSlot` garde des préfixes d'un même classement plus
+ * des tranches par stat indépendantes du préréglage, d'où l'inclusion, que
+ * cette fonction vérifie rune par rune. Un préréglage dont un emplacement
+ * serait vide n'aurait rien retenu (sa recherche s'arrêterait à la
+ * préparation) : il n'apporte rien et n'est pas rendu.
+ */
+function cransEmboitesDe(
+  bySlot: RuneDetail[][],
+  filtered: RuneDetail[][],
+  slotCap: number,
+  requirement: BuildRequirement,
+  base: BaseStats,
+  objective: Objective | undefined,
+  objectiveStats: StatKey[] | undefined,
+  distinctKeys: string[]
+): CranEmboite[] {
+  const plusEtroits = SLOT_FILTER_PRESETS.filter((p) => p.cap < slotCap).sort((a, b) => b.cap - a.cap);
+  if (plusEtroits.length === 0) return [];
+  const positions = filtered.map((list) => new Map(list.map((r, i) => [r, i] as const)));
+  const crans: CranEmboite[] = [];
+  for (const preset of plusEtroits) {
+    const pool = bySlot.map((list) => filterSlot(list, requirement, base, preset.cap, preset.cap, objective, objectiveStats));
+    if (pool.some((list) => list.length === 0)) continue;
+    const indices = pool.map((list, s) => list.map((r) => {
+      const i = positions[s].get(r);
+      if (i === undefined) throw new Error(`prepareSearch : la rune ${r.id} du préréglage ${preset.cap} (emplacement ${s + 1}) manque au pool du préréglage ${slotCap} — préréglages non emboîtés.`);
+      return i;
+    }));
+    crans.push({
+      slotFilterCap: preset.cap,
+      indices,
+      bucketCap: bucketCapFor(preset.cap),
+      jokerCredit: anyJokerAvailable(pool) ? 1 : 0,
+      maxSetsForA: maxSetCountsForSlots(pool, [3, 4, 5], distinctKeys),
+      maxSetsForB: maxSetCountsForSlots(pool, [0, 1, 2], distinctKeys),
+    });
+  }
+  return crans;
 }
 
 /**
@@ -3871,6 +3971,7 @@ export function prepareSearch(
   const maxSetsForA = maxSetCountsForSlots(filtered, [3, 4, 5], distinctKeys);
   const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
   const bucketCap = params.bucketCap ?? bucketCapFor(slotCap);
+  const cransEmboites = cransEmboitesDe(bySlot, filtered, slotCap, requirement, base, params.objective, params.objectiveStats, distinctKeys);
 
   return {
     base, artifacts, relic, relicContext, requirement, metric,
@@ -3878,7 +3979,7 @@ export function prepareSearch(
     minEntries, maxEntries, constrainedKeys, retentionKeys, objectiveKeys, distinctKeys,
     guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, reliquesRepresentatives, totalOf,
     traceur,
-    filtered, requiredPieces, jokerCredit, maxSetsForA, maxSetsForB, bucketCap,
+    filtered, requiredPieces, jokerCredit, maxSetsForA, maxSetsForB, bucketCap, cransEmboites,
   };
 }
 

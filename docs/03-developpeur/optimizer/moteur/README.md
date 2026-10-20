@@ -11,6 +11,7 @@ le couvrent sont dans [../verification.md](../verification.md).
 | `src/workers/runeBuildOptim.worker.ts`, `src/workers/prepareForSearch.ts`, `src/hooks/useBuildOptimSearch.ts`, l'enchaînement d'une recherche | [pipeline.md](pipeline.md) |
 | l'énumération, les élagages, le pré-filtrage, les bornes de `src/lib/runeBuildOptim.ts` | [elagages.md](elagages.md) |
 | `src/lib/rechercheRunes.ts`, `src/lib/constructionRapide.ts` | [pipeline.md](pipeline.md) |
+| `src/lib/retentionEmboitee.ts`, `src/lib/constructionEmboitee.ts`, les préréglages emboîtés | [elagages.md](elagages.md) |
 | `src/lib/appariementRapide.ts`, `src/lib/validationRapide.ts`, le test rapide et la validation de l'appariement | [noyau-appariement.md](noyau-appariement.md) |
 | `src/workers/parallelPairing.ts`, `src/lib/appariementRapideParallele.ts`, `src/lib/travailleurAppariement.ts`, `src/workers/appariementRapide.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | [parallelisation.md](parallelisation.md) |
 | `diagnoseFeasibility`, `rankBlockingConditions`, le « 0 résultat » | [diagnostics.md](diagnostics.md) |

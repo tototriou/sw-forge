@@ -16,6 +16,13 @@ ici.
   compartiment (`buildBuckets`, `bucketCap` places par tranche). Une rune
   ou un demi-build écarté à ces étages n'est jamais revu. Mécanisme :
   [03-developpeur/optimizer/moteur/elagages.md § Pré-filtrage heuristique et compartiments](../../03-developpeur/optimizer/moteur/elagages.md#pré-filtrage-heuristique-et-compartiments).
+- **Un préréglage plus large ne perd rien d'un plus étroit, sur une
+  recherche complète seulement.** Chaque préréglage ajoute à sa rétention
+  celle des préréglages plus étroits (Bas ⊆ Moyen ⊆ Haut ⊆ Extrême) ; une
+  recherche que le filet de temps ou le plafond de candidats arrête visite
+  ses demi-builds dans un autre ordre et peut rendre d'autres builds que le
+  préréglage plus étroit :
+  [03-developpeur/optimizer/moteur/elagages.md § Préréglages emboîtés](../../03-developpeur/optimizer/moteur/elagages.md#préréglages-emboîtés).
 - **Plus il y a de conditions à la fois, plus le pré-filtrage les dilue.**
   `relevance` additionne une contribution par minimum posé : une rune utile
   à une partie seulement des conditions se classe d'autant plus bas qu'elles

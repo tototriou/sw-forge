@@ -1,9 +1,10 @@
 /// <reference lib="webworker" />
-// Worker DÉDIÉ à la construction d'UNE SEULE moitié (`construireMoitie` :
-// le noyau sur tableaux typés, `buildBuckets` en repli), spawné
-// PAR `runeBuildOptim.worker.ts` (pas par l'app directement) pour paralléliser
-// la construction des deux moitiés A et B sur deux cœurs plutôt qu'un seul —
-// voir docs/03-developpeur/optimizer/ § Construction des moitiés.
+// Worker DÉDIÉ à la construction d'UN préréglage d'UNE moitié
+// (`construireMoitie` : le noyau sur tableaux typés, `buildBuckets` en
+// repli), spawné PAR `runeBuildOptim.worker.ts` (pas par l'app directement),
+// un par moitié et par préréglage construit (préréglages emboîtés,
+// `construireMoitiesEmboitees`) — voir
+// docs/03-developpeur/optimizer/moteur/pipeline.md § Construction des moitiés.
 // Reste minimal, comme runeBuildOptim.worker.ts : aucune
 // logique propre, pilote juste la construction pas à pas pour pouvoir relayer
 // une progression pendant que ça tourne.
@@ -16,36 +17,13 @@
 // jamais un second message « stop ».
 
 import { Bucket } from '../lib/runeBuildOptim';
-import { construireMoitie } from '../lib/rechercheRunes';
-import { StatKey } from '../lib/effects';
-import { RuneDetail, BaseStats } from '../types';
+import { construireMoitie, totalConstruction } from '../lib/rechercheRunes';
+import { RequeteMoitie } from '../lib/constructionEmboitee';
 
-export interface BuildHalfRequest {
-  half: 'A' | 'B';
-  slotIdxs: readonly [number, number, number];
-  filtered: RuneDetail[][];
-  distinctKeys: string[];
-  constrainedKeys: StatKey[];
-  retentionKeys: StatKey[];
-  minEntries: { k: StatKey; min: number }[];
-  bucketCap: number;
-  otherHalfMaxSets: number[];
-  jokerCredit: number;
-  requiredPieces: number[];
-  // ⚠️ Nécessaire à `retentionScore`/`combinedRetentionScore` (pondération
-  // pct/flat par base — voir BuildBucketsContext dans runeBuildOptim.ts).
-  base: BaseStats;
-  // PROTOTYPE (combosOrderMode='objective') — voir BuildBucketsContext dans
-  // runeBuildOptim.ts, même discipline de propagation que `base`.
-  objectiveKeys: StatKey[];
-  // ⚠️ Voir SearchParams.combosOrderMode dans
-  // runeBuildOptim.ts. Sans ce champ (et son relais ci-dessous jusqu'à
-  // `buildBuckets`), `SearchParams.combosOrderMode` n'aurait AUCUN effet sur
-  // le vrai chemin de production (Web Workers) : `buildBuckets` recevrait
-  // toujours `undefined` ici, retombant sur son défaut interne quel que
-  // soit ce que l'appelant avait demandé.
-  combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
-}
+// La requête d'UN préréglage d'une moitié (préréglages emboîtés : un Worker
+// par moitié ET par préréglage, `construireMoitiesEmboitees`), produite par
+// `requetesDeLaMoitie` — jamais assemblée à la main.
+export type BuildHalfRequest = RequeteMoitie;
 export interface BuildHalfProgressMessage {
   type: 'progress';
   half: 'A' | 'B';
@@ -65,14 +43,16 @@ export type BuildHalfResponse = BuildHalfProgressMessage | BuildHalfResultMessag
 const PROGRESS_THROTTLE_MS = 150;
 
 self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
-  const { half, slotIdxs, filtered, otherHalfMaxSets, combosOrderMode } = e.data;
+  const { half, slotIdxs, otherHalfMaxSets, combosOrderMode } = e.data;
   // Connu D'AVANCE (indépendant du générateur) : le total réel que
-  // la construction utilisera pour CE premier emplacement de la moitié — sert
+  // la construction annoncera — runes du premier emplacement de la moitié,
+  // sommées sur les préréglages emboîtés (`totalConstruction`) — sert
   // au message de fin garanti ci-dessous, voir son commentaire.
-  const total = filtered[slotIdxs[0]].length;
+  const total = totalConstruction(e.data, slotIdxs);
   // ⚠️ `e.data` (BuildHalfRequest) satisfait déjà STRUCTURELLEMENT
-  // `BuildBucketsContext` (mêmes 8 champs, voir son commentaire dans
-  // runeBuildOptim.ts) — pas besoin de reconstruire un objet, les champs en
+  // `ContexteMoitie` (les champs de `BuildBucketsContext`, voir son
+  // commentaire dans runeBuildOptim.ts, plus `cransEmboites`) — pas besoin
+  // de reconstruire un objet, les champs en
   // trop (half/slotIdxs/otherHalfMaxSets/…) sont ignorés sans risque
   // puisque ce n'est pas un littéral d'objet (aucune vérification de
   // propriété excédentaire de TypeScript ici).

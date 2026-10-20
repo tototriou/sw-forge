@@ -100,23 +100,54 @@ eux-mêmes : [elagages.md § Élagages sûrs](elagages.md),
 
 ## Construction des moitiés
 
-Le Worker construit les deux moitiés en parallèle, chacune dans un Worker
-enfant (`buildHalfInWorker`, sur `src/workers/buildHalf.worker.ts`) : la
-moitié A sur les indices d'emplacement 0 à 2 avec `maxSetsForA`, la moitié B
-sur 3 à 5 avec `maxSetsForB`. La requête (`BuildHalfRequest`) porte le pool
-pré-filtré et les champs de `PreparedSearch` utiles à la construction, plus
+Le Worker construit les moitiés en parallèle, UN Worker enfant par moitié
+ET par préréglage construit (`construireMoitiesEmboitees`,
+`src/lib/constructionEmboitee.ts`, avec `buildHalfInWorker` sur
+`src/workers/buildHalf.worker.ts`) : le préréglage de la recherche, puis
+chaque préréglage plus étroit (`PreparedSearch.cransEmboites`, préréglages
+emboîtés), soit 2 Workers à Bas et jusqu'à 8 à Extrême, tous lancés
+ensemble. La moitié A porte sur les indices d'emplacement 0 à 2 avec
+`maxSetsForA`, la moitié B sur 3 à 5 avec `maxSetsForB`. Chaque requête
+(`BuildHalfRequest` = `RequeteMoitie`, produite par `requetesDeLaMoitie`,
+jamais assemblée à la main) porte UN préréglage : son pool, son `bucketCap`,
+son crédit de joker, les bornes de sets de l'autre moitié tirées de son
+pool, les champs communs de `PreparedSearch`, `cransEmboites` vide, et
 `combosOrderMode` repris des `SearchParams` ; `adaptiveTrancheWeighting`,
-sans effet, n'y est pas relayé.
-Les deux moitiés sont indépendantes : chacune ne lit que des bornes
-calculées par la préparation, jamais l'autre moitié construite.
+sans effet, n'y est pas relayé. Les deux moitiés sont indépendantes :
+chacune ne lit que des bornes calculées par la préparation, jamais l'autre
+moitié construite.
 
-Le Worker enfant pilote le générateur `construireMoitie`
-(`src/lib/rechercheRunes.ts`) jusqu'au bout, poste sa
-progression (runes du premier emplacement de la moitié déjà parcourues, sur
-leur total) au plus une fois par palier de temps, puis un dernier point de
-passage garanti, puis ses compartiments (`Bucket[]`). Le Worker parent les
-relaie sans palier supplémentaire (`phase: 'building'`), et le hook garde la
-progression des deux moitiés séparément (`halves.A`, `halves.B`).
+Chaque Worker enfant pilote le générateur `construireMoitie`
+(`src/lib/rechercheRunes.ts`) jusqu'au bout, poste sa progression au plus
+une fois par palier de temps, puis un dernier point de passage garanti, puis
+ses compartiments (`Bucket[]`). Le Worker de recherche fait l'union des
+rétentions de chaque moitié (`UnionDesRetentions`) dans l'ORDRE des
+préréglages, du préréglage de la recherche au plus étroit, quel que soit
+l'ordre d'arrivée des Workers : il rend exactement ce que `construireMoitie`
+rend d'un bloc, préréglage après préréglage, dans un seul fil
+(`tests/retention-emboitee.test.ts`). Pourquoi des Workers séparés plutôt
+qu'une seule passe qui remplirait la liste de chaque préréglage :
+[elagages.md § Préréglages emboîtés](elagages.md#préréglages-emboîtés).
+
+La progression d'une moitié est UN compte, `scanned` sur `total` : la somme
+de ce qu'ont parcouru ses Workers (les runes du premier emplacement de leur
+pool), sur la somme de leurs totaux (`totalConstruction` ; une même rune
+compte une fois par préréglage). À Moyen, `total` vaut donc les runes du
+premier emplacement de Moyen plus celles de Bas ; à Bas, celles de Bas
+seules. Le Worker de recherche relaie chaque somme sans palier
+supplémentaire (`phase: 'building'`), et le hook garde la progression des
+deux moitiés séparément (`halves.A`, `halves.B`). Le compte ne recule jamais
+et finit à `total`. Ce n'est pas une mesure du travail : une rune d'un
+préréglage plus étroit coûte moins (ses deux autres emplacements sont plus
+petits), et ses Workers finissent avant celui du préréglage de la recherche.
+
+Hors Worker (CLI, tests, `searchBuildsSteps`), `construireMoitie` fait le
+même travail d'un bloc : le préréglage de la recherche, puis chaque
+préréglage plus étroit, et l'union au fil de l'eau ; le compte de sa
+progression enchaîne les préréglages dans cet ordre. Sans préréglage plus
+étroit (Bas), le résultat et les points de passage sont ceux du préréglage
+seul. Détail :
+[elagages.md § Préréglages emboîtés](elagages.md#préréglages-emboîtés).
 
 La construction énumère les combinaisons des trois emplacements de la moitié
 et les range en compartiments, par le compte exact de pièces de chaque set
@@ -128,9 +159,9 @@ par potentiel décroissant ; `combosOrderMode` ordonne les combinaisons à
 l'intérieur d'un compartiment. Détail :
 [elagages.md § Pré-filtrage heuristique et compartiments](elagages.md).
 
-`construireMoitie` confie ce travail à un noyau sur tableaux typés,
-`construireMoitieRapide` (`src/lib/constructionRapide.ts`), qui rend
-exactement les compartiments de `buildBuckets`, la référence :
+`construireMoitie` confie la construction de chaque préréglage à un noyau
+sur tableaux typés, `construireMoitieRapide` (`src/lib/constructionRapide.ts`),
+qui rend exactement les compartiments de `buildBuckets`, la référence :
 
 - aucune allocation par combinaison : les sommes de chaque triplet vont dans
   un tampon, son compartiment est un entier (comptes en base 4, jokers en
@@ -153,12 +184,15 @@ entier ne couvre plus, et des capacités de tas hors des entiers 32 bits du
 noyau — `bucketCap` non entier, négatif ou tel que `bucketCap × (2 + stats
 retenues)` dépasse 2³¹ − 1 (un override de mesure à 2³¹ ou `Infinity`
 deviendrait négatif ou nul dans un `Int32Array`, et la moitié rendrait zéro
-combinaison). La
+combinaison). Le motif se juge préréglage par préréglage : avec un traceur,
+seul le préréglage de la recherche passe par `buildBuckets`, les plus
+étroits, construits sans traceur, restent au noyau. La
 même `construireMoitie` sert le CLI (`runSearchToCompletion`), les fils de
-construction de Node (`scripts/lib/build-half-worker.ts` : harnais,
-`perf-battery`) et `searchBuildsSteps`.
+construction de Node (`scripts/lib/build-half-worker.ts`, un par moitié et
+par préréglage, orchestrés par la même `construireMoitiesEmboitees` :
+harnais, `perf-battery`) et `searchBuildsSteps`.
 
-Un arrêt pendant cette phase termine les deux Workers enfants
+Un arrêt pendant cette phase termine tous les Workers enfants de construction
 (`terminate()`) et rejette l'attente (`stopBuildReject`) : la recherche rend
 un résultat vide, tronqué, aucune paire n'ayant encore été examinée. Une
 erreur d'un Worker enfant suit le même chemin : résultat vide tronqué, pas le

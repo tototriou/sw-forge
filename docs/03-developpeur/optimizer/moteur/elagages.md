@@ -330,6 +330,87 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   les plus prometteuses d'abord, ce qui compte dès que le temps ou le
   plafond de candidats arrête la recherche avant d'avoir tout exploré.
 
+### Préréglages emboîtés
+
+- **Un préréglage contient ce que retient chaque préréglage plus étroit** :
+  Bas ⊆ Moyen ⊆ Haut ⊆ Extrême, en demi-builds retenus, donc en builds
+  valides sur une recherche que ni le filet de temps ni le plafond de
+  candidats n'arrêtent — l'appariement juge chaque paire pour elle-même :
+  plus de demi-builds, c'est plus de paires et jamais un build valide de
+  moins. Pourquoi :
+  [prereglages-emboites.md](../../../04-decisions/adr/prereglages-emboites.md).
+- **La rétention d'une moitié est une union** (`construireMoitie`,
+  `UnionDesRetentions`, `src/lib/retentionEmboitee.ts`) : celle du
+  préréglage de la recherche, puis, compartiment par compartiment, les
+  demi-builds que retient chaque préréglage plus étroit et qui lui
+  manquent. Chaque préréglage plus étroit se construit avec SES paramètres,
+  ceux qu'aurait une recherche lancée à ce préréglage (`CranEmboite`,
+  `PreparedSearch.cransEmboites`, calculés par `prepareSearch`) : son pool
+  (`filterSlot` à son `slotFilterCap`, sur le même pool après principale
+  imposée, dominance et faisabilité), son `bucketCapFor`, son crédit de
+  joker et les bornes de sets de l'autre moitié tirées de son pool. Aucun
+  `bucketCap` n'est agrandi.
+- **Les préréglages plus étroits** sont ceux de `SLOT_FILTER_PRESETS` dont le
+  `slotFilterCap` est strictement inférieur à celui de la recherche : aucun
+  pour Bas (ou un `slotFilterCap` omis, 40), Bas pour Moyen, Moyen et Bas
+  pour Haut, Haut, Moyen et Bas pour Extrême ; un `slotFilterCap` hors
+  préréglage (mesure) emboîte de même ceux qui lui sont inférieurs.
+  `SearchParams.bucketCap` (mesure) ne remplace que le `bucketCap` du
+  préréglage de la recherche, jamais celui d'un préréglage plus étroit.
+- **Ce qui reste exact** :
+  - le pool d'un préréglage plus étroit est inclus dans celui de la
+    recherche, emplacement par emplacement : `filterSlot` garde des préfixes
+    d'un même classement plus des tranches par stat indépendantes du
+    préréglage ; `prepareSearch` le vérifie rune par rune et lève sinon ;
+  - ses élagages de set sont plus stricts (bornes et joker de son pool, plus
+    petit) : chacun de ses demi-builds est un triplet que la construction de
+    la recherche a énuméré. Son compartiment existe donc (l'union lève
+    sinon), les bornes `maxPct`/`maxFlat` le couvrent déjà, et le meilleur
+    score de chaque tranche ne change pas : potentiel et ordre des
+    compartiments sont inchangés ;
+  - dans un compartiment, le tri est celui de `buildBuckets`
+    (`ordonnerCombos`), stable, sur les demi-builds de la recherche dans
+    leur ordre suivis des ajouts : les premiers gardent leur ordre relatif,
+    les ajouts prennent leur place selon `combosOrderMode`, et un
+    compartiment sans ajout est rendu tel quel.
+- **Un Worker par préréglage** (`construireMoitiesEmboitees`,
+  `src/lib/constructionEmboitee.ts`) : à l'écran, chaque moitié construit
+  ses 1 + n préréglages en même temps, chacun dans son Worker, et l'union se
+  fait ensuite, dans l'ordre des préréglages ; le résultat est exactement
+  celui de `construireMoitie` d'un bloc, qui les construit l'un après
+  l'autre dans un seul fil (CLI, tests). Le temps de construction est donc
+  celui du préréglage de la recherche, le plus coûteux (un préréglage plus
+  étroit coûte bien moins : ses triplets croissent comme le cube de son
+  pool), au prix de Workers de plus. L'appariement voit les paires des
+  demi-builds ajoutés en plus.
+- ⚠️ **Pas d'une seule passe** sur le pool de la recherche qui remplirait
+  en même temps la liste de chaque préréglage : elle ne retient pas les mêmes
+  demi-builds. L'ordre du pool d'un préréglage plus étroit n'est pas une
+  sous-suite de celui du préréglage de la recherche (les runes que gardent
+  les tranches par stat de `filterSlot` s'y rangent ailleurs), et les tas de
+  la rétention départagent les scores égaux — fréquents, les scores par
+  stat sont entiers — par l'ordre d'arrivée : parcouru dans l'ordre du pool
+  de Moyen, Bas ne garde pas les mêmes demi-builds que sa propre
+  construction (mesuré : quelques centaines sur 100 000 à 140 000 par moitié
+  sur deux recherches réelles, `tests/retention-emboitee.test.ts` en garde
+  un témoin). L'inclusion Bas ⊆ Moyen ne vaudrait plus.
+- **Mémoire** : l'union n'ajoute que les demi-builds qui manquent, repérés
+  par la position de leurs trois runes dans le pool de la recherche ; dans
+  un seul fil, elle ne garde d'un préréglage plus étroit que ces ajouts,
+  jamais ses compartiments entiers. En parallèle, les compartiments de
+  chaque préréglage arrivent entiers au Worker de recherche avant l'union.
+- ⚠️ **Sous troncature, l'inclusion ne vaut plus.** Les ajouts s'intercalent
+  dans leurs compartiments : l'ordre de visite change, et une recherche que
+  le filet de temps ou `MAX_COLLECTED` arrête ne rend pas forcément les
+  builds qu'aurait rendus le préréglage plus étroit, arrêté au même point.
+- **Le traceur** (`SearchParams.traceur`) ne suit que la construction du
+  préréglage de la recherche ; sa présence finale (`retenue`, `rang`,
+  `population`) se relit sur les compartiments de l'union, si bien qu'un
+  demi-build évincé de toutes les tranches de la recherche (`tranches`)
+  peut y être retenu par un préréglage plus étroit.
+- **L'estimation affichée avant de lancer** (`estimateSearchSpace`) ne
+  compte que le préréglage de la recherche.
+
 ### Faisabilité de set, groupage par compte et jokers
 
 - **Faisabilité de set, précoce** (`stillFeasible`, pendant la construction
@@ -414,8 +495,8 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   temps :
   [02-app/optimizer/feat-interruption.md § Barre de progression](../../../02-app/optimizer/feat-interruption.md#barre-de-progression).
 - **Parallélisme, invisible à l'écran** : les deux moitiés se construisent
-  en même temps dans deux Web Workers dédiés
-  (`src/workers/buildHalf.worker.ts`), et l'appariement se répartit sur
+  en même temps dans des Web Workers dédiés, un par moitié et par préréglage
+  construit (`src/workers/buildHalf.worker.ts`), et l'appariement se répartit sur
   plusieurs Workers dès que l'espace compte au moins
   `PARALLEL_PAIRING_THRESHOLD` paires (`totalPairCount`), en recherche
   normale comme en mode « Rechercher jusqu'à épuisement complet ». Mêmes

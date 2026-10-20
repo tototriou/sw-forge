@@ -228,13 +228,12 @@ export const PROFILS: ProfilSynthetique[] = [
     },
     axesVerifies: [
       'nominal (bucketCap 6000 dérivé) : COMPLET, 6 752 131 paires, cible #1424 / 27 449',
-      'bucketCap 3000 : COMPLET, 6 747 981 paires, cible #1424 / 27 449 — demi-builds A 10 389 → 10 194',
-      'bucketCap 1000 : COMPLET, 5 692 192 paires, cible #1424 / 26 714 — demi-builds A 10 389 → 7 875',
-      'bucketCap 500 : COMPLET, 3 639 627 paires, cible #1424 / 24 108 — demi-builds A 10 389 → 5 461',
-      'slotFilterCap 40 : COMPLET, 6 747 981 paires, cible #1424 / 27 449',
+      'préréglages emboîtés : à slotFilterCap 80, la rétention de Bas (bucketCap 3000) s’ajoute à celle du run — bucketCap 3000, 1000 et 500 y rendent tous COMPLET, 6 747 981 paires, cible #1424 / 27 449 : sous 3000, l’axe ne mord plus à 80',
+      'slotFilterCap 40 (aucun préréglage emboîté, même pool de 25 runes) : bucketCap 3000 dérivé : COMPLET, 6 747 981 paires, cible #1424 / 27 449 ; bucketCap 6000 : 6 752 131 paires, #1424 / 27 449 ; bucketCap 1000 (mesure d’avant les préréglages emboîtés, où 80 et 40 ne différaient que par bucketCap) : 5 692 192 paires, #1424 / 26 714, demi-builds A 10 389 → 7 875 ; bucketCap 500 : 3 639 627 paires, #1424 / 24 108',
       'régime : 6,7 M paires, soit ×15 SOUS le seuil de 100 M — et ×27 sous, même à bucketCap 500. Aucun bras ne peut basculer',
     ],
-    // ⚠️ `bucketCap` SEUL — et `slotFilterCap` en est ABSENT sur une mesure,
+    // ⚠️ `bucketCap` SEUL, mesuré à `slotFilterCap` 40 (voir `limites`) — et
+    // `slotFilterCap` en est ABSENT sur une mesure,
     // pas par prudence. Le bras `slotFilterCap 40` de la calibration
     // rendait 6 747 981 paires au lieu de 6 752 131, ce qui ressemblait à un
     // effet propre du pré-filtrage : c'était la CASCADE (`bucketCap` dérivé
@@ -243,7 +242,7 @@ export const PROFILS: ProfilSynthetique[] = [
     // élément, `explored` compris.
     axesSensibles: ['bucketCap'],
     limites:
-      '⚠️ Le RANG de la cible ne bouge pas sous `bucketCap` (#1424 sur les quatre bras) — seule la POPULATION bouge (27 449 → 24 108). C’est cohérent : `bucketCap` élague des demi-builds moins pertinents, donc des candidats classés APRÈS la cible, qui ne peuvent pas la déplacer. Un différentiel qui ne lirait que le rang ne verrait rien sur ce profil ; c’est exactement pourquoi l’oracle est multi-éléments. ⚠️ `combosOrderMode` y est INERTE, faute d’objectif : les quatre valeurs rendent le même résultat (voir l’en-tête).',
+      '⚠️ Le RANG de la cible ne bouge pas sous `bucketCap` (#1424 sur les quatre bras) — seule la POPULATION bouge (27 449 → 24 108). C’est cohérent : `bucketCap` élague des demi-builds moins pertinents, donc des candidats classés APRÈS la cible, qui ne peuvent pas la déplacer. Un différentiel qui ne lirait que le rang ne verrait rien sur ce profil ; c’est exactement pourquoi l’oracle est multi-éléments. ⚠️ `combosOrderMode` y est INERTE, faute d’objectif : les quatre valeurs rendent le même résultat (voir l’en-tête). ⚠️ Les bras `bucketCap` ci-dessus sont relevés à un seul préréglage : à `slotFilterCap` 80, la rétention de Bas (son `bucketCap` dérivé, 3000) s’ajoute à celle du run (préréglages emboîtés), et un bras à `bucketCap` ≤ 3000 retrouve la population de Bas (mesuré : 3000, 1000 et 500 rendent 6 747 981 paires et 27 449 candidats) — l’axe `bucketCap` se mesure à `slotFilterCap` 40, même pool de 25 runes, aucun préréglage emboîté (`tests/diagnostic-differentiel.test.ts`).',
   },
   {
     nom: 'quota-parallele',
@@ -278,6 +277,7 @@ export const PROFILS: ProfilSynthetique[] = [
       'nominal (bucketCap 6000 dérivé) : plafond, 939 420 310 paires (×9,4 le seuil), 57 312 traitées, cible #45 / 2 000',
       'bucketCap 3000 + slotFilterCap 40 (le PIRE cas) : plafond, 347 904 750 paires (×3,5 le seuil) — reste PARALLÈLE, 36 352 traitées, cible #45 / 2 000',
       'bucketCap 12000 : plafond, 2 240 624 849 paires (×22 le seuil), 58 992 traitées, cible #45 / 2 000',
+      'préréglages emboîtés (rétention de Bas ajoutée à slotFilterCap 80) : bucketCap 3000 seul : plafond, 363 242 015 paires, 36 352 traitées, cible #45 / 2 000 ; slotFilterCap 40 seul : 347 904 750 paires, 36 352 traitées, #45 / 2 000 ; nominal et bucketCap 12000 inchangés',
       'reproductibilité : 5 runs successifs, `explored` = 57 312 les 5 fois, top-1 identique ; séquentiel forcé = parallèle, candidat par candidat',
     ],
     // ⚠️ Les deux axes ont d'abord été mesurés CONJOINTEMENT (bucketCap 3000

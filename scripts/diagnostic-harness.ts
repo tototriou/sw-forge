@@ -43,6 +43,8 @@
 //   diagnostic-harness.ts --profil=<nom> --differentiel=<axe>:<témoin>,<comparé>
 //                         [--repetitions=<n>] [--arret=…]
 //   ex. --profil=complet-sensible --differentiel=bucketCap:6000,500
+//   (⚠️ au `slotFilterCap` 80 du profil, la rétention de Bas, emboîtée,
+//   s'ajoute aux deux bras : sous 3000, `bucketCap` n'y change rien)
 // ⚠️ DEUX bras du MÊME cas, exécutés en ALTERNANCE (témoin, comparé, témoin,
 // comparé…) — jamais en blocs, dont le biais se REPRODUIT. C'est l'INVERSE de
 // `--cas` : un lot fait varier le CAS, un différentiel fait varier la

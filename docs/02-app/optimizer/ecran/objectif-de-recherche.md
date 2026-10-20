@@ -2,14 +2,18 @@
 
 Ce document décrit la carte « Objectif de recherche » et ses quatre objectifs.
 
-3. **Objectif de recherche** — en tête de la **carte du bouton
-   Rechercher**, au-dessus de la rangée Rechercher / Exporter / Importer.
+3. **Objectif de recherche** — au-dessus du bouton Rechercher : au
+   téléphone, en tête de la **carte du bouton Rechercher**, au-dessus de la
+   rangée Rechercher / Exporter / Importer ; au bureau, dans le bloc
+   « Objectif et Rechercher », sous la ligne d'estimation (voir
+   [README.md](README.md#bloc--objectif-et-rechercher-)).
    ⚠️ Il vit avec le geste qu'il qualifie : *quoi* chercher se lit juste
    au-dessus de *chercher*. Ce n'est **pas** un champ de
    « Critères de recherche » — l'objectif se choisit avant même de composer
    le set, ce n'est pas un critère de plus parmi d'autres. **Un bouton à
    choix unique** (`<Segmented
-   size="lg">`, [Segmented.tsx](src/ui/Segmented.tsx)) sur une seule ligne,
+   size="lg">`, [Segmented.tsx](src/ui/Segmented.tsx)) sur une seule ligne
+   — en 2 × 2 dans la forme étroite du bloc de bureau (axe `colonnes`) —,
    chaque option se partageant la largeur à égalité, séparées par un
    **liseré vertical constant** entre deux options voisines, y compris
    quand l'une des deux est sélectionnée — un `<span>` à part, sans rayon :

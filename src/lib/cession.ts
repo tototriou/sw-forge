@@ -8,8 +8,9 @@
 // laisse passer un message déjà arrivé (l'arrêt manuel). Repli `setTimeout`
 // quand `MessageChannel` manque, ou quand sa création lève (un environnement
 // qui l'expose sans le permettre) : la cession ne doit jamais faire échouer
-// la recherche. Le port se ferme à la réception : un port ouvert tiendrait
-// la boucle d'événements de Node en vie.
+// la recherche. Les deux ports se ferment à la réception, celui qui reçoit
+// puis celui qui a envoyé : un port ouvert tiendrait la boucle d'événements
+// de Node en vie, et aucun ne sert plus une fois le message reçu.
 
 type FabriqueCanal = new () => MessageChannel;
 
@@ -31,6 +32,7 @@ export function cederLaMain(
     }
     canal.port1.onmessage = () => {
       canal.port1.close();
+      canal.port2.close();
       resolve();
     };
     canal.port2.postMessage(null);

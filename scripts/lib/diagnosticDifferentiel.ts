@@ -320,8 +320,9 @@ export const AVERTISSEMENT_DIFFERENTIEL =
  * ⚠️ **Le harnais ALTERNE les bras, il ne les SUPERPOSE pas** — et le protocole du voisin
  * n'est pas transposable. `perf-battery-compare` lance ses deux bras AU MÊME
  * INSTANT (deux processus) pour éliminer la dérive machine ; le harnais, lui,
- * ouvre déjà ses workers d'appariement (jusqu'à `TRAVAILLEURS_MAX`) plus 2 de
- * construction, et deux bras simultanés en doubleraient le nombre — sous une
+ * ouvre déjà ses workers d'appariement (jusqu'à `TRAVAILLEURS_MAX`) plus ceux de
+ * construction (2 à 8, un par moitié et par préréglage), et deux bras
+ * simultanés en doubleraient le nombre — sous une
  * contention que la production ne connaît pas.
  *
  * ⚠️ **Chaque run part à `repetitions: 1`.** Le `N` du différentiel est

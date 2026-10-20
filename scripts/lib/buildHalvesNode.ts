@@ -1,6 +1,8 @@
-// Construction des DEUX moitiés EN PARALLÈLE, côté Node — la coquille de
-// lancement, pendant de ce que `runeBuildOptim.worker.ts` fait avec deux Web
-// Workers.
+// Construction des moitiés EN PARALLÈLE, côté Node — la coquille de
+// lancement, pendant de ce que `runeBuildOptim.worker.ts` fait avec ses Web
+// Workers de moitié : un fil par moitié ET par préréglage construit (2 à 8,
+// préréglages emboîtés), par le même orchestrateur
+// (`construireMoitiesEmboitees`).
 //
 // ⚠️ **Pourquoi ça ne peut pas rester séquentiel dans un outil de mesure.**
 // Construire A puis B dans le même fil ne fausse pas qu'un affichage : le
@@ -31,10 +33,11 @@
 // référence pour un gain nul.
 //
 // ⚠️ **Sur un PETIT cas, paralléliser coûte plus que ça ne rapporte** —
-// mesuré : deux fils à 25 et 24 ms pour un temps de phase de 127 ms, le spawn
-// et la copie des compartiments pesant plus que le travail lui-même. Ce n'est
-// PAS une raison de conditionner la parallélisation à la taille : la
-// production lance ses deux Web Workers dans TOUS les cas, et un harnais qui
+// mesuré (à deux fils, avant les préréglages emboîtés) : deux fils à 25 et
+// 24 ms pour un temps de phase de 127 ms, le spawn et la copie des
+// compartiments pesant plus que le travail lui-même. Ce n'est PAS une raison
+// de conditionner la parallélisation à la taille : la production lance ses
+// Web Workers de moitié dans TOUS les cas, et un harnais qui
 // choisirait autrement cesserait de mesurer la production. Le surcoût est donc
 // reproduit tel quel — et rendu visible, `msA`/`msB` étant rapportés à côté du
 // temps réel de la phase.
@@ -51,7 +54,7 @@ import { construireMoitiesEmboitees } from '../../src/lib/constructionEmboitee';
 // jamais un module à importer. Même précaution que perf-battery.ts.
 import type { BuildHalfWorkerData, BuildHalfWorkerResult, MemoireMoitie, ProgressionMoitie } from './build-half-worker';
 
-// Bundlé UNE FOIS par exécution, réutilisé par les deux fils — le coût
+// Bundlé UNE FOIS par exécution, réutilisé par tous les fils — le coût
 // d'esbuild ne doit jamais entrer dans un temps de construction mesuré.
 let cheminBundle: string | null = null;
 
@@ -135,8 +138,8 @@ export async function construireMoitiesEnParallele(
   // retomberait sur le défaut interne de la construction et ignorerait
   // silencieusement ce que la recette demandait.
   const { bucketsA, bucketsB } = await construireMoitiesEmboitees(prepared, params.combosOrderMode, async (requete) => {
-    // Le fil du préréglage de la recherche est celui qui porte le pool entier.
-    const propre = requete.filtered === prepared.filtered;
+    // Le fil du préréglage de la recherche (rang 0), celui qui porte le pool entier.
+    const propre = requete.rangPrereglage === 0;
     const r = await lancerFil(chemin, { ...requete, horodaterProgression: horodaterProgression && propre });
     if (propre) propres[requete.half] = r;
     return r.buckets;

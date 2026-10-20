@@ -400,6 +400,48 @@ function testRefus(etages: Map<number, Etage>) {
   ok(leve, 'union : une rune absente du pool de la recherche lève');
 }
 
+/* 5 ter. La panne d'un fil ------------------------------------------------ */
+
+// Sur l'erreur d'un fil, la construction rejette AUSSITÔT, ses frères encore
+// en vol : c'est ce qui permet au Worker de recherche de les terminer tous
+// (`terminerMoitiesEnCours`, dans le `finally` de la construction) au lieu
+// d'attendre qu'ils finissent pour une recherche déjà rendue.
+async function testPanneDUnFil(etages: Map<number, Etage>) {
+  const p = etages.get(80)!.p;
+  const lances: string[] = [];
+  const panne = new Error('panne du fil');
+  const lancer: LancerConstruction = (requete) => {
+    lances.push(`${requete.half}${requete.rangPrereglage}`);
+    // Le fil de la recherche de la moitié B tombe en panne ; les autres ne
+    // finissent jamais (encore en vol).
+    if (requete.half === 'B' && requete.rangPrereglage === 0) return Promise.reject(panne);
+    return new Promise<Bucket[]>(() => {});
+  };
+  let minuterie: ReturnType<typeof setTimeout> | undefined;
+  const issue = await Promise.race([
+    construireMoitiesEmboitees(p, 'objective', lancer).then(() => 'rendu', (e: unknown) => (e === panne ? 'rejeté par la panne' : `rejeté autrement : ${String(e)}`)),
+    new Promise<string>((r) => { minuterie = setTimeout(() => r('bloqué'), 2000); }),
+  ]);
+  clearTimeout(minuterie);
+  egal(issue, 'rejeté par la panne', 'panne d’un fil : la construction rejette aussitôt, avec son erreur, sans attendre les autres');
+  egal(lances.length, 2 * (p.cransEmboites.length + 1),
+    `panne d’un fil : les ${2 * (p.cransEmboites.length + 1)} fils étaient tous lancés — ${lances.length - 1} frères encore en vol, à terminer par l’appelant`);
+}
+
+// Le fil du préréglage de la recherche se repère par un champ de la requête
+// (`rangPrereglage`), jamais par l'identité du pool (relevés de la coquille
+// Node et de perf-battery).
+function testRangDesRequetes(etages: Map<number, Etage>) {
+  const p = etages.get(80)!.p;
+  for (const half of ['A', 'B'] as const) {
+    const requetes = requetesDeLaMoitie(p, half, 'objective');
+    egal(requetes.map((r) => r.rangPrereglage), requetes.map((_, i) => i),
+      `moitié ${half} : rang 0 pour le préréglage de la recherche, puis 1… dans l’ordre de cransEmboites (${requetes.length} requêtes)`);
+    ok(requetes[0].filtered === p.filtered && requetes.slice(1).every((r) => r.filtered !== p.filtered),
+      `moitié ${half} : le rang 0, et lui seul, porte le pool entier de la recherche`);
+  }
+}
+
 export default async function testRetentionEmboitee() {
   titre('Optimizer · préréglages emboîtés (union des rétentions)');
   testPools();
@@ -430,6 +472,8 @@ export default async function testRetentionEmboitee() {
   testBuildsValides();
   await testCoquilleNode(pool, requirement, etages);
   await testPlusieursPrereglages(etages, pool, requirement);
+  await testPanneDUnFil(etages);
+  testRangDesRequetes(etages);
   testRefus(etages);
   testUneSeulePasse(etages);
 }

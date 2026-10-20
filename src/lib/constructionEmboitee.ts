@@ -36,6 +36,12 @@ type OrdreCombos = 'potential' | 'relevance' | 'combined' | 'objective';
  */
 export interface RequeteMoitie {
   half: 'A' | 'B';
+  // Le préréglage que ce fil construit : 0 pour celui de la recherche (le
+  // pool entier), i ≥ 1 pour le i-ème de `PreparedSearch.cransEmboites`, du
+  // plus large au plus étroit. Un appelant qui distingue le fil de la
+  // recherche (relevés des outils de mesure) le lit ici, jamais par
+  // l'identité de `filtered`.
+  rangPrereglage: number;
   slotIdxs: readonly [number, number, number];
   filtered: RuneDetail[][];
   distinctKeys: string[];
@@ -69,11 +75,12 @@ export function requetesDeLaMoitie(prepared: PreparedSearch, half: 'A' | 'B', co
     base: prepared.base, objectiveKeys: prepared.objectiveKeys, cransEmboites: [], combosOrderMode,
   };
   const propre: RequeteMoitie = {
-    ...commun, filtered: prepared.filtered, bucketCap: prepared.bucketCap, jokerCredit: prepared.jokerCredit,
+    ...commun, rangPrereglage: 0, filtered: prepared.filtered, bucketCap: prepared.bucketCap, jokerCredit: prepared.jokerCredit,
     otherHalfMaxSets: half === 'A' ? prepared.maxSetsForA : prepared.maxSetsForB,
   };
-  return [propre, ...prepared.cransEmboites.map((cran): RequeteMoitie => ({
+  return [propre, ...prepared.cransEmboites.map((cran, i): RequeteMoitie => ({
     ...commun,
+    rangPrereglage: i + 1,
     filtered: cran.indices.map((idx, s) => idx.map((i) => prepared.filtered[s][i])),
     bucketCap: cran.bucketCap,
     jokerCredit: cran.jokerCredit,

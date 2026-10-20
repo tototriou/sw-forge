@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BuildCandidate, SearchParams, SearchResult } from '../lib/runeBuildOptim';
 import { RelicContext, RelicVide } from '../lib/relicOptim';
-import { WorkerResponse } from '../workers/runeBuildOptim.worker';
+import { coeursPhysiques } from '../lib/bureau';
+import type { DemandeDeRecherche, WorkerResponse } from '../workers/runeBuildOptim.worker';
 
 // Plafond de sécurité sur la liste APERÇU accumulée pendant une recherche en
 // cours — pas `maxCollected` (100 000 par défaut, voir MAX_COLLECTED dans
@@ -33,7 +34,8 @@ export interface HalfBuildProgress {
 // distinction, l'UI n'avait AUCUNE information pendant cette phase (voir
 // docs/03-developpeur/optimizer/ § Construction des moitiés).
 // ⚠️ `building` garde les DEUX moitiés (`halves.A`/`halves.B`), pas une seule
-// — depuis leur construction en parallèle (deux Workers, voir
+// — depuis leur construction en parallèle (un Worker par moitié et par
+// préréglage construit, 2 à 8, voir
 // runeBuildOptim.worker.ts), les messages de progression des deux moitiés
 // s'entrelacent ; ne garder que le dernier reçu (l'ancien comportement)
 // ferait « disparaître » l'autre moitié de l'écran alors qu'elle avance en
@@ -86,9 +88,9 @@ export type BuildOptimProgress =
 // lancer/arrêter plusieurs recherches rapprochées pouvait figer une des deux
 // barres de la phase `building` (voir
 // docs/03-developpeur/optimizer/ § Lancement) — plus
-// probable depuis la parallélisation des deux moitiés (deux Workers de plus
-// à chaque recherche, donc deux fois plus de messages en vol au moment d'un
-// arrêt/relance). Chaque `run()` incrémente `runId` ; tout message reçu par
+// probable depuis la parallélisation des moitiés (2 à 8 Workers de plus à
+// chaque recherche, un par moitié et par préréglage, donc davantage de
+// messages en vol au moment d'un arrêt/relance). Chaque `run()` incrémente `runId` ; tout message reçu par
 // un gestionnaire qui ne porte plus le `runId` COURANT est silencieusement
 // ignoré — indépendant de la rapidité réelle de `terminate()`, qui n'a donc
 // plus besoin d'être instantané pour rester correct.
@@ -106,6 +108,21 @@ export function useBuildOptimSearch() {
   // consomme sur les candidats de CETTE recherche. `undefined` tant que
   // l'écran n'en pose pas : la file garde alors la relique portée.
   const [relicContext, setRelicContext] = useState<RelicContext | undefined>(undefined);
+  // Les cœurs physiques de la machine, que le Worker de recherche ne peut pas
+  // lire (seul le pont de l'application de bureau les donne) : demandés une
+  // fois au montage, passés dans chaque demande. `null` sur le site, tant que
+  // la réponse n'est pas arrivée, ou si la lecture a échoué : le Worker garde
+  // alors la règle des fils logiques.
+  const coeursPhysiquesRef = useRef<number | null>(null);
+  useEffect(() => {
+    let actif = true;
+    void coeursPhysiques().then((n) => {
+      if (actif) coeursPhysiquesRef.current = n;
+    });
+    return () => {
+      actif = false;
+    };
+  }, []);
 
   const cancel = useCallback(() => {
     runIdRef.current++;
@@ -180,7 +197,8 @@ export function useBuildOptimSearch() {
         if (runIdRef.current !== myRunId) return;
         setStatus('error');
       };
-      worker.postMessage(params);
+      const demande: DemandeDeRecherche = { type: 'recherche', params, coeursPhysiques: coeursPhysiquesRef.current };
+      worker.postMessage(demande);
     },
     [cancel]
   );

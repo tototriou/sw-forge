@@ -9,8 +9,9 @@
 // noyau sur tableaux typés, plutôt que de piloter `searchBuildsSteps` d'un
 // bloc : les deux moitiés A et B sont indépendantes (aucune ne dépend du
 // résultat construit de l'autre, seulement de bornes calculées d'avance par
-// `prepareSearch`), donc les construire sur deux cœurs plutôt qu'un seul
-// accélère cette phase — voir docs/03-developpeur/optimizer/moteur/pipeline.md
+// `prepareSearch`), tout comme les préréglages d'une même moitié, donc les
+// construire sur plusieurs cœurs (2 à 8 Workers) plutôt qu'un seul accélère
+// cette phase — voir docs/03-developpeur/optimizer/moteur/pipeline.md
 // § Construction des moitiés. L'appariement séquentiel (`apparier`) est piloté
 // PAS À PAS dans CE Worker : c'est ce qui permet de rendre la main à la
 // boucle d'évènements entre deux points de passage, condition nécessaire pour
@@ -33,7 +34,18 @@ import { nombreDeTravailleurs, regimeAppariement } from './parallelPairing';
 import { drivePairing, PROGRESS_THROTTLE_MS } from './pairingDriver';
 import { prepareOrRefuse } from './prepareForSearch';
 
-export type WorkerRequest = SearchParams | { stop: true };
+// La demande d'une recherche : ses paramètres, et ce que la page sait de la
+// machine et que ce Worker ne peut pas lire lui-même — les cœurs physiques,
+// que seule l'application de bureau connaît (`coeursPhysiques`,
+// src/lib/bureau.ts), `null` ailleurs ; le nombre de Workers d'appariement en
+// dérive (`nombreDeTravailleurs`). ⚠️ Obligatoire : un constructeur qui
+// l'oublierait ne compile pas.
+export interface DemandeDeRecherche {
+  type: 'recherche';
+  params: SearchParams;
+  coeursPhysiques: number | null;
+}
+export type WorkerRequest = DemandeDeRecherche | { stop: true };
 
 // ⚠️ Deux formes, comme `SearchProgress` côté moteur (voir son commentaire) :
 // la construction des compartiments (`phase: 'building'`) peut à elle seule
@@ -120,6 +132,14 @@ let stopped = false;
 // PENDANT cette phase les tue directement (`terminate()`, instantané) plutôt
 // que d'attendre une coopération qu'ils n'ont pas (voir buildHalf.worker.ts).
 let activeHalfWorkers: Worker[] = [];
+// Termine tous les Workers de moitié encore en vol : à l'arrêt manuel, et à la
+// sortie de la construction quelle qu'en soit l'issue — sur l'erreur de l'un,
+// ses frères (jusqu'à 7, préréglages emboîtés) ne doivent pas continuer à
+// tourner pour une recherche déjà rendue.
+function terminerMoitiesEnCours() {
+  for (const w of activeHalfWorkers) w.terminate();
+  activeHalfWorkers = [];
+}
 // Rejette la promesse qui attend les deux moitiés, pour qu'un arrêt pendant
 // cette phase fasse sortir `await` immédiatement plutôt que de rester
 // bloqué indéfiniment (les Workers tués ne posteront plus jamais de message).
@@ -189,14 +209,13 @@ function buildHalfInWorker(request: BuildHalfRequest, onProgress: (scanned: numb
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   if ('stop' in e.data) {
     stopped = true;
-    for (const w of activeHalfWorkers) w.terminate();
-    activeHalfWorkers = [];
+    terminerMoitiesEnCours();
     if (stopBuildReject) stopBuildReject();
     arreterAppariement?.();
     return;
   }
   stopped = false;
-  const params = e.data;
+  const { params, coeursPhysiques } = e.data;
   const startedAt = Date.now();
 
   // ⚠️ `prepareSearch` peut lever `RechercheRefusee` (pool de reliques vide
@@ -227,13 +246,14 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
 
   // ⚠️ Deux moitiés INDÉPENDANTES (aucune ne dépend du résultat CONSTRUIT de
   // l'autre — seulement de `maxSetsForA`/`maxSetsForB`, déjà calculés par
-  // `prepareSearch`) : construites en parallèle, chacune dans son propre
-  // Worker, pour utiliser deux cœurs plutôt qu'un seul pendant cette phase.
+  // `prepareSearch`) : construites en parallèle, un Worker par moitié ET par
+  // préréglage construit (2 à 8), pour utiliser plusieurs cœurs plutôt qu'un
+  // seul pendant cette phase.
   let bucketsA: Bucket[];
   let bucketsB: Bucket[];
   try {
     // ⚠️ Pas de throttle ICI (contrairement à la phase d'appariement plus
-    // bas) : chacun des deux Workers enfants (buildHalf.worker.ts) throttle
+    // bas) : chacun des Workers enfants (buildHalf.worker.ts) throttle
     // déjà SES PROPRES messages indépendamment — un throttle commun aux DEUX
     // moitiés ferait courir le message de l'une contre celui de l'autre (un
     // message de A qui arrive juste après un de B ferait sauter celui de B,
@@ -258,15 +278,18 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       abortPromise,
     ]));
   } catch {
-    // Arrêt manuel pendant la construction : rien n'existe encore à ressortir
-    // (aucune paire n'a pu être évaluée) — un résultat vide, tronqué, est le
-    // seul choix honnête, même comportement que l'ancien code pour
-    // `phase: 'building'`.
+    // Arrêt manuel pendant la construction, ou erreur d'un Worker de moitié :
+    // rien n'existe encore à ressortir (aucune paire n'a pu être évaluée) — un
+    // résultat vide, tronqué, est le seul choix honnête, même comportement que
+    // l'ancien code pour `phase: 'building'`.
     const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null };
     (self as unknown as Worker).postMessage(result);
     return;
   } finally {
     stopBuildReject = null;
+    // La construction rejette dès la PREMIÈRE moitié en erreur
+    // (`construireMoitiesEmboitees`) : les autres sont encore en vol ici.
+    terminerMoitiesEnCours();
   }
   if (stopped) {
     const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null };
@@ -317,7 +340,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     try {
       const resultat = await apparierRapideEnParallele({
         params, prepared, bucketsA, bucketsB, totalPaires: totalPairs,
-        travailleurs: nombreDeTravailleurs(self.navigator?.hardwareConcurrency),
+        travailleurs: nombreDeTravailleurs(self.navigator?.hardwareConcurrency, coeursPhysiques),
         lancer: lancerTravailleurNavigateur, startedAt,
         surControle: (controle) => {
           arreterAppariement = controle.arreter;

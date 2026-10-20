@@ -109,7 +109,10 @@ emboîtés), soit 2 Workers à Bas et jusqu'à 8 à Extrême, tous lancés
 ensemble. La moitié A porte sur les indices d'emplacement 0 à 2 avec
 `maxSetsForA`, la moitié B sur 3 à 5 avec `maxSetsForB`. Chaque requête
 (`BuildHalfRequest` = `RequeteMoitie`, produite par `requetesDeLaMoitie`,
-jamais assemblée à la main) porte UN préréglage : son pool, son `bucketCap`,
+jamais assemblée à la main) porte UN préréglage : son rang
+(`rangPrereglage` : 0 pour celui de la recherche, puis l'ordre de
+`cransEmboites`, par lequel un outil de mesure repère le fil de la
+recherche), son pool, son `bucketCap`,
 son crédit de joker, les bornes de sets de l'autre moitié tirées de son
 pool, les champs communs de `PreparedSearch`, `cransEmboites` vide, et
 `combosOrderMode` repris des `SearchParams` ; `adaptiveTrancheWeighting`,
@@ -212,7 +215,10 @@ Ce total sert de dénominateur à la progression et décide du régime, avec le
 contrat numérique du noyau (`verifierContrat`) : `regimeAppariement`
 (`src/workers/parallelPairing.ts`) rend le séquentiel, dans ce Worker, sous
 `PARALLEL_PAIRING_THRESHOLD` ou hors contrat ; le parallèle à partir du
-seuil, sur `nombreDeTravailleurs(navigator.hardwareConcurrency)` Workers.
+seuil, sur `nombreDeTravailleurs(navigator.hardwareConcurrency,
+coeursPhysiques)` Workers (cœurs physiques moins deux ; les cœurs viennent
+de la demande, lus par l'application de bureau, `null` sur le site où ils
+se déduisent des fils logiques).
 Détail du régime parallèle et de la règle du nombre de Workers :
 [parallelisation.md § Choix du régime](parallelisation.md).
 

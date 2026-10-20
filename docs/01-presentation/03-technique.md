@@ -35,13 +35,15 @@ Code dans **`bureau/`** (hors de `src/` : il tourne dans Node) :
 - `session.ts` + `sessionPur.ts` (session en cours : « Sauvegarder » la réécrit, « Sauvegarder
   sous… », `session.json` ; dossier SW Blacksmith et son sous-dossier `sessions`,
   `dossier-swblacksmith.json`) ;
+- `coeurs.ts` + `coeursPur.ts` (nombre de cœurs physiques, lu par une commande du système et
+  donné à la page : le nombre de Workers de la recherche de runes en dérive) ;
 - `preuve.ts`, `installeur.nsh` (désinstalleur Windows), `icone.ico` (générée par
   `scripts/generer-icone-bureau.mjs`).
 
 Empaqueté par `electron-builder.yml`, publié au tag `v*` par `.github/workflows/bureau.yml`
 (installeurs attachés à la release), compilé par `scripts/construire-bureau.mjs` vers le dossier
 `dist-bureau` (non suivi). Côté page : `src/lib/bureau.ts` (`estBureau()`, couleurs du thème,
-mise à jour), `src/components/MiseAJourBureau.tsx` (la mise à jour dite par la notification),
+mise à jour, cœurs physiques), `src/components/MiseAJourBureau.tsx` (la mise à jour dite par la notification),
 `src/components/BlocApplication.tsx` (bloc « Application » des Réglages : version, mise à jour à
 portée, dossier SW Exporter), `src/components/SuiviSwex.tsx` (applique « Mon compte » à chaque
 export), `src/hooks/useEtatSwex.ts` (l'état du dossier, lu par les Réglages et par

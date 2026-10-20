@@ -80,7 +80,7 @@ for (const m of MODES) if (!['complet', 'petit', 'arret'].includes(m)) throw new
 const PETIT = Number(valeur('petit') ?? 1000);
 const WORKERS = (valeur('workers') ?? 'prod')
   .split(',')
-  .map((w) => (w.trim() === 'prod' ? nombreDeTravailleurs(availableParallelism()) : Number(w)))
+  .map((w) => (w.trim() === 'prod' ? nombreDeTravailleurs(availableParallelism(), null) : Number(w)))
   .filter((n) => n > 0);
 // Le corpus du différentiel complet (candidats, compteurs et quasi-succès comparés) : au-delà de 2 M candidats, le
 // cas en sort ; le plafond est posé juste au-dessus pour le constater.

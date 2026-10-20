@@ -12,7 +12,8 @@
 // ⚠️ Pas de protocole d'arrêt ICI (contrairement à runeBuildOptim.worker.ts) :
 // un arrêt manuel PENDANT la construction se traite en tuant le Worker depuis
 // le parent (`Worker.terminate()`), instantané et fiable — bien plus simple
-// qu'un arrêt coopératif à répercuter sur deux Workers enfants à la fois. Ce
+// qu'un arrêt coopératif à répercuter sur tous les Workers de moitié à la
+// fois (2 à 8, un par moitié et par préréglage construit). Ce
 // Worker n'a donc besoin de gérer qu'UN seul message (la demande initiale),
 // jamais un second message « stop ».
 

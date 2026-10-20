@@ -2,7 +2,7 @@
 // (src/lib/optimizerColonnes.ts).
 
 import {
-  AUCUNE_COLONNE, COLONNE_DROITE_OBJECTIF_A_COTE, LARGEURS_BUREAU, SEUILS_BUREAU, agencementBureau, basculerColonne, colonnesAffichees,
+  AUCUNE_COLONNE, COLONNE_DROITE_OBJECTIF_A_COTE, attenteResultats, LARGEURS_BUREAU, SEUILS_BUREAU, agencementBureau, basculerColonne, colonnesAffichees,
   colonnesParDefaut, deuxColonnesTiennent, formeObjectifBureau, largeurColonneDroite, ouvrirColonne, type ColonnesOuvertes,
 } from '../src/lib/optimizerColonnes';
 import { LARGEUR_OBJECTIF_ETROIT } from '../src/components/outils/optimizer/bureau/ObjectifEtRechercherBureau';
@@ -94,4 +94,16 @@ export function testOptimizerFormeObjectifBureau() {
   egal([1891, 1892].map((l) => formeObjectifBureau(l, aux)), ['large', 'etroite'], '« Aura… » insérée : étroite dès 1892');
   egal(largeurColonneDroite(2254, deux), 998, '2254, les deux insérées : 2254 − 564 − 336 − 356');
   egal(formeObjectifBureau(2254, deux), 'etroite', '2254 : étroite, les deux colonnes insérées');
+}
+
+// La place d'attente des résultats : sa phrase ne dit jamais « aucune
+// recherche lancée » pendant (ou après) une recherche encore sans carte.
+export function testOptimizerAttenteResultats() {
+  titre('Optimizer · place d\'attente des résultats au bureau');
+  egal(attenteResultats(false, false, 'idle'), 'sans-monstre', 'aucun monstre');
+  egal(attenteResultats(false, true, 'done'), 'sans-monstre', 'aucun monstre, même avec des résultats d\'avant');
+  egal(attenteResultats(true, false, 'idle'), 'sans-recherche', 'un monstre, aucune recherche');
+  egal((['running', 'done', 'error', 'refused'] as const).map((s) => attenteResultats(true, false, s)),
+    ['sans-carte', 'sans-carte', 'sans-carte', 'sans-carte'], 'recherche lancée sans carte (en cours, finie, erreur, refus) : le cadre seul');
+  egal(attenteResultats(true, true, 'running'), null, 'des cartes : les résultats');
 }

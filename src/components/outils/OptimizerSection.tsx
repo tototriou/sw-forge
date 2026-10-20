@@ -183,7 +183,9 @@ import SetsAuraBureau from './optimizer/bureau/SetsAuraBureau';
 import ExclusionRunesBureau from './optimizer/bureau/ExclusionRunesBureau';
 import ReglagesAvancesBureau from './optimizer/bureau/ReglagesAvancesBureau';
 import ExemplaireBureau from './optimizer/bureau/ExemplaireBureau';
-import { type ColonnesOuvertes } from '../../lib/optimizerColonnes';
+import ObjectifEtRechercherBureau from './optimizer/bureau/ObjectifEtRechercherBureau';
+import ResultatsBureau from './optimizer/bureau/ResultatsBureau';
+import { attenteResultats, type ColonnesOuvertes } from '../../lib/optimizerColonnes';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -3283,9 +3285,10 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
 
   // Ce que les deux formats partagent hors des réglages : les résultats et
   // les fenêtres (modales, dialogues), écrits une fois.
+  const resultatsPresents = result != null || fullSortedCandidates.length > 0;
   const blocResultats = (
     <>
-      {(result || fullSortedCandidates.length > 0) && (
+      {resultatsPresents && (
         <div>
           <EnteteResultats
             result={result}
@@ -3600,33 +3603,32 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             />
           </ReglagesAvancesBureau>
         }
-        // La colonne de droite garde son contenu d'avant la refonte
-        // (exemplaire, estimation, objectif et actions, progression,
-        // résultats), posé à sa place.
-        droite={
-          <div className="space-y-5">
-            <ExemplaireBureau {...proprietesExemplaire} />
-            {estimate && <EstimationPool estimate={estimate} />}
-            <ObjectifEtActions
-              objective={objective}
-              setObjective={setObjective}
-              setSetupOuvert={setSetupOuvert}
-              resumeCombat={resumeCombat}
-              handleSearch={handleSearch}
-              selected={selected}
-              status={status}
-              comboSets={comboSets}
-              exportRecipe={exportRecipe}
-              importFileRef={importFileRef}
-              importRecipe={importRecipe}
-              setStoppedManually={setStoppedManually}
-              stop={stop}
-            />
-            <MessageImportRecette message={importMsg} />
-            <ProgressionRecherche status={status} progress={progress} refusal={refusal} compteAffiche={compteAffiche} />
-            {blocResultats}
-          </div>
-        }
+        // La colonne de droite : « Exemplaire », le bloc « Objectif et
+        // Rechercher » (estimation, objectif, lancement, message d'import,
+        // progression compacte) et les résultats, que la page place.
+        exemplaire={<ExemplaireBureau {...proprietesExemplaire} />}
+        objectif={(forme) => (
+          <ObjectifEtRechercherBureau
+            forme={forme}
+            estimation={estimate ? <EstimationPool estimate={estimate} /> : null}
+            messageImport={<MessageImportRecette message={importMsg} />}
+            progression={{ progress, refusal, compteAffiche }}
+            objective={objective}
+            setObjective={setObjective}
+            setSetupOuvert={setSetupOuvert}
+            resumeCombat={resumeCombat}
+            handleSearch={handleSearch}
+            selected={selected}
+            status={status}
+            comboSets={comboSets}
+            exportRecipe={exportRecipe}
+            importFileRef={importFileRef}
+            importRecipe={importRecipe}
+            setStoppedManually={setStoppedManually}
+            stop={stop}
+          />
+        )}
+        resultats={<ResultatsBureau attente={attenteResultats(selected != null, resultatsPresents, status)}>{blocResultats}</ResultatsBureau>}
         colonnes={colonnesBureau}
         onColonnes={setColonnesBureau}
         guideComplements={guideComplements}

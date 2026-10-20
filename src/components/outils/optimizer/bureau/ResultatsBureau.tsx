@@ -1,10 +1,11 @@
 import { type ReactNode } from 'react';
+import type { AttenteResultats } from '../../../../lib/optimizerColonnes';
+
+export type { AttenteResultats };
 
 // Une carte de résultat (360, resultats.md) et le cadre de la boîte (bord 2 +
 // rembourrage 24) : les résultats ne descendent jamais sous cette largeur.
 export const LARGEUR_RESULTATS_MIN = 386;
-
-export type AttenteResultats = 'sans-monstre' | 'sans-recherche';
 
 // Les résultats, au bureau : une boîte ÉLASTIQUE (386 px au moins, sans
 // maximum), présente dès le départ dans la colonne de droite. Avant la première
@@ -13,12 +14,15 @@ export type AttenteResultats = 'sans-monstre' | 'sans-recherche';
 // cliquer. Ensuite, le contenu d'aujourd'hui, passé par l'écran : en-tête
 // (compte, « Adapter les artéfacts et reliques au tri », tri), diagnostics,
 // grille de cartes (`GrilleResultats`, ≥ 360 px par carte) et pagination.
+// L'état d'attente vient d'`attenteResultats` (src/lib/optimizerColonnes.ts) :
+// pendant une recherche encore sans carte, le cadre reste, la phrase
+// « Aucune recherche lancée… » non (sa ligne garde sa place).
 export default function ResultatsBureau({ attente, children }: { attente: AttenteResultats | null; children?: ReactNode }) {
   return (
     <section aria-label="Résultats" style={{ minWidth: LARGEUR_RESULTATS_MIN }} className="w-full rounded-xl border border-border bg-panel p-3">
       {attente != null ? (
         <div className="flex min-h-[134px] flex-col gap-2">
-          <p className="label">
+          <p className={`label ${attente === 'sans-carte' ? 'invisible' : ''}`} aria-hidden={attente === 'sans-carte' || undefined}>
             {attente === 'sans-monstre' ? 'Choisis un monstre pour préparer la recherche.' : 'Aucune recherche lancée pour ce monstre.'}
           </p>
           <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border-soft px-3 text-center text-xs text-ink-dim">

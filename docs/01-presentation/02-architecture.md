@@ -187,9 +187,9 @@ celle des meilleurs artéfacts (`MeilleursArtefactsBureau`) ; dans la colonne «
 avancés », les sets d'aura (`SetsAuraBureau`), l'exclusion de runes (`ExclusionRunesBureau`) et les
 réglages avancés (`ReglagesAvancesBureau`), en ligne ; dans la colonne de droite, « Exemplaire »
 (`ExemplaireBureau`), le bloc « Objectif et Rechercher » en forme étroite ou large
-(`ObjectifEtRechercherBureau`) et les résultats (`ResultatsBureau`) — ces deux derniers pas
-encore dans la page, dont la colonne de droite garde la carte de l'objectif et les résultats
-d'avant (`ObjectifEtActions`, et les composants des résultats plus bas). Elles se voient seules
+(`ObjectifEtRechercherBureau`, forme choisie par `formeObjectifBureau` de
+`src/lib/optimizerColonnes.ts`) et les résultats (`ResultatsBureau`, autour des composants des
+résultats plus bas). Elles se voient seules
 dans la vue de développement `#/outils/optimizer/gabarits`
 (`src/components/outils/optimizer/gabarits/`, adresse dans `src/lib/optimizerGabarits.ts`) :
 [03-developpeur/vue-des-gabarits.md](../03-developpeur/vue-des-gabarits.md).

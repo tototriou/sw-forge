@@ -111,6 +111,25 @@ export function formeObjectifBureau(largeur: number | null, affichees: Record<Co
   return largeurColonneDroite(largeur, affichees) >= COLONNE_DROITE_OBJECTIF_A_COTE ? 'etroite' : 'large';
 }
 
+// ── La zone des résultats (même document, « Zone des résultats et place en
+// plus ») ─────────────────────────────────────────────────────────────────
+// Ce que tient la place d'attente tant qu'aucune carte n'est là : aucun
+// monstre ; un monstre, aucune recherche ; une recherche lancée (ou arrêtée
+// sur une erreur, un refus) sans rien à montrer encore — le cadre seul, sans
+// la phrase « Aucune recherche lancée… », qui y serait fausse. `null` : les
+// résultats eux-mêmes.
+export type AttenteResultats = 'sans-monstre' | 'sans-recherche' | 'sans-carte';
+
+export function attenteResultats(
+  monstre: boolean,
+  resultatsPresents: boolean,
+  statut: 'idle' | 'running' | 'done' | 'error' | 'refused',
+): AttenteResultats | null {
+  if (!monstre) return 'sans-monstre';
+  if (resultatsPresents) return null;
+  return statut === 'idle' ? 'sans-recherche' : 'sans-carte';
+}
+
 // L'état de départ, tant que l'utilisateur n'a touché à aucun onglet :
 // « Artéfacts et relique » ouverte en A1, en A2 et là où elle s'insère ; fermée
 // en A3 en dessous, où elle s'ouvrirait en panneau superposé aux résultats

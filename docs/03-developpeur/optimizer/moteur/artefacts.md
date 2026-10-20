@@ -345,14 +345,18 @@ source.
 ## Partage entre les builds d'une file
 
 Les builds d'une file essaient en grande partie les mêmes paires. Quatre
-mémoires et un tri différé partagent ce qui ne dépend pas du build, sans
-changer aucun résultat :
+mémoires partagent ce qui ne dépend pas du build, sans changer aucun
+résultat, et la lecture des notes ne trie rien sur le chemin de l'app
+(dernier point) :
 
 - le **profil de dégâts d'une paire** ne lit que ses deux pièces : il se
   calcule une fois par paire (`CacheProfilsParPaire`,
   `src/lib/artifactEvaluation.ts` ; clé = identifiants des pièces dans
   l'ordre reçu, emplacement vide compris ; une pièce d'identifiant ≤ 0 n'est
-  pas une pièce et n'y entre jamais) ;
+  pas une pièce et n'y entre jamais). ⚠️ La clé est propre à UN
+  inventaire : un identifiant ne désigne la même pièce, donc le même
+  profil, que dans l'inventaire où il a été lu — d'où la durée de vie d'une
+  file, vidée avec l'inventaire (paragraphe suivant la liste) ;
 - les **candidats élagués de chaque sorte** ne se recalculent que si leurs
   entrées changent (`MemoPreFiltre`, `src/lib/artifactOptim.ts`) : la
   pertinence reste sondée contre le vrai calcul à chaque build et à chaque
@@ -367,7 +371,8 @@ changer aucun résultat :
   l'emplacement vide — ne se recalculent que si les entrées de
   `candidatsParSorte` changent (`CachesResolutionRapide`,
   `src/lib/resolutionRapide.ts`, mémoïsé par identité comme
-  `MemoPreFiltre`) : [reliques.md § Résolution rapide — le chemin de l'app](reliques.md#résolution-rapide--le-chemin-de-lapp) ;
+  `MemoPreFiltre`), avec l'indice de chaque forme, par lequel une paire se
+  juge : [reliques.md § Résolution rapide — le chemin de l'app](reliques.md#résolution-rapide--le-chemin-de-lapp) ;
 - la résolution ne note d'ordinaire que les **paires faisables** et ne lit
   que la meilleure d'entre elles, en un parcours de l'ordre de
   `chercherPaires` — plus grand score, premier dans l'ordre de l'inventaire
@@ -386,6 +391,19 @@ la signature des réglages et les paramètres de paires (donc l'inventaire), le
 Worker de résolution à chaque contexte reçu, le CLI une fois par recette —
 jamais un état global qu'un nouvel inventaire laisserait périmé. Ce qu'elles
 rendent est partagé : à lire, jamais à modifier.
+
+Dans un même build et une même relique, l'évaluateur « Dégâts réels » de
+`evaluerPourRegime` note des milliers de paires ; il porte un
+`MemoCombat` (`src/lib/damage.ts`) qui calcule une fois ce que
+`computeTotalDamage` relit à l'identique d'une paire à l'autre : la
+chronologie des poses entre les coups (le sort et le réglage seuls), les
+stats au début du combat (par tableau de stats, que `statsParPaire` partage
+entre paires de mêmes principales) et les stats de combat (par tableau et
+par amplifications de buff de la paire). Reconnues à leur identité, ces
+entrées rendent la valeur de la fonction elle-même, au bit près
+(`tests/memo-combat.test.ts`) ; bornes `BORNE_CHRONOLOGIES` (16),
+`BORNE_STATS_PAR_REGLAGE` (64), `BORNE_COMBATS_PAR_STATS` (16) ; durée de
+vie : celle de l'évaluateur.
 
 ## Mesurer un changement des bornes
 

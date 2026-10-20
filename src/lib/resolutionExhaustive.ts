@@ -8,7 +8,8 @@
 // résolvent par `resoudreEquipementDuBuild` (relicQueue.ts), qui passe par
 // la résolution rapide (`resolutionRapide.ts`) : même résultat pour un build
 // conforme, sans le diagnostic d'un build rejeté. Ce module sert au
-// diagnostic à la demande (option `diagnostic` du CLI et du harnais), au
+// diagnostic à la demande (option `diagnostic` de la fonction du CLI,
+// `resoudreEquipementCli`, du banc et des tests), au
 // repli de la résolution rapide sur une note NaN, et de référence aux tests
 // et au banc de la résolution.
 

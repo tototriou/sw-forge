@@ -3600,6 +3600,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               attentionResPre={attentionResPre}
               compterAurasResPre={compterAurasResPre}
               setCompterAurasResPre={setCompterAurasResPre}
+              bureau
             />
           </ReglagesAvancesBureau>
         }

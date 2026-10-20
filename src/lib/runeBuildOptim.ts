@@ -277,8 +277,11 @@ export interface SearchParams {
   // dispersion (docs/04-decisions/adr/retention-a-parts-egales.md).
   // Accepté seulement parce que l'écran le transmet encore
   // (`handleSearch`, interrupteur « Prioriser les stats les plus
-  // difficiles ») ; il part avec cet interrupteur. Aucun autre appelant ne
-  // le pose.
+  // difficiles ») ; il part avec cet interrupteur. Seul autre appelant qui
+  // le pose : `tests/priorite-stats-retiree.test.ts`, vrai et faux, pour
+  // montrer qu'il est sans effet. Le CLI ne le relaie pas
+  // (`scripts/lib/recipeToSearchParams.ts`) ; les autres scripts et tests
+  // qui l'écrivent le posent dans la recette (`OptimizerRecipe`), pas ici.
   adaptiveTrancheWeighting?: boolean;
   // Voir `buildBuckets`, paramètre `combosOrderMode` : l'ordre des demi-builds
   // au sein d'un compartiment. `undefined` : le défaut de `buildBuckets`,

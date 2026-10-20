@@ -30,6 +30,7 @@ import {
   computeTotalDamage,
   estPrisEnCharge,
   monsterDamageSkills,
+  statsDebutCombat,
 } from '../src/lib/damage';
 import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { mulberry32 } from '../scripts/lib/randomPool';
@@ -146,6 +147,39 @@ export default function testMemoCombat() {
   ok(avecChronologie > 20, `… dont ${avecChronologie} contextes où le memo a retenu une chronologie de poses entre les coups`);
   ok(avecStatsRetenues > 100 && avecCombatsRetenus > 100, `… ${avecStatsRetenues} où il a retenu des stats au début du combat, ${avecCombatsRetenus} des stats de combat`);
   ok(critiqueForce > 0 && passifsAllumes > 0, `… ${critiqueForce} contextes à critique forcé (réglage recopié, sans mémoire), ${passifsAllumes} à passifs allumés`);
+
+  // ── Les clés, appelées directement : des cas qu'aucun sort du corpus
+  // n'atteint aujourd'hui (un seul passif `coupsDuSortActif`), que la clé
+  // doit garder quand même. ──
+  {
+    const sorts = [...vus].slice(0, 50).flatMap((id) => monsterDamageSkills(loadMonsterSkills(id)).filter(estPrisEnCharge));
+    const [P, a, b] = sorts;
+    const S: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit' };
+    const MW = {};
+    const v1 = { avant: [S], apres: S };
+    const v2 = { avant: [S], apres: S };
+    const memo = new MemoCombat(PROPRES, null);
+    let appelsF2 = 0;
+    memo.chronologie(P!, S, MW, [a!], () => v1);
+    const r2 = memo.chronologie(P!, S, MW, [b!], () => (appelsF2++, v2));
+    let appelsF1 = 0;
+    const r1 = memo.chronologie(P!, S, MW, [a!], () => (appelsF1++, v1));
+    ok(a !== b && appelsF2 === 1 && r2 === v2, 'chronologie : profils qui suivent différents, de même longueur → recalculée, sa valeur rendue');
+    ok(appelsF1 === 0 && r1 === v1, '… et les mêmes profils qui suivent → la valeur retenue, sans recalcul');
+
+    // Auras propres ou élément autres que ceux du memo : rien ne se retient,
+    // chaque appel rend la fonction elle-même.
+    const AUTRES: AurasPropres = { fight: 0, determination: 0, enhance: 0, accuracy: 0, tolerance: 0 };
+    const stats = statsAvec([]);
+    const garde = new MemoCombat(PROPRES, 'fire');
+    garde.connaitre(S);
+    const autresAuras = garde.debutCombat(stats, S, AUTRES, 'fire');
+    const autreElement = garde.debutCombat(stats, S, PROPRES, 'water');
+    egal(garde.compte.tableaux, 0, 'autres auras propres ou autre élément que ceux du memo : aucun tableau retenu');
+    egal([autresAuras, autreElement, garde.debutCombat(stats, S, PROPRES, 'fire')],
+      [statsDebutCombat(stats, S, AUTRES, 'fire'), statsDebutCombat(stats, S, PROPRES, 'water'), statsDebutCombat(stats, S, PROPRES, 'fire')],
+      '… chaque appel rend statsDebutCombat sur ses propres entrées, puis celles du memo se retiennent');
+  }
 
   // ── Bornes : un seul memo pour plus de réglages que de chronologies
   // retenues — vidé d'un coup, jamais un résultat différent. ──

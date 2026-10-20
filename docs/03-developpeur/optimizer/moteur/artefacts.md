@@ -344,7 +344,7 @@ source.
 
 ## Partage entre les builds d'une file
 
-Les builds d'une file essaient en grande partie les mêmes paires. Trois
+Les builds d'une file essaient en grande partie les mêmes paires. Quatre
 mémoires et un tri différé partagent ce qui ne dépend pas du build, sans
 changer aucun résultat :
 
@@ -362,15 +362,25 @@ changer aucun résultat :
   `statsParPaire` (`src/lib/stats.ts`) rend le même tableau aux paires de
   mêmes sommes, et l'effet unique de la relique essayée n'est calculé
   qu'une fois par tableau (`evaluerPourRegime`) ;
-- la résolution ne lit d'ordinaire que la **meilleure paire** :
-  `pairesParScore` la trouve en un parcours — plus grand score, premier
-  dans l'ordre de l'inventaire en cas d'égalité, comme le tri stable — et
-  ne trie toutes les paires que si l'on lit plus loin, ou si un score vaut
-  NaN. L'ordre rendu est exactement celui de `chercherPaires`.
+- les **formes de paire** de la résolution rapide — par sorte, une pièce
+  par principale `(code, valeur)` distincte de `candidatsParSorte`, plus
+  l'emplacement vide — ne se recalculent que si les entrées de
+  `candidatsParSorte` changent (`CachesResolutionRapide`,
+  `src/lib/resolutionRapide.ts`, mémoïsé par identité comme
+  `MemoPreFiltre`) : [reliques.md § Résolution rapide — le chemin de l'app](reliques.md#résolution-rapide--le-chemin-de-lapp) ;
+- la résolution ne note d'ordinaire que les **paires faisables** et ne lit
+  que la meilleure d'entre elles, en un parcours de l'ordre de
+  `chercherPaires` — plus grand score, premier dans l'ordre de l'inventaire
+  en cas d'égalité, comme le tri stable. Le calcul exhaustif, lui, note
+  toutes les paires et les parcourt par `pairesParScore`, qui trouve la
+  meilleure en un parcours et ne trie toutes les paires que si l'on lit plus
+  loin, ou si un score vaut NaN ; l'ordre rendu est exactement celui de
+  `chercherPaires`.
 
-Chaque mémoire est bornée (`BORNE_PROFILS_PAR_PAIRE`,
+Les trois premières mémoires sont bornées (`BORNE_PROFILS_PAR_PAIRE`,
 `BORNE_MEMO_PREFILTRE`, `BORNE_STATS_PAR_APPORT`,
-`BORNE_APPORTS_PAR_STATS`) et se vide d'un coup à sa borne. Leur durée de vie
+`BORNE_APPORTS_PAR_STATS`) et se vident d'un coup à leur borne ; celle des
+formes ne garde qu'un jeu, celui des dernières entrées. Leur durée de vie
 est celle d'une file (`nouveauxCachesResolution`) : l'écran les recrée avec
 la signature des réglages et les paramètres de paires (donc l'inventaire), le
 Worker de résolution à chaque contexte reçu, le CLI une fois par recette —

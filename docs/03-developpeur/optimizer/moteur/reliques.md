@@ -139,24 +139,54 @@ recherche : [pipeline.md § Pipeline de la recherche de runes](pipeline.md).
   [elagages.md § Élagage sûr — faisabilité](elagages.md).
 - **En mode `recherche`, le candidat est collecté sans relique**
   (`GearSet.relic = undefined`, `pairBuckets`) : la relique portée n'est
-  pas une hypothèse de la recherche, elle peut être hors du pool. Le test
-  conjoint final y ajoute un terme additif : `relTermMax(k) = ceil(B × Lmax /
-  100)` côté minimum, `relTermMin(k) = floor(B × Lmin / 100)` côté maximum.
-  Ne pas y mettre un `ceil` séparé côté maximum, parce qu'il rejetterait un
-  build faisable : avec B = 101 et R = L = 1 %, le réel vaut 104, le `ceil`
-  séparé 105, et un maximum à 104 tomberait.
-- **Ce test reste une borne en mode `recherche`** : les bornes accordent la
-  meilleure PV %, la meilleure ATQ % et la meilleure DEF % à la fois, alors
-  qu'une relique n'a qu'une principale. Aucun faux négatif au test de
-  faisabilité, mais des faux positifs, que la résolution exacte rejette. Le
-  score qui ordonne les candidats avant elle est donc calculé sans relique,
-  non exact.
+  pas une hypothèse de la recherche, elle peut être hors du pool. Le score
+  qui ordonne les candidats avant la résolution est donc calculé sans
+  relique, non exact.
+- **La validation essaie les reliques une à une (la relique en « OU »)** :
+  les bornes par stat accordent la meilleure PV %, la meilleure ATQ % et la
+  meilleure DEF % à la fois, alors qu'une relique n'a qu'une principale ;
+  elles ne servent qu'avant (préparation, `quickOk`, sauts du noyau). Le
+  test conjoint de la validation juge des TENTATIVES — un apport
+  d'artéfacts de `artPossibles` × une fiche de `fichesDuTestConjoint` (une
+  par relique représentative, `computeStats` avec elle à la place de la
+  portée) —, minimums ET maximums ensemble ; le build est retenu si l'une
+  passe. `Collecteur.valider` recopie ce bloc de `pairBuckets`,
+  `ValidationTypee.ecarts(a, f)` en est le miroir typé (la principale
+  ajoutée à la somme entière des pourcentages avant le `ceil`, valeur
+  entière exigée par son contrat).
+- **Les représentatives** (`reliquesRepresentatives`,
+  `src/lib/relicOptim.ts`, préparées une fois dans `deriveMinMaxContext`,
+  `PreparedSearch.reliquesRepresentatives`) suffisent parce qu'une relique
+  n'agit que sur la stat de sa principale, de façon croissante : par
+  principale, la plus forte (minimum seul, ou aucune condition), la plus
+  faible (maximum seul), toutes les valeurs distinctes quand la stat porte
+  un minimum ET un maximum (l'ensemble admis est un intervalle, que les deux
+  extrêmes peuvent manquer), une seule relique de principale inconnue.
+- **Exact** : avec `artPossibles`, réduit dans le sens de chaque condition
+  ([artefacts.md § Test conjoint exact à la validation finale](artefacts.md)),
+  un build est retenu si et seulement si une relique éligible et une vraie
+  paire lui font tenir toutes ses conditions — le jugement de
+  `respecteConditionsAvecRelique` à la résolution. La recherche ne collecte
+  donc plus de build que la résolution rejette faute de couple faisable.
+- **Sous-ensemble de l'ancienne borne, sans troncature seulement** : sur une
+  recherche non tronquée, les candidats sont ceux que la borne par stat
+  aurait gardés, moins ceux qu'aucune relique ne rend conformes, dans le
+  même ordre, avec les mêmes paires traitées. Tronquée au plafond
+  (`maxCollected`), la recherche va plus loin : les places que les faux
+  positifs prenaient reçoivent d'autres builds, et `explored` augmente.
+- **Le quasi-succès suit les mêmes tentatives** : en mode `recherche`, ses
+  écarts sont ceux d'une relique représentative et d'un apport, la
+  tentative qui approche le plus le build gagnant, jamais ceux de la borne
+  par stat ([diagnostics.md § Ce que le quasi-succès retient](diagnostics.md)).
 - **La relique n'entre dans aucun ordre de rétention** (`filterSlot`,
-  `retentionScore`, `combinedRetentionScore` ne lisent que les runes). Les
-  faux positifs occupent pourtant des places bornées (`slotFilterCap`, les
-  tranches de `bucketCap`, `MAX_COLLECTED`) et peuvent évincer un vrai
-  candidat avant la résolution : une perte par dilution, possible, jamais
-  supposée absente (§ Oracle de la dimension relique).
+  `retentionScore`, `combinedRetentionScore` ne lisent que les runes). La
+  préparation et les compartiments jugent sur les bornes par stat : les
+  demi-builds qu'elles laissent passer à tort occupent des places bornées
+  (`slotFilterCap`, les tranches de `bucketCap`) et peuvent évincer un vrai
+  candidat avant l'appariement : une perte par dilution, possible, jamais
+  supposée absente (§ Oracle de la dimension relique). Au plafond de
+  candidats (`MAX_COLLECTED`), en revanche, ils n'occupent plus aucune
+  place : la validation les écarte avant la collecte.
 - **Pendant la recherche relâchée, le moteur ne lit l'effet unique que par
   la dominance des runes** : les reliques qu'il peut équiper
   (`reliquesEquipables` : la relique portée hors mode `recherche`, tout

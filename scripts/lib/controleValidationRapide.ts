@@ -14,7 +14,7 @@ import { StatKey, activeSets, runeEfficiency, runeScore } from '../../src/lib/ef
 import { computeStats } from '../../src/lib/stats';
 import { missingSets } from '../../src/lib/recoMatch';
 import { AurasPropres, aurasPropresDesSetsActifs, pointsAuraResPrePropres } from '../../src/lib/damage';
-import { BuildRequirement, PreparedSearch, StatShortfall } from '../../src/lib/runeBuildOptim';
+import { BuildRequirement, PreparedSearch, StatShortfall, fichesDuTestConjoint } from '../../src/lib/runeBuildOptim';
 import { ValidationTypee } from '../../src/lib/validationRapide';
 
 // Copie de `totalCondition` (runeBuildOptim.ts), privée là-bas.
@@ -39,14 +39,17 @@ export interface BilanControle {
   setsRefuses: number;
   /** Paires aux sets tenus dont les lignes `computeStats` ont été comparées. */
   statsComparees: number;
-  /** Tentatives (paire × apport) comparées. */
+  /** Tentatives (paire × apport × fiche) comparées. */
   tentatives: number;
   collectables: number;
+  /** Mode `recherche` : paires aux sets tenus jugées relique par relique, et celles qu'aucune tentative ne retient. */
+  reliquesOu: number;
+  reliquesOuRejetes: number;
   ecarts: number;
   premierEcart: string | null;
 }
 
-export const bilanVide = (): BilanControle => ({ paires: 0, setsRefuses: 0, statsComparees: 0, tentatives: 0, collectables: 0, ecarts: 0, premierEcart: null });
+export const bilanVide = (): BilanControle => ({ paires: 0, setsRefuses: 0, statsComparees: 0, tentatives: 0, collectables: 0, reliquesOu: 0, reliquesOuRejetes: 0, ecarts: 0, premierEcart: null });
 
 /**
  * Compare la validation typée de la paire `(ga, gb)` à la production. `v` est
@@ -54,7 +57,7 @@ export const bilanVide = (): BilanControle => ({ paires: 0, setsRefuses: 0, stat
  * changerait l'état courant). Rend `null` si tout est égal.
  */
 export function comparerPaire(v: ValidationTypee, prepared: PreparedSearch, ga: number, gb: number, runes: RuneDetail[], bilan: BilanControle): string | null {
-  const { base, artifacts, relic, relicRelache, requirement, metric, minEntries, maxEntries, artPossibles, artFlatFige, relTermMax, relTermMin } = prepared;
+  const { base, artifacts, relic, relicRelache, requirement, metric, minEntries, maxEntries, artPossibles, artFlatFige } = prepared;
   bilan.paires++;
   const ecart = (m: string) => {
     bilan.ecarts++;
@@ -80,29 +83,41 @@ export function comparerPaire(v: ValidationTypee, prepared: PreparedSearch, ga: 
   const propres = aurasPropresDesSetsActifs(active);
   const apports = artPossibles.length > 0 ? artPossibles : [artFlatFige];
   if (apports.length !== v.nApports) return ecart(`apports : ${apports.length} ≠ ${v.nApports}`);
+  // Les fiches de la référence (la fonction de production elle-même).
+  const fiches = fichesDuTestConjoint({ base, runes, artifacts, relic: relicRelache ? undefined : relic }, stats, prepared);
+  if (fiches.length !== v.nFiches) return ecart(`fiches : ${fiches.length} ≠ ${v.nFiches}`);
   let collectable = false;
-  for (let a = 0; a < apports.length; a++) {
+  tentatives: for (let a = 0; a < apports.length; a++) {
     const apport = apports[a];
-    bilan.tentatives++;
     const decalage = (k: StatKey) => (apport[k] ?? 0) - (artFlatFige[k] ?? 0);
-    const shortfalls: StatShortfall[] = [];
-    for (const { k, min } of minEntries) {
-      const row = stats.find((r) => r.key === k);
-      const actual = totalCondition((row?.total ?? 0) + decalage(k) + relTermMax(k), k, requirement, propres);
-      if (actual < min) shortfalls.push({ key: k, kind: 'min', requested: min, actual, shortfall: min - actual });
+    for (let f = 0; f < fiches.length; f++) {
+      const fiche = fiches[f];
+      bilan.tentatives++;
+      const shortfalls: StatShortfall[] = [];
+      for (const { k, min } of minEntries) {
+        const row = fiche.find((r) => r.key === k);
+        const actual = totalCondition((row?.total ?? 0) + decalage(k), k, requirement, propres);
+        if (actual < min) shortfalls.push({ key: k, kind: 'min', requested: min, actual, shortfall: min - actual });
+      }
+      for (const { k, max } of maxEntries) {
+        const row = fiche.find((r) => r.key === k);
+        const actual = totalCondition((row?.total ?? 0) + decalage(k), k, requirement, propres);
+        if (actual > max) shortfalls.push({ key: k, kind: 'max', requested: max, actual, shortfall: actual - max });
+      }
+      const n = v.ecarts(a, f);
+      const typees = v.manquesDe(n);
+      if (!strictementEgal(shortfalls, typees)) return ecart(`apport ${a}, fiche ${f} : ${JSON.stringify(shortfalls)} ≠ ${JSON.stringify(typees)}`);
+      if (shortfalls.length === 0) {
+        collectable = true;
+        break tentatives;
+      }
     }
-    for (const { k, max } of maxEntries) {
-      const row = stats.find((r) => r.key === k);
-      const actual = totalCondition((row?.total ?? 0) + decalage(k) + relTermMin(k), k, requirement, propres);
-      if (actual > max) shortfalls.push({ key: k, kind: 'max', requested: max, actual, shortfall: actual - max });
-    }
-    const n = v.ecarts(a);
-    const typees = v.manquesDe(n);
-    if (!strictementEgal(shortfalls, typees)) return ecart(`apport ${a} : ${JSON.stringify(shortfalls)} ≠ ${JSON.stringify(typees)}`);
-    if (shortfalls.length === 0) {
-      collectable = true;
-      break;
-    }
+  }
+  // Mode recherche : les paires jugées relique par relique, et celles
+  // qu'aucune tentative ne retient.
+  if (relicRelache) {
+    bilan.reliquesOu++;
+    if (!collectable) bilan.reliquesOuRejetes++;
   }
   if (collectable) bilan.collectables++;
   return null;

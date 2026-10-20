@@ -31,7 +31,11 @@ résultat :
   les sets se comptent sur les indices de set des six runes (joker compris),
   les stats sont des sommes d'entiers exactes en `Float64` puis la même
   expression que `computeStats`, opérande par opérande, et le test conjoint
-  suit la même suite d'opérations que `pairBuckets` ; les `StatRow` ne se
+  suit la même suite d'opérations que `pairBuckets`, tentative par
+  tentative, relique en « OU » du mode `recherche` comprise (`ecarts(a, f)`
+  : la principale de la relique représentative `f` ajoutée à la somme
+  entière des pourcentages avant le `ceil`, valeur entière exigée par le
+  contrat) ; les `StatRow` ne se
   construisent que pour une paire gardée ou un quasi-succès amélioré ;
 - la **référence** (`Collecteur.valider`), copie conforme du bloc de
   `pairBuckets`, quand le contrat de la validation typée ne tient pas

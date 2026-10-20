@@ -53,8 +53,10 @@ import { APPORT_NEUTRE, ApportExclusive, apportExclusive, facteurTenacite, stats
 // ⚠️ Type SEUL : `relicQueue.ts` importe ce module à l'exécution — un import
 // de valeur fermerait le cycle.
 import type { EtatRelique } from './relicQueue';
-// ⚠️ `import type` UNIQUEMENT — `relicOptim.ts` importe déjà `Objective`
-// d'ici (type seul) : un import de valeur ferait un cycle au runtime.
+// `relicOptim.ts` n'importe d'ici que des types (`Objective`, effacés à la
+// compilation) : l'importer à l'exécution ne ferme aucun cycle — il est déjà
+// chargé par `relicExclusive.ts`.
+import { reliquesRepresentatives } from './relicOptim';
 import type { RelicContext, RelicVide } from './relicOptim';
 import {
   DEF_FACTOR_CONST,
@@ -462,6 +464,36 @@ export function respecteConditionsAvecRelique(
 ): { stats: StatRow[]; respecte: boolean } {
   const stats = computeStats({ ...gear, relic: relique });
   return { stats, respecte: respecteMinEtMax(stats, requirement, aurasPropresDesRunes(gear.runes)) };
+}
+
+/**
+ * **Les fiches que juge le test conjoint de la validation** (`pairBuckets`,
+ * `Collecteur.valider` ; miroir typé : `ValidationTypee.ecarts`) : hors mode
+ * `recherche`, la fiche du build (`stats`, relique portée comprise) ; en mode
+ * `recherche`, une par relique REPRÉSENTATIVE (`reliquesRepresentatives`,
+ * relicOptim.ts), `computeStats` avec elle À LA PLACE de la relique (jamais
+ * un cumul). Chaque tentative — un apport d'artéfacts de `artPossibles` × une
+ * fiche — juge minimums ET maximums ensemble ; un build est retenu si l'une
+ * passe, et chaque tentative en échec alimente le quasi-succès.
+ *
+ * ⚠️ **Exact** : une relique n'agit que sur la stat de sa principale, en
+ * croissant, donc les représentatives tiennent lieu de toutes les éligibles ;
+ * `artPossibles` contient, pour toute vraie paire, un apport au moins aussi
+ * bon sur chaque condition (`apportsAtteignables`, réduit dans le sens de
+ * chaque condition). Un build est donc retenu si et seulement si une relique
+ * éligible et une vraie paire lui font tenir toutes ses conditions — le
+ * jugement de la résolution exacte (`respecteConditionsAvecRelique`).
+ *
+ * `gear` : le build SANS relique en mode `recherche`, avec la paire figée
+ * (celle des `stats` collectées) ; l'apport d'une autre paire s'ajoute à plat,
+ * après le `ceil`.
+ */
+export function fichesDuTestConjoint(
+  gear: GearSet,
+  stats: StatRow[],
+  prepared: Pick<PreparedSearch, 'relicRelache' | 'reliquesRepresentatives'>
+): StatRow[][] {
+  return prepared.relicRelache ? prepared.reliquesRepresentatives.map((relique) => computeStats({ ...gear, relic: relique })) : [stats];
 }
 
 // Diagnostic « quasi-succès » — voir docs/03-developpeur/optimizer/
@@ -3231,22 +3263,17 @@ interface MinMaxContext {
    */
   relPctMin: Record<string, number>;
   // Vrai ssi `relicContext.mode === 'recherche'` : les bornes ci-dessus sont
-  // RELÂCHÉES et la validation finale n'a pas de relique exacte sous la main
-  // (voir `relTermMax`/`relTermMin`, et `pairBuckets`).
+  // RELÂCHÉES (préparation, `quickOk`, sauts du noyau) et la validation
+  // finale juge les reliques représentatives une à une (`pairBuckets`).
   relicRelache: boolean;
   /**
-   * Le terme relique ADDITIF de la validation finale en mode `recherche`, où
-   * les stats viennent de `computeStats` SANS relique (un total, pas un
-   * `pct` qu'on pourrait fondre) : branche minimum `ceil(B × Lmax / 100)`
-   * — majorant du vrai incrément car `ceil(x + y) ≤ ceil(x) + ceil(y)` ;
-   * branche maximum `floor(B × Lmin / 100)` — minorant car
-   * `ceil(x + y) − ceil(x) ≥ floor(y)` (jamais un `ceil` séparé
-   * côté maximum — B = 101, R = L = 1 % : réel 3, `ceil` séparé 4, un
-   * maximum à 104 rejetterait un build faisable). `0` hors mode `recherche`
-   * et sur toute statistique qu'une relique ne porte pas.
+   * Mode `recherche` : les reliques REPRÉSENTATIVES des éligibles
+   * (`reliquesRepresentatives`, relicOptim.ts), que le test conjoint de la
+   * validation essaie une à une (`fichesDuTestConjoint`). `[]` hors mode
+   * `recherche`. Les bornes par stat restent pour la préparation, `quickOk`
+   * et les sauts.
    */
-  relTermMax: (k: StatKey) => number;
-  relTermMin: (k: StatKey) => number;
+  reliquesRepresentatives: RelicDetail[];
   totalOf: (k: StatKey, pct: number, flat: number) => number;
 }
 
@@ -3309,16 +3336,11 @@ function deriveMinMaxContext(
     const b = baseRec[k] ?? 0;
     return totalCondition(estPct(k) ? b + Math.ceil((b * pct) / 100) + flat : b + flat, k, requirement, AUCUNE_AURA_PROPRE);
   }
-  function relTermMax(k: StatKey): number {
-    return relicRelache && estPct(k) ? Math.ceil(((baseRec[k] ?? 0) * (relPctMax[k] ?? 0)) / 100) : 0;
-  }
-  function relTermMin(k: StatKey): number {
-    return relicRelache && estPct(k) ? Math.floor(((baseRec[k] ?? 0) * (relPctMin[k] ?? 0)) / 100) : 0;
-  }
+  const representatives = relicRelache ? reliquesRepresentatives(relicContext!.eligibles, requirement) : [];
   return {
     minEntries, maxEntries, constrainedKeys, maxKeys, guaranteed, guaranteedMin,
     artFlatMax, artFlatMin, artPossibles, artFlatFige: figee,
-    relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf,
+    relPctMax, relPctMin, relicRelache, reliquesRepresentatives: representatives, totalOf,
   };
 }
 
@@ -3710,13 +3732,12 @@ export interface PreparedSearch {
   // — voir `MinMaxContext`.
   artPossibles: Record<string, number>[];
   artFlatFige: Record<string, number>;
-  // Les deux vecteurs relique et le terme additif de la validation finale —
-  // voir `MinMaxContext`.
+  // Les deux vecteurs relique — voir `MinMaxContext`.
   relPctMax: Record<string, number>;
   relPctMin: Record<string, number>;
   relicRelache: boolean;
-  relTermMax: (k: StatKey) => number;
-  relTermMin: (k: StatKey) => number;
+  // Mode `recherche` : les reliques représentatives du test conjoint — voir `MinMaxContext`.
+  reliquesRepresentatives: RelicDetail[];
   totalOf: (k: StatKey, pct: number, flat: number) => number;
   // Diagnostic seulement — l'état MUTABLE de la trace du candidat traceur,
   // créé par `prepareSearch`, complété par `buildBuckets` et `pairBuckets`.
@@ -3858,7 +3879,7 @@ export function prepareSearch(
   const startedAt = Date.now();
 
   const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds, relicContext);
-  const { minEntries, maxEntries, constrainedKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf } = ctx;
+  const { minEntries, maxEntries, constrainedKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, reliquesRepresentatives, totalOf } = ctx;
   // ⚠️ Dimensions protégées à la RÉTENTION par compartiment (voir
   // buildBuckets) : les minimums demandés, PLUS les stats propres à
   // l'objectif choisi. JAMAIS les maximums — sur une stat plafonnée, « plus »
@@ -3956,7 +3977,7 @@ export function prepareSearch(
     base, artifacts, relic, relicContext, requirement, metric,
     maxCollected, maxMs, startedAt,
     minEntries, maxEntries, constrainedKeys, retentionKeys, objectiveKeys, distinctKeys,
-    guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf,
+    guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, reliquesRepresentatives, totalOf,
     traceur,
     filtered, requiredPieces, jokerCredit, maxSetsForA, maxSetsForB, bucketCap, cransEmboites,
   };
@@ -4047,7 +4068,7 @@ export function* pairBuckets(
   const {
     base, artifacts, relic, requirement, metric, maxCollected, maxMs, startedAt,
     minEntries, maxEntries, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige,
-    relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf, distinctKeys,
+    relPctMax, relPctMin, relicRelache, totalOf, distinctKeys,
   } = prepared;
   const overBudget = () => Date.now() - startedAt > maxMs;
 
@@ -4268,42 +4289,45 @@ export function* pairBuckets(
            * la paire figée, comportement d'avant.
            */
           const apports = artPossibles.length > 0 ? artPossibles : [artFlatFige];
+          // Mode recherche : une fiche par relique REPRÉSENTATIVE, essayées une
+          // à une (« OU »), jamais la meilleure principale de chaque stat à la
+          // fois ; hors mode recherche, la fiche du build.
+          const fiches = fichesDuTestConjoint(gear, stats, prepared);
           // Auras RES/PRE propres : EXACTES ici, depuis les sets actifs des
           // six runes (Intangible et set non demandé compris).
           const propres = aurasPropresDesSetsActifs(active);
           const runeIds = runes.map((r) => r.id);
           const effTotal = runes.reduce((sum, r) => sum + valueOf(r, metric), 0);
           let ok = false;
-          for (const apport of apports) {
+          tentatives: for (const apport of apports) {
             const decalage = (k: StatKey) => (apport[k] ?? 0) - (artFlatFige[k] ?? 0);
-            // ⚠️ Contrairement à l'ancien `tout`/`break` au premier échec :
-            // ici on liste TOUTES les conditions en échec pour cet apport
-            // (jamais un early-break), condition du near-miss « satisfait
-            // tout SAUF k » — nécessaire pour savoir s'il n'y en a qu'UNE
-            // seule. `minEntries`/`maxEntries` restent petits (une poignée
-            // de conditions posées), le surcoût est négligeable.
-            // ⚠️ Mode recherche : `stats` est SANS relique, le terme relique
-            // s'ajoute ici (`relTermMax`/`relTermMin`, `0` sinon) — majorant
-            // côté minimum, minorant côté maximum, jamais l'inverse. Ce test
-            // reste donc une BORNE en mode recherche (plus de faux négatif,
-            // des faux positifs possibles) : l'exactitude est le filtre
-            // final de 5b, avec la relique réelle.
-            const shortfalls: StatShortfall[] = [];
-            for (const { k, min } of minEntries) {
-              const row = stats.find((r) => r.key === k);
-              const actual = totalCondition((row?.total ?? 0) + decalage(k) + relTermMax(k), k, requirement, propres);
-              if (actual < min) shortfalls.push({ key: k, kind: 'min', requested: min, actual, shortfall: min - actual });
+            for (const fiche of fiches) {
+              // ⚠️ Contrairement à l'ancien `tout`/`break` au premier échec :
+              // ici on liste TOUTES les conditions en échec pour cette
+              // tentative (jamais un early-break), condition du near-miss
+              // « satisfait tout SAUF k » — nécessaire pour savoir s'il n'y en
+              // a qu'UNE seule. `minEntries`/`maxEntries` restent petits (une
+              // poignée de conditions posées), le surcoût est négligeable.
+              const shortfalls: StatShortfall[] = [];
+              for (const { k, min } of minEntries) {
+                const row = fiche.find((r) => r.key === k);
+                const actual = totalCondition((row?.total ?? 0) + decalage(k), k, requirement, propres);
+                if (actual < min) shortfalls.push({ key: k, kind: 'min', requested: min, actual, shortfall: min - actual });
+              }
+              for (const { k, max } of maxEntries) {
+                const row = fiche.find((r) => r.key === k);
+                const actual = totalCondition((row?.total ?? 0) + decalage(k), k, requirement, propres);
+                if (actual > max) shortfalls.push({ key: k, kind: 'max', requested: max, actual, shortfall: actual - max });
+              }
+              if (shortfalls.length === 0) {
+                ok = true;
+                break tentatives;
+              }
+              // La fiche du quasi-succès reste celle du build (`stats`, sans
+              // relique en mode recherche) : les écarts viennent de l'apport
+              // et de la relique essayés.
+              considerNearMiss(runeIds, stats, effTotal, shortfalls);
             }
-            for (const { k, max } of maxEntries) {
-              const row = stats.find((r) => r.key === k);
-              const actual = totalCondition((row?.total ?? 0) + decalage(k) + relTermMin(k), k, requirement, propres);
-              if (actual > max) shortfalls.push({ key: k, kind: 'max', requested: max, actual, shortfall: actual - max });
-            }
-            if (shortfalls.length === 0) {
-              ok = true;
-              break;
-            }
-            considerNearMiss(runeIds, stats, effTotal, shortfalls);
           }
           if (trPair && traceApp) traceApp.validationFinale = ok;
           if (!ok) continue;

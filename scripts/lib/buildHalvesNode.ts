@@ -135,6 +135,7 @@ export async function construireMoitiesEnParallele(
     requiredPieces: prepared.requiredPieces,
     base: prepared.base,
     objectiveKeys: prepared.objectiveKeys,
+    cransEmboites: prepared.cransEmboites,
     // ⚠️ Relayé depuis `params` : sans lui, le worker retomberait sur le
     // défaut interne de `buildBuckets` et ignorerait silencieusement ce que
     // la recette demandait — trou déjà rencontré côté navigateur.

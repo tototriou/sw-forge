@@ -156,7 +156,11 @@ export const CORPUS_5A: Record<'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'Fbis' | 'G' 
       ...six(900, h([10, 35])), ...six(1000, h([11, 40])),
     ];
     const inv = [relique(911, 100, 14), relique(912, 102, 14)];
-    return fixture('C', pool, inv, params(pool, { sets: [], minStats: { hp: 17400, def: 2784, atk: 1120 } }, { bucketCap: 10 }));
+    // Préréglage Bas (40, le pool de 8 runes par emplacement passe entier
+    // comme à 80) : aucun préréglage plus étroit dont la rétention, à son
+    // propre `bucketCap` dérivé, s'ajouterait et lèverait la pression
+    // (préréglages emboîtés, elagages.md).
+    return fixture('C', pool, inv, params(pool, { sets: [], minStats: { hp: 17400, def: 2784, atk: 1120 } }, { bucketCap: 10, slotFilterCap: 40 }));
   })();
   // D — deux valeurs d'une même principale, non dominées.
   const D = (() => {

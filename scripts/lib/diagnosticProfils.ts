@@ -243,7 +243,7 @@ export const PROFILS: ProfilSynthetique[] = [
     // élément, `explored` compris.
     axesSensibles: ['bucketCap'],
     limites:
-      '⚠️ Le RANG de la cible ne bouge pas sous `bucketCap` (#1424 sur les quatre bras) — seule la POPULATION bouge (27 449 → 24 108). C’est cohérent : `bucketCap` élague des demi-builds moins pertinents, donc des candidats classés APRÈS la cible, qui ne peuvent pas la déplacer. Un différentiel qui ne lirait que le rang ne verrait rien sur ce profil ; c’est exactement pourquoi l’oracle est multi-éléments. ⚠️ `combosOrderMode` y est INERTE, faute d’objectif : les quatre valeurs rendent le même résultat (voir l’en-tête).',
+      '⚠️ Le RANG de la cible ne bouge pas sous `bucketCap` (#1424 sur les quatre bras) — seule la POPULATION bouge (27 449 → 24 108). C’est cohérent : `bucketCap` élague des demi-builds moins pertinents, donc des candidats classés APRÈS la cible, qui ne peuvent pas la déplacer. Un différentiel qui ne lirait que le rang ne verrait rien sur ce profil ; c’est exactement pourquoi l’oracle est multi-éléments. ⚠️ `combosOrderMode` y est INERTE, faute d’objectif : les quatre valeurs rendent le même résultat (voir l’en-tête). ⚠️ Les bras `bucketCap` ci-dessus sont relevés à un seul préréglage : à `slotFilterCap` 80, la rétention de Bas (son `bucketCap` dérivé, 3000) s’ajoute à celle du run (préréglages emboîtés), et un bras à `bucketCap` ≤ 3000 retrouve la population de Bas — l’axe `bucketCap` se mesure à `slotFilterCap` 40, même pool de 25 runes, aucun préréglage emboîté (`tests/diagnostic-differentiel.test.ts`).',
   },
   {
     nom: 'quota-parallele',

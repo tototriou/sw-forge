@@ -422,7 +422,7 @@ Trois profils, du moins cher au plus cher (`PROFILS`,
 | Profil | Troncature, régime | Axes mesurés sensibles | Rôle |
 |---|---|---|---|
 | `fumee` | complet, séquentiel | aucun | vérifier que la boucle tourne : aucun plafond n'y mord, il ne détecte rien |
-| `complet-sensible` | complet, séquentiel | `bucketCap` | la référence : bras complets, population qui bouge avec `bucketCap` quand le rang de la cible ne bouge pas (`tests/diagnostic-differentiel.test.ts:100-112`) |
+| `complet-sensible` | complet, séquentiel | `bucketCap` | la référence : bras complets, population qui bouge avec `bucketCap` quand le rang de la cible ne bouge pas (`tests/diagnostic-differentiel.test.ts:104-116`) ; l'axe `bucketCap` s'y mesure à `slotFilterCap` 40, sans quoi la rétention de Bas, emboîtée, s'ajoute aux deux bras ([moteur/elagages.md § Préréglages emboîtés](../moteur/elagages.md#préréglages-emboîtés)) |
 | `quota-parallele` | `maxCollected`, parallèle | `bucketCap` | le versant au-dessus du seuil de régime, tronqué par le plafond de candidats |
 
 Un profil est une valeur de `ConfigHarnais` écrite en TypeScript, pas un

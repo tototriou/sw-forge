@@ -135,7 +135,10 @@ function temoinsNegatifs() {
 function testCheminDeProduction() {
   const s = SCENARIOS[0];
   const pool = randomPool(mulberry32(s.seed), 30, SETS_JOKER);
-  const prepared = prepareSearch(parametres(s, pool, 80, undefined, 'objective'))!;
+  // UN préréglage : sans préréglage plus étroit, `construireMoitie` est la
+  // construction de ce préréglage seul (l'union des préréglages emboîtés :
+  // tests/retention-emboitee.test.ts).
+  const prepared = { ...prepareSearch(parametres(s, pool, 80, undefined, 'objective'))!, cransEmboites: [] };
   for (const { half, slots } of MOITIES) {
     const autre = half === 'A' ? prepared.maxSetsForA : prepared.maxSetsForB;
     ok(motifRepliConstruction(prepared, slots) === null, `moitié ${half} : le noyau prend la construction (aucun motif de repli)`);
@@ -155,7 +158,7 @@ function testCheminDeProduction() {
   }
   // Traceur : le repli, qui remplit la trace de la moitié.
   const ids = [0, 1, 2, 3, 4, 5].map((i) => prepared.filtered[i][0].id);
-  const traceAvec = prepareSearch({ ...parametres(s, pool, 80, undefined, 'objective'), traceur: { runeIds: ids } })!;
+  const traceAvec = { ...prepareSearch({ ...parametres(s, pool, 80, undefined, 'objective'), traceur: { runeIds: ids } })!, cransEmboites: [] };
   ok(motifRepliConstruction(traceAvec, [0, 1, 2]) !== null, 'traceur demandé : motif de repli nommé');
   const avecTrace = drain(construireMoitie('A', [0, 1, 2], traceAvec, traceAvec.maxSetsForA, 'objective'));
   ok(traceAvec.traceur?.moities.A != null, 'traceur demandé : buildBuckets a rempli la trace de la moitié A');
@@ -170,7 +173,7 @@ function testCheminDeProduction() {
   // `Int32Array` les rendrait négatives (2³¹) ou nulles (`Infinity`), et le
   // noyau rendrait zéro combinaison. Repli sur buildBuckets, motif nommé.
   for (const bucketCap of [2 ** 31, Infinity]) {
-    const p = prepareSearch(parametres(s, pool, 80, bucketCap, 'objective'))!;
+    const p = { ...prepareSearch(parametres(s, pool, 80, bucketCap, 'objective'))!, cransEmboites: [] };
     ok(/bucketCap/.test(motifRepliConstruction(p, [0, 1, 2]) ?? ''), `bucketCap = ${bucketCap} : repli sur buildBuckets, motif nommé`);
     const ref = drain(buildBuckets('A', [0, 1, 2], p, p.maxSetsForA, undefined, 'objective'));
     const prod = drain(construireMoitie('A', [0, 1, 2], p, p.maxSetsForA, 'objective'));

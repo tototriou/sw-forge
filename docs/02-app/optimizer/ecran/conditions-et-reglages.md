@@ -144,7 +144,14 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus
    lent, mais capable de retrouver un build sur un très gros compte),
    **séparés par un liseré vertical** (même patron que `Segmented.tsx`,
-   PC et mobile).
+   PC et mobile). **Les préréglages sont emboîtés** : une recherche
+   complète à un préréglage trouve au moins les builds valides de chaque
+   préréglage plus à gauche (Moyen ceux de Bas, Haut ceux de Moyen et de
+   Bas…), le moteur ajoutant à sa rétention celle des préréglages plus
+   étroits
+   ([elagages.md § Préréglages emboîtés](../../../03-developpeur/optimizer/moteur/elagages.md#préréglages-emboîtés)) ;
+   arrêtée par le filet de temps ou le plafond de candidats, elle peut
+   rendre d'autres builds.
    ⚠️ **Au doigt, dans le panneau « Options »** (bouton de la barre de nav,
    voir App.tsx/`pageAPanneau` — même patron que la Liste et l'Optimisation
    de runes de « Mon compte », voir RunesOptim.tsx), **sous** « Exclusion de
@@ -166,8 +173,9 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    normalement ensuite pour revenir à décoché. Choisir Bas ou Moyen ne le
    décoche PAS automatiquement dans l'autre sens. L'écran coche aussi
    « Prioriser les stats les plus difficiles », sans effet (plus bas) : pour
-   le moteur, un préréglage ne change que `slotFilterCap` (et `bucketCap`
-   dérivé). Sous ce réglage :
+   le moteur, un préréglage ne change que `slotFilterCap` (et ce qui en
+   dérive : `bucketCap` et les préréglages plus étroits emboîtés). Sous ce
+   réglage :
    - **« Rechercher jusqu'à épuisement complet »**, décoché par défaut :
      retire le filet de temps de 10 minutes (voir
      ../feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel) — la

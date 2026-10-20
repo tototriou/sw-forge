@@ -15,8 +15,8 @@
 // Worker n'a donc besoin de gérer qu'UN seul message (la demande initiale),
 // jamais un second message « stop ».
 
-import { Bucket } from '../lib/runeBuildOptim';
-import { construireMoitie } from '../lib/rechercheRunes';
+import { Bucket, CranEmboite } from '../lib/runeBuildOptim';
+import { construireMoitie, totalConstruction } from '../lib/rechercheRunes';
 import { StatKey } from '../lib/effects';
 import { RuneDetail, BaseStats } from '../types';
 
@@ -38,6 +38,11 @@ export interface BuildHalfRequest {
   // PROTOTYPE (combosOrderMode='objective') — voir BuildBucketsContext dans
   // runeBuildOptim.ts, même discipline de propagation que `base`.
   objectiveKeys: StatKey[];
+  // Préréglages emboîtés : les préréglages plus étroits dont la rétention
+  // s'ajoute à celle de la moitié (`PreparedSearch.cransEmboites`, relayé
+  // tel quel). Obligatoire dans `construireMoitie` : l'oublier ici échoue au
+  // typage.
+  cransEmboites: CranEmboite[];
   // ⚠️ Voir SearchParams.combosOrderMode dans
   // runeBuildOptim.ts. Sans ce champ (et son relais ci-dessous jusqu'à
   // `buildBuckets`), `SearchParams.combosOrderMode` n'aurait AUCUN effet sur
@@ -65,14 +70,16 @@ export type BuildHalfResponse = BuildHalfProgressMessage | BuildHalfResultMessag
 const PROGRESS_THROTTLE_MS = 150;
 
 self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
-  const { half, slotIdxs, filtered, otherHalfMaxSets, combosOrderMode } = e.data;
+  const { half, slotIdxs, otherHalfMaxSets, combosOrderMode } = e.data;
   // Connu D'AVANCE (indépendant du générateur) : le total réel que
-  // la construction utilisera pour CE premier emplacement de la moitié — sert
+  // la construction annoncera — runes du premier emplacement de la moitié,
+  // sommées sur les préréglages emboîtés (`totalConstruction`) — sert
   // au message de fin garanti ci-dessous, voir son commentaire.
-  const total = filtered[slotIdxs[0]].length;
+  const total = totalConstruction(e.data, slotIdxs);
   // ⚠️ `e.data` (BuildHalfRequest) satisfait déjà STRUCTURELLEMENT
-  // `BuildBucketsContext` (mêmes 8 champs, voir son commentaire dans
-  // runeBuildOptim.ts) — pas besoin de reconstruire un objet, les champs en
+  // `ContexteMoitie` (les champs de `BuildBucketsContext`, voir son
+  // commentaire dans runeBuildOptim.ts, plus `cransEmboites`) — pas besoin
+  // de reconstruire un objet, les champs en
   // trop (half/slotIdxs/otherHalfMaxSets/…) sont ignorés sans risque
   // puisque ce n'est pas un littéral d'objet (aucune vérification de
   // propriété excédentaire de TypeScript ici).

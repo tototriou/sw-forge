@@ -208,13 +208,17 @@ l'écran et le dit (`scripts/lib/diagnosticConfig.ts:137-147`).
 MAX_PER_SLOT_MATCH)` (`src/lib/runeBuildOptim.ts:1352-1363`). Surcharger
 `slotFilterCap` déplace aussi `bucketCap` ; la table l'annonce « DÉRIVÉ de
 slotFilterCap » (`scripts/lib/diagnosticConfig.ts:165-176`,
-`tests/diagnostic-harness.test.ts:72-86`).
+`tests/diagnostic-harness.test.ts:72-86`). Il déplace aussi les préréglages
+emboîtés, dont la rétention s'ajoute à celle du run : tous ceux de
+`slotFilterCap` inférieur, chacun à son propre `bucketCap` dérivé, qu'un
+override de `bucketCap` ne touche pas
+([moteur/elagages.md § Préréglages emboîtés](../moteur/elagages.md#préréglages-emboîtés)).
 
 **Piège B — le défaut du moteur n'est pas celui de la production.** Un run qui
 omet `slotFilterCap` prend 40 (`MAX_PER_SLOT_MATCH`) et 3000 de `bucketCap` ;
 la production, au préréglage « Moyen » de l'écran, 80 et 6000
-(`src/lib/runeBuildOptim.ts:593-614`) : la moitié de la rétention sur les deux
-axes, en silence. En mode recette, le préréglage de la recette fait foi ; en
+(`src/lib/runeBuildOptim.ts:593-614`), plus la rétention de Bas emboîtée : la
+moitié de la rétention sur les deux axes, en silence. En mode recette, le préréglage de la recette fait foi ; en
 synthétique, le harnais EXIGE `--cap` (sans défaut) et refuse le run sans lui
 (`scripts/lib/diagnosticConfig.ts:115-123`, `scripts/diagnostic-harness.ts:387-400`,
 `tests/diagnostic-harness.test.ts:54-70`). Ce piège est un défaut du MOTEUR, et

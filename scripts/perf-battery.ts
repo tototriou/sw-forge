@@ -353,6 +353,7 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
     requiredPieces: prepared.requiredPieces,
     base: prepared.base,
     objectiveKeys: prepared.objectiveKeys,
+    cransEmboites: prepared.cransEmboites,
     // ⚠️ Relayé depuis params — voir build-half-worker.ts : sans lui, le
     // worker retombe toujours sur le défaut interne de buildBuckets. CASES
     // ne le fixe pas aujourd'hui (undefined partout), mais un futur appel

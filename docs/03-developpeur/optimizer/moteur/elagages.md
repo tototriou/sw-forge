@@ -330,6 +330,69 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   les plus prometteuses d'abord, ce qui compte dès que le temps ou le
   plafond de candidats arrête la recherche avant d'avoir tout exploré.
 
+### Préréglages emboîtés
+
+- **Un préréglage contient ce que retient chaque préréglage plus étroit** :
+  Bas ⊆ Moyen ⊆ Haut ⊆ Extrême, en demi-builds retenus, donc en builds
+  valides sur une recherche que ni le filet de temps ni le plafond de
+  candidats n'arrêtent — l'appariement juge chaque paire pour elle-même :
+  plus de demi-builds, c'est plus de paires et jamais un build valide de
+  moins. Pourquoi :
+  [prereglages-emboites.md](../../../04-decisions/adr/prereglages-emboites.md).
+- **La rétention d'une moitié est une union** (`construireMoitie`,
+  `UnionDesRetentions`, `src/lib/retentionEmboitee.ts`) : celle du
+  préréglage de la recherche, puis, compartiment par compartiment, les
+  demi-builds que retient chaque préréglage plus étroit et qui lui
+  manquent. Chaque préréglage plus étroit se construit avec SES paramètres,
+  ceux qu'aurait une recherche lancée à ce préréglage (`CranEmboite`,
+  `PreparedSearch.cransEmboites`, calculés par `prepareSearch`) : son pool
+  (`filterSlot` à son `slotFilterCap`, sur le même pool après principale
+  imposée, dominance et faisabilité), son `bucketCapFor`, son crédit de
+  joker et les bornes de sets de l'autre moitié tirées de son pool. Aucun
+  `bucketCap` n'est agrandi.
+- **Les préréglages plus étroits** sont ceux de `SLOT_FILTER_PRESETS` dont le
+  `slotFilterCap` est strictement inférieur à celui de la recherche : aucun
+  pour Bas (ou un `slotFilterCap` omis, 40), Bas pour Moyen, Moyen et Bas
+  pour Haut, Haut, Moyen et Bas pour Extrême ; un `slotFilterCap` hors
+  préréglage (mesure) emboîte de même ceux qui lui sont inférieurs.
+  `SearchParams.bucketCap` (mesure) ne remplace que le `bucketCap` du
+  préréglage de la recherche, jamais celui d'un préréglage plus étroit.
+- **Ce qui reste exact** :
+  - le pool d'un préréglage plus étroit est inclus dans celui de la
+    recherche, emplacement par emplacement : `filterSlot` garde des préfixes
+    d'un même classement plus des tranches par stat indépendantes du
+    préréglage ; `prepareSearch` le vérifie rune par rune et lève sinon ;
+  - ses élagages de set sont plus stricts (bornes et joker de son pool, plus
+    petit) : chacun de ses demi-builds est un triplet que la construction de
+    la recherche a énuméré. Son compartiment existe donc (l'union lève
+    sinon), les bornes `maxPct`/`maxFlat` le couvrent déjà, et le meilleur
+    score de chaque tranche ne change pas : potentiel et ordre des
+    compartiments sont inchangés ;
+  - dans un compartiment, le tri est celui de `buildBuckets`
+    (`ordonnerCombos`), stable, sur les demi-builds de la recherche dans
+    leur ordre suivis des ajouts : les premiers gardent leur ordre relatif,
+    les ajouts prennent leur place selon `combosOrderMode`, et un
+    compartiment sans ajout est rendu tel quel.
+- **Mémoire** : un préréglage plus étroit se construit après celui de la
+  recherche, et l'union n'en garde que les AJOUTS, repérés par la position
+  de leurs trois runes dans le pool de la recherche, jamais ses
+  compartiments entiers.
+- **Coût** : chaque moitié construit 1 + n préréglages ; un préréglage plus
+  étroit coûte bien moins que celui de la recherche (ses triplets croissent
+  comme le cube de son pool). L'appariement voit les paires des demi-builds
+  ajoutés en plus.
+- ⚠️ **Sous troncature, l'inclusion ne vaut plus.** Les ajouts s'intercalent
+  dans leurs compartiments : l'ordre de visite change, et une recherche que
+  le filet de temps ou `MAX_COLLECTED` arrête ne rend pas forcément les
+  builds qu'aurait rendus le préréglage plus étroit, arrêté au même point.
+- **Le traceur** (`SearchParams.traceur`) ne suit que la construction du
+  préréglage de la recherche ; sa présence finale (`retenue`, `rang`,
+  `population`) se relit sur les compartiments de l'union, si bien qu'un
+  demi-build évincé de toutes les tranches de la recherche (`tranches`)
+  peut y être retenu par un préréglage plus étroit.
+- **L'estimation affichée avant de lancer** (`estimateSearchSpace`) ne
+  compte que le préréglage de la recherche.
+
 ### Faisabilité de set, groupage par compte et jokers
 
 - **Faisabilité de set, précoce** (`stillFeasible`, pendant la construction

@@ -196,6 +196,7 @@ import testRuneOptimNearMiss from './rune-optim-near-miss.test';
 import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testConstructionRapide from './construction-rapide.test';
+import testRetentionEmboitee from './retention-emboitee.test';
 import testPrioriteStatsRetiree from './priorite-stats-retiree.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
 import { testListeExemplaires } from './liste-exemplaires.test';
@@ -649,6 +650,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRuneOptimDeadHalfPruning', testRuneOptimDeadHalfPruning],
   ['testFilterSlotTopK', testFilterSlotTopK],
   ['testConstructionRapide', testConstructionRapide],
+  ['testRetentionEmboitee', async () => { await testRetentionEmboitee(); }],
   ['testPrioriteStatsRetiree', testPrioriteStatsRetiree],
   ['testOptimizerExclusion', testOptimizerExclusion],
   ['testListeExemplaires', testListeExemplaires],

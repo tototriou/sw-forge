@@ -104,19 +104,38 @@ Le Worker construit les deux moitiés en parallèle, chacune dans un Worker
 enfant (`buildHalfInWorker`, sur `src/workers/buildHalf.worker.ts`) : la
 moitié A sur les indices d'emplacement 0 à 2 avec `maxSetsForA`, la moitié B
 sur 3 à 5 avec `maxSetsForB`. La requête (`BuildHalfRequest`) porte le pool
-pré-filtré et les champs de `PreparedSearch` utiles à la construction, plus
-`combosOrderMode` repris des `SearchParams` ; `adaptiveTrancheWeighting`,
+pré-filtré et les champs de `PreparedSearch` utiles à la construction, dont
+les préréglages plus étroits (`cransEmboites`, obligatoire : voir plus bas),
+plus `combosOrderMode` repris des `SearchParams` ; `adaptiveTrancheWeighting`,
 sans effet, n'y est pas relayé.
 Les deux moitiés sont indépendantes : chacune ne lit que des bornes
 calculées par la préparation, jamais l'autre moitié construite.
 
 Le Worker enfant pilote le générateur `construireMoitie`
 (`src/lib/rechercheRunes.ts`) jusqu'au bout, poste sa
-progression (runes du premier emplacement de la moitié déjà parcourues, sur
-leur total) au plus une fois par palier de temps, puis un dernier point de
+progression au plus une fois par palier de temps, puis un dernier point de
 passage garanti, puis ses compartiments (`Bucket[]`). Le Worker parent les
 relaie sans palier supplémentaire (`phase: 'building'`), et le hook garde la
 progression des deux moitiés séparément (`halves.A`, `halves.B`).
+
+La progression d'une moitié est UN compte, `scanned` sur `total` : les runes
+du premier emplacement de la moitié parcourues, sommées sur le préréglage de
+la recherche puis sur chaque préréglage plus étroit, dans l'ordre où ils se
+construisent (`totalConstruction` ; une même rune compte une fois par
+préréglage). À Moyen, `total` vaut donc les runes du premier emplacement de
+Moyen plus celles de Bas ; à Bas, celles de Bas seules. Le compte ne recule
+jamais et finit à `total`. Ce n'est pas une mesure du travail : une rune
+d'un préréglage plus étroit coûte moins (ses deux autres emplacements sont
+plus petits), et la barre accélère en fin de construction.
+
+Préréglages emboîtés : `construireMoitie` construit d'abord le préréglage de
+la recherche, puis chaque préréglage plus étroit (`ctx.cransEmboites`, du
+plus large au plus étroit, chacun avec son pool, son `bucketCap`, son crédit
+de joker et ses bornes de sets), et ajoute aux compartiments de la recherche
+les demi-builds de ces derniers qui leur manquent (`UnionDesRetentions`).
+Sans préréglage plus étroit (Bas), le résultat et les points de passage sont
+ceux du préréglage seul. Détail :
+[elagages.md § Préréglages emboîtés](elagages.md#préréglages-emboîtés).
 
 La construction énumère les combinaisons des trois emplacements de la moitié
 et les range en compartiments, par le compte exact de pièces de chaque set
@@ -128,9 +147,9 @@ par potentiel décroissant ; `combosOrderMode` ordonne les combinaisons à
 l'intérieur d'un compartiment. Détail :
 [elagages.md § Pré-filtrage heuristique et compartiments](elagages.md).
 
-`construireMoitie` confie ce travail à un noyau sur tableaux typés,
-`construireMoitieRapide` (`src/lib/constructionRapide.ts`), qui rend
-exactement les compartiments de `buildBuckets`, la référence :
+`construireMoitie` confie la construction de chaque préréglage à un noyau
+sur tableaux typés, `construireMoitieRapide` (`src/lib/constructionRapide.ts`),
+qui rend exactement les compartiments de `buildBuckets`, la référence :
 
 - aucune allocation par combinaison : les sommes de chaque triplet vont dans
   un tampon, son compartiment est un entier (comptes en base 4, jokers en
@@ -153,7 +172,9 @@ entier ne couvre plus, et des capacités de tas hors des entiers 32 bits du
 noyau — `bucketCap` non entier, négatif ou tel que `bucketCap × (2 + stats
 retenues)` dépasse 2³¹ − 1 (un override de mesure à 2³¹ ou `Infinity`
 deviendrait négatif ou nul dans un `Int32Array`, et la moitié rendrait zéro
-combinaison). La
+combinaison). Le motif se juge préréglage par préréglage : avec un traceur,
+seul le préréglage de la recherche passe par `buildBuckets`, les plus
+étroits, construits sans traceur, restent au noyau. La
 même `construireMoitie` sert le CLI (`runSearchToCompletion`), les fils de
 construction de Node (`scripts/lib/build-half-worker.ts` : harnais,
 `perf-battery`) et `searchBuildsSteps`.

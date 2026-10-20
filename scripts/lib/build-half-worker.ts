@@ -11,7 +11,7 @@
 // TypeScript transpilé à la volée.
 
 import { parentPort, workerData } from 'worker_threads';
-import { Bucket } from '../../src/lib/runeBuildOptim';
+import { Bucket, CranEmboite } from '../../src/lib/runeBuildOptim';
 // La construction de production (noyau sur tableaux typés, `buildBuckets` en
 // repli), la même que `src/workers/buildHalf.worker.ts`.
 import { construireMoitie } from '../../src/lib/rechercheRunes';
@@ -36,6 +36,9 @@ export interface BuildHalfWorkerData {
   base: BaseStats;
   // PROTOTYPE (combosOrderMode='objective') — même discipline que `base`.
   objectiveKeys: StatKey[];
+  // Préréglages emboîtés (`PreparedSearch.cransEmboites`), comme
+  // `BuildHalfRequest` : obligatoire dans `construireMoitie`.
+  cransEmboites: CranEmboite[];
   // ⚠️ Relayé depuis `SearchParams` : sans lui, ce worker (utilisé par
   // perf-battery.ts pour mesurer la construction « comme en prod »)
   // retomberait sur le défaut interne de buildBuckets quel que soit ce que

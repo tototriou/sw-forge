@@ -27,7 +27,7 @@ qu'il désigne, un indice hors bornes, signe compris, avant de lire un cas
 indéfini (`resoudreSelectionCas`, `scripts/lib/diagnosticLot.ts:120-182`,
 `tests/diagnostic-harness.test.ts:914-960`). `--cas` est une source à lui
 seul : il refuse `--synthetique`, `--compte` et `--recette`
-(`scripts/diagnostic-harness.ts:878-887`). Un cas dont l'export de compte
+(`scripts/diagnostic-harness.ts:864-873`). Un cas dont l'export de compte
 manque — ces exports ne sont pas suivis — est refusé au palier 1, fichier
 nommé, jamais sauté ni remplacé par un pool synthétique
 (`verifierComptesDisponibles`, `scripts/lib/diagnosticLot.ts:184-204`).
@@ -45,7 +45,7 @@ résolue : aucun appelant n'hérite d'un nettoyage.
 **Ce qu'un lot autorise.** Les runs sont indépendants, sans état partagé ni
 agrégation (`executerLot`, `scripts/lib/diagnosticLot.ts:283-315`), et chaque
 cas imprime la sortie qu'il aurait seul, palier 1 et avertissement de
-comparaison des temps compris (`scripts/diagnostic-harness.ts:869-945`). Le
+comparaison des temps compris (`scripts/diagnostic-harness.ts:855-931`). Le
 coût s'annonce avant d'être payé — cas nommés, point d'arrêt, nombre de
 recherches — et `--apercu` rend les N paliers 1 sans rien exécuter
 (`annoncerLot`, `scripts/lib/diagnosticLot.ts:321-358`,
@@ -94,9 +94,9 @@ la recherche du nom sur tout le dépôt.
 | `scripts/pair-bound-diag.ts` | `estimatePairBound`, majorant de `totalPairs` calculable avant la construction | rien. Ne pas l'afficher au palier 1 : trop lâche, il ne certifierait le régime séquentiel que sur des cas déjà faciles (`scripts/pair-bound-diag.ts:12-18`) |
 | `scripts/optimizer-bucket-rank-diag.ts` | une rune isolée figure-t-elle dans au moins un demi-build retenu : morte au pré-filtrage, ou à la rétention | `--suivre` d'un identifiant s'arrête au pré-filtrage ; de trois, il rend le demi-build exact. `scripts/optimizer-find-rune.ts` trouve l'identifiant |
 | `scripts/optimizer-bucket-list-diag.ts` | le catalogue des compartiments d'une moitié, ce qui devance la cible compris | le rang du compartiment seul |
-| `scripts/monster-search-multicount-diag.ts` | l'ensemble des builds trouvés, pas un top | le top rendu et, avec un build cible, le cardinal ; `metric` et `adaptiveTrancheWeighting` ne se surchargent pas |
+| `scripts/monster-search-multicount-diag.ts` | l'ensemble des builds trouvés, pas un top | le top rendu et, avec un build cible, le cardinal ; `metric` ne se surcharge pas |
 | `scripts/rune-owner-diag.ts` | le porteur d'une rune dans la box, sans toucher au moteur | l'étage 0 dit une rune absente du pool d'entrée, pas qui la porte |
-| `scripts/optimizer-deck10-final-diag.ts`, `scripts/combos-order-mode-real-account-diag.ts` | l'instant de découverte et la courbe de rendement, aux mêmes jalons ; le second apparie en séquentiel et lit ses comptes sous `maxMs` | `decouverteBuildCible` (extensions.md § Instant de découverte et dispersion par tranche) |
+| `scripts/optimizer-deck10-final-diag.ts`, `scripts/combos-order-mode-real-account-diag.ts` | l'instant de découverte et la courbe de rendement, aux mêmes jalons ; le second apparie en séquentiel et lit ses comptes sous `maxMs` | `decouverteBuildCible` (extensions.md § Instant de découverte d'un build cible) |
 | `scripts/optimum-speed-diag.ts` | la comparaison de deux VERSIONS du code, copié dans le `git worktree` d'un ancien commit | son `foundExplored`, un compte de paires que `scripts/perf-battery-compare.ts` ne rend pas, est `decouverteBuildCible` |
 | `scripts/optimum-speed-targets.ts` | une vérité terrain : par couple de compartiments, les paires dans l'ordre de leur somme de `relevanceScore`, par un tas, sans matérialiser le produit cartésien ; au-delà de `HEAP_BUDGET` paires examinées, le refus de conclure (`scripts/optimum-speed-targets.ts:97-183`) | aucun optimum ; un run complet à `bucketCap` maximal classe toutes les paires quand il reste atteignable |
 | `scripts/retention-dispersion-diag.ts` | un CV sur les demi-builds retenus, compartiments aplatis, principale comprise | le CV que le moteur utilise : `dispersionTranches` |
@@ -107,12 +107,12 @@ la recherche du nom sur tout le dépôt.
 **Références recopiées.** Une copie d'une fonction du moteur ne se maintient
 pas seule, et aucun `tsc` ne le signale. `filterSlotOld`, la référence de
 `scripts/filterslot-topk-diag.ts`, n'a pas l'élagage `hasFreeSlots` de
-`filterSlot` (`src/lib/runeBuildOptim.ts:1583-1585`) ; `retentionScoreLocal`
+`filterSlot` (`src/lib/runeBuildOptim.ts:1554-1556`) ; `retentionScoreLocal`
 recopie `retentionScore`, que le moteur n'exporte pas
 (`scripts/retention-dispersion-diag.ts:84-84`). Trois scripts portent dans
 leur en-tête une référence que leur exécution ne reproduit plus — lire cet
 en-tête avant de se fier à leur sortie : `scripts/bucket-cap-scaling-diag.ts`
-(`scripts/bucket-cap-scaling-diag.ts:60-74`),
+(`scripts/bucket-cap-scaling-diag.ts:57-71`),
 `scripts/stress-tranche-weighting-attainable-diag.ts`
 (`scripts/stress-tranche-weighting-attainable-diag.ts:53-64`),
 `scripts/filterslot-topk-diag.ts` (`scripts/filterslot-topk-diag.ts:37-53`).

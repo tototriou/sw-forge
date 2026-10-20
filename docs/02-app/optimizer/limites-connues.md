@@ -90,13 +90,14 @@ ici.
 
 ## Réglages exposés, estimation et progression
 
-- **Quatre réglages de l'écran agissent sur la recherche**, sous
+- **Trois réglages de l'écran agissent sur la recherche**, sous
   « Réglages avancés » : le préréglage de pré-filtrage (`slotFilterCap`,
   dont dérive `bucketCap` par `bucketCapFor`), « Rechercher jusqu'à
-  épuisement complet » (filet de temps de 10 minutes retiré), « Prioriser
-  les stats les plus difficiles » (`adaptiveTrancheWeighting`) et
+  épuisement complet » (filet de temps de 10 minutes retiré) et
   « Compter les effets d'auras Tolerance et Précision dans les
-  conditions » (`compterAurasResPre`). Ne sont pas exposés :
+  conditions » (`compterAurasResPre`). « Prioriser les stats les plus
+  difficiles » (`adaptiveTrancheWeighting`), encore affiché, est sans
+  effet. Ne sont pas exposés :
   `MAX_COLLECTED`, `BUCKET_CAP`, `combosOrderMode` ;
   `SearchParams.bucketCap` sert à la mesure, jamais à l'écran. Détail :
   [ecran/conditions-et-reglages.md § Réglages avancés](ecran/conditions-et-reglages.md).
@@ -213,9 +214,8 @@ Ce que le harnais ne sait pas faire, ou dit de travers :
   `relevanceScore`, est plus large que le code : `combined` ne replie
   qu'en l'absence de minimum, `potential` jamais ;
 - **la source synthétique** ne force pas de principale par emplacement,
-  n'injecte pas de rune et ne porte aucun artéfact ;
-  `adaptiveTrancheWeighting` ne se règle ni par elle ni par un override
-  (`scripts/lib/diagnosticTypes.ts`) : [03-developpeur/optimizer/harnais/extensions.md § Configuration : une résolution, des arguments refusés, une fidélité bornée](../../03-developpeur/optimizer/harnais/extensions.md#configuration--une-résolution-des-arguments-refusés-une-fidélité-bornée) ;
+  n'injecte pas de rune et ne porte aucun artéfact :
+  [03-developpeur/optimizer/harnais/extensions.md § Configuration : une résolution, des arguments refusés, une fidélité bornée](../../03-developpeur/optimizer/harnais/extensions.md#configuration--une-résolution-des-arguments-refusés-une-fidélité-bornée) ;
 - **trois scripts conservés ne reproduisent plus leur référence**, chacun
   le dit dans son en-tête : `scripts/bucket-cap-scaling-diag.ts`,
   `scripts/stress-tranche-weighting-attainable-diag.ts` et

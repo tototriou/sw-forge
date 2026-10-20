@@ -259,8 +259,8 @@ async function testBoutEnBout(): Promise<void> {
     };
     const prepared = prepareSearch(params);
     if (!prepared) continue;
-    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, params.adaptiveTrancheWeighting, params.combosOrderMode));
-    const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, params.adaptiveTrancheWeighting, params.combosOrderMode));
+    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, params.combosOrderMode));
+    const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, params.combosOrderMode));
     const total = totalPairCount(prepared, bucketsA, bucketsB);
     if (total === 0) continue;
     const reference = etatDe(drain(pairBuckets(prepared, bucketsA, bucketsB)));

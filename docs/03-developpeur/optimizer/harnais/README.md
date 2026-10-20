@@ -18,5 +18,5 @@ demi-build, un « 0 résultat », une configuration, un temps. Les contrôles de
 | Document | Contenu |
 | --- | --- |
 | [mode-d-emploi.md](mode-d-emploi.md) | Le mode d'emploi du harnais de diagnostic et ce qu'il garantit, avec le code qui porte chaque garantie. |
-| [extensions.md](extensions.md) | Ce que le harnais fait au-delà de son mode d'emploi de base : niveaux de coût d'une extension, configuration, observation de la construction, build cible, instant de découverte, dispersion par tranche, différentiel et ses profils. |
+| [extensions.md](extensions.md) | Ce que le harnais fait au-delà de son mode d'emploi de base : niveaux de coût d'une extension, configuration, observation de la construction, build cible, instant de découverte, différentiel et ses profils. |
 | [scripts.md](scripts.md) | Le harnais sur les cas réels connus (`--cas`), et les scripts de diagnostic qui restent à côté de lui : ce que chacun produit seul, ce que le harnais en couvre, comment décider d'en garder ou d'en retirer un. |

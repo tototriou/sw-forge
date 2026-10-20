@@ -932,8 +932,8 @@ export async function testAurasPariteRegimes() {
   const issue = prepareOrRefuse(message);
   if (issue.kind !== 'prepared') throw new Error(`préparation : ${issue.kind}`);
   const prepared = issue.prepared;
-  const bucketsA = drain(construireMoitie('A', [0, 1, 2], prepared, prepared.maxSetsForA, params.adaptiveTrancheWeighting, params.combosOrderMode));
-  const bucketsB = drain(construireMoitie('B', [3, 4, 5], prepared, prepared.maxSetsForB, params.adaptiveTrancheWeighting, params.combosOrderMode));
+  const bucketsA = drain(construireMoitie('A', [0, 1, 2], prepared, prepared.maxSetsForA, params.combosOrderMode));
+  const bucketsB = drain(construireMoitie('B', [3, 4, 5], prepared, prepared.maxSetsForB, params.combosOrderMode));
   const totalPairs = totalPairCount(prepared, bucketsA, bucketsB);
   ok(totalPairs < PARALLEL_PAIRING_THRESHOLD,
     `FIDÉLITÉ : DIVERGE DE LA PROD — ${totalPairs} paires < ${PARALLEL_PAIRING_THRESHOLD} : parallèle FORCÉ, 3 Workers`);

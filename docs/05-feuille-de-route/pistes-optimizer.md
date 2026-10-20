@@ -19,21 +19,16 @@ et celles des tests, du harnais et des scripts de mesure :
 
 ### Prototypes de `buildBuckets`
 
-- **Constat** : deux paramètres de `buildBuckets`
-  (`src/lib/runeBuildOptim.ts`) sont annoncés « PROTOTYPE EN MESURE ».
+- **Constat** : un paramètre de `buildBuckets`
+  (`src/lib/runeBuildOptim.ts`) est annoncé « PROTOTYPE EN MESURE ».
   `skylineKeys` (frontière de Pareto des demi-builds de chaque
   compartiment, `Bucket.skyline`, `insertIntoSkyline`,
   `dominatesHalfCombo`) n'est passé par aucun appel de `src/`, `scripts/`
   ni `tests/` : seuls ses deux auxiliaires sont testés
   (`tests/rune-optim.test.ts`), et le script de mesure que cite son
-  commentaire n'existe plus. `adaptiveTrancheWeighting`, lui, est en
-  production : l'interrupteur « Prioriser les stats les plus difficiles »
-  le transmet (`src/components/outils/OptimizerSection.tsx`,
-  `src/workers/runeBuildOptim.worker.ts`), alors que son commentaire le dit
-  faux dans tous les appels de production.
+  commentaire n'existe plus.
 - **Idée** : retirer `skylineKeys`, `Bucket.skyline` et leurs auxiliaires,
-  ou les garder comme instrument appelé par un script de mesure ; récrire
-  le commentaire d'`adaptiveTrancheWeighting` d'après le code.
+  ou les garder comme instrument appelé par un script de mesure.
 - **Bloque** : un changement de code, et le choix entre retirer et garder.
   La variante elle-même est écartée
   ([03-developpeur/optimizer/moteur/elagages.md § Variantes écartées ou gardées en réserve](../03-developpeur/optimizer/moteur/elagages.md#variantes-écartées-ou-gardées-en-réserve)).

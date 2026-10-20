@@ -89,10 +89,10 @@ export default async function testDiagnosticHarness() {
    *
    * ⚠️ Le principe dit « chaque paramètre EFFECTIF affiche son
    * origine » ; `resoudreConfig` implémentait « chaque paramètre
-   * SURCHARGEABLE ». Un run lancé avec `adaptiveTrancheWeighting` sans le
-   * savoir mesure une autre rétention, et l'aperçu n'en montrait rien. */
+   * SURCHARGEABLE ». Un run dont l'objectif change les stats retenues
+   * mesure une autre rétention, et l'aperçu n'en montrait rien. */
   const nomsParametres = sansOverride.parametres.map((p) => p.nom);
-  for (const attendu of ['objective', 'adaptiveTrancheWeighting', 'metric', 'recherche exhaustive', 'pool (runes)']) {
+  for (const attendu of ['objective', 'metric', 'recherche exhaustive', 'pool (runes)']) {
     ok(nomsParametres.includes(attendu), `le paramètre EFFECTIF « ${attendu} » figure dans l’aperçu`);
   }
   ok(

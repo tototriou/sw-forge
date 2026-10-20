@@ -5936,11 +5936,15 @@ export type StatsDebutCombat = { atk: number; def: number; hp: number; spd: numb
  * s'écrire ; damage.ts n'en modifie aucun). Ce qu'il rend est partagé : à
  * lire, jamais à modifier.
  *
- * Les stats ne se retiennent que pour un réglage CONNU du memo : celui de
- * `computeTotalDamage` et ceux d'une chronologie retenue. Un réglage recopié
- * à chaque appel (critique forcé, mode critique d'un passif) se calcule sans
- * mémoire : il ne la remplirait que de clés jamais relues ; de même pour
- * d'autres auras propres ou un autre élément que ceux du memo. Bornes :
+ * Ce qui ne peut pas être relu ne se retient pas. Les stats ne se retiennent
+ * que pour un réglage CONNU du memo : celui de `computeTotalDamage` et ceux
+ * d'une chronologie retenue ; une chronologie, que pour un réglage connu ET
+ * le sort de `computeTotalDamage`. Un réglage ou un profil recopié à chaque
+ * appel (critique forcé, mode critique d'un passif, coups déduits du build)
+ * se calcule sans mémoire : il ne la remplirait que de clés jamais relues, et
+ * la ferait se vider à sa borne, emportant ce qui se relit ; de même pour
+ * d'autres auras propres ou un autre élément que ceux du memo (un élément
+ * `undefined` vaut `null`, comme dans `computeTotalDamage`). Bornes :
  * `BORNE_CHRONOLOGIES` chronologies, `BORNE_STATS_PAR_REGLAGE` tableaux par
  * réglage, `BORNE_COMBATS_PAR_STATS` jeux d'amplifications par tableau ;
  * atteinte, la mémoire concernée se vide d'un coup.
@@ -5958,11 +5962,18 @@ export class MemoCombat {
   }[] = [];
   // Par réglage connu, puis par tableau de stats.
   private parReglage = new Map<DamageSetup, Map<StatRow[], StatsRetenues>>();
+  // Les sorts de `computeTotalDamage` : seules leurs chronologies se relisent.
+  private sortsConnus = new Set<SkillDamageProfile>();
+  private readonly element: ElementKey | null;
 
   constructor(
     private readonly propres: AurasPropres,
-    private readonly element: ElementKey | null
-  ) {}
+    element: ElementKey | null
+  ) {
+    // `computeTotalDamage` reçoit un élément `undefined` comme `null`
+    // (paramètre par défaut) et le passe ainsi à tout ce qu'il appelle.
+    this.element = element ?? null;
+  }
 
   // Ce que le memo retient, pour les tests (aucun effet sur un résultat).
   get compte(): { chronologies: number; reglages: number; tableaux: number; combats: number } {
@@ -5975,9 +5986,11 @@ export class MemoCombat {
     return { chronologies: this.chronologies.length, reglages: this.parReglage.size, tableaux, combats };
   }
 
-  // Le réglage de `computeTotalDamage` : ses stats se retiennent.
-  connaitre(setup: DamageSetup): void {
+  // Le réglage de `computeTotalDamage` : ses stats se retiennent ; avec son
+  // sort, leurs chronologies aussi.
+  connaitre(setup: DamageSetup, profile?: SkillDamageProfile): void {
     if (!this.parReglage.has(setup)) this.parReglage.set(setup, new Map());
+    if (profile) this.sortsConnus.add(profile);
   }
 
   chronologie(
@@ -5997,11 +6010,15 @@ export class MemoCombat {
       }
     }
     const valeur = calculer();
+    // Un réglage ou un sort inconnu est un objet recopié par cet appel : aucun
+    // appel ne redemandera cette chronologie, ni les réglages qu'elle rend.
+    if (!this.parReglage.has(setup) || !this.sortsConnus.has(profile)) return valeur;
     if (this.chronologies.length >= BORNE_CHRONOLOGIES) {
       // Les réglages connus par les chronologies oubliées partent avec elles ;
-      // celui de `computeTotalDamage` revient au prochain appel.
+      // celui et le sort de `computeTotalDamage` reviennent au prochain appel.
       this.chronologies = [];
       this.parReglage.clear();
+      this.sortsConnus.clear();
     }
     this.chronologies.push({ profile, setup, monsterWide, supplementaires: [...supplementaires], valeur });
     if (valeur) {
@@ -7350,7 +7367,7 @@ export function computeTotalDamage(
   // `evaluerPourRegime`). Absent = tout recalculé ; même résultat, au bit près.
   memo?: MemoCombat
 ): number {
-  memo?.connaitre(setup);
+  memo?.connaitre(setup, profile);
   const maVit = maVitCombat(stats, setup, element, artefacts.ampliVitPct);
   const ecartVit = maVit - Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
   const forceCrit = critSiPlusRapide && ecartVit > 0;

@@ -415,7 +415,13 @@ stats au début du combat (par tableau de stats, que `statsParPaire` partage
 entre paires de mêmes principales) et les stats de combat (par tableau et
 par amplifications de buff de la paire). Reconnues à leur identité, ces
 entrées rendent la valeur de la fonction elle-même, au bit près
-(`tests/memo-combat.test.ts`) ; bornes `BORNE_CHRONOLOGIES` (16),
+(`tests/memo-combat.test.ts`). Ce qui ne peut pas être relu ne se retient
+pas : une chronologie seulement pour le réglage et le sort de
+`computeTotalDamage` (ou un réglage qu'une chronologie retenue a rendu),
+jamais pour un réglage ou un profil recopié à chaque appel (critique forcé,
+mode critique d'un passif, coups déduits du build), qui remplirait la
+mémoire de clés jamais relues et la ferait se vider à sa borne ; un élément
+`undefined` vaut `null`, comme dans `computeTotalDamage`. Bornes `BORNE_CHRONOLOGIES` (16),
 `BORNE_STATS_PAR_REGLAGE` (64), `BORNE_COMBATS_PAR_STATS` (16) ; durée de
 vie : celle de l'évaluateur.
 

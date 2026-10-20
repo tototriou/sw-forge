@@ -930,10 +930,19 @@ export async function testAppariementParallele(): Promise<void> {
 export async function testAppariementParalleleCession(): Promise<void> {
   titre('Appariement parallèle · cession entre deux tranches (MessageChannel, repli setTimeout)');
   let canaux = 0;
+  // Les ports fermés, par canal créé : `cederLaMain` ferme les deux à la réception.
+  const fermes: string[] = [];
   class CanalEspion extends MessageChannel {
     constructor() {
       super();
       canaux++;
+      for (const [nom, port] of [['port1', this.port1], ['port2', this.port2]] as const) {
+        const fermer = port.close.bind(port);
+        port.close = () => {
+          fermes.push(nom);
+          fermer();
+        };
+      }
     }
   }
   let minuteurs = 0;
@@ -946,6 +955,7 @@ export async function testAppariementParalleleCession(): Promise<void> {
     await cederLaMain(CanalEspion);
     egal(canaux, 1, 'MessageChannel disponible : un canal est créé pour la cession');
     egal(minuteurs, 0, 'MessageChannel disponible : aucun setTimeout');
+    egal([...fermes].sort(), ['port1', 'port2'], 'MessageChannel disponible : les deux ports sont fermés, une fois chacun, quand la promesse se résout');
     await cederLaMain(null);
     egal(canaux, 1, 'MessageChannel absent : aucun canal créé');
     egal(minuteurs, 1, 'MessageChannel absent : repli sur setTimeout(0), et la promesse se résout');

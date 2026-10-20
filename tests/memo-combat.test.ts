@@ -159,6 +159,8 @@ export default function testMemoCombat() {
     const v1 = { avant: [S], apres: S };
     const v2 = { avant: [S], apres: S };
     const memo = new MemoCombat(PROPRES, null);
+    // Le réglage et le sort de `computeTotalDamage` : leurs chronologies se retiennent.
+    memo.connaitre(S, P!);
     let appelsF2 = 0;
     memo.chronologie(P!, S, MW, [a!], () => v1);
     const r2 = memo.chronologie(P!, S, MW, [b!], () => (appelsF2++, v2));
@@ -213,6 +215,84 @@ export default function testMemoCombat() {
       }
       egal(ecartsBornes.slice(0, 3), [], `${3 * (BORNE_CHRONOLOGIES + 5)} réglages distincts sur un memo : résultat exact`);
       ok(maxChronologies <= BORNE_CHRONOLOGIES, `… au plus ${BORNE_CHRONOLOGIES} chronologies retenues (vu : ${maxChronologies})`);
+
+      // ── Critique forcé sous scénario actif : le sort se calcule sous un
+      // réglage recopié à chaque appel (`critMode: 'crit'`), dont la
+      // chronologie ne peut jamais être relue. Elle ne se retient pas, et le
+      // memo garde ce qui se relit (la chronologie du réglage lui-même, pour
+      // l'état après le sort) au lieu de se vider toutes les
+      // `BORNE_CHRONOLOGIES` paires. Aucun monstre du corpus n'a à la fois
+      // `critSiPlusRapide` et un sort à effets posables : le contexte le pose. ──
+      const reglageForce: DamageSetup = { ...reglage(0), critMode: 'normal', enemySpd: 40 };
+      const brut = { ...contexte(scenario.id, reglageForce)!, element: null };
+      const force = { ...brut, critSiPlusRapide: true };
+      const sansForce = { ...brut, critSiPlusRapide: false };
+      const memoForce = new MemoCombat(PROPRES, null);
+      const ecartsForce: string[] = [];
+      let differeDuNonForce = 0;
+      let chute = 0;
+      let minApresPremier = { chronologies: Infinity, reglages: Infinity };
+      let precedent = { chronologies: 0, reglages: 0 };
+      for (let tour = 0; tour < 3; tour++) {
+        for (const arts of paires) {
+          const stats = statsAvec(arts);
+          const avec = total(force, stats, arts, memoForce);
+          const sans = total(force, stats, arts);
+          if (!Object.is(avec, sans) && ecartsForce.length < 3) ecartsForce.push(`[${arts.map((a) => a.id).join(',')}] : ${avec} ≠ ${sans}`);
+          if (!Object.is(sans, total(sansForce, stats, arts))) differeDuNonForce++;
+          const c = memoForce.compte;
+          if (c.chronologies < precedent.chronologies || c.reglages < precedent.reglages) chute++;
+          precedent = c;
+          minApresPremier = { chronologies: Math.min(minApresPremier.chronologies, c.chronologies), reglages: Math.min(minApresPremier.reglages, c.reglages) };
+        }
+      }
+      const notesForce = 3 * paires.length;
+      ok(notesForce > 2 * BORNE_CHRONOLOGIES && differeDuNonForce > 0,
+        `critique forcé sous scénario actif : ${notesForce} notes sur un memo (plus de ${BORNE_CHRONOLOGIES}), dont ${differeDuNonForce} différentes du non forcé`);
+      egal(ecartsForce, [], '… avec le memo = sans le memo, au bit près');
+      egal(chute, 0, `… la mémoire ne retombe jamais (compte final ${JSON.stringify(memoForce.compte)})`);
+      ok(minApresPremier.chronologies >= 1 && minApresPremier.reglages >= 1,
+        `… et garde, dès la première note, la chronologie et le réglage qui se relisent (au moins ${minApresPremier.chronologies} et ${minApresPremier.reglages})`);
     }
+  }
+
+  // ── Ce qui ne peut pas être relu ne se retient pas : une chronologie dont
+  // le réglage ou le sort n'est pas celui de `computeTotalDamage` (ni un
+  // réglage qu'une chronologie retenue a rendu) est un objet recopié par
+  // l'appel, jamais redemandé. ──
+  {
+    const sorts = [...vus].slice(0, 50).flatMap((id) => monsterDamageSkills(loadMonsterSkills(id)).filter(estPrisEnCharge));
+    const [P, Q] = sorts;
+    const S: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit' };
+    const T: DamageSetup = { ...S };
+    const MW = {};
+    const v = { avant: [S], apres: S };
+    const memo = new MemoCombat(PROPRES, null);
+    memo.connaitre(S, P!);
+    let appels = 0;
+    const calcul = () => (appels++, v);
+    const r1 = memo.chronologie(P!, T, MW, [], calcul);
+    const r2 = memo.chronologie(Q!, S, MW, [], calcul);
+    ok(r1 === v && r2 === v && appels === 2 && memo.compte.chronologies === 0,
+      'réglage recopié (connu : un autre objet) ou sort non connu : la chronologie est calculée et rendue, rien ne se retient');
+    memo.chronologie(P!, S, MW, [], calcul);
+    memo.chronologie(P!, S, MW, [], calcul);
+    ok(appels === 3 && memo.compte.chronologies === 1, '… le réglage et le sort connus : retenue, puis relue sans recalcul');
+  }
+
+  // ── Élément `undefined` (un contexte qui l'omet) : `computeTotalDamage` le
+  // lit `null` (paramètre par défaut), le memo aussi — il garde sa mémoire. ──
+  {
+    const id = [...vus].find((x) => contexte(x, DEFAULT_DAMAGE_SETUP) !== null)!;
+    const ctx = { ...contexte(id, DEFAULT_DAMAGE_SETUP)!, element: undefined as unknown as null };
+    const memo = new MemoCombat(PROPRES, ctx.element);
+    const ecartsElement: string[] = [];
+    for (const arts of [...paires, ...paires]) {
+      const stats = statsAvec(arts);
+      const avec = total(ctx, stats, arts, memo);
+      if (!Object.is(avec, total(ctx, stats, arts)) && ecartsElement.length < 3) ecartsElement.push(`[${arts.map((a) => a.id).join(',')}]`);
+    }
+    egal(ecartsElement, [], `élément undefined (${id}) : avec le memo = sans le memo, au bit près`);
+    ok(memo.compte.tableaux > 0, `… et le memo retient les stats au début du combat (${memo.compte.tableaux} tableaux)`);
   }
 }

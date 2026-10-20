@@ -47,7 +47,7 @@ Ce document décrit la carte « Équipement actuel ».
    ↔ total au clic**, comportement propre à `MonsterGear`, partagé avec RTA
    et Siège (voir [rta/feat-sections-runes.md](../../rta/feat-sections-runes.md)).
    ⚠️ **Affiché SOUS les puces d'exemplaire, TOUJOURS** — au bureau dans
-   la boîte « Exemplaire » (616 px, environ 396 px de haut ; en tête de la
+   la section « Exemplaire » (598 px, environ 370 px de haut ; en tête de la
    colonne de droite en A3, sous les réglages en A1 et A2), au téléphone
    dans la carte « Monstre & équipement » — vide
    (stats à zéro, emplacements grisés, roue sans rune) tant qu'aucun

@@ -189,16 +189,20 @@ La recherche et le choix de l'exemplaire vivent dans deux boîtes de la page
 de bureau ([README.md](README.md#mise-en-page-densemble)), pas dans une carte
 commune :
 
-1. **la liste de travail**, en tête des essentiels, 548 px
+1. **la liste de travail**, première section du panneau des essentiels
    (`ListeDeTravailBureau`) : la rangée de « Liste active », que termine
    « Importer une équipe » ([../feat-import-equipes.md](../feat-import-equipes.md)),
-   puis la carte de la liste, dont la rangée du titre porte « Rechercher un
-   monstre… » et le monstre actif (portrait et nom). ⚠️ **La place du monstre
-   actif est réservée, vide ou non** (132 px) : choisir un monstre ne déplace
-   ni le champ ni la liste. Les membres de la liste défilent dans une
-   hauteur bornée à environ quatre lignes (164 px) ;
+   puis la carte de la liste, dont la rangée du titre porte « Ajouter un
+   monstre à la liste » (sans liste active ; avec une liste, « Monstres de
+   « … » » et son compte), « Rechercher un monstre… » et le monstre actif
+   (portrait et nom). ⚠️ **La place du monstre actif est réservée, vide ou
+   non** (132 px) : choisir un monstre ne déplace ni le champ ni la liste.
+   Les membres prennent leur hauteur jusqu'à 308 px, comme au téléphone,
+   puis défilent (décision de l'utilisateur à l'arrêt 4 : plus haute que
+   les quatre lignes d'avant) ;
 2. **« Exemplaire »**, en tête de la colonne de droite en A3, sous les
-   réglages en A1 et A2, 616 px (`ExemplaireBureau`) : les puces de source,
+   réglages en A1 et A2, section de 598 px du panneau de droite
+   (`ExemplaireBureau`) : les puces de source,
    la zone D en flottant (300 px de haut au plus, qui défile), puis
    la fiche ([equipement-actuel.md](equipement-actuel.md)).
 

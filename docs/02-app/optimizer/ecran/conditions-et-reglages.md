@@ -6,11 +6,12 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    Précision). Chaque stat porte **deux champs, minimum et maximum**, tous
    deux facultatifs — champ vide = pas de contrainte. Au téléphone, en bas
    de « Critères de recherche », sous le set et les principales ; au bureau,
-   une carte « Conditions » de 362 px des essentiels, sous le set, à gauche
-   des principales et d'« État de mon monstre » (`ConditionsBureau`). Dans
-   cette carte, la colonne des libellés prend la largeur du plus long d'entre
-   eux, et Min et Max s'en rapprochent : les champs gardent leur largeur, et
-   la grille tient sans déborder. « Artéfacts et reliques » est une carte à
+   une section « Conditions » de 328 px du panneau des essentiels, sous le
+   set, à gauche des principales et d'« État de mon monstre », dont un trait
+   vertical la sépare (`ConditionsBureau`). La colonne des libellés y prend
+   la largeur du plus long d'entre eux, les colonnes s'écartent de 12 px, et
+   Min et Max s'en rapprochent : les champs gardent leur largeur, et la
+   grille tient sans déborder. « Artéfacts et reliques » est une carte à
    part (voir artefacts.md § Place de la carte à l'écran).
    - **Interrupteur « Stats de base exclues »**, activé par défaut : n'affecte
      que PV, ATQ, DEF et VIT — ces 4 stats ont une base qui grandit avec le
@@ -138,10 +139,10 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
 ## Réglages avancés
 
 9. **« Réglages avancés »**. ⚠️ **Au bureau, en ligne** dans la colonne
-   repliable « Aura, exclusion, avancés », dans sa carte de 340 px, après
-   « Exclusion de runes », sur une seule colonne : pré-filtrage, puis les
-   interrupteurs (voir
-   README.md § Réglages avancés et exclusion de runes). La carte n'a ni
+   repliable « Aura, exclusion, avancés », section de 314 px de son panneau,
+   après « Exclusion de runes », sur une seule colonne : pré-filtrage, puis
+   les interrupteurs (voir
+   README.md § Réglages avancés et exclusion de runes). La section n'a ni
    hauteur fixe ni place réservée : elle suit son contenu. **Pré-filtrage par emplacement**, en
    **presets** plutôt qu'un curseur libre — Bas / Moyen
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus

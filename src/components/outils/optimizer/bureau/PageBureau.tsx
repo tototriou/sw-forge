@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import OngletsColonnes from './OngletsColonnes';
+import { PANNEAU, SECTIONS } from './panneau';
+import { type PartieObjectif } from './ObjectifEtRechercherBureau';
 import { AidesHorsDeLaBoite } from '../../../HelpPopover';
 import {
   agencementBureau, basculerColonne, colonnesAffichees, colonnesParDefaut, deuxColonnesTiennent, formeObjectifBureau, ouvrirColonne,
@@ -20,9 +22,10 @@ import {
 // racine. Mêmes seuils que `SEUILS_BUREAU` (src/lib/optimizerColonnes.ts),
 // écrits en littéraux parce que Tailwind ne lit que le source :
 // - A1 [728, 904[ : une colonne — essentiels, bloc « Objectif et Rechercher »
-//   (large, collé au bas de la partie visible tant que sa place est plus bas),
-//   onglets, colonne repliable ouverte (ses cartes deux à deux), « Exemplaire »,
-//   résultats ;
+//   (large, à sa place) suivi de sa barre fine (« Rechercher » / « Arrêter » et
+//   la progression), seule collée au bas de la partie visible tant que sa
+//   place est plus bas ; onglets, colonne repliable ouverte (ses sections deux
+//   à deux), « Exemplaire », résultats ;
 // - A2 [904, 1180[ : essentiels à gauche ; à leur droite, le bloc (étroit), les
 //   onglets puis la colonne repliable ouverte (cartes empilées) ; dessous, sur
 //   toute la largeur, « Exemplaire » puis les résultats ;
@@ -34,8 +37,16 @@ import {
 //   « Exemplaire », le bloc à côté de lui (étroit) quand elle fait au moins 972
 //   px, dessous (large) sinon, puis les résultats.
 //
+// ⚠️ **Chaque colonne est un panneau** (bureau/panneau.ts) : essentiels,
+// colonnes repliables, colonne de droite ; leurs boîtes y sont des sections.
+// Le panneau prend sa place moins `RETRAIT_PANNEAU` : 24 px entre deux
+// panneaux, aucun seuil déplacé.
+//
 // ⚠️ **Pas de boîte « colonne de droite »** : « Exemplaire », le bloc et les
 // résultats sont des cases de la grille de la page, placées par agencement.
+// Son panneau est un FOND, case de la grille sous les leurs en A3 (`FondDroite`,
+// décoratif) ; en A1 et A2, « Exemplaire » et les résultats, l'un sous
+// l'autre, en dessinent chacun une moitié.
 // Le bloc suit les essentiels dans le DOM (ordre d'usage : l'objectif se
 // choisit tôt), et la colonne de droite de A3 tient sur deux pistes
 // (`616px` d'« Exemplaire », le reste), où le bloc étroit prend la seconde.
@@ -117,6 +128,15 @@ function useColle(racine: RefObject<HTMLDivElement>, onglets: RefObject<HTMLDivE
   return colle;
 }
 
+// Ce que la page demande au bloc « Objectif et Rechercher »
+// (`ObjectifEtRechercherBureau`) : sa forme, son panneau (seul en A1 et A2,
+// section du panneau de droite en A3), la partie à rendre.
+export interface PresentationObjectif {
+  forme: FormeObjectifBureau;
+  cadre: boolean;
+  partie: PartieObjectif;
+}
+
 export interface PageBureauProps {
   // Les essentiels, de haut en bas : liste de travail, set de runes, puis
   // Conditions et, à leur droite, les principales et l'état du monstre.
@@ -134,10 +154,10 @@ export interface PageBureauProps {
   exclusion: ReactNode;
   avances: ReactNode;
   // La colonne de droite : « Exemplaire », le bloc « Objectif et Rechercher »,
-  // rendu dans la forme que choisit la page (`formeObjectifBureau`), et les
-  // résultats.
+  // rendu dans la forme que choisit la page (`formeObjectifBureau`), avec ou
+  // sans son propre panneau, entier ou en deux parties (A1), et les résultats.
   exemplaire: ReactNode;
-  objectif: (forme: FormeObjectifBureau) => ReactNode;
+  objectif: (presentation: PresentationObjectif) => ReactNode;
   resultats: ReactNode;
   // L'état des onglets : `null` tant que l'utilisateur n'y a pas touché (l'état
   // de départ suit alors la largeur, `colonnesParDefaut`).
@@ -152,18 +172,31 @@ export interface PageBureauProps {
   guideComplements?: number | null;
 }
 
-// Une colonne repliable en A3 : fixe, à défilement propre, superposée sous son
-// seuil d'insertion. Les classes sont écrites en entier pour Tailwind.
-const COLONNE_A3: Record<ColonneRepliable, string> = {
-  artefacts:
-    '@[1180px]:sticky @[1180px]:top-[var(--colle-colonnes)] @[1180px]:max-h-[var(--hauteur-colonnes)] @[1180px]:data-[defile]:overflow-y-auto'
-    + ' @[1180px]:w-[336px] @[1180px]:-mr-[336px] @[1180px]:z-20 @[1180px]:bg-bg @[1180px]:shadow-glow @[1180px]:shadow-black/60'
-    + ' @[1516px]:mr-0 @[1516px]:z-auto @[1516px]:shadow-none',
-  complements:
-    '@[1180px]:sticky @[1180px]:top-[var(--colle-colonnes)] @[1180px]:max-h-[var(--hauteur-colonnes)] @[1180px]:data-[defile]:overflow-y-auto'
-    + ' @[1180px]:w-[356px] @[1180px]:-mr-[356px] @[1180px]:z-20 @[1180px]:bg-bg @[1180px]:shadow-glow @[1180px]:shadow-black/60'
-    + ' @[1536px]:mr-0 @[1536px]:z-auto @[1536px]:shadow-none',
+// Une colonne repliable en A3 : fixe, à défilement propre ; superposée sous son
+// seuil d'insertion (marge négative de sa largeur : elle ne prend aucune
+// place), large de son panneau et de la barre de défilement (10 px) ; insérée
+// au-delà, large de sa place et de la gouttière (336 ou 356), où la barre de
+// défilement tient à droite du panneau. Les classes sont écrites en entier
+// pour Tailwind ; l'ombre (celle des flottants) va au panneau, superposé
+// seulement.
+const COLONNE_A3: Record<ColonneRepliable, { boite: string; panneau: string }> = {
+  artefacts: {
+    boite: '@[1180px]:sticky @[1180px]:top-[var(--colle-colonnes)] @[1180px]:max-h-[var(--hauteur-colonnes)] @[1180px]:data-[defile]:overflow-y-auto @[1180px]:data-[defile]:overflow-x-hidden'
+      + ' @[1180px]:w-[322px] @[1180px]:-mr-[322px] @[1180px]:z-20 @[1516px]:w-[336px] @[1516px]:mr-0 @[1516px]:z-auto',
+    panneau: '@[1180px]:shadow-glow @[1180px]:shadow-black/60 @[1516px]:shadow-none',
+  },
+  complements: {
+    boite: '@[1180px]:sticky @[1180px]:top-[var(--colle-colonnes)] @[1180px]:max-h-[var(--hauteur-colonnes)] @[1180px]:data-[defile]:overflow-y-auto @[1180px]:data-[defile]:overflow-x-hidden'
+      + ' @[1180px]:w-[342px] @[1180px]:-mr-[342px] @[1180px]:z-20 @[1536px]:w-[356px] @[1536px]:mr-0 @[1536px]:z-auto',
+    panneau: '@[1180px]:shadow-glow @[1180px]:shadow-black/60 @[1536px]:shadow-none',
+  },
 };
+
+// Les sections d'un panneau de colonne repliable : côte à côte en A1 (un trait
+// vertical entre deux), empilées dès A2 (un trait horizontal).
+const SECTIONS_COLONNE = '[&>*+*]:ml-2 [&>*+*]:border-l [&>*+*]:border-border-soft [&>*+*]:pl-2'
+  + ' @[904px]:[&>*+*]:ml-0 @[904px]:[&>*+*]:border-l-0 @[904px]:[&>*+*]:pl-0'
+  + ' @[904px]:[&>*+*]:mt-2 @[904px]:[&>*+*]:border-t @[904px]:[&>*+*]:pt-2';
 
 // Une colonne qui reste fixe en A3 (essentiels, colonne repliable) : son
 // contenu dans une boîte intérieure, mesurée. ⚠️ **Elle ne défile seule
@@ -234,22 +267,40 @@ export default function PageBureau(props: PageBureauProps) {
     onColonnes(ouvrirColonne(etatCourant.current, 'complements'));
   }, [guideComplements, onColonnes]);
 
+  // A1 (largeur inconnue comprise, la forme de départ) : le bloc à sa place,
+  // sa barre fine collée à part. A3 : le bloc est une section du panneau de
+  // droite.
+  const agencement = largeur != null ? agencementBureau(largeur) : 'A1';
+  const a1 = agencement === 'A1';
+  const cadre = agencement !== 'A3';
+
   return (
     <div
       ref={racine}
       className="@container"
       style={style}
-      data-agencement={largeur != null ? agencementBureau(largeur) : undefined}
+      data-agencement={largeur != null ? agencement : undefined}
     >
       <AnnonceRappelAuras rappel={props.rappelAuras} />
       <div
         className={
-          'grid grid-cols-[minmax(0,1fr)] items-start gap-y-4'
+          'grid grid-cols-[minmax(0,1fr)] items-start gap-y-6'
           + ' @[904px]:grid-cols-[548px_minmax(0,1fr)] @[904px]:grid-rows-[auto_auto_1fr_auto_auto] @[904px]:gap-x-4'
           + ' @[1180px]:grid-cols-[564px_auto_616px_minmax(0,1fr)] @[1180px]:grid-rows-[auto_auto_auto_1fr] @[1180px]:gap-x-0 @[1180px]:gap-y-0'
         }
       >
-        {/* Les essentiels : liste de travail en tête, à sa place stable. */}
+        {/* Le panneau de la colonne de droite en A3 : un fond sous ses cases
+            (« Exemplaire », bloc, résultats), premier dans le DOM pour être
+            peint dessous. Décoratif. */}
+        <div
+          aria-hidden
+          data-zone="fond-droite"
+          className={`hidden @[1180px]:block @[1180px]:col-[3/-1] @[1180px]:row-[2/-1] @[1180px]:self-stretch ${PANNEAU}`}
+        />
+
+        {/* Les essentiels : liste de travail en tête, à sa place stable ; à
+            droite des Conditions, la sous-colonne des principales et de l'état
+            du monstre, qui finit à peu près à leur hauteur. */}
         <ColonneFixe
           data-zone="essentiels"
           className={
@@ -258,37 +309,43 @@ export default function PageBureau(props: PageBureauProps) {
             + ' @[1180px]:row-[1/-1] @[1180px]:sticky @[1180px]:top-[var(--colle-haut)] @[1180px]:z-10 @[1180px]:max-h-[var(--hauteur-essentiels)]'
             + ' @[1180px]:w-[564px] @[1180px]:data-[defile]:overflow-y-auto'
           }
-          contenu="flex w-[548px] flex-col gap-4"
+          contenu={`flex w-[540px] flex-col ${PANNEAU} ${SECTIONS}`}
         >
           {props.liste}
           {props.set}
-          <div className="flex w-[548px] items-start gap-4">
+          <div className="flex items-start gap-2">
             {props.conditions}
-            <div className="flex flex-col gap-4">
+            <div className={`flex min-w-0 flex-1 flex-col self-stretch border-l border-border-soft pl-2 ${SECTIONS}`}>
               {props.principales}
               {props.etat}
             </div>
           </div>
         </ColonneFixe>
 
-        {/* Le bloc « Objectif et Rechercher ». A1 : large, sous les
-            essentiels, collé au bas de la partie visible tant que sa place
-            est plus bas (« Rechercher » toujours atteignable). A2 : étroit, à
-            droite des essentiels, au-dessus des onglets. A3 : à côté
-            d'« Exemplaire » (étroit, seconde piste) ou dessous (large). */}
+        {/* Le bloc « Objectif et Rechercher ». A1 : large, à sa place sous les
+            essentiels ; sa barre fine (« Rechercher » / « Arrêter » et la
+            progression) le suit, collée au bas de la partie visible tant que
+            sa place est plus bas (« Rechercher » toujours atteignable). A2 :
+            étroit, à droite des essentiels, au-dessus des onglets. A3 : section
+            du panneau de droite, à côté d'« Exemplaire » (étroit, seconde
+            piste) ou dessous (large). */}
         <div
           data-zone="objectif"
           data-forme={forme}
           className={
-            'sticky bottom-0 z-10'
-            + ' @[904px]:static @[904px]:col-[2] @[904px]:row-[1]'
+            '@[904px]:col-[2] @[904px]:row-[1]'
             + (etroite
-              ? ' @[1180px]:col-[4] @[1180px]:row-[2] @[1180px]:ml-4'
-              : ' @[1180px]:col-[3/-1] @[1180px]:row-[3] @[1180px]:mt-4')
+              ? ' @[1180px]:col-[4] @[1180px]:row-[2] @[1180px]:mr-[9px] @[1180px]:mt-[9px] @[1180px]:border-l @[1180px]:border-border-soft @[1180px]:pl-2'
+              : ' @[1180px]:col-[3/-1] @[1180px]:row-[3] @[1180px]:mx-[9px] @[1180px]:mt-2 @[1180px]:border-t @[1180px]:border-border-soft @[1180px]:pt-2')
           }
         >
-          {props.objectif(forme)}
+          {props.objectif({ forme, cadre, partie: a1 ? 'reglages' : 'tout' })}
         </div>
+        {a1 && (
+          <div data-zone="barre" className="sticky bottom-0 z-10 -mt-4 @[904px]:hidden">
+            {props.objectif({ forme, cadre, partie: 'barre' })}
+          </div>
+        )}
 
         {/* Le contrôle à onglets : sa propre rangée, jamais déplacée par ce
             qu'il ouvre. En A3, fixe, sur un fond qui masque ce qui défile
@@ -304,61 +361,72 @@ export default function PageBureau(props: PageBureauProps) {
           <OngletsColonnes affichees={affichees} onBasculer={(c) => props.onColonnes(basculerColonne(etat, c, deux))} />
         </div>
 
-        {/* Les colonnes repliables ouvertes. */}
+        {/* Les colonnes repliables ouvertes, chacune son panneau. */}
         {(affichees.artefacts || affichees.complements) && (
           <div
             data-zone="colonnes"
             className={
-              'flex flex-col gap-4'
+              'flex flex-col gap-6'
               + ' @[904px]:col-[2] @[904px]:row-[3]'
               + ' @[1180px]:col-[2] @[1180px]:row-[2/-1] @[1180px]:flex-row @[1180px]:items-start @[1180px]:gap-0 @[1180px]:self-stretch'
             }
           >
             {affichees.artefacts && (
-              <ColonneFixe data-colonne="artefacts" className={COLONNE_A3.artefacts} contenu="flex items-start gap-4 @[904px]:flex-col">
-                {props.artefacts}
-                {props.meilleurs}
+              <ColonneFixe
+                data-colonne="artefacts"
+                className={COLONNE_A3.artefacts.boite}
+                contenu={`flex w-fit items-start @[904px]:flex-col ${PANNEAU} ${SECTIONS_COLONNE} ${COLONNE_A3.artefacts.panneau}`}
+              >
+                <div className="w-[294px]">{props.artefacts}</div>
+                {props.meilleurs && <div className="w-[294px]">{props.meilleurs}</div>}
               </ColonneFixe>
             )}
             {affichees.complements && (
               <ColonneFixe
                 data-colonne="complements"
-                className={COLONNE_A3.complements}
-                contenu="grid grid-cols-[340px_340px] items-start gap-4 @[904px]:flex @[904px]:flex-col"
+                className={COLONNE_A3.complements.boite}
+                contenu={`grid w-fit grid-cols-[auto_auto] items-start @[904px]:flex @[904px]:flex-col ${PANNEAU} ${COLONNE_A3.complements.panneau}`}
               >
-                {props.auras}
-                <div className="row-span-2">{props.exclusion}</div>
-                <div className="col-start-1 row-start-2">{props.avances}</div>
+                <div className="w-[314px]">{props.auras}</div>
+                <div className="row-span-2 ml-2 w-[323px] border-l border-border-soft pl-2 @[904px]:ml-0 @[904px]:mt-2 @[904px]:w-[314px] @[904px]:border-l-0 @[904px]:border-t @[904px]:pl-0 @[904px]:pt-2">
+                  {props.exclusion}
+                </div>
+                <div className="col-start-1 row-start-2 mt-2 w-[314px] border-t border-border-soft pt-2">{props.avances}</div>
               </ColonneFixe>
             )}
           </div>
         )}
 
         {/* « Exemplaire » : sous les réglages en A1 et A2, en tête de la
-            colonne de droite en A3. */}
+            colonne de droite en A3. En A1 et A2, il dessine le haut du panneau
+            de droite, dont les résultats dessinent le bas ; en A3, le fond
+            (`fond-droite`) le dessine. */}
         <div
           data-zone="exemplaire"
           className={
-            '@[904px]:col-[1/-1] @[904px]:row-[4]'
-            + ' @[1180px]:col-[3] @[1180px]:row-[2]'
+            `rounded-b-none border-b-0 pb-2 ${PANNEAU}`
+            + ' @[904px]:col-[1/-1] @[904px]:row-[4]'
+            + ' @[1180px]:col-[3] @[1180px]:row-[2] @[1180px]:ml-[9px] @[1180px]:mt-[9px] @[1180px]:rounded-none @[1180px]:border-0 @[1180px]:bg-transparent @[1180px]:p-0'
           }
         >
           {props.exemplaire}
         </div>
 
         {/* Les résultats, présents dès le départ (place d'attente) : sur toute
-            la largeur en A1 et A2, sous « Exemplaire » et le bloc en A3. */}
+            la largeur en A1 et A2, sous « Exemplaire » et le bloc en A3. Un
+            trait les sépare de ce qui les précède dans le panneau. */}
         <div
           data-zone="resultats"
           className={
-            'min-w-0'
+            `-mt-6 min-w-0 rounded-t-none border-t-0 pt-0 ${PANNEAU}`
             + ' @[904px]:col-[1/-1] @[904px]:row-[5]'
+            + ' @[1180px]:mx-[9px] @[1180px]:mb-[9px] @[1180px]:mt-0 @[1180px]:rounded-none @[1180px]:border-0 @[1180px]:bg-transparent @[1180px]:p-0'
             + (etroite
-              ? ' @[1180px]:col-[3/-1] @[1180px]:row-[3] @[1180px]:mt-4'
-              : ' @[1180px]:col-[3/-1] @[1180px]:row-[4] @[1180px]:mt-4')
+              ? ' @[1180px]:col-[3/-1] @[1180px]:row-[3]'
+              : ' @[1180px]:col-[3/-1] @[1180px]:row-[4]')
           }
         >
-          {props.resultats}
+          <div className="border-t border-border-soft pt-2 @[1180px]:mt-2">{props.resultats}</div>
         </div>
       </div>
     </div>

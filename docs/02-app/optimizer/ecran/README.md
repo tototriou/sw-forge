@@ -13,7 +13,7 @@ d'[OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx). Le reste d
 | Le changement touche… | Lire |
 | --- | --- |
 | la mise en page de `src/components/outils/OptimizerSection.tsx` : format, grille du téléphone, panneau « Options », changement d'onglet ; les cartes de réglage de `src/components/outils/optimizer/` | ce README |
-| la page de bureau : `src/components/outils/optimizer/bureau/PageBureau.tsx` (agencements, colonnes fixes, défilement), `src/components/outils/optimizer/bureau/OngletsColonnes.tsx`, `src/lib/optimizerColonnes.ts` ; leur vue de développement | ce README ; [vue-des-gabarits.md](../../../03-developpeur/vue-des-gabarits.md) |
+| la page de bureau : `src/components/outils/optimizer/bureau/PageBureau.tsx` (agencements, colonnes fixes, défilement), `src/components/outils/optimizer/bureau/panneau.ts` (panneaux et sections), `src/components/outils/optimizer/bureau/OngletsColonnes.tsx`, `src/lib/optimizerColonnes.ts` ; leur vue de développement | ce README ; [vue-des-gabarits.md](../../../03-developpeur/vue-des-gabarits.md) |
 | la recherche du monstre et la liste de travail du bureau : `src/components/outils/MonsterSourcePicker.tsx`, `src/components/outils/optimizer/bureau/ListeDeTravailBureau.tsx`, `src/components/outils/optimizer/MonstreEquipementTelephone.tsx` | [recherche-du-monstre.md](recherche-du-monstre.md) |
 | « Meilleurs artéfacts offensifs pour ce build », `src/components/ArtifactSubLigne.tsx`, `src/components/outils/optimizer/MeilleursArtefacts.tsx`, `src/components/outils/optimizer/bureau/MeilleursArtefactsBureau.tsx` | [meilleurs-artefacts-offensifs.md](meilleurs-artefacts-offensifs.md) |
 | « Exemplaire » et sa fiche, `src/components/outils/optimizer/ExemplaireEtFiche.tsx`, `src/components/outils/optimizer/bureau/ExemplaireBureau.tsx` | [equipement-actuel.md](equipement-actuel.md) |
@@ -52,29 +52,51 @@ Le format téléphone a sa propre mise en page
 doigt), l'écran de l'Optimizer est fait de **quatre colonnes**, de gauche à
 droite. Au-dessus d'elles, ni bandeau ni phrase d'introduction.
 
-1. **Les essentiels**, toujours à l'écran, 548 px : la liste de travail
-   (« Liste active », « Importer une équipe », puis la carte de la liste,
-   dont l'en-tête porte « Rechercher un monstre… » et le monstre actif) ;
-   « Critères de recherche » avec le « Set de runes recherché » ; les
-   « Conditions », et à leur droite la « Statistique principale imposée
-   (slots pairs) » puis « État de mon monstre », réduit aux buffs et au lead.
-2. **« Artéfacts et relique »**, repliable, 320 px : la carte « Artéfacts et
-   reliques », relique comprise, puis « Meilleurs artéfacts offensifs pour ce
-   build » dans sa propre carte, présente dès qu'un monstre est choisi avec
-   l'optimisation d'artéfacts active.
-3. **« Aura, exclusion, avancés »**, repliable, 340 px : « Sets d'aura des
-   autres monstres », « Exclusion de runes » et « Réglages avancés », en
-   ligne dans la colonne.
+1. **Les essentiels**, toujours à l'écran, place de 548 px (panneau de
+   540) : la liste de travail (« Liste active », « Importer une équipe »,
+   puis la carte de la liste, dont l'en-tête porte « Ajouter un monstre à la
+   liste », « Rechercher un monstre… » et le monstre actif) ; « Critères de
+   recherche » avec le « Set de runes recherché » ; les « Conditions », et à
+   leur droite la « Statistique principale imposée (slots pairs) » puis
+   « État de mon monstre », réduit aux buffs et au lead.
+2. **« Artéfacts et relique »**, repliable, place de 320 px (panneau de
+   312) : « Artéfacts et reliques », relique comprise, puis « Meilleurs
+   artéfacts offensifs pour ce build » dans sa propre section, présente dès
+   qu'un monstre est choisi avec l'optimisation d'artéfacts active.
+3. **« Aura, exclusion, avancés »**, repliable, place de 340 px (panneau de
+   332) : « Sets d'aura des autres monstres », « Exclusion de runes » et
+   « Réglages avancés », en ligne dans la colonne.
 4. **La colonne de droite**, jamais repliée, qui prend le reste de la
-   largeur : « Exemplaire » (616 px : puces Box / RTA / Défenses siège /
-   Offenses siège, fiche, « Valider ce build »), le bloc « Objectif et
-   Rechercher », puis les résultats.
+   largeur : « Exemplaire » (616 px de place : puces Box / RTA / Défenses
+   siège / Offenses siège, fiche, « Valider ce build »), le bloc « Objectif
+   et Rechercher », puis les résultats.
 
-Les boîtes sont séparées d'une gouttière de 16 px. Chacune a une **largeur
-fixe**, sauf deux, **élastiques** : le bloc « Objectif et Rechercher »
-(340 px au moins) et les résultats (386 px au moins, une carte et son cadre,
-sans maximum). Une boîte fixe ne s'étire jamais : la place en plus va aux
-résultats, ou reste en marge (voir
+### Panneaux et sections
+
+⚠️ **Chaque colonne est un panneau** (fond `panel`, contour de 1 px) : les
+essentiels, chaque colonne repliable, la colonne de droite. Les boîtes
+qu'elle porte y sont des **sections sans cadre ni ombre**, séparées par un
+trait fin (`border-soft`) — décision de l'utilisateur à l'arrêt 4 de la
+refonte : des cartes côte à côte se lisaient comme une mosaïque aérée.
+Écarts **serrés dans un panneau** (8 px de rembourrage, 8 px de part et
+d'autre d'un trait), **larges entre deux** : 24 px. Classes communes :
+`bureau/panneau.ts` (`PANNEAU`, `SECTIONS`).
+
+Les largeurs ci-dessus sont des **places** (`LARGEURS_BUREAU`,
+src/lib/optimizerColonnes.ts), d'où se calculent les seuils : un panneau
+prend sa place moins 8 px (`RETRAIT_PANNEAU`) quand une autre colonne le
+suit, et l'écart visible vaut la gouttière de 16 px plus ce retrait. Aucun
+seuil n'a bougé ; une section garde la largeur de contenu de la carte qu'elle
+remplace (294 px dans « Artéfacts et relique », 314 dans « Aura, exclusion,
+avancés », 598 pour « Exemplaire »). La colonne de droite n'est pas une
+boîte : en A3, son panneau est un fond, case de la grille sous les siennes
+(`data-zone="fond-droite"`, décoratif) ; en A1 et A2, « Exemplaire » en
+dessine le haut et les résultats le bas.
+
+Chaque boîte a une **largeur fixe**, sauf deux, **élastiques** : le bloc
+« Objectif et Rechercher » (340 px au moins) et les résultats (360 px au
+moins, une carte, sans maximum). Une boîte fixe ne s'étire jamais : la place
+en plus va aux résultats, ou reste en marge (voir
 [Placement et adaptation à la largeur](#placement-et-adaptation-à-la-largeur)).
 
 ⚠️ **Un seul contrôle à onglets**, « Artéfacts et relique » · « Aura,
@@ -149,12 +171,13 @@ format bureau seulement (voir
 Chacun vaut sur une plage `[a, b[` :
 
 - **A1, de 728 à 904 px — une colonne.** Les essentiels ; le bloc
-  « Objectif et Rechercher » ; le contrôle à onglets ; la colonne repliable
-  ouverte, dans la page, ses cartes deux à deux ; « Exemplaire » ; les
-  résultats.
+  « Objectif et Rechercher », suivi de sa barre fine (« Rechercher » et la
+  progression, la seule partie collée au bas de la fenêtre) ; le contrôle à
+  onglets ; la colonne repliable ouverte, dans la page, ses sections deux à
+  deux ; « Exemplaire » ; les résultats.
 - **A2, de 904 à 1 180 px.** Les essentiels à gauche ; à leur droite, de
   haut en bas, le bloc « Objectif et Rechercher », le contrôle à onglets et
-  la colonne repliable ouverte, ses cartes empilées. Dessous, sur toute la
+  la colonne repliable ouverte, ses sections empilées. Dessous, sur toute la
   largeur, « Exemplaire » puis les résultats.
 - **A3, dès 1 180 px.** Les essentiels à gauche ; le contrôle à onglets en
   haut, à leur droite ; sous lui, la colonne de droite : « Exemplaire », le
@@ -189,7 +212,7 @@ eux : au bureau, ils sont en ligne dans la colonne repliable « Aura,
 exclusion, avancés » ([Mise en page d'ensemble](#mise-en-page-densemble)) ;
 au téléphone, dans le panneau « Options ». Un même contenu sert les deux
 formats (`ExclusionRunesContenu`, `ReglagesAvancesContenu`), jamais écrit
-deux fois. Au bureau, chacun est une carte de 340 px de la colonne, sans
+deux fois. Au bureau, chacun est une section de 314 px du panneau de la colonne, sans
 en-tête qui se replie, à la suite de « Sets d'aura des autres monstres » :
 empilés en A2 et A3 ; en A1, deux à deux, « Exclusion de runes » à droite
 des deux autres.
@@ -258,10 +281,12 @@ Le format téléphone est décrit dans
 - **A3** : « Artéfacts et relique » s'insère dès 1 516 px (548 + 16 + 320 +
   16 + 616), « Aura, exclusion, avancés » dès 1 536 (même calcul avec 340),
   les deux ensemble dès 1 872. Sous son seuil, une colonne ouverte se pose
-  en **panneau superposé** aux résultats, collé aux essentiels, avec une
-  ombre, sur un fond opaque : elle ne prend aucune place dans la grille, rien
-  ne bouge dessous, et les résultats ne descendent jamais sous la largeur
-  d'une carte.
+  en **panneau superposé** à la colonne de droite, à 24 px des essentiels,
+  avec une ombre : elle ne prend aucune place dans la grille, rien ne bouge
+  dessous, et les résultats ne descendent jamais sous la largeur d'une carte.
+  Elle couvre le bord gauche de la colonne de droite (312 ou 332 px), jamais
+  « Rechercher », posé à droite dans la forme large du bloc (voir
+  [Bloc « Objectif et Rechercher »](#bloc--objectif-et-rechercher-)).
 - **A2** : la colonne ouverte se place à droite des essentiels, sous le bloc
   « Objectif et Rechercher » et le contrôle à onglets. **A1** : dans la
   page, entre le contrôle et « Exemplaire ».
@@ -286,9 +311,10 @@ Le format téléphone est décrit dans
   visible de la fenêtre, ils défilent dans leur propre colonne. Le contrôle
   à onglets et la colonne repliable ouverte, insérée ou superposée, restent
   fixes de même, avec le même repli ; en défilant, « Exemplaire » et le bloc
-  passent sous le contrôle. Les essentiels font environ 1 033 px de haut
-  (mesuré, avec ou sans monstre) : ils défilent seuls à 1 614 × 950, tiennent
-  entiers à 2 254 × 1 290.
+  passent sous le contrôle. Les essentiels font environ 721 px de haut
+  (mesuré, liste vide, monstre choisi ; la liste de travail les allonge
+  jusqu'à 308 px de membres) : ils tiennent entiers à 1 614 × 950 comme à
+  2 254 × 1 290.
 - ⚠️ **Une colonne fixe ne défile seule que si son contenu dépasse** la
   partie visible : une boîte qui défile rogne les menus posés dedans, qu'il
   vaut mieux laisser déborder tant que rien n'oblige à défiler. Les aides
@@ -299,51 +325,64 @@ Le format téléphone est décrit dans
 ### Bloc « Objectif et Rechercher »
 
 Le bloc porte, de haut en bas : la ligne d'estimation du pool, visible sans
-rien ouvrir, à la place de l'estimation la plus longue (trois lignes dans la
-forme étroite) ; les quatre objectifs
+rien ouvrir ; les quatre objectifs
 ([objectif-de-recherche.md](objectif-de-recherche.md#les-quatre-objectifs-disponibles))
-et le résumé de « Dégâts réels », à place réservée sur deux lignes (le
-choix d'un monstre l'allonge : son sort et ce que le sort consomme), même
-quand un autre objectif le cache ; « Rechercher » ; « Exporter » ·
-« Importer », en libellé court ; le message d'import d'une recette et la
-progression, dans une place réservée à la progression la plus haute. ⚠️
-« Rechercher » est en taille `lg` de `Bouton` ; pendant une recherche,
-« Arrêter » prend sa place exacte, avec un carré plein, et reste inactif
-300 ms : le double clic qui lance ne l'arrête pas.
+et, sous « Dégâts réels » seulement, son résumé ; « Rechercher » ;
+« Exporter » · « Importer », en libellé court ; le message d'import d'une
+recette et la progression. ⚠️ « Rechercher » est en taille `lg` de
+`Bouton` ; pendant une recherche, « Arrêter » prend sa place exacte, avec
+un carré plein, et reste inactif 300 ms : le double clic qui lance ne
+l'arrête pas.
+
+⚠️ **Une seule place réservée : celle de « Rechercher » / « Arrêter »**
+(décision de l'utilisateur à l'arrêt 4). L'estimation, le résumé de
+« Dégâts réels » et la progression prennent leur hauteur quand ils
+paraissent : toujours sous ce qu'on vient de cliquer (le set, l'objectif,
+« Rechercher »), jamais au-dessus. Ce qui suit le bloc (les onglets en A2,
+les résultats en A3) peut descendre : la règle « un clic ne déplace jamais ce
+qu'on vient de cliquer » protège la cible du clic, pas ce qui est dessous.
 
 La progression y est **compacte** : sans barre, la ligne « N / M
 combinaisons examinées · K trouvée(s) » et la phrase « Attendez la fin de la
 recherche pour être sûr de trouver votre build optimal. » ; la préparation
-(une ligne par moitié), l'échec et le refus nommé tiennent dans la même
-place. Le téléphone garde sa barre
-([lancer-la-recherche.md](lancer-la-recherche.md)).
+(une ligne par moitié), l'échec et le refus nommé au même endroit. Le
+téléphone garde sa barre ([lancer-la-recherche.md](lancer-la-recherche.md)).
 
 Deux formes, selon la place :
 
-- **étroite**, 340 × ≈ 397 px, objectifs en 2 × 2, « Exporter » ·
-  « Importer » sous « Rechercher », à parts égales : en A2, à droite des
-  essentiels, au-dessus du pli ; en A3, à côté d'« Exemplaire », quand la
-  colonne de droite fait au moins 972 px (616 + 16 + 340), soit un
-  conteneur d'au moins 1 536 px sans colonne repliable insérée, 1 872 avec
-  « Artéfacts et relique » insérée, 1 892 avec « Aura, exclusion, avancés »
-  insérée ;
-- **large**, ≈ 264 à 280 px de haut selon que l'estimation tient sur une
-  ou deux lignes, à la largeur de sa colonne : objectifs sur une ligne,
-  « Rechercher » · « Exporter » · « Importer » sur une rangée, places
-  réservées gardées : partout ailleurs (A1, et A3 quand la colonne de droite
-  fait moins de 972 px), sous « Exemplaire ».
+- **étroite**, 340 px (≈ 239 px de haut au repos, estimation sur deux
+  lignes, mesuré en A2), objectifs en 2 × 2, « Exporter » · « Importer »
+  sous « Rechercher », à parts égales : en A2, à droite des essentiels,
+  dans son propre panneau ; en A3, section du panneau de droite, à côté
+  d'« Exemplaire », quand la colonne de droite fait au moins 972 px
+  (616 + 16 + 340), soit un conteneur d'au moins 1 536 px sans colonne
+  repliable insérée, 1 872 avec « Artéfacts et relique » insérée, 1 892 avec
+  « Aura, exclusion, avancés » insérée ;
+- **large**, ≈ 138 px de haut au repos (estimation sur une ligne, mesuré en
+  A3), à la largeur de sa colonne : objectifs sur une ligne, « Exporter » ·
+  « Importer » à gauche, « Rechercher » à droite, 240 px de large : partout
+  ailleurs (A1, et A3 quand la colonne de droite fait moins de 972 px), sous
+  « Exemplaire ». ⚠️ **À droite, parce qu'en A3 une colonne repliable
+  superposée couvre le bord gauche de la colonne de droite** (332 px au
+  plus) : « Rechercher », qui commence au plus près à 367 px de ce bord,
+  reste toujours atteignable.
 
 ⚠️ Le bloc ne change de forme qu'au clic d'un onglet, qui ouvre ou ferme
 une colonne insérée, jamais au lancement d'une recherche.
 
-En A1, le bloc suit les essentiels ; tant que sa place est sous le pli, il
-reste collé au bas de la fenêtre, pour que « Rechercher » soit toujours
-atteignable.
+En A1, le bloc suit les essentiels, à sa place, dans son panneau : estimation,
+objectifs, « Exporter » · « Importer ». ⚠️ **Seule sa barre fine reste collée
+au bas de la fenêtre** tant que sa place est sous le pli : « Rechercher » (ou
+« Arrêter », à sa place exacte) et, à sa droite, la progression, ≈ 60 px
+(décision de l'utilisateur, arrêt 4 : le bloc entier collé couvrait 264 px).
+Elle suit le bloc dans la page (`data-zone="barre"`), et y reprend sa place
+une fois le bloc atteint.
 
 ### Zone des résultats et place en plus
 
 - **Place réservée** : la zone des résultats est là dès le départ, une
-  boîte « Résultats » élastique de 386 px au moins (une carte et son cadre).
+  section « Résultats » élastique de 360 px au moins (une carte), la
+  dernière du panneau de droite.
   Avant la première recherche, une place d'attente (en-tête et message,
   ≈ 160 px) tient la place où arrivent les cartes : leur arrivée ne déplace
   jamais ce qu'on vient de cliquer. Son en-tête dit « Choisis un monstre

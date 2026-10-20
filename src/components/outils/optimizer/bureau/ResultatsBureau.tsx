@@ -3,11 +3,12 @@ import type { AttenteResultats } from '../../../../lib/optimizerColonnes';
 
 export type { AttenteResultats };
 
-// Une carte de résultat (360, resultats.md) et le cadre de la boîte (bord 2 +
-// rembourrage 24) : les résultats ne descendent jamais sous cette largeur.
-export const LARGEUR_RESULTATS_MIN = 386;
+// Une carte de résultat (360, resultats.md) : les résultats ne descendent
+// jamais sous cette largeur. Section sans cadre du panneau de la colonne de
+// droite (bureau/panneau.ts), qui porte rembourrage et contour.
+export const LARGEUR_RESULTATS_MIN = 360;
 
-// Les résultats, au bureau : une boîte ÉLASTIQUE (386 px au moins, sans
+// Les résultats, au bureau : une boîte ÉLASTIQUE (360 px au moins, sans
 // maximum), présente dès le départ dans la colonne de droite. Avant la première
 // recherche, une place d'attente (en-tête et message, ≈ 160 px) tient la place
 // où arrivent les cartes : leur arrivée ne déplace jamais ce qu'on vient de
@@ -42,12 +43,12 @@ export default function ResultatsBureau({ attente, children }: { attente: Attent
       ref={boite}
       aria-label="Résultats"
       style={{ minWidth: LARGEUR_RESULTATS_MIN }}
-      className="w-full rounded-xl border border-border bg-panel p-3"
+      className="w-full"
     >
       {attente != null ? (
-        // La hauteur tenue est celle de la boîte : son cadre (bord 2 +
-        // rembourrage 24) retranché, elle va au contenu de l'attente.
-        <div className="flex min-h-[134px] flex-col gap-2" style={attente === 'sans-carte' && tenue > 26 ? { minHeight: tenue - 26 } : undefined}>
+        // La hauteur tenue est celle de la section, sans cadre : elle va
+        // telle quelle au contenu de l'attente.
+        <div className="flex min-h-[134px] flex-col gap-2" style={attente === 'sans-carte' && tenue > 0 ? { minHeight: tenue } : undefined}>
           <p className={`label ${attente === 'sans-carte' ? 'invisible' : ''}`} aria-hidden={attente === 'sans-carte' || undefined}>
             {attente === 'sans-monstre' ? 'Choisis un monstre pour préparer la recherche.' : 'Aucune recherche lancée pour ce monstre.'}
           </p>

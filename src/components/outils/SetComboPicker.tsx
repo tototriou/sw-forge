@@ -75,10 +75,16 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false 
 
         {/* ⚠️ Un jeton invisible tient la hauteur d'un vrai (même composant,
             donc même hauteur quel que soit le thème ou la densité), hors de
-            l'arbre d'accessibilité. */}
+            l'arbre d'accessibilité. Enveloppe `inline-flex` : un `span` en
+            ligne y ajouterait sa boîte de ligne (1 px de plus, mesuré). */}
         {reserverJetons && sets.length === 0 && (
-          <span aria-hidden className="invisible">
-            <Jeton libelle="Violent" onRetirer={() => {}} libelleRetrait="Retirer" />
+          <span aria-hidden className="invisible inline-flex">
+            <Jeton
+              icone={<RuneIcon setKey="violent" size={14} filter={runeSetIconFilter(false)} />}
+              libelle="Violent"
+              onRetirer={() => {}}
+              libelleRetrait="Retirer"
+            />
           </span>
         )}
 

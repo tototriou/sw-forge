@@ -43,11 +43,8 @@ Le reste de l'outil (listes, import d'équipes, exclusion, interruption) est dan
 ## Mise en page d'ensemble
 
 > **Refonte de l'écran de bureau, en cours.** Le code suit cette mise en
-> page ([PageBureau.tsx](src/components/outils/optimizer/bureau/PageBureau.tsx)),
-> sauf dans la colonne de droite : elle garde encore, empilés, « Exemplaire »,
-> la ligne d'estimation, la carte de l'objectif et des actions, la
-> progression et les résultats d'avant ; le bloc « Objectif et Rechercher »
-> n'y est pas encore. Le format téléphone garde sa propre mise en page
+> page ([PageBureau.tsx](src/components/outils/optimizer/bureau/PageBureau.tsx)).
+> Le format téléphone garde sa propre mise en page
 > ([Grille du code actuel](#grille-du-code-actuel)).
 
 Au format bureau, tablette tactile comprise (même mise en page, densité du
@@ -115,11 +112,7 @@ profite directement de la largeur (davantage de cartes par ligne).
 ## Ordre d'usage et grille
 
 > **Refonte de l'écran de bureau, en cours.** Le code suit cette mise en
-> page ([PageBureau.tsx](src/components/outils/optimizer/bureau/PageBureau.tsx)),
-> sauf dans la colonne de droite : elle garde encore, empilés, « Exemplaire »,
-> la ligne d'estimation, la carte de l'objectif et des actions, la
-> progression et les résultats d'avant ; le bloc « Objectif et Rechercher »
-> n'y est pas encore.
+> page ([PageBureau.tsx](src/components/outils/optimizer/bureau/PageBureau.tsx)).
 
 ⚠️ **L'ordre d'usage commande la mise en page :**
 
@@ -264,11 +257,8 @@ options ».
 ## Placement et adaptation à la largeur
 
 > **Refonte de l'écran de bureau, en cours.** Le code suit cette mise en
-> page ([PageBureau.tsx](src/components/outils/optimizer/bureau/PageBureau.tsx)),
-> sauf dans la colonne de droite : elle garde encore, empilés, « Exemplaire »,
-> la ligne d'estimation, la carte de l'objectif et des actions, la
-> progression et les résultats d'avant ; le bloc « Objectif et Rechercher »
-> n'y est pas encore. Le format téléphone est décrit dans
+> page ([PageBureau.tsx](src/components/outils/optimizer/bureau/PageBureau.tsx)).
+> Le format téléphone est décrit dans
 > [Au format téléphone](#au-format-téléphone).
 
 ### D'abord le format, ensuite l'agencement
@@ -357,7 +347,11 @@ atteignable.
   première recherche, une place d'attente (en-tête et message, ≈ 160 px)
   tient la place où arrivent les cartes : leur arrivée ne déplace jamais ce
   qu'on vient de cliquer. A3 : dans la colonne de droite, sous « Exemplaire »
-  et le bloc ; A1 et A2 : sur toute la largeur, sous « Exemplaire ».
+  et le bloc ; A1 et A2 : sur toute la largeur, sous « Exemplaire ». Une
+  recherche lancée (ou arrêtée sur une erreur, un refus) sans carte encore
+  garde le cadre et « Les builds trouvés s'afficheront ici. », sans la
+  phrase « Aucune recherche lancée pour ce monstre. », dont la ligne reste
+  réservée.
 - **La place en plus** va aux résultats, en cartes de 360 px au moins
   ([resultats.md](resultats.md)) : en A3, la largeur gagnée ajoute des
   cartes par rangée. En A1 et en A2, la place qui reste à droite des boîtes

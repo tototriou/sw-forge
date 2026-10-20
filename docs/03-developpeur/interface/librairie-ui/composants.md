@@ -398,6 +398,14 @@ gardant la surface ancrée à ce qui l'a ouverte.
 > le bas. `HelpPopover` pose les deux, et détache son titre (13 px, filet
 > dessous) du corps (12 px).
 
+> ⚠️ **Dans une boîte qui défile seule, la surface est rognée** : posée en
+> `absolute`, elle ne sort pas d'un ancêtre `overflow: auto`. Une boîte qui le
+> sait le déclare à `HelpPopover` par le contexte `AidesHorsDeLaBoite` (les
+> colonnes fixes de la page de bureau de l'Optimizer) : la bulle passe alors
+> par un portail, sous une ancre fantôme en `position: fixed` posée sur le
+> bouton, recalée à chaque défilement, refermée quand le bouton sort de ce qui
+> le montre. Sans ce contexte, rien ne change.
+
 > ⚠️ Pour ce qui est ancré à un élément **dont la position varie** : une tuile
 > dans une grille, une carte de monstre, un badge au bout d'une ligne. Ces ancres
 > vont jusqu'aux bords de la page, et un flottant posé toujours du même côté s'y

@@ -25,9 +25,13 @@ export interface ReglagesAvancesContenuProps {
   attentionResPre: number | null;
   compterAurasResPre: boolean;
   setCompterAurasResPre: Dispatch<SetStateAction<boolean>>;
+  // Dans la page de bureau : les sets d'aura des autres monstres se saisissent
+  // dans la colonne « Aura, exclusion, avancés », plus dans « État de mon
+  // monstre » (réduit aux buffs et au lead). Absent : le texte du téléphone.
+  bureau?: boolean;
 }
 
-export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFilterPresetChange, dansPanneau, estimate, exhaustiveSearch, setExhaustiveSearch, diagnoseBlockingEnabled, setDiagnoseBlockingEnabled, adaptiveTrancheWeighting, setAdaptiveTrancheWeighting, optimiserArtefacts, verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons, interrupteurResPrePanneauRef, interrupteurResPreFlottantRef, attentionResPre, compterAurasResPre, setCompterAurasResPre }: ReglagesAvancesContenuProps) {
+export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFilterPresetChange, dansPanneau, estimate, exhaustiveSearch, setExhaustiveSearch, diagnoseBlockingEnabled, setDiagnoseBlockingEnabled, adaptiveTrancheWeighting, setAdaptiveTrancheWeighting, optimiserArtefacts, verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons, interrupteurResPrePanneauRef, interrupteurResPreFlottantRef, attentionResPre, compterAurasResPre, setCompterAurasResPre, bureau = false }: ReglagesAvancesContenuProps) {
   return (
     <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3">
     {/* ⚠️ Mêmes classes de boîte que les trois groupes d'« État de mon
@@ -186,8 +190,8 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
             <HelpPopover title="Compter les effets d'auras Tolerance et Précision dans les conditions">
               Activé, chaque set <b className="text-ink">Tolerance</b> ou <b className="text-ink">Accuracy</b> ajoute
               8 points de RES ou de Précision aux <b className="text-ink">minimums et aux maximums</b> de ces deux
-              conditions : ceux des autres monstres, saisis dans « État de mon monstre », et ceux que forment les
-              runes de chaque build.
+              conditions : ceux des autres monstres, saisis dans {bureau ? '« Aura, exclusion, avancés »' : '« État de mon monstre »'}, et
+              ceux que forment les runes de chaque build.
               <br />
               <br />
               Désactivé, ces deux conditions portent sur les statistiques sans aucune aura. Les dégâts et les PV

@@ -131,7 +131,7 @@ function AvancesGabarit({ ctx, initial }: { ctx: ContexteGabarits; initial: Regl
         exhaustiveSearch={epuisement} setExhaustiveSearch={setEpuisement} diagnoseBlockingEnabled={diagnostic} setDiagnoseBlockingEnabled={setDiagnostic}
         adaptiveTrancheWeighting={priorite} setAdaptiveTrancheWeighting={setPriorite} optimiserArtefacts={o.optimiserArtefacts}
         verifierToutesLesCombinaisons={toutes} setVerifierToutesLesCombinaisons={setToutes} interrupteurResPrePanneauRef={ref}
-        interrupteurResPreFlottantRef={ref} attentionResPre={null} compterAurasResPre={auras} setCompterAurasResPre={setAuras} />
+        interrupteurResPreFlottantRef={ref} attentionResPre={null} compterAurasResPre={auras} setCompterAurasResPre={setAuras} bureau />
     </ReglagesAvancesBureau>
   );
 }

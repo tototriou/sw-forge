@@ -16,7 +16,7 @@ import { testRenduOptimizerBandesEquipesClair, testRenduOptimizerBandesEquipesSo
 import testImport from './import.test';
 import { verificationsImportEquipes } from './import-equipes.test';
 import { testOptimizerImportNavigation } from './optimizer-import-navigation.test';
-import { testOptimizerColonnes, testOptimizerAgencementsBureau } from './optimizer-colonnes.test';
+import { testOptimizerColonnes, testOptimizerAgencementsBureau, testOptimizerFormeObjectifBureau, testOptimizerAttenteResultats } from './optimizer-colonnes.test';
 import { testRenduRtaExportOptimizer, testRenduTelephoneRtaExportOptimizer, testRenduRecoExportOptimizer,
   testRenduTelephoneRecoExportOptimizer, testRenduOptimizerImportRecommandation, testRenduTelephoneOptimizerImportRecommandation,
   testOptimizerImportRtaRecoBranchement } from './rendu/rta-reco-export.test';
@@ -309,7 +309,7 @@ import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompt
 import { testRenduSpeedTuneVide, testRenduSpeedTuneCamps, testRenduSpeedTuneAnalyse } from './rendu/speed-tune.test';
 import { testRenduOptimizerVide, testRenduOptimizerMonstre, testRenduOptimizerReglages, testRenduTelephoneOptimizer } from './rendu/optimizer.test';
 import { testRenduOptimizerGabaritsComposants, testRenduOptimizerGabaritsVue, testRenduOptimizerGabaritsAdresse } from './rendu/optimizer-gabarits.test';
-import { testRenduOptimizerGabaritsColonnes, testRenduOptimizerGabaritsDroite } from './rendu/optimizer-gabarits-droite.test';
+import { testRenduOptimizerGabaritsColonnes, testRenduOptimizerGabaritsDroite, testRenduOptimizerPageBureauDroite } from './rendu/optimizer-gabarits-droite.test';
 import { testRenduOptimizerGabaritsGestes } from './rendu/optimizer-gabarits-navigateur.test';
 import { testRenduOptimizerReglagesAvancesContenu, testRenduOptimizerListeDeTravail, testRenduOptimizerResultatsEntete,
   testRenduOptimizerResultatsCartes, testRenduOptimizerLigneFile } from './rendu/optimizer-ecran.test';
@@ -478,6 +478,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduOptimizerGabaritsAdresse', testRenduOptimizerGabaritsAdresse],
   ['testRenduOptimizerGabaritsColonnes', testRenduOptimizerGabaritsColonnes],
   ['testRenduOptimizerGabaritsDroite', testRenduOptimizerGabaritsDroite],
+  ['testRenduOptimizerPageBureauDroite', testRenduOptimizerPageBureauDroite],
   ['testRenduOptimizerGabaritsGestes', testRenduOptimizerGabaritsGestes],
   ['testRenduOptimizerMonstre', testRenduOptimizerMonstre],
   ['testRenduOptimizerReglages', testRenduOptimizerReglages],
@@ -670,6 +671,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testOptimizerExclusion', testOptimizerExclusion],
   ['testOptimizerColonnes', testOptimizerColonnes],
   ['testOptimizerAgencementsBureau', testOptimizerAgencementsBureau],
+  ['testOptimizerFormeObjectifBureau', testOptimizerFormeObjectifBureau],
+  ['testOptimizerAttenteResultats', testOptimizerAttenteResultats],
   ['testListeExemplaires', testListeExemplaires],
   ['testOptimizerExemplaireMontage', testOptimizerExemplaireMontage],
   ['testOptimizerRecipeImportSelection', testOptimizerRecipeImportSelection],

@@ -26,6 +26,10 @@ export interface SetDeRunesCompactProps {
 // ⚠️ **Le message « Sélectionne au moins un set… » tient sa place**, invisible
 // le reste du temps : il ne pousse plus les Conditions quand il paraît.
 //
+// ⚠️ **La rangée des jetons est réservée** (`reserverJetons`) : vide, elle a
+// déjà la hauteur d'un jeton, et le premier set choisi ne fait plus descendre
+// la grille sous le pointeur.
+//
 // ⚠️ **La liste reste ouverte pendant la composition** (après un set de 4, il
 // reste un set de 2 à choisir) : elle ne se ferme d'elle-même qu'au choix qui
 // remplit les six emplacements, sinon au clic ailleurs ou à Échap.
@@ -65,7 +69,7 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
           }
           ouvert={ouvert}
           onOuvertChange={setOuvert}
-          surface={<SetComboPicker sets={comboSets} onChange={changer} />}
+          surface={<SetComboPicker sets={comboSets} onChange={changer} reserverJetons />}
         />
         <p className={`mt-1 text-micro font-semibold text-bad ${setPickerInvalid ? '' : 'invisible'}`} aria-hidden={!setPickerInvalid}>
           Sélectionne au moins un set avant de lancer la recherche.

@@ -296,11 +296,17 @@ export function AurasExternesSaisie({
   maj,
   rappel,
   onGuiderResPre,
+  annonce = true,
 }: {
   setup: DamageSetup;
   maj: (patch: Partial<DamageSetup>) => void;
   rappel: boolean;
   onGuiderResPre: () => void;
+  // La boîte annonce-t-elle le rappel (`aria-live`) ? Au bureau, non : elle
+  // n'est montée que colonne « Aura, exclusion, avancés » ouverte, et la page
+  // l'annonce dans une région toujours montée (PageBureau) — deux régions
+  // liraient deux fois la même phrase.
+  annonce?: boolean;
 }) {
   const entrees = setup.setsAuraExternes ?? [];
   // Le set dont le champ du nombre est momentanément VIDE (affichage seul).
@@ -352,7 +358,7 @@ export function AurasExternesSaisie({
           un conteneur toujours visible : le message qui y devient visible est
           annoncé. `apparition` : un message qui se pose en place
           (docs/03-developpeur/interface/, Mouvement). */}
-      <div className="col-start-1 row-start-1 self-center" aria-live="polite">
+      <div className="col-start-1 row-start-1 self-center" aria-live={annonce ? 'polite' : undefined}>
         <p
           className={`text-xs font-semibold text-warn ${
             rappel ? 'animate-[apparition_200ms_var(--ease-out)]' : 'invisible'

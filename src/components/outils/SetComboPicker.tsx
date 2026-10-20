@@ -6,6 +6,11 @@ import { Jeton, BoutonIcone } from '../../ui';
 interface Props {
   sets: string[]; // combo courant (une entrée par activation, ex. ['violent','will'])
   onChange: (sets: string[]) => void;
+  // La rangée des jetons garde, vide, la hauteur d'un jeton : le premier set
+  // choisi n'y fait plus descendre la grille sous le pointeur (forme compacte
+  // du bureau, où la grille est dans une liste ouverte). Absent : la rangée
+  // suit son contenu, comme avant.
+  reserverJetons?: boolean;
 }
 
 /**
@@ -43,7 +48,7 @@ const TWO_PIECE = CHOISISSABLES.filter((s) => !FOUR_PIECE_SETS.has(s.key));
 // c'est le tout premier réglage à remplir avant de pouvoir lancer une
 // recherche — le garder replié par défaut ajoutait un clic systématique
 // sans jamais rien cacher d'utile.
-export default function SetComboPicker({ sets, onChange }: Props) {
+export default function SetComboPicker({ sets, onChange, reserverJetons = false }: Props) {
   const used = setsCost(sets);
   // ⚠️ « Plein » se juge sur ce qu'on peut CHOISIR : compter l'intangible ici
   // laisserait le picker se dire non plein alors qu'aucun set proposé ne
@@ -67,6 +72,21 @@ export default function SetComboPicker({ sets, onChange }: Props) {
             />
           );
         })}
+
+        {/* ⚠️ Un jeton invisible tient la hauteur d'un vrai (même composant,
+            donc même hauteur quel que soit le thème ou la densité), hors de
+            l'arbre d'accessibilité. Enveloppe `inline-flex` : un `span` en
+            ligne y ajouterait sa boîte de ligne (1 px de plus, mesuré). */}
+        {reserverJetons && sets.length === 0 && (
+          <span aria-hidden className="invisible inline-flex">
+            <Jeton
+              icone={<RuneIcon setKey="violent" size={14} filter={runeSetIconFilter(false)} />}
+              libelle="Violent"
+              onRetirer={() => {}}
+              libelleRetrait="Retirer"
+            />
+          </span>
+        )}
 
         {full && (
           <span className="rounded-full border border-border bg-panel px-2 py-1 text-micro font-semibold text-ink-dim opacity-40">

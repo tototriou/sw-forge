@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import OngletsColonnes from './OngletsColonnes';
+import { AidesHorsDeLaBoite } from '../../../HelpPopover';
 import {
-  agencementBureau, basculerColonne, colonnesAffichees, colonnesParDefaut, deuxColonnesTiennent, ouvrirColonne,
-  type ColonneRepliable, type ColonnesOuvertes,
+  agencementBureau, basculerColonne, colonnesAffichees, colonnesParDefaut, deuxColonnesTiennent, formeObjectifBureau, ouvrirColonne,
+  type ColonneRepliable, type ColonnesOuvertes, type FormeObjectifBureau,
 } from '../../../../lib/optimizerColonnes';
 
 // La page de l'Optimizer au format bureau (docs/02-app/optimizer/ecran/README.md,
@@ -18,22 +19,34 @@ import {
 // direct de la grille ou de ses groupes, sans autre conteneur entre eux et la
 // racine. Mêmes seuils que `SEUILS_BUREAU` (src/lib/optimizerColonnes.ts),
 // écrits en littéraux parce que Tailwind ne lit que le source :
-// - A1 [728, 904[ : une colonne — essentiels, onglets, colonne repliable
-//   ouverte (ses cartes deux à deux), colonne de droite ;
-// - A2 [904, 1180[ : essentiels à gauche ; à leur droite, les onglets puis la
-//   colonne repliable ouverte (cartes empilées) ; la colonne de droite dessous,
-//   sur toute la largeur ;
+// - A1 [728, 904[ : une colonne — essentiels, bloc « Objectif et Rechercher »
+//   (large, collé au bas de la partie visible tant que sa place est plus bas),
+//   onglets, colonne repliable ouverte (ses cartes deux à deux), « Exemplaire »,
+//   résultats ;
+// - A2 [904, 1180[ : essentiels à gauche ; à leur droite, le bloc (étroit), les
+//   onglets puis la colonne repliable ouverte (cartes empilées) ; dessous, sur
+//   toute la largeur, « Exemplaire » puis les résultats ;
 // - A3 dès 1180 : essentiels à gauche, onglets en haut à leur droite ; dessous,
 //   la colonne repliable ouverte, INSÉRÉE avant la colonne de droite là où elle
 //   tient avec « Exemplaire » (« Artéfacts » dès 1516, « Aura… » dès 1536), en
 //   PANNEAU SUPERPOSÉ aux résultats sinon (marge négative de sa largeur : elle
-//   ne prend aucune place, rien ne bouge dessous).
+//   ne prend aucune place, rien ne bouge dessous) ; la colonne de droite :
+//   « Exemplaire », le bloc à côté de lui (étroit) quand elle fait au moins 972
+//   px, dessous (large) sinon, puis les résultats.
+//
+// ⚠️ **Pas de boîte « colonne de droite »** : « Exemplaire », le bloc et les
+// résultats sont des cases de la grille de la page, placées par agencement.
+// Le bloc suit les essentiels dans le DOM (ordre d'usage : l'objectif se
+// choisit tôt), et la colonne de droite de A3 tient sur deux pistes
+// (`616px` d'« Exemplaire », le reste), où le bloc étroit prend la seconde.
+// Sa forme vient de `formeObjectifBureau` : largeur et colonnes insérées, donc
+// un clic d'onglet, jamais le lancement d'une recherche.
 //
 // ⚠️ **En A3, essentiels, onglets et colonnes repliables restent fixes**
-// (`sticky`) pendant que la colonne de droite défile avec la page ; plus hauts
-// que la partie visible, ils défilent dans leur propre colonne. Le haut et la
-// hauteur visibles se mesurent (`useColle`) : la page défile dans la fenêtre,
-// sous la barre du haut, ou dans son volet de l'écran partagé.
+// (`sticky`) pendant que la colonne de droite défile avec la page, d'un bloc ;
+// plus hauts que la partie visible, ils défilent dans leur propre colonne. Le
+// haut et la hauteur visibles se mesurent (`useColle`) : la page défile dans
+// la fenêtre, sous la barre du haut, ou dans son volet de l'écran partagé.
 //
 // ⚠️ **Le contrôle à onglets ne bouge jamais au clic** : il a sa propre rangée,
 // la colonne s'ouvre dessous (A2, A3) ou après lui (A1).
@@ -123,12 +136,19 @@ export interface PageBureauProps {
   auras: ReactNode;
   exclusion: ReactNode;
   avances: ReactNode;
-  // La colonne de droite : exemplaire, objectif, résultats.
-  droite: ReactNode;
+  // La colonne de droite : « Exemplaire », le bloc « Objectif et Rechercher »,
+  // rendu dans la forme que choisit la page (`formeObjectifBureau`), et les
+  // résultats.
+  exemplaire: ReactNode;
+  objectif: (forme: FormeObjectifBureau) => ReactNode;
+  resultats: ReactNode;
   // L'état des onglets : `null` tant que l'utilisateur n'y a pas touché (l'état
   // de départ suit alors la largeur, `colonnesParDefaut`).
   colonnes: ColonnesOuvertes | null;
   onColonnes: (suivant: ColonnesOuvertes) => void;
+  // Le rappel « Pense à vérifier les sets d'aura externes. » est-il en cours
+  // (`rappelAuras` d'OptimizerSection) ? Annoncé par la page, toujours montée.
+  rappelAuras: boolean;
   // Ouvrir « Aura, exclusion, avancés » depuis ailleurs (guidage vers
   // l'interrupteur des auras RES/PRE) : chaque nouvelle valeur l'ouvre, sans
   // jamais la refermer.
@@ -152,8 +172,11 @@ const COLONNE_A3: Record<ColonneRepliable, string> = {
 // contenu dans une boîte intérieure, mesurée. ⚠️ **Elle ne défile seule
 // (`overflow-y: auto`) que quand son contenu dépasse la hauteur visible**
 // (`data-defile`) : une boîte qui défile rogne les flottants posés en
-// `absolute` dedans (aides, menus), qu'il vaut mieux laisser déborder tant
-// que rien n'oblige à défiler. Hors A3, aucune hauteur maximale : jamais.
+// `absolute` dedans (menus), qu'il vaut mieux laisser déborder tant que rien
+// n'oblige à défiler. Hors A3, aucune hauteur maximale : jamais.
+// ⚠️ **Les aides en sortent toujours** (`AidesHorsDeLaBoite`, HelpPopover.tsx) :
+// une bulle de 340 px ancrée près du bord droit déborde de la colonne même
+// quand elle tient en hauteur ; en portail, elle s'affiche en entier.
 function ColonneFixe({ className, contenu, children, ...donnees }: {
   className: string; contenu: string; children: ReactNode; 'data-zone'?: string; 'data-colonne'?: string;
 }) {
@@ -175,8 +198,23 @@ function ColonneFixe({ className, contenu, children, ...donnees }: {
   }, []);
   return (
     <div ref={boite} {...donnees} data-defile={depasse ? '' : undefined} className={className}>
-      <div ref={interieur} className={contenu}>{children}</div>
+      <div ref={interieur} className={contenu}>
+        <AidesHorsDeLaBoite.Provider value>{children}</AidesHorsDeLaBoite.Provider>
+      </div>
     </div>
+  );
+}
+
+// L'annonce du rappel des auras, pour les lecteurs d'écran : une région
+// `aria-live` TOUJOURS montée, hors de la colonne repliable (la carte des sets
+// d'aura, qui affiche le rappel, n'est montée que colonne ouverte, et le rappel
+// sous la liste n'annonce rien). Vide le reste du temps : c'est l'arrivée du
+// texte qui s'annonce.
+function AnnonceRappelAuras({ rappel }: { rappel: boolean }) {
+  return (
+    <p className="sr-only" aria-live="polite">
+      {rappel ? 'Pense à vérifier les sets d\'aura externes.' : ''}
+    </p>
   );
 }
 
@@ -187,6 +225,8 @@ export default function PageBureau(props: PageBureauProps) {
   const deux = deuxColonnesTiennent(largeur);
   const etat = props.colonnes ?? colonnesParDefaut(largeur);
   const affichees = colonnesAffichees(etat, deux);
+  const forme = formeObjectifBureau(largeur, affichees);
+  const etroite = forme === 'etroite';
   // Le guidage : l'état résolu (départ compris) avec la colonne ouverte. Lu
   // par une ref pour ne réagir qu'à une NOUVELLE demande.
   const etatCourant = useRef(etat);
@@ -205,11 +245,12 @@ export default function PageBureau(props: PageBureauProps) {
       data-agencement={largeur != null ? agencementBureau(largeur) : undefined}
     >
       {props.entete && <div className="mb-5 space-y-5">{props.entete}</div>}
+      <AnnonceRappelAuras rappel={props.rappelAuras} />
       <div
         className={
           'grid grid-cols-[minmax(0,1fr)] items-start gap-y-4'
-          + ' @[904px]:grid-cols-[548px_minmax(0,1fr)] @[904px]:grid-rows-[auto_1fr_auto] @[904px]:gap-x-4'
-          + ' @[1180px]:grid-cols-[564px_auto_minmax(0,1fr)] @[1180px]:grid-rows-[auto_1fr] @[1180px]:gap-x-0 @[1180px]:gap-y-0'
+          + ' @[904px]:grid-cols-[548px_minmax(0,1fr)] @[904px]:grid-rows-[auto_auto_1fr_auto_auto] @[904px]:gap-x-4'
+          + ' @[1180px]:grid-cols-[564px_auto_616px_minmax(0,1fr)] @[1180px]:grid-rows-[auto_auto_auto_1fr] @[1180px]:gap-x-0 @[1180px]:gap-y-0'
         }
       >
         {/* Les essentiels : liste de travail en tête, à sa place stable. */}
@@ -217,8 +258,8 @@ export default function PageBureau(props: PageBureauProps) {
           data-zone="essentiels"
           className={
             'w-[548px]'
-            + ' @[904px]:col-[1] @[904px]:row-[1/span_2]'
-            + ' @[1180px]:sticky @[1180px]:top-[var(--colle-haut)] @[1180px]:z-10 @[1180px]:max-h-[var(--hauteur-essentiels)]'
+            + ' @[904px]:col-[1] @[904px]:row-[1/span_3]'
+            + ' @[1180px]:row-[1/-1] @[1180px]:sticky @[1180px]:top-[var(--colle-haut)] @[1180px]:z-10 @[1180px]:max-h-[var(--hauteur-essentiels)]'
             + ' @[1180px]:w-[564px] @[1180px]:data-[defile]:overflow-y-auto'
           }
           contenu="flex w-[548px] flex-col gap-4"
@@ -234,6 +275,25 @@ export default function PageBureau(props: PageBureauProps) {
           </div>
         </ColonneFixe>
 
+        {/* Le bloc « Objectif et Rechercher ». A1 : large, sous les
+            essentiels, collé au bas de la partie visible tant que sa place
+            est plus bas (« Rechercher » toujours atteignable). A2 : étroit, à
+            droite des essentiels, au-dessus des onglets. A3 : à côté
+            d'« Exemplaire » (étroit, seconde piste) ou dessous (large). */}
+        <div
+          data-zone="objectif"
+          data-forme={forme}
+          className={
+            'sticky bottom-0 z-10'
+            + ' @[904px]:static @[904px]:col-[2] @[904px]:row-[1]'
+            + (etroite
+              ? ' @[1180px]:col-[4] @[1180px]:row-[2] @[1180px]:ml-4'
+              : ' @[1180px]:col-[3/-1] @[1180px]:row-[3] @[1180px]:mt-4')
+          }
+        >
+          {props.objectif(forme)}
+        </div>
+
         {/* Le contrôle à onglets : sa propre rangée, jamais déplacée par ce
             qu'il ouvre. En A3, fixe, sur un fond qui masque ce qui défile
             dessous. */}
@@ -241,8 +301,8 @@ export default function PageBureau(props: PageBureauProps) {
           ref={rangeeOnglets}
           data-zone="onglets"
           className={
-            '@[904px]:col-[2] @[904px]:row-[1]'
-            + ' @[1180px]:col-[2/-1] @[1180px]:sticky @[1180px]:top-[var(--colle-onglets)] @[1180px]:z-30 @[1180px]:-mt-5 @[1180px]:bg-bg @[1180px]:pb-4 @[1180px]:pt-5'
+            '@[904px]:col-[2] @[904px]:row-[2]'
+            + ' @[1180px]:col-[2/-1] @[1180px]:row-[1] @[1180px]:sticky @[1180px]:top-[var(--colle-onglets)] @[1180px]:z-30 @[1180px]:-mt-5 @[1180px]:bg-bg @[1180px]:pb-4 @[1180px]:pt-5'
           }
         >
           <OngletsColonnes affichees={affichees} onBasculer={(c) => props.onColonnes(basculerColonne(etat, c, deux))} />
@@ -254,8 +314,8 @@ export default function PageBureau(props: PageBureauProps) {
             data-zone="colonnes"
             className={
               'flex flex-col gap-4'
-              + ' @[904px]:col-[2] @[904px]:row-[2]'
-              + ' @[1180px]:flex-row @[1180px]:items-start @[1180px]:gap-0 @[1180px]:self-stretch'
+              + ' @[904px]:col-[2] @[904px]:row-[3]'
+              + ' @[1180px]:col-[2] @[1180px]:row-[2/-1] @[1180px]:flex-row @[1180px]:items-start @[1180px]:gap-0 @[1180px]:self-stretch'
             }
           >
             {affichees.artefacts && (
@@ -278,17 +338,31 @@ export default function PageBureau(props: PageBureauProps) {
           </div>
         )}
 
-        {/* La colonne de droite : sur toute la largeur en A1 et A2, à droite
-            des colonnes insérées en A3. */}
+        {/* « Exemplaire » : sous les réglages en A1 et A2, en tête de la
+            colonne de droite en A3. */}
         <div
-          data-zone="droite"
+          data-zone="exemplaire"
           className={
-            'min-w-0 justify-self-stretch'
-            + ' @[904px]:col-[1/-1] @[904px]:row-[3]'
+            '@[904px]:col-[1/-1] @[904px]:row-[4]'
             + ' @[1180px]:col-[3] @[1180px]:row-[2]'
           }
         >
-          {props.droite}
+          {props.exemplaire}
+        </div>
+
+        {/* Les résultats, présents dès le départ (place d'attente) : sur toute
+            la largeur en A1 et A2, sous « Exemplaire » et le bloc en A3. */}
+        <div
+          data-zone="resultats"
+          className={
+            'min-w-0'
+            + ' @[904px]:col-[1/-1] @[904px]:row-[5]'
+            + (etroite
+              ? ' @[1180px]:col-[3/-1] @[1180px]:row-[3] @[1180px]:mt-4'
+              : ' @[1180px]:col-[3/-1] @[1180px]:row-[4] @[1180px]:mt-4')
+          }
+        >
+          {props.resultats}
         </div>
       </div>
     </div>

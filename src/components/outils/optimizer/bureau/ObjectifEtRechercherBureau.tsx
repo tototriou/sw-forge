@@ -3,7 +3,9 @@ import { Download, Search, Square, Upload } from 'lucide-react';
 import { Bouton } from '../../../../ui';
 import Segmented from '../../../../ui/Segmented';
 import { OBJECTIVE_LABELS } from '../../../../lib/runeBuildOptim';
+import type { FormeObjectifBureau } from '../../../../lib/optimizerColonnes';
 import ProgressionRecherche, { type ProgressionRechercheProps } from '../ProgressionRecherche';
+import EstimationPool from '../EstimationPool';
 import { ResumeCombat, TitreObjectifRecherche, type ObjectifEtActionsProps } from '../ObjectifEtActions';
 
 export const LARGEUR_OBJECTIF_ETROIT = 340;
@@ -13,7 +15,8 @@ export const LARGEUR_OBJECTIF_LARGE_MIN = 616;
 // lancé la recherche ne l'arrête pas (A.2.2-8 de la refonte).
 export const DELAI_ARRET_MS = 300;
 
-export type FormeObjectif = 'etroite' | 'large';
+// Choisie par la mise en page (`formeObjectifBureau`, src/lib/optimizerColonnes.ts).
+export type FormeObjectif = FormeObjectifBureau;
 
 export interface ObjectifEtRechercherBureauProps extends ObjectifEtActionsProps {
   forme: FormeObjectif;
@@ -23,6 +26,8 @@ export interface ObjectifEtRechercherBureauProps extends ObjectifEtActionsProps 
   messageImport: ReactNode;
   progression: Omit<ProgressionRechercheProps, 'status'>;
 }
+
+const ESTIMATION_LA_PLUS_LONGUE = { perSlot: [9999, 9999, 9999, 9999, 9999, 9999], product: 0 };
 
 // La progression la plus haute que la recherche affiche (phase d'appariement,
 // grands nombres) : copie invisible qui RÉSERVE sa place, à la largeur du bloc.
@@ -130,9 +135,18 @@ export default function ObjectifEtRechercherBureau({
       style={etroite ? { width: LARGEUR_OBJECTIF_ETROIT } : undefined}
       className={`flex flex-col gap-2.5 rounded-xl border border-border bg-panel p-3 ${etroite ? '' : 'w-full'}`}
     >
-      {/* Deux lignes réservées dans les deux formes : la ligne d'estimation
-          passe à la ligne dès qu'un pool dépasse trois chiffres. */}
-      <div className="min-h-8">{estimation}</div>
+      {/* La place de l'estimation la plus longue (quatre chiffres par
+          emplacement), réservée par une copie invisible à la largeur du bloc :
+          dans la forme étroite, une estimation réelle passe déjà sur trois
+          lignes (« 32 runes… : 5 + 6 + 5 + 6 + 5 + 5 », mesuré), et deux
+          lignes réservées laissaient le bloc grandir — donc descendre les
+          onglets en A2 — quand elle paraît, au choix du set. */}
+      <div className="grid">
+        <div aria-hidden className="invisible col-start-1 row-start-1">
+          <EstimationPool estimate={ESTIMATION_LA_PLUS_LONGUE} />
+        </div>
+        <div className="col-start-1 row-start-1">{estimation}</div>
+      </div>
 
       <div>
         <TitreObjectifRecherche />

@@ -48,7 +48,7 @@ export function ouvrirColonne(etat: ColonnesOuvertes, colonne: ColonneRepliable)
 // pose là où l'agencement suivant tient, jamais réglé au pixel. Les composants
 // de bureau déclarent les mêmes largeurs (`LARGEUR_*` de
 // src/components/outils/optimizer/bureau/), un test les compare.
-export const LARGEURS_BUREAU = { essentiels: 548, gouttiere: 16, artefacts: 320, complements: 340, exemplaire: 616 } as const;
+export const LARGEURS_BUREAU = { essentiels: 548, gouttiere: 16, artefacts: 320, complements: 340, exemplaire: 616, objectifEtroit: 340 } as const;
 
 const L = LARGEURS_BUREAU;
 // À droite des essentiels : leur largeur et la gouttière.
@@ -79,6 +79,55 @@ export function agencementBureau(largeur: number): AgencementBureau {
 // ailleurs, une seule à la fois.
 export function deuxColonnesTiennent(largeur: number | null): boolean {
   return largeur != null && largeur >= SEUILS_BUREAU.deuxInserees;
+}
+
+// ── Le bloc « Objectif et Rechercher » (docs/02-app/optimizer/ecran/README.md,
+// « Bloc « Objectif et Rechercher » ») ─────────────────────────────────────
+export type FormeObjectifBureau = 'etroite' | 'large';
+
+// En A3, la forme étroite se pose à côté d'« Exemplaire » quand la colonne de
+// droite les tient tous deux, gouttière comprise : 616 + 16 + 340.
+export const COLONNE_DROITE_OBJECTIF_A_COTE = L.exemplaire + L.gouttiere + L.objectifEtroit;
+
+// La largeur de la colonne de droite en A3 : le conteneur, moins les
+// essentiels et leur gouttière, moins chaque colonne repliable INSÉRÉE (sa
+// largeur et sa gouttière). Une colonne superposée ne prend aucune place.
+export function largeurColonneDroite(largeur: number, affichees: Record<ColonneRepliable, boolean>): number {
+  const artefacts = affichees.artefacts && largeur >= SEUILS_BUREAU.artefactsInseree ? L.artefacts + L.gouttiere : 0;
+  const complements = affichees.complements && largeur >= SEUILS_BUREAU.complementsInseree ? L.complements + L.gouttiere : 0;
+  return largeur - DROITE_DES_ESSENTIELS - artefacts - complements;
+}
+
+// La forme du bloc : étroite en A2 (à droite des essentiels) et en A3 à côté
+// d'« Exemplaire » ; large en A1 et en A3 sous « Exemplaire ». ⚠️ Elle ne
+// dépend que de la largeur et des colonnes affichées : seul le clic d'un
+// onglet (qui insère ou retire une colonne) la change, jamais le lancement
+// d'une recherche. Largeur inconnue (rendu serveur) : large, la forme de A1.
+export function formeObjectifBureau(largeur: number | null, affichees: Record<ColonneRepliable, boolean>): FormeObjectifBureau {
+  if (largeur == null) return 'large';
+  const agencement = agencementBureau(largeur);
+  if (agencement === 'A1') return 'large';
+  if (agencement === 'A2') return 'etroite';
+  return largeurColonneDroite(largeur, affichees) >= COLONNE_DROITE_OBJECTIF_A_COTE ? 'etroite' : 'large';
+}
+
+// ── La zone des résultats (même document, « Zone des résultats et place en
+// plus ») ─────────────────────────────────────────────────────────────────
+// Ce que tient la place d'attente tant qu'aucune carte n'est là : aucun
+// monstre ; un monstre, aucune recherche ; une recherche lancée (ou arrêtée
+// sur une erreur, un refus) sans rien à montrer encore — le cadre seul, sans
+// la phrase « Aucune recherche lancée… », qui y serait fausse. `null` : les
+// résultats eux-mêmes.
+export type AttenteResultats = 'sans-monstre' | 'sans-recherche' | 'sans-carte';
+
+export function attenteResultats(
+  monstre: boolean,
+  resultatsPresents: boolean,
+  statut: 'idle' | 'running' | 'done' | 'error' | 'refused',
+): AttenteResultats | null {
+  if (!monstre) return 'sans-monstre';
+  if (resultatsPresents) return null;
+  return statut === 'idle' ? 'sans-recherche' : 'sans-carte';
 }
 
 // L'état de départ, tant que l'utilisateur n'a touché à aucun onglet :

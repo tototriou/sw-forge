@@ -53,8 +53,14 @@ les cœurs physiques moins `COEURS_LAISSES` (2), au moins `TRAVAILLEURS_MIN`
 `floor(concurrence / 2) − 2`, mêmes bornes ; ni l'un ni l'autre connu,
 `TRAVAILLEURS_PAR_DEFAUT` (4). La concurrence se lit dans
 `navigator.hardwareConcurrency` au navigateur, dans
-`os.availableParallelism()` sous Node. Sur la machine de mesure (8 cœurs,
-16 fils) : 6 Workers.
+`os.availableParallelism()` sous Node. Les cœurs physiques, seule
+l'application de bureau les connaît : son processus principal les lit
+([bureau/ § Les cœurs physiques](../../../02-app/bureau/README.md)), la
+page les passe dans la demande au Worker de recherche
+(`DemandeDeRecherche.coeursPhysiques`, posé par `useBuildOptimSearch`),
+qui n'a pas accès au pont ; le site et les outils Node passent `null`. Sur
+la machine de mesure (8 cœurs, 16 fils) : 6 Workers, par l'une ou l'autre
+voie.
 
 - La moitié des fils logiques vaut le nombre de cœurs physiques sur une
   machine à deux fils par cœur. Une machine sans deux fils par cœur

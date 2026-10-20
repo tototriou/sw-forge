@@ -15,6 +15,7 @@ import { brancherMiseAJour } from './miseAJour';
 import { brancherNavigation } from './navigation';
 import { brancherSession } from './session';
 import { brancherSwex } from './swex';
+import { brancherCoeurs } from './coeurs';
 import { SCHEMA, URL_ACCUEIL, cheminDuFichier } from './protocole';
 import { lancerPreuve, lancerPreuveConservation, lancerPreuveSession, lancerPreuveSwex, TemoinsPreuve } from './preuve';
 
@@ -157,6 +158,9 @@ function creerFenetre(preuve: TemoinsPreuve | undefined): BrowserWindow {
   // La session en cours : « Sauvegarder » la réécrit, « Sauvegarder sous… »
   // la remplace.
   brancherSession(fenetre, preuve?.session);
+  // Les cœurs physiques, que le navigateur ne connaît pas : le nombre de
+  // Workers de la recherche de runes en dérive.
+  brancherCoeurs(fenetre);
 
   void fenetre.loadURL(URL_DEV ?? URL_ACCUEIL);
   return fenetre;

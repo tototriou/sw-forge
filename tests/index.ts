@@ -286,6 +286,7 @@ import testBureauFenetre from './bureau-fenetre.test';
 import testBureauMiseAJour from './bureau-mise-a-jour.test';
 import testBureauSwex from './bureau-swex.test';
 import testBureauSession from './bureau-session.test';
+import testBureauCoeurs from './bureau-coeurs.test';
 import testSession from './session.test';
 import { testOptimizerPointAllerRetourComplet, testOptimizerPointMemoireMemeGeste, testOptimizerPointLectureDefensive, testOptimizerPointSessionRelue,
   testOptimizerPointRepriseRattachement, testOptimizerPointRepriseCompteVide, testOptimizerPointSuppressionConservation,
@@ -308,6 +309,7 @@ import { testEcranPartageMediaQueryVolet, testEcranPartageMemePage, testRenduEcr
 import { testRenduAccueil, testRenduAccueilBureau, testRenduAccueilEspace } from './rendu/accueil.test';
 import { testRenduTelecharger } from './rendu/telecharger.test';
 import { testRenduBureauTextes } from './rendu/bureau-textes.test';
+import { testRenduBureauCoeursRecherche } from './rendu/recherche-coeurs.test';
 import { testRenduBarreSession } from './rendu/barre-session.test';
 import { testRenduIcones } from './rendu/icones.test';
 import { testRenduAttaqueConjointeEcran } from './rendu/attaque-conjointe-ecran.test';
@@ -516,6 +518,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduAccueilBureau', testRenduAccueilBureau],
   ['testRenduTelecharger', testRenduTelecharger],
   ['testRenduBureauTextes', testRenduBureauTextes],
+  ['testRenduBureauCoeursRecherche', testRenduBureauCoeursRecherche],
   ['testRenduBarreSession', testRenduBarreSession],
   ['testRenduIcones', testRenduIcones],
   ['testRenduAttaqueConjointeEcran', testRenduAttaqueConjointeEcran],
@@ -798,6 +801,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testBureauMiseAJour', testBureauMiseAJour],
   ['testBureauSwex', testBureauSwex],
   ['testBureauSession', async () => { await testBureauSession(); }],
+  ['testBureauCoeurs', async () => { await testBureauCoeurs(); }],
   ['testSession', testSession],
   ['testStockage', async () => { await testStockage(); }],
   ['testPersistance', async () => { await testPersistance(); }],

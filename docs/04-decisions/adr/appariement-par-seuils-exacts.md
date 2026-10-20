@@ -24,9 +24,10 @@ ainsi :
   prend l'appariement ;
 - **au-delà de 100 millions de paires, en parallèle sur un nombre de
   Workers qui suit la machine** : ses cœurs physiques moins deux, au moins
-  deux, au plus huit. Quand ils ne sont pas connus, ils se déduisent des
-  fils logiques (la moitié, deux fils par cœur) ; quand la machine ne dit
-  rien, quatre. Le travail part en morceaux de lignes consécutives,
+  deux, au plus huit. L'application de bureau les lit par une commande du
+  système ; le navigateur ne les connaît pas, et ils s'y déduisent des fils
+  logiques (la moitié, deux fils par cœur) ; quand la machine ne dit rien,
+  quatre. Le travail part en morceaux de lignes consécutives,
   distribués à la demande ;
 - **en rendant l'ordre séquentiel** : les morceaux se fusionnent dans
   l'ordre du parcours, et le plafond de candidats est global. Le parallèle

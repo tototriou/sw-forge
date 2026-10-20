@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BuildCandidate, SearchParams, SearchResult } from '../lib/runeBuildOptim';
 import { RelicContext, RelicVide } from '../lib/relicOptim';
-import { WorkerResponse } from '../workers/runeBuildOptim.worker';
+import { coeursPhysiques } from '../lib/bureau';
+import type { DemandeDeRecherche, WorkerResponse } from '../workers/runeBuildOptim.worker';
 
 // Plafond de sécurité sur la liste APERÇU accumulée pendant une recherche en
 // cours — pas `maxCollected` (100 000 par défaut, voir MAX_COLLECTED dans
@@ -106,6 +107,21 @@ export function useBuildOptimSearch() {
   // consomme sur les candidats de CETTE recherche. `undefined` tant que
   // l'écran n'en pose pas : la file garde alors la relique portée.
   const [relicContext, setRelicContext] = useState<RelicContext | undefined>(undefined);
+  // Les cœurs physiques de la machine, que le Worker de recherche ne peut pas
+  // lire (seul le pont de l'application de bureau les donne) : demandés une
+  // fois au montage, passés dans chaque demande. `null` sur le site, tant que
+  // la réponse n'est pas arrivée, ou si la lecture a échoué : le Worker garde
+  // alors la règle des fils logiques.
+  const coeursPhysiquesRef = useRef<number | null>(null);
+  useEffect(() => {
+    let actif = true;
+    void coeursPhysiques().then((n) => {
+      if (actif) coeursPhysiquesRef.current = n;
+    });
+    return () => {
+      actif = false;
+    };
+  }, []);
 
   const cancel = useCallback(() => {
     runIdRef.current++;
@@ -180,7 +196,8 @@ export function useBuildOptimSearch() {
         if (runIdRef.current !== myRunId) return;
         setStatus('error');
       };
-      worker.postMessage(params);
+      const demande: DemandeDeRecherche = { type: 'recherche', params, coeursPhysiques: coeursPhysiquesRef.current };
+      worker.postMessage(demande);
     },
     [cancel]
   );

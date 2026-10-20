@@ -212,8 +212,10 @@ Ce total sert de dénominateur à la progression et décide du régime, avec le
 contrat numérique du noyau (`verifierContrat`) : `regimeAppariement`
 (`src/workers/parallelPairing.ts`) rend le séquentiel, dans ce Worker, sous
 `PARALLEL_PAIRING_THRESHOLD` ou hors contrat ; le parallèle à partir du
-seuil, sur `nombreDeTravailleurs(navigator.hardwareConcurrency, null)`
-Workers (cœurs physiques moins deux, déduits des fils logiques).
+seuil, sur `nombreDeTravailleurs(navigator.hardwareConcurrency,
+coeursPhysiques)` Workers (cœurs physiques moins deux ; les cœurs viennent
+de la demande, lus par l'application de bureau, `null` sur le site où ils
+se déduisent des fils logiques).
 Détail du régime parallèle et de la règle du nombre de Workers :
 [parallelisation.md § Choix du régime](parallelisation.md).
 

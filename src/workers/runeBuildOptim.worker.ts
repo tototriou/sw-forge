@@ -33,7 +33,18 @@ import { nombreDeTravailleurs, regimeAppariement } from './parallelPairing';
 import { drivePairing, PROGRESS_THROTTLE_MS } from './pairingDriver';
 import { prepareOrRefuse } from './prepareForSearch';
 
-export type WorkerRequest = SearchParams | { stop: true };
+// La demande d'une recherche : ses paramètres, et ce que la page sait de la
+// machine et que ce Worker ne peut pas lire lui-même — les cœurs physiques,
+// que seule l'application de bureau connaît (`coeursPhysiques`,
+// src/lib/bureau.ts), `null` ailleurs ; le nombre de Workers d'appariement en
+// dérive (`nombreDeTravailleurs`). ⚠️ Obligatoire : un constructeur qui
+// l'oublierait ne compile pas.
+export interface DemandeDeRecherche {
+  type: 'recherche';
+  params: SearchParams;
+  coeursPhysiques: number | null;
+}
+export type WorkerRequest = DemandeDeRecherche | { stop: true };
 
 // ⚠️ Deux formes, comme `SearchProgress` côté moteur (voir son commentaire) :
 // la construction des compartiments (`phase: 'building'`) peut à elle seule
@@ -196,7 +207,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     return;
   }
   stopped = false;
-  const params = e.data;
+  const { params, coeursPhysiques } = e.data;
   const startedAt = Date.now();
 
   // ⚠️ `prepareSearch` peut lever `RechercheRefusee` (pool de reliques vide
@@ -317,7 +328,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     try {
       const resultat = await apparierRapideEnParallele({
         params, prepared, bucketsA, bucketsB, totalPaires: totalPairs,
-        travailleurs: nombreDeTravailleurs(self.navigator?.hardwareConcurrency, null),
+        travailleurs: nombreDeTravailleurs(self.navigator?.hardwareConcurrency, coeursPhysiques),
         lancer: lancerTravailleurNavigateur, startedAt,
         surControle: (controle) => {
           arreterAppariement = controle.arreter;

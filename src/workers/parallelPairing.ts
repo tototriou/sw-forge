@@ -2,7 +2,8 @@
 // Workers du parallèle, pour le navigateur ET Node : une seule règle, que
 // chaque plateforme alimente de ce qu'elle sait de la machine (fils logiques :
 // `navigator.hardwareConcurrency`, `os.availableParallelism()` ; cœurs
-// physiques quand elle les connaît).
+// physiques : l'application de bureau, par la demande au Worker de
+// recherche).
 //
 // ⚠️ **Ce module doit rester NEUTRE** : jamais d'import de `worker_threads`,
 // jamais de `Worker` DOM, jamais de `self`. Vite tenterait sinon de résoudre
@@ -20,8 +21,9 @@ export const PARALLEL_PAIRING_THRESHOLD = 100_000_000;
 // Nombre de Workers de l'appariement parallèle, DÉRIVÉ de la machine : ses
 // cœurs physiques moins `COEURS_LAISSES`, bornés à
 // [`TRAVAILLEURS_MIN`, `TRAVAILLEURS_MAX`].
-//  - Les cœurs physiques, quand la plateforme les connaît
-//    (`coeursPhysiques`) ; sinon la moitié des fils logiques
+//  - Les cœurs physiques, quand la plateforme les connaît (`coeursPhysiques` :
+//    l'application de bureau les lit, bureau/coeurs.ts) ; sinon la moitié des
+//    fils logiques
 //    (`concurrence` : `navigator.hardwareConcurrency`,
 //    `os.availableParallelism()`), qui les vaut sur une machine à deux fils
 //    par cœur.

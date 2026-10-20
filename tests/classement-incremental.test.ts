@@ -98,7 +98,7 @@ export function testClassementIncremental() {
   const r = x.cache.get(cleBuild(x.builds[1]))!;
   r.artefacts[0].subs[0].value += 5;
   verifier('sous-propriété de la paire résolue modifiée');
-  r.relique!.unique!.percent += 4;
+  r.relique!.unique!.percent = (r.relique!.unique!.percent ?? 0) + 4;
   verifier('exclusive de même id modifiée');
   r.stats.find((s) => s.key === 'atk')!.total += 150;
   verifier('stats résolues modifiées en place');

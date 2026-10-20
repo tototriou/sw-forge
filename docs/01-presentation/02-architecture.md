@@ -153,19 +153,19 @@ Moteur `src/lib/runeBuildOptim.ts`, exécuté dans `src/workers/runeBuildOptim.w
 ⚠️ Disposition mobile dédiée pour « Monstre & équipement » seul — le reste de l'écran n'est pas
 encore audité en mobile.
 
-Les cartes de la grille des réglages vivent dans `src/components/outils/optimizer/`, une par
-fichier, sans état propre : `OptimizerSection` garde l'état et la logique et les leur passe par
-props. « Monstre & équipement » (`MonstreEquipement`, avec `MonstreEtListe` et
-`ExemplaireEtFiche` au bureau, `MonstreEquipementTelephone` au doigt, `BandeauBuildValide`,
-`BoutonValiderBuild` ; la liste de travail `MonstresDeLaListe` — zone C —, le choix de
-l'exemplaire `ChoixExemplaire` — zone D —, le sélecteur de listes `SelecteurListes`),
-« Critères de recherche » (`CriteresRecherche` : `SetDeRunes`,
-`StatPrincipaleImposee`, `Conditions`), « Artéfacts et reliques » (`ArtefactsEtReliques`,
-`MeilleursArtefacts`, `Relique`), `CarteEtatMonstre`, « Exclusion de runes »
-(`CarteExclusionRunes`, `ExclusionRunesContenu`, `RunesDejaUtilisees`, `ExclusionMonstrePrecis`,
-`RunesImposees`, `TitreExclusionRunes`), « Réglages avancés » (`CarteReglagesAvances`,
-`ReglagesAvancesContenu`, `TitreReglagesAvances`), `EstimationPool`, et au doigt le panneau
-« Options de recherche » (`OptionsRechercheTelephone`). Les gestes restent dans
+Les cartes de la grille des réglages du téléphone vivent dans `src/components/outils/optimizer/`,
+une par fichier, sans état propre : `OptimizerSection` garde l'état et la logique et les leur
+passe par props. « Monstre & équipement » (`MonstreEquipement`, avec
+`MonstreEquipementTelephone`, `BandeauBuildValide`, `BoutonValiderBuild` ; la liste de travail
+`MonstresDeLaListe` — zone C —, le choix de l'exemplaire `ChoixExemplaire` — zone D —, le
+sélecteur de listes `SelecteurListes`), « Critères de recherche » (`CriteresRecherche` :
+`SetDeRunes`, `StatPrincipaleImposee`, `Conditions`), « Artéfacts et reliques »
+(`ArtefactsEtReliques`, `MeilleursArtefacts`, `Relique`), `CarteEtatMonstre`, l'estimation
+(`EstimationPool`), et le panneau « Options de recherche » (`OptionsRechercheTelephone`), qui
+porte « Exclusion de runes » (`ExclusionRunesContenu`, `RunesDejaUtilisees`,
+`ExclusionMonstrePrecis`, `RunesImposees`, `TitreExclusionRunes`) et « Réglages avancés »
+(`ReglagesAvancesContenu`, `TitreReglagesAvances`). Le bureau reprend une partie de ces cartes
+dans ses propres boîtes (ci-dessous), dont l'exemplaire et sa fiche (`ExemplaireEtFiche`). Les gestes restent dans
 `OptimizerSection`, nommés et passés aux cartes (`choisirMembreDeLaListe`,
 `choisirExemplaireZoneD`, `choisirSetsRecherches`). Constantes
 partagées : `src/components/outils/optimizer/constantes.ts` ; types :

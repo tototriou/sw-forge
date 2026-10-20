@@ -30,7 +30,7 @@ interface Props {
   onChange: (next: ExclusionSelector[]) => void;
   // Forme de la colonne « Aura, exclusion, avancés » du bureau : les monstres
   // exclus défilent dans une hauteur bornée (≈ 3 rangées de jetons), sans
-  // allonger la colonne. Le téléphone et la page d'aujourd'hui ne la passent pas.
+  // allonger la colonne. Le téléphone ne la passe pas.
   hauteurBornee?: boolean;
 }
 

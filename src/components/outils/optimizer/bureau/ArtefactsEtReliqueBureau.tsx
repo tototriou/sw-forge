@@ -2,13 +2,10 @@ import ArtefactsEtReliques, { type ArtefactsEtReliquesProps } from '../Artefacts
 
 export const LARGEUR_ARTEFACTS = 320;
 
-// « Artéfacts et reliques », au bureau : la carte d'aujourd'hui (`ArtefactsEtReliques`,
-// partagée avec le téléphone, inchangée) à la largeur de la colonne repliable
+// « Artéfacts et reliques », au bureau : la carte du téléphone (`ArtefactsEtReliques`,
+// partagée, inchangée) à la largeur de la colonne repliable
 // « Artéfacts et relique », SANS l'encart « Meilleurs artéfacts offensifs » : il
 // devient une carte à part, sous la relique (`MeilleursArtefactsBureau`).
-//
-// ⚠️ Une boîte en flux de bloc autour : la carte garde ses classes de grille
-// (`xl:col-start-2`), sans effet hors d'une grille.
 export default function ArtefactsEtReliqueBureau(props: Omit<ArtefactsEtReliquesProps, 'blocArtefactsSeuls'>) {
   return (
     <div style={{ width: LARGEUR_ARTEFACTS }}>

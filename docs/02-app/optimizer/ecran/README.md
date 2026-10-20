@@ -45,7 +45,7 @@ Le reste de l'outil (listes, import d'équipes, exclusion, interruption) est dan
 > **Refonte de l'écran de bureau, en cours.** Le code suit cette mise en
 > page ([PageBureau.tsx](src/components/outils/optimizer/bureau/PageBureau.tsx)).
 > Le format téléphone garde sa propre mise en page
-> ([Grille du code actuel](#grille-du-code-actuel)).
+> ([Au format téléphone](#au-format-téléphone)).
 
 Au format bureau, tablette tactile comprise (même mise en page, densité du
 doigt), l'écran de l'Optimizer est fait de **quatre colonnes**, de gauche à
@@ -178,65 +178,23 @@ que dessinent Chromium et Electron sous Windows.
 | 1920 plein | 1 614 px | A3, une colonne repliable insérée |
 | 2560 plein | 2 254 px | A3, les deux insérées |
 
-## Panneaux repliables
+## Réglages avancés et exclusion de runes
 
-> **Avant la refonte du bureau.** Au bureau, « Réglages avancés » et
-> « Exclusion de runes » sont désormais en ligne dans la colonne « Aura,
-> exclusion, avancés » ([Mise en page d'ensemble](#mise-en-page-densemble)) :
-> les cartes repliées et leurs flottants décrits ici ne s'affichent plus à
-> aucun format, et restent dans le code jusqu'à leur retrait.
-
-⚠️ **« Réglages avancés » ne pousse jamais rien en se dépliant** : la
-partie Critères de recherche ne se déplace pas vers le bas quand on le
-déroule, et le bloc reste toujours sous Exclusion de runes (donc sans
-déplacer LE BLOC lui-même : l'isoler en dernière rangée pour contourner le
-symptôme le déplacerait). Son contenu déplié n'est pas un bloc **inline**
-qui grandirait la carte (donc toute la colonne 2, qui partage ses pistes de
-rangée avec la colonne 1) — c'est un
-**`FlottantAuto`** ancré à la carte, qui flotte PAR-DESSUS la page :
-la carte garde TOUJOURS sa hauteur repliée, aucune rangée ne peut
-bouger. Un panneau replié par défaut ne peut pas réserver sa place à
-l'avance sans perdre l'intérêt d'être replié — il sort donc du flux
-(flottant), l'autre option prévue par
-[03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md), « un clic ne déplace jamais ce
-qu'on vient de cliquer ». Ferme au clic extérieur, même patron que
-`HelpPopover.tsx`.
-
-⚠️ **« Exclusion de runes » est elle aussi REPLIÉE par défaut** et déplie
-**le même mécanisme** — ancre `ref`, `ZoneCliquable`
-avec chevron, `FlottantAuto`, fermeture au clic extérieur. Le patron est
-**réutilisé tel quel**, jamais réécrit : deux mécanismes de dépliement
-voisins auraient divergé.
-
-⚠️ **Les deux panneaux prennent EXACTEMENT la largeur de la carte qui les
-ancre** (`largeurAncre`), et la **suivent** quand l'écran
-change de taille. Jamais une largeur en dur : figée, elle ne peut pas suivre
-une carte dont la largeur dépend de la fenêtre.
-- ⚠️ **Du CSS, pas une mesure.** La surface est déjà `position: absolute`
-  dans l'ancre `relative` : un `width: 100%` la cale dessus et l'y garde au
-  redimensionnement, sans effet ni recalcul. Une largeur mesurée à
-  l'ouverture, elle, serait périmée au premier redimensionnement.
-- Le placement horizontal en devient trivial : une surface aussi large que
-  son ancre ne peut pas déborder d'un côté sans déborder de l'ancre — elle
-  se pose donc à `gauche: 0`, exactement sur la carte.
-- ⚠️ `largeurAncre` est un **axe ajouté à `FlottantAuto`**, pas une variante :
-  « la surface suit son ancre » est le cas d'un panneau dépliant ancré à une
-  CARTE, par opposition à un menu ancré à une petite tuile — pour celui-là,
-  une largeur propre reste la bonne réponse, et `largeur` la sert toujours.
-- ⚠️ `hauteur` n'est et reste qu'une **estimation** (560 pour l'exclusion,
-  420 pour les avancés) : elle sert à choisir le côté AVANT que le contenu
-  existe. La surestimer biaise le placement vers le haut, sans conséquence ;
-  la sous-estimer ouvre du mauvais côté.
+« Exclusion de runes » et « Réglages avancés » n'ont pas de carte repliée à
+eux : au bureau, ils sont en ligne dans la colonne repliable « Aura,
+exclusion, avancés » ([Mise en page d'ensemble](#mise-en-page-densemble)) ;
+au téléphone, dans le panneau « Options ». Un même contenu sert les deux
+formats (`ExclusionRunesContenu`, `ReglagesAvancesContenu`), jamais écrit
+deux fois.
 
 ⚠️ **« Réglages avancés » se pose sur DEUX colonnes dès que la place le
 permet** : le **pré-filtrage** avec ses puces et son
 avertissement d'un côté, les **trois interrupteurs** de l'autre.
+
 - ⚠️ `grid-cols-[repeat(auto-fit,minmax(260px,1fr))]` et **non** un point de
-  rupture d'écran (`sm:`/`xl:`) : ce qui décide ici est la largeur du
-  **panneau**, pas celle de la fenêtre. Le panneau prend la largeur de sa
-  carte, qui dépend de la colonne de grille — une même fenêtre peut donc
-  donner un panneau large ou étroit. Sous ~520 px, une colonne ; au-delà,
-  deux. Ça vaut aussi pour le panneau « Options » au doigt, **sans une seule
+  rupture d'écran (`sm:`/`xl:`) : ce qui décide ici est la largeur de la
+  **surface** (colonne du bureau, panneau du téléphone), pas celle de la
+  fenêtre. Sous ~520 px, une colonne ; au-delà, deux — **sans une seule
   classe conditionnelle**.
 - ⚠️ Les séparateurs des interrupteurs sont en **`divide-y` sur leur
   conteneur**, jamais en `border-t` individuel : un trait ne se pose alors
@@ -247,12 +205,11 @@ avertissement d'un côté, les **trois interrupteurs** de l'autre.
   les trois groupes d'« État de mon monstre » : deux façons de cadrer un
   groupe dans le même écran se liraient comme deux natures différentes.
 
-⚠️ Son état d'ouverture est **local à l'écran**, pas remonté dans
-`useOptimizerState` : c'est de l'ouverture/fermeture, pas un critère de
+⚠️ L'ouverture de leur surface (colonne, panneau) n'est **jamais dans
+`useOptimizerState`** : c'est de l'ouverture/fermeture, pas un critère de
 recherche — rien à exporter dans une recette, rien à remettre à zéro au
-changement de monstre. ⚠️ **Au doigt, rien ne se replie** : le panneau
-« Options » reste tel quel, l'ouvrir EST déjà le geste « je veux voir les
-options ».
+changement de monstre. ⚠️ **Au doigt, rien ne se replie** dans le panneau
+« Options » : l'ouvrir EST déjà le geste « je veux voir les options ».
 
 ## Placement et adaptation à la largeur
 
@@ -382,32 +339,23 @@ les contrôles du panneau prennent toute la largeur.** Points tenus :
   (« Exporter »/« Importer ») sous `lg`, pour ne pas étaler deux boutons à
   libellé long au doigt.
 
-### Grille du code actuel
+### Grille du téléphone
 
-Ce que rendait
-[OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx) au
-bureau avant la refonte ; la même grille sert encore le format téléphone,
-où ses classes `lg:` et `xl:` ne s'appliquent pas, et ses cartes de bureau
-(dont les deux flottants de [Panneaux repliables](#panneaux-repliables))
-restent dans le code jusqu'à leur retrait : **une seule grille à partir de `xl`** (`grid gap-5 items-start
-xl:grid-cols-[1.35fr_1fr]`). Rangée 1, « Monstre & équipement » pleine
-largeur (`xl:col-span-2`), recherche à gauche et fiche d'équipement à
-droite, sa grille interne au même ratio que la page ; colonne 1,
-« Critères de recherche » sur les rangées 2 à 5 (`xl:row-span-4`, nombre qui
-suit la colonne d'en face), en deux colonnes internes (Set de runes recherché
-puis Statistique principale imposée | Conditions, trait vertical dès `lg`) ;
-colonne 2, de haut en bas, « Artéfacts et reliques », « État de mon
-monstre », « Exclusion de runes » (rangée 4) et « Réglages avancés »
-(rangée 5), ces deux dernières dépliées en flottants
-([Panneaux repliables](#panneaux-repliables)) ; rangée 6, pleine largeur, la
-ligne d'estimation.
+[OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx) rend, sous
+`SOUS_LG`, une seule grille d'une colonne (`grid-cols-[minmax(0,1fr)] gap-5
+items-start`) : « Monstre & équipement », « Critères de recherche » (Set de
+runes recherché et Statistique principale imposée, puis Conditions),
+« Artéfacts et reliques », « État de mon monstre », puis la ligne
+d'estimation ; « Exclusion de runes » et « Réglages avancés » sont dans le
+panneau « Options » ([Réglages avancés et exclusion de
+runes](#réglages-avancés-et-exclusion-de-runes)). ⚠️ La colonne est en
+`minmax(0,1fr)` : une colonne implicite grandirait jusqu'au contenu le plus
+large (la roue de la fiche, `w-max`) et décentrerait la page.
 
-⚠️ **Placement explicite (`col-start`/`row-start`/`row-span`) sur chaque
-carte, jamais un réordonnancement de la source** : sous `xl`, une seule
-colonne, et l'ordre du DOM redevient l'ordre de lecture. L'objectif n'est
-pas dans cette grille : il est rendu après elle, dans la carte du bouton
-Rechercher, alors qu'il se choisit avant les critères. La barre d'actions,
-la progression et les résultats sont pleine largeur, sous la grille.
+⚠️ **L'ordre du DOM est l'ordre de lecture**, jamais réordonné par des
+classes de placement. L'objectif n'est pas dans cette grille : il est rendu
+après elle, dans la carte du bouton Rechercher, alors qu'il se choisit avant
+les critères. La progression et les résultats suivent.
 
 ## Survie à un changement d'onglet
 

@@ -17,8 +17,8 @@ export interface ConditionsProps {
   setMaxStats: Dispatch<SetStateAction<Partial<Record<StatKey, number>>>>;
   // Variante des essentiels du bureau (`bureau/ConditionsBureau.tsx`, carte de
   // 362 px) : la colonne des libellés prend la largeur du plus long d'entre
-  // eux au lieu de 90 px au moins, Min et Max s'en rapprochent. Le téléphone et
-  // la page d'aujourd'hui ne la passent pas.
+  // eux au lieu de 90 px au moins, Min et Max s'en rapprochent. Le téléphone
+  // ne la passe pas.
   bureau?: boolean;
 }
 

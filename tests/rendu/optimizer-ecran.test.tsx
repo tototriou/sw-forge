@@ -48,8 +48,6 @@ export function testRenduOptimizerReglagesAvancesContenu() {
   // ouverture et son contenu au bureau : `testRendu…OptimizerEcranReglagesAvances`,
   // au navigateur). Le contenu se lit ici dans le panneau « Options ».
   const options = (etat: Record<string, unknown>) => auTelephone(() => rendreOptimizer(etat, true));
-  // (Sans `showAdvanced` : au téléphone, l'ancien flottant du bureau, monté
-  // masqué, doublerait le contenu.)
   const MONSTRE = { selectedId: CHOISI, comboSets: ['violent'] };
   ok(!rendreOptimizer(AVEC_MONSTRE).includes(ANCRE), 'bureau : colonne « Aura, exclusion, avancés » fermée par défaut, aucun réglage avancé monté');
   const telephone = options(MONSTRE);

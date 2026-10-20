@@ -190,7 +190,8 @@ différé de changement d'espèce ne les écrase.
 
 ## Au téléphone : trois blocs empilés
 
-Un rendu à part (`lg:hidden`), pas un réagencement du bureau :
+Un rendu à part (`MonstreEquipementTelephone`, dans la carte « Monstre &
+équipement » que seul le téléphone affiche), pas un réagencement du bureau :
 
 1. la recherche, toujours visible, avec en dessous la liste active dans le
    dépliement « Gérer mes listes », replié par défaut

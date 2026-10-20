@@ -137,9 +137,8 @@ import BandeauBuildValide from './optimizer/BandeauBuildValide';
 import type { EtatValidation } from './optimizer/types';
 import { CONFIGURABLE_SLOTS } from './optimizer/constantes';
 import MonstreEquipementTelephone from './optimizer/MonstreEquipementTelephone';
-import ExemplaireEtFiche, { type ExemplaireEtFicheProps } from './optimizer/ExemplaireEtFiche';
+import { type ExemplaireEtFicheProps } from './optimizer/ExemplaireEtFiche';
 import MonsterSourcePicker from './MonsterSourcePicker';
-import MonstreEtListe from './optimizer/MonstreEtListe';
 import MonstreEquipement from './optimizer/MonstreEquipement';
 import Conditions from './optimizer/Conditions';
 import StatPrincipaleImposee from './optimizer/StatPrincipaleImposee';
@@ -156,8 +155,6 @@ import TitreExclusionRunes from './optimizer/TitreExclusionRunes';
 import TitreReglagesAvances from './optimizer/TitreReglagesAvances';
 import OptionsRechercheTelephone from './optimizer/OptionsRechercheTelephone';
 import EstimationPool from './optimizer/EstimationPool';
-import CarteExclusionRunes from './optimizer/CarteExclusionRunes';
-import CarteReglagesAvances from './optimizer/CarteReglagesAvances';
 import ObjectifEtActions from './optimizer/ObjectifEtActions';
 import ProgressionRecherche from './optimizer/ProgressionRecherche';
 import PaginationResultats from './optimizer/PaginationResultats';
@@ -452,8 +449,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     setSortBy,
     resultsPage,
     setResultsPage,
-    showAdvanced,
-    setShowAdvanced,
     slotFilterPreset,
     setSlotFilterPreset,
     diagnoseBlockingEnabled,
@@ -1091,8 +1086,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   }
 
   // Bureau uniquement : ferme la désambiguïsation d'exemplaire (zone D) au
-  // clic extérieur — même patron que `avancesRef`/« Réglages avancés » plus
-  // bas. Au doigt, la zone D est un bloc INLINE (pas un `Flottant`), donc ce
+  // clic extérieur, comme HelpPopover.tsx. Au doigt, la zone D est un bloc INLINE (pas un `Flottant`), donc ce
   // garde n'a rien à fermer par-dessus autre chose.
   const zoneDRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -1973,22 +1967,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     return () => clearTimeout(t);
   }, [rappelAuras]);
 
-  // « Réglages avancés » (bureau) : ancre du `FlottantAuto`, PAS un bloc
-  // inline — un panneau replié par défaut ne peut pas réserver sa place à
-  // l'avance sans perdre l'intérêt d'être replié, donc il flotte PAR-DESSUS
-  // la page plutôt que de pousser « Critères de recherche » en dessous
-  // (voir docs/03-developpeur/interface/, « un clic ne déplace jamais ce qu'on vient
-  // de cliquer »). Même patron que HelpPopover.tsx : ferme au clic extérieur.
-  const avancesRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!showAdvanced) return;
-    const onDown = (e: MouseEvent) => {
-      if (avancesRef.current && !avancesRef.current.contains(e.target as Node)) setShowAdvanced(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [showAdvanced, setShowAdvanced]);
-
   // ── Ouverture guidée vers l'interrupteur des auras RES/PRE
   // Ajouter Accuracy ou Tolerance aux auras externes (« État de mon
   // monstre ») ou le choisir comme set recherché guide vers « Compter les
@@ -2014,9 +1992,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     const t = setTimeout(() => setAttentionResPre(null), DUREE_ATTENTION_MS);
     return () => clearTimeout(t);
   }, [attentionResPre]);
-  // Une ref par surface : les deux exemplaires de `reglagesAvancesInner`
-  // peuvent être montés ensemble (le flottant reste monté, masqué, sous `lg`).
-  const interrupteurResPreFlottantRef = useRef<HTMLDivElement>(null);
+  // Une ref par surface : la colonne « Aura, exclusion, avancés » au bureau,
+  // le panneau « Options » au doigt.
+  const interrupteurResPreBureauRef = useRef<HTMLDivElement>(null);
   const interrupteurResPrePanneauRef = useRef<HTMLDivElement>(null);
   // Les états des onglets du bureau (`PageBureau`) : `null` tant que
   // l'utilisateur n'y a pas touché, l'état de départ suit alors la largeur.
@@ -2037,10 +2015,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
 
   // Puis l'interrupteur lui-même, une fois sa surface ouverte : au doigt, il
   // est le DERNIER réglage du panneau, sous « Exclusion de runes » ; au
-  // bureau, le bas du flottant peut dépasser de l'écran (`nearest` : le
-  // moindre défilement qui le montre). `requestAnimationFrame` : le flottant
-  // choisit sa place dans un effet de mise en page, à laisser finir avant de
-  // mesurer.
+  // bureau, le bas de la colonne peut dépasser de l'écran (`nearest` : le
+  // moindre défilement qui le montre). `requestAnimationFrame` : la colonne
+  // ouverte se met en page dans un effet, à laisser finir avant de mesurer.
   useEffect(() => {
     if (attentionResPre === null) return;
     // Au bureau, l'interrupteur n'est rendu que colonne ouverte : l'effet se
@@ -2049,7 +2026,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       ? menuOuvert
         ? interrupteurResPrePanneauRef.current
         : null
-      : interrupteurResPreFlottantRef.current;
+      : interrupteurResPreBureauRef.current;
     if (!el) return;
     let correction = 0;
     const image = requestAnimationFrame(() => {
@@ -2065,25 +2042,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       window.clearTimeout(correction);
     };
   }, [attentionResPre, sousLg, menuOuvert, colonnesBureau]);
-
-  // « Exclusion de runes » (bureau) : même patron, mêmes raisons — repliée par
-  // défaut (demande explicite), donc dépliée hors flux pour ne pousser ni
-  // « Réglages avancés » en dessous ni la ligne d'estimation.
-  //
-  // ⚠️ État LOCAL et non remonté dans `useOptimizerState`, contrairement à
-  // `showAdvanced` : c'est de l'ouverture/fermeture d'écran, pas un critère de
-  // recherche. Rien à exporter dans une recette, rien à remettre à zéro au
-  // changement de monstre.
-  const exclusionRef = useRef<HTMLDivElement>(null);
-  const [showExclusion, setShowExclusion] = useState(false);
-  useEffect(() => {
-    if (!showExclusion) return;
-    const onDown = (e: MouseEvent) => {
-      if (exclusionRef.current && !exclusionRef.current.contains(e.target as Node)) setShowExclusion(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [showExclusion]);
 
   function importRecipe(file: File) {
     file.text().then((text) => {
@@ -3596,7 +3554,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               verifierToutesLesCombinaisons={verifierToutesLesCombinaisons}
               setVerifierToutesLesCombinaisons={setVerifierToutesLesCombinaisons}
               interrupteurResPrePanneauRef={interrupteurResPrePanneauRef}
-              interrupteurResPreFlottantRef={interrupteurResPreFlottantRef}
+              interrupteurResPreBureauRef={interrupteurResPreBureauRef}
               attentionResPre={attentionResPre}
               compterAurasResPre={compterAurasResPre}
               setCompterAurasResPre={setCompterAurasResPre}
@@ -3638,91 +3596,23 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   );
 
   // ── Format téléphone ───────────────────────────────────────────────────
-  // ⚠️ Les classes de bureau de cette grille (`lg:`, `xl:`) et les cartes qui
-  // ne s'y montrent qu'au bureau (« Réglages avancés » et « Exclusion de
-  // runes » en flottants) ne servent plus : le bureau passe par `PageBureau`
-  // ci-dessus. Elles restent jusqu'à leur retrait, le rendu du téléphone ne
-  // change pas.
+  // Une colonne, dans l'ordre d'usage : le DOM est l'ordre de lecture. Rendu
+  // sous `SOUS_LG` seulement : aucune classe `lg:`/`xl:` n'y a d'effet.
   return (
     <>
     {pageBureau ?? (
-    // ⚠️ **Pleine largeur**, comme RTA/Siège/Mon compte — l'ancienne colonne
-    // bornée à 768 px était le seul écran de l'app à s'en imposer une, et
-    // empilait ~2 000 px de réglages à faire défiler sur un écran large à
-    // moitié vide. La raison d'origine (« une ligne "libellé … champ" étalée
-    // sur tout l'écran devient un aller-retour du regard ») reste vraie et
-    // est traitée AUTREMENT : ce ne sont pas les lignes qui s'étirent, ce
-    // sont les COLONNES qui se juxtaposent (voir la grille ci-dessous) — la
-    // longueur de chaque ligne reste courte.
     <div className="space-y-5">
       {entete}
 
-      {/* ── UNE SEULE grille, à partir de `xl`, pour tout l'écran de
-          réglages (Monstre, Critères, Artéfacts, État de mon monstre,
-          Exclusion, Réglages avancés) ────────────────────────────────────
-          ⚠️ **Disposition au bureau** (`xl:grid-cols-[1.35fr_1fr]`) : rangée 1
-          = Monstre & équipement, PLEINE LARGEUR (`xl:col-span-2`). Colonne 1,
-          rangées 2 à 5 (`row-span-4`) = Critères de recherche. Colonne 2,
-          de haut en bas : Artéfacts et reliques (rangée 2), État de mon
-          monstre (3), Exclusion de runes (4), Réglages avancés (5). Rangée 6,
-          pleine largeur = estimation.
-          ⚠️ **Placement EXPLICITE (`col-start`/`row-start`/`row-span`) sur
-          CHAQUE bloc** — l'ordre du DOM peut alors rester celui de l'ordre
-          d'USAGE (1. monstre, 2. objectif, 3. critères, puis
-          optionnellement exclusion/réglages avancés) SANS dicter l'ordre
-          VISUEL au bureau. Sous `xl`, une seule colonne : ces classes ne
-          s'appliquent plus, l'ordre du DOM (= l'ordre d'usage) devient
-          l'ordre de lecture.
-          ⚠️ **Réglages avancés reste EMPILÉ sous Exclusion de runes**
-          (colonne 2, rangées 4 et 5) : son contenu déplié n'est pas un bloc
-          INLINE qui grandit la carte, mais un **`FlottantAuto`** qui flotte
-          PAR-DESSUS la page — la carte elle-même garde toujours la même
-          hauteur repliée, donc aucune rangée ne bouge quand on déplie, quel
-          que soit l'endroit où le bloc vit dans la grille. Voir
-          `avancesRef`/`showAdvanced` plus bas, et
-          [design/mouvement-et-gestes.md](../../../docs/03-developpeur/interface/design/mouvement-et-gestes.md) : « un clic ne déplace
-          jamais ce qu'on vient de cliquer » — un panneau replié par défaut
-          ne peut pas réserver sa place à l'avance sans perdre l'intérêt
-          d'être replié, donc il sort du flux (flottant), l'autre option
-          prévue par cette règle.
-          ⚠️ `items-start` : sans lui, chaque bloc s'étire à la hauteur de sa
-          rangée et les cartes courtes se retrouvent avec un grand vide
-          bordé.
-          ⚠️ **Colonne 1 en `1.35fr`, pas une largeur en pixels** : une
-          colonne bornée à `minmax(480px,560px)` est trop étroite pour la
-          rangée d'équipement (recherche 224 + stats 200 + artéfacts 58 + roue
-          208 + relique ≈ 800 px) — la roue puis la relique passeraient à la
-          ligne, cette dernière finissant hors du cadre. En `fr`, la colonne
-          suit la largeur réelle de l'écran (≈ 700 px à `xl`, ≈ 965 px sur un
-          1920), et « Critères de recherche » (`w-fit`, même colonne) se
-          serre sur son contenu. */}
-      {/* `minmax(0,1fr)` sous `xl` : la colonne unique suit l'écran. Une
-          colonne implicite grandissait jusqu'au contenu le plus large (la
-          roue de la fiche, `w-max`), décentrant la page au téléphone. */}
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 items-start xl:grid-cols-[1.35fr_1fr]">
+      {/* Les cartes de réglage, une par rangée. `minmax(0,1fr)` : la colonne
+          suit l'écran — une colonne implicite grandissait jusqu'au contenu le
+          plus large (la roue de la fiche, `w-max`), décentrant la page. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 items-start">
       {/* Étape 1 — carte À PART, en tête du DOM. ⚠️ **La fiche reste
           TOUJOURS affichée, vide (`EMPTY_GEAR`) tant qu'aucun monstre n'est
           choisi**, plutôt que de n'apparaître qu'au clic : l'espace qu'elle
           occupe est réservé d'avance (voir docs/03-developpeur/interface/). */}
-      {/* ⚠️ Carte en PLEINE LARGEUR (`xl:col-span-2`, `xl:row-start-1`) : la
-          fiche stats/artéfacts/runes/relique vit DANS cette carte (colonne
-          interne de droite, sous les puces) et a besoin de la largeur des
-          DEUX colonnes de la page pour tenir stats+artéfacts+roue+relique sur
-          une seule ligne sans repasser à la ligne. « Exclusion de runes » et
-          « Réglages avancés » occupent la colonne 2, rangées 4 et 5 (voir
-          plus bas). */}
-      <MonstreEquipement
-        monstreEtListe={
-          <MonstreEtListe
-            allMonsters={allMonsters}
-            pickSpecies={pickSpecies}
-            selected={selected}
-            listesBureau={listesBureau}
-            zoneCContent={zoneCContent}
-          />
-        }
-        exemplaireEtFiche={<ExemplaireEtFiche {...proprietesExemplaire} />}
-        monstreEquipementTelephone={
+      <MonstreEquipement>
           <MonstreEquipementTelephone
             allMonsters={allMonsters}
             pickSpecies={pickSpecies}
@@ -3750,20 +3640,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             relicUsageById={relicUsageById}
             validateBuildButton={validateBuildButton}
           />
-        }
-      />
+      </MonstreEquipement>
 
-      {/* Étape 3. ⚠️ **`w-fit` RETIRÉ** (demande explicite) : sans lui, la
-          carte profite de toute la largeur de la colonne 1 plutôt que de se
-          serrer sur son contenu — même patron que « Monstre & équipement »
-          (carte haute à gauche, cartes plus courtes empilées à sa droite).
-          ⚠️ **`xl:row-span-4`** : la colonne 2 empile QUATRE cartes —
-          Artéfacts et reliques (2, bloc Relique fusionné dedans),
-          État de mon monstre (3), Exclusion
-          de runes (4), Réglages avancés (5). Ce nombre suit la colonne d'EN
-          FACE, il ne décrit pas le contenu de celle-ci : toute carte ajoutée
-          ou retirée à droite se répercute ici, et sur la rangée de la ligne
-          d'estimation (pleine largeur, toujours en dernier). */}
+      {/* Étape 3. */}
       <CriteresRecherche
         setDeRunes={setDeRunes}
         statPrincipaleImposee={statPrincipaleImposee}
@@ -3771,24 +3650,12 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       />
 
       {/* Carte À PART, PAS un bloc dans « Critères de recherche » : une
-          carte dédiée Artéfacts.
-          ⚠️ 1. L'interrupteur « Ignorer les statistiques » masque d'un coup
-          les sélecteurs ET les lignes verrouillées. Tant que le bloc vivait
-          en tête de la colonne de droite de « Critères de recherche », ce
-          clic faisait REMONTER « Conditions » — un clic qui déplace ce qui le
-          suit, interdit par docs/03-developpeur/interface/. Isolé ici, il ne déplace
-          plus que ce qui suit la carte entière.
-          2. `xl:col-start-2 xl:row-start-2` — SOUS « Exemplaire », à la place
-          libérée par « Objectif de recherche » (parti rejoindre le bouton
-          Rechercher) : le bloc se lit « ces artéfacts, sur CE build », il doit
-          toucher l'exemplaire qui fixe les runes.
-          ⚠️ **Pas en pleine largeur** : essayé, capturé, rejeté — la pleine
-          largeur projette la puce de sorte, le champ de minimum et la croix à
-          ~1 400 px de leur propre libellé, soit une saccade d'un bout à
-          l'autre de l'écran pour lire UNE ligne verrouillée.
-          ⚠️ Le placement de grille est en `xl:` UNIQUEMENT : au doigt, l'ordre
-          est celui du DOM, d'où cette carte déclarée juste après « Critères de
-          recherche ». Les deux formats sont servis par le même JSX. */}
+          carte dédiée Artéfacts. ⚠️ L'interrupteur « Ignorer les
+          statistiques » masque d'un coup les sélecteurs ET les lignes
+          verrouillées : dans « Critères de recherche », ce clic ferait
+          REMONTER « Conditions » — un clic qui déplace ce qui le suit,
+          interdit par docs/03-developpeur/interface/. Isolé ici, il ne déplace
+          que ce qui suit la carte entière. */}
       <ArtefactsEtReliques
         optimiserArtefacts={optimiserArtefacts}
         setOptimiserArtefacts={setOptimiserArtefacts}
@@ -3817,10 +3684,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           n'importe quel calcul de dégâts réels.
           ⚠️ **Toujours visible, indépendamment de l'objectif de recherche** :
           les laisser dans la fenêtre « Dégâts réels » les rendait invisibles à
-          qui optimise l'efficience, alors qu'ils s'appliquaient quand même.
-          ⚠️ `xl:col-start-2 xl:row-start-3` — la colonne 2 passe donc à QUATRE
-          cartes empilées, d'où le `row-span-4` de « Critères de recherche » et
-          le décalage d'une rangée de tout ce qui suit. */}
+          qui optimise l'efficience, alors qu'ils s'appliquaient quand même. */}
       <CarteEtatMonstre
         setup={damageSetup}
         maj={majDamageSetup}
@@ -3836,46 +3700,28 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       {/* ⚠️ « Objectif de recherche » N'EST PAS ICI — il est dans la carte
           du bouton Rechercher, plus bas : *quoi* chercher et *chercher* vont
           ensemble, et sa description de combat est en fenêtre (voir
-          DamageSetupModale.tsx). La colonne 2 rangée 2 est à la carte
-          « Artéfacts ». */}
+          DamageSetupModale.tsx). */}
 
-      {/* ── Réglages avancés + Exclusion de runes ──────────────────────
-          Contenu factorisé une fois, affiché deux fois : en cartes en
-          ligne au bureau (ordre : Exclusion de runes, puis Réglages
-          avancés), dans le panneau « Options » au doigt — jamais dupliqué.
-          Même patron que RunesOptim.tsx (voir MobileSheet plus bas).
-          ⚠️ **Fragment, PAS un `<div>`** : les deux cartes desktop qu'il
-          rend (Exclusion de runes, Réglages avancés) doivent devenir des
-          ENFANTS DIRECTS de la grille pour se placer chacune dans sa propre
-          rangée (`xl:row-start-4`/`xl:row-start-5`, colonne 2, sous
-          Artéfacts et État de mon monstre) — un `<div>` intermédiaire les aurait fait
-          compter comme UNE seule cellule de grille. `MobileSheet` (portail)
-          et le paragraphe d'estimation n'ont pas besoin de cette
-          contrainte, voir leurs commentaires plus bas. */}
+      {/* ── Réglages avancés + Exclusion de runes : dans le panneau
+          « Options » (`MobileSheet`, en portail), avec la ligne
+          d'estimation. ⚠️ **Fragment, PAS un `<div>`** : la ligne
+          d'estimation est une rangée de la grille. */}
       <>
       {(() => {
-        // ⚠️ `dansPanneau` : seule la version DANS LE PANNEAU affiche « Pool de
-        // runes = X » à côté du pré-filtrage — sur la page principale, la
-        // même info existe déjà juste en dessous (voir plus bas), à un
-        // défilement de distance. Dans le panneau, cette page est masquée par
-        // le voile : sans ce doublon local, aucun moyen de voir l'effet du
-        // réglage qu'on vient de toucher sans d'abord refermer le panneau.
-        const reglagesAvancesInner = (dansPanneau: boolean) => (
-          /* ⚠️ **DEUX colonnes dès que la place le permet** (demande explicite)
-              — le pré-filtrage et son avertissement d'un côté, les
-              interrupteurs de l'autre.
-              ⚠️ `auto-fit`/`minmax` et NON un point de rupture d'écran
-              (`sm:`/`xl:`) : ce qui décide ici est la largeur du PANNEAU, pas
-              celle de la fenêtre. Le panneau prend la largeur de sa carte
-              (`largeurAncre`), qui dépend elle-même de la colonne de grille —
-              une même fenêtre peut donc donner un panneau large ou étroit. En
-              dessous de ~520 px, une seule colonne ; au-delà, deux. Ça vaut
-              aussi pour le panneau « Options » au doigt, sans une seule classe
-              conditionnelle. */
+        // ⚠️ `dansPanneau` : la version DANS LE PANNEAU affiche « Pool de
+        // runes = X » à côté du pré-filtrage — la page, où la même info existe
+        // déjà, est masquée par le voile : sans ce doublon local, aucun moyen
+        // de voir l'effet du réglage qu'on vient de toucher sans d'abord
+        // refermer le panneau.
+        // ⚠️ **DEUX colonnes dès que la place le permet** (demande explicite)
+        // — le pré-filtrage d'un côté, les interrupteurs de l'autre — par
+        // `auto-fit`/`minmax`, NON un point de rupture d'écran : ce qui décide
+        // est la largeur du panneau, pas celle de la fenêtre.
+        const reglagesAvancesPanneau = (
           <ReglagesAvancesContenu
             slotFilterPreset={slotFilterPreset}
             handleSlotFilterPresetChange={handleSlotFilterPresetChange}
-            dansPanneau={dansPanneau}
+            dansPanneau
             estimate={estimate}
             exhaustiveSearch={exhaustiveSearch}
             setExhaustiveSearch={setExhaustiveSearch}
@@ -3887,7 +3733,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             verifierToutesLesCombinaisons={verifierToutesLesCombinaisons}
             setVerifierToutesLesCombinaisons={setVerifierToutesLesCombinaisons}
             interrupteurResPrePanneauRef={interrupteurResPrePanneauRef}
-            interrupteurResPreFlottantRef={interrupteurResPreFlottantRef}
+            interrupteurResPreBureauRef={interrupteurResPreBureauRef}
             attentionResPre={attentionResPre}
             compterAurasResPre={compterAurasResPre}
             setCompterAurasResPre={setCompterAurasResPre}
@@ -3911,11 +3757,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         // utilisées », ne la remplace pas (voir optimizerExclusion.ts).
         // Choisir un monstre ici, dans n'importe laquelle des 4 sources,
         // retire ses runes ACTUELLEMENT équipées du pool considéré, en plus
-        // de l'exclusion automatique éventuelle.
-        // ⚠️ **Pas de paramètre `dansPanneau`** : `Segmented` mesure lui-même
-        // la place qu'il reçoit et se resserre tout seul, au bureau comme au
-        // doigt (voir Segmented.tsx). Le bloc est donc identique dans les
-        // deux rendus.
+        // de l'exclusion automatique éventuelle. `Segmented` mesure lui-même
+        // la place qu'il reçoit et se resserre tout seul (voir Segmented.tsx).
         const monstrePrecisBlock = (
           <ExclusionMonstrePrecis
             exclusionData={exclusionData}
@@ -3949,18 +3792,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           />
         );
 
-        // ⚠️ `dansPanneau` : dans le panneau, « Exclure les runes d'un
-        // monstre » passe AU-DESSUS de « Exclure les runes déjà utilisées »
-        // (demande explicite — c'est le réglage le plus utilisé au doigt),
-        // et les deux restent EMPILÉS (jamais côte à côte, même sur un
-        // panneau assez large pour `sm:` — la largeur calibrée de la
-        // colonne de gauche, pensée pour la carte du bureau, ne vaudrait
-        // plus rien ici). Au bureau, ordre et grille inchangés. « Runes
-        // imposées », un mécanisme DISTINCT (verrou, pas exclusion), suit en
-        // dernier après un séparateur, pleine largeur dans les deux cas.
-        const exclusionRunesInner = (dansPanneau: boolean) => (
+        // L'ordre et l'empilement des trois réglages : ExclusionRunesContenu.tsx.
+        const exclusionRunesPanneau = (
           <ExclusionRunesContenu
-            dansPanneau={dansPanneau}
             monstrePrecisBlock={monstrePrecisBlock}
             dejaUtiliseesBlock={dejaUtiliseesBlock}
             runesImposeesBlock={runesImposeesBlock}
@@ -3971,62 +3805,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           <TitreExclusionRunes />
         );
 
-        // Un contenu, deux surfaces : la carte du bureau et le panneau au doigt.
-        const reglagesAvancesBureau = reglagesAvancesInner(false);
-        const exclusionRunesBureau = exclusionRunesInner(false);
-        const exclusionRunesPanneau = exclusionRunesInner(true);
-        const reglagesAvancesPanneau = reglagesAvancesInner(true);
-
         return (
           <>
-            {/* Bureau : « Réglages avancés », colonne 2, rangée 5 — SOUS
-                « Exclusion de runes » (ordre inversé sur demande explicite,
-                voir le commentaire d'Exclusion ci-dessous) — ⚠️ **`relative`**
-                : ancre du `FlottantAuto` ci-dessous, qui se positionne en
-                `absolute` par rapport à CETTE carte, pas à la page. La carte
-                elle-même ne change JAMAIS de hauteur au dépliement — son
-                contenu déplié flotte par-dessus, il ne s'ajoute plus au DOM
-                en flux normal. */}
-            <CarteReglagesAvances
-              avancesRef={avancesRef}
-              setShowAdvanced={setShowAdvanced}
-              showAdvanced={showAdvanced}
-              reglagesAvancesTitre={reglagesAvancesTitre}
-              reglagesAvancesBureau={reglagesAvancesBureau}
-            />
-
-            {/* Bureau : « Exclusion de runes », colonne 2, rangée 3 — SOUS
-                « Objectif de recherche » (même colonne, rangée 2, voir son
-                commentaire) — ordre inversé avec « Réglages avancés » sur
-                demande explicite. Masquée au doigt (voir le panneau plus
-                bas). */}
-            {/* ⚠️ **Repliée par défaut** (demande explicite), et dépliée en
-                FLOTTANT hors flux — jamais un bloc qui s'ajoute.
-                C'est la contrainte de docs/03-developpeur/interface/ : la carte
-                elle-même ne change JAMAIS de hauteur, donc « Réglages
-                avancés » juste en dessous et la ligne d'estimation ne
-                bougent pas d'un pixel quand on l'ouvre. Un dépliement en
-                flux les aurait poussés au moment précis du clic.
-                ⚠️ Patron RÉUTILISÉ tel quel de « Réglages avancés » (ancre
-                `ref` + `ZoneCliquable` + `FlottantAuto` + fermeture au clic
-                extérieur) plutôt que réécrit : deux mécanismes de dépliement
-                voisins auraient divergé, et celui-là avait déjà été corrigé
-                une fois pour cette même raison. */}
-            <CarteExclusionRunes
-              exclusionRef={exclusionRef}
-              setShowExclusion={setShowExclusion}
-              showExclusion={showExclusion}
-              exclusionRunesTitre={exclusionRunesTitre}
-              exclusionRunesBureau={exclusionRunesBureau}
-            />
-
-            {/* ⚠️ Placée en rangée 6 (`xl:col-span-2`, pleine largeur) : ni
-                dans la colonne Critères (rangées 2-5) ni dans la colonne
-                Artéfacts/État/Exclusion/Avancés (rangées 2-5), cette ligne
-                d'estimation n'a pas sa place dans une cellule précise —
-                simple info sous tout le reste. Ne bouge plus JAMAIS au
-                dépliement de Réglages avancés, désormais un flottant hors
-                flux plutôt qu'un bloc qui poussait tout ce qui suivait. */}
+            {/* La ligne d'estimation, sous toutes les cartes. */}
             {estimate && (
               <EstimationPool
                 estimate={estimate}

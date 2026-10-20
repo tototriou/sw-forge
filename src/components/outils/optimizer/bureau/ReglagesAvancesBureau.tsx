@@ -3,9 +3,8 @@ import TitreReglagesAvances from '../TitreReglagesAvances';
 import { LARGEUR_COMPLEMENTS } from './SetsAuraBureau';
 
 // « Réglages avancés », au bureau : EN LIGNE dans la colonne repliable « Aura,
-// exclusion, avancés », plus derrière un en-tête qui ouvre un flottant
-// (`CarteReglagesAvances`, toujours celle de la page d'aujourd'hui). Le contenu
-// est `ReglagesAvancesContenu` d'aujourd'hui, hors panneau : sa grille
+// exclusion, avancés », jamais repliée derrière un en-tête. Le contenu est
+// `ReglagesAvancesContenu`, hors panneau : sa grille
 // `minmax(260px, 1fr)` y tient sur une colonne. L'estimation du pool n'y est
 // plus : elle est en tête du bloc « Objectif et Rechercher ».
 //

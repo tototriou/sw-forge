@@ -72,8 +72,8 @@ export default function ObjectifEtRechercherBureau({
 
   const rechercher = (
     <div className="grid">
-      {/* ⚠️ `comboSets.length === 0` hors de `disabled`, comme sur la page
-          d'aujourd'hui (`ObjectifEtActions`) : le clic doit encore atteindre
+      {/* ⚠️ `comboSets.length === 0` hors de `disabled`, comme au téléphone
+          (`ObjectifEtActions`) : le clic doit encore atteindre
           `handleSearch`, qui ramène au « Set de runes recherché ». */}
       <Bouton
         taille="lg"

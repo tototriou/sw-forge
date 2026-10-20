@@ -112,7 +112,7 @@ const MonsterCard = memo(function MonsterCard({
   // coûte une ligne de plus à faire défiler.
   const libelle = jumeau ? libelleCollab(monster.name, jumeau.name) : monster.name;
   // ⚠️ **Toutes les cartes ont la même hauteur, et le nom y a TOUJOURS deux
-  // lignes réservées** (chantier `defauts-affichage`, lot 6). Un nom de deux
+  // lignes réservées**. Un nom de deux
   // lignes (« Inosuke Hashibira, White Tiger Blade Master », ou
   // « Homunculus(Attack) » coupé avant sa parenthèse) grandissait sa carte
   // de 15 px. La hauteur est celle d'une carte à nom d'une ligne : portrait

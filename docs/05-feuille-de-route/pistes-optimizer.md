@@ -290,6 +290,30 @@ et celles des tests, du harnais et des scripts de mesure :
   artéfact qui n'en a pas, retirer le `as GearSet`.
 - **Bloque** : rien qu'un changement de code.
 
+### Diagnostic d'un build rejeté au CLI
+
+- **Constat** : un build sans couple artéfacts/relique faisable n'est que
+  compté par `scripts/optimizer-search.ts` (« rejeté(s) faute de couple
+  artéfacts/relique faisable »). Son diagnostic, le meilleur couple au
+  score, ne se calcule plus pendant la résolution de l'app, qui ne note que
+  les paires faisables : la fonction du CLI `resoudreEquipementCli`
+  (`scripts/lib/recipeToSearchParams.ts`) le calcule sur son option
+  `diagnostic`, par le calcul exhaustif, mais seul
+  `scripts/banc-resolution-rapide.ts --diagnostic` l'appelle ainsi ; ni le
+  script du CLI (`classementCli.ts` résout sans l'option) ni le harnais ne
+  l'exposent
+  ([03-developpeur/optimizer/moteur/reliques.md § Résolution rapide — le chemin de l'app](../03-developpeur/optimizer/moteur/reliques.md#résolution-rapide--le-chemin-de-lapp)).
+- **Idée** : une option `--diagnostic` de `scripts/optimizer-search.ts`
+  qui résout par `resoudreEquipementCli(…, { diagnostic: true })` et
+  imprime, pour chaque build rejeté, le meilleur couple et les conditions
+  qu'il ne tient pas, sans rien changer au classement des builds conformes.
+- **Bloque** : aucune question ne l'a encore demandée. L'écran ne montre
+  jamais un build rejeté, et le compte des rejetés suffit à suivre la
+  résolution. Ce qui la rouvrirait : une recette dont des builds sont
+  rejetés sans qu'on sache quelle condition les écarte. Reste alors à
+  décider ce que la ligne imprime ; le coût du calcul exhaustif par build
+  rejeté n'est pas mesuré.
+
 ## Dégâts réels
 
 Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pistes-degats-reels.md) (dont les attaques conjointes) et [pistes-degats-reels-stats.md](pistes-degats-reels-stats.md) (dont l'arrondi de la VIT de Gold Headband).

@@ -382,7 +382,9 @@ n'est construite par paire. La paire retenue repasse
   par le calcul exhaustif : option `diagnostic` de
   `resoudreEquipementDuBuildRapide` et de la fonction du CLI
   `resoudreEquipementCli`, que le banc et les tests exercent ; ni le script
-  du CLI ni le harnais ne l'exposent. L'écran n'en a pas besoin, un build
+  du CLI ni le harnais ne l'exposent (piste :
+  [05-feuille-de-route/pistes-optimizer.md § Diagnostic d'un build rejeté au CLI](../../../05-feuille-de-route/pistes-optimizer.md#diagnostic-dun-build-rejeté-au-cli)).
+  L'écran n'en a pas besoin, un build
   rejeté n'y est jamais montré.
 - Une note NaN vue sur une paire faisable fait résoudre le build par le
   calcul exhaustif, signalé par `console.warn`. Écart accepté : une note NaN

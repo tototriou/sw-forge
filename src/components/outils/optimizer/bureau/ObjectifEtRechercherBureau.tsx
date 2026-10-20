@@ -51,8 +51,8 @@ const PROGRESSION_LA_PLUS_HAUTE: Omit<ProgressionRechercheProps, 'status'> = {
 //   · « Exporter » · « Importer » sur une rangée.
 // La forme est choisie par la mise en page (un clic d'onglet), jamais par le bloc.
 //
-// ⚠️ **Rien ne bouge au clic** : estimation, résumé et progression ont une
-// place réservée ; « Arrêter » prend la place EXACTE de « Rechercher » (les deux
+// ⚠️ **Rien ne bouge au clic** : estimation, résumé (deux lignes, même quand
+// le choix d'un monstre l'allonge) et progression ont une place réservée ; « Arrêter » prend la place EXACTE de « Rechercher » (les deux
 // dans la même case de grille, l'absent invisible) et reste inactif 300 ms.
 export default function ObjectifEtRechercherBureau({
   forme, estimation, messageImport, progression, objective, setObjective, setSetupOuvert, resumeCombat, handleSearch, selected, status,
@@ -160,7 +160,7 @@ export default function ObjectifEtRechercherBureau({
           size="lg"
           colonnes={etroite ? 2 : undefined}
         />
-        <ResumeCombat resumeCombat={resumeCombat} setSetupOuvert={setSetupOuvert} cache={objective !== 'degats_reels'} />
+        <ResumeCombat resumeCombat={resumeCombat} setSetupOuvert={setSetupOuvert} cache={objective !== 'degats_reels'} deuxLignes />
       </div>
 
       {etroite ? (

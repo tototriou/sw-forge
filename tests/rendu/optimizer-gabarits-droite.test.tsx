@@ -14,6 +14,7 @@ import RunesImposees from '../../src/components/outils/optimizer/RunesImposees';
 import ExemplaireBureau from '../../src/components/outils/optimizer/bureau/ExemplaireBureau';
 import ObjectifEtRechercherBureau, { type ObjectifEtRechercherBureauProps } from '../../src/components/outils/optimizer/bureau/ObjectifEtRechercherBureau';
 import ResultatsBureau from '../../src/components/outils/optimizer/bureau/ResultatsBureau';
+import { ResumeCombat } from '../../src/components/outils/optimizer/ObjectifEtActions';
 import EstimationPool from '../../src/components/outils/optimizer/EstimationPool';
 import ProgressionRecherche from '../../src/components/outils/optimizer/ProgressionRecherche';
 import { GABARITS } from '../../src/components/outils/optimizer/gabarits/registre';
@@ -124,6 +125,11 @@ export function testRenduOptimizerGabaritsDroite() {
   const degats = rendre(<ObjectifEtRechercherBureau {...props({ objective: 'degats_reels' })} />);
   ok(cache(degats, 'S3 · vs Feu') === false && bouton(degats, 'Modifier la description du combat') != null,
     '« Dégâts réels » : le résumé du combat se lit et rouvre la description');
+  // Deux lignes réservées au résumé, au bureau seulement : le choix d'un
+  // monstre l'allonge, et une ligne de plus déplaçait les onglets en A2.
+  const deuxLignes = /<span class="[^"]*\bmin-h-\[2lh\][^"]*">S3 · vs Feu<\/span>/;
+  ok(deuxLignes.test(repos) && deuxLignes.test(degats), 'le résumé du combat a deux lignes réservées, caché ou lisible');
+  ok(!/min-h-\[2lh\]/.test(rendre(<ResumeCombat resumeCombat="S3 · vs Feu" setSetupOuvert={rien} />)), 'sans `deuxLignes` (téléphone) : le résumé garde sa hauteur de texte');
 
   // Pendant une recherche : « Arrêter » à la place de « Rechercher », inactif au premier rendu (300 ms).
   const enCours = rendre(<ObjectifEtRechercherBureau {...props({ status: 'running' })} />);

@@ -272,7 +272,8 @@ changement de monstre. ⚠️ **Au doigt, rien ne se replie** dans le panneau
 Le bloc porte, de haut en bas : la ligne d'estimation du pool, visible sans
 rien ouvrir ; les quatre objectifs
 ([objectif-de-recherche.md](objectif-de-recherche.md#les-quatre-objectifs-disponibles))
-et la ligne de résumé de « Dégâts réels », à place réservée ;
+et le résumé de « Dégâts réels », à place réservée sur deux lignes (le
+choix d'un monstre l'allonge : son sort et ce que le sort consomme) ;
 « Rechercher » ; « Exporter » · « Importer », en libellé court ; la
 progression, à place réservée. ⚠️ « Rechercher » est plus grand que la
 taille `md` de `Bouton` ; pendant une recherche, « Arrêter » prend sa place

@@ -167,10 +167,10 @@ interface RunResult {
   buildAMs: number;
   buildBMs: number;
   // Temps RÉEL écoulé pour la phase de construction dans son ensemble, les
-  // deux moitiés tournant EN PARALLÈLE sur deux `worker_threads` (comme les
-  // deux Web Workers de l'app réelle, voir buildHalf.worker.ts) — proche de
-  // max(buildAMs, buildBMs) plus une marge de démarrage des fils, jamais
-  // leur SOMME. C'est CE nombre qui doit entrer dans `totalMs`/`foundMs`.
+  // fils tournant EN PARALLÈLE sur des `worker_threads`, un par moitié et par
+  // préréglage construit (comme les Web Workers de l'app réelle, voir
+  // buildHalf.worker.ts) — au moins max(buildAMs, buildBMs), plus une marge
+  // de démarrage des fils, jamais leur SOMME. C'est CE nombre qui doit entrer dans `totalMs`/`foundMs`.
   buildWallMs: number;
   // Le temps de la SEULE phase d'appariement, sans le prep/build qui la
   // précèdent — complète `foundMs`/`totalMs` (globaux) plutôt que de les
@@ -338,9 +338,9 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
   const prepMs = tPrepared - t0;
 
   // ⚠️ Reproduit EXACTEMENT la topologie réelle (runeBuildOptim.worker.ts) :
-  // `Promise.all` sur DEUX `Worker` déjà lancés au moment où `Promise.all`
-  // est appelé (les deux `new Worker(...)` s'exécutent avant tout `await`),
-  // donc vraiment concurrents — pas l'un après l'autre.
+  // un `Worker` par moitié ET par préréglage construit (2 à 8), tous lancés
+  // avant la première attente (`construireMoitiesEmboitees` crée chaque fil
+  // avant tout `await`), donc vraiment concurrents — pas l'un après l'autre.
   const workerScript = await ensureBuildHalfWorkerBundle();
   // Préréglages emboîtés : un fil par moitié ET par préréglage construit
   // (`construireMoitiesEmboitees`, l'orchestrateur de la production), puis

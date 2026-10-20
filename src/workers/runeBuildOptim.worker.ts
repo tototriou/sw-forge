@@ -9,8 +9,9 @@
 // noyau sur tableaux typés, plutôt que de piloter `searchBuildsSteps` d'un
 // bloc : les deux moitiés A et B sont indépendantes (aucune ne dépend du
 // résultat construit de l'autre, seulement de bornes calculées d'avance par
-// `prepareSearch`), donc les construire sur deux cœurs plutôt qu'un seul
-// accélère cette phase — voir docs/03-developpeur/optimizer/moteur/pipeline.md
+// `prepareSearch`), tout comme les préréglages d'une même moitié, donc les
+// construire sur plusieurs cœurs (2 à 8 Workers) plutôt qu'un seul accélère
+// cette phase — voir docs/03-developpeur/optimizer/moteur/pipeline.md
 // § Construction des moitiés. L'appariement séquentiel (`apparier`) est piloté
 // PAS À PAS dans CE Worker : c'est ce qui permet de rendre la main à la
 // boucle d'évènements entre deux points de passage, condition nécessaire pour
@@ -245,13 +246,14 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
 
   // ⚠️ Deux moitiés INDÉPENDANTES (aucune ne dépend du résultat CONSTRUIT de
   // l'autre — seulement de `maxSetsForA`/`maxSetsForB`, déjà calculés par
-  // `prepareSearch`) : construites en parallèle, chacune dans son propre
-  // Worker, pour utiliser deux cœurs plutôt qu'un seul pendant cette phase.
+  // `prepareSearch`) : construites en parallèle, un Worker par moitié ET par
+  // préréglage construit (2 à 8), pour utiliser plusieurs cœurs plutôt qu'un
+  // seul pendant cette phase.
   let bucketsA: Bucket[];
   let bucketsB: Bucket[];
   try {
     // ⚠️ Pas de throttle ICI (contrairement à la phase d'appariement plus
-    // bas) : chacun des deux Workers enfants (buildHalf.worker.ts) throttle
+    // bas) : chacun des Workers enfants (buildHalf.worker.ts) throttle
     // déjà SES PROPRES messages indépendamment — un throttle commun aux DEUX
     // moitiés ferait courir le message de l'une contre celui de l'autre (un
     // message de A qui arrive juste après un de B ferait sauter celui de B,

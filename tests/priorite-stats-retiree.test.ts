@@ -55,12 +55,20 @@ function moteurInsensibleAuChamp() {
     // `undefined` : le bucketCap que le préréglage dérive (chemin de
     // production) ; 7 et 50 : évictions forcées, où l'ancienne répartition
     // gardait d'autres demi-builds.
+    // ⚠️ Les évictions forcées se font à `slotFilterCap` 40 (Bas, aucun
+    // préréglage plus étroit) : à Haut ou Extrême, la rétention de Moyen et
+    // de Bas, emboîtée à leurs `bucketCap` dérivés, garderait tout et
+    // lèverait la pression. Le champ n'est lu nulle part, quel que soit le
+    // préréglage.
+    const derive = searchBuilds(parametres(40, undefined, undefined));
     for (const bucketCap of [undefined, 7, 50]) {
-      const sans = searchBuilds(parametres(preset.cap, bucketCap, undefined));
-      const faux = searchBuilds(parametres(preset.cap, bucketCap, false));
-      const vrai = searchBuilds(parametres(preset.cap, bucketCap, true));
-      const libelle = `${preset.label}, bucketCap ${bucketCap ?? 'dérivé'}`;
+      const cap = bucketCap == null ? preset.cap : 40;
+      const sans = searchBuilds(parametres(cap, bucketCap, undefined));
+      const faux = searchBuilds(parametres(cap, bucketCap, false));
+      const vrai = searchBuilds(parametres(cap, bucketCap, true));
+      const libelle = bucketCap == null ? `${preset.label}, bucketCap dérivé` : `slotFilterCap 40, bucketCap ${bucketCap}`;
       ok(sans.candidates.length > 0, `${libelle} : la recherche trouve des builds (${sans.candidates.length})`);
+      if (bucketCap != null) ok(empreinte(sans) !== empreinte(derive), `${libelle} : les évictions mordent (résultat différent du bucketCap dérivé)`);
       ok(empreinte(faux) === empreinte(sans), `${libelle} : champ à faux = champ absent`);
       ok(empreinte(vrai) === empreinte(sans), `${libelle} : champ à vrai = champ absent (candidats, compte, quasi-succès)`);
     }

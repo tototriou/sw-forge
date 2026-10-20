@@ -1,6 +1,12 @@
 # Résultats
 
-Ce document décrit la liste des résultats et leurs cartes.
+Ce document décrit la liste des résultats et leurs cartes. Au bureau, ils
+vivent dans la boîte « Résultats » (`ResultatsBureau`), présente dès le
+départ avec sa place d'attente, sous « Exemplaire » et le bloc « Objectif et
+Rechercher » : sa largeur, ses messages d'attente et la hauteur qu'elle
+garde à la relance sont dans
+[README.md](README.md#zone-des-résultats-et-place-en-plus). Au téléphone,
+ils suivent la progression, sur toute la largeur.
 
 13. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les
     sets obtenus, le **panneau de stats** (`StatPanel.tsx`, le même composant

@@ -27,26 +27,62 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    **surbrillance** — contour et fond teinté au jeton `bad` (`border-bad
    bg-bad/15`), avec le message « Sélectionne au moins un set avant de lancer
    la recherche. » — au lieu de silencieusement ne rien faire :
-   on montre OÙ agir. Repasse normale dès qu'un set est ajouté. **Colonne
-   GAUCHE** de la carte, avec le point suivant.
+   on montre OÙ agir. Repasse normale dès qu'un set est ajouté. Au bureau,
+   le message tient sa place, invisible le reste du temps : il ne pousse pas
+   les Conditions quand il paraît.
    ⚠️ **Densité** :
-   `max-w-md` sur le conteneur de « Set de runes recherché » ; **Set principal
-   (4 pièces) sur DEUX LIGNES en permanence** (`SetComboPicker.tsx`, `grid
-   grid-cols-3` sans préfixe `compact:` — le bureau adopte l'agencement
-   asymétrique du tactile : Set principal
+   **Set principal (4 pièces) sur DEUX LIGNES en permanence**
+   (`SetComboPicker.tsx`, `grid grid-cols-3` sans préfixe `compact:` — les
+   deux formats prennent l'agencement asymétrique du tactile : Set principal
    étroit, Set secondaire récupère la largeur libérée).
+
+   **Au téléphone**, la grille est en ligne dans « Critères de recherche »,
+   en tête de la carte (`max-w-md`), avant le point suivant puis les
+   Conditions, empilés.
+
+   **Au bureau**, « Critères de recherche » est une carte des essentiels,
+   548 px, sous la liste de travail, en **forme compacte**
+   (`SetDeRunesCompact`) : le compteur `N/6 runes` à droite du libellé, puis
+   une seule liste fermée (`SelecteurMultiple`, axe `surface`) qui montre les
+   sets choisis, icône et nom, ou « Aucun ». Ouverte, elle porte la grille
+   du téléphone telle quelle (jetons, retrait, deux groupes, « Plus de
+   place ») en flottant : rien ne bouge dessous. ⚠️ **Une liste, pas deux**
+   (principal · secondaire) : le choix est un multiensemble (deux fois le
+   même set), que la grille sait dire et une case par set non.
+   - ⚠️ **La liste reste ouverte pendant la composition** : après un set de
+     4, il reste un set de 2 à choisir. Elle ne se ferme d'elle-même qu'au
+     choix qui remplit les six emplacements, sinon au clic ailleurs ou à
+     Échap.
+   - ⚠️ **La rangée des jetons est réservée** : vide, elle a déjà la hauteur
+     d'un jeton, et le premier set choisi ne fait pas descendre la grille
+     sous le pointeur.
 5. **Statistique principale imposée (slots pairs)** — pour chacun des slots
    **2, 4 et 6** (les seuls dont la statistique principale n'est **pas**
-   fixée par les règles du jeu — 1/3/5 sont toujours ATQ/DEF/PV plats), une
-   rangée de puces à cocher :
+   fixée par les règles du jeu — 1/3/5 sont toujours ATQ/DEF/PV plats), un
+   choix multiple parmi :
    - slot 2 : PV% · ATQ% · DEF% · VIT
    - slot 4 : PV% · ATQ% · DEF% · Taux Crit · Dmg Crit
    - slot 6 : PV% · ATQ% · DEF% · RES · Précision
 
-   Multi-sélection ; **aucune coche = pas de contrainte** sur ce slot. Exemple
-   donné pour un Lushen : ATQ% en 2, Dmg Crit en 4, ATQ% en 6. **Colonne
-   GAUCHE**, sous Set de runes recherché (les deux
-   contraintes qui portent sur les runes elles-mêmes, groupées ensemble). Ce
+   Multi-sélection ; **aucun choix = pas de contrainte** sur ce slot. Exemple
+   donné pour un Lushen : ATQ% en 2, Dmg Crit en 4, ATQ% en 6. Ce
    filtre s'applique **avant** tout le reste, dans la construction même du
    pool par slot — il réduit donc le nombre de candidats réellement
    considérés dès le départ.
+
+   **Au téléphone**, une rangée de puces à cocher (`Pastille`) par slot,
+   sous Set de runes recherché, dans la même carte (les deux contraintes qui
+   portent sur les runes elles-mêmes, groupées ensemble), séparée de lui par
+   un trait.
+
+   **Au bureau**, une carte de 170 px des essentiels, à droite des
+   Conditions et au-dessus d'« État de mon monstre »
+   (`PrincipalesImposeesBureau`) : une liste à choix multiples par slot
+   (`SelecteurMultiple`, forme « surbrillance »), le nom du slot au-dessus.
+   Fermée, la liste dit « Libre » sans choix, sinon **toutes** les valeurs
+   choisies, à la ligne entre deux valeurs, sur une hauteur réservée pour le
+   slot entier : rien n'est tronqué, rien ne bouge au choix. Ouverte (160 px
+   de large, « Dmg Crit » y tient), chaque valeur choisie est en
+   surbrillance, sans case. Le geste reste celui des puces : une principale
+   à la fois. Les trois listes s'espacent dans la hauteur de la carte quand
+   la mise en page lui en donne plus que son contenu.

@@ -1,40 +1,45 @@
 # Écran (de haut en bas)
 
-L'écran de l'Optimizer : ce document décrit la mise en page d'ensemble ; chaque carte a le sien.
-Le reste de l'outil (listes, import d'équipes, exclusion, interruption) est dans
-[../README.md](../README.md).
+L'écran de l'Optimizer : ce document décrit la mise en page d'ensemble ; chaque boîte a le sien.
+Au format bureau, la page est
+[PageBureau.tsx](src/components/outils/optimizer/bureau/PageBureau.tsx), ses boîtes dans
+`src/components/outils/optimizer/bureau/` et ses seuils dans
+[optimizerColonnes.ts](src/lib/optimizerColonnes.ts) ; au format téléphone, la grille
+d'[OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx). Le reste de l'outil
+(listes, import d'équipes, exclusion, interruption) est dans [../README.md](../README.md).
 
 ## Le changement touche…
 
 | Le changement touche… | Lire |
 | --- | --- |
-| la mise en page de `src/components/outils/OptimizerSection.tsx` : grille, panneaux dépliants, largeur, changement d'onglet ; les cartes de réglage de `src/components/outils/optimizer/` | ce README |
-| les boîtes de bureau de la mise en page d'ensemble, `src/components/outils/optimizer/bureau/`, `src/lib/optimizerColonnes.ts` ; leur vue de développement | ce README ; [vue-des-gabarits.md](../../../03-developpeur/vue-des-gabarits.md) |
-| « Monstre à optimiser », `src/components/outils/MonsterSourcePicker.tsx` | [recherche-du-monstre.md](recherche-du-monstre.md) |
-| « Meilleurs artéfacts offensifs pour ce build », `src/components/ArtifactSubLigne.tsx` | [meilleurs-artefacts-offensifs.md](meilleurs-artefacts-offensifs.md) |
-| « Équipement actuel » | [equipement-actuel.md](equipement-actuel.md) |
-| l'objectif de recherche, `src/components/outils/DamageSetupCard.tsx`, `src/components/outils/DamageSetupModale.tsx`, `src/components/outils/optimizer/ObjectifEtActions.tsx` | [objectif-de-recherche.md](objectif-de-recherche.md) |
-| le set recherché et les principales imposées, `src/components/outils/SetComboPicker.tsx` | [set-et-principale.md](set-et-principale.md) |
-| la carte « Artéfacts » | [artefacts.md](artefacts.md) |
-| la carte « Relique », `src/components/RelicSlot.tsx` | [relique.md](relique.md) |
-| « État de mon monstre », `src/components/outils/EtatMonstre.tsx`, `src/lib/aurasExternes.ts`, `src/lib/buffsDePassif.ts` | [etat-de-mon-monstre.md](etat-de-mon-monstre.md) |
+| la mise en page de `src/components/outils/OptimizerSection.tsx` : format, grille du téléphone, panneau « Options », changement d'onglet ; les cartes de réglage de `src/components/outils/optimizer/` | ce README |
+| la page de bureau : `src/components/outils/optimizer/bureau/PageBureau.tsx` (agencements, colonnes fixes, défilement), `src/components/outils/optimizer/bureau/OngletsColonnes.tsx`, `src/lib/optimizerColonnes.ts` ; leur vue de développement | ce README ; [vue-des-gabarits.md](../../../03-developpeur/vue-des-gabarits.md) |
+| la recherche du monstre et la liste de travail du bureau : `src/components/outils/MonsterSourcePicker.tsx`, `src/components/outils/optimizer/bureau/ListeDeTravailBureau.tsx`, `src/components/outils/optimizer/MonstreEquipementTelephone.tsx` | [recherche-du-monstre.md](recherche-du-monstre.md) |
+| « Meilleurs artéfacts offensifs pour ce build », `src/components/ArtifactSubLigne.tsx`, `src/components/outils/optimizer/MeilleursArtefacts.tsx`, `src/components/outils/optimizer/bureau/MeilleursArtefactsBureau.tsx` | [meilleurs-artefacts-offensifs.md](meilleurs-artefacts-offensifs.md) |
+| « Exemplaire » et sa fiche, `src/components/outils/optimizer/ExemplaireEtFiche.tsx`, `src/components/outils/optimizer/bureau/ExemplaireBureau.tsx` | [equipement-actuel.md](equipement-actuel.md) |
+| l'objectif de recherche, `src/components/outils/DamageSetupCard.tsx`, `src/components/outils/DamageSetupModale.tsx`, `src/components/outils/optimizer/ObjectifEtActions.tsx`, `src/components/outils/optimizer/bureau/ObjectifEtRechercherBureau.tsx` | [objectif-de-recherche.md](objectif-de-recherche.md) |
+| le set recherché et les principales imposées, `src/components/outils/SetComboPicker.tsx`, `src/components/outils/optimizer/bureau/SetDeRunesCompact.tsx`, `src/components/outils/optimizer/bureau/PrincipalesImposeesBureau.tsx` | [set-et-principale.md](set-et-principale.md) |
+| la carte « Artéfacts et reliques », `src/components/outils/optimizer/ArtefactsEtReliques.tsx`, `src/components/outils/optimizer/bureau/ArtefactsEtReliqueBureau.tsx` | [artefacts.md](artefacts.md) |
+| le bloc « Relique », `src/components/outils/optimizer/Relique.tsx`, `src/components/RelicSlot.tsx` | [relique.md](relique.md) |
+| « État de mon monstre » et les sets d'aura des autres monstres, `src/components/outils/EtatMonstre.tsx`, `src/components/outils/optimizer/bureau/EtatMonstreEssentiels.tsx`, `src/components/outils/optimizer/bureau/SetsAuraBureau.tsx`, `src/lib/aurasExternes.ts`, `src/lib/buffsDePassif.ts` | [etat-de-mon-monstre.md](etat-de-mon-monstre.md) |
 | les sous-propriétés verrouillées | [sous-proprietes-verrouillees.md](sous-proprietes-verrouillees.md) |
-| les conditions, l'inventaire et les réglages avancés | [conditions-et-reglages.md](conditions-et-reglages.md) |
-| « Lancer la recherche », `src/components/outils/optimizer/ObjectifEtActions.tsx`, `src/components/outils/optimizer/ProgressionRecherche.tsx` | [lancer-la-recherche.md](lancer-la-recherche.md) |
-| les résultats, `src/components/outils/BuildCandidateCard.tsx`, les blocs de résultats de `src/components/outils/optimizer/` (`EnteteResultats`, `DiagnosticsSansResultat`, `DiagnosticFaisabilite`, `DiagnosticApprofondi`, `QuasiSucces`, `AvisRechercheTronquee`, `GrilleResultats`, `PaginationResultats`) | [resultats.md](resultats.md) |
+| les conditions, l'inventaire et les réglages avancés, `src/components/outils/optimizer/Conditions.tsx`, `src/components/outils/optimizer/bureau/ConditionsBureau.tsx`, `src/components/outils/optimizer/ReglagesAvancesContenu.tsx`, `src/components/outils/optimizer/bureau/ReglagesAvancesBureau.tsx` | [conditions-et-reglages.md](conditions-et-reglages.md) |
+| l'exclusion de runes au bureau, `src/components/outils/optimizer/bureau/ExclusionRunesBureau.tsx` | [Réglages avancés et exclusion de runes](#réglages-avancés-et-exclusion-de-runes) ; [../feat-exclusion.md](../feat-exclusion.md) |
+| « Lancer la recherche », `src/components/outils/optimizer/ObjectifEtActions.tsx`, `src/components/outils/optimizer/bureau/ObjectifEtRechercherBureau.tsx`, `src/components/outils/optimizer/EstimationPool.tsx`, `src/components/outils/optimizer/ProgressionRecherche.tsx` | [lancer-la-recherche.md](lancer-la-recherche.md) |
+| les résultats, `src/components/outils/BuildCandidateCard.tsx`, `src/components/outils/optimizer/bureau/ResultatsBureau.tsx`, les blocs de résultats de `src/components/outils/optimizer/` (`EnteteResultats`, `DiagnosticsSansResultat`, `DiagnosticFaisabilite`, `DiagnosticApprofondi`, `QuasiSucces`, `AvisRechercheTronquee`, `GrilleResultats`, `PaginationResultats`) | [resultats.md](resultats.md) |
 
 ## Documents
 
 | Document | Contenu |
 | --- | --- |
-| [recherche-du-monstre.md](recherche-du-monstre.md) | La carte « Recherche du monstre à optimiser ». |
-| [meilleurs-artefacts-offensifs.md](meilleurs-artefacts-offensifs.md) | La carte « Meilleurs artéfacts offensifs pour ce build ». |
-| [equipement-actuel.md](equipement-actuel.md) | La carte « Équipement actuel ». |
-| [objectif-de-recherche.md](objectif-de-recherche.md) | La carte « Objectif de recherche », dont l'objectif « Dégâts réels ». |
+| [recherche-du-monstre.md](recherche-du-monstre.md) | La recherche du monstre à optimiser et le choix de l'exemplaire : liste de travail au bureau, « Monstre & équipement » au téléphone. |
+| [meilleurs-artefacts-offensifs.md](meilleurs-artefacts-offensifs.md) | « Meilleurs artéfacts offensifs pour ce build ». |
+| [equipement-actuel.md](equipement-actuel.md) | La fiche d'équipement de l'exemplaire (« Exemplaire » au bureau). |
+| [objectif-de-recherche.md](objectif-de-recherche.md) | L'objectif de recherche, dont l'objectif « Dégâts réels ». |
 | [set-et-principale.md](set-et-principale.md) | Le set de runes recherché et la statistique principale imposée. |
-| [artefacts.md](artefacts.md) | La carte « Artéfacts ». |
-| [relique.md](relique.md) | La carte « Relique ». |
-| [etat-de-mon-monstre.md](etat-de-mon-monstre.md) | La carte « État de mon monstre » : auras, buffs de passif. |
+| [artefacts.md](artefacts.md) | La carte « Artéfacts et reliques ». |
+| [relique.md](relique.md) | Le bloc « Relique ». |
+| [etat-de-mon-monstre.md](etat-de-mon-monstre.md) | « État de mon monstre » et les sets d'aura des autres monstres ; buffs de passif. |
 | [sous-proprietes-verrouillees.md](sous-proprietes-verrouillees.md) | Les sous-propriétés verrouillées. |
 | [conditions-et-reglages.md](conditions-et-reglages.md) | Les conditions, l'inventaire et les réglages avancés. |
 | [lancer-la-recherche.md](lancer-la-recherche.md) | « Lancer la recherche ». |
@@ -42,12 +47,8 @@ Le reste de l'outil (listes, import d'équipes, exclusion, interruption) est dan
 
 ## Mise en page d'ensemble
 
-> **Refonte de l'écran de bureau, en cours.** Le code suit cette mise en
-> page ([PageBureau.tsx](src/components/outils/optimizer/bureau/PageBureau.tsx)).
-> Le format téléphone garde sa propre mise en page
-> ([Au format téléphone](#au-format-téléphone)).
-
-Au format bureau, tablette tactile comprise (même mise en page, densité du
+Le format téléphone a sa propre mise en page
+([Au format téléphone](#au-format-téléphone)). Au format bureau, tablette tactile comprise (même mise en page, densité du
 doigt), l'écran de l'Optimizer est fait de **quatre colonnes**, de gauche à
 droite. Au-dessus d'elles, ni bandeau ni phrase d'introduction.
 
@@ -59,7 +60,8 @@ droite. Au-dessus d'elles, ni bandeau ni phrase d'introduction.
    (slots pairs) » puis « État de mon monstre », réduit aux buffs et au lead.
 2. **« Artéfacts et relique »**, repliable, 320 px : la carte « Artéfacts et
    reliques », relique comprise, puis « Meilleurs artéfacts offensifs pour ce
-   build » dans sa propre carte.
+   build » dans sa propre carte, présente dès qu'un monstre est choisi avec
+   l'optimisation d'artéfacts active.
 3. **« Aura, exclusion, avancés »**, repliable, 340 px : « Sets d'aura des
    autres monstres », « Exclusion de runes » et « Réglages avancés », en
    ligne dans la colonne.
@@ -92,27 +94,29 @@ suivent la fenêtre, pas le conteneur de l'Optimizer.
 
 ⚠️ **Tous les contrôles viennent de la librairie `src/ui/`**, comme partout
 dans l'app (« rien de custom », voir [03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md)) : les
-minimums en `NumberField`, l'objectif et le pré-filtrage en `Segmented`, les
-statistiques principales imposées en `Pastille`, les artéfacts et le tri en
-`Selecteur`, les bascules en `Interrupteur`, Rechercher/Exporter/Importer/
-Arrêter en `Bouton`, les flèches de pagination en `BoutonIcone`, les champs de
-recherche des sélecteurs en `Champ` + `Flottant` (même patron combobox que
-RtaSearch), et les sets/exclusions choisis en `Jeton` (la pilule supprimable de
-la lib). La grille de sets à ajouter est en `BoutonIcone cadre`, ses symboles
+minimums en `NumberField`, l'objectif, le pré-filtrage et les sources
+d'exemplaire en `Segmented`, les artéfacts et le tri en `Selecteur`, les
+bascules en `Interrupteur`, Rechercher/Exporter/Importer/Arrêter et les deux
+onglets des colonnes repliables en `Bouton`, les flèches de pagination en
+`BoutonIcone`, les champs de recherche des sélecteurs en `Champ` + `Flottant`
+(même patron combobox que RtaSearch), et les sets/exclusions choisis en
+`Jeton` (la pilule supprimable de la lib). Les statistiques principales
+imposées sont des `Pastille` au téléphone, une `SelecteurMultiple` par slot
+au bureau, qui sert aussi de champ fermé au set recherché. La grille de sets
+à ajouter est en `BoutonIcone cadre`, ses symboles
 colorisés par le **filtre doré partagé** `runeSetIconFilter` (effects.ts) — le
 même que les barres de filtre par set (`SetFilter`), pour que l'icône ressorte
 sur les deux thèmes au lieu de se fondre, en clair, dans le panneau.
 
 ⚠️ **Largeur de l'écran — pleine largeur.** Jamais une colonne bornée
 (768 px) : ~2 000 px de réglages s'empileraient à faire défiler sur un écran
-large resté à moitié vide. **La barre d'actions, la progression et les
-résultats restent pleine largeur** — la grille de cartes de résultat, elle,
-profite directement de la largeur (davantage de cartes par ligne).
+large resté à moitié vide. Au bureau, les boîtes ont leur largeur fixe et la
+place en plus va aux résultats, en cartes de plus par rangée (voir
+[Zone des résultats et place en plus](#zone-des-résultats-et-place-en-plus)).
+Au téléphone, la barre d'actions, la progression et les résultats prennent
+toute la largeur de la colonne.
 
 ## Ordre d'usage et grille
-
-> **Refonte de l'écran de bureau, en cours.** Le code suit cette mise en
-> page ([PageBureau.tsx](src/components/outils/optimizer/bureau/PageBureau.tsx)).
 
 ⚠️ **L'ordre d'usage commande la mise en page :**
 
@@ -185,11 +189,25 @@ eux : au bureau, ils sont en ligne dans la colonne repliable « Aura,
 exclusion, avancés » ([Mise en page d'ensemble](#mise-en-page-densemble)) ;
 au téléphone, dans le panneau « Options ». Un même contenu sert les deux
 formats (`ExclusionRunesContenu`, `ReglagesAvancesContenu`), jamais écrit
-deux fois.
+deux fois. Au bureau, chacun est une carte de 340 px de la colonne, sans
+en-tête qui se replie, à la suite de « Sets d'aura des autres monstres » :
+empilés en A2 et A3 ; en A1, deux à deux, « Exclusion de runes » à droite
+des deux autres.
+
+« Exclusion de runes » garde au bureau l'ordre empilé du panneau : « Exclure
+les runes d'un monstre », puis « Exclure les runes déjà utilisées », puis,
+après un trait, « Conserver ces slots dans l'optimisation ». Deux réglages
+côte à côte ne tiendraient pas dans 314 px de contenu. Au bureau, les
+monstres exclus s'affichent sur une hauteur bornée (96 px) qui défile, et les
+six puces des runes imposées sont de même taille, en deux colonnes égales
+(slots 1 · 2, 3 · 4, 5 · 6) ; le téléphone garde sa rangée qui passe à la
+ligne.
 
 ⚠️ **« Réglages avancés » se pose sur DEUX colonnes dès que la place le
 permet** : le **pré-filtrage** avec ses puces et son
-avertissement d'un côté, les **trois interrupteurs** de l'autre.
+avertissement d'un côté, les **interrupteurs** de l'autre. Dans la colonne
+du bureau (340 px), la place ne le permet jamais : une colonne, le
+pré-filtrage au-dessus.
 
 - ⚠️ `grid-cols-[repeat(auto-fit,minmax(260px,1fr))]` et **non** un point de
   rupture d'écran (`sm:`/`xl:`) : ce qui décide ici est la largeur de la
@@ -213,10 +231,8 @@ changement de monstre. ⚠️ **Au doigt, rien ne se replie** dans le panneau
 
 ## Placement et adaptation à la largeur
 
-> **Refonte de l'écran de bureau, en cours.** Le code suit cette mise en
-> page ([PageBureau.tsx](src/components/outils/optimizer/bureau/PageBureau.tsx)).
-> Le format téléphone est décrit dans
-> [Au format téléphone](#au-format-téléphone).
+Le format téléphone est décrit dans
+[Au format téléphone](#au-format-téléphone).
 
 ### D'abord le format, ensuite l'agencement
 
@@ -242,9 +258,10 @@ changement de monstre. ⚠️ **Au doigt, rien ne se replie** dans le panneau
 - **A3** : « Artéfacts et relique » s'insère dès 1 516 px (548 + 16 + 320 +
   16 + 616), « Aura, exclusion, avancés » dès 1 536 (même calcul avec 340),
   les deux ensemble dès 1 872. Sous son seuil, une colonne ouverte se pose
-  en **panneau superposé** aux résultats, collé aux essentiels : rien ne
-  bouge dessous, et les résultats ne descendent jamais sous la largeur d'une
-  carte.
+  en **panneau superposé** aux résultats, collé aux essentiels, avec une
+  ombre, sur un fond opaque : elle ne prend aucune place dans la grille, rien
+  ne bouge dessous, et les résultats ne descendent jamais sous la largeur
+  d'une carte.
 - **A2** : la colonne ouverte se place à droite des essentiels, sous le bloc
   « Objectif et Rechercher » et le contrôle à onglets. **A1** : dans la
   page, entre le contrôle et « Exemplaire ».
@@ -252,7 +269,12 @@ changement de monstre. ⚠️ **Au doigt, rien ne se replie** dans le panneau
   sous 1 872 avec les deux ouvertes, la page garde la dernière ouverte.
 - **Par défaut**, « Artéfacts et relique » est ouverte en A1, en A2 et dès
   1 516 px ; fermée en A3 sous 1 516 (aucun panneau superposé ouvert
-  d'office). « Aura, exclusion, avancés » est fermée.
+  d'office). « Aura, exclusion, avancés » est fermée. Tant que l'utilisateur
+  n'a touché à aucun onglet, cet état de départ suit la largeur : une
+  fenêtre ou un volet redimensionné le recalcule. Le premier clic d'onglet,
+  ou une ouverture guidée vers « Aura, exclusion, avancés », le fixe. Cet
+  état est local à l'écran : quitter la page de l'Optimizer le perd, et le
+  retour repart de l'état de départ.
 - ⚠️ **Seul son onglet ferme une colonne repliable** : lancer une recherche
   ne replie rien, et rien ne bouge au clic sur « Rechercher ».
 
@@ -264,33 +286,52 @@ changement de monstre. ⚠️ **Au doigt, rien ne se replie** dans le panneau
   visible de la fenêtre, ils défilent dans leur propre colonne. Le contrôle
   à onglets et la colonne repliable ouverte, insérée ou superposée, restent
   fixes de même, avec le même repli ; en défilant, « Exemplaire » et le bloc
-  passent sous le contrôle.
+  passent sous le contrôle. Les essentiels font environ 1 033 px de haut
+  (mesuré, avec ou sans monstre) : ils défilent seuls à 1 614 × 950, tiennent
+  entiers à 2 254 × 1 290.
+- ⚠️ **Une colonne fixe ne défile seule que si son contenu dépasse** la
+  partie visible : une boîte qui défile rogne les menus posés dedans, qu'il
+  vaut mieux laisser déborder tant que rien n'oblige à défiler. Les aides
+  (`HelpPopover`) en sortent toujours, en portail : une bulle ancrée près du
+  bord droit d'une colonne s'affiche en entier.
 - **A1 et A2** : la page défile, sans colonne fixe.
 
 ### Bloc « Objectif et Rechercher »
 
 Le bloc porte, de haut en bas : la ligne d'estimation du pool, visible sans
-rien ouvrir ; les quatre objectifs
+rien ouvrir, à la place de l'estimation la plus longue (trois lignes dans la
+forme étroite) ; les quatre objectifs
 ([objectif-de-recherche.md](objectif-de-recherche.md#les-quatre-objectifs-disponibles))
 et le résumé de « Dégâts réels », à place réservée sur deux lignes (le
-choix d'un monstre l'allonge : son sort et ce que le sort consomme) ;
-« Rechercher » ; « Exporter » · « Importer », en libellé court ; la
-progression, à place réservée. ⚠️ « Rechercher » est plus grand que la
-taille `md` de `Bouton` ; pendant une recherche, « Arrêter » prend sa place
-exacte, avec un carré plein, et reste inactif 300 ms.
+choix d'un monstre l'allonge : son sort et ce que le sort consomme), même
+quand un autre objectif le cache ; « Rechercher » ; « Exporter » ·
+« Importer », en libellé court ; le message d'import d'une recette et la
+progression, dans une place réservée à la progression la plus haute. ⚠️
+« Rechercher » est en taille `lg` de `Bouton` ; pendant une recherche,
+« Arrêter » prend sa place exacte, avec un carré plein, et reste inactif
+300 ms : le double clic qui lance ne l'arrête pas.
+
+La progression y est **compacte** : sans barre, la ligne « N / M
+combinaisons examinées · K trouvée(s) » et la phrase « Attendez la fin de la
+recherche pour être sûr de trouver votre build optimal. » ; la préparation
+(une ligne par moitié), l'échec et le refus nommé tiennent dans la même
+place. Le téléphone garde sa barre
+([lancer-la-recherche.md](lancer-la-recherche.md)).
 
 Deux formes, selon la place :
 
-- **étroite**, 340 × ≈ 356 px, objectifs en 2 × 2 : en A2, à droite des
+- **étroite**, 340 × ≈ 397 px, objectifs en 2 × 2, « Exporter » ·
+  « Importer » sous « Rechercher », à parts égales : en A2, à droite des
   essentiels, au-dessus du pli ; en A3, à côté d'« Exemplaire », quand la
   colonne de droite fait au moins 972 px (616 + 16 + 340), soit un
   conteneur d'au moins 1 536 px sans colonne repliable insérée, 1 872 avec
-  « Artéfacts et relique » insérée ;
-- **large**, ≈ 260 px de haut, à la largeur de sa colonne : objectifs sur
-  une ligne, « Rechercher » · « Exporter » · « Importer » sur une rangée,
-  estimation sur une ligne, places réservées gardées : partout ailleurs (A1,
-  et A3 quand la colonne de droite fait moins de 972 px), sous
-  « Exemplaire ».
+  « Artéfacts et relique » insérée, 1 892 avec « Aura, exclusion, avancés »
+  insérée ;
+- **large**, ≈ 264 à 280 px de haut selon que l'estimation tient sur une
+  ou deux lignes, à la largeur de sa colonne : objectifs sur une ligne,
+  « Rechercher » · « Exporter » · « Importer » sur une rangée, places
+  réservées gardées : partout ailleurs (A1, et A3 quand la colonne de droite
+  fait moins de 972 px), sous « Exemplaire ».
 
 ⚠️ Le bloc ne change de forme qu'au clic d'un onglet, qui ouvre ou ferme
 une colonne insérée, jamais au lancement d'une recherche.
@@ -301,15 +342,22 @@ atteignable.
 
 ### Zone des résultats et place en plus
 
-- **Place réservée** : la zone des résultats est là dès le départ. Avant la
-  première recherche, une place d'attente (en-tête et message, ≈ 160 px)
-  tient la place où arrivent les cartes : leur arrivée ne déplace jamais ce
-  qu'on vient de cliquer. A3 : dans la colonne de droite, sous « Exemplaire »
-  et le bloc ; A1 et A2 : sur toute la largeur, sous « Exemplaire ». Une
-  recherche lancée (ou arrêtée sur une erreur, un refus) sans carte encore
-  garde le cadre et « Les builds trouvés s'afficheront ici. », sans la
-  phrase « Aucune recherche lancée pour ce monstre. », dont la ligne reste
-  réservée.
+- **Place réservée** : la zone des résultats est là dès le départ, une
+  boîte « Résultats » élastique de 386 px au moins (une carte et son cadre).
+  Avant la première recherche, une place d'attente (en-tête et message,
+  ≈ 160 px) tient la place où arrivent les cartes : leur arrivée ne déplace
+  jamais ce qu'on vient de cliquer. Son en-tête dit « Choisis un monstre
+  pour préparer la recherche. » sans monstre, « Aucune recherche lancée
+  pour ce monstre. » ensuite ; le cadre en pointillé dit « Les builds
+  trouvés s'afficheront ici. ». A3 : dans la colonne de droite, sous
+  « Exemplaire » et le bloc ; A1 et A2 : sur toute la largeur, sous
+  « Exemplaire ». Une recherche lancée (ou arrêtée sur une erreur, un refus)
+  sans carte encore garde le cadre, sans la phrase de l'en-tête, dont la
+  ligne reste réservée.
+- ⚠️ **Une relance garde la hauteur des résultats d'avant** jusqu'à
+  l'arrivée de la première carte : la recherche relancée vide les
+  résultats, et la page, devenue plus courte que son défilement, remonterait
+  d'un coup sous le pointeur, « Rechercher » compris.
 - **La place en plus** va aux résultats, en cartes de 360 px au moins
   ([resultats.md](resultats.md)) : en A3, la largeur gagnée ajoute des
   cartes par rangée. En A1 et en A2, la place qui reste à droite des boîtes

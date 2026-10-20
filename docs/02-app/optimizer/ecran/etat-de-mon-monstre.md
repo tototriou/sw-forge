@@ -1,15 +1,26 @@
 # État de mon monstre
 
-6 bis. **État de mon monstre** — ⚠️ **une carte à part**, colonne 2 rangée 3,
-   juste sous « Artéfacts et reliques ». Pas en bas de cette carte, séparée
-   par un simple trait : ça laisserait croire que ces réglages servent les
-   artéfacts, alors qu'ils décrivent le **monstre** et valent pour tout calcul.
-   Le trait ne suffit pas à dire « autre métier » — une carte, si.
+6 bis. **État de mon monstre** — ⚠️ **une carte à part**, jamais le bas de la
+   carte « Artéfacts et reliques » séparé par un simple trait : ça
+   laisserait croire que ces réglages servent les artéfacts, alors qu'ils
+   décrivent le **monstre** et valent pour tout calcul. Le trait ne suffit
+   pas à dire « autre métier » — une carte, si.
    Contenu : **buff ATQ**, **buff DEF**, **buff
    VIT**, **leader skill** d'équipe (type puis valeur, icône officielle du
    jeu) et les
    **sets d'aura des autres monstres** de l'équipe. Ce qui rend le monstre
    plus fort, quel que soit l'adversaire.
+
+   **Au téléphone**, la carte suit « Artéfacts et reliques » et porte tout
+   ce contenu, sets d'aura compris. **Au bureau**, elle est réduite aux
+   buffs et au lead, dans les essentiels, 170 px, sous la statistique
+   principale imposée (`EtatMonstreEssentiels`) : les trois vignettes de buff
+   en colonne, centrée dans la carte (trois vignettes de 64 px ne tiennent
+   pas en rangée dans 170 px), puis le lead, le motif d'un lead inactif et
+   les rappels. Son aide ne nomme ni les sets d'aura ni ce qui décrit le
+   combat. Les sets d'aura des autres monstres ont leur propre carte, en
+   tête de la colonne « Aura, exclusion, avancés »
+   ([Sets d'aura des autres monstres](#sets-daura-des-autres-monstres)).
    Si un buff actif est amplifié par une ligne d'artéfact, le pourcentage
    apparaît sous ces contrôles, auprès du buff correspondant (ATQ, DEF ou
    VIT), jamais sous la VIT de l'adversaire.
@@ -34,16 +45,18 @@
    un passif absent de la table n'a pas de rappel, et les buffs qu'un sort
    actif se pose lui-même n'en ont pas non plus. Le rappel dépend du
    monstre, jamais d'un clic dans la carte : il paraît au choix du monstre,
-   dont le sélecteur et la liste vivent dans la carte du haut — rien de ce
+   dont le sélecteur et la liste vivent au-dessus de la carte (liste de
+   travail au bureau, « Monstre & équipement » au téléphone) — rien de ce
    qu'on vient de cliquer ne bouge. Il lit la fiche du monstre **choisi**
    (garde d'identité : la fiche précédente, encore en mémoire pendant le
    chargement, n'en donne aucun).
 
-   Les deux groupes tiennent sur **une seule rangée** :
+   Au téléphone, les groupes tiennent sur **une seule rangée** quand la
+   largeur le permet :
    empilés, ils donneraient à la carte une hauteur sans rapport avec le peu
-   qu'elle contient. ⚠️ En `flex-wrap`, pas en rangée rigide — au doigt ou
-   dans une colonne étroite, ils repassent à la ligne plutôt que de comprimer
-   les contrôles sous leur taille de cible.
+   qu'elle contient. ⚠️ En `flex-wrap`, pas en rangée rigide — au doigt,
+   ils repassent à la ligne plutôt que de comprimer les contrôles sous leur
+   taille de cible.
 
    Les **compétences d’invocateur** sont dérivées du contenu de la liste
    active : Guilde → « Contenu de guilde », Arène et Donjon → « Contenu normal ».
@@ -92,12 +105,11 @@
 
 ## Sets d'aura des autres monstres
 
-   **Sets d'aura des autres monstres** — une troisième
-   boîte, sur la même rangée que les buffs et le lead au bureau ; au
-   téléphone elle reste sous les groupes pour éviter le débordement.
-   Dans une colonne de bureau étroite, les buffs s'empilent dans leur boîte
-   pour laisser place au lead et aux auras, sans comprimer leurs contrôles.
-   Elle saisit `DamageSetup.setsAuraExternes` : les sets Fight,
+   **Sets d'aura des autres monstres** — au téléphone, une troisième
+   boîte d'« État de mon monstre », sous les groupes pour éviter le
+   débordement ; au bureau, une carte à part de 340 px, en tête de la
+   colonne repliable « Aura, exclusion, avancés » (`SetsAuraBureau`), avec la
+   même saisie (`AurasExternesSaisie`). Elle saisit `DamageSetup.setsAuraExternes` : les sets Fight,
    Determination, Enhance, Accuracy et Tolerance portés par les **autres**
    monstres de l'équipe (voir
    [effets d'équipe](../../degats-reels/)). En tête,
@@ -152,7 +164,10 @@
    ni dans un effet sur le monstre sélectionné, que l'import pose aussi.
    Le même message paraît aussi sous la liste de la zone C, du même état et
    pour la même durée (voir
-   ../feat-listes-et-reservation.md § Zone C — Monstres de la liste).
+   ../feat-listes-et-reservation.md § Zone C — Monstres de la liste). Au
+   bureau, la carte des sets d'aura n'est montée que colonne ouverte : elle
+   affiche le rappel sans l'annoncer, et l'annonce aux lecteurs d'écran vit
+   dans la page, toujours montée, hors de la colonne.
 
 ## Ouverture guidée vers l'interrupteur des auras RES/PRE
 
@@ -186,7 +201,7 @@
 
    Dans les deux cas, l'interrupteur est surligné **3 s**, au même token que
    le rappel (contour `warn`, fond `warn-soft`). ⚠️ Il reste toujours rendu
-   dans sa surface (`reglagesAvancesInner`, commun aux deux formats) :
+   dans sa surface (`ReglagesAvancesContenu`, commun aux deux formats) :
    guider ne le monte jamais sous condition et ne le masque jamais ensuite.
    Son cadre de surlignage existe en permanence, transparent hors guidage,
    et se pose À L'INTÉRIEUR de la rangée, dont le trait du haut sépare les

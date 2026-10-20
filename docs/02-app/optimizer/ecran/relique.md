@@ -2,10 +2,11 @@
 
 6 ter. **Relique** — **bloc
    séparé** de la carte « Artéfacts et reliques », PAS une carte propre :
-   ferme la carte, sous « Meilleurs artéfacts offensifs pour ce build »,
-   séparé par un **trait horizontal** de 1 px (`border-border-soft`, un
-   seul contour) — même JSX pour les deux formats, ordinateur et
-   téléphone. Ni carte propre (elle ferait double emploi avec la
+   ferme la carte, séparé par un **trait horizontal** de 1 px
+   (`border-border-soft`, un seul contour) — même JSX pour les deux formats,
+   ordinateur et téléphone (`Relique.tsx`). Au téléphone, il suit l'encart
+   « Meilleurs artéfacts offensifs pour ce build » ; au bureau, cet encart
+   devient une carte à part, sous la carte, donc sous la relique. Ni carte propre (elle ferait double emploi avec la
    carte Artéfacts juste au-dessus et décalerait toute la grille de la
    colonne), ni bloc à droite de la rangée Attribut / Type, trait vertical
    (il désalignerait les listes relique de celles d'artéfacts).

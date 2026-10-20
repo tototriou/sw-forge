@@ -2,8 +2,9 @@
 
 ⚠️ **Au doigt, dans le panneau « Options »** (bouton de la barre de nav),
 EN TÊTE — avant « Réglages avancés » (voir
-ecran/conditions-et-reglages.md § Réglages avancés) : fonctionnalité
-vedette, mise en avant côté bureau par sa carte à bordure accentuée.
+ecran/conditions-et-reglages.md § Réglages avancés). Au bureau, sa carte
+est en ligne dans la colonne repliable « Aura, exclusion, avancés »
+([ecran/README.md](ecran/README.md#réglages-avancés-et-exclusion-de-runes)).
 
 **« Exclure les runes déjà utilisées »**, interrupteur DÉSACTIVÉ par
 défaut : la recherche porte alors sur l'**inventaire entier** — y compris des runes qu'il faudrait
@@ -71,9 +72,9 @@ un monstre non possédé n'a rien à exclure.
 barré du symbole « interdit » — même traitement que l'icône « Exclusion de
 runes » elle-même, cette action-ci RETIRE un monstre précis du pool.
 
-Ordre relatif à « Exclure les runes déjà utilisées » : **au-dessus** dans le
-panneau « Options » au doigt (c'est le réglage le plus utilisé sur cet
-écran) ; à **droite**, côte à côte, au bureau (voir la carte ci-dessus).
+Ordre relatif à « Exclure les runes déjà utilisées » : **au-dessus**, aux
+deux formats (c'est le réglage le plus utilisé sur cet écran) : le panneau
+« Options » et la colonne du bureau empilent le même contenu.
 
 ⚠️ **Les quatre onglets de source restent sur UNE seule ligne au doigt**,
 texte/rembourrage réduits — à 4 options aussi longues que « Défenses
@@ -143,8 +144,8 @@ pourtant les autres intitulés de section.
 **Regroupée dans la même carte** que les deux exclusions ci-dessus — même
 thème (agir sur le pool de runes à partir de l'exemplaire recherché),
 mécanisme distinct : ce n'est pas une exclusion mais un **verrou**. Une
-pastille par emplacement (1 à 6) portant une rune sur l'exemplaire de
-« Monstre & équipement » ; cliquer verrouille ce slot sur **exactement
+pastille par emplacement (1 à 6) portant une rune sur l'exemplaire choisi
+(« Exemplaire » au bureau, « Monstre & équipement » au téléphone) ; cliquer verrouille ce slot sur **exactement
 cette rune** — son pool tombe à 1, les cinq autres emplacements restent
 optimisés normalement. Cas d'usage : « je garde cette rune, cherche les
 cinq autres autour » — d'où un choix limité aux runes que l'exemplaire

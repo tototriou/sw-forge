@@ -22,8 +22,8 @@ qui ne peuvent pas être converties. Les critères partiels utilisent l’objet
 ## F1 — Importer depuis l’Optimizer
 
 Lorsque l’Optimizer est monté avec un compte, « Importer une équipe » est
-toujours affiché dans « Monstre & équipement »,
-près du sélecteur de liste, au bureau et au téléphone, même lorsque
+toujours affiché près du sélecteur de liste, dans la liste de travail au
+bureau, dans « Monstre & équipement » au téléphone, même lorsque
 « Gérer mes listes » est replié. Sans membre résolvable dans aucune
 source, le bouton est désactivé et son `title` en donne la raison.
 Sans compte, l’écran vide existant remplace l’Optimizer et ne montre pas ce bouton.

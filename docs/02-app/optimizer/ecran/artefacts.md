@@ -89,22 +89,32 @@ Ce document décrit la carte « Artéfacts » de l'écran.
 
 ## Place de la carte à l'écran
 
-   ⚠️ **Carte à part**, colonne 2 rangée 2 — sous « Exemplaire », pas dans
-   la colonne droite de « Critères de recherche ». L'interrupteur
-   masque d'un coup les deux listes ET les
-   lignes verrouillées : en tête de cette colonne,
-   ce clic ferait REMONTER « Conditions », soit un clic qui déplace ce qui
-   le suit ([03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md)).
+   ⚠️ **Carte à part**, jamais un bloc de « Critères de recherche ».
+   L'interrupteur masque d'un coup les deux listes ET les lignes
+   verrouillées : dans « Critères de recherche », ce clic ferait REMONTER
+   « Conditions », soit un clic qui déplace ce qui le suit
+   ([03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md)).
+   Isolée, la carte ne déplace que ce qui la suit.
+   - **Au bureau**, en tête de la colonne repliable « Artéfacts et
+     relique », 320 px (`ArtefactsEtReliqueBureau`, autour de la carte
+     partagée), suivie de la carte « Meilleurs artéfacts offensifs pour ce
+     build » (voir
+     meilleurs-artefacts-offensifs.md § Affichage et emplacement de la proposition).
+     La carte n'est pas repliée au lancement d'une recherche : seul l'onglet
+     ferme sa colonne ([README.md](README.md#colonnes-repliables-selon-la-largeur)).
+     À cette largeur, Attribut et Type passent chacun sur sa ligne : sur une
+     seule, ils demandent 309 px pour 294 utiles.
+   - **Au téléphone**, après « Critères de recherche », sur toute la
+     largeur de la colonne.
 
-   ⚠️ **Pas en pleine largeur** : la pleine
+   ⚠️ **Jamais en pleine largeur d'un écran large** : la pleine
    largeur projette la puce de sorte, le champ de minimum et la croix à
    ~1 400 px de leur libellé — une saccade d'un bout à l'autre de l'écran
    pour lire UNE ligne verrouillée, pire que le repli de texte qu'elle
    corrigerait.
 
    La **relique** vit dans un **bloc séparé de cette même carte**, le bloc
-   qui **ferme la carte**, sous « Meilleurs artéfacts offensifs pour ce
-   build » (voir relique.md § Relique).
+   qui **ferme la carte** (voir relique.md § Relique).
    L'interrupteur ci-dessus masque d'un seul geste les deux listes
    d'artéfacts ET le bloc Relique.
 

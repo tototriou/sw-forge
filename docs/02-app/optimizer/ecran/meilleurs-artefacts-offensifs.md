@@ -1,18 +1,25 @@
 # Meilleurs artéfacts offensifs pour ce build
 
-2 bis. **« Meilleurs artéfacts offensifs pour ce build »** — dans la carte
-   **Artéfacts**, juste sous les **sous-propriétés verrouillées** : le
-   résultat suit immédiatement les réglages qui le produisent, sans qu'un
-   autre sujet ne s'intercale. La meilleure paire pour l'équipement
+2 bis. **« Meilleurs artéfacts offensifs pour ce build »** — au plus près
+   des réglages d'artéfacts qui le produisent : au téléphone, un encart de
+   la carte **Artéfacts et reliques**, juste sous les **sous-propriétés
+   verrouillées** ; au bureau, une carte à part, juste sous cette carte,
+   dans la colonne « Artéfacts et relique ». La meilleure paire pour l'équipement
    **affiché**, avec ce
    qu'elle apporte face à celle qui est portée. Optimise les artéfacts
    **seuls**, sans lancer de recherche de runes : le cas visé est un monstre
    runé pour un autre objectif (un tank fait pour survivre) à qui les artéfacts
    ajoutent des dégâts par-dessus.
 
-   Au téléphone, le bloc est **replié par défaut**, comme « Gérer mes
-   listes » : son titre et le chiffre absolu (avec l'écart) restent
-   visibles, et un toucher sur le titre déplie les crans et la paire.
+   Au téléphone, sous 640 px de large (`SOUS_SM`), le bloc est **replié
+   par défaut**, comme « Gérer mes listes » : son titre et le chiffre absolu
+   (avec l'écart) restent visibles, et un toucher sur le titre déplie les
+   crans et la paire. Au bureau, il n'est jamais replié.
+
+   Il n'existe qu'avec un monstre choisi et l'optimisation d'artéfacts
+   active : sans optimisation, il répondrait « la paire portée est la
+   meilleure », vrai seulement parce qu'on lui interdit d'en chercher une
+   autre.
 
 ## Emplacements figés
 
@@ -162,17 +169,18 @@ ressemble pas au jeu.
 
 ⚠️ **Jamais à la place des artéfacts de la fiche** : celle-ci montre
 l'équipement RÉEL, et y substituer une proposition ferait croire à un
-équipement qu'on ne porte pas. Le bloc vit dans la carte **voisine**,
-sous « Exemplaire » — la fiche dit ce qu'on
-PORTE, la carte Artéfacts ce qu'on DEVRAIT porter, et elles se touchent.
-Le bloc est ainsi avec les réglages qui le pilotent, au lieu d'en être
-séparé par une carte entière.
+équipement qu'on ne porte pas. La fiche (« Exemplaire ») dit ce qu'on
+PORTE, le bloc ce qu'on DEVRAIT porter. Le bloc est avec les réglages
+d'artéfacts qui le pilotent, au lieu d'en être séparé par une carte
+entière.
 
-⚠️ **Encadré à part dans la carte** (contour atténué, fond `panel2`),
-sous les sous-propriétés verrouillées : la carte porte deux métiers.
-Attribut, Type et les verrous au-dessus sont des critères de la
-recherche de runes, appliqués à tous les builds qu'elle examine ; le bloc
-ne parle que du build affiché.
+⚠️ **Séparé des critères de la recherche** : Attribut, Type et les verrous
+sont des critères de la recherche de runes, appliqués à tous les builds
+qu'elle examine ; le bloc ne parle que du build affiché. Au téléphone, un
+**encadré à part dans la carte** (contour atténué, fond `panel2`), sous
+les sous-propriétés verrouillées et avant le bloc « Relique » ; au bureau,
+une **carte à part** de 320 px (`MeilleursArtefactsBureau`), sous la carte
+« Artéfacts et reliques », relique comprise.
 
 Quand la paire portée est déjà la meilleure, l'écran le **dit** au lieu
 d'afficher « +0,0 % » — un zéro ressemble à une panne, la phrase est une

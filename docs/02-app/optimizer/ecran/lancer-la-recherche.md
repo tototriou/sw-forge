@@ -1,11 +1,20 @@
 # Lancer la recherche
 
-Ce document décrit la barre d'actions et l'estimation qui précèdent le lancement.
+Ce document décrit la barre d'actions, l'estimation qui précède le lancement
+et la progression. Au bureau, tout vit dans le bloc « Objectif et
+Rechercher », dont la forme, les places réservées et les hauteurs sont dans
+[README.md](README.md#bloc--objectif-et-rechercher-) ; au téléphone, sous la
+grille des réglages, la carte du bouton Rechercher, puis le message d'import
+et la progression.
 
 10. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
     une ligne affiche le nombre **exact** de runes gardées après
     pré-filtrage, détaillé par emplacement (une **somme**, pas un produit),
-    recalculée en direct à chaque changement de critère. ⚠️ **Le pool, pas
+    recalculée en direct à chaque changement de critère : « N runes gardées
+    après pré-filtrage (pool par emplacement : a + b + … ) ». Au bureau, en
+    tête du bloc, à la place réservée de l'estimation la plus longue : elle
+    paraît au choix du set sans rien pousser. Au téléphone, la dernière
+    rangée de la grille des réglages. ⚠️ **Le pool, pas
     l'espace de recherche** : le nombre de combinaisons brutes (produit des
     tailles de pool par emplacement) est un ordre de grandeur bien trop
     éloigné du nombre réel de demi-builds construits ou de paires visitées
@@ -13,9 +22,16 @@ Ce document décrit la barre d'actions et l'estimation qui précèdent le lancem
     lui, est un nombre exact et directement lisible.
 11. **« Rechercher »** — lance le calcul. Changer un des critères de
     recherche ne relance rien automatiquement : il faut recliquer. Un bouton
-    **« Arrêter »** apparaît pendant le calcul — il interrompt la recherche
+    **« Arrêter »** paraît pendant le calcul — il interrompt la recherche
     et garde le **meilleur trouvé jusque-là**, plutôt que de tout perdre
     (voir ../feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel).
+    Au bureau, « Arrêter » prend la place exacte de « Rechercher », dans la
+    même case, et reste inactif 300 ms après le lancement : le double clic
+    qui a lancé la recherche ne l'arrête pas. Au téléphone, « Rechercher »
+    devient « Recherche… », inactif, et « Arrêter » s'ajoute au bout de la
+    rangée. Sans set choisi, « Rechercher » reste cliquable sous son aspect
+    grisé : le clic ramène au « Set de runes recherché » (voir
+    set-et-principale.md § Set de runes recherché et statistique principale imposée).
     ⚠️ **« Exporter les paramètres de recherche » / « Importer
     les paramètres de recherche »** (« Exporter » / « Importer » quand la
     place manque), juste à côté : télécharge/relit un fichier `.json`
@@ -63,9 +79,14 @@ Ce document décrit la barre d'actions et l'estimation qui précèdent le lancem
     message ordinaire (succès sans avertissement) s'efface après 5 s, le
     refus après 9 s (`messageImport.ts`). Le message vit dans le flux, sous
     la barre Rechercher / Exporter / Importer : le bouton cliqué, au-dessus,
-    ne bouge pas.
-12. **Barre de progression** — se remplit progressivement (pas une roue qui
-    tourne), avec le nombre de combinaisons déjà examinées et déjà trouvées,
-    suivi d'un message **en gras, couleur dorée** (même que le rang `#X`
-    d'un résultat) : « Attendez la fin de la recherche pour être sûr de
-    trouver votre build optimal ».
+    ne bouge pas. Au bureau, il s'affiche dans la place réservée à la
+    progression, au-dessus d'elle.
+12. **Barre de progression** — au téléphone, se remplit progressivement
+    (pas une roue qui tourne), avec le nombre de combinaisons déjà examinées
+    et déjà trouvées, suivi d'un message **en gras, couleur dorée** (même
+    que le rang `#X` d'un résultat) : « Attendez la fin de la recherche pour
+    être sûr de trouver votre build optimal. ». Au bureau, la progression
+    est **compacte** : les deux mêmes lignes, sans barre, dans une place
+    réservée à leur hauteur, que le lancement ne fait pas grandir. Pendant la
+    préparation, une ligne par moitié (« Préparation — moitié A : x / y
+    runes »), avec sa barre au téléphone, sans barre au bureau.

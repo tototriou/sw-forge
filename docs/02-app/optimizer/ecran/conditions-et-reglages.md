@@ -4,9 +4,14 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
 
 7. **Conditions** — les 8 stats (PV, ATQ, DEF, VIT, Taux Crit, Dmg Crit, RES,
    Précision). Chaque stat porte **deux champs, minimum et maximum**, tous
-   deux facultatifs — champ vide = pas de contrainte. **Colonne DROITE** de
-   « Critères de recherche », qu'elle occupe seule : « Artéfacts et
-   reliques » est une carte à part (voir artefacts.md § Place de la carte à l'écran).
+   deux facultatifs — champ vide = pas de contrainte. Au téléphone, en bas
+   de « Critères de recherche », sous le set et les principales ; au bureau,
+   une carte « Conditions » de 362 px des essentiels, sous le set, à gauche
+   des principales et d'« État de mon monstre » (`ConditionsBureau`). Dans
+   cette carte, la colonne des libellés prend la largeur du plus long d'entre
+   eux, et Min et Max s'en rapprochent : les champs gardent leur largeur, et
+   la grille tient sans déborder. « Artéfacts et reliques » est une carte à
+   part (voir artefacts.md § Place de la carte à l'écran).
    - **Interrupteur « Stats de base exclues »**, activé par défaut : n'affecte
      que PV, ATQ, DEF et VIT — ces 4 stats ont une base qui grandit avec le
      niveau/l'éveil ; activé, le champ porte sur ce que l'**équipement**
@@ -113,7 +118,9 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
      le pré-filtrage et la rétention restent heuristiques et ne valorisent
      pas l'aura propre. Les auras PV/ATQ/DEF ne comptent dans aucune
      condition. Les auras externes se saisissent dans « État de mon
-     monstre » (voir etat-de-mon-monstre.md § Sets d'aura des autres monstres) ;
+     monstre » au téléphone, dans la carte « Sets d'aura des autres
+     monstres » de la colonne « Aura, exclusion, avancés » au bureau (voir
+     etat-de-mon-monstre.md § Sets d'aura des autres monstres) ;
      `compterAurasResPre` se règle dans
      « Réglages avancés » (point 9 ci-dessous).
    - **« Réinitialiser les conditions »**, en bas à droite de la grille, vide
@@ -131,8 +138,11 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
 ## Réglages avancés
 
 9. **« Réglages avancés »**. ⚠️ **Au bureau, en ligne** dans la colonne
-   repliable « Aura, exclusion, avancés », sous « Exclusion de runes » (voir
-   README.md § Réglages avancés et exclusion de runes). **Pré-filtrage par emplacement**, en
+   repliable « Aura, exclusion, avancés », dans sa carte de 340 px, après
+   « Exclusion de runes », sur une seule colonne : pré-filtrage, puis les
+   interrupteurs (voir
+   README.md § Réglages avancés et exclusion de runes). La carte n'a ni
+   hauteur fixe ni place réservée : elle suit son contenu. **Pré-filtrage par emplacement**, en
    **presets** plutôt qu'un curseur libre — Bas / Moyen
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus
    lent, mais capable de retrouver un build sur un très gros compte),
@@ -204,7 +214,9 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
      et de Précision ; désactivé, ces deux conditions ignorent les auras,
      sans rien retirer des dégâts ni des PV effectifs. Son aide le dit.
      Lu au clic sur « Rechercher », comme les autres réglages de la
-     recherche, et déjà porté par la recette. ⚠️ **Rendu sans condition**,
+     recherche, et déjà porté par la recette. Son aide nomme où se
+     saisissent les auras des autres monstres : « Aura, exclusion, avancés »
+     au bureau, « État de mon monstre » au téléphone. ⚠️ **Rendu sans condition**,
      en dernier de la colonne, même sans aucune aura RES/PRE saisie : les
      activations propres d'un build comptent aussi, et un réglage qui
      apparaîtrait avec la saisie d'une autre carte ne se retrouverait pas.

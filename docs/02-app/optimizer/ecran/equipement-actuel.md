@@ -46,11 +46,14 @@ Ce document décrit la carte « Équipement actuel ».
    du cadre visible. Groupés, ils se déplacent ensemble ou pas du tout. ⚠️ **L'encadré de stats bascule base+bonus
    ↔ total au clic**, comportement propre à `MonsterGear`, partagé avec RTA
    et Siège (voir [rta/feat-sections-runes.md](../../rta/feat-sections-runes.md)).
-   ⚠️ **Affiché dans la carte « Monstre & équipement », SOUS les puces
-   d'exemplaire (colonne interne de droite au bureau), TOUJOURS** — vide
+   ⚠️ **Affiché SOUS les puces d'exemplaire, TOUJOURS** — au bureau dans
+   la boîte « Exemplaire » (616 px, environ 396 px de haut ; en tête de la
+   colonne de droite en A3, sous les réglages en A1 et A2), au téléphone
+   dans la carte « Monstre & équipement » — vide
    (stats à zéro, emplacements grisés, roue sans rune) tant qu'aucun
    monstre n'est choisi,
-   plutôt que de n'apparaître qu'au clic. C'est un `GearSet` NUL construit
+   plutôt que de n'apparaître qu'au clic. La fiche porte, au-dessus, le
+   bandeau du build validé et, dessous, « Valider ce build ». C'est un `GearSet` NUL construit
    en local (`EMPTY_GEAR`, [optimizer/constantes.ts](src/components/outils/optimizer/constantes.ts)),
    pas une variante de `MonsterGear` : le composant partagé n'a besoin
    d'aucune adaptation, `computeStats` sur une base à zéro renvoie déjà des

@@ -17,9 +17,10 @@ export interface ListeDeTravailBureauProps {
   liste: MonstresDeLaListeProps;
 }
 
-// La liste de travail des essentiels, au bureau : la recherche du monstre et le
-// monstre actif sur la rangée du titre de la carte de la liste, les membres
-// bornés à ≈ 4 lignes. Le téléphone garde « Monstre & équipement ».
+// La liste de travail des essentiels, au bureau : « Ajouter un monstre à la
+// liste », la recherche du monstre et le monstre actif sur la rangée du titre
+// de la carte de la liste ; les membres prennent leur hauteur jusqu'à 308 px,
+// puis défilent. Le téléphone garde « Monstre & équipement ».
 //
 // ⚠️ **Le monstre actif tient sa place, vide ou non** : choisir un monstre ne
 // déplace ni le champ ni la liste (un clic ne déplace jamais ce qu'on vient de
@@ -31,7 +32,6 @@ export default function ListeDeTravailBureau({ listes, recherche, monstreActif, 
       <div className="mt-2">
         <MonstresDeLaListe
           {...liste}
-          compacte
           enTete={
             <>
               <div className="min-w-0 flex-1">{recherche}</div>

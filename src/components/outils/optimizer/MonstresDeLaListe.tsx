@@ -39,17 +39,17 @@ export interface MonstresDeLaListeProps {
   setReleaseAllConfirm: Dispatch<SetStateAction<string | null>>;
   // Forme de bureau des essentiels (`bureau/ListeDeTravailBureau.tsx`),
   // que le téléphone ne prend pas : ce que la rangée du titre porte après lui
-  // (« Rechercher un monstre… », le monstre actif), et les membres bornés à
-  // ≈ 4 lignes au lieu de 308 px.
+  // (« Rechercher un monstre… », le monstre actif). Sans liste active, le
+  // titre y devient « Ajouter un monstre à la liste » : il nomme le champ qui
+  // le suit (décision de l'utilisateur, arrêt 4).
   enTete?: ReactNode;
-  compacte?: boolean;
 }
 
-export default function MonstresDeLaListe({ activeList, activeMembers, ajoutListe, handleAddToList, setEquipeOuverte, lists, optimizer, exclusionData, artifacts, rapportZoneC, groupesMembres, runeById, artifactById, choisirMembreDeLaListe, setReleaseConfirm, setReleaseArtifactsConfirm, setRemoveMemberConfirm, rappelAuras, listHasValidated, setReleaseAllConfirm, enTete, compacte = false }: MonstresDeLaListeProps) {
+export default function MonstresDeLaListe({ activeList, activeMembers, ajoutListe, handleAddToList, setEquipeOuverte, lists, optimizer, exclusionData, artifacts, rapportZoneC, groupesMembres, runeById, artifactById, choisirMembreDeLaListe, setReleaseConfirm, setReleaseArtifactsConfirm, setRemoveMemberConfirm, rappelAuras, listHasValidated, setReleaseAllConfirm, enTete }: MonstresDeLaListeProps) {
   const titre = (
     <>
-      <p className="text-[12px] font-semibold text-ink-dim truncate">
-        {activeList ? `Monstres de « ${activeList.name} »` : 'Monstres de la liste'}
+      <p className={`text-[12px] font-semibold text-ink-dim ${enTete && !activeList ? 'line-clamp-2' : 'truncate'}`}>
+        {activeList ? `Monstres de « ${activeList.name} »` : enTete ? 'Ajouter un monstre à la liste' : 'Monstres de la liste'}
       </p>
       {activeList && <span className="flex-none text-[11px] text-ink-dimmer">{activeMembers.length}</span>}
     </>
@@ -93,7 +93,10 @@ export default function MonstresDeLaListe({ activeList, activeMembers, ajoutList
           {activeList ? "Aucun monstre dans cette liste pour l'instant." : 'Choisis ou crée une liste ci-dessus.'}
         </p>
       ) : (
-        <div className={`mt-1 ${compacte ? 'max-h-[164px]' : 'max-h-[308px]'} space-y-1 overflow-y-auto`}>
+        // Bornés à 308 px aux deux formats : la liste prend la hauteur de ses
+        // membres jusque-là, puis défile (au bureau, décision de l'utilisateur
+        // à l'arrêt 4 : ~300 px au lieu des ≈ 4 lignes d'avant).
+        <div className="mt-1 max-h-[308px] space-y-1 overflow-y-auto">
           {groupesMembres.filter(g => g.members.length > 0).map((g, numero) => {
             const membres = g.members.map(m => {
               const resolved = resolveExclusionEntry(m.selector, exclusionData);

@@ -146,10 +146,10 @@ export const GABARITS_ESSENTIELS: Gabarit[] = [
   {
     id: 'liste', nom: 'Liste de travail (et choix du monstre)', largeur: LARGEUR_ESSENTIELS, hauteurEstimee: 412,
     composant: 'ListeDeTravailBureau (bureau/ListeDeTravailBureau.tsx), composant à part',
-    telephone: 'Partage MonstresDeLaListe avec le téléphone, par une variante qu\'il ne prend pas (props enTete et compacte) ; SelecteurListes, MonsterSourcePicker et OptimizerImportButton tels quels.',
+    telephone: 'Partage MonstresDeLaListe avec le téléphone, par une variante qu\'il ne prend pas (prop enTete) ; SelecteurListes, MonsterSourcePicker et OptimizerImportButton tels quels.',
     changements: [
       '« Rechercher un monstre… » et le monstre actif passent sur la rangée du titre de la carte de la liste ; plus de bloc « Monstre à optimiser » au-dessus.',
-      'Les membres défilent dans ≈ 4 lignes (164 px) au lieu de 308 px.',
+      'Sans liste active, le titre devient « Ajouter un monstre à la liste » (il nomme le champ qui le suit).',
       'Les puces d\'exemplaire (Box / RTA / Défenses siège / Offenses siège) quittent ce bloc pour la carte « Exemplaire ».',
       'Dans cette vue : « Importer une équipe » sans sources, gestes de la liste inertes (ils restent dans OptimizerSection).',
     ],

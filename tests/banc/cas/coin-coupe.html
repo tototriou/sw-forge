@@ -12,7 +12,7 @@
 </style>
 </head>
 <body>
-<!-- Relecture n° 7 (Codex) : un panneau `overflow: hidden` de 100 px porte un enfant absolu situé entre 120 et
+<!-- Cas de relecture : un panneau `overflow: hidden` de 100 px porte un enfant absolu situé entre 120 et
      140 px, entièrement coupé ; sa boîte invisible passe sous l'icône de l'avatar voisin : pas de chevauchement. -->
 <div style="display: flex; padding: 16px 8px">
   <div id="panneau" style="position: relative; width: 100px; height: 40px; overflow: hidden; flex: none; background: #eee" data-attendu="contenu">
@@ -35,7 +35,7 @@
     <img data-pastille="element" id="moitie-icone" class="icone" src="elements/fire.png" alt="" data-attendu="chevauchement" data-attendu-avec="moitie" data-attendu-aire="120">
   </span>
 </div>
-<!-- Relecture n° 7 (Codex) : le halo décoratif coupé d'une carte (D8) n'entre pas dans `chevauchement`, même là où
+<!-- Cas de relecture : le halo décoratif coupé d'une carte n'entre pas dans `chevauchement`, même là où
      il se voit sous l'icône d'un avatar de la carte. -->
 <div id="carte-halo" style="position: relative; width: 200px; height: 80px; margin: 16px 8px; overflow: hidden; background: #eee" data-attendu="">
   <div id="halo" aria-hidden="true" style="pointer-events: none; position: absolute; right: -40px; top: -40px; width: 112px; height: 112px; border-radius: 50%; background: #9cf" data-attendu=""></div>

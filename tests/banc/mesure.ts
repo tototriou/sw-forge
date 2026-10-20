@@ -147,7 +147,7 @@
 //   l'élément, sans un pixel de dessin) ne compte ni dans la mesure de son
 //   élément ni dans celle de ses ancêtres hors `html`. La règle « page », elle,
 //   le COMPTE : un `::after` qui élargit la page laisse un défilement latéral
-//   au téléphone (décision D9 de l'utilisateur ; relevé
+//   au téléphone (règle voulue par l'utilisateur ; relevé
 //   tests/banc/cas/zone-tactile-page.html : `isMobile` élargit la fenêtre de
 //   mise en page à 373 px pour 360). Au second passage, sa règle « contenu »
 //   et celle de ses ancêtres se relisent ce pseudo-élément retiré ; la page,
@@ -185,7 +185,7 @@
 //   nombre d'exemplaires) : son contact avec SON portrait est permis, jamais
 //   avec le reste — ni un ancêtre au-delà du portrait, ni une autre pastille,
 //   ni la couronne, ni rien d'autre que ce qui est dessiné dans le cadre du
-//   portrait. Décisions D11 et D15 de l'utilisateur ; aucune généralisation à
+//   portrait. Règle voulue par l'utilisateur ; aucune généralisation à
 //   un autre élément absolu à décalage négatif (halo, superposition
 //   `-inset-px`, bouton en coin hors de sa liste — exception suivante), qui
 //   se mesure comme les autres.
@@ -633,7 +633,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
   };
 
   // Pastille du portrait (tête) : la liste explicite des repères reconnus —
-  // pas `couronne` (D15).
+  // pas `couronne`.
   const PASTILLES_RECONNUES = new Set(['element', 'lead', 'exemplaires']);
   // Bouton en coin (tête) : la liste explicite de ses membres.
   const BOUTONS_EN_COIN = new Set(['retirer-rta', 'modifier-defense']);

@@ -629,7 +629,7 @@ export default async function testRelicSearch() {
     egal(ctx.bornes.min.atk, 1, 'F bis : Lmin = 1 sur la statistique forcée');
     const { trace } = verifierFixture('F bis', p0, ctx, { optimumRunes: [101, 102, 103, 104, 105, 106], rid: 951, N: 1 });
     egal(trace.appariement.quickOkMax, true, 'F bis : quickOk maximum accepte (fusion dans le ceil)');
-    egal(trace.appariement.validationFinale, true, 'F bis : validation finale accepte (floor(B × Lmin / 100) = 1, 103 + 1 = 104 ≤ 104)');
+    egal(trace.appariement.validationFinale, true, 'F bis : validation finale accepte (relique ATQ +1 % fondue dans le ceil : 101 + ceil(101 × 2 / 100) = 104 ≤ 104)');
     const diag = diagnoseFeasibility({ ...p0, relicContext: ctx }).find((d) => d.key === 'atk')!;
     ok(diag.satisfiable && diag.bound <= 104, `F bis : diagnostic maximum satisfiable (borne ${diag.bound} ≤ 104)`);
     // Le filtre final EXACT avec la relique réelle : 104 ≤ 104.

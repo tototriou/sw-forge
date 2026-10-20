@@ -118,7 +118,9 @@ d'être jetés. Jamais recalculé ailleurs, seulement fusionné et mis en forme.
 - **Une tentative** est une paire (combinaison A, combinaison B) jugée avec
   UN apport d'artéfacts du test conjoint : chacun des apports réellement
   atteignables (`artPossibles`), à défaut celui de la paire figée
-  (`artFlatFige`). Une tentative en échec liste TOUTES ses conditions en
+  (`artFlatFige`) — et, en mode relique `recherche`, avec UNE relique
+  représentative (`fichesDuTestConjoint`) : apport par apport, relique par
+  relique, dans cet ordre. Une tentative en échec liste TOUTES ses conditions en
   échec, jamais seulement la première : un `StatShortfall` par condition
   (`key`, `kind`, `requested`, `actual`, `shortfall`, toujours positif).
 - **Par condition** (`nearMissByCondition`) : seule compte une tentative qui
@@ -137,16 +139,18 @@ d'être jetés. Jamais recalculé ailleurs, seulement fusionné et mis en forme.
   le maximum juge un build sur sa pire condition manquée ; une somme
   mélangerait les unités.
 - **`actual`** est la valeur que juge le test conjoint : fiche, décalage de
-  l'apport essayé, terme relique en mode `recherche` (`relTermMax`,
-  `relTermMin`), auras comptées par `totalCondition` avec les auras propres
-  exactes des six runes. La relique en « OU » qui suit en mode `recherche`
-  ([reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md))
-  n'alimente pas le quasi-succès : un build que la borne garde et
-  qu'aucune relique ne rend conforme n'y laisse aucune tentative, comme
-  avant elle.
+  l'apport essayé, auras comptées par `totalCondition` avec les auras
+  propres exactes des six runes. En mode relique `recherche`, une tentative
+  est un apport ET une relique représentative : la fiche est calculée avec
+  elle ([reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md)),
+  et le quasi-succès retient la tentative qui approche le plus le build,
+  comme sa validation — jamais la borne par stat, qui accordait la
+  meilleure PV %, ATQ % et DEF % à la fois et déclarait réussi un build
+  qu'aucune relique ne rend conforme.
 - **`NearMiss`** : `runeIds`, `stats`, `effTotal`, `shortfalls`. `stats` est
   la fiche `computeStats` calculée avec la paire figée, et sans relique en
-  mode `recherche` : les écarts viennent de l'apport essayé, la fiche non.
+  mode `recherche` : les écarts viennent de l'apport et de la relique
+  essayés, la fiche non.
   `effTotal` est la somme sur six runes de la mesure Efficience ou Score
   active pendant la recherche.
 - **Toujours calculé** : avec ou sans candidats. Une paire peut alimenter le

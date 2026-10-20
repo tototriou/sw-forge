@@ -192,13 +192,10 @@ admissibles. Ce repli ne garantit pas l'optimum sur l'inventaire entier.
   trois principales, et rend deux artéfacts incomparables sous un maximum
   actif sur leur principale
   ([optimiseur-artefacts.md § Pré-filtrage exact — pertinence, obligation, dominance](optimiseur-artefacts.md)).
-- **En mode relique `recherche`**, les stats du candidat sont sans relique
-  et le terme de relique s'ajoute en majorant côté minimum, en minorant
-  côté maximum ; un build gardé passe ensuite la relique en « OU » (une
-  relique représentative à la fois, minimums avec l'apport essayé,
-  maximums avec `artFlatMin`, parce que la réduction ci-dessus n'est exacte
-  que pour les minimums), et l'exactitude reste celle de la résolution avec
-  la relique et la paire réelles —
+- **En mode relique `recherche`**, les stats du candidat sont sans relique,
+  et chaque apport s'essaie avec chaque relique représentative (la relique
+  en « OU ») : le test est exact sur la relique comme sur la paire, et
+  rejoint le jugement de la résolution —
   [reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md).
 
 ## Filtre final sur la vraie paire

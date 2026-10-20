@@ -52,7 +52,7 @@ import {
   comboAFeasible,
   pairBuckets,
   prepareSearch,
-  reliqueRepresentativeConvient,
+  fichesDuTestConjoint,
   satisfiesSets,
 } from './runeBuildOptim';
 
@@ -653,36 +653,38 @@ export class Collecteur {
    */
   valider(runes: RuneDetail[], pos: number): boolean {
     this.pos = pos;
-    const { base, artifacts, relic, requirement, metric, minEntries, maxEntries, artPossibles, artFlatFige, relicRelache, relTermMax, relTermMin } = this.prepared;
+    const { base, artifacts, relic, requirement, metric, minEntries, maxEntries, artPossibles, artFlatFige, relicRelache } = this.prepared;
     const active = activeSets(runes.map((r) => r.set));
     if (missingSets(requirement.sets, active).length > 0) return false;
     const gear: GearSet = { base, runes, artifacts, relic: relicRelache ? undefined : relic };
     const stats = computeStats(gear);
     const apports = artPossibles.length > 0 ? artPossibles : [artFlatFige];
+    const fiches = fichesDuTestConjoint(gear, stats, this.prepared);
     const propres = aurasPropresDesSetsActifs(active);
     const runeIds = runes.map((r) => r.id);
     const effTotal = runes.reduce((sum, r) => sum + valueOf(r, metric), 0);
     let ok = false;
-    for (const apport of apports) {
+    tentatives: for (const apport of apports) {
       const decalage = (k: StatKey) => (apport[k] ?? 0) - (artFlatFige[k] ?? 0);
-      const shortfalls: StatShortfall[] = [];
-      for (const { k, min } of minEntries) {
-        const row = stats.find((r) => r.key === k);
-        const actual = totalCondition((row?.total ?? 0) + decalage(k) + relTermMax(k), k, requirement, propres);
-        if (actual < min) shortfalls.push({ key: k, kind: 'min', requested: min, actual, shortfall: min - actual });
+      for (const fiche of fiches) {
+        const shortfalls: StatShortfall[] = [];
+        for (const { k, min } of minEntries) {
+          const row = fiche.find((r) => r.key === k);
+          const actual = totalCondition((row?.total ?? 0) + decalage(k), k, requirement, propres);
+          if (actual < min) shortfalls.push({ key: k, kind: 'min', requested: min, actual, shortfall: min - actual });
+        }
+        for (const { k, max } of maxEntries) {
+          const row = fiche.find((r) => r.key === k);
+          const actual = totalCondition((row?.total ?? 0) + decalage(k), k, requirement, propres);
+          if (actual > max) shortfalls.push({ key: k, kind: 'max', requested: max, actual, shortfall: actual - max });
+        }
+        if (shortfalls.length === 0) {
+          ok = true;
+          break tentatives;
+        }
+        this.considerNearMiss(runeIds, stats, effTotal, shortfalls);
       }
-      for (const { k, max } of maxEntries) {
-        const row = stats.find((r) => r.key === k);
-        const actual = totalCondition((row?.total ?? 0) + decalage(k) + relTermMin(k), k, requirement, propres);
-        if (actual > max) shortfalls.push({ key: k, kind: 'max', requested: max, actual, shortfall: actual - max });
-      }
-      if (shortfalls.length === 0) {
-        ok = true;
-        break;
-      }
-      this.considerNearMiss(runeIds, stats, effTotal, shortfalls);
     }
-    if (ok && relicRelache) ok = reliqueRepresentativeConvient(gear, this.prepared, propres);
     if (!ok) return false;
     this.candidates.push({ runeIds, stats, effTotal });
     if (this.avecPositions) this.positions.push(pos);
@@ -702,15 +704,16 @@ export class Collecteur {
     if (!v.setsEtStats(ga, gb)) return false;
     this.materielCourant = null;
     let ok = false;
-    for (let a = 0; a < v.nApports; a++) {
-      const n = v.ecarts(a);
-      if (n === 0) {
-        ok = true;
-        break;
+    tentatives: for (let a = 0; a < v.nApports; a++) {
+      for (let f = 0; f < v.nFiches; f++) {
+        const n = v.ecarts(a, f);
+        if (n === 0) {
+          ok = true;
+          break tentatives;
+        }
+        this.considererTypee(v, n);
       }
-      this.considererTypee(v, n);
     }
-    if (ok && this.prepared.relicRelache) ok = v.reliqueConvient();
     if (!ok) return false;
     const { runeIds, stats, effTotal } = this.materiel(v);
     this.candidates.push({ runeIds, stats, effTotal });

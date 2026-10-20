@@ -136,7 +136,7 @@ export function relicPctMinByStat(eligibles: RelicDetail[], principaleForcee: Re
  * Les reliques REPRÉSENTATIVES des éligibles pour les conditions posées : une
  * relique éligible fait tenir ses conditions à un build (à apport d'artéfacts
  * fixé) si et seulement si l'une d'elles le fait. Le test conjoint de la
- * recherche les essaie une à une (`reliqueRepresentativeConvient`,
+ * validation les essaie une à une (`fichesDuTestConjoint`,
  * runeBuildOptim.ts).
  *
  * ⚠️ **Pourquoi elles suffisent** : une relique n'agit sur les conditions que

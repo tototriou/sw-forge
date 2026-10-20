@@ -32,7 +32,7 @@
 // qu'une principale et une paire deux emplacements, d'où des rejets.
 
 import { isDeepStrictEqual } from 'node:util';
-import { candidatsDeLaBorneSeule } from './relique-ou.test';
+import { corpusAvecRejetes } from './relique-ou.test';
 import { ArtifactDetail, RelicDetail, RuneDetail } from '../src/types';
 import { buildOptimizerRecipe, OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { DEFAULT_DAMAGE_SETUP, artifactDamageProfile } from '../src/lib/damage';
@@ -178,13 +178,12 @@ export function testCliClassementParMode() {
     const res = runSearchToCompletion(params);
     ok(res.candidates.length > 0 && !res.truncated, `${mode} : ${res.candidates.length} candidat(s) collecté(s), recherche complète (tronqué : ${res.truncated})`);
     // En relique `recherche`, la recherche n'émet plus les faux positifs de
-    // la borne (relique en « OU ») : les candidats de la borne seule, un
-    // sur-ensemble dans le même ordre, gardent l'issue « rejeté » exercée.
-    const candidats = mode === 'recherche' ? candidatsDeLaBorneSeule(params) : res.candidates;
+    // la borne par stat (relique en « OU ») : le corpus les ajoute après ses
+    // candidats, pour garder l'issue « rejeté » exercée.
+    const candidats = mode === 'recherche' ? corpusAvecRejetes(params) : res.candidates;
     if (mode === 'recherche') {
-      const sortis = new Set(res.candidates.map(cleBuild));
-      ok(candidats.length > res.candidates.length && candidats.filter((c) => sortis.has(cleBuild(c))).length === res.candidates.length,
-        `recherche : la borne seule rend ${candidats.length} candidats, dont les ${res.candidates.length} de la recherche`);
+      egal(candidats.slice(0, res.candidates.length).map(cleBuild), res.candidates.map(cleBuild), 'recherche : le corpus commence par les candidats de la recherche');
+      ok(candidats.length > res.candidates.length, `recherche : ${candidats.length - res.candidates.length} faux positif(s) de la borne ajoutés au corpus`);
     }
     const realDamage = buildRealDamageContext(recipe, LUSHEN, params.artifacts);
     ok(realDamage != null, `${mode} : sort calculable`);

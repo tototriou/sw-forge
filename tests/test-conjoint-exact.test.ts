@@ -1,22 +1,24 @@
-// Le test conjoint de la validation ne perd aucun build conforme, maximums de
-// PV/ATQ/DEF compris : les apports d'artéfacts atteignables
-// (`apportsAtteignables`, artifactOptim.ts) gardent, sur une stat sous
-// maximum, l'apport le plus FAIBLE de chaque principale, et toutes les
-// valeurs sous minimum ET maximum.
+// Le test conjoint de la validation est EXACT : un build est collecté si et
+// seulement si une relique possible et une vraie paire d'artéfacts lui font
+// tenir toutes ses conditions, maximums de PV/ATQ/DEF compris. Les apports
+// d'artéfacts atteignables (`apportsAtteignables`, artifactOptim.ts) gardent
+// l'apport le plus fort sous minimum, le plus FAIBLE sous maximum, toutes les
+// valeurs sous les deux ; en relique `recherche`, les reliques représentatives
+// s'essaient une à une (`fichesDuTestConjoint`, runeBuildOptim.ts).
 //
 // Deux parties :
-// 1. le contre-exemple (PV de base 1000, reliques PV +10 et ATQ +10,
-//    artéfacts PV +50 et +300, 1100 ≤ PV ≤ 1200) : ne garder que le +300
-//    écartait un build que relique PV + aucun artéfact (1100) ou + 50 (1150)
-//    rend conforme — en relique `recherche` libre, principale PV forcée et
-//    relique fixe ;
-// 2. un différentiel sur des pools générés (seed fixe), minimum ET maximum
-//    sur une même stat souvent : sur les mêmes compartiments, chaque paire
-//    de demi-builds que l'énumération BRUTE déclare conforme (relique
-//    possible × vraie paire d'artéfacts de l'inventaire, emplacement vide
-//    compris, `respecteConditionsAvecRelique` : minimums ET maximums) est
-//    collectée, par la référence (`pairBuckets`) comme par la production
-//    (`searchBuilds`).
+// 1. le contre-exemple, aux valeurs du jeu (principale d'artéfact PV +1500,
+//    ATQ +100, DEF +100) : 20 000 PV sans artéfact, 21 000 ≤ PV ≤ 22 000 ;
+//    ne garder que +3 000 écartait un build qu'un seul artéfact PV (21 500)
+//    rend conforme — en relique `recherche` libre, principale forcée,
+//    relique fixe et sans relique ; un maximum seul aussi ;
+// 2. un différentiel sur des pools générés (seed fixe, principales aux
+//    valeurs du jeu) : sur les mêmes compartiments, chaque paire de
+//    demi-builds est collectée par la référence (`pairBuckets`) et par la
+//    production (`searchBuilds`) si et seulement si l'énumération BRUTE la
+//    déclare conforme (relique possible × vraie paire de l'inventaire,
+//    emplacement vide compris, `respecteConditionsAvecRelique` : minimums ET
+//    maximums) ; production et référence rendent le même quasi-succès.
 
 import { ArtifactDetail, BaseStats, RelicDetail, RuneDetail } from '../src/types';
 import { RelicContext, resoudreContexteRelique } from '../src/lib/relicOptim';
@@ -153,6 +155,7 @@ export default function testTestConjointExact() {
     const refCles = new Set(reference.candidates.map((c) => cle(c.runeIds)));
     const prodCles = new Set(production.candidates.map((c) => cle(c.runeIds)));
     const perdus: string[] = [];
+    const conformes = new Set<string>();
     for (const bA of bucketsA) for (const bB of bucketsB) for (const a of bA.combos) for (const b of bB.combos) {
       if (a.jokers + b.jokers > 1) continue;
       const runes = [...a.runes, ...b.runes];
@@ -160,10 +163,17 @@ export default function testTestConjointExact() {
       if (!conformeBrut(BASE, runes, reliquesPossibles, arts, requirement)) continue;
       bilan.conformes++;
       const k = cle(runes.map((r) => r.id));
+      conformes.add(k);
       if (!refCles.has(k) || !prodCles.has(k)) perdus.push(k);
     }
     bilan.collectes += reference.candidates.length;
     egal(perdus, [], `${nom} : aucun conforme de l’énumération brute perdu (référence et production)`);
+    // Et rien d'autre : la validation est EXACTE, relique et artéfacts compris.
+    egal(reference.candidates.map((c) => cle(c.runeIds)).filter((k) => !conformes.has(k)), [], `${nom} : aucun build collecté que l’énumération brute rejette`);
+    // La production rend la référence, quasi-succès compris (D31 : les
+    // tentatives relique par relique en mode recherche).
+    egal([production.candidates, production.explored, production.nearMissByCondition, production.globalNearMiss],
+      [reference.candidates, reference.explored, reference.nearMissByCondition, reference.globalNearMiss], `${nom} : production = référence (candidats, paires traitées, quasi-succès)`);
   }
   console.log(`  · différentiel : ${JSON.stringify(bilan)}`);
   ok(bilan.cas >= 30 && bilan.conformes > 0 && bilan.minEtMax > 5 && Object.keys(bilan.parMode).length === 4,

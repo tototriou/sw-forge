@@ -2,9 +2,10 @@
 // (src/lib/optimizerColonnes.ts).
 
 import {
-  AUCUNE_COLONNE, LARGEURS_BUREAU, SEUILS_BUREAU, agencementBureau, basculerColonne, colonnesAffichees, colonnesParDefaut,
-  deuxColonnesTiennent, ouvrirColonne, type ColonnesOuvertes,
+  AUCUNE_COLONNE, COLONNE_DROITE_OBJECTIF_A_COTE, LARGEURS_BUREAU, SEUILS_BUREAU, agencementBureau, basculerColonne, colonnesAffichees,
+  colonnesParDefaut, deuxColonnesTiennent, formeObjectifBureau, largeurColonneDroite, ouvrirColonne, type ColonnesOuvertes,
 } from '../src/lib/optimizerColonnes';
+import { LARGEUR_OBJECTIF_ETROIT } from '../src/components/outils/optimizer/bureau/ObjectifEtRechercherBureau';
 import { LARGEUR_ESSENTIELS } from '../src/components/outils/optimizer/bureau/ListeDeTravailBureau';
 import { LARGEUR_ARTEFACTS } from '../src/components/outils/optimizer/bureau/ArtefactsEtReliqueBureau';
 import { LARGEUR_COMPLEMENTS } from '../src/components/outils/optimizer/bureau/SetsAuraBureau';
@@ -64,4 +65,33 @@ export function testOptimizerAgencementsBureau() {
   egal(affichees(aux, false), { artefacts: false, complements: true }, 'ouvrir « Aura… » là où une seule tient : elle seule');
   egal(affichees(aux, true), { artefacts: true, complements: true }, 'ouvrir « Aura… » là où les deux tiennent : elle s\'ajoute');
   egal(affichees(ouvrirColonne(aux, 'complements'), false), { artefacts: false, complements: true }, 'ouvrir une colonne déjà ouverte ne la referme pas');
+}
+
+// La forme du bloc « Objectif et Rechercher » : étroite à côté d'« Exemplaire »
+// quand la colonne de droite fait au moins 616 + 16 + 340, large dessous sinon,
+// étroite en A2, large en A1. Seules la largeur et les colonnes affichées la
+// décident (rien de la recherche n'y entre : elle ne change pas au lancement).
+export function testOptimizerFormeObjectifBureau() {
+  titre('Optimizer · forme du bloc « Objectif et Rechercher » au bureau');
+  const aucune = { artefacts: false, complements: false };
+  const art = { artefacts: true, complements: false };
+  const aux = { artefacts: false, complements: true };
+  const deux = { artefacts: true, complements: true };
+  egal(COLONNE_DROITE_OBJECTIF_A_COTE, 972, 'à côté d\'« Exemplaire » : 616 + 16 + 340');
+  egal(LARGEUR_OBJECTIF_ETROIT, LARGEURS_BUREAU.objectifEtroit, 'le bloc déclare la largeur d\'où vient le seuil');
+  egal([758, 903].map((l) => formeObjectifBureau(l, art)), ['large', 'large'], 'A1 : large');
+  egal([904, 1078, 1179].map((l) => formeObjectifBureau(l, art)), ['etroite', 'etroite', 'etroite'], 'A2 : étroite, à droite des essentiels');
+  egal(formeObjectifBureau(null, art), 'large', 'largeur inconnue : large');
+
+  // A3 : la colonne de droite décide, et seules les colonnes INSÉRÉES comptent.
+  egal(largeurColonneDroite(1230, art), 666, '1230, « Artéfacts » superposée : elle ne prend aucune place');
+  egal(formeObjectifBureau(1230, art), 'large', '1230 : colonne de droite de 666, large');
+  egal([1535, 1536].map((l) => formeObjectifBureau(l, aucune)), ['large', 'etroite'], 'sans colonne insérée : étroite dès 1536 (972 de colonne)');
+  egal(largeurColonneDroite(1614, art), 714, '1614, « Artéfacts » insérée : 1614 − 564 − 336');
+  egal([formeObjectifBureau(1614, art), formeObjectifBureau(1614, aucune)], ['large', 'etroite'], '1614 : large avec « Artéfacts » insérée, étroite sans');
+  egal(formeObjectifBureau(1614, aux), 'large', '1614 : « Aura… » insérée (356), large');
+  egal([1871, 1872].map((l) => formeObjectifBureau(l, art)), ['large', 'etroite'], '« Artéfacts » insérée : étroite dès 1872');
+  egal([1891, 1892].map((l) => formeObjectifBureau(l, aux)), ['large', 'etroite'], '« Aura… » insérée : étroite dès 1892');
+  egal(largeurColonneDroite(2254, deux), 998, '2254, les deux insérées : 2254 − 564 − 336 − 356');
+  egal(formeObjectifBureau(2254, deux), 'etroite', '2254 : étroite, les deux colonnes insérées');
 }

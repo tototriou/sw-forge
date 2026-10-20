@@ -3,6 +3,7 @@ import { Download, Search, Square, Upload } from 'lucide-react';
 import { Bouton } from '../../../../ui';
 import Segmented from '../../../../ui/Segmented';
 import { OBJECTIVE_LABELS } from '../../../../lib/runeBuildOptim';
+import type { FormeObjectifBureau } from '../../../../lib/optimizerColonnes';
 import ProgressionRecherche, { type ProgressionRechercheProps } from '../ProgressionRecherche';
 import { ResumeCombat, TitreObjectifRecherche, type ObjectifEtActionsProps } from '../ObjectifEtActions';
 
@@ -13,7 +14,8 @@ export const LARGEUR_OBJECTIF_LARGE_MIN = 616;
 // lancé la recherche ne l'arrête pas (A.2.2-8 de la refonte).
 export const DELAI_ARRET_MS = 300;
 
-export type FormeObjectif = 'etroite' | 'large';
+// Choisie par la mise en page (`formeObjectifBureau`, src/lib/optimizerColonnes.ts).
+export type FormeObjectif = FormeObjectifBureau;
 
 export interface ObjectifEtRechercherBureauProps extends ObjectifEtActionsProps {
   forme: FormeObjectif;

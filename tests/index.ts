@@ -16,7 +16,7 @@ import { testRenduOptimizerBandesEquipesClair, testRenduOptimizerBandesEquipesSo
 import testImport from './import.test';
 import { verificationsImportEquipes } from './import-equipes.test';
 import { testOptimizerImportNavigation } from './optimizer-import-navigation.test';
-import { testOptimizerColonnes, testOptimizerAgencementsBureau } from './optimizer-colonnes.test';
+import { testOptimizerColonnes, testOptimizerAgencementsBureau, testOptimizerFormeObjectifBureau } from './optimizer-colonnes.test';
 import { testRenduRtaExportOptimizer, testRenduTelephoneRtaExportOptimizer, testRenduRecoExportOptimizer,
   testRenduTelephoneRecoExportOptimizer, testRenduOptimizerImportRecommandation, testRenduTelephoneOptimizerImportRecommandation,
   testOptimizerImportRtaRecoBranchement } from './rendu/rta-reco-export.test';
@@ -670,6 +670,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testOptimizerExclusion', testOptimizerExclusion],
   ['testOptimizerColonnes', testOptimizerColonnes],
   ['testOptimizerAgencementsBureau', testOptimizerAgencementsBureau],
+  ['testOptimizerFormeObjectifBureau', testOptimizerFormeObjectifBureau],
   ['testListeExemplaires', testListeExemplaires],
   ['testOptimizerExemplaireMontage', testOptimizerExemplaireMontage],
   ['testOptimizerRecipeImportSelection', testOptimizerRecipeImportSelection],

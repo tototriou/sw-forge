@@ -261,6 +261,7 @@ import testRelicOptim from './relic-optim.test';
 import testRelicOracle, { testRelicOracleGroupesEffetUnique, testRelicOracleOptimumParScore } from './relic-oracle.test';
 import testRelicSearch from './relic-search.test';
 import testReliqueOu from './relique-ou.test';
+import testTestConjointExact from './test-conjoint-exact.test';
 import testRelicQueue from './relic-queue.test';
 import testResolutionRapide, { testResolutionRapideNaN } from './resolution-rapide.test';
 import testMemoCombat from './memo-combat.test';
@@ -726,6 +727,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRelicOracleOptimumParScore', testRelicOracleOptimumParScore],
   ['testRelicSearch', testRelicSearch],
   ['testReliqueOu', testReliqueOu],
+  ['testTestConjointExact', testTestConjointExact],
   ['testRelicQueue', testRelicQueue],
   ['testResolutionRapide', testResolutionRapide],
   ['testResolutionRapideNaN', testResolutionRapideNaN],

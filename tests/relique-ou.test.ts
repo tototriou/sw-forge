@@ -162,7 +162,7 @@ export default function testReliqueOu() {
     const ctx = resoudreContexteRelique(LIBRE, undefined, inv);
     const p0 = params(pool, requirement, { base, relicContext: ctx });
     const p = { ...p0, artifactBounds: bornes(p0, arts) };
-    egal(p.artifactBounds.possibles, [{ hp: 100 }], 'artéfacts : `artPossibles` ne garde que le meilleur PV (+100) — exact pour les minimums seulement');
+    egal(p.artifactBounds.possibles.map((a) => a.hp ?? 0).sort((x, y) => x - y), [0, 50, 100], 'artéfacts : sous minimum ET maximum de PV, `artPossibles` garde toutes les valeurs d’apport');
     const r = searchBuilds(p);
     egal(r.candidates.map(cle), ['201,202,203,204,205,206'], 'maximum PV sous artéfacts : le build est collecté');
     const res = resoudreCandidat(p, { runeIds: pool.map((x) => x.id), stats: [], effTotal: 0 }, ctx, { ...REGLAGES_BASE, inventaireArtefacts: arts });

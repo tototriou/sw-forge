@@ -3,8 +3,9 @@ import MonsterAvatar from '../../../MonsterAvatar';
 import MonstresDeLaListe, { type MonstresDeLaListeProps } from '../MonstresDeLaListe';
 import { type Monster } from '../../../../types';
 
-// Largeur de la colonne des essentiels (docs/02-app/optimizer/ecran/README.md,
-// « Mise en page d'ensemble »), commune à la liste et au set de runes.
+// La place de la colonne des essentiels (docs/02-app/optimizer/ecran/README.md,
+// « Mise en page d'ensemble ») : son panneau en prend 540, le reste va à
+// l'écart avec la colonne suivante (`RETRAIT_PANNEAU`, src/lib/optimizerColonnes.ts).
 export const LARGEUR_ESSENTIELS = 548;
 
 export interface ListeDeTravailBureauProps {
@@ -17,21 +18,21 @@ export interface ListeDeTravailBureauProps {
   liste: MonstresDeLaListeProps;
 }
 
-// La liste de travail des essentiels, au bureau : la recherche du monstre et le
-// monstre actif sur la rangée du titre de la carte de la liste, les membres
-// bornés à ≈ 4 lignes. Le téléphone garde « Monstre & équipement ».
+// La liste de travail des essentiels, au bureau : « Ajouter un monstre à la
+// liste », la recherche du monstre et le monstre actif sur la rangée du titre
+// de la carte de la liste ; les membres prennent leur hauteur jusqu'à 308 px,
+// puis défilent. Le téléphone garde « Monstre & équipement ».
 //
 // ⚠️ **Le monstre actif tient sa place, vide ou non** : choisir un monstre ne
 // déplace ni le champ ni la liste (un clic ne déplace jamais ce qu'on vient de
 // cliquer).
 export default function ListeDeTravailBureau({ listes, recherche, monstreActif, liste }: ListeDeTravailBureauProps) {
   return (
-    <section aria-label="Liste de travail" style={{ width: LARGEUR_ESSENTIELS }}>
+    <section aria-label="Liste de travail">
       {listes}
       <div className="mt-2">
         <MonstresDeLaListe
           {...liste}
-          compacte
           enTete={
             <>
               <div className="min-w-0 flex-1">{recherche}</div>

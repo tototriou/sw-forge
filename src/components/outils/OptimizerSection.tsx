@@ -3529,9 +3529,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         // Rechercher » (estimation, objectif, lancement, message d'import,
         // progression compacte) et les résultats, que la page place.
         exemplaire={<ExemplaireBureau {...proprietesExemplaire} />}
-        objectif={(forme) => (
+        objectif={(presentation) => (
           <ObjectifEtRechercherBureau
-            forme={forme}
+            {...presentation}
             estimation={estimate ? <EstimationPool estimate={estimate} /> : null}
             messageImport={<MessageImportRecette message={importMsg} />}
             progression={{ progress, refusal, compteAffiche }}

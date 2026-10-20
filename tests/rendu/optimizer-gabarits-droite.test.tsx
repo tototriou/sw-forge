@@ -118,18 +118,32 @@ export function testRenduOptimizerGabaritsDroite() {
   ok(/grid-template-columns:repeat\(2, minmax\(0, 1fr\)\)/.test(repos), 'étroite : les quatre objectifs en 2 × 2');
   ok(bouton(repos, 'Rechercher')?.desactive === false && cache(repos, 'Rechercher') === false, 'au repos : « Rechercher » actif et lisible');
   ok(cache(repos, 'Arrêter') === true && !!bouton(repos, 'Arrêter')?.desactive, 'au repos : « Arrêter » garde la place, invisible et inactif');
-  ok(cache(repos, 'S3 · vs Feu') === true, 'hors « Dégâts réels » : le résumé du combat garde sa place, hors de lecture');
+  ok(!texteVisible(repos).includes('S3 · vs Feu') && !repos.includes('S3 · vs Feu'), 'hors « Dégâts réels » : aucun résumé du combat, ni place gardée (arrêt 4)');
   egal(bouton(repos, 'Exporter')?.ariaLabel, 'Exporter les paramètres de recherche', '« Exporter » en libellé court, le long reste le nom');
   ok(!!bouton(repos, 'Importer'), '« Importer » présent');
 
   const degats = rendre(<ObjectifEtRechercherBureau {...props({ objective: 'degats_reels' })} />);
   ok(cache(degats, 'S3 · vs Feu') === false && bouton(degats, 'Modifier la description du combat') != null,
     '« Dégâts réels » : le résumé du combat se lit et rouvre la description');
-  // Deux lignes réservées au résumé, au bureau seulement : le choix d'un
-  // monstre l'allonge, et une ligne de plus déplaçait les onglets en A2.
-  const deuxLignes = /<span class="[^"]*\bmin-h-\[2lh\][^"]*">S3 · vs Feu<\/span>/;
-  ok(deuxLignes.test(repos) && deuxLignes.test(degats), 'le résumé du combat a deux lignes réservées, caché ou lisible');
-  ok(!/min-h-\[2lh\]/.test(rendre(<ResumeCombat resumeCombat="S3 · vs Feu" setSetupOuvert={rien} />)), 'sans `deuxLignes` (téléphone) : le résumé garde sa hauteur de texte');
+  // Plus de places réservées dans le bloc, hors « Rechercher » / « Arrêter »
+  // (arrêt 4) : ni lignes du résumé, ni estimation, ni progression en double.
+  ok(!/min-h-\[2lh\]/.test(degats) && !/min-h-\[2lh\]/.test(rendre(<ResumeCombat resumeCombat="S3 · vs Feu" setSetupOuvert={rien} />)),
+    'le résumé du combat prend la hauteur de son texte, au bureau comme au téléphone');
+  ok(!/aria-hidden="true" class="invisible col-start-1 row-start-1"/.test(repos), 'aucune copie invisible qui réserve une place (estimation, progression)');
+
+  // A1 : le bloc en deux parties. Les réglages à leur place, sans
+  // « Rechercher » ; la barre fine, « Rechercher » / « Arrêter » et la
+  // progression, à hauteur fixe (copie invisible de la plus haute) : collée
+  // par le bas, une barre qui grandirait ferait monter « Rechercher ».
+  const reglages = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large', partie: 'reglages' })} />);
+  ok(!bouton(reglages, 'Rechercher') && !!bouton(reglages, 'Exporter') && texteVisible(reglages).includes('Objectif de recherche'),
+    'A1, réglages : objectifs, « Exporter » · « Importer », sans « Rechercher »');
+  const barre = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large', partie: 'barre', status: 'running' })} />);
+  ok(!!bouton(barre, 'Arrêter') && !texteVisible(barre).includes('Objectif de recherche') && /aria-hidden="true" class="invisible col-start-1 row-start-1"/.test(barre),
+    'A1, barre fine : « Arrêter » à la place de « Rechercher », sans les objectifs, progression dans la place de la plus haute');
+  // Forme large : « Rechercher » à droite de « Exporter » · « Importer » (hors d'une colonne superposée, à 1230).
+  const large = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large' })} />);
+  ok(/flex-row-reverse/.test(large) && /flex-none w-60/.test(large), 'forme large : « Rechercher », 240 px, à droite de sa rangée');
 
   // Pendant une recherche : « Arrêter » à la place de « Rechercher », inactif au premier rendu (300 ms).
   const enCours = rendre(<ObjectifEtRechercherBureau {...props({ status: 'running' })} />);
@@ -169,14 +183,15 @@ export function testRenduOptimizerPageBureauDroite() {
   const page = (rappelAuras: boolean) => rendre(
     <PageBureau liste={<p>Liste</p>} set={null} conditions={null} principales={null} etat={null} artefacts={<p>Artefacts</p>} meilleurs={null}
       auras={<SetsAuraBureau setup={DEFAULT_DAMAGE_SETUP} maj={rien} rappel={rappelAuras} onGuiderResPre={rien} />} exclusion={null} avances={null}
-      exemplaire={<p>Exemplaire</p>} objectif={(forme) => <p>Bloc {forme}</p>} resultats={<ResultatsBureau attente="sans-monstre" />}
+      exemplaire={<p>Exemplaire</p>} objectif={({ forme, cadre, partie }) => <p>Bloc {forme} {partie} {cadre ? 'panneau' : 'section'}</p>} resultats={<ResultatsBureau attente="sans-monstre" />}
       colonnes={{ artefacts: true, complements: true, derniere: 'complements' }} onColonnes={rien} rappelAuras={rappelAuras} />);
   const html = page(false);
-  const zones = [...html.matchAll(/data-zone="([a-z]+)"/g)].map((m) => m[1]);
-  egal(zones, ['essentiels', 'objectif', 'onglets', 'colonnes', 'exemplaire', 'resultats'],
-    'ordre du DOM : essentiels, bloc « Objectif et Rechercher » (l\'objectif se choisit tôt), onglets, colonnes, Exemplaire, résultats');
-  ok(/data-zone="objectif" data-forme="large"/.test(html) && texteVisible(html).includes('Bloc large'),
-    'largeur inconnue (rendu serveur) : le bloc est rendu dans la forme que la page choisit, large');
+  const zones = [...html.matchAll(/data-zone="([a-z-]+)"/g)].map((m) => m[1]);
+  egal(zones, ['fond-droite', 'essentiels', 'objectif', 'barre', 'onglets', 'colonnes', 'exemplaire', 'resultats'],
+    'ordre du DOM : le fond du panneau de droite (peint dessous), essentiels, bloc « Objectif et Rechercher » (l\'objectif se choisit tôt) et sa barre fine, onglets, colonnes, Exemplaire, résultats');
+  ok(/data-zone="objectif" data-forme="large"/.test(html) && texteVisible(html).includes('Bloc large reglages panneau') && texteVisible(html).includes('Bloc large barre panneau'),
+    'largeur inconnue (rendu serveur) : comme en A1, le bloc large dans son panneau, ses réglages à leur place et sa barre fine à part');
+  ok(/aria-hidden="true" data-zone="fond-droite"/.test(html), 'le fond du panneau de droite est décoratif');
 
   // Le rappel des auras : la carte du bureau l'affiche sans l'annoncer ; la
   // page l'annonce dans une région toujours montée, hors des colonnes.

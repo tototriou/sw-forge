@@ -6,7 +6,7 @@
    (`border-border-soft`, un seul contour) — même JSX pour les deux formats,
    ordinateur et téléphone (`Relique.tsx`). Au téléphone, il suit l'encart
    « Meilleurs artéfacts offensifs pour ce build » ; au bureau, cet encart
-   devient une carte à part, sous la carte, donc sous la relique. Ni carte propre (elle ferait double emploi avec la
+   devient une section à part du panneau de la colonne, sous la relique. Ni carte propre (elle ferait double emploi avec la
    carte Artéfacts juste au-dessus et décalerait toute la grille de la
    colonne), ni bloc à droite de la rangée Attribut / Type, trait vertical
    (il désalignerait les listes relique de celles d'artéfacts).

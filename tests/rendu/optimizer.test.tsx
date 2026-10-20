@@ -65,7 +65,7 @@ export function rendreOptimizer(etat: EtatBanc = {}, menuOuvert = false, stockag
   return rendre(<Banc etat={etat} menuOuvert={menuOuvert} />);
 }
 
-export const AVEC_MONSTRE = { selectedId: CHOISI, comboSets: ['violent'], showAdvanced: true };
+export const AVEC_MONSTRE = { selectedId: CHOISI, comboSets: ['violent'] };
 
 const SOURCES = 'Box RTA Défenses siège Offenses siège';
 const STATS_CONDITIONS = ['PV', 'ATQ', 'DEF', 'VIT', 'Taux Crit', 'Dmg Crit', 'RES', 'Précision'];
@@ -120,7 +120,8 @@ export function testRenduOptimizerVide() {
   ok(!t.includes('Réglages avancés') && !t.includes('Exclusion de runes') && !t.includes('Sets d\'aura des autres monstres'),
     '« Réglages avancés », « Exclusion de runes » et les sets d\'aura attendent l\'ouverture de leur colonne');
   ok(valeurs(html, 'placeholder').includes('Rechercher un monstre…'), 'la recherche du monstre à optimiser');
-  ok(/Liste active Aucune liste — choisir ou créer .*Importer une équipe.* Monstres de la liste/.test(t), 'les listes de travail : liste active et import sur une ligne, puis la zone des membres');
+  ok(/Liste active Aucune liste — choisir ou créer .*Importer une équipe.* Ajouter un monstre à la liste/.test(t) && !t.includes('Monstres de la liste'),
+    'les listes de travail : liste active et import sur une ligne, puis la zone des membres, dont le titre nomme le champ qui le suit');
   ok(t.includes(`Exemplaire ${SOURCES}`), 'l\'exemplaire, avec ses quatre sources');
   ok(bouton(html, 'Valider ce build')?.desactive === true, '« Valider ce build » désactivé sans résultat');
   ok(bouton(html, 'Rechercher')?.desactive === true, '« Rechercher » désactivé sans monstre');

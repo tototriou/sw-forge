@@ -26,11 +26,17 @@ export interface ArtefactsEtReliquesProps {
   setRelicUniqueChoice: Dispatch<SetStateAction<RelicUniqueChoice>>;
   relicMinUpgrade: number;
   setRelicMinUpgrade: Dispatch<SetStateAction<number>>;
+  // Forme de la colonne « Artéfacts et relique » du bureau
+  // (`bureau/ArtefactsEtReliqueBureau.tsx`), que le téléphone ne prend pas :
+  // section sans cadre (le panneau de la colonne le porte), et Attribut et
+  // Type sur UNE ligne, chaque liste à la largeur de son contenu (décision de
+  // l'utilisateur à l'arrêt 4).
+  bureau?: boolean;
 }
 
-export default function ArtefactsEtReliques({ optimiserArtefacts, setOptimiserArtefacts, artifactMainByKind, setArtifactMainByKind, lignesVerrouillees, setLignesVerrouillees, diagnosticVerrous, sortesFigees, blocArtefactsSeuls, relicMainChoice, setRelicMainChoice, relicUniqueChoice, setRelicUniqueChoice, relicMinUpgrade, setRelicMinUpgrade }: ArtefactsEtReliquesProps) {
+export default function ArtefactsEtReliques({ optimiserArtefacts, setOptimiserArtefacts, artifactMainByKind, setArtifactMainByKind, lignesVerrouillees, setLignesVerrouillees, diagnosticVerrous, sortesFigees, blocArtefactsSeuls, relicMainChoice, setRelicMainChoice, relicUniqueChoice, setRelicUniqueChoice, relicMinUpgrade, setRelicMinUpgrade, bureau = false }: ArtefactsEtReliquesProps) {
   return (
-    <div className="rounded-xl border border-border bg-panel p-3">
+    <div className={bureau ? '' : 'rounded-xl border border-border bg-panel p-3'}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {/* Même gabarit d'en-tête que les autres cartes (icône encadrée 6×6
             + titre 13,5 px) : `GameIcon name="artifact"` existait déjà et
@@ -75,10 +81,16 @@ export default function ArtefactsEtReliques({ optimiserArtefacts, setOptimiserAr
       </div>
       {/* Rangée Attribut/Type — le bloc Relique ferme la carte (voir plus bas). */}
       {optimiserArtefacts && (
-        <div className="flex flex-wrap gap-3">
+        // ⚠️ Au bureau, les deux tiennent sur une ligne de 294 px à 1 px près
+        // (libellés, listes de 107 px, 8 px entre les deux) : rembourrage
+        // droit de la liste ramené de 24 à 20 px (le chevron, de 12 px à
+        // 6 px du bord, garde 2 px de marge), 4 px entre libellé et liste.
+        // Le retour à la ligne reste permis : une police plus large repasse
+        // Type dessous au lieu de déborder du panneau.
+        <div className={bureau ? 'flex flex-wrap items-center justify-between gap-x-2 gap-y-1' : 'flex flex-wrap gap-3'}>
           {ARTIFACT_KINDS.map(({ key, label }) => (
-            <div key={key} className="flex items-center gap-1.5">
-              <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>{label}</span>
+            <div key={key} className={`flex items-center ${bureau ? 'gap-1' : 'gap-1.5'}`}>
+              <span className={`text-xs text-ink ${bureau ? '' : LARGEUR_LIBELLE_LISTE}`}>{label}</span>
               {/* ⚠️ **`'libre'`, parce que c'est ce que le MOTEUR fait**
                   d'une clé absente (`candidatsParSorte`, artifactOptim.ts).
                   Ce sélecteur affichait le choix de garder la pièce portée tant
@@ -99,7 +111,7 @@ export default function ArtefactsEtReliques({ optimiserArtefacts, setOptimiserAr
                 taille="sm"
                 surface="panel2"
                 pleineLargeur={false}
-                className={LARGEUR_SELECTEUR_LISTE}
+                className={bureau ? 'pr-[20px]' : LARGEUR_SELECTEUR_LISTE}
               >
                 {/* ⚠️ « Comme équipé » (décision de l'utilisateur, qui l'a
                     préféré à « Garder l'artéfact équipé », trop long pour une
@@ -152,14 +164,12 @@ export default function ArtefactsEtReliques({ optimiserArtefacts, setOptimiserAr
           ce build » vivait sous la fiche d'équipement, avec une raison qui
           TIENT TOUJOURS : la fiche montre l'équipement RÉEL, on n'y
           substitue pas une proposition. Elle est satisfaite autrement — la
-          fiche dit ce qu'on PORTE, cette carte voisine ce qu'on DEVRAIT
-          porter, et elles restent côte à côte sous « Exemplaire ». Laisser
-          les réglages ici et le résultat là-bas aurait séparé la cause de
-          son effet.
-          ⚠️ Rendu UNE seule fois désormais : il était interpolé deux fois
-          (branche bureau et branche téléphone de « Monstre & équipement »),
-          alors qu'un grep de son libellé n'en montrait qu'une — cette carte
-          n'a pas de jumelle masquée. */}
+          fiche dit ce qu'on PORTE, ce bloc ce qu'on DEVRAIT porter. Au
+          téléphone, il s'interpole ici, sous les réglages d'artéfacts ; au
+          bureau, il devient une section à part sous la relique, dans la même
+          colonne (`blocArtefactsSeuls` nul, `bureau/MeilleursArtefactsBureau.tsx`).
+          Laisser les réglages ici et le résultat ailleurs aurait séparé la
+          cause de son effet. */}
       {blocArtefactsSeuls}
       {/* ⚠️ **Relique — ferme la carte, PAS une carte propre** (les variantes à droite de la rangée Attribut/Type, ou
           en carte à part, sont écartées). Trait horizontal sous « Meilleurs artéfacts », un seul

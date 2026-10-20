@@ -13,11 +13,13 @@
 
    **Au téléphone**, la carte suit « Artéfacts et reliques » et porte tout
    ce contenu, sets d'aura compris. **Au bureau**, elle est réduite aux
-   buffs et au lead, dans les essentiels, 170 px, sous la statistique
-   principale imposée (`EtatMonstreEssentiels`) : les trois vignettes de buff
-   en colonne, centrée dans la carte (trois vignettes de 64 px ne tiennent
-   pas en rangée dans 170 px), puis le lead, le motif d'un lead inactif et
-   les rappels. Son aide ne nomme ni les sets d'aura ni ce qui décrit le
+   buffs et au lead, section des essentiels dans la sous-colonne de 177 px,
+   sous la statistique principale imposée (`EtatMonstreEssentiels`) : les
+   trois vignettes de buff **sur une rangée** (56 px chacune), puis le lead
+   comme le schéma de l'utilisateur — « Lead », l'icône, la liste de la stat
+   et, sous elle, celle du pourcentage, sans boîte autour, la liste de la
+   stat entière (elle était coupée, « Aucu », dans l'ancienne carte de
+   170 px) —, le motif d'un lead inactif et les rappels. Son aide ne nomme ni les sets d'aura ni ce qui décrit le
    combat. Les sets d'aura des autres monstres ont leur propre carte, en
    tête de la colonne « Aura, exclusion, avancés »
    ([Sets d'aura des autres monstres](#sets-daura-des-autres-monstres)).

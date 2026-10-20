@@ -2,7 +2,7 @@
 
 Ce document décrit la barre d'actions, l'estimation qui précède le lancement
 et la progression. Au bureau, tout vit dans le bloc « Objectif et
-Rechercher », dont la forme, les places réservées et les hauteurs sont dans
+Rechercher », dont la forme, la place réservée et les hauteurs sont dans
 [README.md](README.md#bloc--objectif-et-rechercher-) ; au téléphone, sous la
 grille des réglages, la carte du bouton Rechercher, puis le message d'import
 et la progression.
@@ -12,8 +12,9 @@ et la progression.
     pré-filtrage, détaillé par emplacement (une **somme**, pas un produit),
     recalculée en direct à chaque changement de critère : « N runes gardées
     après pré-filtrage (pool par emplacement : a + b + … ) ». Au bureau, en
-    tête du bloc, à la place réservée de l'estimation la plus longue : elle
-    paraît au choix du set sans rien pousser. Au téléphone, la dernière
+    tête du bloc, sans place réservée (arrêt 4) : elle paraît au choix du
+    set, qui se fait plus haut ou dans un flottant, et ne pousse que ce qui
+    la suit. Au téléphone, la dernière
     rangée de la grille des réglages. ⚠️ **Le pool, pas
     l'espace de recherche** : le nombre de combinaisons brutes (produit des
     tailles de pool par emplacement) est un ordre de grandeur bien trop
@@ -79,14 +80,16 @@ et la progression.
     message ordinaire (succès sans avertissement) s'efface après 5 s, le
     refus après 9 s (`messageImport.ts`). Le message vit dans le flux, sous
     la barre Rechercher / Exporter / Importer : le bouton cliqué, au-dessus,
-    ne bouge pas. Au bureau, il s'affiche dans la place réservée à la
-    progression, au-dessus d'elle.
+    ne bouge pas. Au bureau, il s'affiche en bas du bloc, au-dessus de la
+    progression.
 12. **Barre de progression** — au téléphone, se remplit progressivement
     (pas une roue qui tourne), avec le nombre de combinaisons déjà examinées
     et déjà trouvées, suivi d'un message **en gras, couleur dorée** (même
     que le rang `#X` d'un résultat) : « Attendez la fin de la recherche pour
     être sûr de trouver votre build optimal. ». Au bureau, la progression
-    est **compacte** : les deux mêmes lignes, sans barre, dans une place
-    réservée à leur hauteur, que le lancement ne fait pas grandir. Pendant la
+    est **compacte** : les deux mêmes lignes, sans barre, sous « Rechercher »
+    (en A1, à sa droite, dans la barre fine collée au bas de la fenêtre),
+    sans place réservée : elle paraît sous le bouton qu'on vient de
+    cliquer, jamais au-dessus. Pendant la
     préparation, une ligne par moitié (« Préparation — moitié A : x / y
     runes »), avec sa barre au téléphone, sans barre au bureau.

@@ -5,8 +5,8 @@ import Segmented from '../../../../ui/Segmented';
 import { OBJECTIVE_LABELS } from '../../../../lib/runeBuildOptim';
 import type { FormeObjectifBureau } from '../../../../lib/optimizerColonnes';
 import ProgressionRecherche, { type ProgressionRechercheProps } from '../ProgressionRecherche';
-import EstimationPool from '../EstimationPool';
 import { ResumeCombat, TitreObjectifRecherche, type ObjectifEtActionsProps } from '../ObjectifEtActions';
+import { PANNEAU } from './panneau';
 
 export const LARGEUR_OBJECTIF_ETROIT = 340;
 // La forme large prend la largeur de sa colonne : au moins celle d'« Exemplaire ».
@@ -14,12 +14,37 @@ export const LARGEUR_OBJECTIF_LARGE_MIN = 616;
 // « Arrêter » reste inactif ce temps après le lancement : le double clic qui a
 // lancé la recherche ne l'arrête pas (A.2.2-8 de la refonte).
 export const DELAI_ARRET_MS = 300;
+// « Rechercher » dans la forme large : à DROITE de sa rangée, à cette largeur.
+// En A3, sous ≈ 1536, une colonne repliable ouverte se superpose au bord
+// gauche de la colonne de droite (332 px au plus, panneau d'« Aura,
+// exclusion, avancés ») : « Rechercher », posé à droite, en sort toujours
+// (colonne de droite de 616 px au moins, moins 9 de cadre : il commence à
+// 367). « Rechercher toujours atteignable » (A.2.2-8 de la refonte).
+const LARGEUR_RECHERCHER_LARGE = 'w-60';
+
+// La progression la plus haute que la recherche affiche (phase d'appariement,
+// grands nombres ; préparation, erreur et refus tiennent dans sa place,
+// mesuré au lot 6d) : sa copie invisible fixe la hauteur de la barre fine de A1.
+const PROGRESSION_LA_PLUS_HAUTE: Omit<ProgressionRechercheProps, 'status'> = {
+  progress: { phase: 'pairing', explored: 999_999_999_999, found: 999_999, pct: 1, totalPairs: 999_999_999_999, candidates: [] },
+  refusal: null,
+  compteAffiche: { compte: 999_999 },
+};
 
 // Choisie par la mise en page (`formeObjectifBureau`, src/lib/optimizerColonnes.ts).
 export type FormeObjectif = FormeObjectifBureau;
 
+// Ce que la page rend du bloc : tout (A2, A3), ou, en A1, les réglages à leur
+// place d'un côté, et de l'autre la barre fine collée au bas de la fenêtre
+// (« Rechercher » / « Arrêter » et la progression).
+export type PartieObjectif = 'tout' | 'reglages' | 'barre';
+
 export interface ObjectifEtRechercherBureauProps extends ObjectifEtActionsProps {
   forme: FormeObjectif;
+  // Le bloc porte-t-il son propre panneau ? Oui quand il est seul (A1, A2) ;
+  // non en A3, où il est une section du panneau de la colonne de droite.
+  cadre?: boolean;
+  partie?: PartieObjectif;
   // `EstimationPool`, ou `null` tant qu'il n'y a rien à estimer (aucun monstre, aucun set).
   estimation: ReactNode;
   // `MessageImportRecette` (rien sans message).
@@ -27,35 +52,24 @@ export interface ObjectifEtRechercherBureauProps extends ObjectifEtActionsProps 
   progression: Omit<ProgressionRechercheProps, 'status'>;
 }
 
-const ESTIMATION_LA_PLUS_LONGUE = { perSlot: [9999, 9999, 9999, 9999, 9999, 9999], product: 0 };
-
-// La progression la plus haute que la recherche affiche (phase d'appariement,
-// grands nombres) : copie invisible qui RÉSERVE sa place, à la largeur du bloc.
-// Sans elle, la progression qui paraît au lancement pousserait ce qui suit le
-// bloc (le contrôle à onglets en A2) au moment du clic. ⚠️ Progression
-// COMPACTE (décision de l'utilisateur) : ni barre ni explication, les deux
-// lignes d'appariement seules ; la réserve tombe à leur hauteur. Préparation,
-// erreur et refus tiennent dans cette même place (états de la vue des
-// gabarits, mesurés).
-const PROGRESSION_LA_PLUS_HAUTE: Omit<ProgressionRechercheProps, 'status'> = {
-  progress: { phase: 'pairing', explored: 999_999_999_999, found: 999_999, pct: 1, totalPairs: 999_999_999_999, candidates: [] },
-  refusal: null,
-  compteAffiche: { compte: 999_999 },
-};
-
-// Le bloc « Objectif et Rechercher » du bureau, en deux formes (fiche
-// docs/02-app/optimizer/ecran/README.md, « Bloc « Objectif et Rechercher » ») :
+// Le bloc « Objectif et Rechercher » du bureau, en deux formes
+// (docs/02-app/optimizer/ecran/README.md, « Bloc « Objectif et Rechercher » ») :
 // - étroite, 340 px : estimation du pool, objectifs en 2 × 2, résumé « Dégâts
 //   réels », « Rechercher », « Exporter » · « Importer », progression ;
-// - large, à la largeur de sa colonne : objectifs sur une ligne, « Rechercher »
-//   · « Exporter » · « Importer » sur une rangée.
+// - large, à la largeur de sa colonne : objectifs sur une ligne, « Exporter » ·
+//   « Importer » à gauche, « Rechercher » à droite.
 // La forme est choisie par la mise en page (un clic d'onglet), jamais par le bloc.
 //
-// ⚠️ **Rien ne bouge au clic** : estimation, résumé (deux lignes, même quand
-// le choix d'un monstre l'allonge) et progression ont une place réservée ; « Arrêter » prend la place EXACTE de « Rechercher » (les deux
-// dans la même case de grille, l'absent invisible) et reste inactif 300 ms.
+// ⚠️ **Une seule place réservée : celle de « Rechercher » / « Arrêter »**
+// (décision de l'utilisateur à l'arrêt 4). « Arrêter » prend la place EXACTE
+// de « Rechercher » (les deux dans la même case de grille, l'absent
+// invisible) et reste inactif 300 ms. Estimation, résumé « Dégâts réels » et
+// progression prennent leur hauteur quand ils paraissent : ils ne paraissent
+// jamais au-dessus de ce qu'on vient de cliquer (le choix d'un set, d'un
+// objectif, « Rechercher »), seulement dessous — la règle protège la cible du
+// clic, pas ce qui la suit.
 export default function ObjectifEtRechercherBureau({
-  forme, estimation, messageImport, progression, objective, setObjective, setSetupOuvert, resumeCombat, handleSearch, selected, status,
+  forme, cadre = true, partie = 'tout', estimation, messageImport, progression, objective, setObjective, setSetupOuvert, resumeCombat, handleSearch, selected, status,
   comboSets, exportRecipe, importFileRef, importRecipe, setStoppedManually, stop,
 }: ObjectifEtRechercherBureauProps) {
   const enCours = status === 'running';
@@ -71,7 +85,7 @@ export default function ObjectifEtRechercherBureau({
   const etroite = forme === 'etroite';
 
   const rechercher = (
-    <div className="grid">
+    <div className={`grid ${etroite ? '' : `flex-none ${LARGEUR_RECHERCHER_LARGE}`}`}>
       {/* ⚠️ `comboSets.length === 0` hors de `disabled`, comme au téléphone
           (`ObjectifEtActions`) : le clic doit encore atteindre
           `handleSearch`, qui ramène au « Set de runes recherché ». */}
@@ -105,6 +119,27 @@ export default function ObjectifEtRechercherBureau({
       />
     </div>
   );
+  const progressionCompacte = <ProgressionRecherche status={status} {...progression} compacte />;
+
+  // A1 : la barre fine, collée au bas de la fenêtre par la page.
+  // ⚠️ **Sa hauteur ne change jamais** : collée par le bas, une barre qui
+  // grandit monte, et « Rechercher » / « Arrêter » avec elle, sous le
+  // pointeur (mesuré : `clics-7b`, recherche longue en A1). La progression y
+  // tient donc dans la place de la plus haute (copie invisible) : c'est la
+  // place de « Rechercher » / « Arrêter » qu'elle garde, la seule réservée.
+  if (partie === 'barre') {
+    return (
+      <div role="group" aria-label="Rechercher" data-forme={forme} className={`${PANNEAU} flex items-center gap-3`}>
+        {rechercher}
+        <div className="grid min-w-0 flex-1">
+          <div aria-hidden className="invisible col-start-1 row-start-1">
+            <ProgressionRecherche status="running" {...PROGRESSION_LA_PLUS_HAUTE} compacte />
+          </div>
+          <div className="col-start-1 row-start-1 self-center">{progressionCompacte}</div>
+        </div>
+      </div>
+    );
+  }
 
   const exporter = (
     <Bouton
@@ -132,21 +167,10 @@ export default function ObjectifEtRechercherBureau({
     <section
       aria-label="Objectif et Rechercher"
       data-forme={forme}
-      style={etroite ? { width: LARGEUR_OBJECTIF_ETROIT } : undefined}
-      className={`flex flex-col gap-2.5 rounded-xl border border-border bg-panel p-3 ${etroite ? '' : 'w-full'}`}
+      style={etroite && cadre ? { width: LARGEUR_OBJECTIF_ETROIT } : undefined}
+      className={`flex flex-col gap-2 ${cadre ? PANNEAU : ''} ${etroite && cadre ? '' : 'w-full'}`}
     >
-      {/* La place de l'estimation la plus longue (quatre chiffres par
-          emplacement), réservée par une copie invisible à la largeur du bloc :
-          dans la forme étroite, une estimation réelle passe déjà sur trois
-          lignes (« 32 runes… : 5 + 6 + 5 + 6 + 5 + 5 », mesuré), et deux
-          lignes réservées laissaient le bloc grandir — donc descendre les
-          onglets en A2 — quand elle paraît, au choix du set. */}
-      <div className="grid">
-        <div aria-hidden className="invisible col-start-1 row-start-1">
-          <EstimationPool estimate={ESTIMATION_LA_PLUS_LONGUE} />
-        </div>
-        <div className="col-start-1 row-start-1">{estimation}</div>
-      </div>
+      {estimation}
 
       <div>
         <TitreObjectifRecherche />
@@ -160,7 +184,7 @@ export default function ObjectifEtRechercherBureau({
           size="lg"
           colonnes={etroite ? 2 : undefined}
         />
-        <ResumeCombat resumeCombat={resumeCombat} setSetupOuvert={setSetupOuvert} cache={objective !== 'degats_reels'} deuxLignes />
+        {objective === 'degats_reels' && <ResumeCombat resumeCombat={resumeCombat} setSetupOuvert={setSetupOuvert} />}
       </div>
 
       {etroite ? (
@@ -168,11 +192,14 @@ export default function ObjectifEtRechercherBureau({
           {rechercher}
           <div className="grid grid-cols-2 gap-2">{exporter}{importer}</div>
         </>
+      ) : partie === 'reglages' ? (
+        <div className="flex items-center gap-2">{exporter}{importer}</div>
       ) : (
-        <div className="flex items-center gap-2">
-          <div className="min-w-0 flex-1">{rechercher}</div>
-          {exporter}
-          {importer}
+        // « Rechercher » d'abord dans le DOM (ordre de tabulation d'avant),
+        // à droite à l'écran.
+        <div className="flex flex-row-reverse items-center justify-between gap-2">
+          {rechercher}
+          <div className="flex items-center gap-2">{exporter}{importer}</div>
         </div>
       )}
       <input
@@ -187,15 +214,8 @@ export default function ObjectifEtRechercherBureau({
         }}
       />
 
-      <div className="grid">
-        <div aria-hidden className="invisible col-start-1 row-start-1">
-          <ProgressionRecherche status="running" {...PROGRESSION_LA_PLUS_HAUTE} compacte />
-        </div>
-        <div className="col-start-1 row-start-1 space-y-1">
-          {messageImport}
-          <ProgressionRecherche status={status} {...progression} compacte />
-        </div>
-      </div>
+      {messageImport}
+      {partie === 'tout' && progressionCompacte}
     </section>
   );
 }

@@ -2,7 +2,6 @@ import { useState, type RefObject } from 'react';
 import SetComboPicker from '../../SetComboPicker';
 import RuneIcon from '../../../RuneIcon';
 import { TitreCriteresRecherche } from '../CriteresRecherche';
-import { LARGEUR_ESSENTIELS } from './ListeDeTravailBureau';
 import { SelecteurMultiple } from '../../../../ui';
 import { RUNE_SETS } from '../../../../types';
 import { runeSetIconFilter, setsCost } from '../../../../lib/effects';
@@ -15,7 +14,8 @@ export interface SetDeRunesCompactProps {
 }
 
 // « Critères de recherche » et le set de runes recherché, au bureau, en forme
-// compacte : une liste fermée sur les sets choisis ; ouverte, la grille d'ajout
+// compacte, section des essentiels sans cadre (le panneau de la colonne le
+// porte) : une liste fermée sur les sets choisis ; ouverte, la grille d'ajout
 // du téléphone (`SetComboPicker`, telle quelle : jetons, retrait, deux
 // groupes, « Plus de place »), en flottant — rien ne bouge dessous.
 //
@@ -41,7 +41,7 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
     if (setsCost(next) >= 6 && setsCost(next) > setsCost(comboSets)) setOuvert(false);
   };
   return (
-    <section aria-label="Critères de recherche" style={{ width: LARGEUR_ESSENTIELS }} className="rounded-xl border border-border bg-panel p-3">
+    <section aria-label="Critères de recherche">
       <TitreCriteresRecherche className="mb-2" />
       <div
         ref={setPickerSectionRef}

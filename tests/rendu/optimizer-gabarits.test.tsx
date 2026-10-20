@@ -45,9 +45,11 @@ export function testRenduOptimizerGabaritsComposants() {
   ok(!!bouton(choisies, 'Slot 4 : Taux Crit, Dmg Crit'), 'principales choisies : le slot résume ses choix');
   egal(boutons(choisies).filter((b) => b.presse).map((b) => b.texte), ['Taux Crit', 'Dmg Crit'], 'principales choisies : en surbrillance dans la liste');
   ok(texteVisible(libres).includes('Statistique principale imposée (slots pairs)'), 'principales : le titre de l\'app');
-  egal((libres.match(/data-reserve-resume/g) ?? []).length, 3, 'principales : chaque champ fermé montre tout son résumé, hauteur réservée (resumeEntier)');
-  ok(/class="flex flex-1 flex-col justify-between gap-3"/.test(libres) && (libres.match(/class="flex flex-col gap-1"><span class="text-micro text-ink-dim">Slot/g) ?? []).length === 3,
-    'principales : le nom du slot au-dessus de son champ, les trois listes espacées dans la hauteur de la carte');
+  egal((libres.match(/data-resume-entier/g) ?? []).length, 3, 'principales : chaque champ fermé montre tout son résumé (resumeEntier)');
+  egal((libres.match(/data-reserve-resume/g) ?? []).length, 0, 'principales : plus de hauteur réservée pour toutes les options (arrêt 4)');
+  egal((libres.match(/class="flex items-center gap-1.5"><span class="w-9 flex-none text-micro text-ink-dim">Slot/g) ?? []).length, 3,
+    'principales : trois rangées compactes, « Slot n » à gauche de sa liste');
+  ok(/^<section[^>]*class="flex flex-col"/.test(libres), 'principales : une section sans cadre (le panneau de la colonne le porte)');
 
   // Le set compact : fermé sur les sets choisis, la grille d'ajout dans la surface.
   const sansSet = rendre(<SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid={false} comboSets={[]} onChangeSets={rien} />);
@@ -118,7 +120,7 @@ export function testRenduOptimizerGabaritsVue() {
   ok(texteVisible(remplie).includes('Équipe 1') && texteVisible(remplie).includes('Sans équipe'), 'liste remplie : une équipe et des membres sans équipe');
   ok(/placeholder="Rechercher un monstre/.test(remplie), 'liste : « Rechercher un monstre… » dans la carte de la liste');
   ok(texteVisible(remplie).includes(BOX[0].monster.name), 'liste remplie : le monstre actif est nommé');
-  ok(/max-h-\[164px\]/.test(remplie) && !/max-h-\[308px\]/.test(remplie), 'liste : les membres bornés à ≈ 4 lignes, pas 308 px');
+  ok(/max-h-\[308px\]/.test(remplie) && !/max-h-\[164px\]/.test(remplie), 'liste : les membres s\'étirent jusqu\'à 308 px (plus les ≈ 4 lignes d\'avant), puis défilent');
 
   // Les états qui partent de l'état réel.
   const setReel = html.split('data-gabarit="set"')[1].split('data-etat="reel"')[1].split('data-etat=')[0];

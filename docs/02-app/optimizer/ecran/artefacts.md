@@ -95,15 +95,20 @@ Ce document décrit la carte « Artéfacts » de l'écran.
    « Conditions », soit un clic qui déplace ce qui le suit
    ([03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md)).
    Isolée, la carte ne déplace que ce qui la suit.
-   - **Au bureau**, en tête de la colonne repliable « Artéfacts et
-     relique », 320 px (`ArtefactsEtReliqueBureau`, autour de la carte
-     partagée), suivie de la carte « Meilleurs artéfacts offensifs pour ce
-     build » (voir
+   - **Au bureau**, première section du panneau de la colonne repliable
+     « Artéfacts et relique », 294 px (`ArtefactsEtReliqueBureau`, autour du
+     composant partagé dans sa forme `bureau`, sans cadre), suivie de la
+     section « Meilleurs artéfacts offensifs pour ce build » (voir
      meilleurs-artefacts-offensifs.md § Affichage et emplacement de la proposition).
-     La carte n'est pas repliée au lancement d'une recherche : seul l'onglet
+     Elle n'est pas repliée au lancement d'une recherche : seul l'onglet
      ferme sa colonne ([README.md](README.md#colonnes-repliables-selon-la-largeur)).
-     À cette largeur, Attribut et Type passent chacun sur sa ligne : sur une
-     seule, ils demandent 309 px pour 294 utiles.
+     ⚠️ **Attribut et Type sur une ligne**, chaque liste à la largeur de son
+     contenu (décision de l'utilisateur, arrêt 4) : libellés, listes de
+     107 px (« Comme équipé » entier), 4 px entre libellé et liste, 8 px
+     entre les deux, 293 px pour 294 utiles. Le rembourrage droit de ces
+     deux listes passe de 24 à 20 px (le chevron garde 2 px de marge) ; la
+     rangée peut encore passer à la ligne si une police plus large
+     l'exigeait, plutôt que de déborder du panneau.
    - **Au téléphone**, après « Critères de recherche », sur toute la
      largeur de la colonne.
 

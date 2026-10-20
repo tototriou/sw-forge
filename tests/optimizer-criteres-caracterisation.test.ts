@@ -23,7 +23,7 @@ export function remplirCriteres(s: OptimizerState) {
   s.setRelicMinUpgrade(12); s.setExcludeUsedRunes(true); s.setExcludeUsedScope('box');
   s.setExcludedSelectors([{ source: 'box', unitKey: '99' }]);
   s.setAdaptiveTrancheWeighting(true); s.setExhaustiveSearch(true); s.setVerifierToutesLesCombinaisons(true);
-  s.setSlotFilterPreset('haut'); s.setShowAdvanced(true); s.setDiagnoseBlockingEnabled(true);
+  s.setSlotFilterPreset('haut'); s.setDiagnoseBlockingEnabled(true);
   s.setSetPickerInvalid(true); s.setResultsPage(7); s.setStoppedManually(true); s.setOpenDetailKey('r:123');
 }
 
@@ -34,7 +34,7 @@ const PERSONNELS_ANCIENS = [
 ] as const;
 const GLOBAUX = [
   'relicMinUpgrade', 'excludeUsedRunes', 'excludeUsedScope', 'excludedSelectors', 'adaptiveTrancheWeighting',
-  'exhaustiveSearch', 'verifierToutesLesCombinaisons', 'slotFilterPreset', 'showAdvanced', 'diagnoseBlockingEnabled',
+  'exhaustiveSearch', 'verifierToutesLesCombinaisons', 'slotFilterPreset', 'diagnoseBlockingEnabled',
 ] as const;
 function valeurs(s: OptimizerState, champs: readonly (keyof OptimizerState)[]) {
   return Object.fromEntries(champs.map((c) => [c, s[c]]));

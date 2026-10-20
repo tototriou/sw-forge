@@ -50,6 +50,15 @@ export function ouvrirColonne(etat: ColonnesOuvertes, colonne: ColonneRepliable)
 // src/components/outils/optimizer/bureau/), un test les compare.
 export const LARGEURS_BUREAU = { essentiels: 548, gouttiere: 16, artefacts: 320, complements: 340, exemplaire: 616, objectifEtroit: 340 } as const;
 
+// ⚠️ **Ces largeurs sont des PLACES.** Chaque colonne se dessine en panneau
+// (src/components/outils/optimizer/bureau/panneau.ts), 8 px plus étroit que
+// sa place quand une autre colonne la suit : l'écart visible entre deux
+// panneaux est la gouttière plus ce retrait, 24 px (décision de
+// l'utilisateur à l'arrêt 4 : écarts larges entre les colonnes), et aucun
+// seuil ne bouge. Le panneau rend la place que les cadres de ses cartes
+// prenaient : une section y garde la largeur de contenu de la carte d'avant.
+export const RETRAIT_PANNEAU = 8;
+
 const L = LARGEURS_BUREAU;
 // À droite des essentiels : leur largeur et la gouttière.
 const DROITE_DES_ESSENTIELS = L.essentiels + L.gouttiere;

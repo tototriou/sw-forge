@@ -853,6 +853,8 @@ export function* apparierRapide(
 
   let traitees = 0;
   let visitees = 0;
+  // Le compteur logique inclut les sauts : au plus 499 paires entre
+  // l'expiration du filet et le prochain contrôle, même sans survivant.
   let prochainPoint = CHECKPOINT_EVERY;
   let truncated = false;
 
@@ -883,10 +885,6 @@ export function* apparierRapide(
         }
         traitees = g;
         visitees++;
-        if (overBudget()) {
-          truncated = true;
-          break outer;
-        }
         options.observateur?.visite(iA, a, iB, j);
         if (!quickOkReference(c, ct, ga, offB + j)) {
           compteurs.gardeRejets++;
@@ -1032,9 +1030,9 @@ export function traiterMorceau(ctx: ContexteTravailleur, morceau: Morceau): Resu
  * pilote un Worker (`servirAppariement`) s'en sert pour lire ses messages
  * entre deux tranches de travail, sans rien changer à ce qui est jugé.
  *
- * Le filet de temps se teste à chaque paire visitée ET à chaque point de
- * passage (`CHECKPOINT_EVERY` paires TRAITÉES, sautées comprises), comme
- * dans `apparierRapide` : un saut de lignes entières ne le contourne pas.
+ * Le filet de temps se teste à chaque entrée de ligne et à chaque point de
+ * passage (`CHECKPOINT_EVERY` paires TRAITÉES, sautées comprises) : comme
+ * dans `apparierRapide`, un saut de lignes entières ne le contourne pas.
  * Les points de passage franchis par un saut le sont au même instant ; un
  * seul test les couvre, et la troncature tombe sur le premier d'entre eux.
  */
@@ -1098,10 +1096,6 @@ export function* parcourirMorceau(ctx: ContexteTravailleur, morceau: Morceau): G
         }
         pos = g;
         visitees++;
-        if (overBudget()) {
-          issue = 'temps';
-          break boucle;
-        }
         const gb = offB + j;
         if (!quickOkReference(c, ct, ga, gb)) {
           compteurs.gardeRejets++;

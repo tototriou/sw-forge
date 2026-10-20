@@ -190,7 +190,7 @@ import testRuneOptimScaleMonotonicity from './rune-optim-scale-monotonicity.test
 import {
   testAppariementParallele, testAppariementParalleleWorkers, testAppariementParalleleCoupeWorkers, testAppariementParalleleBranchement, testAppariementParalleleCession,
 } from './appariement-parallele.test';
-import testAppariementRapide from './appariement-rapide.test';
+import testAppariementRapide, { testAppariementHorloge } from './appariement-rapide.test';
 import testValidationRapide from './validation-rapide.test';
 import testRuneOptimNearMiss from './rune-optim-near-miss.test';
 import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
@@ -650,6 +650,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testAppariementParalleleBranchement', async () => { await testAppariementParalleleBranchement(); }],
   ['testAppariementParalleleCession', async () => { await testAppariementParalleleCession(); }],
   ['testAppariementRapide', async () => { await testAppariementRapide(); }],
+  ['testAppariementHorloge', testAppariementHorloge],
   ['testValidationRapide', async () => { await testValidationRapide(); }],
   ['testRuneOptimNearMiss', async () => { await testRuneOptimNearMiss(); }],
   ['testRuneOptimDeadHalfPruning', testRuneOptimDeadHalfPruning],

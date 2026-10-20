@@ -235,19 +235,19 @@ export function testRenduUiSelecteurMultiple() {
   ok(/aria-expanded="true"/.test(rendre(<SelecteurMultiple libelle="Slot 2" options={options} vide="Libre" ouvert onOuvertChange={rien} />)), 'ouverture contrôlée : ouverte quand l\'appelant le dit');
 
   // Résumé entier : toutes les valeurs, à la ligne entre deux valeurs, jamais
-  // tronqué ; hauteur réservée par un double invisible de TOUTES les options.
+  // tronqué ; sans hauteur réservée (la surface, elle, garde sa place à
+  // l'ouverture : vérifié au navigateur, optimizer-gabarits-navigateur.test.ts).
   const entier = rendre(<SelecteurMultiple libelle="Slot 2" options={options} valeurs={[2, 4]} onChange={rien} vide="Libre" forme="surbrillance" resumeEntier />);
   const declencheurEntier = entier.match(/<button[^>]*aria-haspopup[^>]*>([\s\S]*?)<\/button>/)?.[1] ?? '';
   ok(!!bouton(entier, 'Slot 2 : PV%, ATQ%'), 'résumé entier : le nom accessible résume les choix');
   ok(!/truncate/.test(declencheurEntier), 'résumé entier : rien de tronqué dans le champ fermé');
-  egal([...declencheurEntier.matchAll(/class="whitespace-nowrap">([^<]*)</g)].map((m) => m[1]), ['PV%,', 'ATQ%', 'PV%,', 'ATQ%,', 'VIT'],
-    'résumé entier : chaque valeur insécable, la ligne ne se coupe qu\'entre deux valeurs (choisies, puis la réserve de toutes les options)');
-  const reserve = declencheurEntier.match(/<span[^>]*data-reserve-resume[^>]*>/)?.[0] ?? '';
-  ok(/aria-hidden="true"/.test(reserve) && /class="invisible col-start-1 row-start-1"/.test(reserve) && /class="col-start-1 row-start-1 self-center/.test(declencheurEntier), 'résumé entier : la réserve est invisible, hors du nom accessible, dans la même case de grille');
+  egal([...declencheurEntier.matchAll(/class="whitespace-nowrap">([^<]*)</g)].map((m) => m[1]), ['PV%,', 'ATQ%'],
+    'résumé entier : chaque valeur choisie insécable, la ligne ne se coupe qu\'entre deux valeurs');
+  ok(/data-resume-entier/.test(declencheurEntier) && !/data-reserve-resume|invisible/.test(declencheurEntier),
+    'résumé entier : aucune copie invisible qui réserve la place de toutes les options (arrêt 4 de la refonte)');
   const entierVide = rendre(<SelecteurMultiple libelle="Slot 2" options={options} valeurs={[]} onChange={rien} vide="Libre" resumeEntier />);
   ok(!!bouton(entierVide, 'Slot 2 : Libre') && /text-ink-dim">Libre</.test(entierVide), 'résumé entier sans choix : « Libre », atténué');
-  ok(/data-reserve-resume/.test(entierVide), 'résumé entier sans choix : la place de toutes les options reste réservée (un choix ne fait pas grandir le champ)');
-  ok(!/data-reserve-resume/.test(surb) && /truncate/.test(surb), 'sans résumé entier : le champ fermé tronque, sans réserve (inchangé)');
+  ok(!/data-resume-entier/.test(surb) && /truncate/.test(surb), 'sans résumé entier : le champ fermé tronque (inchangé)');
 }
 
 export function testRenduUiNotification() {

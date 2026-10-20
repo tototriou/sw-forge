@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import SetDeRunesCompact from '../../src/components/outils/optimizer/bureau/SetDeRunesCompact';
-import PrincipalesImposeesBureau from '../../src/components/outils/optimizer/bureau/PrincipalesImposeesBureau';
+import PrincipalesImposeesBureau, { LARGEUR_COLONNE_ETROITE } from '../../src/components/outils/optimizer/bureau/PrincipalesImposeesBureau';
 import EtatMonstreEssentiels from '../../src/components/outils/optimizer/bureau/EtatMonstreEssentiels';
 import { DEFAULT_DAMAGE_SETUP, artifactDamageProfile, type DamageSetup } from '../../src/lib/damage';
 
@@ -31,14 +31,15 @@ function EtatBanc() {
 }
 
 let root: Root | null = null;
-// `principales-haute` : la carte dans une rangée de 420 px (étirée, comme à côté
-// d'une carte plus haute), pour voir les listes s'espacer dans sa hauteur.
-export async function monter(nom: 'set' | 'principales' | 'principales-haute' | 'etat') {
+// Les principales et l'état du monstre sont des sections sans largeur propre :
+// montées à la largeur de leur sous-colonne dans les essentiels, le set à
+// celle du panneau.
+export async function monter(nom: 'set' | 'principales' | 'etat') {
   if (root) { const r = root; flushSync(() => r.unmount()); }
   root = createRoot(document.getElementById('racine')!);
   const r = root;
-  const contenu = nom === 'set' ? <SetBanc /> : nom === 'etat' ? <EtatBanc />
-    : nom === 'principales-haute' ? <div style={{ display: 'flex', height: 420 }}><PrincipalesBanc /></div> : <PrincipalesBanc />;
+  const contenu = nom === 'set' ? <div style={{ width: 522 }}><SetBanc /></div>
+    : <div style={{ width: LARGEUR_COLONNE_ETROITE }}>{nom === 'etat' ? <EtatBanc /> : <PrincipalesBanc />}</div>;
   flushSync(() => r.render(<div style={{ padding: 24 }}>{contenu}</div>));
   await new Promise((fin) => setTimeout(fin, 50));
 }

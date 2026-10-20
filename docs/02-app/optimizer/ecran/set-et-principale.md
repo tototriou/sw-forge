@@ -40,8 +40,8 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    en tête de la carte (`max-w-md`), avant le point suivant puis les
    Conditions, empilés.
 
-   **Au bureau**, « Critères de recherche » est une carte des essentiels,
-   548 px, sous la liste de travail, en **forme compacte**
+   **Au bureau**, « Critères de recherche » est une section du panneau des
+   essentiels, sous la liste de travail, en **forme compacte**
    (`SetDeRunesCompact`) : le compteur `N/6 runes` à droite du libellé, puis
    une seule liste fermée (`SelecteurMultiple`, axe `surface`) qui montre les
    sets choisis, icône et nom, ou « Aucun ». Ouverte, elle porte la grille
@@ -75,14 +75,16 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    portent sur les runes elles-mêmes, groupées ensemble), séparée de lui par
    un trait.
 
-   **Au bureau**, une carte de 170 px des essentiels, à droite des
-   Conditions et au-dessus d'« État de mon monstre »
-   (`PrincipalesImposeesBureau`) : une liste à choix multiples par slot
-   (`SelecteurMultiple`, forme « surbrillance »), le nom du slot au-dessus.
-   Fermée, la liste dit « Libre » sans choix, sinon **toutes** les valeurs
-   choisies, à la ligne entre deux valeurs, sur une hauteur réservée pour le
-   slot entier : rien n'est tronqué, rien ne bouge au choix. Ouverte (160 px
-   de large, « Dmg Crit » y tient), chaque valeur choisie est en
-   surbrillance, sans case. Le geste reste celui des puces : une principale
-   à la fois. Les trois listes s'espacent dans la hauteur de la carte quand
-   la mise en page lui en donne plus que son contenu.
+   **Au bureau**, une section des essentiels, en tête de la sous-colonne de
+   177 px à droite des Conditions, au-dessus d'« État de mon monstre »
+   (`PrincipalesImposeesBureau`) : une **rangée compacte par slot**, « Slot
+   n » puis sa liste à choix multiples (`SelecteurMultiple`, forme
+   « surbrillance » ; schéma de l'utilisateur, arrêt 4). Fermée, la liste dit
+   « Libre » sans choix, sinon **toutes** les valeurs choisies, à la ligne
+   entre deux valeurs : une ligne pour « Libre » ou deux ou trois valeurs,
+   deux pour les cinq d'un slot ; rien n'est tronqué. Sans hauteur réservée :
+   ouverte (160 px de large, « Dmg Crit » y tient), la surface se pose à la
+   hauteur qu'avait le champ à l'ouverture et n'en bouge plus, même quand un
+   choix allonge le champ sous elle ; seules les rangées suivantes
+   descendent. Chaque valeur choisie est en surbrillance, sans case. Le
+   geste reste celui des puces : une principale à la fois.

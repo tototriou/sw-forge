@@ -46,30 +46,31 @@ export async function testRenduOptimizerGabaritsGestes() {
     ok(/border-accent/.test((await tauxCrit.getAttribute('class')) ?? ''), 'principales : la valeur choisie porte le marqueur d’accent');
     ok(await surface.isVisible(), 'principales : la liste reste ouverte après un choix');
     ok((await page.getByRole('button', { name: 'Slot 4 : Taux Crit' }).count()) === 1, 'principales : le champ fermé résume le choix');
-    // Toutes les valeurs du slot 4, liste ouverte : ni le champ ni la surface ne bougent.
+    // Toutes les valeurs du slot 4, liste ouverte : le champ s'allonge sous la
+    // surface, qui ne bouge pas (elle garde la place prise à l'ouverture).
     const champ4 = page.getByRole('button', { name: /^Slot 4 :/ });
     const avantTout = { champ: (await champ4.boundingBox())!, surface: (await surface.boundingBox())! };
     for (const v of ['PV%', 'ATQ%', 'DEF%', 'Dmg Crit']) await surface.getByRole('button', { name: v, exact: true }).click();
     const apresTout = { champ: (await champ4.boundingBox())!, surface: (await surface.boundingBox())! };
-    ok(apresTout.champ.height === avantTout.champ.height && apresTout.surface.y === avantTout.surface.y,
-      `principales : cinq choix, liste ouverte, rien ne bouge (champ ${avantTout.champ.height} → ${apresTout.champ.height} px, surface ${avantTout.surface.y} → ${apresTout.surface.y})`);
+    ok(apresTout.surface.y === avantTout.surface.y && apresTout.champ.y === avantTout.champ.y,
+      `principales : cinq choix, liste ouverte, ni le champ ni la surface ne bougent (surface ${avantTout.surface.y} → ${apresTout.surface.y}, champ ${avantTout.champ.height} → ${apresTout.champ.height} px de haut)`);
     await page.keyboard.press('Escape');
     const resume = await champ4.evaluate((b) => {
-      const t = b.querySelector(':scope > span > span:not([data-reserve-resume])') as HTMLElement;
+      const t = b.querySelector('[data-resume-entier]') as HTMLElement;
       return { texte: t.innerText.replace(/\s+/g, ' '), entier: t.scrollWidth <= t.clientWidth && b.scrollHeight <= b.clientHeight, lignes: Math.round(t.getBoundingClientRect().height / parseFloat(getComputedStyle(t).lineHeight)) };
     });
     ok(resume.texte === 'PV%, ATQ%, DEF%, Taux Crit, Dmg Crit' && resume.entier && resume.lignes === 2,
       `principales : fermé, les cinq valeurs se lisent en entier, sur deux lignes (« ${resume.texte} », ${resume.lignes} ligne(s))`);
-
-    // Dans une carte plus haute que son contenu, les trois listes s'espacent.
-    await page.evaluate(monter('principales-haute'));
-    const espaces = await page.evaluate(() => {
-      const champs = [...document.querySelectorAll('section[aria-label^="Statistique principale"] button[aria-haspopup]')].map((b) => b.getBoundingClientRect());
-      const carte = document.querySelector('section[aria-label^="Statistique principale"]')!.getBoundingClientRect();
-      return { carte: carte.height, ecarts: champs.slice(1).map((c, i) => Math.round(c.top - champs[i].bottom)), basDernier: Math.round(carte.bottom - champs[2].bottom) };
+    const rangees = await page.evaluate(() => {
+      const section = document.querySelector('section[aria-label^="Statistique principale"]')!;
+      return [...section.querySelectorAll('button[aria-haspopup]')].map((b) => {
+        // bouton → liste (racine `relative`) → sa case → la rangée, dont le nom est le premier enfant.
+        const nom = b.parentElement!.parentElement!.parentElement!.firstElementChild!;
+        return { libelle: nom.textContent, aGauche: nom.getBoundingClientRect().right <= b.getBoundingClientRect().left, hauteur: Math.round(b.getBoundingClientRect().height) };
+      });
     });
-    ok(espaces.carte === 420 && espaces.ecarts[0] === espaces.ecarts[1] && espaces.ecarts[0] > 40 && espaces.basDernier === 13,
-      `principales : carte de 420 px, listes réparties dans sa hauteur (écarts ${espaces.ecarts.join(' / ')} px, dernière au bas de la carte)`);
+    ok(rangees.length === 3 && rangees.every((r) => r.aGauche) && rangees[0].hauteur === rangees[2].hauteur && rangees[1].hauteur > rangees[0].hauteur,
+      `principales : rangées « Slot n [liste] », le nom à gauche ; « Libre » sur une ligne, le slot 4 plein sur deux (${rangees.map((r) => `${r.libelle} ${r.hauteur} px`).join(', ')})`);
 
     // État de mon monstre : l'aide du bureau, colonne des buffs centrée.
     await page.evaluate(monter('etat'));
@@ -79,11 +80,16 @@ export async function testRenduOptimizerGabaritsGestes() {
     ok(aide.includes('compétences d’invocateur') || aide.includes('compétences d\'invocateur'), 'état : l’aide du titre s’ouvre');
     ok(!aide.includes('sets d\'aura') && !aide.includes('sets d’aura'), 'état : l’aide du bureau ne nomme pas les sets d’aura');
     ok(!aide.includes('décrit le combat'), 'état : l’aide du bureau n’a pas le paragraphe sur le combat');
-    const centre = await page.evaluate(() => {
-      const carte = document.querySelector('section[aria-label="État de mon monstre"]')!.getBoundingClientRect();
-      const buffs = document.querySelector('[aria-label^="Buff ATQ"]')!.closest('.w-20')!.getBoundingClientRect();
-      return Math.abs((buffs.left + buffs.right) / 2 - (carte.left + carte.right) / 2);
+    const rangee = await page.evaluate(() => {
+      const section = document.querySelector('section[aria-label="État de mon monstre"]')!.getBoundingClientRect();
+      const buffs = ['Buff ATQ', 'Buff DEF', 'Buff VIT'].map((n) => document.querySelector(`[aria-label^="${n}"]`)!.getBoundingClientRect());
+      const stat = document.querySelector('[aria-label="Type de leader skill"]') as HTMLSelectElement;
+      return {
+        memeLigne: buffs.every((b) => Math.abs(b.top - buffs[0].top) < 1), dedans: buffs.every((b) => b.left >= section.left - 0.5 && b.right <= section.right + 0.5),
+        largeurs: buffs.map((b) => Math.round(b.width)), statEntiere: stat.scrollWidth <= stat.clientWidth + 1 && stat.getBoundingClientRect().right <= section.right + 0.5,
+      };
     });
-    ok(centre < 1, `état : la colonne des buffs est centrée dans la carte (écart ${centre.toFixed(1)} px)`);
+    ok(rangee.memeLigne && rangee.dedans, `état : les trois buffs sur une rangée, dans la sous-colonne (${rangee.largeurs.join(' / ')} px)`);
+    ok(rangee.statEntiere, 'état : la liste du lead n’est plus coupée, dans la sous-colonne');
   } finally { await browser.close(); }
 }

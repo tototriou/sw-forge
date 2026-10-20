@@ -203,13 +203,15 @@ Un axe de RÉSUMÉ, né des principales du bureau : **`resumeEntier`** fait
 montrer au champ fermé toutes les valeurs choisies, à la ligne entre deux
 valeurs (chacune insécable : « Taux Crit » ne se coupe pas), rien de tronqué.
 
-- ⚠️ **Sa hauteur est réservée pour le résumé de TOUTES les options** : un
-  double invisible (`aria-hidden`), dans la même case de grille que le texte
-  visible, donne au champ la hauteur qu'il aurait si tout était choisi. Un
-  choix fait liste ouverte ne le fait donc jamais grandir, et la surface,
-  posée dessous, ne descend pas sous le doigt. Le prix : un champ qui dit
-  « Libre » a déjà la hauteur de son résumé le plus long (deux lignes pour
-  les principales du bureau).
+- ⚠️ **Le champ prend la hauteur de ce qu'il montre** (une ligne pour
+  « Libre », deux quand les choix l'exigent), **et la surface ne descend
+  jamais sous le doigt** : ouverte, elle se pose à la hauteur qu'avait le
+  champ à l'ouverture (mesurée au seul changement d'ouverture) et y reste.
+  Un choix qui fait passer le champ à deux lignes l'allonge sous elle ;
+  fermée, la liste montre tout. Ce qui suit le champ descend : la règle
+  protège la cible du clic, pas ce qui est dessous. Il réservait avant la
+  hauteur du résumé de toutes les options ; l'utilisateur a voulu des
+  rangées compactes (arrêt 4 de la refonte de l'Optimizer).
 
 #### `Interrupteur`
 

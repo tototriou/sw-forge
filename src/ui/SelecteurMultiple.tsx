@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useId, useRef, useState } from 'react';
+import { ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import Case from './Case';
 import Flottant from './Flottant';
 
@@ -45,11 +45,16 @@ import Flottant from './Flottant';
 //
 // Un axe de RÉSUMÉ, né des principales du bureau : `resumeEntier` fait montrer
 // au champ fermé TOUTES les valeurs choisies, à la ligne entre deux valeurs
-// (jamais au milieu d'une), rien de tronqué.
-// ⚠️ **Sa hauteur est réservée pour le résumé de TOUTES les options** (un
-// double invisible dans la même case de grille) : un choix fait liste ouverte
-// ne fait jamais grandir le champ, donc la surface, posée dessous, ne descend
-// pas sous le doigt (un clic ne déplace jamais ce qu'on vient de cliquer).
+// (jamais au milieu d'une), rien de tronqué. Le champ prend la hauteur de ce
+// qu'il montre : une ligne pour « Libre », deux quand les choix l'exigent.
+// ⚠️ **La surface ouverte ne descend jamais sous le doigt** : elle se pose à
+// la hauteur qu'avait le champ À L'OUVERTURE, et y reste tant qu'elle est
+// ouverte. Un choix qui fait passer le champ à deux lignes l'allonge SOUS la
+// surface, qui ne bouge pas (un clic ne déplace jamais ce qu'on vient de
+// cliquer) ; fermée, la liste montre tout. Ce qui suit le champ, lui, descend :
+// la règle protège la cible du clic, pas ce qui est dessous (décision de
+// l'utilisateur à l'arrêt 4 de la refonte, qui a retiré la hauteur réservée
+// pour toutes les options).
 //
 // ⚠️ **Un focus perdu vers RIEN ne ferme pas la liste.** Un choix qui
 // désactive ou retire le bouton qu'on vient de cliquer (un set de 4 rend les
@@ -82,7 +87,7 @@ export interface SelecteurMultipleProps<V extends string | number> {
   // Ouverture contrôlée (voir l'en-tête).
   ouvert?: boolean;
   onOuvertChange?: (ouvert: boolean) => void;
-  // Champ fermé qui montre tout le résumé, hauteur réservée (voir l'en-tête).
+  // Champ fermé qui montre tout le résumé, surface fixée à l'ouverture (voir l'en-tête).
   resumeEntier?: boolean;
   taille?: 'md' | 'sm';
   // Largeur de la surface ouverte ; défaut : celle du déclencheur.
@@ -137,6 +142,14 @@ export default function SelecteurMultiple<V extends string | number>({
     onOuvertChange?.(o);
   };
   const setOuvert = (o: boolean) => changer.current(o);
+
+  // `resumeEntier` : la hauteur du champ à l'ouverture, où la surface se pose
+  // tant qu'elle reste ouverte (voir l'en-tête). Lue au seul changement
+  // d'ouverture, jamais quand le champ grandit.
+  const [hautOuverture, setHautOuverture] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    setHautOuverture(ouvert && resumeEntier ? declencheur.current?.offsetHeight ?? null : null);
+  }, [ouvert, resumeEntier]);
 
   // Focus tombé sur le document alors qu'il était dans la liste ouverte :
   // rendu au déclencheur, la liste reste ouverte.
@@ -214,13 +227,8 @@ export default function SelecteurMultiple<V extends string | number>({
         {resume ? (
           <span className="flex min-w-0 items-center gap-1 overflow-hidden">{resume.visuel}</span>
         ) : resumeEntier ? (
-          <span className="grid min-w-0 flex-1">
-            <span className={`col-start-1 row-start-1 self-center ${choisies.length > 0 ? 'text-ink' : 'text-ink-dim'}`}>
-              {choisies.length > 0 ? <ValeursALaLigne libelles={choisies.map((o) => o.libelle)} /> : vide}
-            </span>
-            <span aria-hidden="true" data-reserve-resume className="invisible col-start-1 row-start-1">
-              <ValeursALaLigne libelles={options.map((o) => o.libelle)} />
-            </span>
+          <span data-resume-entier className={`min-w-0 flex-1 ${choisies.length > 0 ? 'text-ink' : 'text-ink-dim'}`}>
+            {choisies.length > 0 ? <ValeursALaLigne libelles={choisies.map((o) => o.libelle)} /> : vide}
           </span>
         ) : (
           <span className={`min-w-0 truncate ${choisies.length > 0 ? 'text-ink' : 'text-ink-dim'}`}>{texte}</span>
@@ -229,6 +237,7 @@ export default function SelecteurMultiple<V extends string | number>({
       <Flottant
         rembourrage={surface ? 'sm' : 'aucun'}
         largeur={largeurSurface}
+        style={hautOuverture != null ? { top: hautOuverture } : undefined}
         role="group"
         aria-label={libelle}
         className={ouvert ? '' : 'hidden'}

@@ -261,6 +261,7 @@ import testRelicOracle, { testRelicOracleGroupesEffetUnique, testRelicOracleOpti
 import testRelicSearch from './relic-search.test';
 import testRelicQueue from './relic-queue.test';
 import testResolutionRapide, { testResolutionRapideNaN } from './resolution-rapide.test';
+import testMemoCombat from './memo-combat.test';
 import testPerfRelicOptions from './perf-relic-options.test';
 import testRelicDifferentiel from './relic-differentiel.test';
 import testRelicUniqueLabel from './relic-unique-label.test';
@@ -724,6 +725,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRelicQueue', testRelicQueue],
   ['testResolutionRapide', testResolutionRapide],
   ['testResolutionRapideNaN', testResolutionRapideNaN],
+  ['testMemoCombat', testMemoCombat],
   ['testPerfRelicOptions', testPerfRelicOptions],
   ['testRelicDifferentiel', testRelicDifferentiel],
   ['testRelicUniqueLabel', testRelicUniqueLabel],

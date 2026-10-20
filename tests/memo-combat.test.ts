@@ -1,0 +1,184 @@
+// `MemoCombat` (src/lib/damage.ts) : ce que le calcul de dégâts relit à
+// l'identique d'une paire d'artéfacts à l'autre — chronologie des poses entre
+// les coups, stats au début du combat, stats de combat —, calculé une fois.
+// La promesse : `computeTotalDamage` rend, avec le memo, EXACTEMENT ce qu'il
+// rend sans lui (`Object.is`, au bit près), paire après paire, sur le corpus.
+//
+// Référence de contrôle (`algo-verify`) : le même appel sans memo, qui
+// recalcule tout. Chaque sort calculable de chaque fiche du corpus, sous deux
+// réglages : le défaut, et un réglage « riche » — buffs ATQ/DEF/VIT, Miriam,
+// tous les passifs allumés, VIT adverse basse (critique forcé des monstres
+// `critSiPlusRapide`, réglages recopiés à chaque appel), et, pour un sort à
+// effets posables entre les coups, le scénario actif (chronologies). Un memo
+// par build et par relique comme `evaluerPourRegime` : des paires tirées à
+// graine fixe, dont les stats viennent de `statsParPaire` (le même tableau aux
+// paires de mêmes principales, comme en production) et dont les profils
+// portent des amplifications de buff variées ; chaque paire est notée deux
+// fois, dans un ordre mélangé, pour relire ce que le memo a retenu.
+
+import { ArtifactDetail, ArtifactKind, BaseStats } from '../src/types';
+import { ARTIFACT_SUB_MAX } from '../src/lib/artifacts';
+import { artifactSubKinds } from '../src/lib/effects';
+import { statsParPaire } from '../src/lib/stats';
+import {
+  AurasPropres,
+  BORNE_CHRONOLOGIES,
+  DEFAULT_DAMAGE_SETUP,
+  DamageSetup,
+  MemoCombat,
+  artifactDamageProfile,
+  computeTotalDamage,
+  estPrisEnCharge,
+  monsterDamageSkills,
+} from '../src/lib/damage';
+import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
+import { mulberry32 } from '../scripts/lib/randomPool';
+import { loadMonstersList } from '../scripts/lib/monstersData';
+import { loadMonsterSkills } from '../scripts/lib/skillsData';
+import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
+import { RealDamageContext } from '../src/lib/runeBuildOptim';
+import { egal, ok, titre } from './outils';
+
+const BASE: BaseStats = { hp: 11000, atk: 780, def: 640, spd: 104, cr: 15, cd: 50, res: 15, acc: 0 };
+const PROPRES: AurasPropres = { fight: 1, determination: 1, enhance: 0, accuracy: 0, tolerance: 0 };
+
+// Quatre pièces par sorte, deux principales par sorte : des paires partagent
+// leur tableau de stats (`statsParPaire`) et ne diffèrent que par UNE
+// amplification de buff (`CODE_AMPLI_PAR_BUFF`) — le cas où une clé
+// incomplète du memo rendrait une valeur fausse. Attribut : 204 (ATQ) sur les
+// pièces 0 et 2, 205 (DEF) sur 1 et 3, à valeurs différentes ; type : 206
+// (VIT) sur 0 et 2, 226 (ATQ et DEF) sur 1, rien sur 3. D'où, à stats égales :
+// [0, t3] et [2, t3] ne diffèrent que par l'ATQ, [1, t3] et [3, t3] par la
+// DEF, [—, t0] et [—, t2] par la VIT. Les trois autres lignes, tirées.
+const AMPLI_PAR_PIECE: Record<ArtifactKind, (number | null)[]> = { element: [204, 205, 204, 205], archetype: [206, 226, 206, null] };
+
+function pieces(rng: () => number, kind: ArtifactKind, id0: number): ArtifactDetail[] {
+  const codes = Object.keys(ARTIFACT_SUB_MAX).map(Number).filter((c) => artifactSubKinds(c).includes(kind));
+  const principales = kind === 'element' ? [{ code: 100, value: 1500 }, { code: 101, value: 100 }] : [{ code: 102, value: 100 }, { code: 101, value: 80 }];
+  return AMPLI_PAR_PIECE[kind].map((ampli, i) => {
+    const choisis = new Set<number>(ampli ? [ampli] : []);
+    while (choisis.size < 4) {
+      const c = codes[Math.floor(rng() * codes.length)]!;
+      if (![204, 205, 206, 226].includes(c)) choisis.add(c);
+    }
+    return {
+      id: id0 + i, kind, ...(kind === 'element' ? { element: 'fire' as const } : { archetype: 'attack' as const }),
+      level: 15, rarity: 5,
+      main: principales[i % 2]!,
+      subs: [...choisis].map((code) => ({ code, value: code === ampli ? 5 + 10 * i : Math.max(1, Math.round(rng() * ARTIFACT_SUB_MAX[code]! * 10) / 10) })),
+    };
+  });
+}
+
+// Le contexte de dégâts du CLI (`buildRealDamageContext`) pour ce sort et ce réglage.
+function contexte(com2usId: number, setup: DamageSetup): RealDamageContext | null {
+  return buildRealDamageContext({ objective: 'degats_reels', damageSetup: setup } as unknown as OptimizerRecipe, com2usId, []);
+}
+
+function total(ctx: RealDamageContext, stats: ReturnType<ReturnType<typeof statsParPaire>>, arts: ArtifactDetail[], memo?: MemoCombat): number {
+  return computeTotalDamage(
+    ctx.profile, ctx.passifs, stats, ctx.setup, PROPRES, ctx.element, artifactDamageProfile(arts), ctx.critSiPlusRapide,
+    ctx.bonusDegatsSelonVit, ctx.bonusDegatsStack, ctx.monsterWide, ctx.bonusDegatsConditionnel, ctx.bonusDegatsSelonCr,
+    ctx.bonusDegatsSelonDef, ctx.bonusSiAtqSeuil, 0, memo
+  );
+}
+
+export default function testMemoCombat() {
+  titre('MemoCombat — computeTotalDamage avec le memo rend, au bit près, ce qu’il rend sans lui (corpus)');
+  const rng = mulberry32(4242);
+  const elements = pieces(rng, 'element', 9000);
+  const archetypes = pieces(rng, 'archetype', 9100);
+  const paires: ArtifactDetail[][] = [];
+  for (const e of [null, ...elements]) for (const a of [null, ...archetypes]) paires.push([e, a].filter((x): x is ArtifactDetail => x != null));
+  const statsAvec = statsParPaire({ base: BASE, runes: [], artifacts: [] });
+
+  const ecarts: string[] = [];
+  let sorts = 0;
+  let appels = 0;
+  let avecChronologie = 0;
+  let avecStatsRetenues = 0;
+  let avecCombatsRetenus = 0;
+  let critiqueForce = 0;
+  let passifsAllumes = 0;
+  const vus = new Set<number>();
+  for (const m of loadMonstersList()) {
+    const id = m.com2usId;
+    if (id == null || vus.has(id)) continue;
+    vus.add(id);
+    const detail = loadMonsterSkills(id);
+    if (!detail) continue;
+    for (const sort of monsterDamageSkills(detail).filter(estPrisEnCharge)) {
+      const defaut: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: sort.skillCom2usId, critMode: 'crit' };
+      const base = contexte(id, defaut);
+      if (!base) continue;
+      const riche: DamageSetup = {
+        ...defaut, atkBuff: true, defBuff: true, spdBuff: true, miriamActif: true, enemySpd: 40,
+        passifsOffensifs: Object.fromEntries(base.passifs.map((p) => [p.skillCom2usId, true])),
+        ...(base.profile.effetsEntreCoups?.length
+          ? { scenariosEffetsEntreCoups: { [base.profile.skillCom2usId]: { actif: true, apresCoup: Object.fromEntries(base.profile.effetsEntreCoups.map((e) => [e.id, 1])) } } }
+          : {}),
+      };
+      for (const setup of [defaut, riche]) {
+        const ctx = setup === defaut ? base : contexte(id, setup)!;
+        sorts++;
+        if (setup === riche && ctx.critSiPlusRapide) critiqueForce++;
+        if (setup === riche && ctx.passifs.length) passifsAllumes++;
+        // Un memo par build et par relique : chaque paire, deux fois, ordre mélangé.
+        const memo = new MemoCombat(PROPRES, ctx.element);
+        const ordre = [...paires, ...paires].map((p) => ({ p, k: rng() })).sort((a, b) => a.k - b.k).map((x) => x.p);
+        for (const arts of ordre) {
+          const stats = statsAvec(arts);
+          const avec = total(ctx, stats, arts, memo);
+          const sans = total(ctx, stats, arts);
+          appels++;
+          if (!Object.is(avec, sans) && ecarts.length < 5) {
+            ecarts.push(`${id} sort ${sort.skillCom2usId} (${setup === defaut ? 'défaut' : 'riche'}) [${arts.map((a) => a.id).join(',')}] : ${avec} ≠ ${sans}`);
+          }
+        }
+        const c = memo.compte;
+        if (c.chronologies > 0) avecChronologie++;
+        if (c.tableaux > 0) avecStatsRetenues++;
+        if (c.combats > 0) avecCombatsRetenus++;
+      }
+    }
+  }
+  egal(ecarts, [], `${appels} notes de paires, ${sorts} contextes (sort × réglage) : avec le memo = sans le memo, au bit près`);
+  ok(avecChronologie > 20, `… dont ${avecChronologie} contextes où le memo a retenu une chronologie de poses entre les coups`);
+  ok(avecStatsRetenues > 100 && avecCombatsRetenus > 100, `… ${avecStatsRetenues} où il a retenu des stats au début du combat, ${avecCombatsRetenus} des stats de combat`);
+  ok(critiqueForce > 0 && passifsAllumes > 0, `… ${critiqueForce} contextes à critique forcé (réglage recopié, sans mémoire), ${passifsAllumes} à passifs allumés`);
+
+  // ── Bornes : un seul memo pour plus de réglages que de chronologies
+  // retenues — vidé d'un coup, jamais un résultat différent. ──
+  {
+    const scenario = [...vus].map((id) => ({ id, d: loadMonsterSkills(id) })).flatMap(({ id, d }) =>
+      monsterDamageSkills(d).filter(estPrisEnCharge).filter((s) => (s.effetsEntreCoups?.length ?? 0) > 0 && s.hits > 1).map((s) => ({ id, s }))
+    )[0];
+    ok(scenario !== undefined, `un sort à effets posables entre les coups pour l’essai des bornes (${scenario?.id} sort ${scenario?.s.skillCom2usId})`);
+    if (scenario) {
+      const memo = new MemoCombat(PROPRES, null);
+      const ecartsBornes: string[] = [];
+      let maxChronologies = 0;
+      const reglage = (i: number): DamageSetup => ({
+        ...DEFAULT_DAMAGE_SETUP, skillCom2usId: scenario.s.skillCom2usId, critMode: 'crit', enemyDef: 1000 + 37 * i,
+        scenariosEffetsEntreCoups: { [scenario.s.skillCom2usId]: { actif: true, apresCoup: Object.fromEntries(scenario.s.effetsEntreCoups!.map((e) => [e.id, 1])) } },
+      });
+      // Le même sort (même profil) sous des réglages distincts : seul le
+      // réglage distingue leurs chronologies.
+      const commun = { ...contexte(scenario.id, reglage(0))!, element: null };
+      for (let tour = 0; tour < 3; tour++) {
+        for (let i = 0; i < BORNE_CHRONOLOGIES + 5; i++) {
+          const ctx = { ...commun, setup: reglage(i) };
+          for (const arts of paires.slice(0, 6)) {
+            const stats = statsAvec(arts);
+            const avec = total(ctx, stats, arts, memo);
+            const sans = total(ctx, stats, arts);
+            if (!Object.is(avec, sans)) ecartsBornes.push(`tour ${tour} réglage ${i} : ${avec} ≠ ${sans}`);
+          }
+          maxChronologies = Math.max(maxChronologies, memo.compte.chronologies);
+        }
+      }
+      egal(ecartsBornes.slice(0, 3), [], `${3 * (BORNE_CHRONOLOGIES + 5)} réglages distincts sur un memo : résultat exact`);
+      ok(maxChronologies <= BORNE_CHRONOLOGIES, `… au plus ${BORNE_CHRONOLOGIES} chronologies retenues (vu : ${maxChronologies})`);
+    }
+  }
+}

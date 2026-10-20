@@ -5811,8 +5811,8 @@ export function vitTotalePourVitesseFinale(
 // oublierait l'aura (elle l'oubliait). Aura nulle → valeur
 // strictement identique à l'ancienne réplique. Pas d'amplification
 // artéfact du buff ici, comme avant (hors périmètre des auras).
-function defCombat(stats: StatRow[], setup: DamageSetup, propres: AurasPropres, element: ElementKey | null = null): number {
-  const defAvecLead = statsDebutCombat(stats, setup, propres, element).def;
+function defCombat(stats: StatRow[], setup: DamageSetup, propres: AurasPropres, element: ElementKey | null = null, memo?: MemoCombat): number {
+  const defAvecLead = (memo ? memo.debutCombat(stats, setup, propres, element) : statsDebutCombat(stats, setup, propres, element)).def;
   const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
   const pctDefBuff = setup.defBuff ? DEF_BUFF_PCT * (1 + ampliMiriam / 100) : 0;
   return (defAvecLead * (100 + pctDefBuff)) / 100;
@@ -5884,8 +5884,8 @@ function resolvedCombatStatBonuses(profiles: CombatStatProfile[], setup: DamageS
 // d'équipe — modèle ») fait entrer les auras dans les passifs. C'est exactement l'ATQ de `statsDebutCombat`, même
 // `ceil` unique ; aura nulle → valeur strictement identique à l'ancienne
 // réplique locale.
-function atkCombatComplet(stats: StatRow[], setup: DamageSetup, propres: AurasPropres, element: ElementKey | null = null): number {
-  return statsDebutCombat(stats, setup, propres, element).atk;
+function atkCombatComplet(stats: StatRow[], setup: DamageSetup, propres: AurasPropres, element: ElementKey | null = null, memo?: MemoCombat): number {
+  return (memo ? memo.debutCombat(stats, setup, propres, element) : statsDebutCombat(stats, setup, propres, element)).atk;
 }
 
 // Taux Crit BRUT (avant plafond à 100 %) — leader Taux Crit + les deux
@@ -5907,6 +5907,180 @@ function crBrutEffectif(
   const crCombat = resolvedCombatStatBonuses(monsterWide.combatStats ?? [], setup).crPoints;
   return total(stats, 'cr') + (monsterWide.bonusStatFixe?.cr ?? 0) + pctLeaderCr + crDepuisVit + crCombat;
 }
+
+/** Les stats au début du combat (`statsDebutCombat`). */
+export type StatsDebutCombat = { atk: number; def: number; hp: number; spd: number; res: number; acc: number };
+
+/**
+ * Ce qu'un calcul de dégâts relit à l'identique d'une paire d'artéfacts à
+ * l'autre, calculé UNE fois : le facultatif `memo` de `computeTotalDamage`.
+ * Le choix des artéfacts note des milliers de paires pour un même build et
+ * une même relique ; trois calculs y dépendent peu ou pas de la paire :
+ *
+ * - la **chronologie des poses entre les coups** (`chronologieEffetsEntreCoups`)
+ *   ne lit que le sort, le réglage, les modificateurs monstre-wide et les
+ *   profils qui suivent le sort — aucune stat ;
+ * - les **stats au début du combat** (`statsDebutCombat`) ne lisent que le
+ *   tableau de stats, le réglage, les auras propres et l'élément ; or les
+ *   paires de mêmes principales reçoivent le MÊME tableau (`statsParPaire`,
+ *   puis l'apport de l'effet unique par tableau, `evaluerPourRegime`) ;
+ * - les **stats de combat** (`statsDeCombat`) lisent en plus, de la paire, ses
+ *   seules amplifications de buff (`ampliAtkPct`, `ampliDefPct`,
+ *   `ampliVitPct`), et les stats de combat du monstre (`monsterWide`).
+ *
+ * ⚠️ **Exact par construction** : chaque valeur est celle de la fonction
+ * appelée sur les mêmes entrées, reconnues à leur IDENTITÉ (les nombres par
+ * `Object.is`) — aucune formule n'est réécrite, aucun résultat ne change d'un
+ * bit. Précondition : ces entrées ne sont pas modifiées pendant la vie du
+ * memo (les réglages, profils et tableaux de stats se lisent sans jamais
+ * s'écrire ; damage.ts n'en modifie aucun). Ce qu'il rend est partagé : à
+ * lire, jamais à modifier.
+ *
+ * Les stats ne se retiennent que pour un réglage CONNU du memo : celui de
+ * `computeTotalDamage` et ceux d'une chronologie retenue. Un réglage recopié
+ * à chaque appel (critique forcé, mode critique d'un passif) se calcule sans
+ * mémoire : il ne la remplirait que de clés jamais relues ; de même pour
+ * d'autres auras propres ou un autre élément que ceux du memo. Bornes :
+ * `BORNE_CHRONOLOGIES` chronologies, `BORNE_STATS_PAR_REGLAGE` tableaux par
+ * réglage, `BORNE_COMBATS_PAR_STATS` jeux d'amplifications par tableau ;
+ * atteinte, la mémoire concernée se vide d'un coup.
+ *
+ * Durée de vie : celle d'un `evaluer` (`evaluerPourRegime`, un par build et
+ * par relique essayée), jamais un état du module.
+ */
+export class MemoCombat {
+  private chronologies: {
+    profile: SkillDamageProfile;
+    setup: DamageSetup;
+    monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>;
+    supplementaires: SkillDamageProfile[];
+    valeur: { avant: DamageSetup[]; apres: DamageSetup } | null;
+  }[] = [];
+  // Par réglage connu, puis par tableau de stats.
+  private parReglage = new Map<DamageSetup, Map<StatRow[], StatsRetenues>>();
+
+  constructor(
+    private readonly propres: AurasPropres,
+    private readonly element: ElementKey | null
+  ) {}
+
+  // Ce que le memo retient, pour les tests (aucun effet sur un résultat).
+  get compte(): { chronologies: number; reglages: number; tableaux: number; combats: number } {
+    let tableaux = 0;
+    let combats = 0;
+    for (const parStats of this.parReglage.values()) {
+      tableaux += parStats.size;
+      for (const r of parStats.values()) combats += r.combats.length;
+    }
+    return { chronologies: this.chronologies.length, reglages: this.parReglage.size, tableaux, combats };
+  }
+
+  // Le réglage de `computeTotalDamage` : ses stats se retiennent.
+  connaitre(setup: DamageSetup): void {
+    if (!this.parReglage.has(setup)) this.parReglage.set(setup, new Map());
+  }
+
+  chronologie(
+    profile: SkillDamageProfile,
+    setup: DamageSetup,
+    monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>,
+    supplementaires: SkillDamageProfile[],
+    calculer: () => { avant: DamageSetup[]; apres: DamageSetup } | null
+  ): { avant: DamageSetup[]; apres: DamageSetup } | null {
+    for (const c of this.chronologies) {
+      if (
+        c.profile === profile && c.setup === setup && c.monsterWide === monsterWide &&
+        c.supplementaires.length === supplementaires.length &&
+        c.supplementaires.every((p, i) => p === supplementaires[i])
+      ) {
+        return c.valeur;
+      }
+    }
+    const valeur = calculer();
+    if (this.chronologies.length >= BORNE_CHRONOLOGIES) {
+      // Les réglages connus par les chronologies oubliées partent avec elles ;
+      // celui de `computeTotalDamage` revient au prochain appel.
+      this.chronologies = [];
+      this.parReglage.clear();
+    }
+    this.chronologies.push({ profile, setup, monsterWide, supplementaires: [...supplementaires], valeur });
+    if (valeur) {
+      for (const s of valeur.avant) this.connaitre(s);
+      this.connaitre(valeur.apres);
+    }
+    return valeur;
+  }
+
+  // Les stats retenues pour ce tableau et ce réglage ; `null` si rien ne se retient.
+  private retenues(stats: StatRow[], setup: DamageSetup, propres: AurasPropres, element: ElementKey | null): StatsRetenues | null {
+    if (propres !== this.propres || element !== this.element) return null;
+    const parStats = this.parReglage.get(setup);
+    if (!parStats) return null;
+    let r = parStats.get(stats);
+    if (!r) {
+      if (parStats.size >= BORNE_STATS_PAR_REGLAGE) parStats.clear();
+      r = { debut: null, combats: [] };
+      parStats.set(stats, r);
+    }
+    return r;
+  }
+
+  debutCombat(stats: StatRow[], setup: DamageSetup, propres: AurasPropres, element: ElementKey | null): StatsDebutCombat {
+    const r = this.retenues(stats, setup, propres, element);
+    if (!r) return statsDebutCombat(stats, setup, propres, element);
+    if (!r.debut) r.debut = statsDebutCombat(stats, setup, propres, element);
+    return r.debut;
+  }
+
+  combat(
+    stats: StatRow[],
+    setup: DamageSetup,
+    propres: AurasPropres,
+    element: ElementKey | null,
+    artefacts: ArtifactDamageProfile,
+    monsterWide: Pick<MonsterWideDamageModifiers, 'combatStats'>,
+    calculer: () => StatsDeCombat
+  ): StatsDeCombat {
+    const r = this.retenues(stats, setup, propres, element);
+    if (!r) return calculer();
+    for (const c of r.combats) {
+      if (
+        c.monsterWide === monsterWide && Object.is(c.ampliAtkPct, artefacts.ampliAtkPct) &&
+        Object.is(c.ampliDefPct, artefacts.ampliDefPct) && Object.is(c.ampliVitPct, artefacts.ampliVitPct)
+      ) {
+        return c.valeur;
+      }
+    }
+    const valeur = calculer();
+    if (r.combats.length >= BORNE_COMBATS_PAR_STATS) r.combats = [];
+    r.combats.push({
+      monsterWide, ampliAtkPct: artefacts.ampliAtkPct, ampliDefPct: artefacts.ampliDefPct, ampliVitPct: artefacts.ampliVitPct, valeur,
+    });
+    return valeur;
+  }
+}
+
+// Ce qu'un `MemoCombat` retient pour un réglage et un tableau de stats.
+interface StatsRetenues {
+  debut: StatsDebutCombat | null;
+  combats: {
+    monsterWide: Pick<MonsterWideDamageModifiers, 'combatStats'>;
+    ampliAtkPct: number;
+    ampliDefPct: number;
+    ampliVitPct: number;
+    valeur: StatsDeCombat;
+  }[];
+}
+
+// Au plus tant de chronologies dans un `MemoCombat` : une pour le sort, une
+// par passif qui accompagne chaque coup, une pour l'état après le sort.
+export const BORNE_CHRONOLOGIES = 16;
+// Au plus tant de tableaux de stats par réglage connu d'un `MemoCombat` : une
+// poignée de sommes de principales par build et par relique.
+export const BORNE_STATS_PAR_REGLAGE = 64;
+// Au plus tant de jeux d'amplifications de buff par tableau de stats : la
+// plupart des paires n'en portent aucune.
+export const BORNE_COMBATS_PAR_STATS = 16;
 
 /**
  * Les stats **au DÉBUT DU COMBAT** — base + runes + artéfacts + principale de
@@ -5938,7 +6112,7 @@ export function statsDebutCombat(
   setup: DamageSetup,
   propres: AurasPropres,
   element: ElementKey | null = null
-): { atk: number; def: number; hp: number; spd: number; res: number; acc: number } {
+): StatsDebutCombat {
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
   const leader = resolvedLeaderSkill(setup);
   const aura = (set: SetAura) => 8 * nombreAuraEffectif(setup, propres, set);
@@ -5980,12 +6154,35 @@ export function statsDeCombat(
   propres: AurasPropres,
   element: ElementKey | null = null,
   artefacts: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE,
-  monsterWide: Pick<MonsterWideDamageModifiers, 'combatStats'> = {}
-): { atk: number; def: number; hp: number; spd: number } {
+  monsterWide: Pick<MonsterWideDamageModifiers, 'combatStats'> = {},
+  // Voir `MemoCombat` : le même calcul, retenu par tableau de stats et par
+  // amplifications de buff des artéfacts.
+  memo?: MemoCombat
+): StatsDeCombat {
+  return memo
+    ? memo.combat(stats, setup, propres, element, artefacts, monsterWide, () =>
+        calculerStatsDeCombat(stats, setup, propres, element, artefacts, monsterWide, memo)
+      )
+    : calculerStatsDeCombat(stats, setup, propres, element, artefacts, monsterWide);
+}
+
+/** Les stats de combat (`statsDeCombat`). */
+export type StatsDeCombat = { atk: number; def: number; hp: number; spd: number };
+
+// Le corps de `statsDeCombat`.
+function calculerStatsDeCombat(
+  stats: StatRow[],
+  setup: DamageSetup,
+  propres: AurasPropres,
+  element: ElementKey | null,
+  artefacts: ArtifactDamageProfile,
+  monsterWide: Pick<MonsterWideDamageModifiers, 'combatStats'>,
+  memo?: MemoCombat
+): StatsDeCombat {
   // ⚠️ Le préfixe « début de combat » (invocateur + lead + auras, sans buff)
   // vient de `statsDebutCombat` — une seule écriture du `ceil` unique et du
   // lead sur la base, partagée avec l'assiette `Y` des exclusives de relique.
-  const debut = statsDebutCombat(stats, setup, propres, element);
+  const debut = memo ? memo.debutCombat(stats, setup, propres, element) : statsDebutCombat(stats, setup, propres, element);
   const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
   const pctAtkBuff = setup.atkBuff ? ATK_BUFF_PCT * (1 + (artefacts.ampliAtkPct + ampliMiriam) / 100) : 0;
   const pctDefBuff = setup.defBuff ? DEF_BUFF_PCT * (1 + (artefacts.ampliDefPct + ampliMiriam) / 100) : 0;
@@ -6060,9 +6257,10 @@ function setupsAvantChaqueCoup(
   profile: SkillDamageProfile,
   setup: DamageSetup,
   monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>,
-  profilsSupplementaires: SkillDamageProfile[] = []
+  profilsSupplementaires: SkillDamageProfile[] = [],
+  memo?: MemoCombat
 ): DamageSetup[] | null {
-  return chronologieEffetsEntreCoups(profile, setup, monsterWide, profilsSupplementaires)?.avant ?? null;
+  return chronologieEffetsEntreCoups(profile, setup, monsterWide, profilsSupplementaires, memo)?.avant ?? null;
 }
 
 /**
@@ -6084,14 +6282,15 @@ function etatCibleApresSort(
   profile: SkillDamageProfile,
   passifs: PassifOffensifProfile[],
   setup: DamageSetup,
-  monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>
+  monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>,
+  memo?: MemoCombat
 ): DamageSetup | null {
   if (!setup.scenariosEffetsEntreCoups?.[profile.skillCom2usId]?.actif || !profile.effetsEntreCoups?.length) return null;
   const suivent: SkillDamageProfile[] = [];
   for (const p of passifs) {
     if (!p.coupsDuSortActif && passifCompte(p, profile, setup)) suivent.push(p.profile);
   }
-  return chronologieEffetsEntreCoups(profile, setup, monsterWide, suivent)?.apres ?? null;
+  return chronologieEffetsEntreCoups(profile, setup, monsterWide, suivent, memo)?.apres ?? null;
 }
 
 /**
@@ -6103,12 +6302,28 @@ function chronologieEffetsEntreCoups(
   profile: SkillDamageProfile,
   setup: DamageSetup,
   monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>,
-  profilsSupplementaires: SkillDamageProfile[]
+  profilsSupplementaires: SkillDamageProfile[],
+  // Voir `MemoCombat` : la même chronologie, calculée une fois pour ces entrées.
+  memo?: MemoCombat
 ): { avant: DamageSetup[]; apres: DamageSetup } | null {
   const scenario = setup.scenariosEffetsEntreCoups?.[profile.skillCom2usId];
   const coups = resolvedHits(profile, setup);
   if (!scenario?.actif || !profile.effetsEntreCoups?.length || coups <= 1) return null;
+  const effetsEntreCoups = profile.effetsEntreCoups;
+  const calculer = () => calculerChronologie(profile, setup, monsterWide, profilsSupplementaires, scenario, coups, effetsEntreCoups);
+  return memo ? memo.chronologie(profile, setup, monsterWide, profilsSupplementaires, calculer) : calculer();
+}
 
+// Le corps de `chronologieEffetsEntreCoups`, une fois ses gardes passées.
+function calculerChronologie(
+  profile: SkillDamageProfile,
+  setup: DamageSetup,
+  monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>,
+  profilsSupplementaires: SkillDamageProfile[],
+  scenario: ScenarioEffetsEntreCoups,
+  coups: number,
+  effetsEntreCoups: NonNullable<SkillDamageProfile['effetsEntreCoups']>
+): { avant: DamageSetup[]; apres: DamageSetup } {
   const presents = new Set(scenario.presentsInitialement ?? []);
   if (setup.brand) presents.add('brand');
   if (setup.defBreak) presents.add('decrease-def');
@@ -6155,7 +6370,7 @@ function chronologieEffetsEntreCoups(
   const resultats: DamageSetup[] = [];
   for (let i = 1; i <= coups; i++) {
     resultats.push(setupCoup);
-    for (const effet of profile.effetsEntreCoups) {
+    for (const effet of effetsEntreCoups) {
       if (scenario.apresCoup?.[effet.id] !== i) continue;
       const dejaPresent = presents.has(effet.id);
       if ((effet.cumulable || !dejaPresent) && !effet.effetCombat) {
@@ -6220,7 +6435,10 @@ export function computeSkillDamageDetail(
   // Propriété unique de relique du groupe **Conquête** — un pourcentage
   // ADDITIF dans le bracket `DMG%` (voir son usage plus bas, et
   // `relicExclusive.ts` pour le calcul du gain). `0` = inchangé.
-  reliqueDmgPct = 0
+  reliqueDmgPct = 0,
+  // Voir `MemoCombat` (transmis par `computeTotalDamage`) : chronologie et
+  // stats au début du combat calculées une fois. Absent = tout recalculé.
+  memo?: MemoCombat
 ): {
   total: number;
   // Part du total qui vient du bucket ADDITIONNEL (dégâts bruts par coup :
@@ -6243,7 +6461,7 @@ export function computeSkillDamageDetail(
   // eux, ne lisent que le réglage (`resolvedHits`).
   if (profile.hitsRange && profile.conditionsCombat?.some(coupsEnPlusDeduitDuBuild)) {
     const combatPourCoups: StatsCombatPourCoups = {
-      ...statsDeCombat(stats, setup, propres, element, artefacts, monsterWide),
+      ...statsDeCombat(stats, setup, propres, element, artefacts, monsterWide, memo),
       // ATQ de base du monstre : la tranche de Stormfist se compte sur elle.
       atkBase: stats.find((s) => s.key === 'atk')?.base ?? 0,
     };
@@ -6294,7 +6512,7 @@ export function computeSkillDamageDetail(
           rang === 0 || artefacts.cdPointsPremiereAttaque === 0
             ? artefacts
             : { ...artefacts, cdPointsPremiereAttaque: 0 };
-        const detail = computeSkillDamageDetail(profilGroupe, stats, setup, propres, element, pvSequence, artefactsGroupe, monsterWide, reliqueDmgPct);
+        const detail = computeSkillDamageDetail(profilGroupe, stats, setup, propres, element, pvSequence, artefactsGroupe, monsterWide, reliqueDmgPct, memo);
         totalSequence += detail.total;
         additionnelSequence += detail.additionnel;
         fixeProtegeSequence += detail.fixeProtege;
@@ -6312,7 +6530,7 @@ export function computeSkillDamageDetail(
   // avant le rang, mitigés par la DEF, puis ceux à partir de lui, qui
   // l'ignorent. Le coup 1 n'ignore jamais par ce mécanisme : le rang retenu
   // vaut au moins 2 (`rangsPermis`). Aucune ATB n'est déduite.
-  const setupsScenario = setupsAvantChaqueCoup(profile, setup, monsterWide);
+  const setupsScenario = setupsAvantChaqueCoup(profile, setup, monsterWide, [], memo);
   const rangIgnoreDef = resolvedPremierCoupIgnoreDef(profile, setup);
   if (setupsScenario || rangIgnoreDef !== null) {
     const coups = setupsScenario ? setupsScenario.length : resolvedHits(profile, setup);
@@ -6343,7 +6561,7 @@ export function computeSkillDamageDetail(
           ? artefacts
           : { ...artefacts, cdPointsPremiereAttaque: 0 };
       const setupTroncon = setupsScenario ? setupsScenario[premier - 1] : setup;
-      const detail = computeSkillDamageDetail(profilTroncon, stats, setupTroncon, propres, element, pvScenario, artefactsTroncon, monsterWide, reliqueDmgPct);
+      const detail = computeSkillDamageDetail(profilTroncon, stats, setupTroncon, propres, element, pvScenario, artefactsTroncon, monsterWide, reliqueDmgPct, memo);
       totalScenario += detail.total;
       additionnelScenario += detail.additionnel;
       fixeProtegeScenario += detail.fixeProtege;
@@ -6374,7 +6592,7 @@ export function computeSkillDamageDetail(
   const pvMax = Math.max(0, setup.enemyHp);
   const pctDepart = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
 
-  const combat = statsDeCombat(stats, setup, propres, element, artefacts, monsterWide);
+  const combat = statsDeCombat(stats, setup, propres, element, artefacts, monsterWide, memo);
   const maVit = combat.spd;
   // ⚠️ Bornée à 1 : une VIT adverse ≤ 0 ferait diverger le ratio (division
   // par zéro ou par un nombre négatif), un réglage vidé ne doit jamais casser
@@ -7126,8 +7344,13 @@ export function computeTotalDamage(
   // offensif (c'est un bonus de dégâts infligés général, exactement comme les
   // lignes élémentaires d'artéfact qui vivent dans le même bracket). Calculé
   // par `relicExclusive.ts` ; `0` = comportement strictement inchangé.
-  reliqueDmgPct = 0
+  reliqueDmgPct = 0,
+  // Ce qui ne dépend pas de la paire d'artéfacts, calculé une fois pour toutes
+  // les paires d'un build et d'une relique (`MemoCombat`, créé par
+  // `evaluerPourRegime`). Absent = tout recalculé ; même résultat, au bit près.
+  memo?: MemoCombat
 ): number {
+  memo?.connaitre(setup);
   const maVit = maVitCombat(stats, setup, element, artefacts.ampliVitPct);
   const ecartVit = maVit - Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
   const forceCrit = critSiPlusRapide && ecartVit > 0;
@@ -7150,7 +7373,7 @@ export function computeTotalDamage(
   // ceux-ci frappent après lui, sur une cible déjà entamée. C'est ce qui
   // permet à un bonus « si les PV sont tombés sous X % » (Final Strike) de
   // se déduire tout seul, sans rien demander à l'utilisateur.
-  const sort = computeSkillDamageDetail(profile, stats, setupSort, propres, element, undefined, artefactsSort, monsterWide, reliqueDmgPct);
+  const sort = computeSkillDamageDetail(profile, stats, setupSort, propres, element, undefined, artefactsSort, monsterWide, reliqueDmgPct, memo);
   let total = sort.total;
   // ⚠️ **Part ADDITIONNELLE mise de côté** — elle traverse la chaîne de
   // multiplicateurs ci-dessous sans en subir un seul, et n'est rendue qu'à la
@@ -7191,7 +7414,7 @@ export function computeTotalDamage(
   // Calculé UNE fois par appel, et seulement sous scénario actif :
   // sinon `null`, sans aucune allocation, et chaque passif garde le réglage
   // d'avant (voir `etatCibleApresSort`).
-  const setupApresSort = etatCibleApresSort(profile, passifs, setup, monsterWide);
+  const setupApresSort = etatCibleApresSort(profile, passifs, setup, monsterWide, memo);
   for (const p of passifs) {
     if (!passifCompte(p, profile, setup)) continue;
     // Le seuil se juge sur les PV AVANT que ce passif ne frappe — c'est bien
@@ -7204,7 +7427,7 @@ export function computeTotalDamage(
       ...(p.critique === 'toujours' ? { critMode: 'crit' as const } : {}),
     });
     const setupsPassifParCoup = p.coupsDuSortActif
-      ? setupsAvantChaqueCoup(profile, setup, monsterWide, [p.profile])
+      ? setupsAvantChaqueCoup(profile, setup, monsterWide, [p.profile], memo)
       : null;
     const contextePassif = contexteAttaqueConjointe(p.profile, setup, 'suite-du-sort');
     const artefactsDuPassif =
@@ -7228,7 +7451,8 @@ export function computeTotalDamage(
           pvPassif,
           artefactsDuPassif,
           monsterWide,
-          reliqueDmgPct
+          reliqueDmgPct,
+          memo
         );
         totalPassif += detailCoup.total;
         additionnelPassif += detailCoup.additionnel;
@@ -7253,7 +7477,7 @@ export function computeTotalDamage(
       // attaque qui le PRÉCÈDE (`avantLeSort`) lit le réglage tel quel.
       const etatCible = p.avantLeSort ? setup : setupApresSort ?? setup;
       const setupPassif = avecModeCritique({ ...etatCible, defBreak: p.avantLeSort ? setup.defBreak : defBreakApres(etatCible) });
-      detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, propres, element, pvCiblePct, artefactsDuPassif, monsterWide, reliqueDmgPct);
+      detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, propres, element, pvCiblePct, artefactsDuPassif, monsterWide, reliqueDmgPct, memo);
     }
     pvCiblePct = detail.pvRestantsPct;
     let contribution = detail.total;
@@ -7305,14 +7529,14 @@ export function computeTotalDamage(
   // Gideon (« Aegis Shell ») — linéaire, plafonné, même forme que
   // `bonusDegatsSelonVit`/`bonusDegatsSelonCr`, source = TA PROPRE DEF.
   if (bonusDegatsSelonDef) {
-    const def = defCombat(stats, setup, propres, element);
+    const def = defCombat(stats, setup, propres, element, memo);
     const pct = Math.min(bonusDegatsSelonDef.defMax, Math.max(0, def)) * (bonusDegatsSelonDef.pctMax / bonusDegatsSelonDef.defMax);
     total *= 1 + pct / 100;
   }
   // Brita/Eivor (Eau) — SEUIL absolu (pas linéaire) : +pct % dès que l'ATQ
   // totale (avec lead, compétence d'invocateur) atteint `seuil`, rien
   // avant. Entièrement déduit.
-  if (bonusSiAtqSeuil && atkCombatComplet(stats, setup, propres, element) >= bonusSiAtqSeuil.seuil) {
+  if (bonusSiAtqSeuil && atkCombatComplet(stats, setup, propres, element, memo) >= bonusSiAtqSeuil.seuil) {
     total *= 1 + bonusSiAtqSeuil.pct / 100;
   }
   // Même famille que `bonusDegatsSelonVit` (multiplicatif sur le TOTAL,

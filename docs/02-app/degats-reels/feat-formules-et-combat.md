@@ -156,6 +156,17 @@ comme le décrit [../mecaniques/](../mecaniques/) ; aucun bonus d'effet
 n'est exposé en v1) : buff d'attaque **+50 %**, buff de défense **+70 %**,
 buff de vitesse **+30 %**, réduction de défense **×0,3**, marque **+25 %**.
 
+**Une paire d'artéfacts après l'autre.** Le choix des artéfacts appelle
+`computeTotalDamage` sur des milliers de paires pour un même build. Son
+dernier paramètre, facultatif, est un `MemoCombat`, créé par l'évaluateur de
+paires (`evaluerPourRegime`) : il calcule une fois ce que le calcul relit à
+l'identique d'une paire à l'autre — la chronologie des poses entre les
+coups, les stats au début du combat, les stats de combat (par tableau de
+stats et par amplifications de buff de la paire). Rien de l'équation ne
+change : chaque valeur retenue est celle de la fonction sur les mêmes
+entrées, au bit près (`tests/memo-combat.test.ts`). Détail :
+[moteur/artefacts.md § Partage entre les builds d'une file](../../03-developpeur/optimizer/moteur/artefacts.md#partage-entre-les-builds-dune-file).
+
 
 ## Ignore DEF à partir d'un coup choisi — les Blade Dancers
 

@@ -378,6 +378,19 @@ changer aucun résultat :
   loin, ou si un score vaut NaN ; l'ordre rendu est exactement celui de
   `chercherPaires`.
 
+Pour un même build et une même relique, l'évaluateur « Dégâts réels » de
+`evaluerPourRegime` note des milliers de paires ; il porte un
+`MemoCombat` (`src/lib/damage.ts`) qui calcule une fois ce que
+`computeTotalDamage` relit à l'identique d'une paire à l'autre : la
+chronologie des poses entre les coups (le sort et le réglage seuls), les
+stats au début du combat (par tableau de stats, que `statsParPaire` partage
+entre paires de mêmes principales) et les stats de combat (par tableau et
+par amplifications de buff de la paire). Reconnues à leur identité, ces
+entrées rendent la valeur de la fonction elle-même, au bit près
+(`tests/memo-combat.test.ts`) ; bornes `BORNE_CHRONOLOGIES` (16),
+`BORNE_STATS_PAR_REGLAGE` (64), `BORNE_COMBATS_PAR_STATS` (16) ; durée de
+vie : celle de l'évaluateur.
+
 Les trois premières mémoires sont bornées (`BORNE_PROFILS_PAR_PAIRE`,
 `BORNE_MEMO_PREFILTRE`, `BORNE_STATS_PAR_APPORT`,
 `BORNE_APPORTS_PAR_STATS`) et se vident d'un coup à leur borne ; celle des

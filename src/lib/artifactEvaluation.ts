@@ -15,7 +15,7 @@ import { ArtifactDetail, ElementKey, RelicDetail } from '../types';
 import { StatKey } from './effects';
 import { Objective, pvEffectifs, statTotal, type RealDamageContext } from './runeBuildOptim';
 import { StatRow } from './stats';
-import { ArtifactDamageProfile, AurasPropres, DamageSetup, artifactDamageProfile, computeTotalDamage } from './damage';
+import { ArtifactDamageProfile, AurasPropres, DamageSetup, MemoCombat, artifactDamageProfile, computeTotalDamage } from './damage';
 import { APPORT_NEUTRE, ApportExclusive, apportExclusive, facteurTenacite, statsAvecApport } from './relicExclusive';
 
 export type RegimeArtefacts = 'aucun' | 'hp' | 'atk' | 'def' | 'ehp' | 'degats_reels';
@@ -221,6 +221,11 @@ export function evaluerPourRegime(
       );
     }
     const profilDe = profils ? (arts: ArtifactDetail[]) => profils.profil(arts) : artifactDamageProfile;
+    // ⚠️ Ce qui ne dépend pas de la paire (chronologie des poses entre les
+    // coups, stats au début du combat par tableau de stats) se calcule une
+    // fois pour toutes les paires de cet évaluateur — un build, une relique :
+    // `MemoCombat`, même résultat au bit près.
+    const memo = new MemoCombat(propres, degats.element);
     return (arts) => {
       // Bravoure/Éternité/Origine : des POINTS de stat, jamais posés dans
       // `computeStats` (les minimums/maximums restent jugés hors combat).
@@ -242,7 +247,8 @@ export function evaluerPourRegime(
         degats.bonusDegatsSelonDef,
         degats.bonusSiAtqSeuil,
         // Conquête — additive dans le bracket `DMG%`.
-        apport.dmgPct
+        apport.dmgPct,
+        memo
       );
     };
   }

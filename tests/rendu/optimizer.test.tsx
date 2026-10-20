@@ -108,7 +108,7 @@ export function testRenduOptimizerVide() {
   const html = rendreOptimizer();
   const t = texteVisible(html);
   ok(!t.includes('Optimizer en bêta') && !t.includes('en rodage'), 'aucun bandeau « Optimizer en bêta » : l’outil n’est plus en bêta');
-  ok(t.includes("Recherche parmi tes runes possédées ; rien n'est appliqué à ton compte, l'outil est purement indicatif — c'est à toi de re-runer dans le jeu."), 'ce que fait l\'outil, et ce qu\'il ne fait pas');
+  ok(!t.includes('Recherche parmi tes runes possédées'), 'au bureau, aucune phrase d’introduction au-dessus des colonnes');
   // Au bureau (rendu serveur : format bureau, largeur inconnue), la page en
   // colonnes : essentiels, contrôle à onglets, « Artéfacts et relique »
   // ouverte par défaut, « Aura, exclusion, avancés » fermée, colonne de droite.
@@ -130,6 +130,8 @@ export function testRenduOptimizerVide() {
   ok(telephone.includes('Monstre & équipement') && telephone.includes('Set de runes recherché 0/6 runes Set principal Set secondaire'),
     'au téléphone : « Monstre & équipement » et le set recherché en grille, comme avant');
   ok(!telephone.includes('Optimizer en bêta') && !telephone.includes('en rodage'), 'au téléphone non plus, aucun bandeau « Optimizer en bêta »');
+  ok(telephone.startsWith("Recherche parmi tes runes possédées ; rien n'est appliqué à ton compte, l'outil est purement indicatif — c'est à toi de re-runer dans le jeu."),
+    'au téléphone, la phrase d’introduction en tête : ce que fait l’outil, et ce qu’il ne fait pas');
 }
 
 export function testRenduOptimizerMonstre() {

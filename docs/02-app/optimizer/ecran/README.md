@@ -342,8 +342,10 @@ les contrôles du panneau prennent toute la largeur.** Points tenus :
 ### Grille du téléphone
 
 [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx) rend, sous
-`SOUS_LG`, une seule grille d'une colonne (`grid-cols-[minmax(0,1fr)] gap-5
-items-start`) : « Monstre & équipement », « Critères de recherche » (Set de
+`SOUS_LG`, la phrase d'introduction (« Recherche parmi tes runes possédées ;
+rien n'est appliqué à ton compte, l'outil est purement indicatif — c'est à toi
+de re-runer dans le jeu. »), que le bureau n'a pas, puis une seule grille d'une
+colonne (`grid-cols-[minmax(0,1fr)] gap-5 items-start`) : « Monstre & équipement », « Critères de recherche » (Set de
 runes recherché et Statistique principale imposée, puis Conditions),
 « Artéfacts et reliques », « État de mon monstre », puis la ligne
 d'estimation ; « Exclusion de runes » et « Réglages avancés » sont dans le

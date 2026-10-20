@@ -3397,14 +3397,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     validateBuildButton,
   };
 
-  // Au-dessus des réglages, aux deux formats : la phrase d'introduction.
-  const entete = (
-    <p className="text-sm text-ink-dim">
-      Recherche parmi tes runes possédées ; rien n'est appliqué à ton compte, l'outil est purement
-      indicatif — c'est à toi de re-runer dans le jeu.
-    </p>
-  );
-
   // ── Format bureau : la page en colonnes (`PageBureau`) ─────────────────
   // Le format se décide comme partout (`SOUS_LG`, relu dans un volet) ;
   // l'agencement, ensuite, sur la largeur du conteneur de l'écran. Les mêmes
@@ -3417,7 +3409,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // par un portail : leur place ici ne change rien au DOM de la page.
   const pageBureau = sousLg ? null : (
       <PageBureau
-        entete={entete}
         liste={
           <ListeDeTravailBureau
             listes={listesBureau}
@@ -3583,7 +3574,12 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     <>
     {pageBureau ?? (
     <div className="space-y-5">
-      {entete}
+      {/* La phrase d'introduction, au téléphone seulement : la page de bureau
+          n'a rien au-dessus de ses colonnes. */}
+      <p className="text-sm text-ink-dim">
+        Recherche parmi tes runes possédées ; rien n'est appliqué à ton compte, l'outil est purement
+        indicatif — c'est à toi de re-runer dans le jeu.
+      </p>
 
       {/* Les cartes de réglage, une par rangée. `minmax(0,1fr)` : la colonne
           suit l'écran — une colonne implicite grandissait jusqu'au contenu le

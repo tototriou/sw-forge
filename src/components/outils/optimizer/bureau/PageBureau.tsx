@@ -145,6 +145,9 @@ export interface PageBureauProps {
   // de départ suit alors la largeur, `colonnesParDefaut`).
   colonnes: ColonnesOuvertes | null;
   onColonnes: (suivant: ColonnesOuvertes) => void;
+  // Le rappel « Pense à vérifier les sets d'aura externes. » est-il en cours
+  // (`rappelAuras` d'OptimizerSection) ? Annoncé par la page, toujours montée.
+  rappelAuras: boolean;
   // Ouvrir « Aura, exclusion, avancés » depuis ailleurs (guidage vers
   // l'interrupteur des auras RES/PRE) : chaque nouvelle valeur l'ouvre, sans
   // jamais la refermer.
@@ -196,6 +199,19 @@ function ColonneFixe({ className, contenu, children, ...donnees }: {
   );
 }
 
+// L'annonce du rappel des auras, pour les lecteurs d'écran : une région
+// `aria-live` TOUJOURS montée, hors de la colonne repliable (la carte des sets
+// d'aura, qui affiche le rappel, n'est montée que colonne ouverte, et le rappel
+// sous la liste n'annonce rien). Vide le reste du temps : c'est l'arrivée du
+// texte qui s'annonce.
+function AnnonceRappelAuras({ rappel }: { rappel: boolean }) {
+  return (
+    <p className="sr-only" aria-live="polite">
+      {rappel ? 'Pense à vérifier les sets d\'aura externes.' : ''}
+    </p>
+  );
+}
+
 export default function PageBureau(props: PageBureauProps) {
   const racine = useRef<HTMLDivElement>(null);
   const rangeeOnglets = useRef<HTMLDivElement>(null);
@@ -223,6 +239,7 @@ export default function PageBureau(props: PageBureauProps) {
       data-agencement={largeur != null ? agencementBureau(largeur) : undefined}
     >
       {props.entete && <div className="mb-5 space-y-5">{props.entete}</div>}
+      <AnnonceRappelAuras rappel={props.rappelAuras} />
       <div
         className={
           'grid grid-cols-[minmax(0,1fr)] items-start gap-y-4'

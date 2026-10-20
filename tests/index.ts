@@ -309,7 +309,7 @@ import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompt
 import { testRenduSpeedTuneVide, testRenduSpeedTuneCamps, testRenduSpeedTuneAnalyse } from './rendu/speed-tune.test';
 import { testRenduOptimizerVide, testRenduOptimizerMonstre, testRenduOptimizerReglages, testRenduTelephoneOptimizer } from './rendu/optimizer.test';
 import { testRenduOptimizerGabaritsComposants, testRenduOptimizerGabaritsVue, testRenduOptimizerGabaritsAdresse } from './rendu/optimizer-gabarits.test';
-import { testRenduOptimizerGabaritsColonnes, testRenduOptimizerGabaritsDroite } from './rendu/optimizer-gabarits-droite.test';
+import { testRenduOptimizerGabaritsColonnes, testRenduOptimizerGabaritsDroite, testRenduOptimizerPageBureauDroite } from './rendu/optimizer-gabarits-droite.test';
 import { testRenduOptimizerGabaritsGestes } from './rendu/optimizer-gabarits-navigateur.test';
 import { testRenduOptimizerReglagesAvancesContenu, testRenduOptimizerListeDeTravail, testRenduOptimizerResultatsEntete,
   testRenduOptimizerResultatsCartes, testRenduOptimizerLigneFile } from './rendu/optimizer-ecran.test';
@@ -478,6 +478,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduOptimizerGabaritsAdresse', testRenduOptimizerGabaritsAdresse],
   ['testRenduOptimizerGabaritsColonnes', testRenduOptimizerGabaritsColonnes],
   ['testRenduOptimizerGabaritsDroite', testRenduOptimizerGabaritsDroite],
+  ['testRenduOptimizerPageBureauDroite', testRenduOptimizerPageBureauDroite],
   ['testRenduOptimizerGabaritsGestes', testRenduOptimizerGabaritsGestes],
   ['testRenduOptimizerMonstre', testRenduOptimizerMonstre],
   ['testRenduOptimizerReglages', testRenduOptimizerReglages],

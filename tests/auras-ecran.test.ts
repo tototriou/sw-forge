@@ -328,8 +328,12 @@ export function testAurasEcranRappel() {
     'rendu : la boîte passe au token d’attention (warn / warn-soft) à la place de ses couleurs — un seul contour de 1 px');
   ok(/className=\{`col-start-1 row-start-1 flex items-center justify-between gap-2 \$\{rappel \? 'invisible' : ''\}`\}/.test(saisie),
     'rendu : l’en-tête occupe la case 1/1 de sa grille, effacé pendant le rappel');
-  const message = saisie.match(/<div className="col-start-1 row-start-1 self-center" aria-live="polite">\s*<p\s+className=\{`text-xs font-semibold text-warn \$\{\s*rappel \? '[^']*' : 'invisible'\s*\}`\}\s*>\s*Pense à vérifier les sets d&apos;aura externes\.\s*<\/p>/);
+  // `aria-live` sous condition d'`annonce` (vrai par défaut) : au bureau, la
+  // carte des auras n'est montée que colonne ouverte, la page annonce à sa
+  // place (`AnnonceRappelAuras`, plus bas).
+  const message = saisie.match(/<div className="col-start-1 row-start-1 self-center" aria-live=\{annonce \? 'polite' : undefined\}>\s*<p\s+className=\{`text-xs font-semibold text-warn \$\{\s*rappel \? '[^']*' : 'invisible'\s*\}`\}\s*>\s*Pense à vérifier les sets d&apos;aura externes\.\s*<\/p>/);
   ok(message !== null, 'rendu : « Pense à vérifier les sets d’aura externes. » dans la MÊME case, toujours rendu, invisible hors rappel (place réservée)');
+  ok(/annonce = true,/.test(saisie), 'rendu : la boîte annonce le rappel par défaut (téléphone) ; au bureau, la page : `testRenduOptimizerPageBureauDroite`');
   ok(!/\{rappel &&/.test(saisie), 'rendu : rien n’est monté sous condition du rappel — rien ne bouge quand il paraît');
 
   // Le MÊME rappel, aussi sous la liste de la zone C :
@@ -344,9 +348,12 @@ export function testAurasEcranRappel() {
   // Au bureau, la boîte des auras quitte « État de mon monstre » pour la
   // colonne « Aura, exclusion, avancés » (`SetsAuraBureau`) : un lecteur de
   // plus, le même état, jamais les deux boîtes montées ensemble (un format
-  // à la fois).
-  egal(ecran.match(/rappelAuras !== null/g)?.length ?? 0, 3,
-    'source 7c : un seul état, deux rendus par format — `rappelAuras !== null` lu par la boîte des auras (« État de mon monstre » au téléphone, `SetsAuraBureau` au bureau) et sous la liste, nulle part ailleurs');
+  // à la fois). Et un dernier lecteur, au bureau seulement : la page, qui
+  // annonce le rappel colonne fermée comprise (`rappelAuras` de PageBureau).
+  egal(ecran.match(/rappelAuras !== null/g)?.length ?? 0, 4,
+    'source 7c : un seul état, deux rendus par format — `rappelAuras !== null` lu par la boîte des auras (« État de mon monstre » au téléphone, `SetsAuraBureau` au bureau), sous la liste, et par l’annonce de la page au bureau, nulle part ailleurs');
+  const pageBureau = ecran.slice(ecran.indexOf('<PageBureau'), ecran.indexOf('guideComplements={guideComplements}'));
+  ok(pageBureau.includes('rappelAuras={rappelAuras !== null}'), 'source 7c : au bureau, la page reçoit le même état pour l’annoncer');
   ok(/<SetsAuraBureau setup=\{damageSetup\} maj=\{majDamageSetup\} rappel=\{rappelAuras !== null\}/.test(ecran), 'source 7c : au bureau, la boîte des auras reçoit le même état');
   egal(ecran.match(/setTimeout\([^;]*DUREE_ATTENTION_MS\)/g)?.length ?? 0, 2,
     'source 7c : aucune minuterie de plus — celle du rappel et celle de l’ouverture guidée, seules');

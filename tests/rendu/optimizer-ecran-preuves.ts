@@ -176,7 +176,15 @@ export async function preuvesRappelDeuxRendus(b: BancEcran): Promise<Preuves> {
   const zone = [...document.querySelectorAll<HTMLElement>('[aria-label="Rapport des critères"]')].find(visible)!.parentElement!;
   const messages = () => [...document.querySelectorAll<HTMLElement>('p')].filter((e) => e.textContent?.trim() === RAPPEL);
   const dansZone = () => messages().find((e) => zone.contains(e));
-  const dansBoite = () => messages().find((e) => !zone.contains(e) && !!e.closest('[aria-live="polite"]'));
+  // La boîte des auras : « État de mon monstre » au téléphone, la carte des
+  // sets d'aura de la colonne « Aura, exclusion, avancés » au bureau (qui
+  // n'annonce plus : la page le fait, `annonces` plus bas).
+  const dansBoite = () => messages().find((e) => !zone.contains(e) && !e.classList.contains('sr-only')
+    && (!!e.closest('[aria-live="polite"]') || !!e.closest('section[aria-label="Sets d\'aura des autres monstres"]')));
+  // Les régions `aria-live` qui exposent la phrase (texte présent, non masqué) :
+  // une seule pendant le rappel, aucune hors rappel, à chaque format.
+  const annonces = () => [...document.querySelectorAll<HTMLElement>('[aria-live="polite"]')]
+    .filter((r) => [r, ...r.querySelectorAll<HTMLElement>('p')].some((p) => p.textContent?.trim() === RAPPEL && getComputedStyle(p).visibility !== 'hidden'));
   // Position relative à son conteneur : le clic change l'exemplaire affiché,
   // ce qui peut décaler la page entière — seul compte ce qui bouge AUTOUR du message.
   const relatif = (e: HTMLElement | undefined, cadre: HTMLElement | null | undefined) => {
@@ -184,7 +192,7 @@ export async function preuvesRappelDeuxRendus(b: BancEcran): Promise<Preuves> {
     const r = e.getBoundingClientRect(), c = cadre.getBoundingClientRect();
     return JSON.stringify([r.x - c.x, r.y - c.y, r.width, r.height]);
   };
-  const positions = () => ({ zone: relatif(dansZone(), zone), boite: relatif(dansBoite(), dansBoite()?.closest('[aria-live="polite"]')?.parentElement) });
+  const positions = () => ({ zone: relatif(dansZone(), zone), boite: relatif(dansBoite(), dansBoite()?.parentElement?.parentElement) });
   const avant = positions();
   // La zone C ne lit le rappel qu'à un endroit : hors la classe du message,
   // rien d'autre n'y change quand il paraît.
@@ -193,6 +201,7 @@ export async function preuvesRappelDeuxRendus(b: BancEcran): Promise<Preuves> {
   const sansMessage = () => { const m = dansZone(); const c = m?.className; if (m) m.className = ''; const h = zone.innerHTML; if (m) m.className = c!; return h; };
   preuves.push([!!dansZone() && !visible(dansZone()!) && !!dansBoite() && !visible(dansBoite()!),
     'hors rappel : les deux messages sont montés, invisibles (place réservée)']);
+  preuves.push([annonces().length === 0, 'hors rappel : aucune région ne l’annonce']);
   const lignes = [...zone.querySelectorAll<HTMLElement>('[role="button"]')];
   const cible = lignes.find((e) => e.textContent?.includes('Premier') && e !== lignes[0]) ?? lignes[2];
   await b.geste(() => cible.click());
@@ -202,10 +211,27 @@ export async function preuvesRappelDeuxRendus(b: BancEcran): Promise<Preuves> {
   preuves.push([!!dansBoite() && visible(dansBoite()!), `… et dans la boîte des auras (${telephone() ? '« État de mon monstre »' : 'colonne « Aura, exclusion, avancés »'})`]);
   preuves.push([avant.zone !== null && avant.zone === apres.zone && avant.boite !== null && avant.boite === apres.boite,
     `les deux messages paraissent à leur place réservée, rien ne bouge (${JSON.stringify([avant, apres])})`]);
+  preuves.push([annonces().length === 1, `pendant le rappel : une seule région l’annonce (${annonces().length})`]);
   const avecRappel = sansMessage();
   await attendre(3100);
   preuves.push([!!dansZone() && !visible(dansZone()!) && sansMessage() === avecRappel,
     'zone C : rappel effacé après trois secondes, et seul le message a changé — rien d’autre n’y est monté sous sa condition']);
+  if (!telephone()) {
+    // Au bureau, colonne « Aura, exclusion, avancés » FERMÉE (la carte des
+    // auras démontée) : le rappel s'annonce encore, hors de la colonne.
+    // Le rappel revient en revenant à `cible` (qui porte des auras) depuis
+    // un autre membre, une fois l'éventuel rappel de ce détour effacé.
+    await fermerSurfaces(b);
+    const autre = lignes.find((e) => e !== cible) ?? lignes[0];
+    await b.geste(() => autre.click());
+    await attendre(3100);
+    await b.geste(() => cible.click());
+    await attendre(300);
+    const regions = annonces();
+    preuves.push([!colonneComplementsOuverte() && regions.length === 1 && !regions[0].closest('[data-colonne]'),
+      `colonne fermée : le rappel s’annonce, une fois, hors de la colonne (${regions.length})`]);
+    await attendre(3100);
+  }
   return preuves;
 }
 

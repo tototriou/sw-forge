@@ -217,8 +217,10 @@ export default function MonstresDeLaListe({ activeList, activeMembers, ajoutList
           place est réservée sous la liste, rien ne bouge quand il paraît ni
           quand il s'efface (docs/03-developpeur/interface/, réponse n° 1). Monté avec
           la liste seulement : sans membre, aucun clic ne peut le poser.
-          Pas d'`aria-live` : la boîte des auras, montée en permanence,
-          l'annonce déjà — deux régions liraient deux fois la même phrase.
+          Pas d'`aria-live` : la boîte des auras, montée en permanence au
+          téléphone, l'annonce déjà ; au bureau, où cette boîte ne l'est que
+          colonne ouverte, la page l'annonce (`AnnonceRappelAuras`,
+          PageBureau.tsx) — deux régions liraient deux fois la même phrase.
           Commun aux deux formats : au téléphone, il vit dans le dépliement
           de la zone C, ouvert au moment du clic. */}
       {activeMembers.length > 0 && (

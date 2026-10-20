@@ -5,6 +5,8 @@
 import ArtefactsEtReliqueBureau from '../../src/components/outils/optimizer/bureau/ArtefactsEtReliqueBureau';
 import MeilleursArtefactsBureau from '../../src/components/outils/optimizer/bureau/MeilleursArtefactsBureau';
 import SetsAuraBureau from '../../src/components/outils/optimizer/bureau/SetsAuraBureau';
+import PageBureau from '../../src/components/outils/optimizer/bureau/PageBureau';
+import { AurasExternesSaisie } from '../../src/components/outils/EtatMonstre';
 import ExclusionRunesBureau from '../../src/components/outils/optimizer/bureau/ExclusionRunesBureau';
 import ReglagesAvancesBureau from '../../src/components/outils/optimizer/bureau/ReglagesAvancesBureau';
 import ExclusionMonstrePrecis from '../../src/components/outils/optimizer/ExclusionMonstrePrecis';
@@ -151,4 +153,40 @@ export function testRenduOptimizerGabaritsDroite() {
   egal(GABARITS.slice(6).map((g) => g.id), ['artefacts', 'meilleurs', 'auras', 'exclusion', 'avances', 'exemplaire', 'objectif-etroit', 'objectif-large', 'resultats'],
     'les colonnes repliables et la colonne de droite sont au registre, dans l\'ordre de la page');
   ok(GABARITS.filter((g) => g.elastique).every((g) => g.etats.every((e) => (e.largeur ?? g.largeur) >= g.largeur)), 'une boîte élastique ne se montre jamais sous sa largeur minimale');
+}
+
+// La page de bureau assemblée : la colonne de droite (Exemplaire, bloc
+// « Objectif et Rechercher », résultats) en cases de la grille, et l'annonce
+// du rappel des auras hors des colonnes repliables.
+export function testRenduOptimizerPageBureauDroite() {
+  titre('rendu · Optimizer — page de bureau : colonne de droite et annonce du rappel des auras');
+  const page = (rappelAuras: boolean) => rendre(
+    <PageBureau liste={<p>Liste</p>} set={null} conditions={null} principales={null} etat={null} artefacts={<p>Artefacts</p>} meilleurs={null}
+      auras={<SetsAuraBureau setup={DEFAULT_DAMAGE_SETUP} maj={rien} rappel={rappelAuras} onGuiderResPre={rien} />} exclusion={null} avances={null}
+      exemplaire={<p>Exemplaire</p>} objectif={(forme) => <p>Bloc {forme}</p>} resultats={<ResultatsBureau attente="sans-monstre" />}
+      colonnes={{ artefacts: true, complements: true, derniere: 'complements' }} onColonnes={rien} rappelAuras={rappelAuras} />);
+  const html = page(false);
+  const zones = [...html.matchAll(/data-zone="([a-z]+)"/g)].map((m) => m[1]);
+  egal(zones, ['essentiels', 'objectif', 'onglets', 'colonnes', 'exemplaire', 'resultats'],
+    'ordre du DOM : essentiels, bloc « Objectif et Rechercher » (l\'objectif se choisit tôt), onglets, colonnes, Exemplaire, résultats');
+  ok(/data-zone="objectif" data-forme="large"/.test(html) && texteVisible(html).includes('Bloc large'),
+    'largeur inconnue (rendu serveur) : le bloc est rendu dans la forme que la page choisit, large');
+
+  // Le rappel des auras : la carte du bureau l'affiche sans l'annoncer ; la
+  // page l'annonce dans une région toujours montée, hors des colonnes.
+  const regions = (h: string) => [...h.matchAll(/<(\w+)[^>]*aria-live="polite"[^>]*>([\s\S]*?)<\/\1>/g)].map((m) => texteVisible(m[2]));
+  const carte = rendre(<SetsAuraBureau setup={DEFAULT_DAMAGE_SETUP} maj={rien} rappel onGuiderResPre={rien} />);
+  ok(!carte.includes('aria-live'), 'carte des sets d\'aura du bureau : aucune région annoncée (la page annonce)');
+  ok(rendre(<AurasExternesSaisie setup={DEFAULT_DAMAGE_SETUP} maj={rien} rappel onGuiderResPre={rien} />).includes('aria-live="polite"'),
+    'boîte des auras partagée : elle annonce par défaut (téléphone inchangé)');
+  egal(regions(html), [''], 'hors rappel : une seule région, vide');
+  const avecRappel = page(true);
+  egal(regions(avecRappel), ['Pense à vérifier les sets d\'aura externes.'], 'pendant le rappel : la page l\'annonce, une fois');
+  const colonnes = avecRappel.slice(avecRappel.indexOf('data-zone="colonnes"'));
+  ok(!/aria-live/.test(colonnes), 'l\'annonce n\'est pas dans les colonnes repliables : elle reste montée colonne fermée');
+
+  // La place d'attente pendant une recherche sans carte : cadre, sans « Aucune recherche lancée… » lisible.
+  const sansCarte = rendre(<ResultatsBureau attente="sans-carte" />);
+  ok(/<p class="label invisible" aria-hidden="true">/.test(sansCarte) && texteVisible(sansCarte).includes('Les builds trouvés s\'afficheront ici.'),
+    'recherche sans carte : la ligne de la phrase reste réservée, invisible ; le cadre reste');
 }

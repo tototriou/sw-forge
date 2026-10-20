@@ -3631,6 +3631,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         resultats={<ResultatsBureau attente={attenteResultats(selected != null, resultatsPresents, status)}>{blocResultats}</ResultatsBureau>}
         colonnes={colonnesBureau}
         onColonnes={setColonnesBureau}
+        rappelAuras={rappelAuras !== null}
         guideComplements={guideComplements}
       />
   );

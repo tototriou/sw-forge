@@ -183,6 +183,10 @@ function testPaireParPaire(sc: Scene[]): void {
   // Un contrôle qui n'exerce pas chaque issue ne prouve rien sur elle.
   ok(total.setsRefuses > 0 && total.statsComparees > 0 && total.collectables > 0 && total.tentatives > total.statsComparees,
     `les issues sont exercées : ${total.setsRefuses} paires refusées par les sets, ${total.statsComparees} jugées, ${total.collectables} collectables, ${total.tentatives} tentatives`);
+  // De même en relique `recherche` : des paires jugées relique par relique,
+  // dont certaines qu'aucune tentative ne retient.
+  ok(total.reliquesOu > 0 && total.reliquesOuRejetes > 0 && total.reliquesOuRejetes < total.reliquesOu,
+    `relique en « OU » exercée sur le chemin typé : ${total.reliquesOu} paires jugées relique par relique, ${total.reliquesOuRejetes} rejetées`);
 }
 
 function testCollecteur(sc: Scene[]): void {

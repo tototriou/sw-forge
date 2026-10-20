@@ -268,7 +268,8 @@ async function banc(src: Source, lignes: string[], json: Record<string, unknown>
       dire(
         `\n[contrôle de la validation] ${bilan.paires.toLocaleString('fr-FR')} survivants de quickOk comparés à activeSets/computeStats/pairBuckets : ` +
           `${bilan.setsRefuses.toLocaleString('fr-FR')} refusés par les sets, ${bilan.statsComparees.toLocaleString('fr-FR')} StatRow, ` +
-          `${bilan.tentatives.toLocaleString('fr-FR')} tentatives, ${bilan.collectables.toLocaleString('fr-FR')} collectables · ` +
+          `${bilan.tentatives.toLocaleString('fr-FR')} tentatives, ${bilan.collectables.toLocaleString('fr-FR')} collectables` +
+          (bilan.reliquesOu > 0 ? ` (relique en « OU » : ${bilan.reliquesOu.toLocaleString('fr-FR')} paires jugées relique par relique, ${bilan.reliquesOuRejetes.toLocaleString('fr-FR')} rejetées)` : '') + ' · ' +
           `${bilan.ecarts === 0 ? 'ÉGAL' : `${bilan.ecarts} ÉCART(S) — ${bilan.premierEcart}`} · ${((performance.now() - debut) / 1000).toFixed(1)} s [indicatif]`
       );
       json.controleValidation = { ...bilan };

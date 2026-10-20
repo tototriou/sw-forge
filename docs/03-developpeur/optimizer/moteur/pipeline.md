@@ -222,12 +222,15 @@ Une paire visitée passe ensuite :
 2. la revérification des sets sur les six vraies runes (`activeSets`,
    `missingSets`) ;
 3. le calcul de la fiche (`computeStats`), sans la relique en mode
-   `recherche`, dont l'apport s'ajoute au test suivant (`relTermMax`,
-   `relTermMin`) ;
+   `recherche` ; en ce mode, une fiche de plus par relique représentative
+   (`fichesDuTestConjoint`) ;
 4. le test conjoint : la paire est retenue si UN apport d'artéfacts
-   réellement atteignable (`artPossibles`, ou la paire figée à défaut) lui
-   fait tenir toutes les conditions à la fois. Une tentative qui échoue
-   alimente le quasi-succès (`nearMissByCondition`, `globalNearMiss`).
+   réellement atteignable (`artPossibles`, ou la paire figée à défaut) et,
+   en mode `recherche`, UNE relique représentative lui font tenir toutes
+   les conditions à la fois
+   ([reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md)).
+   Une tentative qui échoue alimente le quasi-succès
+   (`nearMissByCondition`, `globalNearMiss`).
 
 La collecte s'arrête au plafond `maxCollected`. Trois arrêts seulement : le
 temps, le plafond de candidats, l'épuisement de l'espace ; aucun plafond de

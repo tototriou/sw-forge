@@ -163,25 +163,39 @@ admissibles. Ce repli ne garantit pas l'optimum sur l'inventaire entier.
   Les pré-filtres, qui tournent sur des milliards de paires, gardent
   `artFlatMax` et `artFlatMin`, larges donc admissibles, à coût constant.
 - **Construction** (`apportsAtteignables`, `src/lib/artifactOptim.ts`) :
+  - « meilleur » suit le sens de chaque stat suivie : le plus fort sous
+    minimum seul (ou sur une stat non suivie), le plus faible sous maximum
+    seul, toutes les valeurs distinctes sous minimum ET maximum (l'ensemble
+    admis est un intervalle) ;
   - sans ligne verrouillée, seule la principale compte ; par sorte, on
     garde, pour chaque code de principale, le meilleur artéfact **et** le
     meilleur non Intangible — le meilleur peut être Intangible, et la paire
-    de deux Intangibles est interdite —, plus l'emplacement vide s'il est
-    candidat ;
+    de deux Intangibles est interdite — (sous minimum ET maximum, une pièce
+    par valeur, non Intangible de préférence), plus l'emplacement vide s'il
+    est candidat ;
   - avec des lignes verrouillées, cette réduction est impossible (le
     meilleur d'un code peut violer le verrou) : on parcourt tous les
     candidats de `candidatsParSorte`, filtrés par `paireRespecteLignes` ;
   - les paires permises (`artifactPairAllowed`) sont dédoublonnées sur les
-    stats suivies, puis réduites à leur frontière de Pareto.
+    stats suivies, puis réduites à leur frontière de Pareto, dans le même
+    sens (égalité exigée sous minimum ET maximum).
+- ⚠️ **Le sens compte** : pour toute vraie paire, `possibles` contient un
+  apport au moins aussi bon sur CHAQUE condition, minimum comme maximum ; le
+  test qui les juge avec la même paire est donc exact. Une réduction « le
+  plus fort domine » partout perdait, sous un maximum de PV, d'ATQ ou de
+  DEF, la paire plus faible qui le tient (ancien fonctionnement, remplacé) :
+  aux valeurs du jeu (PV +1500 par artéfact), 20 000 PV sans artéfact et
+  21 000 ≤ PV ≤ 22 000, seul +3 000 restait (23 000) et le build qu'un
+  seul artéfact PV rend conforme (21 500) était écarté.
 - Rien ne se perd au pré-filtrage de la file, qui passe par
   `preFiltrerCandidats` : la dominance y garde inconditionnellement les
   trois principales, et rend deux artéfacts incomparables sous un maximum
   actif sur leur principale
   ([optimiseur-artefacts.md § Pré-filtrage exact — pertinence, obligation, dominance](optimiseur-artefacts.md)).
-- **En mode relique `recherche`**, les stats du candidat sont sans relique
-  et le terme de relique s'ajoute en majorant côté minimum, en minorant
-  côté maximum : le test reste une borne, et l'exactitude vient de la
-  résolution avec la relique réelle —
+- **En mode relique `recherche`**, les stats du candidat sont sans relique,
+  et chaque apport s'essaie avec chaque relique représentative (la relique
+  en « OU ») : le test est exact sur la relique comme sur la paire, et
+  rejoint le jugement de la résolution —
   [reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md).
 
 ## Filtre final sur la vraie paire

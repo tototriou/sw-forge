@@ -22,11 +22,13 @@
 //    OPÉRANDE PAR OPÉRANDE. D'où le contrat (`motif`) : toute valeur sommée
 //    est entière et bornée, sinon ce module refuse et le chemin de
 //    référence (`Collecteur.valider`, copie de `pairBuckets`) est pris.
-// 3. **Test conjoint** sur `artPossibles` (ou la paire figée), relique bornée
-//    en mode `recherche` (`relTermMax`/`relTermMin`, constants par stat),
-//    auras RES/PRE propres (activations Tolerance/Accuracy du point 1) :
-//    `actual` recalculé par la MÊME suite d'opérations que
-//    `totalCondition((total + décalage) + relTerm)`, dans le même ordre.
+// 3. **Test conjoint** : les tentatives de `pairBuckets` dans le même ordre,
+//    un apport de `artPossibles` (ou la paire figée) × une fiche — en mode
+//    `recherche`, une par relique représentative (`fichesDuTestConjoint`),
+//    sa principale ajoutée à Σ% avant le `ceil` de sa stat ; sinon la fiche
+//    du build —, auras RES/PRE propres (activations Tolerance/Accuracy du
+//    point 1) : `actual` recalculé par la MÊME suite d'opérations que
+//    `totalCondition(total + décalage)`, dans le même ordre.
 // 4. Les `StatRow` ne se construisent qu'à la collecte ou quand le
 //    quasi-succès s'améliore (`lignes`), avec les libellés, suffixes et
 //    l'ordre des lignes LUS sur `computeStats` lui-même (sonde sans rune) ;
@@ -61,8 +63,6 @@ export interface ConditionTypee {
   seuil: number;
   /** Indice dans `stats` (ordre des voies plates). */
   stat: number;
-  /** `relTermMax(k)` pour un minimum, `relTermMin(k)` pour un maximum. */
-  relTerm: number;
   /** `totalCondition` ajoute l'aura (RES/PRE, toggle actif). */
   aura: boolean;
   auraExterne: number;
@@ -78,6 +78,8 @@ export class ValidationTypee {
   readonly conditions: ConditionTypee[] = [];
   /** Nombre d'apports jugés (`artPossibles`, ou la paire figée). */
   readonly nApports: number;
+  /** Nombre de fiches jugées par apport : les reliques représentatives en mode `recherche`, 1 sinon. */
+  readonly nFiches: number;
 
   private readonly nA: number;
   private readonly nB: number;
@@ -105,6 +107,15 @@ export class ValidationTypee {
   private readonly base = new Float64Array(8);
   /** `(apport[k] ?? 0) − (artFlatFige[k] ?? 0)`, par apport et condition. */
   private readonly decalage: Float64Array;
+  /**
+   * Par fiche (`fichesDuTestConjoint`) : la voie plate de la stat de sa
+   * relique (0 à 2 ; −1 sans relique ou principale inconnue) et la valeur de
+   * sa principale.
+   */
+  private readonly ficheVoie: Int8Array;
+  private readonly ficheValeur: Float64Array;
+  /** Par fiche : le total de la stat de sa relique pour la paire courante (calculé si une condition lit cette stat). */
+  private readonly ficheTotal: Float64Array;
   /** Les stats lues par au moins une condition. */
   private readonly statsUtiles: Int32Array;
   /** L'ordre, les libellés et les suffixes des lignes de `computeStats`. */
@@ -209,7 +220,6 @@ export class ValidationTypee {
       const compte = (key === 'res' || key === 'acc') && !!aura?.compter;
       return {
         key, kind, seuil, stat: voiePlate(key),
-        relTerm: kind === 'min' ? prepared.relTermMax(key) : prepared.relTermMin(key),
         aura: compte, auraExterne: compte ? aura![key as 'res' | 'acc'] : 0,
         auraSet: key === 'res' ? tolerance : accuracy,
         cle: `${key}-${kind}`,
@@ -226,6 +236,15 @@ export class ValidationTypee {
         this.decalage[a * E + e] = (apport[c.key] ?? 0) - (artFlatFige[c.key] ?? 0);
       });
     });
+    // Les fiches, dans l'ordre de `fichesDuTestConjoint`.
+    const reps = relicRelache ? prepared.reliquesRepresentatives : null;
+    this.nFiches = reps ? reps.length : 1;
+    this.ficheVoie = reps ? Int8Array.from(reps, (r) => {
+      const def = RELIC_MAIN[r.main.code];
+      return def ? voiePlate(def.stat) : -1;
+    }) : Int8Array.of(-1);
+    this.ficheValeur = reps ? Float64Array.from(reps, (r) => r.main.value) : Float64Array.of(0);
+    this.ficheTotal = new Float64Array(this.nFiches);
     this.statsUtiles = Int32Array.from(new Set(this.conditions.map((c) => c.stat)));
     this.echecs = new Int32Array(E);
     this.actuels = new Float64Array(E);
@@ -298,6 +317,11 @@ export class ValidationTypee {
     if (ensembles.size + prepared.requirement.sets.length > 250) return `trop de sets distincts (${ensembles.size})`;
     for (const a of artifacts) if (ARTIFACT_MAIN[a.main.code] && !entierBorne(a.main.value)) return `artéfact ${a.id} : principale non entière (${a.main.value})`;
     if (!relicRelache && relic && RELIC_MAIN[relic.main.code] && !entierBorne(relic.main.value)) return `relique ${relic.id} : principale non entière (${relic.main.value})`;
+    if (relicRelache) {
+      for (const r of prepared.reliquesRepresentatives) {
+        if (RELIC_MAIN[r.main.code] && !entierBorne(r.main.value)) return `relique ${r.id} : principale non entière (${r.main.value})`;
+      }
+    }
     for (const key of ensembles) {
       const bonus = SET_STAT_BONUS[key];
       if (!bonus) continue;
@@ -377,6 +401,11 @@ export class ValidationTypee {
           const p = 8 + i;
           const pct = this.sommeA[oa + p] + this.sommeB[ob + p] + this.fixe[p] + v[p];
           this.total[i] = b + Math.ceil((b * pct) / 100) + plat;
+          // La stat de chaque relique représentative : sa principale entre
+          // dans Σ% avant le `ceil`, comme dans `computeStats`.
+          for (let f = 0; f < this.nFiches; f++) {
+            if (this.ficheVoie[f] === i) this.ficheTotal[f] = b + Math.ceil((b * (pct + this.ficheValeur[f])) / 100) + plat;
+          }
         } else {
           this.total[i] = b + plat;
         }
@@ -390,16 +419,19 @@ export class ValidationTypee {
   }
 
   /**
-   * Les conditions en échec de la paire courante avec l'apport `a`, dans
-   * l'ordre de `pairBuckets` (`echecs`, `actuels`, `manques`). Rend leur
-   * nombre ; 0 = le build tient toutes ses conditions avec cet apport.
+   * Les conditions en échec de la paire courante pour la tentative (apport
+   * `a`, fiche `f`), dans l'ordre de `pairBuckets` (`echecs`, `actuels`,
+   * `manques`). Rend leur nombre ; 0 = le build tient toutes ses conditions
+   * avec cet apport et cette fiche. La stat de la relique de la fiche lit
+   * `ficheTotal`, les autres `total`.
    */
-  ecarts(a: number): number {
+  ecarts(a: number, f: number): number {
     const E = this.conditions.length;
+    const voie = this.ficheVoie[f];
     let n = 0;
     for (let e = 0; e < E; e++) {
       const c = this.conditions[e];
-      let actual = this.total[c.stat] + this.decalage[a * E + e] + c.relTerm;
+      let actual = (c.stat === voie ? this.ficheTotal[f] : this.total[c.stat]) + this.decalage[a * E + e];
       if (c.aura) actual = actual + c.auraExterne + 8 * (c.key === 'res' ? this.auraRes : this.auraAcc);
       if (c.kind === 'min' ? actual < c.seuil : actual > c.seuil) {
         this.echecs[n] = e;

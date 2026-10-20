@@ -131,6 +131,14 @@ let stopped = false;
 // PENDANT cette phase les tue directement (`terminate()`, instantané) plutôt
 // que d'attendre une coopération qu'ils n'ont pas (voir buildHalf.worker.ts).
 let activeHalfWorkers: Worker[] = [];
+// Termine tous les Workers de moitié encore en vol : à l'arrêt manuel, et à la
+// sortie de la construction quelle qu'en soit l'issue — sur l'erreur de l'un,
+// ses frères (jusqu'à 7, préréglages emboîtés) ne doivent pas continuer à
+// tourner pour une recherche déjà rendue.
+function terminerMoitiesEnCours() {
+  for (const w of activeHalfWorkers) w.terminate();
+  activeHalfWorkers = [];
+}
 // Rejette la promesse qui attend les deux moitiés, pour qu'un arrêt pendant
 // cette phase fasse sortir `await` immédiatement plutôt que de rester
 // bloqué indéfiniment (les Workers tués ne posteront plus jamais de message).
@@ -200,8 +208,7 @@ function buildHalfInWorker(request: BuildHalfRequest, onProgress: (scanned: numb
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   if ('stop' in e.data) {
     stopped = true;
-    for (const w of activeHalfWorkers) w.terminate();
-    activeHalfWorkers = [];
+    terminerMoitiesEnCours();
     if (stopBuildReject) stopBuildReject();
     arreterAppariement?.();
     return;
@@ -269,15 +276,18 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       abortPromise,
     ]));
   } catch {
-    // Arrêt manuel pendant la construction : rien n'existe encore à ressortir
-    // (aucune paire n'a pu être évaluée) — un résultat vide, tronqué, est le
-    // seul choix honnête, même comportement que l'ancien code pour
-    // `phase: 'building'`.
+    // Arrêt manuel pendant la construction, ou erreur d'un Worker de moitié :
+    // rien n'existe encore à ressortir (aucune paire n'a pu être évaluée) — un
+    // résultat vide, tronqué, est le seul choix honnête, même comportement que
+    // l'ancien code pour `phase: 'building'`.
     const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null };
     (self as unknown as Worker).postMessage(result);
     return;
   } finally {
     stopBuildReject = null;
+    // La construction rejette dès la PREMIÈRE moitié en erreur
+    // (`construireMoitiesEmboitees`) : les autres sont encore en vol ici.
+    terminerMoitiesEnCours();
   }
   if (stopped) {
     const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null };

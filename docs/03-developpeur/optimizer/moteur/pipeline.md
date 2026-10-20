@@ -109,7 +109,10 @@ emboîtés), soit 2 Workers à Bas et jusqu'à 8 à Extrême, tous lancés
 ensemble. La moitié A porte sur les indices d'emplacement 0 à 2 avec
 `maxSetsForA`, la moitié B sur 3 à 5 avec `maxSetsForB`. Chaque requête
 (`BuildHalfRequest` = `RequeteMoitie`, produite par `requetesDeLaMoitie`,
-jamais assemblée à la main) porte UN préréglage : son pool, son `bucketCap`,
+jamais assemblée à la main) porte UN préréglage : son rang
+(`rangPrereglage` : 0 pour celui de la recherche, puis l'ordre de
+`cransEmboites`, par lequel un outil de mesure repère le fil de la
+recherche), son pool, son `bucketCap`,
 son crédit de joker, les bornes de sets de l'autre moitié tirées de son
 pool, les champs communs de `PreparedSearch`, `cransEmboites` vide, et
 `combosOrderMode` repris des `SearchParams` ; `adaptiveTrancheWeighting`,

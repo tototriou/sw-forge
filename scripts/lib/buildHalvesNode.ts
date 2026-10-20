@@ -135,8 +135,8 @@ export async function construireMoitiesEnParallele(
   // retomberait sur le défaut interne de la construction et ignorerait
   // silencieusement ce que la recette demandait.
   const { bucketsA, bucketsB } = await construireMoitiesEmboitees(prepared, params.combosOrderMode, async (requete) => {
-    // Le fil du préréglage de la recherche est celui qui porte le pool entier.
-    const propre = requete.filtered === prepared.filtered;
+    // Le fil du préréglage de la recherche (rang 0), celui qui porte le pool entier.
+    const propre = requete.rangPrereglage === 0;
     const r = await lancerFil(chemin, { ...requete, horodaterProgression: horodaterProgression && propre });
     if (propre) propres[requete.half] = r;
     return r.buckets;

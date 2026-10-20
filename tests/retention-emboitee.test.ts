@@ -411,10 +411,10 @@ async function testPanneDUnFil(etages: Map<number, Etage>) {
   const lances: string[] = [];
   const panne = new Error('panne du fil');
   const lancer: LancerConstruction = (requete) => {
-    lances.push(`${requete.half}${requete.filtered === p.filtered ? '' : ' étroit'}`);
+    lances.push(`${requete.half}${requete.rangPrereglage}`);
     // Le fil de la recherche de la moitié B tombe en panne ; les autres ne
     // finissent jamais (encore en vol).
-    if (requete.half === 'B' && requete.filtered === p.filtered) return Promise.reject(panne);
+    if (requete.half === 'B' && requete.rangPrereglage === 0) return Promise.reject(panne);
     return new Promise<Bucket[]>(() => {});
   };
   let minuterie: ReturnType<typeof setTimeout> | undefined;
@@ -426,6 +426,20 @@ async function testPanneDUnFil(etages: Map<number, Etage>) {
   egal(issue, 'rejeté par la panne', 'panne d’un fil : la construction rejette aussitôt, avec son erreur, sans attendre les autres');
   egal(lances.length, 2 * (p.cransEmboites.length + 1),
     `panne d’un fil : les ${2 * (p.cransEmboites.length + 1)} fils étaient tous lancés — ${lances.length - 1} frères encore en vol, à terminer par l’appelant`);
+}
+
+// Le fil du préréglage de la recherche se repère par un champ de la requête
+// (`rangPrereglage`), jamais par l'identité du pool (relevés de la coquille
+// Node et de perf-battery).
+function testRangDesRequetes(etages: Map<number, Etage>) {
+  const p = etages.get(80)!.p;
+  for (const half of ['A', 'B'] as const) {
+    const requetes = requetesDeLaMoitie(p, half, 'objective');
+    egal(requetes.map((r) => r.rangPrereglage), requetes.map((_, i) => i),
+      `moitié ${half} : rang 0 pour le préréglage de la recherche, puis 1… dans l’ordre de cransEmboites (${requetes.length} requêtes)`);
+    ok(requetes[0].filtered === p.filtered && requetes.slice(1).every((r) => r.filtered !== p.filtered),
+      `moitié ${half} : le rang 0, et lui seul, porte le pool entier de la recherche`);
+  }
 }
 
 export default async function testRetentionEmboitee() {
@@ -459,6 +473,7 @@ export default async function testRetentionEmboitee() {
   await testCoquilleNode(pool, requirement, etages);
   await testPlusieursPrereglages(etages, pool, requirement);
   await testPanneDUnFil(etages);
+  testRangDesRequetes(etages);
   testRefus(etages);
   testUneSeulePasse(etages);
 }

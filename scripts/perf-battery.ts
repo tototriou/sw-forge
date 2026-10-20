@@ -351,8 +351,8 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
   const tBuildStart = performance.now();
   const { bucketsA, bucketsB } = await construireMoitiesEmboitees(prepared, params.combosOrderMode, async (requete) => {
     const r = await runWorker<BuildHalfWorkerData, BuildHalfWorkerResult>(workerScript, requete);
-    // Le fil du préréglage de la recherche porte le pool entier (même référence).
-    if (requete.filtered === prepared.filtered) propres[requete.half] = r;
+    // Le fil du préréglage de la recherche (rang 0), celui qui porte le pool entier.
+    if (requete.rangPrereglage === 0) propres[requete.half] = r;
     return r.buckets;
   });
   const tBuildB = performance.now();

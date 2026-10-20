@@ -38,6 +38,7 @@ import {
 import { assurerBundleAppariementRapide, lancerTravailleurNode } from '../scripts/lib/appariementRapideNode';
 import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
 import { drain } from '../scripts/lib/drain';
+import { cederLaMain } from '../src/lib/cession';
 import { egal, ok, titre } from './outils';
 
 const BASE: BaseStats = { hp: 9000, atk: 700, def: 500, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
@@ -923,4 +924,32 @@ export async function testAppariementParallele(): Promise<void> {
   await testCadenceTemps(liste);
   await testTrancheEntreMorceaux(liste);
   testErreurDeWorkerEnfant();
+}
+
+/** La cession entre deux tranches : `MessageChannel` quand il existe, `setTimeout(0)` sinon, et elle se résout dans les deux cas. */
+export async function testAppariementParalleleCession(): Promise<void> {
+  titre('Appariement parallèle · cession entre deux tranches (MessageChannel, repli setTimeout)');
+  let canaux = 0;
+  class CanalEspion extends MessageChannel {
+    constructor() {
+      super();
+      canaux++;
+    }
+  }
+  let minuteurs = 0;
+  const vrai = globalThis.setTimeout;
+  (globalThis as { setTimeout: unknown }).setTimeout = ((f: () => void, ms?: number) => {
+    minuteurs++;
+    return vrai(f, ms);
+  }) as typeof setTimeout;
+  try {
+    await cederLaMain(CanalEspion);
+    egal(canaux, 1, 'MessageChannel disponible : un canal est créé pour la cession');
+    egal(minuteurs, 0, 'MessageChannel disponible : aucun setTimeout');
+    await cederLaMain(null);
+    egal(canaux, 1, 'MessageChannel absent : aucun canal créé');
+    egal(minuteurs, 1, 'MessageChannel absent : repli sur setTimeout(0), et la promesse se résout');
+  } finally {
+    (globalThis as { setTimeout: unknown }).setTimeout = vrai;
+  }
 }

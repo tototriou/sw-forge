@@ -8,6 +8,7 @@
 // qui espace lui-même la progression du coordinateur) — `PROGRESS_THROTTLE_MS`
 // y reste utilisé directement, importé d'ici plutôt que redéfini.
 
+import { cederLaMain } from '../lib/cession';
 import { PairingProgress, SearchResult, BuildCandidate } from '../lib/runeBuildOptim';
 
 // ⚠️ Un message de progression par point de passage flooderait le fil
@@ -23,7 +24,9 @@ export const PROGRESS_THROTTLE_MS = 150;
 // de pur overhead de planification. Throttlé au temps écoulé, comme la
 // progression ci-dessus, mais plus fréquemment (le bouton « Arrêter » doit
 // rester réactif) — un ordre de grandeur sous le seuil de perceptibilité
-// humaine, largement suffisant.
+// humaine, largement suffisant. La cession elle-même passe par un message de
+// canal (`cederLaMain`), non bridé : le plafond à ~4 ms ne vaut que pour
+// `setTimeout`, repli quand `MessageChannel` manque.
 export const YIELD_THROTTLE_MS = 50;
 
 // Retourne un `SearchResult` UNIFORME quelle que soit l'issue — un arrêt
@@ -69,7 +72,7 @@ export async function drivePairing(
     }
     if (now - lastYield > YIELD_THROTTLE_MS) {
       lastYield = now;
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await cederLaMain();
     }
     step = gen.next();
   }

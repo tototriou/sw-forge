@@ -99,20 +99,14 @@ la recherche du nom sur tout le dépôt.
 | `scripts/optimizer-deck10-final-diag.ts`, `scripts/combos-order-mode-real-account-diag.ts` | l'instant de découverte et la courbe de rendement, aux mêmes jalons ; le second apparie en séquentiel et lit ses comptes sous `maxMs` | `decouverteBuildCible` (extensions.md § Instant de découverte d'un build cible) |
 | `scripts/optimum-speed-diag.ts` | la comparaison de deux VERSIONS du code, copié dans le `git worktree` d'un ancien commit | son `foundExplored`, un compte de paires que `scripts/perf-battery-compare.ts` ne rend pas, est `decouverteBuildCible` |
 | `scripts/optimum-speed-targets.ts` | une vérité terrain : par couple de compartiments, les paires dans l'ordre de leur somme de `relevanceScore`, par un tas, sans matérialiser le produit cartésien ; au-delà de `HEAP_BUDGET` paires examinées, le refus de conclure (`scripts/optimum-speed-targets.ts:97-183`) | aucun optimum ; un run complet à `bucketCap` maximal classe toutes les paires quand il reste atteignable |
-| `scripts/retention-dispersion-diag.ts` | un CV sur les demi-builds retenus, compartiments aplatis, principale comprise | le CV que le moteur utilise : `dispersionTranches` |
 | `scripts/bucket-cap-scaling-diag.ts` | une table préréglage × formule de `bucketCap`, sur une paire d'artéfacts fabriquée | la survie du build équipé, préréglage par préréglage, sur les cas réels : `scripts/perf-battery.ts` en `--monotonicity` (`checkMonotonicityForCase`, `scripts/lib/perfShared.ts:134-155`) ; une formule se rejoue par `--slotFilterCap` et `--bucketCap` |
-| `scripts/stress-tranche-weighting-attainable-diag.ts` | un pool à principales forcées et runes injectées, que la source synthétique ne construit pas ; le rang par contribution d'une seule stat | le CV par `dispersionTranches` ; des principales imposées se posent sur un compte réel |
 | `scripts/filterslot-topk-diag.ts` | la différence symétrique entre deux IMPLÉMENTATIONS de `filterSlot` | rien : le harnais décrit un run, pas l'écart entre deux implémentations |
 
 **Références recopiées.** Une copie d'une fonction du moteur ne se maintient
 pas seule, et aucun `tsc` ne le signale. `filterSlotOld`, la référence de
 `scripts/filterslot-topk-diag.ts`, n'a pas l'élagage `hasFreeSlots` de
-`filterSlot` (`src/lib/runeBuildOptim.ts:1554-1556`) ; `retentionScoreLocal`
-recopie `retentionScore`, que le moteur n'exporte pas
-(`scripts/retention-dispersion-diag.ts:84-84`). Trois scripts portent dans
+`filterSlot` (`src/lib/runeBuildOptim.ts:1554-1556`). Deux scripts portent dans
 leur en-tête une référence que leur exécution ne reproduit plus — lire cet
 en-tête avant de se fier à leur sortie : `scripts/bucket-cap-scaling-diag.ts`
-(`scripts/bucket-cap-scaling-diag.ts:57-71`),
-`scripts/stress-tranche-weighting-attainable-diag.ts`
-(`scripts/stress-tranche-weighting-attainable-diag.ts:53-64`),
+(`scripts/bucket-cap-scaling-diag.ts:57-71`) et
 `scripts/filterslot-topk-diag.ts` (`scripts/filterslot-topk-diag.ts:37-53`).

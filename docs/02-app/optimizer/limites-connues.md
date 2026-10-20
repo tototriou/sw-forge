@@ -216,9 +216,8 @@ Ce que le harnais ne sait pas faire, ou dit de travers :
 - **la source synthétique** ne force pas de principale par emplacement,
   n'injecte pas de rune et ne porte aucun artéfact :
   [03-developpeur/optimizer/harnais/extensions.md § Configuration : une résolution, des arguments refusés, une fidélité bornée](../../03-developpeur/optimizer/harnais/extensions.md#configuration--une-résolution-des-arguments-refusés-une-fidélité-bornée) ;
-- **trois scripts conservés ne reproduisent plus leur référence**, chacun
-  le dit dans son en-tête : `scripts/bucket-cap-scaling-diag.ts`,
-  `scripts/stress-tranche-weighting-attainable-diag.ts` et
+- **deux scripts conservés ne reproduisent plus leur référence**, chacun
+  le dit dans son en-tête : `scripts/bucket-cap-scaling-diag.ts` et
   `scripts/filterslot-topk-diag.ts`, dont la copie `filterSlotOld` n'a pas
   l'élagage sûr de la production à combo de coût complet
   ([03-developpeur/optimizer/harnais/scripts.md § Les scripts voisins](../../03-developpeur/optimizer/harnais/scripts.md#les-scripts-voisins)).

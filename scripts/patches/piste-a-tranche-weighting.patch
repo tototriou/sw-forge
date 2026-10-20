@@ -90,7 +90,7 @@ index ae10071..200337a 100644
 +  // génériques PAR COMPARTIMENT ci-dessus, lui à l'échelle de la moitié
 +  // entière — reconstitue en direct le TOP `bucketCap` par `relevanceScore`
 +  // sur TOUS les compartiments confondus (même population que celle validée
-+  // par scripts/retention-dispersion-diag.ts). Un accumulateur somme/
++  // par le script de mesure de la dispersion, retiré). Un accumulateur somme/
 +  // somme-des-carrés PAR retentionKey, mis à jour en O(1) à chaque
 +  // insertion/éviction de ce tas global (voir `HeapPushResult`, jamais besoin
 +  // de reparcourir), donne le CV de chaque stat SANS coût supplémentaire

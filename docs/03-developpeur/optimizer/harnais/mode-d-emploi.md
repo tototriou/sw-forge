@@ -85,7 +85,7 @@ rend des avertissements. Le **pool synthétique** vient de
 `randomPool(mulberry32(seed), runes, sets)` sur la base de monstre fixe des
 tests et benchmarks (`scripts/lib/diagnosticConfig.ts:54-59`, `:113-136`) ;
 assortiments `SETS_JOKER` (défaut), `SETS_SANS_JOKER`, `SETS_VARIES`
-(`scripts/lib/randomPool.ts:72-78`). `--verrous` reproduit sans compte réel une
+(`scripts/lib/randomPool.ts:69-75`). `--verrous` reproduit sans compte réel une
 rune imposée. Ce pool n'est pas réaliste (sous-stats tirées uniformément) : une
 question qui dépend du réalisme des runes se pose sur un compte réel
 (`scripts/lib/randomPool.ts:25-30`).
@@ -94,7 +94,7 @@ La séquence de tirage de `randomPool` est un contrat : intervertir deux tirages
 décale tout le pool sans qu'un test de moteur échoue lisiblement, d'où les
 empreintes de `tests/random-pool.test.ts`, relevées sur le code d'avant la
 mise en commun (`scripts/lib/randomPool.ts:15-23`). Les générateurs
-volontairement biaisés (quatre fichiers, `scripts/lib/randomPool.ts:32-39`) ne
+volontairement biaisés (`scripts/lib/randomPool.ts:32-37`) ne
 passent pas par ce module : leur biais est le sujet de ce qu'ils mesurent, les
 migrer changerait leurs pools.
 

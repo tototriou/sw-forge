@@ -131,6 +131,20 @@ export function testRenduOptimizerGabaritsDroite() {
     'le résumé du combat prend la hauteur de son texte, au bureau comme au téléphone');
   ok(!/aria-hidden="true" class="invisible col-start-1 row-start-1"/.test(repos), 'aucune copie invisible qui réserve une place (estimation, progression)');
 
+  // A1 : le bloc en deux parties. Les réglages à leur place, sans
+  // « Rechercher » ; la barre fine, « Rechercher » / « Arrêter » et la
+  // progression, à hauteur fixe (copie invisible de la plus haute) : collée
+  // par le bas, une barre qui grandirait ferait monter « Rechercher ».
+  const reglages = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large', partie: 'reglages' })} />);
+  ok(!bouton(reglages, 'Rechercher') && !!bouton(reglages, 'Exporter') && texteVisible(reglages).includes('Objectif de recherche'),
+    'A1, réglages : objectifs, « Exporter » · « Importer », sans « Rechercher »');
+  const barre = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large', partie: 'barre', status: 'running' })} />);
+  ok(!!bouton(barre, 'Arrêter') && !texteVisible(barre).includes('Objectif de recherche') && /aria-hidden="true" class="invisible col-start-1 row-start-1"/.test(barre),
+    'A1, barre fine : « Arrêter » à la place de « Rechercher », sans les objectifs, progression dans la place de la plus haute');
+  // Forme large : « Rechercher » à droite de « Exporter » · « Importer » (hors d'une colonne superposée, à 1230).
+  const large = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large' })} />);
+  ok(/flex-row-reverse/.test(large) && /flex-none w-60/.test(large), 'forme large : « Rechercher », 240 px, à droite de sa rangée');
+
   // Pendant une recherche : « Arrêter » à la place de « Rechercher », inactif au premier rendu (300 ms).
   const enCours = rendre(<ObjectifEtRechercherBureau {...props({ status: 'running' })} />);
   ok(cache(enCours, 'Rechercher') === true, 'en cours : « Rechercher » s\'efface, sa place reste');

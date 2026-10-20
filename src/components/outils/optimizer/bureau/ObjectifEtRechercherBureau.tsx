@@ -22,6 +22,15 @@ export const DELAI_ARRET_MS = 300;
 // 367). « Rechercher toujours atteignable » (A.2.2-8 de la refonte).
 const LARGEUR_RECHERCHER_LARGE = 'w-60';
 
+// La progression la plus haute que la recherche affiche (phase d'appariement,
+// grands nombres ; préparation, erreur et refus tiennent dans sa place,
+// mesuré au lot 6d) : sa copie invisible fixe la hauteur de la barre fine de A1.
+const PROGRESSION_LA_PLUS_HAUTE: Omit<ProgressionRechercheProps, 'status'> = {
+  progress: { phase: 'pairing', explored: 999_999_999_999, found: 999_999, pct: 1, totalPairs: 999_999_999_999, candidates: [] },
+  refusal: null,
+  compteAffiche: { compte: 999_999 },
+};
+
 // Choisie par la mise en page (`formeObjectifBureau`, src/lib/optimizerColonnes.ts).
 export type FormeObjectif = FormeObjectifBureau;
 
@@ -113,11 +122,21 @@ export default function ObjectifEtRechercherBureau({
   const progressionCompacte = <ProgressionRecherche status={status} {...progression} compacte />;
 
   // A1 : la barre fine, collée au bas de la fenêtre par la page.
+  // ⚠️ **Sa hauteur ne change jamais** : collée par le bas, une barre qui
+  // grandit monte, et « Rechercher » / « Arrêter » avec elle, sous le
+  // pointeur (mesuré : `clics-7b`, recherche longue en A1). La progression y
+  // tient donc dans la place de la plus haute (copie invisible) : c'est la
+  // place de « Rechercher » / « Arrêter » qu'elle garde, la seule réservée.
   if (partie === 'barre') {
     return (
       <div role="group" aria-label="Rechercher" data-forme={forme} className={`${PANNEAU} flex items-center gap-3`}>
         {rechercher}
-        <div className="min-w-0 flex-1">{progressionCompacte}</div>
+        <div className="grid min-w-0 flex-1">
+          <div aria-hidden className="invisible col-start-1 row-start-1">
+            <ProgressionRecherche status="running" {...PROGRESSION_LA_PLUS_HAUTE} compacte />
+          </div>
+          <div className="col-start-1 row-start-1 self-center">{progressionCompacte}</div>
+        </div>
       </div>
     );
   }

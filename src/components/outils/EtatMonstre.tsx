@@ -167,9 +167,11 @@ export default function EtatMonstre({
           la prose, entre guillemets, jamais reformulé.
           ⚠️ Il dépend du MONSTRE, jamais d'un clic dans cette carte : il
           paraît au choix du monstre, dont le sélecteur et la liste vivent
-          dans la carte du haut (avant celle-ci au téléphone, rangée 1 au
-          bureau) — rien de ce qu'on vient de cliquer ne bouge. Les vignettes
-          au-dessus ne bougent pas non plus : il vit sous elles. */}
+          plus haut (la carte « Monstre & équipement » au téléphone ; au
+          bureau, la liste de travail en tête des essentiels, où ces rappels
+          suivent la forme `EtatMonstreEssentiels`) — rien de ce qu'on vient
+          de cliquer ne bouge. Les vignettes au-dessus ne bougent pas non
+          plus : il vit sous elles. */}
       <RappelsEtatMonstre setup={setup} artefacts={artefacts} rappelsBuffs={rappelsBuffs} />
 
 

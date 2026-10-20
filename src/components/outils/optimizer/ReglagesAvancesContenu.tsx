@@ -137,7 +137,8 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
           saisie : les activations Tolerance/Accuracy PROPRES d'un build
           comptent aussi, et un réglage qui apparaît et disparaît avec
           la saisie d'une autre carte ne se retrouve pas. Ce contenu est
-          commun aux deux formats — le flottant du bureau et le panneau
+          commun aux deux formats — la section « Réglages avancés » de la
+          colonne « Aura, exclusion, avancés » au bureau, le panneau
           « Options » au doigt.
           ⚠️ EN DERNIER : la rangée conditionnelle du dessus
           (« Vérifier toutes… ») ne le décale qu'au geste d'une autre

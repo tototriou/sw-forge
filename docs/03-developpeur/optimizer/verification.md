@@ -284,7 +284,7 @@ script sur la machine du moment, en suivant le skill
 Il n'existe pas de budget de paires : la recherche n'est bornée que par le
 plafond de candidats collectés (`MAX_COLLECTED`, surchargeable par
 `SearchParams.maxCollected`), par le temps (`maxMs`) et par la taille exacte
-de l'espace (`totalPairCount`) (`src/lib/runeBuildOptim.ts:1166-1189`). Un
+de l'espace (`totalPairCount`) (`src/lib/runeBuildOptim.ts:1198-1221`). Un
 en-tête de script qui cite `DEFAULT_MAX_NODES` décrit un budget supprimé.
 Le plafond de collecte privilégie la qualité du résultat sur la vitesse ;
 au préréglage le plus large, c'est la construction des compartiments, un
@@ -318,5 +318,5 @@ propres stats comme critères.
 Sur un compte de plusieurs milliers de runes, le moteur a retrouvé
 exactement le runage d'un monstre existant ; le préréglage « Extrême »
 (300) est la valeur qui l'a permis sur un très gros compte
-(`src/lib/runeBuildOptim.ts:604-607`). Un export de compte ne se commite
+(`src/lib/runeBuildOptim.ts:636-639`). Un export de compte ne se commite
 pas : le `pre-commit` refuse un fichier de plus de 5 Mo.

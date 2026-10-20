@@ -105,7 +105,7 @@ la recherche du nom sur tout le dépôt.
 **Références recopiées.** Une copie d'une fonction du moteur ne se maintient
 pas seule, et aucun `tsc` ne le signale. `filterSlotOld`, la référence de
 `scripts/filterslot-topk-diag.ts`, n'a pas l'élagage `hasFreeSlots` de
-`filterSlot` (`src/lib/runeBuildOptim.ts:1554-1556`). Deux scripts portent dans
+`filterSlot` (`src/lib/runeBuildOptim.ts:1586-1588`). Deux scripts portent dans
 leur en-tête une référence que leur exécution ne reproduit plus — lire cet
 en-tête avant de se fier à leur sortie : `scripts/bucket-cap-scaling-diag.ts`
 (`scripts/bucket-cap-scaling-diag.ts:57-71`) et

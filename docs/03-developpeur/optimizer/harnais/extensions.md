@@ -214,12 +214,12 @@ invalide (`scripts/lib/diagnosticHarness.ts:282-291`,
 
 **Étages 4 et 5.** La paire de compartiments s'arrête à `sets-compartiment`,
 `joker`, `borne-compartiment`, `borne-comboA` ou `explorée`, dans l'ordre de
-`pairBuckets` (`src/lib/runeBuildOptim.ts:4138-4166`), pas dans celui de
+`pairBuckets` (`src/lib/runeBuildOptim.ts:4159-4187`), pas dans celui de
 `totalPairCount`, qui teste le joker avant les sets
-(`src/lib/runeBuildOptim.ts:2996-3000`) : c'est la boucle d'appariement qui
+(`src/lib/runeBuildOptim.ts:3028-3032`) : c'est la boucle d'appariement qui
 décide. Les prédicats du moteur sont exportés et appelés, jamais retapés
-(`src/lib/runeBuildOptim.ts:2862-2862`, `src/lib/runeBuildOptim.ts:2904-2904`,
-`src/lib/runeBuildOptim.ts:2933-2933`). `explorée` dit qu'aucun élagage
+(`src/lib/runeBuildOptim.ts:2894-2894`, `src/lib/runeBuildOptim.ts:2936-2936`,
+`src/lib/runeBuildOptim.ts:2965-2965`). `explorée` dit qu'aucun élagage
 n'écarte la paire — la boucle l'aurait visitée, pas qu'elle l'a visitée.
 Suit le RANG de la cible dans le classement ENTIER par `sortCandidates`, jamais
 dans le top rendu, avec sa population et la taille du top

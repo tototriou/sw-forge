@@ -141,7 +141,7 @@ le dernier état sort dans `PreparedSearch`. Pour distinguer une rune PROUVÉE
 impossible d'une rune seulement écartée par le pré-filtrage, un outil devrait
 sinon rappeler les fonctions une par une — un second pipeline. D'où
 `onStage?: (stage: PrepareStage, bySlot: RuneDetail[][]) => void`
-(`src/lib/runeBuildOptim.ts:3810-3833`) :
+(`src/lib/runeBuildOptim.ts:3831-3854`) :
 
 - SECOND argument de `prepareSearch`, pas champ de `SearchParams` : ce type
   traverse `postMessage`, où une fonction n'est pas sérialisable (`:3881-3896`) ;
@@ -198,14 +198,14 @@ que la recette porte en préréglage (`scripts/lib/diagnosticTypes.ts:54-83`).
 rétablirait un mesurerait une recherche tronquée que la production ne fait
 pas. `maxMs` est la seule borne qui puisse tronquer, et le premier paramètre à
 vérifier : 15 s par défaut moteur (`DEFAULT_MAX_MS`,
-`src/lib/runeBuildOptim.ts:1174`), 10 min à l'écran (`HARD_TIMEOUT_MS`,
+`src/lib/runeBuildOptim.ts:1206`), 10 min à l'écran (`HARD_TIMEOUT_MS`,
 `src/components/outils/OptimizerSection.tsx:918`), sans limite en recherche
 exhaustive. En synthétique sans `maxMs`, le harnais applique les 10 min de
 l'écran et le dit (`scripts/lib/diagnosticConfig.ts:137-147`).
 
 **Piège A — la cascade.** Sans override, `bucketCap` est DÉRIVÉ :
 `bucketCapFor(slotFilterCap)` = `round(BUCKET_CAP × slotFilterCap /
-MAX_PER_SLOT_MATCH)` (`src/lib/runeBuildOptim.ts:1352-1363`). Surcharger
+MAX_PER_SLOT_MATCH)` (`src/lib/runeBuildOptim.ts:1384-1395`). Surcharger
 `slotFilterCap` déplace aussi `bucketCap` ; la table l'annonce « DÉRIVÉ de
 slotFilterCap » (`scripts/lib/diagnosticConfig.ts:165-176`,
 `tests/diagnostic-harness.test.ts:72-86`). Il déplace aussi les préréglages
@@ -217,14 +217,14 @@ override de `bucketCap` ne touche pas
 **Piège B — le défaut du moteur n'est pas celui de la production.** Un run qui
 omet `slotFilterCap` prend 40 (`MAX_PER_SLOT_MATCH`) et 3000 de `bucketCap` ;
 la production, au préréglage « Moyen » de l'écran, 80 et 6000
-(`src/lib/runeBuildOptim.ts:593-614`), plus la rétention de Bas emboîtée : la
+(`src/lib/runeBuildOptim.ts:625-646`), plus la rétention de Bas emboîtée : la
 moitié de la rétention sur les deux axes, en silence. En mode recette, le préréglage de la recette fait foi ; en
 synthétique, le harnais EXIGE `--cap` (sans défaut) et refuse le run sans lui
 (`scripts/lib/diagnosticConfig.ts:115-123`, `scripts/diagnostic-harness.ts:389-402`,
 `tests/diagnostic-harness.test.ts:54-70`). Ce piège est un défaut du MOTEUR, et
 sa correction naïve (`MAX_PER_SLOT_MATCH = 80`) casserait la production : la
 même constante est l'ancre de `bucketCapFor`
-(`src/lib/runeBuildOptim.ts:1341-1352`), dont le résultat tomberait de 6000 à
+(`src/lib/runeBuildOptim.ts:1373-1384`), dont le résultat tomberait de 6000 à
 3000. Le défaut de `filterSlot` et l'ancre de `bucketCapFor` sont deux
 changements séparables.
 
@@ -468,7 +468,7 @@ affirme une direction (`tests/diagnostic-harness.test.ts:136-149`).
    d'inventaire) ; `filterslot` sans attente stricte. Une divergence inattendue
    fait sortir en erreur.
 2. **Fidélité aux primitives** — par construction.
-3. **Invariants**, dans `node tests/run.mjs` (registre `tests/index.ts:633-636`) :
+3. **Invariants**, dans `node tests/run.mjs` (registre `tests/index.ts:635-638`) :
    un étage ne crée jamais de rune, sa sortie est incluse dans son entrée,
    aucune rune ne change d'emplacement (`testRuneOptimOnStage`) ; même graine,
    même pool (`testRandomPool`) ; complétude toujours explicite, configuration,
@@ -484,7 +484,7 @@ La rétention INTERNE de `buildBuckets` n'est pas observable. Un demi-build
 compartiments finaux, et `BuildingProgress` ne compte que la boucle
 EXTÉRIEURE : le `yield` est hors des boucles internes et `total` vaut la
 longueur du premier emplacement de la moitié
-(`src/lib/runeBuildOptim.ts:2577-2583`) ; les sous-arbres élagués n'y laissent
+(`src/lib/runeBuildOptim.ts:2609-2615`) ; les sous-arbres élagués n'y laissent
 rien, et remonter cette progression ne donne pas un débit d'énumération. Y
 répondre exigerait un second observateur dans `buildBuckets`, boucle chaude où
 son coût ne serait plus négligeable. Le harnais dit donc « absent des

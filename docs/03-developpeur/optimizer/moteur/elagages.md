@@ -467,11 +467,9 @@ n'est pas en production. Les pistes encore ouvertes sont dans
   stats les plus difficiles ») : à budget égal, elle trouvait 5 à 11 % de
   builds valides en moins et aucun meilleur build
   ([retention-a-parts-egales.md](../../../04-decisions/adr/retention-a-parts-egales.md)).
-- Gardée en réserve, pas adoptée : une autre façon de prioriser les stats
-  les plus difficiles, qui répartit les places des tranches d'après des
-  accumulateurs tenus pendant la construction
-  (`scripts/patches/piste-a-tranche-weighting.patch`, qui ne s'applique
-  plus tel quel). Elle coûte à la construction, et son avantage pour
-  trouver n'a été vu que sur un cas. À ne reprendre que mesurée en builds
-  valides trouvés, à pré-filtrage égal : c'est cette mesure qui a écarté la
-  répartition par dispersion.
+- Ne pas reprendre sans la mesurer en builds valides trouvés, à
+  pré-filtrage égal, une autre façon de prioriser les stats les plus
+  difficiles, qui répartit les places des tranches d'après des
+  accumulateurs tenus pendant la construction : elle coûte à la
+  construction, son avantage pour trouver n'a été vu que sur un cas, et
+  c'est cette mesure qui a écarté la répartition par dispersion.

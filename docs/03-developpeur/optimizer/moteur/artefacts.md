@@ -345,14 +345,18 @@ source.
 ## Partage entre les builds d'une file
 
 Les builds d'une file essaient en grande partie les mêmes paires. Quatre
-mémoires et un tri différé partagent ce qui ne dépend pas du build, sans
-changer aucun résultat :
+mémoires partagent ce qui ne dépend pas du build, sans changer aucun
+résultat, et la lecture des notes ne trie rien sur le chemin de l'app
+(dernier point) :
 
 - le **profil de dégâts d'une paire** ne lit que ses deux pièces : il se
   calcule une fois par paire (`CacheProfilsParPaire`,
   `src/lib/artifactEvaluation.ts` ; clé = identifiants des pièces dans
   l'ordre reçu, emplacement vide compris ; une pièce d'identifiant ≤ 0 n'est
-  pas une pièce et n'y entre jamais) ;
+  pas une pièce et n'y entre jamais). ⚠️ La clé est propre à UN
+  inventaire : un identifiant ne désigne la même pièce, donc le même
+  profil, que dans l'inventaire où il a été lu — d'où la durée de vie d'une
+  file, vidée avec l'inventaire (paragraphe suivant la liste) ;
 - les **candidats élagués de chaque sorte** ne se recalculent que si leurs
   entrées changent (`MemoPreFiltre`, `src/lib/artifactOptim.ts`) : la
   pertinence reste sondée contre le vrai calcul à chaque build et à chaque
@@ -378,7 +382,17 @@ changer aucun résultat :
   loin, ou si un score vaut NaN ; l'ordre rendu est exactement celui de
   `chercherPaires`.
 
-Pour un même build et une même relique, l'évaluateur « Dégâts réels » de
+Les trois premières mémoires sont bornées (`BORNE_PROFILS_PAR_PAIRE`,
+`BORNE_MEMO_PREFILTRE`, `BORNE_STATS_PAR_APPORT`,
+`BORNE_APPORTS_PAR_STATS`) et se vident d'un coup à leur borne ; celle des
+formes ne garde qu'un jeu, celui des dernières entrées. Leur durée de vie
+est celle d'une file (`nouveauxCachesResolution`) : l'écran les recrée avec
+la signature des réglages et les paramètres de paires (donc l'inventaire), le
+Worker de résolution à chaque contexte reçu, le CLI une fois par recette —
+jamais un état global qu'un nouvel inventaire laisserait périmé. Ce qu'elles
+rendent est partagé : à lire, jamais à modifier.
+
+Dans un même build et une même relique, l'évaluateur « Dégâts réels » de
 `evaluerPourRegime` note des milliers de paires ; il porte un
 `MemoCombat` (`src/lib/damage.ts`) qui calcule une fois ce que
 `computeTotalDamage` relit à l'identique d'une paire à l'autre : la
@@ -390,16 +404,6 @@ entrées rendent la valeur de la fonction elle-même, au bit près
 (`tests/memo-combat.test.ts`) ; bornes `BORNE_CHRONOLOGIES` (16),
 `BORNE_STATS_PAR_REGLAGE` (64), `BORNE_COMBATS_PAR_STATS` (16) ; durée de
 vie : celle de l'évaluateur.
-
-Les trois premières mémoires sont bornées (`BORNE_PROFILS_PAR_PAIRE`,
-`BORNE_MEMO_PREFILTRE`, `BORNE_STATS_PAR_APPORT`,
-`BORNE_APPORTS_PAR_STATS`) et se vident d'un coup à leur borne ; celle des
-formes ne garde qu'un jeu, celui des dernières entrées. Leur durée de vie
-est celle d'une file (`nouveauxCachesResolution`) : l'écran les recrée avec
-la signature des réglages et les paramètres de paires (donc l'inventaire), le
-Worker de résolution à chaque contexte reçu, le CLI une fois par recette —
-jamais un état global qu'un nouvel inventaire laisserait périmé. Ce qu'elles
-rendent est partagé : à lire, jamais à modifier.
 
 ## Mesurer un changement des bornes
 

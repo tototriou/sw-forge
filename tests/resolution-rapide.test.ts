@@ -111,10 +111,9 @@ interface Scenario {
 const SCENARIOS: Scenario[] = [];
 for (const regime of ['degats_reels', 'aucun', 'hp', 'atk', 'ehp'] as RegimeArtefacts[]) {
   for (const intention of ['recherche', 'equipped', 'off', null] as const) {
+    // Toute la matrice des artéfacts, relique `recherche` comme relique fixe :
+    // emplacement figé, principale imposée et coût des verrous compris.
     for (const artefacts of ['libre', 'fige', 'principale', 'verrous', 'cout-verrous'] as const) {
-      // Toute la matrice en `recherche` (le chemin réécrit) ; les chemins à
-      // relique fixe, sur « Libre » et les verrous.
-      if (intention !== 'recherche' && artefacts !== 'libre' && artefacts !== 'verrous') continue;
       for (const maximums of [false, true]) {
         if (!maximums && regime !== 'degats_reels' && intention !== 'recherche') continue;
         SCENARIOS.push({ nom: `${regime} · relique ${intention ?? 'sans contexte'} · ${artefacts}${maximums ? ' · maximums' : ''}`, regime, intention, artefacts, maximums });
@@ -170,7 +169,10 @@ function avecAvertissements<T>(f: () => T): { valeur: T; avertissements: string[
 
 export default function testResolutionRapide() {
   titre('Résolution rapide de l’équipement (chemin de l’app) — même résultat que le calcul exhaustif, build par build');
+  // Relique `recherche`, puis relique fixe (portée, `off`, sans contexte).
   const compteurs = compteursVides();
+  const compteursFixe = compteursVides();
+  const scenariosFixes = new Set<string>();
   let compares = 0;
   let conformes = 0;
   let rejetes = 0;
@@ -230,11 +232,13 @@ export default function testResolutionRapide() {
     }
     // Caches d'une file partagés, dans l'ordre puis à rebours : le point
     // d'entrée de l'app, la résolution rapide sans diagnostic (comptée), puis
-    // avec (CLI, harnais).
+    // avec (l'option de la fonction du CLI, `resoudreEquipementCli`).
+    const c = sc.intention === 'recherche' ? compteurs : compteursFixe;
+    if (sc.intention !== 'recherche') scenariosFixes.add(sc.artefacts);
     const chemins = [
       ['app', (e: EntreeResolution) => resoudreEquipementDuBuild(e)],
-      ['rapide', (e: EntreeResolution) => resoudreEquipementDuBuildRapide(e, compteurs)],
-      ['diagnostic', (e: EntreeResolution) => resoudreEquipementDuBuildRapide(e, compteurs, { diagnostic: true })],
+      ['rapide', (e: EntreeResolution) => resoudreEquipementDuBuildRapide(e, c)],
+      ['diagnostic', (e: EntreeResolution) => resoudreEquipementDuBuildRapide(e, c, { diagnostic: true })],
     ] as const;
     for (const [chemin, resoudreChemin] of chemins) {
       for (const [nomOrdre, ordre] of [['ordre', builds.map((_, i) => i)], ['à rebours', builds.map((_, i) => builds.length - 1 - i)]] as const) {
@@ -269,6 +273,9 @@ export default function testResolutionRapide() {
   ok(appelsRepresentants > 0, `point d’entrée de l’app : il lit les représentants de formes de la file (caches.rapide, ${appelsRepresentants} appels)`);
   egal(jeuxParFile.filter((n) => n !== 1).length, 0, `… un seul jeu de formes par file (${filesRecherche} files en mode recherche) : partagé par ses builds`);
   cheminsServis(compteurs);
+  egal([...scenariosFixes].sort(), ['cout-verrous', 'fige', 'libre', 'principale', 'verrous'], 'relique fixe : emplacement figé, principale imposée, verrous et coût des verrous comparés aussi');
+  ok(compteursFixe.notesFaisables > 0 && compteursFixe.noteesEntieres > 0 && compteursFixe.diagnostics > 0,
+    `relique fixe : paires faisables seules notées (${compteursFixe.notesFaisables}), paire fixe notée entière sous coût des verrous (${compteursFixe.noteesEntieres}), diagnostics (${compteursFixe.diagnostics})`);
 
   // ── Pool de reliques vide en mode `recherche` : la même erreur. ──
   {

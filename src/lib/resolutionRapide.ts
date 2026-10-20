@@ -45,12 +45,20 @@
 // - **Le build n'a aucun couple faisable** → sans `diagnostic` (le chemin de
 //   l'app : sans le diagnostic d'un build rejeté, jamais montré à l'écran),
 //   le résultat du calcul exhaustif quand aucune paire n'existe : ni paire,
-//   ni artéfact, ni relique ; avec `diagnostic` (CLI, harnais), le calcul
-//   exhaustif lui-même.
+//   ni artéfact, ni relique ; avec `diagnostic` (la fonction du CLI,
+//   `resoudreEquipementCli`, le banc et les tests), le calcul exhaustif
+//   lui-même.
 //
 // ⚠️ **Lignes verrouillées avec `avecCoutDesVerrous`** : `meilleurSansVerrous`
 // lit TOUTES les notes ; la relique (ou la paire fixe) y est notée entière
 // par `pairesParScore`, comme le calcul exhaustif (exact, NaN compris).
+// Aucun producteur de l'app ne pose ce drapeau dans les paramètres d'une
+// résolution (l'écran ne le passe qu'à un `chercherPaires` à part) : ces deux
+// branches ne servent pas en production. Gardées parce que le contrat vaut
+// pour TOUTE `EntreeResolution` — `faireParams` peut le porter — et que le
+// calcul exhaustif rend alors une note dans `meilleurSansVerrous` : sans
+// elles, la résolution rapide rendrait `null` à sa place. Le test les
+// compare, relique `recherche` comme relique fixe.
 //
 // ⚠️ **Aucune borne ni heuristique** : aucune paire faisable n'est écartée sur
 // une note. Le choix entre reliques reste `bestRelicForBuild` ; les caches
@@ -113,8 +121,9 @@ export function compteursVides(): CompteursResolutionRapide {
 }
 
 export interface OptionsResolutionRapide {
-  // Un build rejeté porte le diagnostic du calcul exhaustif (le CLI, le
-  // harnais). Absent ou faux : le chemin de l'app, sans diagnostic.
+  // Un build rejeté porte le diagnostic du calcul exhaustif (la fonction du
+  // CLI `resoudreEquipementCli` sur option, le banc, les tests). Absent ou
+  // faux : le chemin de l'app, sans diagnostic.
   diagnostic?: boolean;
 }
 

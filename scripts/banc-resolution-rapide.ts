@@ -14,7 +14,7 @@
 //   --candidats=<fichier.json>  les identifiants de runes des candidats : relus s'ils
 //                               existent, sinon calculés puis écrits (runs longs)
 //   --echantillon=<n>           un build sur ⌈N / n⌉ dans l'ordre de collecte (défaut : tous)
-//   --diagnostic                le CLI avec son option `diagnostic` (CLI, harnais)
+//   --diagnostic                la fonction du CLI avec son option `diagnostic`
 //   --compter-notes             une passe de plus de la résolution rapide, `evaluer` compté
 //                               (sondes de pertinence et paires) et ses chemins comptés,
 //                               sans effet sur le résultat
@@ -175,7 +175,7 @@ async function main(): Promise<number> {
   }
   const msRef = performance.now() - debut;
 
-  dire(`Chemin de l’app (resoudreEquipementCli) : ${diagnostic ? 'AVEC diagnostic (option du CLI et du harnais) — comparé en entier' : 'SANS diagnostic — comparé hors le diagnostic d’un build rejeté'}`);
+  dire(`Chemin de l’app (resoudreEquipementCli) : ${diagnostic ? 'AVEC diagnostic (option de la fonction du CLI) — comparé en entier' : 'SANS diagnostic — comparé hors le diagnostic d’un build rejeté'}`);
   const replis: string[] = [];
   const warn = console.warn;
   console.warn = (...m: unknown[]) => {

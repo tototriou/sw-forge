@@ -204,6 +204,24 @@ et celles des tests, du harnais et des scripts de mesure :
   siège en une seule recherche.
 - **Bloque** : hors du périmètre du moteur actuel ; horizon lointain.
 
+### Séparer de `runeBuildOptim.ts` ce que l'interface consomme
+
+- **Constat** : l'interface importe de `src/lib/runeBuildOptim.ts` des
+  constantes, des préréglages et des fonctions d'affichage, à côté du moteur
+  de recherche. Un changement du fichier, même d'un commentaire, retient donc
+  118 fichiers de test par un lien spécifique : `npm run test:suivi -- --depuis`
+  sur une modification de ce seul fichier retient 473 des 567 entrées
+  (560 exécutées, 16 003 vérifications) et dure 12 min 6 s, en un seul
+  passage sans autre charge lourde (mesure unique, non une mesure de
+  performance). Le sélecteur par fichiers modifiés ne peut pas restreindre
+  ce coût : il suit les imports.
+- **Idée** : déplacer ce que l'interface consomme dans un module distinct, de
+  sorte qu'une modification du moteur ne retienne que les vérifications du
+  moteur, et inversement.
+- **Bloque** : à ouvrir après la fusion de la branche de performance du
+  moteur de recherche, qui modifie le même fichier, et à conduire avec
+  le skill `algo-verify`.
+
 ## Artéfacts et reliques
 
 ### Top affiché en mode relique « recherche »

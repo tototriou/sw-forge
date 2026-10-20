@@ -135,13 +135,13 @@ horodate les `BuildingProgress` que `buildBuckets` émet déjà, un par rune de
 l'emplacement extérieur, et rend `demiBuilds.progression`, titré A₂ dans la
 sortie. A-instrumenté, et OPT-IN parce que `scripts/perf-battery.ts` partage
 le worker : sans le drapeau, le générateur est drainé par `drain()`, sans
-horloge ni champ de plus (`scripts/lib/build-half-worker.ts:139-159`,
+horloge ni champ de plus (`scripts/lib/build-half-worker.ts:142-162`,
 `tests/diagnostic-harness.test.ts:252-262`) ; avec, le worker l'itère à la
 main, sans `yield` ajouté au moteur ni `drain.ts` touché, et le relevé part
 une seule fois avec le résultat, jamais un message par `yield`
-(`scripts/lib/build-half-worker.ts:44-61`, `scripts/lib/build-half-worker.ts:160-190`).
+(`scripts/lib/build-half-worker.ts:47-64`, `scripts/lib/build-half-worker.ts:163-193`).
 Trois périmètres d'horloge, jamais mélangés (`ProgressionMoitie`,
-`scripts/lib/build-half-worker.ts:83-127`) :
+`scripts/lib/build-half-worker.ts:86-130`) :
 
 | `next()` | Ce qu'il exécute | Champ |
 |---|---|---|
@@ -156,7 +156,14 @@ est une distribution, jamais un scalaire : `n`, min, médiane vraie (moyenne
 des deux valeurs centrales sur un effectif pair), p90, max, total et un
 histogramme en 12 classes, parce qu'une série bimodale ne se voit dans aucun
 jeu de quantiles et qu'une moyenne l'écraserait. `runesExterieures` est le
-`total` annoncé par le moteur. La médiane divisée par |f₁|×|f₂| (|f₄|×|f₅|
+`total` annoncé par le moteur. ⚠️ Au-delà de Bas, ce `total` somme les runes
+extérieures de chaque préréglage construit (préréglages emboîtés,
+[moteur/pipeline.md § Construction des moitiés](../moteur/pipeline.md#construction-des-moitiés)) :
+la série enchaîne celles du préréglage de la recherche puis celles de chaque
+préréglage plus étroit, aux paires intérieures moins nombreuses, et
+l'intervalle qui passe d'un préréglage au suivant porte l'épilogue de l'un
+et le prologue de l'autre — la série n'y est plus homogène, et la division
+qui suit ne vaut qu'à Bas. La médiane divisée par |f₁|×|f₂| (|f₄|×|f₅|
 pour la moitié B) est une
 DIVISION ARITHMÉTIQUE par le majorant des paires intérieures, jamais un
 « temps par triplet énumérable » (`scripts/lib/diagnosticHarness.ts:662-666`).

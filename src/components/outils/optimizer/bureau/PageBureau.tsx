@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import OngletsColonnes from './OngletsColonnes';
+import { AidesHorsDeLaBoite } from '../../../HelpPopover';
 import {
   agencementBureau, basculerColonne, colonnesAffichees, colonnesParDefaut, deuxColonnesTiennent, formeObjectifBureau, ouvrirColonne,
   type ColonneRepliable, type ColonnesOuvertes, type FormeObjectifBureau,
@@ -171,8 +172,11 @@ const COLONNE_A3: Record<ColonneRepliable, string> = {
 // contenu dans une boîte intérieure, mesurée. ⚠️ **Elle ne défile seule
 // (`overflow-y: auto`) que quand son contenu dépasse la hauteur visible**
 // (`data-defile`) : une boîte qui défile rogne les flottants posés en
-// `absolute` dedans (aides, menus), qu'il vaut mieux laisser déborder tant
-// que rien n'oblige à défiler. Hors A3, aucune hauteur maximale : jamais.
+// `absolute` dedans (menus), qu'il vaut mieux laisser déborder tant que rien
+// n'oblige à défiler. Hors A3, aucune hauteur maximale : jamais.
+// ⚠️ **Les aides en sortent toujours** (`AidesHorsDeLaBoite`, HelpPopover.tsx) :
+// une bulle de 340 px ancrée près du bord droit déborde de la colonne même
+// quand elle tient en hauteur ; en portail, elle s'affiche en entier.
 function ColonneFixe({ className, contenu, children, ...donnees }: {
   className: string; contenu: string; children: ReactNode; 'data-zone'?: string; 'data-colonne'?: string;
 }) {
@@ -194,7 +198,9 @@ function ColonneFixe({ className, contenu, children, ...donnees }: {
   }, []);
   return (
     <div ref={boite} {...donnees} data-defile={depasse ? '' : undefined} className={className}>
-      <div ref={interieur} className={contenu}>{children}</div>
+      <div ref={interieur} className={contenu}>
+        <AidesHorsDeLaBoite.Provider value>{children}</AidesHorsDeLaBoite.Provider>
+      </div>
     </div>
   );
 }

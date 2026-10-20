@@ -145,18 +145,43 @@ recherche : [pipeline.md § Pipeline de la recherche de runes](pipeline.md).
   Ne pas y mettre un `ceil` séparé côté maximum, parce qu'il rejetterait un
   build faisable : avec B = 101 et R = L = 1 %, le réel vaut 104, le `ceil`
   séparé 105, et un maximum à 104 tomberait.
-- **Ce test reste une borne en mode `recherche`** : les bornes accordent la
-  meilleure PV %, la meilleure ATQ % et la meilleure DEF % à la fois, alors
-  qu'une relique n'a qu'une principale. Aucun faux négatif au test de
-  faisabilité, mais des faux positifs, que la résolution exacte rejette. Le
-  score qui ordonne les candidats avant elle est donc calculé sans relique,
-  non exact.
+- **Ce terme reste une borne** : il accorde la meilleure PV %, la meilleure
+  ATQ % et la meilleure DEF % à la fois, alors qu'une relique n'a qu'une
+  principale. D'où, après lui, **la relique en « OU »**
+  (`reliqueRepresentativeConvient`, appelée par `pairBuckets` et
+  `Collecteur.valider` ; son miroir typé `ValidationTypee.reliqueConvient`) :
+  un build que la borne garde n'est collecté que si UNE relique
+  représentative lui fait tenir toutes ses conditions ensemble, stats
+  recalculées par `computeStats` avec elle. Les représentatives
+  (`reliquesRepresentatives`, `src/lib/relicOptim.ts`, préparées une fois
+  dans `deriveMinMaxContext`, `PreparedSearch.reliquesRepresentatives`)
+  suffisent parce qu'une relique n'agit que sur la stat de sa principale, de
+  façon croissante : par principale, la plus forte (minimum seul, ou aucune
+  condition), la plus faible (maximum seul), toutes les valeurs distinctes
+  quand la stat porte un minimum ET un maximum (l'ensemble admis est un
+  intervalle, que les deux extrêmes peuvent manquer), une seule relique de
+  principale inconnue. Le résultat est un sous-ensemble de celui de la borne
+  seule, dans le même ordre ; le quasi-succès ne change pas (le test vient
+  après la boucle des apports).
+- ⚠️ **Minimums avec l'apport essayé, maximums avec `artFlatMin`** dans ce
+  test : `artPossibles` ne garde que le meilleur artéfact de chaque
+  principale, ce qui n'est exact que pour les minimums
+  ([artefacts.md § Test conjoint exact à la validation finale](artefacts.md)).
+  Juger un maximum de PV, d'ATQ ou de DEF avec l'apport des minimums
+  écarterait un build que la résolution rend conforme avec une paire plus
+  faible (PV 1000, relique PV +10 %, artéfacts PV +50 et +100, 1120 ≤ PV ≤
+  1160 : seul le +50 tient). Exact du côté de la relique, ce test reste
+  donc permissif du côté des artéfacts sous un tel maximum : la résolution
+  exacte écarte les faux positifs qui restent. Le score qui ordonne les
+  candidats avant elle est calculé sans relique, non exact.
 - **La relique n'entre dans aucun ordre de rétention** (`filterSlot`,
-  `retentionScore`, `combinedRetentionScore` ne lisent que les runes). Les
-  faux positifs occupent pourtant des places bornées (`slotFilterCap`, les
-  tranches de `bucketCap`, `MAX_COLLECTED`) et peuvent évincer un vrai
-  candidat avant la résolution : une perte par dilution, possible, jamais
-  supposée absente (§ Oracle de la dimension relique).
+  `retentionScore`, `combinedRetentionScore` ne lisent que les runes). La
+  préparation et les compartiments jugent sur les bornes : les faux positifs
+  de la borne y occupent des places bornées (`slotFilterCap`, les tranches
+  de `bucketCap`) et peuvent évincer un vrai candidat avant l'appariement :
+  une perte par dilution, possible, jamais supposée absente (§ Oracle de la
+  dimension relique). Au plafond de candidats (`MAX_COLLECTED`), la relique
+  en « OU » ne laisse plus entrer que ceux du côté des artéfacts.
 - **Pendant la recherche relâchée, le moteur ne lit l'effet unique que par
   la dominance des runes** : les reliques qu'il peut équiper
   (`reliquesEquipables` : la relique portée hors mode `recherche`, tout

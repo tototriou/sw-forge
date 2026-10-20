@@ -139,7 +139,11 @@ d'être jetés. Jamais recalculé ailleurs, seulement fusionné et mis en forme.
 - **`actual`** est la valeur que juge le test conjoint : fiche, décalage de
   l'apport essayé, terme relique en mode `recherche` (`relTermMax`,
   `relTermMin`), auras comptées par `totalCondition` avec les auras propres
-  exactes des six runes.
+  exactes des six runes. La relique en « OU » qui suit en mode `recherche`
+  ([reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md))
+  n'alimente pas le quasi-succès : un build que la borne garde et
+  qu'aucune relique ne rend conforme n'y laisse aucune tentative, comme
+  avant elle.
 - **`NearMiss`** : `runeIds`, `stats`, `effTotal`, `shortfalls`. `stats` est
   la fiche `computeStats` calculée avec la paire figée, et sans relique en
   mode `recherche` : les écarts viennent de l'apport essayé, la fiche non.

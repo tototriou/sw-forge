@@ -227,7 +227,10 @@ Une paire visitée passe ensuite :
 4. le test conjoint : la paire est retenue si UN apport d'artéfacts
    réellement atteignable (`artPossibles`, ou la paire figée à défaut) lui
    fait tenir toutes les conditions à la fois. Une tentative qui échoue
-   alimente le quasi-succès (`nearMissByCondition`, `globalNearMiss`).
+   alimente le quasi-succès (`nearMissByCondition`, `globalNearMiss`) ;
+5. en mode `recherche`, la relique en « OU » : une relique représentative
+   doit encore lui faire tenir ses conditions, une à la fois
+   ([reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md)).
 
 La collecte s'arrête au plafond `maxCollected`. Trois arrêts seulement : le
 temps, le plafond de candidats, l'épuisement de l'espace ; aucun plafond de

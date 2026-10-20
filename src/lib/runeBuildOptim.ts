@@ -53,8 +53,10 @@ import { APPORT_NEUTRE, ApportExclusive, apportExclusive, facteurTenacite, stats
 // ⚠️ Type SEUL : `relicQueue.ts` importe ce module à l'exécution — un import
 // de valeur fermerait le cycle.
 import type { EtatRelique } from './relicQueue';
-// ⚠️ `import type` UNIQUEMENT — `relicOptim.ts` importe déjà `Objective`
-// d'ici (type seul) : un import de valeur ferait un cycle au runtime.
+// `relicOptim.ts` n'importe d'ici que des types (`Objective`, effacés à la
+// compilation) : l'importer à l'exécution ne ferme aucun cycle — il est déjà
+// chargé par `relicExclusive.ts`.
+import { reliquesRepresentatives } from './relicOptim';
 import type { RelicContext, RelicVide } from './relicOptim';
 import {
   DEF_FACTOR_CONST,
@@ -462,6 +464,53 @@ export function respecteConditionsAvecRelique(
 ): { stats: StatRow[]; respecte: boolean } {
   const stats = computeStats({ ...gear, relic: relique });
   return { stats, respecte: respecteMinEtMax(stats, requirement, aurasPropresDesRunes(gear.runes)) };
+}
+
+/**
+ * **La relique en « OU » du test conjoint de la recherche** (mode
+ * `recherche`) : une relique REPRÉSENTATIVE (`reliquesRepresentatives`,
+ * relicOptim.ts) fait-elle tenir au build toutes ses conditions ensemble ?
+ * Appelé par la validation (`pairBuckets`, `Collecteur.valider`) seulement
+ * pour un build que la borne de relique a déjà gardé : le résultat est un
+ * SOUS-ENSEMBLE de celui de la borne, dans le même ordre, quasi-succès
+ * inchangé. `ValidationTypee.reliqueConvient` en est le miroir typé.
+ *
+ * `gear` : le build SANS relique, avec la paire figée (celle des `stats`
+ * collectées). Chaque représentative REMPLACE la relique (`computeStats`,
+ * jamais un cumul) ; l'apport d'artéfacts s'ajoute à plat, après le `ceil`.
+ *
+ * ⚠️ **Minimums avec l'apport `A` de `artPossibles`, MAXIMUMS avec
+ * `artFlatMin`** (le plus petit apport de l'inventaire, la borne des maximums
+ * de `quickOk`) : `artPossibles` ne garde que le meilleur artéfact de chaque
+ * principale, exact pour les minimums seulement (`apportsAtteignables`,
+ * artifactOptim.ts) ; juger un maximum de PV/ATQ/DEF avec `A` rejetterait un
+ * build que la résolution rend conforme avec une paire plus faible. D'où :
+ * exact sur la relique, relâché sur les artéfacts sous un maximum de
+ * PV/ATQ/DEF — aucun conforme perdu, quelques faux positifs gardés, que la
+ * résolution écarte comme avant.
+ */
+export function reliqueRepresentativeConvient(
+  gear: GearSet,
+  prepared: Pick<PreparedSearch, 'requirement' | 'minEntries' | 'maxEntries' | 'artPossibles' | 'artFlatFige' | 'artFlatMin' | 'reliquesRepresentatives'>,
+  propres: AurasPropres
+): boolean {
+  const { requirement, minEntries, maxEntries, artPossibles, artFlatFige, artFlatMin, reliquesRepresentatives: representatives } = prepared;
+  const apports = artPossibles.length > 0 ? artPossibles : [artFlatFige];
+  relique: for (const relique of representatives) {
+    const stats = computeStats({ ...gear, relic: relique });
+    for (const { k, max } of maxEntries) {
+      const row = stats.find((r) => r.key === k);
+      if (totalCondition((row?.total ?? 0) + ((artFlatMin[k] ?? 0) - (artFlatFige[k] ?? 0)), k, requirement, propres) > max) continue relique;
+    }
+    apport: for (const apport of apports) {
+      for (const { k, min } of minEntries) {
+        const row = stats.find((r) => r.key === k);
+        if (totalCondition((row?.total ?? 0) + ((apport[k] ?? 0) - (artFlatFige[k] ?? 0)), k, requirement, propres) < min) continue apport;
+      }
+      return true;
+    }
+  }
+  return false;
 }
 
 // Diagnostic « quasi-succès » — voir docs/03-developpeur/optimizer/
@@ -3215,6 +3264,14 @@ interface MinMaxContext {
    */
   relTermMax: (k: StatKey) => number;
   relTermMin: (k: StatKey) => number;
+  /**
+   * Mode `recherche` : les reliques REPRÉSENTATIVES des éligibles
+   * (`reliquesRepresentatives`, relicOptim.ts), que le test conjoint essaie
+   * une à une APRÈS la borne (`reliqueRepresentativeConvient`). `[]` hors
+   * mode `recherche`. Les bornes par stat restent pour `quickOk`, les sauts
+   * et la préparation.
+   */
+  reliquesRepresentatives: RelicDetail[];
   totalOf: (k: StatKey, pct: number, flat: number) => number;
 }
 
@@ -3283,10 +3340,11 @@ function deriveMinMaxContext(
   function relTermMin(k: StatKey): number {
     return relicRelache && estPct(k) ? Math.floor(((baseRec[k] ?? 0) * (relPctMin[k] ?? 0)) / 100) : 0;
   }
+  const representatives = relicRelache ? reliquesRepresentatives(relicContext!.eligibles, requirement) : [];
   return {
     minEntries, maxEntries, constrainedKeys, maxKeys, guaranteed, guaranteedMin,
     artFlatMax, artFlatMin, artPossibles, artFlatFige: figee,
-    relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf,
+    relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, reliquesRepresentatives: representatives, totalOf,
   };
 }
 
@@ -3685,6 +3743,8 @@ export interface PreparedSearch {
   relicRelache: boolean;
   relTermMax: (k: StatKey) => number;
   relTermMin: (k: StatKey) => number;
+  // Mode `recherche` : les reliques représentatives du test conjoint — voir `MinMaxContext`.
+  reliquesRepresentatives: RelicDetail[];
   totalOf: (k: StatKey, pct: number, flat: number) => number;
   // Diagnostic seulement — l'état MUTABLE de la trace du candidat traceur,
   // créé par `prepareSearch`, complété par `buildBuckets` et `pairBuckets`.
@@ -3758,7 +3818,7 @@ export function prepareSearch(
   const startedAt = Date.now();
 
   const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds, relicContext);
-  const { minEntries, maxEntries, constrainedKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf } = ctx;
+  const { minEntries, maxEntries, constrainedKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, reliquesRepresentatives, totalOf } = ctx;
   // ⚠️ Dimensions protégées à la RÉTENTION par compartiment (voir
   // buildBuckets) : les minimums demandés, PLUS les stats propres à
   // l'objectif choisi. JAMAIS les maximums — sur une stat plafonnée, « plus »
@@ -3855,7 +3915,7 @@ export function prepareSearch(
     base, artifacts, relic, relicContext, requirement, metric,
     maxCollected, maxMs, startedAt,
     minEntries, maxEntries, constrainedKeys, retentionKeys, objectiveKeys, distinctKeys,
-    guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf,
+    guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, reliquesRepresentatives, totalOf,
     traceur,
     filtered, requiredPieces, jokerCredit, maxSetsForA, maxSetsForB, bucketCap,
   };
@@ -4184,9 +4244,9 @@ export function* pairBuckets(
             // ⚠️ Mode recherche : `stats` est SANS relique, le terme relique
             // s'ajoute ici (`relTermMax`/`relTermMin`, `0` sinon) — majorant
             // côté minimum, minorant côté maximum, jamais l'inverse. Ce test
-            // reste donc une BORNE en mode recherche (plus de faux négatif,
-            // des faux positifs possibles) : l'exactitude est le filtre
-            // final de 5b, avec la relique réelle.
+            // reste donc une BORNE en mode recherche (aucun faux négatif) ;
+            // la relique exacte suit, une représentative à la fois
+            // (`reliqueRepresentativeConvient`, après la boucle).
             const shortfalls: StatShortfall[] = [];
             for (const { k, min } of minEntries) {
               const row = stats.find((r) => r.key === k);
@@ -4204,6 +4264,11 @@ export function* pairBuckets(
             }
             considerNearMiss(runeIds, stats, effTotal, shortfalls);
           }
+          // Mode recherche : la borne a gardé le build ; une relique
+          // représentative doit encore lui faire tenir ses conditions, une à
+          // la fois (« OU »), jamais la meilleure principale de chaque stat à
+          // la fois. Après la boucle : mêmes tentatives de quasi-succès.
+          if (ok && relicRelache) ok = reliqueRepresentativeConvient(gear, prepared, propres);
           if (trPair && traceApp) traceApp.validationFinale = ok;
           if (!ok) continue;
 

@@ -14,7 +14,7 @@ import { StatKey, activeSets, runeEfficiency, runeScore } from '../../src/lib/ef
 import { computeStats } from '../../src/lib/stats';
 import { missingSets } from '../../src/lib/recoMatch';
 import { AurasPropres, aurasPropresDesSetsActifs, pointsAuraResPrePropres } from '../../src/lib/damage';
-import { BuildRequirement, PreparedSearch, StatShortfall } from '../../src/lib/runeBuildOptim';
+import { BuildRequirement, PreparedSearch, StatShortfall, reliqueRepresentativeConvient } from '../../src/lib/runeBuildOptim';
 import { ValidationTypee } from '../../src/lib/validationRapide';
 
 // Copie de `totalCondition` (runeBuildOptim.ts), privée là-bas.
@@ -42,11 +42,14 @@ export interface BilanControle {
   /** Tentatives (paire × apport) comparées. */
   tentatives: number;
   collectables: number;
+  /** Mode `recherche` : builds gardés par la borne, jugés par la relique en « OU », et ceux qu'elle rejette. */
+  reliquesOu: number;
+  reliquesOuRejetes: number;
   ecarts: number;
   premierEcart: string | null;
 }
 
-export const bilanVide = (): BilanControle => ({ paires: 0, setsRefuses: 0, statsComparees: 0, tentatives: 0, collectables: 0, ecarts: 0, premierEcart: null });
+export const bilanVide = (): BilanControle => ({ paires: 0, setsRefuses: 0, statsComparees: 0, tentatives: 0, collectables: 0, reliquesOu: 0, reliquesOuRejetes: 0, ecarts: 0, premierEcart: null });
 
 /**
  * Compare la validation typée de la paire `(ga, gb)` à la production. `v` est
@@ -102,6 +105,18 @@ export function comparerPaire(v: ValidationTypee, prepared: PreparedSearch, ga: 
     if (shortfalls.length === 0) {
       collectable = true;
       break;
+    }
+  }
+  // Mode recherche : la relique en « OU », après la borne — la fonction de
+  // référence elle-même (exportée), contre son miroir typé.
+  if (collectable && relicRelache) {
+    bilan.reliquesOu++;
+    const reference = reliqueRepresentativeConvient({ base, runes, artifacts, relic: undefined }, prepared, propres);
+    const typeeOu = v.reliqueConvient();
+    if (reference !== typeeOu) return ecart(`relique en « OU » : référence ${reference}, typée ${typeeOu}`);
+    if (!reference) {
+      bilan.reliquesOuRejetes++;
+      collectable = false;
     }
   }
   if (collectable) bilan.collectables++;

@@ -533,13 +533,16 @@ export default async function testRelicSearch() {
 
   /* ── Fixture B — deux minimums concurrents (PV ≥ 30300, DEF ≥ 1818) : la
    * borne accorde PV % +14 ET DEF % +14 à la fois ; le build O n'est faisable
-   * avec AUCUNE relique seule (faux positif de la borne), le build P l'est. */
+   * avec AUCUNE relique seule (faux positif de la borne), le build P l'est.
+   * La relique en « OU » du test conjoint écarte O dès la recherche. */
   {
     const { pool, inv, ctx, p0 } = CORPUS_5A.B;
     const O = [101, 102, 103, 104, 105, 106];
     const { relaxed, oracle } = verifierFixture('B', p0, ctx, { N: 2 });
     ok(!oracle.candidats.some((c) => cle(c.runeIds) === cle(O)), 'B : O n’est candidat pour aucune relique fixe (oracle)');
-    ok(relaxed.candidates.some((c) => cle(c.runeIds) === cle(O)), 'B : O est un faux positif de la borne (candidat relâché)');
+    ok(!relaxed.candidates.some((c) => cle(c.runeIds) === cle(O)), 'B : O, faux positif de la borne, n’est plus collecté (relique en « OU »)');
+    const trace = searchBuilds({ ...p0, relicContext: ctx, traceur: { runeIds: O } }).traceur!;
+    egal([trace.appariement.quickOkMin, trace.appariement.validationFinale], [true, false], 'B : O passe la borne (quickOk) et tombe à la validation finale, par la relique en « OU »');
     const gearO = { base: BASE, runes: pool.slice(0, 6), artifacts: [] };
     for (const r of inv) ok(!respecteConditionsAvecRelique(gearO, r, p0.requirement).respecte, `B : le filtre final exact rejette O avec la relique ${r.id}`);
     ok(cles(oracle.candidats).every((k) => cles(relaxed.candidates).includes(k)), 'B : tout candidat de l’oracle est candidat relâché (aucun faux négatif)');

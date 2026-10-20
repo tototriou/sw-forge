@@ -52,6 +52,7 @@ import {
   comboAFeasible,
   pairBuckets,
   prepareSearch,
+  reliqueRepresentativeConvient,
   satisfiesSets,
 } from './runeBuildOptim';
 
@@ -681,6 +682,7 @@ export class Collecteur {
       }
       this.considerNearMiss(runeIds, stats, effTotal, shortfalls);
     }
+    if (ok && relicRelache) ok = reliqueRepresentativeConvient(gear, this.prepared, propres);
     if (!ok) return false;
     this.candidates.push({ runeIds, stats, effTotal });
     if (this.avecPositions) this.positions.push(pos);
@@ -708,6 +710,7 @@ export class Collecteur {
       }
       this.considererTypee(v, n);
     }
+    if (ok && this.prepared.relicRelache) ok = v.reliqueConvient();
     if (!ok) return false;
     const { runeIds, stats, effTotal } = this.materiel(v);
     this.candidates.push({ runeIds, stats, effTotal });

@@ -26,7 +26,10 @@
 //    en mode `recherche` (`relTermMax`/`relTermMin`, constants par stat),
 //    auras RES/PRE propres (activations Tolerance/Accuracy du point 1) :
 //    `actual` recalculé par la MÊME suite d'opérations que
-//    `totalCondition((total + décalage) + relTerm)`, dans le même ordre.
+//    `totalCondition((total + décalage) + relTerm)`, dans le même ordre ;
+//    puis, en mode `recherche`, la relique en « OU » (`reliqueConvient`,
+//    miroir de `reliqueRepresentativeConvient`) : les représentatives une à
+//    une, la principale ajoutée à Σ% avant le `ceil`.
 // 4. Les `StatRow` ne se construisent qu'à la collecte ou quand le
 //    quasi-succès s'améliore (`lignes`), avec les libellés, suffixes et
 //    l'ordre des lignes LUS sur `computeStats` lui-même (sonde sans rune) ;
@@ -105,6 +108,14 @@ export class ValidationTypee {
   private readonly base = new Float64Array(8);
   /** `(apport[k] ?? 0) − (artFlatFige[k] ?? 0)`, par apport et condition. */
   private readonly decalage: Float64Array;
+  /** Relique en « OU » (mode `recherche`) : `(artFlatMin[k] ?? 0) − (artFlatFige[k] ?? 0)`, par condition (maximums). */
+  private readonly decalageMax: Float64Array;
+  /** Les représentatives : voie plate de leur stat (0 à 2, −1 neutre) et valeur de leur principale. */
+  private readonly repVoie: Int8Array;
+  private readonly repValeur: Float64Array;
+  /** Σ% et Σplat de PV, ATQ, DEF de la paire courante (stats utiles seulement), pour `reliqueConvient`. */
+  private readonly pctCourant = new Float64Array(3);
+  private readonly platCourant = new Float64Array(3);
   /** Les stats lues par au moins une condition. */
   private readonly statsUtiles: Int32Array;
   /** L'ordre, les libellés et les suffixes des lignes de `computeStats`. */
@@ -226,6 +237,13 @@ export class ValidationTypee {
         this.decalage[a * E + e] = (apport[c.key] ?? 0) - (artFlatFige[c.key] ?? 0);
       });
     });
+    this.decalageMax = Float64Array.from(this.conditions, (c) => (prepared.artFlatMin[c.key] ?? 0) - (artFlatFige[c.key] ?? 0));
+    const reps = relicRelache ? prepared.reliquesRepresentatives : [];
+    this.repVoie = Int8Array.from(reps, (r) => {
+      const def = RELIC_MAIN[r.main.code];
+      return def ? voiePlate(def.stat) : -1;
+    });
+    this.repValeur = Float64Array.from(reps, (r) => r.main.value);
     this.statsUtiles = Int32Array.from(new Set(this.conditions.map((c) => c.stat)));
     this.echecs = new Int32Array(E);
     this.actuels = new Float64Array(E);
@@ -298,6 +316,11 @@ export class ValidationTypee {
     if (ensembles.size + prepared.requirement.sets.length > 250) return `trop de sets distincts (${ensembles.size})`;
     for (const a of artifacts) if (ARTIFACT_MAIN[a.main.code] && !entierBorne(a.main.value)) return `artéfact ${a.id} : principale non entière (${a.main.value})`;
     if (!relicRelache && relic && RELIC_MAIN[relic.main.code] && !entierBorne(relic.main.value)) return `relique ${relic.id} : principale non entière (${relic.main.value})`;
+    if (relicRelache) {
+      for (const r of prepared.reliquesRepresentatives) {
+        if (RELIC_MAIN[r.main.code] && !entierBorne(r.main.value)) return `relique ${r.id} : principale non entière (${r.main.value})`;
+      }
+    }
     for (const key of ensembles) {
       const bonus = SET_STAT_BONUS[key];
       if (!bonus) continue;
@@ -377,6 +400,8 @@ export class ValidationTypee {
           const p = 8 + i;
           const pct = this.sommeA[oa + p] + this.sommeB[ob + p] + this.fixe[p] + v[p];
           this.total[i] = b + Math.ceil((b * pct) / 100) + plat;
+          this.pctCourant[i] = pct;
+          this.platCourant[i] = plat;
         } else {
           this.total[i] = b + plat;
         }
@@ -409,6 +434,44 @@ export class ValidationTypee {
       }
     }
     return n;
+  }
+
+  /**
+   * `reliqueRepresentativeConvient` (runeBuildOptim.ts) pour la paire courante
+   * (après un `setsEtStats` vrai) : une représentative fait-elle tenir toutes
+   * les conditions, minimums avec un apport, maximums avec `artFlatMin` ?
+   * Le total de la stat de la relique est recalculé par l'expression de
+   * `computeStats`, `L` ajouté à la somme d'entiers Σ% (exacte, contrat) ;
+   * les autres stats sont celles de `total`. Même ordre d'opérations que
+   * `totalCondition((total + décalage), …)`.
+   */
+  reliqueConvient(): boolean {
+    const E = this.conditions.length;
+    const tient = (c: ConditionTypee, total: number, decalage: number): boolean => {
+      let actual = total + decalage;
+      if (c.aura) actual = actual + c.auraExterne + 8 * (c.key === 'res' ? this.auraRes : this.auraAcc);
+      return c.kind === 'min' ? !(actual < c.seuil) : !(actual > c.seuil);
+    };
+    relique: for (let r = 0; r < this.repVoie.length; r++) {
+      const s = this.repVoie[r];
+      let totalS = 0;
+      if (s >= 0) {
+        const b = this.base[s];
+        totalS = b + Math.ceil((b * (this.pctCourant[s] + this.repValeur[r])) / 100) + this.platCourant[s];
+      }
+      for (let e = 0; e < E; e++) {
+        const c = this.conditions[e];
+        if (c.kind === 'max' && !tient(c, c.stat === s ? totalS : this.total[c.stat], this.decalageMax[e])) continue relique;
+      }
+      apport: for (let a = 0; a < this.nApports; a++) {
+        for (let e = 0; e < E; e++) {
+          const c = this.conditions[e];
+          if (c.kind === 'min' && !tient(c, c.stat === s ? totalS : this.total[c.stat], this.decalage[a * E + e])) continue apport;
+        }
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Les `StatShortfall` des `n` échecs du dernier `ecarts`, comme `pairBuckets` les construit. */

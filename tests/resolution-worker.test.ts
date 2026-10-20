@@ -41,6 +41,7 @@ import {
 } from '../src/workers/resolutionBody';
 import { maxStatsActifsDe, runesDe } from '../scripts/lib/relicDifferentiel';
 import { CORPUS_5A } from './relic-search.test';
+import { candidatsDeLaBorneSeule } from './relique-ou.test';
 import { DEGATS_FICHE } from './artifact-fiche.test';
 import { inventaire } from './resolution-caches.test';
 import { egal, ok, titre } from './outils';
@@ -228,7 +229,9 @@ export function testResolutionWorker() {
   let reliques = 0;
   for (const fx of Object.values(CORPUS_5A)) {
     const p: SearchParams = { ...fx.p0, relicContext: fx.ctx };
-    const builds: Build[] = searchBuilds(p).candidates.map((c) => ({ cle: cleBuild(c), runes: runesDe(p, c) }));
+    // Les candidats de la borne seule : la recherche n'émet plus ses faux
+    // positifs (relique en « OU »), l'issue « rejeté » reste ainsi exercée.
+    const builds: Build[] = candidatsDeLaBorneSeule(p).map((c) => ({ cle: cleBuild(c), runes: runesDe(p, c) }));
     for (const r of reglages) {
       for (const regime of r.regimes) {
         for (const [nomCtx, ctx] of [['recherche', fx.ctx], ['relique fixe', undefined]] as [string, RelicContext | undefined][]) {

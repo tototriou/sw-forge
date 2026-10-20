@@ -401,7 +401,10 @@ export default function testRelicQueue() {
     const rejet = resoudre(pRejet, candidat(pRejet, c0), ctx, { critere: 'ehp' });
     egal(rejet.conforme, false, 'maximum PV actif : maximum 11100 → aucune relique éligible ne tient, build REJETÉ');
     egal(etatReliqueDuBuild(rejet, ctx, undefined).etat, 'rejete', 'maximum PV actif : état « rejeté » — jamais affiché');
-    ok(searchBuilds({ ...pRejet, relicContext: ctx }).candidates.some((x) => cle(x.runeIds) === cle(c0)), 'maximum PV actif : … alors que le moteur relâché l’avait gardé (faux positif de la borne, filtré ici)');
+    // La borne seule (Lmin = 0 en libre) le gardait ; la relique en « OU » du
+    // test conjoint l'écarte dès la recherche : la plus faible PV % (+12) le
+    // fait déjà dépasser.
+    ok(!searchBuilds({ ...pRejet, relicContext: ctx }).candidates.some((x) => cle(x.runeIds) === cle(c0)), 'maximum PV actif : … et la recherche ne le collecte plus (relique en « OU » : aucune représentative ne tient le maximum)');
   }
 
   /* ── Régime `aucun` (Efficience, Vitesse) : équipée si candidate et

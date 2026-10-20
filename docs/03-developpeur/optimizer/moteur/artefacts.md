@@ -173,6 +173,13 @@ admissibles. Ce repli ne garantit pas l'optimum sur l'inventaire entier.
     candidats de `candidatsParSorte`, filtrés par `paireRespecteLignes` ;
   - les paires permises (`artifactPairAllowed`) sont dédoublonnées sur les
     stats suivies, puis réduites à leur frontière de Pareto.
+- ⚠️ **Exacte pour les minimums seulement** : le meilleur artéfact d'un code
+  et la réduction de Pareto gardent un apport au moins aussi fort que celui
+  de toute vraie paire, jamais un plus faible. Sous un maximum de PV, d'ATQ
+  ou de DEF, une paire plus faible qui le tiendrait peut manquer à
+  `possibles` : ce test, qui juge minimums et maximums avec le même apport,
+  peut alors écarter un build que la résolution rendrait conforme. Limite
+  connue, non corrigée ; la relique en « OU » (ci-dessous) ne l'aggrave pas.
 - Rien ne se perd au pré-filtrage de la file, qui passe par
   `preFiltrerCandidats` : la dominance y garde inconditionnellement les
   trois principales, et rend deux artéfacts incomparables sous un maximum
@@ -180,8 +187,11 @@ admissibles. Ce repli ne garantit pas l'optimum sur l'inventaire entier.
   ([optimiseur-artefacts.md § Pré-filtrage exact — pertinence, obligation, dominance](optimiseur-artefacts.md)).
 - **En mode relique `recherche`**, les stats du candidat sont sans relique
   et le terme de relique s'ajoute en majorant côté minimum, en minorant
-  côté maximum : le test reste une borne, et l'exactitude vient de la
-  résolution avec la relique réelle —
+  côté maximum ; un build gardé passe ensuite la relique en « OU » (une
+  relique représentative à la fois, minimums avec l'apport essayé,
+  maximums avec `artFlatMin`, parce que la réduction ci-dessus n'est exacte
+  que pour les minimums), et l'exactitude reste celle de la résolution avec
+  la relique et la paire réelles —
   [reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md).
 
 ## Filtre final sur la vraie paire

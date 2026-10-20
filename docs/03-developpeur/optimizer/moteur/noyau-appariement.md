@@ -114,13 +114,21 @@ Tous fondés sur la même équivalence (`survivantsLigne`) :
   paire `N`, les paires avant `N` sont jugées et `N` ne l'est pas,
   exactement comme dans `pairBuckets` : un arrêt à `explored = N` laisse le
   même état des deux côtés.
-- **Filet de temps** : testé à chaque paire visitée et à chaque point de
-  passage. Une paire sautée ne le teste pas une à une : sur une recherche
-  coupée par le temps, l'arrêt peut tomber jusqu'à `CHECKPOINT_EVERY − 1`
-  paires plus loin qu'avec `pairBuckets`, qui le teste à chaque paire. Il
-  en va de même dans un Worker (`parcourirMorceau`) : une ligne entièrement
-  sautée qui franchit un point de passage teste le temps, et un morceau
-  coupé ainsi compte ses paires traitées jusqu'à ce point.
+- **Filet de temps** : testé à chaque point de passage, toutes les
+  `CHECKPOINT_EVERY` (500) paires TRAITÉES, visitées ou sautées. Le prochain
+  contrôle vient du compteur entier de paires traitées, jamais d'une horloge
+  plus grossière. Sur une recherche coupée par le temps, l'arrêt peut tomber
+  jusqu'à `CHECKPOINT_EVERY − 1` (499) paires plus loin qu'avec `pairBuckets`,
+  qui le teste à chaque paire ; la paire du point de passage n'est pas jugée.
+  Une recherche peut aussi s'épuiser ou atteindre son plafond avant le
+  contrôle suivant. Ce retard est borné en paires, pas en millisecondes.
+  Dans un Worker (`parcourirMorceau`), le temps se teste aussi à l'entrée de
+  chaque ligne ouverte ; les points de passage suivent la position GLOBALE
+  du morceau. Une ligne entièrement sautée qui franchit un point de passage
+  teste le temps ; les points franchis d'un seul saut partagent une lecture,
+  avec coupure au premier si le filet a expiré. Un morceau coupé ainsi compte
+  ses paires traitées jusqu'à ce point. Le coordinateur garde son contrôle
+  avant de distribuer un morceau.
 
 ## Vérification
 
@@ -145,6 +153,12 @@ validation typée à `activeSets`, `computeStats` et au test conjoint de
 `pairBuckets` : sur des cas écrits, paire par paire sur des demi-builds
 tirés, collecteur contre collecteur, puis l'appariement entier (séquentiel
 et parallèle simulé) contre `pairBuckets`, contrat tenu ou non.
+
+`testAppariementHorloge`, dans `tests/appariement-rapide.test.ts`, simule
+`Date.now()` : budget court, borne de 499 paires atteinte, nombre de lectures
+aux points de passage et coupure d'un morceau décalé sur les positions
+globales, candidats complets inchangés. Le contrôle d'une ligne entièrement
+sautée est aussi exercé par `tests/appariement-parallele.test.ts`.
 
 Sur les comptes réels, `scripts/banc-appariement-rapide.ts` compare le
 chemin de production à `pairBuckets` ([parallelisation.md § Vérifier un changement](parallelisation.md#vérifier-un-changement)),

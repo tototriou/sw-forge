@@ -31,6 +31,7 @@ import { StatKey } from '../src/lib/effects';
 import {
   Bucket,
   BuildRequirement,
+  CHECKPOINT_EVERY,
   PairingProgress,
   PreparedSearch,
   SearchParams,
@@ -50,6 +51,7 @@ import {
   ResultatMorceau,
   apparierRapide,
   constantesNoyau,
+  encoderCompartiments,
   initialiserTravailleur,
   seuilsLigne,
   traiterMorceau,
@@ -433,6 +435,98 @@ async function testDifferentiel(espaces: Espace[]): Promise<void> {
       });
       egal(etatDe({ ...r, truncated: arret != null ? true : r.truncated }), attendu, `${e.nom} : morceaux (${r.morceaux}, 3 Workers simulés, désordre), ${libelle}, résultat identique`);
     }
+  }
+}
+
+/** Horloge simulée : aucune durée réelle ni latence entre Workers n'est jugée. */
+export function testAppariementHorloge(): void {
+  titre('Appariement · horloge : cadence logique et dépassement maximal de 499 paires');
+  const params: SearchParams = {
+    base: BASE, artifacts: [], metric: 'eff', requirement: { sets: [], minStats: {} },
+    pool: randomPool(mulberry32(71), 1).map((r) => ({ ...r, set: 'energy' })),
+    maxMs: 1, maxCollected: Infinity,
+  };
+  const e = construire('horloge', params);
+  if (!e) throw new Error('espace de l’horloge vide');
+  const n = 3 * CHECKPOINT_EVERY + 1;
+  // Une seule ligne, toutes ses paires valides : ni saut ni plafond ne peut
+  // masquer un contrôle par paire, ou l'absence d'un contrôle au point suivant.
+  const bucketsA = [{ ...e.bucketsA[0], combos: [e.bucketsA[0].combos[0]] }];
+  const bucketsB = [{ ...e.bucketsB[0], combos: Array.from({ length: n }, () => e.bucketsB[0].combos[0]) }];
+  const ct = encoderCompartiments(e.prepared, bucketsA, bucketsB);
+  const T = e.prepared.startedAt;
+  const morceau = (offset = 0): Morceau => ({
+    type: 'morceau', id: 0, offset, taille: n,
+    segments: Int32Array.of(0, 0, 0, 1), drapeaux: Uint8Array.of(1),
+  });
+  const ctx = initialiserTravailleur({ params, startedAt: T, compartiments: ct });
+  const vraiNow = Date.now;
+  let lectures = 0;
+  try {
+    // Exactement au budget, le strict « > maxMs » laisse finir les deux chemins.
+    Date.now = () => { lectures++; return T + 1; };
+    const reference = drain(pairBuckets(e.prepared, bucketsA, bucketsB));
+    egal(lectures, n, 'pairBuckets : une lecture par paire (référence inchangée)');
+    egal(reference.candidates.length, n, 'toutes les paires de la ligne sont collectées');
+    lectures = 0;
+    const complet = drain(apparierRapide(e.prepared, bucketsA, bucketsB));
+    ok(JSON.stringify(etatDe(complet)) === JSON.stringify(etatDe(reference)), 'budget court non dépassé : résultat complet identique, quasi-succès et ordre compris');
+    egal({ lectures, visitees: complet.visitees, sautees: complet.sautees }, { lectures: 3, visitees: n, sautees: 0 },
+      'séquentiel : une lecture par point de passage de 500 paires traitées');
+    lectures = 0;
+    const completWorker = traiterMorceau(ctx, morceau());
+    egal({ issue: completWorker.issue, traitees: completWorker.traitees, visitees: completWorker.visitees, lectures },
+      { issue: 'complet', traitees: n, visitees: n, lectures: 4 },
+      'Worker : entrée de ligne puis trois points de passage, aucune lecture par paire');
+    ok(JSON.stringify(completWorker.candidats) === JSON.stringify(reference.candidates), 'Worker : mêmes candidats complets, dans l’ordre');
+
+    // Le budget est dépassé dès la première paire. La référence s'y coupe ;
+    // le noyau atteint le point 500 avant de juger cette paire : écart exact 499.
+    Date.now = () => { lectures++; return T + 2; };
+    const refCoupe = drain(pairBuckets(e.prepared, bucketsA, bucketsB));
+    lectures = 0;
+    const coupe = drain(apparierRapide(e.prepared, bucketsA, bucketsB));
+    egal({ explored: refCoupe.explored, candidats: refCoupe.candidates.length, truncated: refCoupe.truncated },
+      { explored: 1, candidats: 0, truncated: true }, 'maxMs court dépassé : référence coupée à la première paire');
+    egal({ ecart: coupe.traitees - refCoupe.explored, visitees: coupe.visitees, truncated: coupe.truncated, lectures },
+      { ecart: CHECKPOINT_EVERY - 1, visitees: CHECKPOINT_EVERY - 1, truncated: true, lectures: 1 },
+      'séquentiel : borne exacte de 499 paires supplémentaires, coupure avant le jugement de la paire 500');
+    ok(JSON.stringify(coupe.candidates) === JSON.stringify(reference.candidates.slice(0, CHECKPOINT_EVERY - 1)), 'maxMs : seul le préfixe collecté change');
+
+    // Même échéance logique dans les deux générateurs : l'horloge expire après
+    // la collecte de la paire 500, donc juste après un contrôle réussi du noyau.
+    const expirerApresUnPoint = (gen: Generator<PairingProgress, SearchResult, void>): SearchResult => {
+      let candidats: SearchResult['candidates'] = [];
+      Date.now = () => candidats.length >= CHECKPOINT_EVERY ? T + 2 : T + 1;
+      let pas = gen.next();
+      while (!pas.done) {
+        candidats = pas.value.candidates;
+        pas = gen.next();
+      }
+      return pas.value;
+    };
+    const refPendant = expirerApresUnPoint(pairBuckets(e.prepared, bucketsA, bucketsB));
+    const pendant = expirerApresUnPoint(apparierRapide(e.prepared, bucketsA, bucketsB));
+    egal({ reference: refPendant.explored, noyau: pendant.explored, ecart: pendant.explored - refPendant.explored, truncated: pendant.truncated },
+      { reference: CHECKPOINT_EVERY + 1, noyau: 2 * CHECKPOINT_EVERY, ecart: CHECKPOINT_EVERY - 1, truncated: true },
+      'expiration en cours de ligne : borne de 499 paires au point suivant, sans décalage cumulatif');
+    ok(JSON.stringify(pendant.candidates) === JSON.stringify(reference.candidates.slice(0, 2 * CHECKPOINT_EVERY - 1)),
+      'expiration en cours de ligne : aucun candidat atteint perdu ni réordonné');
+
+    for (const offset of [0, 1, CHECKPOINT_EVERY - 1, CHECKPOINT_EVERY, CHECKPOINT_EVERY + 1]) {
+      lectures = 0;
+      // Le filet expire juste après le contrôle d'entrée de ligne. La lecture
+      // suivante doit être celle du premier point GLOBAL, même pour un morceau décalé.
+      Date.now = () => (++lectures === 1 ? T : T + 2);
+      const r = traiterMorceau(ctx, morceau(offset));
+      const jusquAuPoint = CHECKPOINT_EVERY - offset % CHECKPOINT_EVERY;
+      egal({ issue: r.issue, traitees: r.traitees, visitees: r.visitees, lectures },
+        { issue: 'temps', traitees: jusquAuPoint, visitees: jusquAuPoint - 1, lectures: 2 },
+        `Worker, offset ${offset} : arrêt au premier point global, dépassement ≤ 499 paires`);
+      ok(JSON.stringify(r.candidats) === JSON.stringify(reference.candidates.slice(0, jusquAuPoint - 1)), `Worker, offset ${offset} : préfixe exact avant le point de coupure`);
+    }
+  } finally {
+    Date.now = vraiNow;
   }
 }
 

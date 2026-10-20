@@ -417,7 +417,7 @@ dépend de `totalPairCount`, connu après la construction ; piloter étage par
 production (`scripts/lib/diagnosticHarness.ts:10-17`). Il n'utilise pas
 `drivePairing`, boucle autour du générateur d'appariement dont la progression
 par message, la main rendue et l'arrêt coopératif servent le navigateur
-(`src/workers/pairingDriver.ts:37-77`) : en séquentiel, il vide
+(`src/workers/pairingDriver.ts:40-80`) : en séquentiel, il vide
 `apparier(prepared, bucketsA, bucketsB)` — le noyau, ou `pairBuckets` hors de
 son contrat —, et en parallèle il appelle `apparierRapideEnParallele` avec le
 lanceur Node (`scripts/lib/diagnosticHarness.ts:1013-1018`), appels nus qui
@@ -434,15 +434,18 @@ et un arrêt avant l'appariement ne rend aucune complétude.
 
 ## Note de plateforme : Node et navigateur
 
-Le navigateur rend la main toutes les 50 ms pendant l'appariement
-(`YIELD_THROTTLE_MS`, `src/workers/pairingDriver.ts:27`) et plafonne à ~4 ms un
-`setTimeout(0)` enchaîné, Worker compris : un surcoût d'ordre ~7 % que Node ne
-paie pas. Ce chiffre est ARITHMÉTIQUE, non mesuré, et ce n'est pas le seul
-écart (JIT, démarrage des workers, sérialisation) : la direction de l'écart
-n'est pas établie, un temps du harnais n'est ni un plancher ni un plafond pour
-le navigateur, et les temps Node ne sont pas directement transposables. La note
-est imprimée avec toute mesure de temps (`noteNavigateur`,
-`scripts/lib/diagnosticConfig.ts:340-350`), et le test interdit qu'elle
+Le navigateur rend la main pendant l'appariement : toutes les 50 ms en
+séquentiel (`YIELD_THROTTLE_MS`, `src/workers/pairingDriver.ts:30`), entre
+deux tranches de 100 ms dans chaque Worker du parallèle (`TRANCHE_MS`). La
+cession passe par un message de canal (`cederLaMain`, `src/lib/cession.ts`),
+que le navigateur ne bride pas ; seul le repli sans `MessageChannel` paie le
+plafond de ~4 ms d'un `setTimeout(0)` enchaîné. L'écart entre Node et le
+navigateur n'est pas mesuré, et il en reste d'autres sources (JIT, démarrage
+des workers, sérialisation) : la direction de l'écart n'est pas établie, un
+temps du harnais n'est ni un plancher ni un plafond pour le navigateur, et les
+temps Node ne sont pas directement transposables. La note est imprimée avec
+toute mesure de temps (`noteNavigateur`,
+`scripts/lib/diagnosticConfig.ts:340-351`), et le test interdit qu'elle
 affirme une direction (`tests/diagnostic-harness.test.ts:122-135`).
 
 ## Validation du harnais

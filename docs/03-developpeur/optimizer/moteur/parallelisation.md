@@ -152,7 +152,7 @@ Aucun contact avec la plateforme.
    (100 ms) : entre deux tranches, il rend la main à la boucle d'événements
    du Worker (`cederLaMain` : un message de canal, `setTimeout(0)` si `MessageChannel`
    manque ; jamais des `setTimeout` enchaînés, que Chromium ramène à 4 ms dès le
-   6ᵉ niveau, ~3,6 % du temps du Worker), qui lit les messages arrivés entre-temps.
+   6ᵉ niveau : mesuré dans Chromium, ~3,6 % du temps d'un Worker d'appariement), qui lit les messages arrivés entre-temps.
    Une tranche court d'un morceau au SUIVANT : son chrono ne repart
    qu'après avoir rendu la main, jamais à l'entrée d'un morceau, et le temps
    se teste avant chaque ligne, la première d'un morceau comprise ; un

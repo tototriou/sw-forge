@@ -179,16 +179,25 @@ et celles des tests, du harnais et des scripts de mesure :
 - **Bloque** : jamais explorée. Se juge sur la qualité sous saturation,
   jamais sur les comptes ([03-developpeur/optimizer/moteur/artefacts.md § Mesurer un changement des bornes](../03-developpeur/optimizer/moteur/artefacts.md#mesurer-un-changement-des-bornes)).
 
-### GPU comme architecture de remplacement
+### Appariement sur GPU
 
-- **Constat** : porter l'appariement actuel sur GPU est écarté
+- **Constat** : l'appariement tourne sur CPU, par le noyau sur tableaux
+  typés qui saute par seuils exacts les paires vouées au rejet, en
+  parallèle sur des Workers ; porter ce parcours tel quel sur GPU est
+  écarté, sa chaîne de filtres à sortie anticipée faisant diverger les fils
   ([03-developpeur/optimizer/moteur/parallelisation.md § Choix du régime](../03-developpeur/optimizer/moteur/parallelisation.md#choix-du-régime)).
-- **Idée** : une autre architecture, un pré-filtrage léger puis le produit
-  cartésien intégral sans branchement, sur GPU.
-- **Bloque** : une réécriture majeure (tableaux typés, toute la
-  vérification à refaire), une compatibilité WebGPU incertaine selon le
-  matériel, et aucun besoin prouvé : le cas le plus lourd mesuré reste
-  acceptable sur CPU.
+  Sur la recette la plus lourde mesurée (~2 × 10¹⁰ paires au préréglage
+  Moyen), l'appariement ne pèse plus qu'autant que la construction des
+  moitiés.
+- **Idée** : réduire le temps de l'appariement là où il redevient le
+  goulot, par une autre architecture sur GPU (WebGPU, repli CPU) : un
+  pré-filtrage léger puis le produit cartésien intégral sans branchement.
+- **Bloque** : repoussée, aucun besoin prouvé tant que l'appariement ne
+  domine plus le temps total. La rouvrirait une recherche où il redevient
+  le goulot (un préréglage large, des espaces de 10¹¹ paires et plus), un
+  prototype se comparant alors à l'appariement CPU sur 2, 4 et 6 Workers,
+  les machines courantes. Restent ensuite une réécriture majeure (toute la vérification
+  à refaire) et une compatibilité WebGPU incertaine selon le matériel.
 
 ### Solveur joint sur plusieurs monstres
 

@@ -150,6 +150,22 @@ par nom, elle ne le remplace pas ; les deux se combinent.
   `src/` comme du texte sont retenus par leur lecture, pas par un import
   (voir la garde plus bas).
 
+## Sortie réduite : `--silencieux`
+
+```bash
+node tests/run.mjs --silencieux                        # la suite, sans les lignes « ok »
+node tests/run.mjs --depuis origin/<base> --silencieux # la sélection par fichiers modifiés
+```
+
+N'affiche que les **échecs** (chacun avec son détail), les **vérifications
+ignorées** (une ligne chacune) et le **bilan** ; avec `--depuis`, la sélection
+se réduit à une ligne (fichiers modifiés, entrées retenues sur le total), sans
+la liste des fichiers ni des entrées. Elle se combine avec les filtres par nom
+et avec `--depuis` / `--plage`. Le code de sortie est le même ; pour le détail
+d'un échec dans son contexte, relancer sans l'option. La forme par défaut ne
+change pas : c'est celle que lit `npm run test:suivi`, qui n'utilise pas
+l'option. Vérifiée par `node tests/run.mjs runsilencieux`.
+
 ## Manifeste d'exécution
 
 ```bash

@@ -78,6 +78,7 @@ npm run lint                   # ESLint sur tout le dépôt
 npx tsc --noEmit               # types : src/, scripts/ et tests/
 node tests/run.mjs <filtre>    # les vérifications d'une zone (ex. speed-tune) ; plusieurs filtres possibles
 node tests/run.mjs --depuis origin/<base>   # celles que touchent les fichiers modifiés depuis la base
+node tests/run.mjs --silencieux …           # sortie réduite aux échecs et au bilan (ajoutable aux lignes ci-dessus)
 node tests/banc/run.mjs --ecrans <id>       # le banc d'affichage, aux deux formats (il construit l'app)
 npm test                       # TOUTES les vérifications — seulement avant une fusion sur main ou dans une release
 npm run test:suivi [-- …]      # les mêmes, suivies en direct dans le terminal (--web : aussi dans le navigateur)

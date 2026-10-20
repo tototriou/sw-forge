@@ -186,8 +186,9 @@ export function testRenduOptimizerReglages() {
   ok(texteVisible(panneau).includes('Réglages avancés Pré-filtrage par emplacement'), 'le pré-filtrage par emplacement');
   for (const p of PALIERS) ok(!!bp.find((x) => x.texte === p && x.title), `le palier « ${p} », expliqué`);
   ok(bp.find((x) => x.texte === 'Moyen')?.presse === true, '« Moyen » par défaut');
-  for (const r of ["Rechercher jusqu'à épuisement complet", 'Diagnostic approfondi sur 0 résultat', 'Prioriser les stats les plus difficiles'])
+  for (const r of ["Rechercher jusqu'à épuisement complet", 'Diagnostic approfondi sur 0 résultat'])
     ok(bp.some((x) => x.ariaLabel === r), `l'option « ${r} »`);
+  ok(!bp.some((x) => x.ariaLabel === 'Prioriser les stats les plus difficiles'), '« Prioriser les stats les plus difficiles » retiré');
   ok(t.includes('Objectif de recherche Efficience'), 'l\'objectif de recherche');
   ok(b.find((x) => x.texte === 'Efficience')?.presse === true, 'l\'efficience par défaut');
   for (const o of ['PV effectifs', 'Vitesse']) ok(b.some((x) => x.texte === o), `l'objectif « ${o} »`);

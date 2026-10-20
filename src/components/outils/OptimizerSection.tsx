@@ -436,8 +436,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     setExcludeUsedScope,
     excludedSelectors,
     setExcludedSelectors,
-    adaptiveTrancheWeighting,
-    setAdaptiveTrancheWeighting,
     exhaustiveSearch,
     setExhaustiveSearch,
     verifierToutesLesCombinaisons,
@@ -796,18 +794,16 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     });
   }
 
-  // Basculer sur Haut/Extrême active « Rechercher jusqu'à épuisement complet »
-  // et « Prioriser les stats les plus difficiles » — un novice qui choisit un
-  // pré-filtrage large n'a aucune raison de savoir que ces deux réglages sont
-  // ce qui le rend réellement utile. Reste un COUP DE POUCE, pas un
-  // verrouillage : chaque interrupteur garde son `onChange` propre, remettre
-  // à false ensuite reste un clic normal dessus. Bas/Moyen ne les touchent
-  // pas dans l'autre sens — décochés une fois, ils le restent.
+  // Basculer sur Haut/Extrême active « Rechercher jusqu'à épuisement
+  // complet » — un novice qui choisit un pré-filtrage large n'a aucune raison
+  // de savoir que ce réglage est ce qui le rend réellement utile. Reste un
+  // COUP DE POUCE, pas un verrouillage : l'interrupteur garde son `onChange`
+  // propre, remettre à false ensuite reste un clic normal dessus. Bas/Moyen
+  // ne le touchent pas dans l'autre sens — décoché une fois, il le reste.
   function handleSlotFilterPresetChange(preset: typeof slotFilterPreset) {
     setSlotFilterPreset(preset);
     if (preset === 'haut' || preset === 'extreme') {
       setExhaustiveSearch(true);
-      setAdaptiveTrancheWeighting(true);
     }
   }
 
@@ -1809,14 +1805,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     return rankBlockingConditions({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement: requirementAvecAuras, metric });
   }, [selected, diagnoseBlockingEnabled, result, searchArtifacts, searchArtifactBounds, pool, requirementAvecAuras, metric]);
 
-  // `adaptiveTrancheWeighting` (toggle « Prioriser les stats les plus
-  // difficiles », voir SearchParams dans runeBuildOptim.ts) — réalloue le
-  // budget de rétention par tranche entre les stats demandées selon leur
-  // dispersion mesurée, au lieu d'un plafond uniforme. Désactivé (défaut) :
-  // comportement historique inchangé, coût nul (vérifié par mesure). Activé : recherche plus longue (+20 % de temps de
-  // construction mesuré en moyenne), pour les cas où la recherche normale
-  // ne trouve pas un build qui semble pourtant montable.
-  //
   // `exhaustiveSearch` (toggle « Rechercher jusqu'à épuisement complet ») :
   // remplace le filet de temps de 10 min (`HARD_TIMEOUT_MS`) par `Infinity` —
   // déjà un budget-temps VALIDE pour le moteur, pas un cas spécial ajouté ici
@@ -1868,7 +1856,10 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // ⚠️ `undefined` hors de « Dégâts réels » — le moteur retombe alors sur
       // `OBJECTIVE_RELEVANT_STATS[objective]`, comportement inchangé.
       objectiveStats,
-      adaptiveTrancheWeighting,
+      // ⚠️ Toujours `false` : l'interrupteur « Prioriser les stats les plus
+      // difficiles » est retiré de l'écran (sans gain mesuré). Ni une
+      // session reprise ni une recette importée ne le réactivent.
+      adaptiveTrancheWeighting: false,
     });
   }
 
@@ -1897,7 +1888,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       compterAurasResPre,
       metric,
       slotFilterPreset,
-      adaptiveTrancheWeighting,
+      // Toujours `false`, comme la recherche (`handleSearch`).
+      adaptiveTrancheWeighting: false,
       exhaustiveSearch,
       verifierToutesLesCombinaisons,
       excludeUsedRunes,
@@ -2087,7 +2079,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       optimizer.poserCriteresAutomatiques({ damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
         compterAurasResPre: recipe.compterAurasResPre ?? true });
       setSlotFilterPreset(recipe.slotFilterPreset);
-      setAdaptiveTrancheWeighting(recipe.adaptiveTrancheWeighting);
+      // `adaptiveTrancheWeighting` n'est pas relu : une recette qui le porte
+      // à vrai s'importe sans erreur et n'active rien (réglage retiré).
       // ⚠️ `?? false` : une recette exportée AVANT ce réglage ne porte pas ce
       // champ (`undefined`) — repli sur le défaut plutôt que de propager une
       // valeur non booléenne à l'état.
@@ -3520,8 +3513,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               setExhaustiveSearch={setExhaustiveSearch}
               diagnoseBlockingEnabled={diagnoseBlockingEnabled}
               setDiagnoseBlockingEnabled={setDiagnoseBlockingEnabled}
-              adaptiveTrancheWeighting={adaptiveTrancheWeighting}
-              setAdaptiveTrancheWeighting={setAdaptiveTrancheWeighting}
               optimiserArtefacts={optimiserArtefacts}
               verifierToutesLesCombinaisons={verifierToutesLesCombinaisons}
               setVerifierToutesLesCombinaisons={setVerifierToutesLesCombinaisons}
@@ -3704,8 +3695,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             setExhaustiveSearch={setExhaustiveSearch}
             diagnoseBlockingEnabled={diagnoseBlockingEnabled}
             setDiagnoseBlockingEnabled={setDiagnoseBlockingEnabled}
-            adaptiveTrancheWeighting={adaptiveTrancheWeighting}
-            setAdaptiveTrancheWeighting={setAdaptiveTrancheWeighting}
             optimiserArtefacts={optimiserArtefacts}
             verifierToutesLesCombinaisons={verifierToutesLesCombinaisons}
             setVerifierToutesLesCombinaisons={setVerifierToutesLesCombinaisons}

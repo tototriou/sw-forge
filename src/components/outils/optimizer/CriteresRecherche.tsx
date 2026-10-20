@@ -13,9 +13,7 @@ export function TitreCriteresRecherche({ className }: { className: string }) {
   return (
     <div className={`${className} flex items-center gap-2`}>
       {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
-          cible générique pour « plusieurs critères ajustables », et
-          distinct du `Target` déjà utilisé plus bas pour un réglage
-          précis (« Prioriser les stats les plus difficiles »). */}
+          cible générique pour « plusieurs critères ajustables ». */}
       <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
         <SlidersHorizontal size={13} className="text-accent" />
       </div>

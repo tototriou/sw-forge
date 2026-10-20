@@ -79,7 +79,7 @@ chargé par `chargerRecette` (`scripts/lib/chargerRecette.ts:1-20`, `:65`), la
 séquence de `scripts/optimizer-search.ts` mise en commun : repli d'un objectif
 retiré, chargeur box, RTA ou siège, contrôle du `com2usId`, données
 d'exclusion chargées seulement si la recette en déclare, puis
-`recipeToSearchParams` (`scripts/lib/recipeToSearchParams.ts:486`), qui résout
+`recipeToSearchParams` (`scripts/lib/recipeToSearchParams.ts:496`), qui résout
 `artifactBounds` et `objectiveStats` comme l'écran. Elle n'imprime rien : elle
 rend des avertissements. Le **pool synthétique** vient de
 `randomPool(mulberry32(seed), runes, sets)` sur la base de monstre fixe des

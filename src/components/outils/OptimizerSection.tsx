@@ -3469,8 +3469,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // contenus que le téléphone, dans leurs formes de bureau
   // (src/components/outils/optimizer/bureau/) : le téléphone garde la grille
   // ci-dessous, inchangée.
-  if (!sousLg) {
-    return (
+  // ⚠️ **Les fenêtres (modales, dialogues) hors des deux arbres**, à une place
+  // fixe : changer de format (fenêtre ou volet redimensionné) remonte la page,
+  // jamais une fenêtre ouverte, qui garde son brouillon. Elles passent toutes
+  // par un portail : leur place ici ne change rien au DOM de la page.
+  const pageBureau = sousLg ? null : (
       <PageBureau
         entete={entete}
         liste={
@@ -3627,12 +3630,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         colonnes={colonnesBureau}
         onColonnes={setColonnesBureau}
         guideComplements={guideComplements}
-      >
-        {modaleDegats}
-        {fenetresListes}
-      </PageBureau>
-    );
-  }
+      />
+  );
 
   // ── Format téléphone ───────────────────────────────────────────────────
   // ⚠️ Les classes de bureau de cette grille (`lg:`, `xl:`) et les cartes qui
@@ -3641,6 +3640,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // ci-dessus. Elles restent jusqu'à leur retrait, le rendu du téléphone ne
   // change pas.
   return (
+    <>
+    {pageBureau ?? (
     // ⚠️ **Pleine largeur**, comme RTA/Siège/Mon compte — l'ancienne colonne
     // bornée à 768 px était le seul écran de l'app à s'en imposer une, et
     // empilait ~2 000 px de réglages à faire défiler sur un écran large à
@@ -4051,11 +4052,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           (une grille de cartes qui, elle, PROFITE de la largeur). */}
       </div>
 
-      {/* ⚠️ Rendue HORS de la grille de réglages : un enfant direct de la
-          grille compterait comme une cellule à part entière. Elle n'a de toute
-          façon aucune place à prendre dans le flux — c'est tout son objet. */}
-      {modaleDegats}
-
       <ObjectifEtActions
         objective={objective}
         setObjective={setObjective}
@@ -4089,8 +4085,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           `result === null` tant que rien n'est trouvé : rien à montrer de
           plus utile que les barres de progression déjà affichées. */}
       {blocResultats}
-
-      {fenetresListes}
     </div>
+    )}
+    {/* ⚠️ Rendues HORS de la page (et de la grille de réglages, dont un
+        enfant direct compterait comme une cellule) : elles n'ont aucune place
+        à prendre dans le flux — c'est tout leur objet. */}
+    {modaleDegats}
+    {fenetresListes}
+    </>
   );
 }

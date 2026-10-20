@@ -133,8 +133,6 @@ export interface PageBureauProps {
   // l'interrupteur des auras RES/PRE) : chaque nouvelle valeur l'ouvre, sans
   // jamais la refermer.
   guideComplements?: number | null;
-  // Ce qui sort du flux (fenêtres) : rendu à la fin, hors de la grille.
-  children?: ReactNode;
 }
 
 // Une colonne repliable en A3 : fixe, à défilement propre, superposée sous son
@@ -293,7 +291,6 @@ export default function PageBureau(props: PageBureauProps) {
           {props.droite}
         </div>
       </div>
-      {props.children}
     </div>
   );
 }

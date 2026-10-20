@@ -166,8 +166,8 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    normalement ensuite pour revenir à décoché. Choisir Bas ou Moyen ne le
    décoche PAS automatiquement dans l'autre sens. L'écran coche aussi
    « Prioriser les stats les plus difficiles », sans effet (plus bas) : pour
-   la recherche, un préréglage ne change que le pré-filtrage. Sous ce
-   réglage :
+   le moteur, un préréglage ne change que `slotFilterCap` (et `bucketCap`
+   dérivé). Sous ce réglage :
    - **« Rechercher jusqu'à épuisement complet »**, décoché par défaut :
      retire le filet de temps de 10 minutes (voir
      ../feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel) — la

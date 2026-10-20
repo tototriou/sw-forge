@@ -9,9 +9,10 @@ générique, une pour l'ensemble des minimums, et une par stat à protéger
 même nombre de places, `bucketCap`**, quelle que soit la stat.
 
 Le moteur ne donne pas plus de places à une stat jugée « difficile » : il
-n'a pas de réglage « Prioriser les stats les plus difficiles », et les
-préréglages de pré-filtrage Haut et Extrême ne changent que la largeur du
-pré-filtrage (et `bucketCap`, qui en dérive).
+n'a pas de réglage « Prioriser les stats les plus difficiles ». Pour le
+moteur, un préréglage de pré-filtrage ne change que `slotFilterCap` (et
+`bucketCap`, qui en dérive) ; à l'écran, Haut et Extrême activent en plus
+« Rechercher jusqu'à épuisement complet », qui retire le filet de temps.
 
 ## Raisons
 

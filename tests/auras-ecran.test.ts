@@ -433,7 +433,7 @@ export function testAurasEcranGuidage() {
     'à la souris : la colonne « Aura, exclusion, avancés » s’ouvre (jeton `guideComplements`), plus de flottant');
   ok(/setAttentionResPre\(\(n\) => \(n \?\? 0\) \+ 1\)/.test(guider), '… puis le surlignage, par un jeton');
   ok(/setTimeout\(\(\) => setAttentionResPre\(null\), DUREE_ATTENTION_MS\)/.test(ecran), 'le surlignage s’efface après DUREE_ATTENTION_MS (3 s)');
-  ok(/sousLg\s*\?\s*menuOuvert\s*\?\s*interrupteurResPrePanneauRef\.current\s*:\s*null\s*:\s*interrupteurResPreFlottantRef\.current/.test(ecran)
+  ok(/sousLg\s*\?\s*menuOuvert\s*\?\s*interrupteurResPrePanneauRef\.current\s*:\s*null\s*:\s*interrupteurResPreBureauRef\.current/.test(ecran)
     && ecran.includes("el.scrollIntoView({ behavior: 'smooth', block: sousLg ? 'center' : 'nearest' })")
     && /\}, \[attentionResPre, sousLg, menuOuvert, colonnesBureau\]\);/.test(ecran),
   'puis l’interrupteur est amené à l’écran dans sa surface ouverte : centré dans le panneau, au plus près dans la colonne, rejoué quand la colonne s’ouvre');

@@ -37,8 +37,9 @@ Ce document décrit la liste des résultats et leurs cartes.
     sur la roue. La colonne vaut la largeur de la roue (`min-content`) : la
     relique et ses marques s'y replient en entier, sans l'élargir — aucun
     libellé raccourci — et la relique ne change jamais de place quand la
-    file la résout. Au doigt (`COMPACT`, pointeur seul), rendu inchangé : la
-    relique reste à droite de la roue — passe responsive.
+    file la résout. Au doigt (`COMPACT`, pointeur seul), la relique reste à
+    droite de la roue : la disposition du téléphone, gardée telle quelle
+    ([README.md § Au format téléphone](README.md#au-format-téléphone)).
     ⚠️ **Détail à la souris vs au doigt — même bascule que « Équipement
     actuel »/RTA/Siège** (voir `MonsterGear.tsx`) : à la souris, un flottant
     ancré à la pièce ; au doigt, le détail s'affiche **en ligne sous la

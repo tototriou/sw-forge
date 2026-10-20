@@ -384,8 +384,9 @@ export default function BuildCandidateCard({
             `min-content`, soit la largeur fixe de la roue : la relique et ses
             marques s'y replient sans l'élargir, en entier — et la relique ne
             change jamais de place quand la file la résout.
-            Au doigt, rendu inchangé (à droite de la roue) : il relève de la
-            passe responsive. */}
+            Au doigt, la relique reste à droite de la roue : la disposition du
+            téléphone, gardée telle quelle (la page de bureau ne change que le
+            rendu à la souris). */}
         <div
           className={
             auDoigt

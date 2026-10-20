@@ -10,7 +10,7 @@ export interface ProgressionRechercheProps {
   // Forme compacte du bloc « Objectif et Rechercher » du bureau (décision de
   // l'utilisateur) : sans barre, les lignes de texte seules — à l'appariement,
   // « … combinaisons examinées · … trouvée(s) » et « Attendez la fin… ». Le
-  // téléphone et la page d'aujourd'hui ne la passent pas.
+  // téléphone ne la passe pas.
   compacte?: boolean;
 }
 

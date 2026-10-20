@@ -16,7 +16,7 @@ export interface SetDeRunesCompactProps {
 
 // « Critères de recherche » et le set de runes recherché, au bureau, en forme
 // compacte : une liste fermée sur les sets choisis ; ouverte, la grille d'ajout
-// d'aujourd'hui (`SetComboPicker`, telle quelle : jetons, retrait, deux
+// du téléphone (`SetComboPicker`, telle quelle : jetons, retrait, deux
 // groupes, « Plus de place »), en flottant — rien ne bouge dessous.
 //
 // ⚠️ **Une liste, pas deux** (principal · secondaire) : le choix est un

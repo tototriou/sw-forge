@@ -21,7 +21,7 @@ export interface ReglagesAvancesContenuProps {
   verifierToutesLesCombinaisons: boolean;
   setVerifierToutesLesCombinaisons: Dispatch<SetStateAction<boolean>>;
   interrupteurResPrePanneauRef: RefObject<HTMLDivElement>;
-  interrupteurResPreFlottantRef: RefObject<HTMLDivElement>;
+  interrupteurResPreBureauRef: RefObject<HTMLDivElement>;
   attentionResPre: number | null;
   compterAurasResPre: boolean;
   setCompterAurasResPre: Dispatch<SetStateAction<boolean>>;
@@ -31,7 +31,7 @@ export interface ReglagesAvancesContenuProps {
   bureau?: boolean;
 }
 
-export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFilterPresetChange, dansPanneau, estimate, exhaustiveSearch, setExhaustiveSearch, diagnoseBlockingEnabled, setDiagnoseBlockingEnabled, adaptiveTrancheWeighting, setAdaptiveTrancheWeighting, optimiserArtefacts, verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons, interrupteurResPrePanneauRef, interrupteurResPreFlottantRef, attentionResPre, compterAurasResPre, setCompterAurasResPre, bureau = false }: ReglagesAvancesContenuProps) {
+export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFilterPresetChange, dansPanneau, estimate, exhaustiveSearch, setExhaustiveSearch, diagnoseBlockingEnabled, setDiagnoseBlockingEnabled, adaptiveTrancheWeighting, setAdaptiveTrancheWeighting, optimiserArtefacts, verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons, interrupteurResPrePanneauRef, interrupteurResPreBureauRef, attentionResPre, compterAurasResPre, setCompterAurasResPre, bureau = false }: ReglagesAvancesContenuProps) {
   return (
     <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3">
     {/* ⚠️ Mêmes classes de boîte que les trois groupes d'« État de mon
@@ -175,10 +175,10 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
           tient à 4 px du cadre de la boîte ; `px-[3px]` + 1 px de bord
           gardent le libellé aligné sur ceux du dessus, et `py-2` +
           `py-[3px]` + 1 px refont les 12 px de `py-3`. Une ref par
-          surface (flottant, panneau), pour y défiler. */}
+          surface (colonne du bureau, panneau), pour y défiler. */}
       <div className="py-2 last:pb-0">
         <div
-          ref={dansPanneau ? interrupteurResPrePanneauRef : interrupteurResPreFlottantRef}
+          ref={dansPanneau ? interrupteurResPrePanneauRef : interrupteurResPreBureauRef}
           className={`-mx-1 flex items-center justify-between gap-3 rounded-md border px-[3px] py-[3px] transition-colors duration-200 ${
             attentionResPre !== null ? 'border-warn bg-warn-soft' : 'border-transparent'
           }`}

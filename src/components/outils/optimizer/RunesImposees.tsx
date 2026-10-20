@@ -12,7 +12,7 @@ export interface RunesImposeesProps {
   // Colonne « Aura, exclusion, avancés » du bureau : deux colonnes égales,
   // slots impairs puis pairs (1 · 2, 3 · 4, 5 · 6), chaque puce à la largeur
   // de sa colonne, libellé centré — six puces de même taille, emplacement
-  // vide compris. Le téléphone et la page d'aujourd'hui gardent la rangée qui
+  // vide compris. Le téléphone garde la rangée qui
   // passe à la ligne, puces à la largeur de leur libellé.
   bureau?: boolean;
 }

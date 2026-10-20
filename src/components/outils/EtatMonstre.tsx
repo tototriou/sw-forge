@@ -181,8 +181,8 @@ export default function EtatMonstre({
 // essentiels (`optimizer/bureau/EtatMonstreEssentiels.tsx`) : une seule prose.
 // ⚠️ `bureau` : l'aide de la forme des essentiels ne nomme pas les sets d'aura
 // (ils sont dans la colonne « Aura, exclusion, avancés ») et n'a pas le
-// paragraphe sur le combat (décision de l'utilisateur) ; le téléphone et la
-// page d'aujourd'hui ne la passent pas.
+// paragraphe sur le combat (décision de l'utilisateur) ; le téléphone ne la
+// passe pas.
 export function TitreEtatMonstre({ bureau = false }: { bureau?: boolean }) {
   return (
     <div className="flex items-center gap-1.5">

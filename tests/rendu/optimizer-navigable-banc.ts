@@ -61,7 +61,11 @@ export async function navigateurOptimizer(telephone = false, entreeBanc = 'tests
     const publicRoot = resolve('public');
     await page.route('http://optimizer.test/**', route => {
       const chemin = new URL(route.request().url()).pathname;
-      if (chemin === '/') return route.fulfill({ contentType: 'text/html', body: '<meta name="viewport" content="width=device-width, initial-scale=1.0"><div id="racine"></div>' });
+      // Au bureau, le contenu posé à 68 px du haut, comme dans l'app (barre fixe
+      // de 48 px et marge de 20, App.tsx) : la page de bureau de l'Optimizer
+      // colle ses essentiels à cette hauteur (`HAUT_PAGE`, PageBureau.tsx), et
+      // un contenu posé plus haut serait poussé par le collage.
+      if (chemin === '/') return route.fulfill({ contentType: 'text/html', body: `<meta name="viewport" content="width=device-width, initial-scale=1.0"><div id="racine"${telephone ? '' : ' style="padding-top:68px"'}></div>` });
       const fichier = resolve(publicRoot, `.${decodeURIComponent(chemin)}`);
       if (!fichier.startsWith(publicRoot + sep) || !existsSync(fichier)) return route.fulfill({ status: 404, body: '' });
       const contentType = fichier.endsWith('.svg') ? 'image/svg+xml' : fichier.endsWith('.png') ? 'image/png' :

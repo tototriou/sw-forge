@@ -41,7 +41,7 @@ export interface MonstreEquipementTelephoneProps {
 
 export default function MonstreEquipementTelephone({ allMonsters, pickSpecies, ligneMonstreTelephoneRef, selected, sourcesImport, importerDepuisEcran, rapportImport, setZoneCOpen, zoneCOpen, eclatImport, listesTelephone, sourceOptions, matchesValidatedBuild, unowned, gearSource, pickSource, allSourcesEmpty, zoneDOpen, zoneDList, zoneCContent, validatedBadge, selectionFiche, setSelectionFiche, relicUsageById, validateBuildButton }: MonstreEquipementTelephoneProps) {
   return (
-    <div className="lg:hidden space-y-3">
+    <div className="space-y-3">
       {/* Bloc 1 — recherche TOUJOURS visible, liste active
           rattachée EN DESSOUS en dépliement (`zoneCOpen`, repliée par
           défaut). */}

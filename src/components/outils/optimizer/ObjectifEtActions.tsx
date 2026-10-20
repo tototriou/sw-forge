@@ -41,7 +41,11 @@ export function TitreObjectifRecherche() {
 // combat. `cache` : rendu mais invisible et hors de portée (ni clic, ni
 // clavier, ni lecteur d'écran), pour que sa place reste réservée quand
 // l'objectif n'est pas « Dégâts réels » (bloc du bureau seulement).
-export function ResumeCombat({ resumeCombat, setSetupOuvert, cache = false }: { resumeCombat: string; setSetupOuvert: Dispatch<SetStateAction<boolean>>; cache?: boolean }) {
+// `deuxLignes` (page de bureau) : le texte a deux lignes réservées, centré
+// dedans — choisir un monstre allonge le résumé (sort, cible), et une ligne de
+// plus déplaçait ce qui suit le bloc (les onglets en A2). Le téléphone ne le
+// passe pas.
+export function ResumeCombat({ resumeCombat, setSetupOuvert, cache = false, deuxLignes = false }: { resumeCombat: string; setSetupOuvert: Dispatch<SetStateAction<boolean>>; cache?: boolean; deuxLignes?: boolean }) {
   return (
     <ZoneCliquable
       onClick={() => setSetupOuvert(true)}
@@ -50,7 +54,7 @@ export function ResumeCombat({ resumeCombat, setSetupOuvert, cache = false }: { 
       {...(cache ? { 'aria-hidden': true, tabIndex: -1 } : {})}
     >
       <Swords size={13} className="flex-none text-ink-dim" />
-      <span className="text-micro leading-tight text-ink-dim">{resumeCombat}</span>
+      <span className={`text-micro leading-tight text-ink-dim${deuxLignes ? ' flex min-h-[2lh] items-center' : ''}`}>{resumeCombat}</span>
       <Pencil size={12} className="ml-auto flex-none text-ink-dim" />
     </ZoneCliquable>
   );

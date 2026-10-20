@@ -30,7 +30,7 @@ export interface ArtefactsEtReliquesProps {
 
 export default function ArtefactsEtReliques({ optimiserArtefacts, setOptimiserArtefacts, artifactMainByKind, setArtifactMainByKind, lignesVerrouillees, setLignesVerrouillees, diagnosticVerrous, sortesFigees, blocArtefactsSeuls, relicMainChoice, setRelicMainChoice, relicUniqueChoice, setRelicUniqueChoice, relicMinUpgrade, setRelicMinUpgrade }: ArtefactsEtReliquesProps) {
   return (
-    <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-2">
+    <div className="rounded-xl border border-border bg-panel p-3">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {/* Même gabarit d'en-tête que les autres cartes (icône encadrée 6×6
             + titre 13,5 px) : `GameIcon name="artifact"` existait déjà et
@@ -73,9 +73,7 @@ export default function ArtefactsEtReliques({ optimiserArtefacts, setOptimiserAr
           />
         </div>
       </div>
-      {/* Rangée Attribut/Type — la relique a rejoint le bas de la carte
-          (le bloc Relique
-          FERME la carte, plus de variante `xl:border-l`, voir plus bas). */}
+      {/* Rangée Attribut/Type — le bloc Relique ferme la carte (voir plus bas). */}
       {optimiserArtefacts && (
         <div className="flex flex-wrap gap-3">
           {ARTIFACT_KINDS.map(({ key, label }) => (

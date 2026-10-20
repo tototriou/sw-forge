@@ -171,16 +171,13 @@
    l'écriture des auras externes (`ecrire`, point de passage de tous les
    contrôles de leur boîte) et le choix d'un set recherché. Deux formes,
    une par format, choisies par `SOUS_LG` comme le panneau lui-même :
-   - **À la souris** — la page défile jusqu'à la carte « Réglages avancés »,
-     l'ancre du flottant (même défilement que « Set de runes recherché » :
-     doux, centré), **puis** le flottant s'ouvre : il choisit son côté en
-     mesurant l'ancre à l'ouverture, ouvert pendant le défilement il
-     mesurerait une position périmée. Ancre déjà entièrement visible : pas
-     de défilement, ouverture directe. Le défilement peut déplacer la carte
-     cliquée et le flottant se referme au clic suivant hors de lui — deux
-     effets admis. Si le bas du flottant dépasse de
-     l'écran, la page défile encore du strict nécessaire pour montrer
-     l'interrupteur.
+   - **À la souris** — la colonne repliable « Aura, exclusion, avancés »
+     s'ouvre (jeton `guideComplements`, que `PageBureau` applique à l'état
+     des onglets par `ouvrirColonne`), **puis** l'interrupteur, rendu dès
+     que la colonne est ouverte, est amené à l'écran du strict nécessaire
+     (`nearest`) ; l'effet se rejoue quand l'état des onglets change. La
+     colonne peut être fixe et défiler seule : une seconde passe, une fois la
+     page arrêtée, ne fait défiler que ce qui manque.
    - **Au doigt** — le panneau « Options de recherche » s'ouvre par-dessus
      la carte ; il reste piloté par la barre de navigation, l'écran le
      demande par la prop `onOuvrirMenu` (`App.tsx`, relayée par

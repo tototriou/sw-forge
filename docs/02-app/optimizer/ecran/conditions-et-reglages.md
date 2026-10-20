@@ -130,16 +130,9 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
 
 ## Réglages avancés
 
-9. **« Réglages avancés »** (repliés par défaut). ⚠️ **Au bureau, un
-   `FlottantAuto`** (`../../../03-developpeur/interface/librairie-ui/composants.md`), PAS un bloc qui grandit la
-   carte — dépliée, la carte reste sous « Exclusion de runes » (colonne 2,
-   rangée 5, sous Exclusion en rangée 4 — voir
-   README.md § Ordre d'usage et grille) à sa hauteur repliée, le
-   contenu flotte par-dessus le reste de la page ; ferme au clic extérieur.
-   Un panneau replié par défaut ne peut pas réserver sa place à l'avance
-   sans perdre l'intérêt d'être replié — voir
-   [03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md), « un clic ne déplace jamais ce
-   qu'on vient de cliquer ». **Pré-filtrage par emplacement**, en
+9. **« Réglages avancés »**. ⚠️ **Au bureau, en ligne** dans la colonne
+   repliable « Aura, exclusion, avancés », sous « Exclusion de runes » (voir
+   README.md § Réglages avancés et exclusion de runes). **Pré-filtrage par emplacement**, en
    **presets** plutôt qu'un curseur libre — Bas / Moyen
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus
    lent, mais capable de retrouver un build sur un très gros compte),
@@ -152,9 +145,9 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    le geste « je veux voir les options ». Chaque groupe dans son propre
    cadre, deux unités visuelles distinctes plutôt qu'un simple trait entre
    deux blocs de texte. ⚠️ **« Pool de runes = X » s'affiche à droite des
-   presets**, dans le panneau SEULEMENT (pas la carte du bureau, où
-   l'estimation détaillée du point 10 est déjà visible juste en dessous,
-   sans qu'un panneau ne la masque) — sans ce rappel local, aucun moyen de
+   presets**, dans le panneau SEULEMENT (pas la colonne du bureau, où
+   l'estimation détaillée du point 10 est visible en tête du bloc
+   « Objectif et Rechercher », sans qu'un panneau ne la masque) — sans ce rappel local, aucun moyen de
    voir l'effet du preset qu'on vient de toucher sans d'abord fermer le
    panneau. **Passe sous les presets si la largeur manque** (le message
    est assez long pour ne pas toujours tenir à côté sur un téléphone
@@ -215,8 +208,9 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
      en dernier de la colonne, même sans aucune aura RES/PRE saisie : les
      activations propres d'un build comptent aussi, et un réglage qui
      apparaîtrait avec la saisie d'une autre carte ne se retrouverait pas.
-     Contenu commun aux deux formats (`reglagesAvancesInner`) : flottant au
-     bureau, panneau « Options » au doigt. Fermés, ni l'un ni l'autre ne
+     Contenu commun aux deux formats (`ReglagesAvancesContenu`) : colonne
+     « Aura, exclusion, avancés » au bureau, panneau « Options » au doigt.
+     Fermés, ni l'une ni l'autre ne
      montre rien ; « toujours visible » porte sur leur contenu. Ajouter
      Accuracy ou Tolerance aux auras externes, ou le choisir comme set
      recherché, ouvre la surface du format et surligne cet interrupteur 3 s

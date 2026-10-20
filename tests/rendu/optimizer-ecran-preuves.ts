@@ -184,7 +184,8 @@ export async function preuvesRappelDeuxRendus(b: BancEcran): Promise<Preuves> {
   // Les régions `aria-live` qui exposent la phrase (texte présent, non masqué) :
   // une seule pendant le rappel, aucune hors rappel, à chaque format.
   const annonces = () => [...document.querySelectorAll<HTMLElement>('[aria-live="polite"]')]
-    .filter((r) => [r, ...r.querySelectorAll<HTMLElement>('p')].some((p) => p.textContent?.trim() === RAPPEL && getComputedStyle(p).visibility !== 'hidden'));
+    .filter((r) => (r.children.length ? [...r.querySelectorAll<HTMLElement>('p')] : [r])
+      .some((p) => p.textContent?.trim() === RAPPEL && getComputedStyle(p).visibility !== 'hidden'));
   // Position relative à son conteneur : le clic change l'exemplaire affiché,
   // ce qui peut décaler la page entière — seul compte ce qui bouge AUTOUR du message.
   const relatif = (e: HTMLElement | undefined, cadre: HTMLElement | null | undefined) => {

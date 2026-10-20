@@ -84,6 +84,20 @@ export default async function testDiagnosticHarness() {
     bucketCapFor(120),
     'surcharger slotFilterCap déplace AUSSI bucketCap — deux paramètres bougent, un seul a été touché'
   );
+  // … et les préréglages emboîtés, chacun à son bucketCap dérivé.
+  const emboitesSans = sansOverride.parametres.find((p) => p.nom === 'préréglages emboîtés')!;
+  egal([emboitesSans.valeur, emboitesSans.origine, emboitesSans.derivéDe], ['aucun', 'dérivé', 'slotFilterCap'], 'slotFilterCap 40 : aucun préréglage emboîté, origine dérivée de slotFilterCap');
+  egal(
+    capSurcharge.parametres.find((p) => p.nom === 'préréglages emboîtés')!.valeur,
+    `Moyen (80, bucketCap ${bucketCapFor(80)}), Bas (40, bucketCap ${bucketCapFor(40)})`,
+    'slotFilterCap 120 : Moyen et Bas emboîtés, chacun à son bucketCap dérivé — affichés dans la table'
+  );
+  const bucketSurcharge = resoudreConfig(configSynthetique({ overrides: { slotFilterCap: 80, bucketCap: 500 } }));
+  egal(
+    bucketSurcharge.parametres.find((p) => p.nom === 'préréglages emboîtés')!.valeur,
+    `Bas (40, bucketCap ${bucketCapFor(40)})`,
+    'un override de bucketCap ne touche pas le bucketCap d’un préréglage emboîté'
+  );
 
   /* ── la table liste les paramètres EFFECTIFS, pas surchargeables ─
    *

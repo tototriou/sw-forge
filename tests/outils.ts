@@ -16,6 +16,9 @@ let ignores = 0;
 // sont introuvables dans un journal tronqué (celui de la CI notamment).
 const echecsDetail: string[] = [];
 let verificationCourante = '';
+// `--silencieux` (tests/run.mjs) : ni titre, ni ligne « ok », ni « KO » au fil
+// de l'eau ; les échecs sont tous répétés dans le récapitulatif final.
+const silencieux = process.argv.includes('--silencieux');
 
 export function debutVerification(nom: string) {
   verificationCourante = nom;
@@ -24,11 +27,11 @@ export function debutVerification(nom: string) {
 export function ok(condition: boolean, libelle: string) {
   total++;
   if (condition) {
-    console.log('  [32mok[0m   ' + libelle);
+    if (!silencieux) console.log('  [32mok[0m   ' + libelle);
   } else {
     echecs++;
     echecsDetail.push(`${verificationCourante} — ${libelle}`);
-    console.log('  [31mKO[0m   ' + libelle);
+    if (!silencieux) console.log('  [31mKO[0m   ' + libelle);
   }
 }
 
@@ -49,7 +52,7 @@ export function bilan(): { total: number; echecs: number; ignores: number; echec
 }
 
 export function titre(t: string) {
-  console.log(`\n[1m${t}[0m`);
+  if (!silencieux) console.log(`\n[1m${t}[0m`);
 }
 
 /* --------------------------------------------------------------------------

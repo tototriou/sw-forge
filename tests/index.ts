@@ -46,6 +46,7 @@ import { testNavigationAdresses, testNavigationAdressesDefauts, testNavigationVu
 import { testVoletsFeuilleTailwind, testVoletsLargeurs, testVoletsNavigation, testVoletsOuverture, testVoletsResponsive,
   testVoletsVerrou } from './volets.test';
 import { testSuiviLecture, testSuiviTableau } from './suivi.test';
+import { testRunSilencieux } from './run-silencieux.test';
 import testPersistance from './persistance.test';
 import { testRenduOptimizerDialogueLeaderSkill, testRenduTelephoneOptimizerDialogueLeaderSkill,
   testRenduOptimizerDialogueLeaderEspece, testRenduTelephoneOptimizerDialogueLeaderEspece,
@@ -531,6 +532,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testVoletsFeuilleTailwind', testVoletsFeuilleTailwind],
   ['testSuiviLecture', testSuiviLecture],
   ['testSuiviTableau', testSuiviTableau],
+  ['testRunSilencieux', testRunSilencieux],
   ['testReco', testReco],
   ['testDefensesVisees', testDefensesVisees],
   ['testTrimPartage', testTrimPartage],
@@ -1017,7 +1019,7 @@ async function main() {
   if (filtres.length > 0 || liste.length < VERIFICATIONS.length) {
     console.log(
       `[33mVérifications ciblées[0m (${liste.length}/${VERIFICATIONS.length}) : ` +
-        liste.map(([n]) => n).join(', ') +
+        (process.argv.includes('--silencieux') ? '(liste omise : --silencieux)' : liste.map(([n]) => n).join(', ')) +
         `
 [33m⚠️  La suite complète reste obligatoire avant une fusion sur main.[0m
 `

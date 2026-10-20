@@ -7,6 +7,9 @@
 //
 // `--depuis <ref>` / `--plage <a>..<b>` : ne lancer que les vérifications que
 // touchent les fichiers modifiés (tests/selection.ts), en plus des filtres par nom.
+// `--silencieux` : n'affiche que les échecs, les vérifications ignorées et le
+// bilan (et, avec `--depuis`, le nombre d'entrées retenues). Le code de sortie
+// ne change pas ; sans l'option, la sortie est celle que lit `npm run test:suivi`.
 
 import { build } from 'esbuild';
 import { spawn } from 'child_process';
@@ -30,8 +33,12 @@ const racine = fileURLToPath(new URL('..', import.meta.url));
 const args = process.argv.slice(2);
 const options = {};
 const transmis = [];
+// `--silencieux` : seulement les échecs, les ignorées et le bilan. Transmis au
+// bundle, qui le lit lui aussi (tests/outils.ts, tests/index.ts).
+let silencieux = false;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--depuis' || args[i] === '--plage') { options[args[i].slice(2)] = args[i + 1]; i++; continue; }
+  if (args[i] === '--silencieux') silencieux = true;
   transmis.push(args[i]);
 }
 const avecSelection = options.depuis !== undefined || options.plage !== undefined;
@@ -51,7 +58,10 @@ if (avecSelection) {
   const debut = Date.now();
   try {
     const { selection, inventaire } = await selectionDepuisGit({ racine, depuis: options.depuis, plage: options.plage, metafichier: resultat.metafile });
-    console.log(formater(selection, inventaire.entrees.length));
+    // En silence : le nombre d'entrées retenues, sans la liste des fichiers ni des entrées.
+    console.log(silencieux && !selection.complet
+      ? `Sélection par fichiers modifiés : ${selection.fichiers.length} fichier(s) modifié(s), ${selection.retenues.length}/${inventaire.entrees.length} entrées retenues`
+      : formater(selection, inventaire.entrees.length));
     writeFileSync(fichierSelection, JSON.stringify(selection));
   } catch (e) {
     if (e instanceof RefusSelection) { console.error(`\x1b[31mRefus :\x1b[0m ${e.message}`); fin(2); }

@@ -3,7 +3,6 @@ import { SLOT_FILTER_PRESETS, type SlotFilterPresetKey } from '../../../lib/rune
 import { formatBig } from '../../../lib/formatBig';
 import HelpPopover from '../../HelpPopover';
 import { Interrupteur } from '../../../ui';
-import { Target } from 'lucide-react';
 import { type Dispatch, type SetStateAction, type RefObject } from 'react';
 
 export interface ReglagesAvancesContenuProps {
@@ -15,8 +14,6 @@ export interface ReglagesAvancesContenuProps {
   setExhaustiveSearch: Dispatch<SetStateAction<boolean>>;
   diagnoseBlockingEnabled: boolean;
   setDiagnoseBlockingEnabled: Dispatch<SetStateAction<boolean>>;
-  adaptiveTrancheWeighting: boolean;
-  setAdaptiveTrancheWeighting: Dispatch<SetStateAction<boolean>>;
   optimiserArtefacts: boolean;
   verifierToutesLesCombinaisons: boolean;
   setVerifierToutesLesCombinaisons: Dispatch<SetStateAction<boolean>>;
@@ -31,7 +28,7 @@ export interface ReglagesAvancesContenuProps {
   bureau?: boolean;
 }
 
-export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFilterPresetChange, dansPanneau, estimate, exhaustiveSearch, setExhaustiveSearch, diagnoseBlockingEnabled, setDiagnoseBlockingEnabled, adaptiveTrancheWeighting, setAdaptiveTrancheWeighting, optimiserArtefacts, verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons, interrupteurResPrePanneauRef, interrupteurResPreBureauRef, attentionResPre, compterAurasResPre, setCompterAurasResPre, bureau = false }: ReglagesAvancesContenuProps) {
+export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFilterPresetChange, dansPanneau, estimate, exhaustiveSearch, setExhaustiveSearch, diagnoseBlockingEnabled, setDiagnoseBlockingEnabled, optimiserArtefacts, verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons, interrupteurResPrePanneauRef, interrupteurResPreBureauRef, attentionResPre, compterAurasResPre, setCompterAurasResPre, bureau = false }: ReglagesAvancesContenuProps) {
   return (
     <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3">
     {/* ⚠️ Mêmes classes de boîte que les trois groupes d'« État de mon
@@ -67,10 +64,8 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
         pré-filtrage, mais lu comme une ligne perdue une fois le groupe
         posé en colonne à côté. */}
     <div className="divide-y divide-border rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
-      {/* Toggle, même patron que « Prioriser les stats les plus
-          difficiles » : désactivé par défaut, lu par `handleSearch` au
-          clic sur « Rechercher », jamais un bouton qui lance sa propre
-          recherche. */}
+      {/* Désactivé par défaut, lu par `handleSearch` au clic sur
+          « Rechercher », jamais un bouton qui lance sa propre recherche. */}
       <div className="flex items-center justify-between gap-2 py-3 first:pt-0">
         <div className="flex items-center gap-1.5">
           <span className="text-[11.5px] text-ink-dim">Rechercher jusqu'à épuisement complet</span>
@@ -100,25 +95,6 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
           actif={diagnoseBlockingEnabled}
           onChange={setDiagnoseBlockingEnabled}
           aria-label="Diagnostic approfondi sur 0 résultat"
-        />
-      </div>
-
-      {/* Déplacé depuis son ancien emplacement (juste avant les
-          boutons d'action) — même toggle, même logique, regroupé ici
-          avec les autres réglages secondaires. */}
-      <div className="flex items-center justify-between gap-2 py-3 last:pb-0">
-        <div className="flex items-center gap-1.5">
-          <Target size={15} className="text-ink-dim" />
-          <span className="text-[11.5px] text-ink-dim">Prioriser les stats les plus difficiles</span>
-          <HelpPopover title="Prioriser les stats les plus difficiles">
-            Peut trouver un build qu'une recherche normale rate quand une stat est rare, au prix d'une
-            recherche plus longue.
-          </HelpPopover>
-        </div>
-        <Interrupteur
-          actif={adaptiveTrancheWeighting}
-          onChange={setAdaptiveTrancheWeighting}
-          aria-label="Prioriser les stats les plus difficiles"
         />
       </div>
 

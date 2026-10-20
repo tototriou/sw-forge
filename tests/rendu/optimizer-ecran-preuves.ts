@@ -37,6 +37,8 @@ const texteVisible = (morceau: string) => [...document.querySelectorAll<HTMLElem
 
 export const COMPTER = "Compter les effets d'auras Tolerance et Précision dans les conditions";
 export const VERIFIER = 'Vérifier toutes les combinaisons trouvées';
+// Réglage retiré de l'écran : ni interrupteur, ni effet des paliers Haut et Extrême.
+const PRIORISER = 'Prioriser les stats les plus difficiles';
 const RAPPEL = 'Pense à vérifier les sets d\'aura externes.';
 
 // Le cadre d'attention de l'interrupteur des auras : le bloc qui contient
@@ -102,6 +104,21 @@ export async function preuvesReglagesAvances(b: BancEcran, ouvrirMenu: () => voi
     await attendre(250);
   } else preuves.push([false, 'aide de « Vérifier toutes… » présente']);
   preuves.push([!!bouton(COMPTER), 'l’interrupteur des auras a son aide']);
+
+  // « Prioriser les stats les plus difficiles » est retiré : ni interrupteur
+  // ni aide, et Haut / Extrême n'activent plus que l'épuisement complet.
+  preuves.push([!interrupteur(PRIORISER) && !bouton(PRIORISER) && !texteVisible(PRIORISER),
+    `plus d’interrupteur « ${PRIORISER} », ni son aide`]);
+  const presetAvant = b.etat().slotFilterPreset, epuisementAvant = b.etat().exhaustiveSearch;
+  for (const [palier, cle] of [['Haut', 'haut'], ['Extrême', 'extreme']] as const) {
+    await b.geste(() => b.etat().setExhaustiveSearch(false));
+    const p = bouton(palier);
+    if (!p) { preuves.push([false, `palier « ${palier} » visible`]); continue; }
+    await b.geste(() => p.click());
+    preuves.push([b.etat().slotFilterPreset === cle && b.etat().exhaustiveSearch && !b.etat().adaptiveTrancheWeighting,
+      `« ${palier} » : épuisement complet activé, adaptiveTrancheWeighting reste faux (${b.etat().adaptiveTrancheWeighting})`]);
+  }
+  await b.geste(() => { b.etat().setSlotFilterPreset(presetAvant); b.etat().setExhaustiveSearch(epuisementAvant); });
 
   const ordre = () => [...document.querySelectorAll<HTMLButtonElement>('button[role="switch"]')].filter(visible).map((e) => e.getAttribute('aria-label'));
   const avecFile = ordre();
@@ -353,7 +370,46 @@ export async function preuvesMessageImport(b: BancEcran): Promise<Preuves> {
   const converti = await importer(recette('moyenne'));
   preuves.push([!!converti && converti.classList.contains('text-warn') && !!converti.textContent?.includes(AVERTISSEMENT_CRIT_MOYENNE),
     `import converti : message au token d’avertissement, qui cite la conversion (${converti?.className})`]);
+  // Une recette qui porte l'ancien réglage à vrai s'importe comme une autre
+  // et n'active rien.
+  const priorite = await importer(JSON.stringify({ ...JSON.parse(recette('crit')), adaptiveTrancheWeighting: true }));
+  preuves.push([!!priorite && priorite.classList.contains('text-good') && !b.etat().adaptiveTrancheWeighting,
+    `import d’une recette qui porte adaptiveTrancheWeighting à vrai : succès, l’état reste faux (${priorite?.className} · ${b.etat().adaptiveTrancheWeighting})`]);
   const refus = await importer('{');
   preuves.push([!!refus && refus.classList.contains('text-bad'), `import refusé : message au token d’erreur (${refus?.className})`]);
+
+  // Ce que l'écran ENVOIE, quoi que porte l'état (une session reprise peut
+  // encore le poser à vrai, le champ restant dans `OptimizerState`) : la
+  // recherche (message au Worker, intercepté) et la recette exportée (fichier
+  // intercepté) portent `adaptiveTrancheWeighting: false`.
+  const envois: Record<string, unknown>[] = [];
+  let fichier: Blob | null = null;
+  const vraiWorker = globalThis.Worker, vraiCreer = URL.createObjectURL, vraiClic = HTMLAnchorElement.prototype.click;
+  class FauxWorker {
+    onmessage: unknown = null; onerror: unknown = null;
+    postMessage(d: Record<string, unknown>) { envois.push(d); }
+    terminate() {} addEventListener() {} removeEventListener() {}
+  }
+  try {
+    (globalThis as unknown as { Worker: unknown }).Worker = FauxWorker;
+    URL.createObjectURL = (b: Blob | MediaSource) => { fichier = b as Blob; return 'blob:recette'; };
+    HTMLAnchorElement.prototype.click = () => {};
+    await b.geste(() => { b.etat().setComboSets(['violent']); b.etat().setAdaptiveTrancheWeighting(true); });
+    const rechercher = bouton('Rechercher');
+    if (rechercher) await b.geste(() => rechercher.click());
+    const recherche = envois.find((d) => 'pool' in d);
+    preuves.push([!!recherche && recherche.adaptiveTrancheWeighting === false,
+      `état à vrai : la recherche part avec adaptiveTrancheWeighting faux (${recherche ? String(recherche.adaptiveTrancheWeighting) : 'aucun envoi'})`]);
+    const exporter = bouton('Exporter les paramètres de recherche');
+    if (exporter) await b.geste(() => exporter.click());
+    const recetteExportee = fichier ? JSON.parse(await (fichier as Blob).text()) as Record<string, unknown> : null;
+    preuves.push([recetteExportee?.adaptiveTrancheWeighting === false,
+      `état à vrai : la recette exportée porte adaptiveTrancheWeighting faux (${recetteExportee ? String(recetteExportee.adaptiveTrancheWeighting) : 'aucun fichier'})`]);
+  } finally {
+    (globalThis as unknown as { Worker: unknown }).Worker = vraiWorker;
+    URL.createObjectURL = vraiCreer;
+    HTMLAnchorElement.prototype.click = vraiClic;
+    await b.geste(() => b.etat().setAdaptiveTrancheWeighting(false));
+  }
   return preuves;
 }

@@ -17,6 +17,7 @@ import EnteteResultats, { type EnteteResultatsProps } from '../../src/components
 
 const EPUISEMENT = "Rechercher jusqu'à épuisement complet";
 const DIAGNOSTIC = 'Diagnostic approfondi sur 0 résultat';
+// Retiré de l'écran : ne doit plus apparaître dans aucun format.
 const PRIORISER = 'Prioriser les stats les plus difficiles';
 const VERIFIER = 'Vérifier toutes les combinaisons trouvées';
 const COMPTER = "Compter les effets d'auras Tolerance et Précision dans les conditions";
@@ -51,9 +52,9 @@ export function testRenduOptimizerReglagesAvancesContenu() {
   const MONSTRE = { selectedId: CHOISI, comboSets: ['violent'] };
   ok(!rendreOptimizer(AVEC_MONSTRE).includes(ANCRE), 'bureau : colonne « Aura, exclusion, avancés » fermée par défaut, aucun réglage avancé monté');
   const telephone = options(MONSTRE);
-  egal(noms(telephone), [EPUISEMENT, DIAGNOSTIC, PRIORISER, VERIFIER, COMPTER], 'panneau « Options » : les interrupteurs, l’interrupteur des auras en dernier');
+  egal(noms(telephone), [EPUISEMENT, DIAGNOSTIC, VERIFIER, COMPTER], 'panneau « Options » : les interrupteurs, l’interrupteur des auras en dernier');
   const sansFile = options({ ...MONSTRE, optimiserArtefacts: false });
-  egal(noms(sansFile), [EPUISEMENT, DIAGNOSTIC, PRIORISER, COMPTER],
+  egal(noms(sansFile), [EPUISEMENT, DIAGNOSTIC, COMPTER],
     'sans optimisation d’artéfacts : « Vérifier toutes… » masqué, l’interrupteur des auras rendu sans condition, en dernier');
 
   const etat = (html: string, nom: string) => interrupteurs(html, ANCRE).find((x) => x.nom === nom)?.coche;
@@ -64,6 +65,8 @@ export function testRenduOptimizerReglagesAvancesContenu() {
 
   for (const [nom, html] of [['téléphone', telephone]] as const) {
     const t = texteVisible(html);
+    ok(!t.includes(PRIORISER) && !boutons(html).some((b) => b.ariaLabel === PRIORISER),
+      `${nom} : plus d’interrupteur « ${PRIORISER} », ni libellé ni aide`);
     ok(t.includes(COMPTER) && t.includes(VERIFIER), `${nom} : les deux rangées portent leur libellé exact`);
     const aides = boutons(html).filter((b) => b.ariaLabel === COMPTER || b.ariaLabel === VERIFIER).map((b) => b.ariaLabel);
     ok(aides.includes(COMPTER) && aides.includes(VERIFIER), `${nom} : chacune a son aide`);

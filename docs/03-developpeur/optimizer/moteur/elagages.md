@@ -308,8 +308,9 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
     coûte O(log cap), et une combinaison moins bonne que la pire déjà gardée
     s'écarte en un test. Les tranches sont fusionnées sans doublon et triées
     une seule fois par compartiment, à la fin.
-  - « Prioriser les stats les plus difficiles » (`adaptiveTrancheWeighting`)
-    répartit autrement les places des tranches par stat, selon leur
+  - `adaptiveTrancheWeighting` (l'ancien interrupteur « Prioriser les
+    stats les plus difficiles », retiré de l'écran, qui l'envoie toujours à
+    faux ; seul le CLI le transmet encore d'une recette) répartit autrement les places des tranches par stat, selon leur
     dispersion, à budget total égal (`trancheReallocation`).
   - Les bornes d'élagage d'un compartiment (`maxPct`/`maxFlat`, par stat
     contrainte) s'étendent à partir de **toute** combinaison rencontrée,

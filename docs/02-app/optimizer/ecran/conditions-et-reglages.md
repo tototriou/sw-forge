@@ -153,12 +153,11 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    est assez long pour ne pas toujours tenir à côté sur un téléphone
    étroit) — adaptatif, jamais coupé ni superposé. ⚠️ **Choisir Haut ou
    Extrême active automatiquement** « Rechercher jusqu'à épuisement
-   complet » et « Prioriser les stats les plus difficiles » ci-dessous — un
-   pré-filtrage large n'a de sens que combiné à ces deux réglages, qu'un
-   utilisateur novice n'a aucune raison de connaître. Un COUP DE POUCE, pas
-   un verrouillage : chaque interrupteur reste cliquable normalement
-   ensuite pour revenir à décoché. Choisir Bas ou Moyen ne les décoche PAS
-   automatiquement dans l'autre sens. Sous ce réglage :
+   complet » ci-dessous — un pré-filtrage large n'a de sens que combiné à
+   ce réglage, qu'un utilisateur novice n'a aucune raison de connaître. Un
+   COUP DE POUCE, pas un verrouillage : l'interrupteur reste cliquable
+   normalement ensuite pour revenir à décoché. Choisir Bas ou Moyen ne le
+   décoche PAS automatiquement dans l'autre sens. Sous ce réglage :
    - **« Rechercher jusqu'à épuisement complet »**, décoché par défaut :
      retire le filet de temps de 10 minutes (voir
      ../feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel) — la
@@ -175,12 +174,13 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
      lancer-la-recherche.md § Lancer la recherche).
    - **« Diagnostic approfondi sur 0 résultat »**, décoché par défaut (plus
      coûteux qu'un diagnostic simple, voir resultats.md § Diagnostic sur 0 résultat).
-   - **« Prioriser les stats les plus difficiles »**, décoché par défaut :
-     réalloue le budget de rétention vers les stats demandées les plus
-     rares/difficiles à combiner plutôt qu'un partage égal entre toutes —
-     peut retrouver un build qu'une recherche normale rate, au prix d'une
-     recherche plus longue. Fait partie des réglages exportés/importés dans
-     une recette (voir lancer-la-recherche.md § Lancer la recherche).
+   - ⚠️ **Plus d'interrupteur « Prioriser les stats les plus
+     difficiles »**, retiré aux deux formats (aucun meilleur build
+     mesuré, et moins de builds valides) : l'écran envoie toujours
+     `adaptiveTrancheWeighting: false` à la recherche et l'exporte à faux
+     dans une recette. Une recette qui le porte à vrai s'importe sans erreur
+     et n'active rien ; le CLI (`recipeToSearchParams`), lui, le transmet
+     encore au moteur tel que la recette le porte.
    - **« Vérifier toutes les combinaisons trouvées »**, décoché par défaut :
      la file de résolution vérifie tous les
      builds trouvés au lieu de s'arrêter à 100 combinaisons confirmées (300

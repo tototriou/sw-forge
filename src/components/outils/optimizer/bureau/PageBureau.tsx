@@ -286,16 +286,19 @@ export default function PageBureau(props: PageBureauProps) {
         className={
           'grid grid-cols-[minmax(0,1fr)] items-start gap-y-6'
           + ' @[904px]:grid-cols-[548px_minmax(0,1fr)] @[904px]:grid-rows-[auto_auto_1fr_auto_auto] @[904px]:gap-x-4'
-          + ' @[1180px]:grid-cols-[564px_auto_616px_minmax(0,1fr)] @[1180px]:grid-rows-[auto_auto_auto_1fr] @[1180px]:gap-x-0 @[1180px]:gap-y-0'
+          + ' @[1180px]:grid-cols-[564px_auto_616px_minmax(0,1fr)] @[1180px]:grid-rows-[auto_auto_auto_auto_1fr] @[1180px]:gap-x-0 @[1180px]:gap-y-0'
         }
       >
         {/* Le panneau de la colonne de droite en A3 : un fond sous ses cases
             (« Exemplaire », bloc, résultats), premier dans le DOM pour être
-            peint dessous. Décoratif. */}
+            peint dessous. Décoratif. ⚠️ Il s'arrête à la rangée 4 : la
+            dernière (`1fr`) n'existe que pour absorber la hauteur des
+            colonnes fixes plus hautes que les résultats, sans quoi le
+            panneau s'allongeait d'un vide sous eux. */}
         <div
           aria-hidden
           data-zone="fond-droite"
-          className={`hidden @[1180px]:block @[1180px]:col-[3/-1] @[1180px]:row-[2/-1] @[1180px]:self-stretch ${PANNEAU}`}
+          className={`hidden @[1180px]:block @[1180px]:col-[3/-1] @[1180px]:row-[2/5] @[1180px]:self-stretch ${PANNEAU}`}
         />
 
         {/* Les essentiels : liste de travail en tête, à sa place stable ; à

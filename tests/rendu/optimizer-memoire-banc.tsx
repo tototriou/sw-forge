@@ -289,7 +289,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     await cliquer(2);
     verifier(rappel() && etat.damageSetup.setsAuraExternes?.[0]?.set === 'accuracy',
       'clic autre exemplaire : rappel des auras de la destination, même si le membre précédent n’en avait aucune');
-    verifier(JSON.stringify(memoire('a', troisieme)) === memoireAvant && !etat.showAdvanced && !document.querySelector('[role="dialog"]'),
+    verifier(JSON.stringify(memoire('a', troisieme)) === memoireAvant && !document.querySelector('[data-colonne="complements"]') && !document.querySelector('[role="dialog"]'),
       'rappel : mémoire intacte, aucune ouverture guidée ni fenêtre du combat');
     await cliquer(1);
     verifier(!rappel() && !etat.damageSetup.setsAuraExternes?.length, 'destination sans auras : aucun rappel, précédent rappel effacé');

@@ -38,7 +38,7 @@ export async function preuvesSupplementaires(nom: string, b: BancMemoire): Promi
       // Une autre copie reste une exclusion légitime pour les deux membres
       // restaurés ; exclure la cible testerait sa purge d'auto-exemption.
       excludedSelectors: [{ source: 'box', unitKey: '33' }], adaptiveTrancheWeighting: true, exhaustiveSearch: true,
-      verifierToutesLesCombinaisons: true, slotFilterPreset: 'haut', showAdvanced: true, diagnoseBlockingEnabled: true };
+      verifierToutesLesCombinaisons: true, slotFilterPreset: 'haut', diagnoseBlockingEnabled: true };
     for (const [champ, valeur] of Object.entries(valeurs)) {
       await b.geste(() => (b.etat() as unknown as Record<string, (v: unknown) => void>)[`set${champ[0].toUpperCase()}${champ.slice(1)}`](valeur));
     }

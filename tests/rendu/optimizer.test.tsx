@@ -65,7 +65,7 @@ export function rendreOptimizer(etat: EtatBanc = {}, menuOuvert = false, stockag
   return rendre(<Banc etat={etat} menuOuvert={menuOuvert} />);
 }
 
-export const AVEC_MONSTRE = { selectedId: CHOISI, comboSets: ['violent'], showAdvanced: true };
+export const AVEC_MONSTRE = { selectedId: CHOISI, comboSets: ['violent'] };
 
 const SOURCES = 'Box RTA Défenses siège Offenses siège';
 const STATS_CONDITIONS = ['PV', 'ATQ', 'DEF', 'VIT', 'Taux Crit', 'Dmg Crit', 'RES', 'Précision'];

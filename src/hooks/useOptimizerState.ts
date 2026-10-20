@@ -321,8 +321,6 @@ export interface OptimizerState {
   // changement de tri — voir OptimizerSection.tsx.
   resultsPage: number;
   setResultsPage: Dispatch<SetStateAction<number>>;
-  showAdvanced: boolean;
-  setShowAdvanced: Dispatch<SetStateAction<boolean>>;
   slotFilterPreset: SlotFilterPresetKey;
   setSlotFilterPreset: Dispatch<SetStateAction<SlotFilterPresetKey>>;
   // Palier 2 du diagnostic « 0 résultat » (voir `rankBlockingConditions` dans
@@ -467,7 +465,6 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   const [verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons] = useState(false);
   const [sortBy, setSortBy] = useState<OptimizerSortKey>(base.sortBy);
   const [resultsPage, setResultsPage] = useState(1);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [slotFilterPreset, setSlotFilterPreset] = useState<SlotFilterPresetKey>('moyen');
   const [diagnoseBlockingEnabled, setDiagnoseBlockingEnabled] = useState(false);
   const [stoppedManually, setStoppedManually] = useState(false);
@@ -882,8 +879,6 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     setSortBy: saisie('sortBy', setSortBy),
     resultsPage,
     setResultsPage,
-    showAdvanced,
-    setShowAdvanced,
     slotFilterPreset,
     setSlotFilterPreset,
     diagnoseBlockingEnabled,

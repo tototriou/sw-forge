@@ -50,7 +50,6 @@ export const CHAMPS_OPTIMIZER_HORS_SESSION = [
   'rapportCriteres',
   // Interface et validation de l'écran.
   'setPickerInvalid',
-  'showAdvanced',
   'resultsPage',
   'openDetailKey',
   // Cran remonté pour la navigation seulement ; format de session inchangé.

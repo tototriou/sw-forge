@@ -137,7 +137,8 @@ import BandeauBuildValide from './optimizer/BandeauBuildValide';
 import type { EtatValidation } from './optimizer/types';
 import { CONFIGURABLE_SLOTS } from './optimizer/constantes';
 import MonstreEquipementTelephone from './optimizer/MonstreEquipementTelephone';
-import ExemplaireEtFiche from './optimizer/ExemplaireEtFiche';
+import ExemplaireEtFiche, { type ExemplaireEtFicheProps } from './optimizer/ExemplaireEtFiche';
+import MonsterSourcePicker from './MonsterSourcePicker';
 import MonstreEtListe from './optimizer/MonstreEtListe';
 import MonstreEquipement from './optimizer/MonstreEquipement';
 import Conditions from './optimizer/Conditions';
@@ -164,12 +165,25 @@ import AvisRechercheTronquee from './optimizer/AvisRechercheTronquee';
 import ConfirmationsLiberation from './optimizer/ConfirmationsLiberation';
 import ReglagesAvancesContenu from './optimizer/ReglagesAvancesContenu';
 import ChoixExemplaire from './optimizer/ChoixExemplaire';
-import MonstresDeLaListe from './optimizer/MonstresDeLaListe';
+import MonstresDeLaListe, { type MonstresDeLaListeProps } from './optimizer/MonstresDeLaListe';
 import SelecteurListes from './optimizer/SelecteurListes';
 import EnteteResultats from './optimizer/EnteteResultats';
 import DiagnosticsSansResultat from './optimizer/DiagnosticsSansResultat';
 import GrilleResultats from './optimizer/GrilleResultats';
 import MessageImportRecette from './optimizer/MessageImportRecette';
+import PageBureau from './optimizer/bureau/PageBureau';
+import ListeDeTravailBureau from './optimizer/bureau/ListeDeTravailBureau';
+import SetDeRunesCompact from './optimizer/bureau/SetDeRunesCompact';
+import PrincipalesImposeesBureau from './optimizer/bureau/PrincipalesImposeesBureau';
+import ConditionsBureau from './optimizer/bureau/ConditionsBureau';
+import EtatMonstreEssentiels from './optimizer/bureau/EtatMonstreEssentiels';
+import ArtefactsEtReliqueBureau from './optimizer/bureau/ArtefactsEtReliqueBureau';
+import MeilleursArtefactsBureau from './optimizer/bureau/MeilleursArtefactsBureau';
+import SetsAuraBureau from './optimizer/bureau/SetsAuraBureau';
+import ExclusionRunesBureau from './optimizer/bureau/ExclusionRunesBureau';
+import ReglagesAvancesBureau from './optimizer/bureau/ReglagesAvancesBureau';
+import ExemplaireBureau from './optimizer/bureau/ExemplaireBureau';
+import { type ColonnesOuvertes } from '../../lib/optimizerColonnes';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -1980,18 +1994,17 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // est `guideVersResPre` (aurasExternes.ts), prise au geste, jamais à
   // l'import ni au changement de monstre.
   // ⚠️ **Deux formes, une par format**, choisies par `SOUS_LG` comme le
-  // panneau lui-même (`MobileSheet`) et la carte du bureau (`hidden lg:block`) :
-  // - à la souris, la page défile jusqu'à l'ANCRE du flottant (`avancesRef`),
-  //   PUIS le flottant s'ouvre : `FlottantAuto` choisit son côté en mesurant
-  //   l'ancre à l'ouverture, et ouvert pendant le défilement il mesurerait une
-  //   position périmée. Le défilement peut déplacer la carte cliquée (accepté
-  //   par l'utilisateur, comme pour « Set de runes recherché ») ; le flottant
-  //   se referme au clic suivant hors de lui (effet ci-dessus) ;
+  // panneau lui-même (`MobileSheet`) et la page de bureau (`PageBureau`) :
+  // - au bureau, la colonne repliable « Aura, exclusion, avancés », où
+  //   l'interrupteur vit en ligne, s'ouvre (`guideComplements`, lu par
+  //   `PageBureau` : l'état des onglets se résout avec la largeur), puis
+  //   l'interrupteur est amené à l'écran (effet plus bas) ;
   // - au doigt, le panneau « Options de recherche » s'ouvre par-dessus la
   //   carte (demandé à App.tsx par `onOuvrirMenu`), puis son contenu défile
   //   jusqu'à l'interrupteur (effet plus bas).
   // L'interrupteur est surligné `DUREE_ATTENTION_MS` (3 s), au même token que
-  // le rappel ; il reste toujours rendu dans sa surface (`reglagesAvancesInner`).
+  // le rappel ; il reste rendu dans sa surface tant qu'elle est montée
+  // (panneau au téléphone, colonne ouverte au bureau).
   const sousLg = useMediaQuery(SOUS_LG);
   const [attentionResPre, setAttentionResPre] = useState<number | null>(null);
   useEffect(() => {
@@ -2003,51 +2016,21 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // peuvent être montés ensemble (le flottant reste monté, masqué, sous `lg`).
   const interrupteurResPreFlottantRef = useRef<HTMLDivElement>(null);
   const interrupteurResPrePanneauRef = useRef<HTMLDivElement>(null);
-  // Le défilement du bureau en attente de sa fin : annulé par un nouveau
-  // guidage ou au démontage, pour ne jamais ouvrir un flottant périmé.
-  const annulerDefilementGuide = useRef<(() => void) | null>(null);
-  useEffect(() => () => annulerDefilementGuide.current?.(), []);
-
-  // Défile jusqu'à `el` (patron de « Set de runes recherché » : `smooth`,
-  // `center`), PUIS appelle `suite` — à la fin du défilement (`scrollend`),
-  // ou au bout d'une seconde si l'événement n'arrive pas (navigateur qui ne le
-  // connaît pas). Déjà entièrement visible : rien à défiler, tout de suite.
-  function defilerPuis(el: HTMLElement, suite: () => void) {
-    annulerDefilementGuide.current?.();
-    const r = el.getBoundingClientRect();
-    if (r.top >= 0 && r.bottom <= window.innerHeight) {
-      suite();
-      return;
-    }
-    let filet = 0;
-    const annuler = () => {
-      document.removeEventListener('scrollend', fin);
-      window.clearTimeout(filet);
-      annulerDefilementGuide.current = null;
-    };
-    const fin = () => {
-      annuler();
-      suite();
-    };
-    document.addEventListener('scrollend', fin);
-    filet = window.setTimeout(fin, 1000);
-    annulerDefilementGuide.current = annuler;
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
+  // Les états des onglets du bureau (`PageBureau`) : `null` tant que
+  // l'utilisateur n'y a pas touché, l'état de départ suit alors la largeur.
+  // Local à l'écran, comme tout état d'ouverture (src/lib/optimizerColonnes.ts).
+  const [colonnesBureau, setColonnesBureau] = useState<ColonnesOuvertes | null>(null);
+  // Le jeton du guidage vers « Aura, exclusion, avancés ».
+  const [guideComplements, setGuideComplements] = useState<number | null>(null);
 
   function guiderVersResPre() {
     if (sousLg) {
-      annulerDefilementGuide.current?.();
       onOuvrirMenu();
       setAttentionResPre((n) => (n ?? 0) + 1);
       return;
     }
-    const ancre = avancesRef.current;
-    if (!ancre) return;
-    defilerPuis(ancre, () => {
-      setShowAdvanced(true);
-      setAttentionResPre((n) => (n ?? 0) + 1);
-    });
+    setGuideComplements((n) => (n ?? 0) + 1);
+    setAttentionResPre((n) => (n ?? 0) + 1);
   }
 
   // Puis l'interrupteur lui-même, une fois sa surface ouverte : au doigt, il
@@ -2058,19 +2041,28 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // mesurer.
   useEffect(() => {
     if (attentionResPre === null) return;
+    // Au bureau, l'interrupteur n'est rendu que colonne ouverte : l'effet se
+    // rejoue quand l'état des onglets change (`colonnesBureau`).
     const el = sousLg
       ? menuOuvert
         ? interrupteurResPrePanneauRef.current
         : null
-      : showAdvanced
-        ? interrupteurResPreFlottantRef.current
-        : null;
+      : interrupteurResPreFlottantRef.current;
     if (!el) return;
-    const image = requestAnimationFrame(() =>
-      el.scrollIntoView({ behavior: 'smooth', block: sousLg ? 'center' : 'nearest' })
-    );
-    return () => cancelAnimationFrame(image);
-  }, [attentionResPre, sousLg, menuOuvert, showAdvanced]);
+    let correction = 0;
+    const image = requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: sousLg ? 'center' : 'nearest' });
+      // Au bureau, la colonne peut être fixe (`sticky`) et défiler seule : le
+      // défilement de la page la colle en chemin, ce que le calcul du
+      // navigateur ne prévoit pas. Une seconde passe, une fois la page
+      // arrêtée, ne fait défiler que ce qui manque.
+      if (!sousLg) correction = window.setTimeout(() => el.scrollIntoView({ block: 'nearest' }), 700);
+    });
+    return () => {
+      cancelAnimationFrame(image);
+      window.clearTimeout(correction);
+    };
+  }, [attentionResPre, sousLg, menuOuvert, colonnesBureau]);
 
   // « Exclusion de runes » (bureau) : même patron, mêmes raisons — repliée par
   // défaut (demande explicite), donc dépliée hors flux pour ne pousser ni
@@ -3101,30 +3093,31 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   }
 
   const rapportZoneC = [...lists.rapportStockage, ...optimizer.rapportCriteres];
-  const zoneCContent = (
-    <MonstresDeLaListe
-      activeList={activeList}
-      activeMembers={activeMembers}
-      ajoutListe={ajoutListe}
-      handleAddToList={handleAddToList}
-      setEquipeOuverte={setEquipeOuverte}
-      lists={lists}
-      optimizer={optimizer}
-      exclusionData={exclusionData}
-      artifacts={artifacts}
-      rapportZoneC={rapportZoneC}
-      groupesMembres={groupesMembres}
-      runeById={runeById}
-      artifactById={artifactById}
-      choisirMembreDeLaListe={choisirMembreDeLaListe}
-      setReleaseConfirm={setReleaseConfirm}
-      setReleaseArtifactsConfirm={setReleaseArtifactsConfirm}
-      setRemoveMemberConfirm={setRemoveMemberConfirm}
-      rappelAuras={rappelAuras !== null}
-      listHasValidated={listHasValidated}
-      setReleaseAllConfirm={setReleaseAllConfirm}
-    />
-  );
+  // La liste de travail (zone C), une fois : dans « Monstre & équipement » au
+  // téléphone, dans les essentiels au bureau.
+  const proprietesListe: MonstresDeLaListeProps = {
+    activeList,
+    activeMembers,
+    ajoutListe,
+    handleAddToList,
+    setEquipeOuverte,
+    lists,
+    optimizer,
+    exclusionData,
+    artifacts,
+    rapportZoneC,
+    groupesMembres,
+    runeById,
+    artifactById,
+    choisirMembreDeLaListe,
+    setReleaseConfirm,
+    setReleaseArtifactsConfirm,
+    setRemoveMemberConfirm,
+    rappelAuras: rappelAuras !== null,
+    listHasValidated,
+    setReleaseAllConfirm,
+  };
+  const zoneCContent = <MonstresDeLaListe {...proprietesListe} />;
 
   // Le geste « Créer » de la fenêtre de création de liste : la liste créée,
   // puis, selon l'intention qui l'a ouverte, l'ajout, la validation ou la
@@ -3288,16 +3281,168 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     };
   }
 
-  return (
-    // ⚠️ **Pleine largeur**, comme RTA/Siège/Mon compte — l'ancienne colonne
-    // bornée à 768 px était le seul écran de l'app à s'en imposer une, et
-    // empilait ~2 000 px de réglages à faire défiler sur un écran large à
-    // moitié vide. La raison d'origine (« une ligne "libellé … champ" étalée
-    // sur tout l'écran devient un aller-retour du regard ») reste vraie et
-    // est traitée AUTREMENT : ce ne sont pas les lignes qui s'étirent, ce
-    // sont les COLONNES qui se juxtaposent (voir la grille ci-dessous) — la
-    // longueur de chaque ligne reste courte.
-    <div className="space-y-5">
+  // Ce que les deux formats partagent hors des réglages : les résultats et
+  // les fenêtres (modales, dialogues), écrits une fois.
+  const blocResultats = (
+    <>
+      {(result || fullSortedCandidates.length > 0) && (
+        <div>
+          <EnteteResultats
+            result={result}
+            compteConfirmes={compteConfirmes}
+            resoudreEquipement={resoudreEquipement}
+            optimiserArtefacts={optimiserArtefacts}
+            adapterArtefactsAuTri={adapterArtefactsAuTri}
+            setAdapterArtefactsAuTri={setAdapterArtefactsAuTri}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            setResultsPage={setResultsPage}
+            realDamage={realDamage}
+            fileArtefacts={fileArtefacts}
+            compteAffiche={compteAffiche}
+          />
+  
+          <DiagnosticsSansResultat
+            result={result}
+            feasibilityDiagnosis={feasibilityDiagnosis}
+            impossibleFeasibility={impossibleFeasibility}
+            blockingDiagnosis={blockingDiagnosis}
+            diagnoseBlockingEnabled={diagnoseBlockingEnabled}
+            runeById={runeById}
+            metric={metric}
+            objective={objective}
+            aurasPropresDe={aurasPropresDe}
+            damageSetup={damageSetup}
+          />
+  
+          {result?.truncated && (
+            <AvisRechercheTronquee result={result} stoppedManually={stoppedManually} />
+          )}
+  
+          {/* ⚠️ minmax calibré à 360px pour que DEUX cartes tiennent par
+              ligne dans le conteneur `max-w-3xl` (768px, voir plus haut) :
+              2×360 + le gap (12px) = 732px, sous les 768px disponibles. Les
+              cartes affichent stats + artéfacts + roue sur une seule LIGNE
+              (voir BuildCandidateCard.tsx), calibrées pour tenir dans cette
+              largeur (`WHEEL_SCALE`/`ARTIFACT_SCALE` = 0,45). */}
+          {/* ⚠️ Les cartes VÉRIFIÉES, puis les places « Vérification… »
+              (`composition`) : aucune carte non vérifiée, pendant la
+              recherche comme après. Une place a la hauteur d'une carte
+              (`useHauteurDesCartes`), pour que rien ne saute quand la carte
+              arrive. */}
+          <GrilleResultats
+            grilleResultatsRef={grilleResultatsRef}
+            composition={composition}
+            runeById={runeById}
+            relicUsageById={relicUsageById}
+            metric={metric}
+            openDetailKey={openDetailKey}
+            onToggleDetail={(key: string) => setOpenDetailKey((cur) => (cur === key ? null : key))}
+            proprietesCarte={proprietesCarte}
+            hauteurCarte={hauteurCarte}
+          />
+  
+          {/* Pagination — remplace l'ancienne troncature dure à 20 : la
+              liste complète (jusqu'à MAX_COLLECTED, voir runeBuildOptim.ts)
+              reste consultable, 20 par page. Flèches précédent/suivant +
+              saisie directe du numéro de page (même convention que les
+              champs numériques de l'app : `type="text"` + `inputMode=
+              "numeric"`, jamais de flèches natives de navigateur — voir
+              NumberField.tsx). */}
+          {totalResultsPages > 1 && (
+            <PaginationResultats
+              setResultsPage={setResultsPage}
+              resultsPage={resultsPage}
+              pageDraft={pageDraft}
+              setPageDraft={setPageDraft}
+              totalResultsPages={totalResultsPages}
+            />
+          )}
+        </div>
+      )}
+    </>
+  );
+  const modaleDegats = (
+    <>
+      {setupOuvert && (
+        <DamageSetupModale
+          onClose={() => setSetupOuvert(false)}
+          echoEtatMonstre={echoEtatMonstre}
+          skills={damageSkills}
+          resolved={resolvedSkill}
+          passifs={offensivePassives}
+          modificateursVit={modificateursVit}
+          setup={damageSetup}
+          setSetup={setDamageSetup}
+          chargement={skillLoading}
+          etroit={etroit}
+          critSiPlusRapide={critSiPlusRapide}
+          bonusDegatsSelonVit={bonusDegatsSelonVit}
+          bonusDegatsStack={bonusDegatsStack}
+          critRateSelonVit={critRateSelonVit}
+          bonusDegatsConditionnel={bonusDegatsConditionnel}
+          bonusParEffetCibleMonstre={bonusParEffetCibleMonstre}
+          bonusParEffetPropre={bonusParEffetPropre}
+          bonusSacrifice={bonusSacrifice}
+          conditionsCombatMonstre={conditionsCombatMonstre}
+          combatStats={combatStats}
+          seuilsPassifEivor={seuilsPassifEivor}
+          elementAttaquant={speciesMonster?.element ?? null}
+          critInterdit={critInterdit}
+        />
+      )}
+    </>
+  );
+  const fenetresListes = (
+    <>
+      <ConfirmationsLiberation
+        lists={lists}
+        releaseConfirm={releaseConfirm}
+        setReleaseConfirm={setReleaseConfirm}
+        releaseArtifactsConfirm={releaseArtifactsConfirm}
+        setReleaseArtifactsConfirm={setReleaseArtifactsConfirm}
+        releaseAllConfirm={releaseAllConfirm}
+        setReleaseAllConfirm={setReleaseAllConfirm}
+        removeMemberConfirm={removeMemberConfirm}
+        setRemoveMemberConfirm={setRemoveMemberConfirm}
+      />
+      {addListPromptOpen && (
+        <OptimizerCreateListDialog
+          listes={lists.lists}
+          libelleAction={addListPromptOpen === 'validate' ? 'Créer et valider' : addListPromptOpen === 'recherche' ? 'Créer' : 'Créer et ajouter'}
+          onValider={creerListeDepuisDialogue}
+          onCancel={() => setAddListPromptOpen(null)}
+        />
+      )}
+      {equipeOuverte && <OptimizerEquipeDialog contexte={lists} listId={equipeOuverte.listId} equipe={equipeOuverte.equipe}
+        data={exclusionData} onValider={lists.setTeams} onClose={() => setEquipeOuverte(null)} />}
+    </>
+  );
+
+  // « Exemplaire » et la fiche : dans « Monstre & équipement » au téléphone,
+  // dans sa carte de la colonne de droite au bureau.
+  const proprietesExemplaire: ExemplaireEtFicheProps = {
+    zoneDRef,
+    sourceOptions,
+    matchesValidatedBuild,
+    unowned,
+    gearSource,
+    pickSource,
+    allSourcesEmpty,
+    zoneDOpen,
+    zoneDList,
+    validatedBadge,
+    selected,
+    selectionFiche,
+    setSelectionFiche,
+    relicUsageById,
+    validateBuildButton,
+  };
+
+  // Au-dessus des réglages, aux deux formats : le bandeau et la phrase
+  // d'introduction.
+  const entete = (
+    <>
       {/* ⚠️ Pas de `useStickyState`/case à fermer, contrairement à
           MobileNotice : ce n'est pas un avertissement ponctuel mais un statut
           qui reste vrai tant que l'outil est en rodage — il doit rester
@@ -3315,6 +3460,198 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         Recherche parmi tes runes possédées ; rien n'est appliqué à ton compte, l'outil est purement
         indicatif — c'est à toi de re-runer dans le jeu.
       </p>
+    </>
+  );
+
+  // ── Format bureau : la page en colonnes (`PageBureau`) ─────────────────
+  // Le format se décide comme partout (`SOUS_LG`, relu dans un volet) ;
+  // l'agencement, ensuite, sur la largeur du conteneur de l'écran. Les mêmes
+  // contenus que le téléphone, dans leurs formes de bureau
+  // (src/components/outils/optimizer/bureau/) : le téléphone garde la grille
+  // ci-dessous, inchangée.
+  // ⚠️ **Les fenêtres (modales, dialogues) hors des deux arbres**, à une place
+  // fixe : changer de format (fenêtre ou volet redimensionné) remonte la page,
+  // jamais une fenêtre ouverte, qui garde son brouillon. Elles passent toutes
+  // par un portail : leur place ici ne change rien au DOM de la page.
+  const pageBureau = sousLg ? null : (
+      <PageBureau
+        entete={entete}
+        liste={
+          <ListeDeTravailBureau
+            listes={listesBureau}
+            recherche={<MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />}
+            monstreActif={selected?.monster ?? null}
+            liste={proprietesListe}
+          />
+        }
+        set={
+          <SetDeRunesCompact
+            setPickerSectionRef={setPickerSectionRef}
+            setPickerInvalid={setPickerInvalid}
+            comboSets={comboSets}
+            onChangeSets={choisirSetsRecherches}
+          />
+        }
+        conditions={
+          <ConditionsBureau
+            excludeBase={excludeBase}
+            setExcludeBase={setExcludeBase}
+            baseOf={baseOf}
+            artifactFloorOf={artifactFloorOf}
+            minStats={minStats}
+            maxStats={maxStats}
+            setMinStats={setMinStats}
+            setMaxStats={setMaxStats}
+          />
+        }
+        principales={<PrincipalesImposeesBureau mainStatsBySlot={mainStatsBySlot} toggleMainStat={toggleMainStat} />}
+        etat={
+          <EtatMonstreEssentiels
+            setup={damageSetup}
+            maj={majDamageSetup}
+            equipe={combatMembre.equipe !== null}
+            motifLead={combatMembre.motif}
+            etroit={etroit}
+            artefacts={artefactsDegats}
+            rappelsBuffs={rappelsBuffs}
+          />
+        }
+        artefacts={
+          <ArtefactsEtReliqueBureau
+            optimiserArtefacts={optimiserArtefacts}
+            setOptimiserArtefacts={setOptimiserArtefacts}
+            artifactMainByKind={artifactMainByKind}
+            setArtifactMainByKind={setArtifactMainByKind}
+            lignesVerrouillees={lignesVerrouillees}
+            setLignesVerrouillees={setLignesVerrouillees}
+            diagnosticVerrous={diagnosticVerrous}
+            sortesFigees={sortesFigees}
+            relicMainChoice={relicMainChoice}
+            setRelicMainChoice={setRelicMainChoice}
+            relicUniqueChoice={relicUniqueChoice}
+            setRelicUniqueChoice={setRelicUniqueChoice}
+            relicMinUpgrade={relicMinUpgrade}
+            setRelicMinUpgrade={setRelicMinUpgrade}
+          />
+        }
+        meilleurs={modeArtefactsSeuls && (
+          <MeilleursArtefactsBureau
+            modeArtefactsSeuls={modeArtefactsSeuls}
+            setArtefactsOuverts={setArtefactsOuverts}
+            artefactsOuverts={artefactsOuverts}
+            critereArtefacts={critereArtefacts}
+            setCritereArtefacts={setCritereArtefacts}
+            setSetupOuvert={setSetupOuvert}
+            sortesFigees={sortesFigees}
+            resolvedSkill={resolvedSkill}
+            sourceSelector={sourceSelector}
+            lists={lists}
+            ownValidatedBuild={ownValidatedBuild}
+            canValidateDisplayed={canValidateDisplayed}
+            handleValidateArtefacts={handleValidateArtefacts}
+            artefactsProposesDejaReserves={artefactsProposesDejaReserves}
+          />
+        )}
+        auras={<SetsAuraBureau setup={damageSetup} maj={majDamageSetup} rappel={rappelAuras !== null} onGuiderResPre={guiderVersResPre} />}
+        exclusion={
+          <ExclusionRunesBureau
+            monstrePrecisBlock={
+              <ExclusionMonstrePrecis
+                exclusionData={exclusionData}
+                selectedUnitKey={selectedUnitKey}
+                selected={selected}
+                excludedSelectors={excludedSelectors}
+                setExcludedSelectors={setExcludedSelectors}
+                bureau
+              />
+            }
+            dejaUtiliseesBlock={
+              <RunesDejaUtilisees
+                excludeUsedRunes={excludeUsedRunes}
+                setExcludeUsedRunes={setExcludeUsedRunes}
+                excludeUsedScope={excludeUsedScope}
+                setExcludeUsedScope={setExcludeUsedScope}
+              />
+            }
+            runesImposeesBlock={<RunesImposees selected={selected} lockedRunes={lockedRunes} setLockedRunes={setLockedRunes} bureau />}
+          />
+        }
+        avances={
+          <ReglagesAvancesBureau>
+            <ReglagesAvancesContenu
+              slotFilterPreset={slotFilterPreset}
+              handleSlotFilterPresetChange={handleSlotFilterPresetChange}
+              dansPanneau={false}
+              estimate={estimate}
+              exhaustiveSearch={exhaustiveSearch}
+              setExhaustiveSearch={setExhaustiveSearch}
+              diagnoseBlockingEnabled={diagnoseBlockingEnabled}
+              setDiagnoseBlockingEnabled={setDiagnoseBlockingEnabled}
+              adaptiveTrancheWeighting={adaptiveTrancheWeighting}
+              setAdaptiveTrancheWeighting={setAdaptiveTrancheWeighting}
+              optimiserArtefacts={optimiserArtefacts}
+              verifierToutesLesCombinaisons={verifierToutesLesCombinaisons}
+              setVerifierToutesLesCombinaisons={setVerifierToutesLesCombinaisons}
+              interrupteurResPrePanneauRef={interrupteurResPrePanneauRef}
+              interrupteurResPreFlottantRef={interrupteurResPreFlottantRef}
+              attentionResPre={attentionResPre}
+              compterAurasResPre={compterAurasResPre}
+              setCompterAurasResPre={setCompterAurasResPre}
+            />
+          </ReglagesAvancesBureau>
+        }
+        // La colonne de droite garde son contenu d'avant la refonte
+        // (exemplaire, estimation, objectif et actions, progression,
+        // résultats), posé à sa place.
+        droite={
+          <div className="space-y-5">
+            <ExemplaireBureau {...proprietesExemplaire} />
+            {estimate && <EstimationPool estimate={estimate} />}
+            <ObjectifEtActions
+              objective={objective}
+              setObjective={setObjective}
+              setSetupOuvert={setSetupOuvert}
+              resumeCombat={resumeCombat}
+              handleSearch={handleSearch}
+              selected={selected}
+              status={status}
+              comboSets={comboSets}
+              exportRecipe={exportRecipe}
+              importFileRef={importFileRef}
+              importRecipe={importRecipe}
+              setStoppedManually={setStoppedManually}
+              stop={stop}
+            />
+            <MessageImportRecette message={importMsg} />
+            <ProgressionRecherche status={status} progress={progress} refusal={refusal} compteAffiche={compteAffiche} />
+            {blocResultats}
+          </div>
+        }
+        colonnes={colonnesBureau}
+        onColonnes={setColonnesBureau}
+        guideComplements={guideComplements}
+      />
+  );
+
+  // ── Format téléphone ───────────────────────────────────────────────────
+  // ⚠️ Les classes de bureau de cette grille (`lg:`, `xl:`) et les cartes qui
+  // ne s'y montrent qu'au bureau (« Réglages avancés » et « Exclusion de
+  // runes » en flottants) ne servent plus : le bureau passe par `PageBureau`
+  // ci-dessus. Elles restent jusqu'à leur retrait, le rendu du téléphone ne
+  // change pas.
+  return (
+    <>
+    {pageBureau ?? (
+    // ⚠️ **Pleine largeur**, comme RTA/Siège/Mon compte — l'ancienne colonne
+    // bornée à 768 px était le seul écran de l'app à s'en imposer une, et
+    // empilait ~2 000 px de réglages à faire défiler sur un écran large à
+    // moitié vide. La raison d'origine (« une ligne "libellé … champ" étalée
+    // sur tout l'écran devient un aller-retour du regard ») reste vraie et
+    // est traitée AUTREMENT : ce ne sont pas les lignes qui s'étirent, ce
+    // sont les COLONNES qui se juxtaposent (voir la grille ci-dessous) — la
+    // longueur de chaque ligne reste courte.
+    <div className="space-y-5">
+      {entete}
 
       {/* ── UNE SEULE grille, à partir de `xl`, pour tout l'écran de
           réglages (Monstre, Critères, Artéfacts, État de mon monstre,
@@ -3380,25 +3717,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             zoneCContent={zoneCContent}
           />
         }
-        exemplaireEtFiche={
-          <ExemplaireEtFiche
-            zoneDRef={zoneDRef}
-            sourceOptions={sourceOptions}
-            matchesValidatedBuild={matchesValidatedBuild}
-            unowned={unowned}
-            gearSource={gearSource}
-            pickSource={pickSource}
-            allSourcesEmpty={allSourcesEmpty}
-            zoneDOpen={zoneDOpen}
-            zoneDList={zoneDList}
-            validatedBadge={validatedBadge}
-            selected={selected}
-            selectionFiche={selectionFiche}
-            setSelectionFiche={setSelectionFiche}
-            relicUsageById={relicUsageById}
-            validateBuildButton={validateBuildButton}
-          />
-        }
+        exemplaireEtFiche={<ExemplaireEtFiche {...proprietesExemplaire} />}
         monstreEquipementTelephone={
           <MonstreEquipementTelephone
             allMonsters={allMonsters}
@@ -3733,37 +4052,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           (une grille de cartes qui, elle, PROFITE de la largeur). */}
       </div>
 
-      {/* ⚠️ Rendue HORS de la grille de réglages : un enfant direct de la
-          grille compterait comme une cellule à part entière. Elle n'a de toute
-          façon aucune place à prendre dans le flux — c'est tout son objet. */}
-      {setupOuvert && (
-        <DamageSetupModale
-          onClose={() => setSetupOuvert(false)}
-          echoEtatMonstre={echoEtatMonstre}
-          skills={damageSkills}
-          resolved={resolvedSkill}
-          passifs={offensivePassives}
-          modificateursVit={modificateursVit}
-          setup={damageSetup}
-          setSetup={setDamageSetup}
-          chargement={skillLoading}
-          etroit={etroit}
-          critSiPlusRapide={critSiPlusRapide}
-          bonusDegatsSelonVit={bonusDegatsSelonVit}
-          bonusDegatsStack={bonusDegatsStack}
-          critRateSelonVit={critRateSelonVit}
-          bonusDegatsConditionnel={bonusDegatsConditionnel}
-          bonusParEffetCibleMonstre={bonusParEffetCibleMonstre}
-          bonusParEffetPropre={bonusParEffetPropre}
-          bonusSacrifice={bonusSacrifice}
-          conditionsCombatMonstre={conditionsCombatMonstre}
-          combatStats={combatStats}
-          seuilsPassifEivor={seuilsPassifEivor}
-          elementAttaquant={speciesMonster?.element ?? null}
-          critInterdit={critInterdit}
-        />
-      )}
-
       <ObjectifEtActions
         objective={objective}
         setObjective={setObjective}
@@ -3796,103 +4084,14 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           que d'attendre l'épuisement complet de l'espace de recherche.
           `result === null` tant que rien n'est trouvé : rien à montrer de
           plus utile que les barres de progression déjà affichées. */}
-      {(result || fullSortedCandidates.length > 0) && (
-        <div>
-          <EnteteResultats
-            result={result}
-            compteConfirmes={compteConfirmes}
-            resoudreEquipement={resoudreEquipement}
-            optimiserArtefacts={optimiserArtefacts}
-            adapterArtefactsAuTri={adapterArtefactsAuTri}
-            setAdapterArtefactsAuTri={setAdapterArtefactsAuTri}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            setResultsPage={setResultsPage}
-            realDamage={realDamage}
-            fileArtefacts={fileArtefacts}
-            compteAffiche={compteAffiche}
-          />
-
-          <DiagnosticsSansResultat
-            result={result}
-            feasibilityDiagnosis={feasibilityDiagnosis}
-            impossibleFeasibility={impossibleFeasibility}
-            blockingDiagnosis={blockingDiagnosis}
-            diagnoseBlockingEnabled={diagnoseBlockingEnabled}
-            runeById={runeById}
-            metric={metric}
-            objective={objective}
-            aurasPropresDe={aurasPropresDe}
-            damageSetup={damageSetup}
-          />
-
-          {result?.truncated && (
-            <AvisRechercheTronquee result={result} stoppedManually={stoppedManually} />
-          )}
-
-          {/* ⚠️ minmax calibré à 360px pour que DEUX cartes tiennent par
-              ligne dans le conteneur `max-w-3xl` (768px, voir plus haut) :
-              2×360 + le gap (12px) = 732px, sous les 768px disponibles. Les
-              cartes affichent stats + artéfacts + roue sur une seule LIGNE
-              (voir BuildCandidateCard.tsx), calibrées pour tenir dans cette
-              largeur (`WHEEL_SCALE`/`ARTIFACT_SCALE` = 0,45). */}
-          {/* ⚠️ Les cartes VÉRIFIÉES, puis les places « Vérification… »
-              (`composition`) : aucune carte non vérifiée, pendant la
-              recherche comme après. Une place a la hauteur d'une carte
-              (`useHauteurDesCartes`), pour que rien ne saute quand la carte
-              arrive. */}
-          <GrilleResultats
-            grilleResultatsRef={grilleResultatsRef}
-            composition={composition}
-            runeById={runeById}
-            relicUsageById={relicUsageById}
-            metric={metric}
-            openDetailKey={openDetailKey}
-            onToggleDetail={(key: string) => setOpenDetailKey((cur) => (cur === key ? null : key))}
-            proprietesCarte={proprietesCarte}
-            hauteurCarte={hauteurCarte}
-          />
-
-          {/* Pagination — remplace l'ancienne troncature dure à 20 : la
-              liste complète (jusqu'à MAX_COLLECTED, voir runeBuildOptim.ts)
-              reste consultable, 20 par page. Flèches précédent/suivant +
-              saisie directe du numéro de page (même convention que les
-              champs numériques de l'app : `type="text"` + `inputMode=
-              "numeric"`, jamais de flèches natives de navigateur — voir
-              NumberField.tsx). */}
-          {totalResultsPages > 1 && (
-            <PaginationResultats
-              setResultsPage={setResultsPage}
-              resultsPage={resultsPage}
-              pageDraft={pageDraft}
-              setPageDraft={setPageDraft}
-              totalResultsPages={totalResultsPages}
-            />
-          )}
-        </div>
-      )}
-
-      <ConfirmationsLiberation
-        lists={lists}
-        releaseConfirm={releaseConfirm}
-        setReleaseConfirm={setReleaseConfirm}
-        releaseArtifactsConfirm={releaseArtifactsConfirm}
-        setReleaseArtifactsConfirm={setReleaseArtifactsConfirm}
-        releaseAllConfirm={releaseAllConfirm}
-        setReleaseAllConfirm={setReleaseAllConfirm}
-        removeMemberConfirm={removeMemberConfirm}
-        setRemoveMemberConfirm={setRemoveMemberConfirm}
-      />
-      {addListPromptOpen && (
-        <OptimizerCreateListDialog
-          listes={lists.lists}
-          libelleAction={addListPromptOpen === 'validate' ? 'Créer et valider' : addListPromptOpen === 'recherche' ? 'Créer' : 'Créer et ajouter'}
-          onValider={creerListeDepuisDialogue}
-          onCancel={() => setAddListPromptOpen(null)}
-        />
-      )}
-      {equipeOuverte && <OptimizerEquipeDialog contexte={lists} listId={equipeOuverte.listId} equipe={equipeOuverte.equipe}
-        data={exclusionData} onValider={lists.setTeams} onClose={() => setEquipeOuverte(null)} />}
+      {blocResultats}
     </div>
+    )}
+    {/* ⚠️ Rendues HORS de la page (et de la grille de réglages, dont un
+        enfant direct compterait comme une cellule) : elles n'ont aucune place
+        à prendre dans le flux — c'est tout leur objet. */}
+    {modaleDegats}
+    {fenetresListes}
+    </>
   );
 }

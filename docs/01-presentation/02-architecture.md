@@ -171,9 +171,13 @@ l'exemplaire `ChoixExemplaire` — zone D —, le sélecteur de listes `Selecteu
 partagées : `src/components/outils/optimizer/constantes.ts` ; types :
 `src/components/outils/optimizer/types.ts`.
 
-Les boîtes de la mise en page de bureau à venir
-([02-app/optimizer/ecran/](../02-app/optimizer/ecran/README.md)) vivent dans
-`src/components/outils/optimizer/bureau/`, pas encore assemblées dans la page : la liste de
+Au format bureau, `OptimizerSection` rend la page en colonnes
+([02-app/optimizer/ecran/](../02-app/optimizer/ecran/README.md)) par `PageBureau`
+(`src/components/outils/optimizer/bureau/PageBureau.tsx`) : racine en requêtes de conteneur,
+agencements A1, A2, A3, contrôle à onglets et colonnes repliables, colonnes fixes en A3 ; ses
+seuils et l'état de départ des onglets viennent de `src/lib/optimizerColonnes.ts`. Le téléphone
+garde la grille des cartes ci-dessus. Les boîtes de cette page vivent dans
+`src/components/outils/optimizer/bureau/` : la liste de
 travail (`ListeDeTravailBureau`), le set de runes compact (`SetDeRunesCompact`), les principales
 imposées (`PrincipalesImposeesBureau`), les conditions (`ConditionsBureau`), l'état du monstre
 réduit aux buffs et au lead (`EtatMonstreEssentiels`) et le contrôle à onglets des colonnes
@@ -183,7 +187,9 @@ celle des meilleurs artéfacts (`MeilleursArtefactsBureau`) ; dans la colonne «
 avancés », les sets d'aura (`SetsAuraBureau`), l'exclusion de runes (`ExclusionRunesBureau`) et les
 réglages avancés (`ReglagesAvancesBureau`), en ligne ; dans la colonne de droite, « Exemplaire »
 (`ExemplaireBureau`), le bloc « Objectif et Rechercher » en forme étroite ou large
-(`ObjectifEtRechercherBureau`) et les résultats (`ResultatsBureau`). Elles se voient seules
+(`ObjectifEtRechercherBureau`) et les résultats (`ResultatsBureau`) — ces deux derniers pas
+encore dans la page, dont la colonne de droite garde la carte de l'objectif et les résultats
+d'avant (`ObjectifEtActions`, et les composants des résultats plus bas). Elles se voient seules
 dans la vue de développement `#/outils/optimizer/gabarits`
 (`src/components/outils/optimizer/gabarits/`, adresse dans `src/lib/optimizerGabarits.ts`) :
 [03-developpeur/vue-des-gabarits.md](../03-developpeur/vue-des-gabarits.md).

@@ -166,7 +166,10 @@ export function testBuffsDePassifEcran() {
   const ecran = source('src/components/outils/OptimizerSection.tsx');
   ok(/skillDetail\?\.com2usId === selectedCom2usId \? rappelsBuffsDePassif\(skillDetail\) : \[\]/.test(ecran),
     'l’écran calcule les rappels sur la fiche du monstre CHOISI (garde d’identité pendant le chargement)');
-  egal((ecran.match(/rappelsBuffs=\{rappelsBuffs\}/g) ?? []).length, 1, 'la carte « État de mon monstre » reçoit les rappels, une fois');
+  // Une fois par format : « État de mon monstre » au téléphone, sa forme
+  // réduite des essentiels au bureau (`EtatMonstreEssentiels`).
+  egal((ecran.match(/rappelsBuffs=\{rappelsBuffs\}/g) ?? []).length, 2, 'la carte « État de mon monstre » reçoit les rappels, une fois par format');
+  ok(/<EtatMonstreEssentiels[^>]*rappelsBuffs=\{rappelsBuffs\}/.test(ecran), '… au bureau, dans les essentiels');
 
   const lecteurs = [...fichiersTs('src'), ...fichiersTs('scripts')].filter((f) =>
     /from '[^']*buffsDePassif'/.test(readFileSync(resolve(racine, f), 'utf8'))

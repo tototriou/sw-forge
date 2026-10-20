@@ -341,8 +341,13 @@ export function testAurasEcranRappel() {
   // contour — : `testRenduOptimizerListeDeTravail` ; son apparition à place
   // réservée, et que rien d'autre de la zone C ne dépend du rappel :
   // `testRendu…OptimizerEcranRappel`.
-  egal(ecran.match(/rappelAuras !== null/g)?.length ?? 0, 2,
-    'source 7c : un seul état, deux rendus — `rappelAuras !== null` lu par « État de mon monstre » et sous la liste, nulle part ailleurs');
+  // Au bureau, la boîte des auras quitte « État de mon monstre » pour la
+  // colonne « Aura, exclusion, avancés » (`SetsAuraBureau`) : un lecteur de
+  // plus, le même état, jamais les deux boîtes montées ensemble (un format
+  // à la fois).
+  egal(ecran.match(/rappelAuras !== null/g)?.length ?? 0, 3,
+    'source 7c : un seul état, deux rendus par format — `rappelAuras !== null` lu par la boîte des auras (« État de mon monstre » au téléphone, `SetsAuraBureau` au bureau) et sous la liste, nulle part ailleurs');
+  ok(/<SetsAuraBureau setup=\{damageSetup\} maj=\{majDamageSetup\} rappel=\{rappelAuras !== null\}/.test(ecran), 'source 7c : au bureau, la boîte des auras reçoit le même état');
   egal(ecran.match(/setTimeout\([^;]*DUREE_ATTENTION_MS\)/g)?.length ?? 0, 2,
     'source 7c : aucune minuterie de plus — celle du rappel et celle de l’ouverture guidée, seules');
   ok(!/setTimeout/.test(carte), 'source 7c : « État de mon monstre » n’a aucune minuterie — il reçoit l’état du rappel, rien de plus');
@@ -413,18 +418,18 @@ export function testAurasEcranGuidage() {
   const guider = entre(ecran, 'function guiderVersResPre() {', '\n  }\n');
   ok(/if \(sousLg\) \{[\s\S]*?onOuvrirMenu\(\);[\s\S]*?return;\s*\}/.test(guider),
     'au doigt : le panneau « Options de recherche » s’ouvre par-dessus la carte, demandé à App.tsx');
-  ok(guider.includes('const ancre = avancesRef.current;') && /defilerPuis\(ancre, \(\) => \{\s*setShowAdvanced\(true\);/.test(guider),
-    'à la souris : défiler vers l’ancre (`avancesRef`), PUIS ouvrir le flottant — l’ouverture est la suite du défilement');
-  ok(guider.indexOf('defilerPuis(ancre') >= 0 && guider.indexOf('setShowAdvanced(true)') > guider.indexOf('defilerPuis(ancre'), '… jamais l’ouverture avant le défilement');
-  const defiler = entre(ecran, 'function defilerPuis(', 'function guiderVersResPre() {');
-  ok(defiler.includes("el.scrollIntoView({ behavior: 'smooth', block: 'center' });") && /addEventListener\('scrollend', fin\)/.test(defiler)
-    && /setTimeout\(fin, 1000\)/.test(defiler) && /const fin = \(\) => \{\s*annuler\(\);\s*suite\(\);/.test(defiler),
-  '… même défilement que « Set de runes recherché », la suite à sa fin (`scrollend`, repli d’une seconde)');
+  // Au bureau, l'interrupteur vit en ligne dans la colonne repliable « Aura,
+  // exclusion, avancés » (la refonte du bureau a retiré le flottant des
+  // réglages avancés) : le guidage ouvre cette colonne par son jeton, que
+  // `PageBureau` résout avec la largeur (`ouvrirColonne`).
+  ok(/setGuideComplements\(\(n\) => \(n \?\? 0\) \+ 1\);/.test(guider) && !guider.includes('setShowAdvanced(true)'),
+    'à la souris : la colonne « Aura, exclusion, avancés » s’ouvre (jeton `guideComplements`), plus de flottant');
   ok(/setAttentionResPre\(\(n\) => \(n \?\? 0\) \+ 1\)/.test(guider), '… puis le surlignage, par un jeton');
   ok(/setTimeout\(\(\) => setAttentionResPre\(null\), DUREE_ATTENTION_MS\)/.test(ecran), 'le surlignage s’efface après DUREE_ATTENTION_MS (3 s)');
-  ok(/sousLg\s*\?\s*menuOuvert\s*\?\s*interrupteurResPrePanneauRef\.current\s*:\s*null\s*:\s*showAdvanced\s*\?\s*interrupteurResPreFlottantRef\.current\s*:\s*null/.test(ecran)
-    && ecran.includes("el.scrollIntoView({ behavior: 'smooth', block: sousLg ? 'center' : 'nearest' })"),
-  'puis l’interrupteur est amené à l’écran dans sa surface ouverte : centré dans le panneau, au plus près sous le flottant');
+  ok(/sousLg\s*\?\s*menuOuvert\s*\?\s*interrupteurResPrePanneauRef\.current\s*:\s*null\s*:\s*interrupteurResPreFlottantRef\.current/.test(ecran)
+    && ecran.includes("el.scrollIntoView({ behavior: 'smooth', block: sousLg ? 'center' : 'nearest' })")
+    && /\}, \[attentionResPre, sousLg, menuOuvert, colonnesBureau\]\);/.test(ecran),
+  'puis l’interrupteur est amené à l’écran dans sa surface ouverte : centré dans le panneau, au plus près dans la colonne, rejoué quand la colonne s’ouvre');
 
   // La cible — cadre permanent au token d'attention, amené à l'écran dans sa
   // surface ouverte (une ref par surface), le même contenu dans les deux :

@@ -43,15 +43,26 @@ const RAPPEL = 'Pense à vérifier les sets d\'aura externes.';
 // son libellé et l'interrupteur, et rien d'autre.
 const cadreCompter = () => interrupteur(COMPTER)?.parentElement?.parentElement ?? null;
 
+// Au bureau, « Réglages avancés » et les sets d'aura vivent en ligne dans la
+// colonne repliable « Aura, exclusion, avancés », ouverte par son onglet.
+const ONGLET_COMPLEMENTS = 'Aura, exclusion, avancés';
+const ongletComplements = () => [...document.querySelectorAll<HTMLButtonElement>('[role="group"][aria-label="Colonnes repliables"] button')]
+  .find((e) => e.textContent?.trim() === ONGLET_COMPLEMENTS);
+const colonneComplementsOuverte = () => ongletComplements()?.getAttribute('aria-pressed') === 'true';
 async function ouvrirReglages(b: BancEcran) {
   if (telephone()) return; // au doigt, le panneau est ouvert par la guidance ou par le banc
-  const pli = [...document.querySelectorAll<HTMLElement>('[aria-expanded]')]
-    .find((e) => visible(e) && e.textContent?.trim() === 'Réglages avancés');
-  if (pli?.getAttribute('aria-expanded') === 'false') await b.geste(() => pli.click());
+  if (!colonneComplementsOuverte()) await b.geste(() => ongletComplements()!.click());
 }
 async function fermerSurfaces(b: BancEcran) {
   if (b.menuOuvert()) await b.geste(() => b.fermerMenu());
-  if (b.etat().showAdvanced) await b.geste(() => b.etat().setShowAdvanced(false));
+  if (!telephone() && colonneComplementsOuverte()) await b.geste(() => ongletComplements()!.click());
+}
+// Au bureau, la grille des sets s'ouvre depuis la liste compacte du set.
+async function ouvrirSets(b: BancEcran) {
+  if (telephone()) return;
+  const champ = [...document.querySelectorAll<HTMLButtonElement>('button')]
+    .find((e) => visible(e) && (e.getAttribute('aria-label') ?? e.textContent ?? '').startsWith('Set de runes recherché'));
+  if (champ && champ.getAttribute('aria-expanded') !== 'true') await b.geste(() => champ.click());
 }
 
 // « Réglages avancés » : les deux interrupteurs agissent sur l'état qu'ils
@@ -108,21 +119,26 @@ export async function preuvesReglagesAvances(b: BancEcran, ouvrirMenu: () => voi
 // colore le cadre de l'interrupteur, amené à l'écran, pendant trois secondes.
 export async function preuvesGuidage(b: BancEcran): Promise<Preuves> {
   const preuves: Preuves = [];
-  const surfaceOuverte = () => (telephone() ? b.menuOuvert() : b.etat().showAdvanced);
+  const surfaceOuverte = () => (telephone() ? b.menuOuvert() : colonneComplementsOuverte());
   const verifierGuidage = async (geste: string) => {
     await attendre(1300);
     const cadre = cadreCompter();
     const r = cadre?.getBoundingClientRect();
-    preuves.push([surfaceOuverte(), `${geste} : la surface des réglages s’ouvre (${telephone() ? 'panneau « Options »' : 'flottant'})`]);
+    preuves.push([surfaceOuverte(), `${geste} : la surface des réglages s’ouvre (${telephone() ? 'panneau « Options »' : 'colonne « Aura, exclusion, avancés »'})`]);
     preuves.push([!!cadre && cadre.classList.contains('border-warn') && cadre.classList.contains('bg-warn-soft'),
       `${geste} : le cadre de l’interrupteur passe au token d’attention`]);
-    preuves.push([!!r && r.top >= 0 && r.bottom <= innerHeight, `${geste} : l’interrupteur est amené à l’écran (${r?.top} → ${r?.bottom} / ${innerHeight})`]);
+    // Au bureau, la colonne fixe où il vit, pour lire un échec. Tolérance d'un
+    // demi-pixel : aligné au bord, le cadre peut finir à une fraction près.
+    const col = document.querySelector('[data-colonne="complements"]')?.getBoundingClientRect();
+    preuves.push([!!r && r.top >= -0.5 && r.bottom <= innerHeight + 0.5, `${geste} : l’interrupteur est amené à l’écran (${r?.top} → ${r?.bottom} / ${innerHeight}`
+      + `${col ? ` ; colonne ${Math.round(col.top)} → ${Math.round(col.bottom)}, page défilée de ${Math.round(scrollY)}` : ''})`]);
     await attendre(3100);
     const apres = cadreCompter();
     preuves.push([!!apres && apres.classList.contains('border-transparent') && !apres.classList.contains('border-warn'),
       `${geste} : surlignage effacé après trois secondes, cadre gardé (bord transparent)`]);
   };
   await fermerSurfaces(b);
+  await ouvrirSets(b);
   const accuracy = bouton('Accuracy');
   preuves.push([!!accuracy && !b.etat().comboSets.includes('accuracy'), 'set Accuracy proposé, pas encore choisi']);
   if (!accuracy) return preuves;
@@ -133,8 +149,11 @@ export async function preuvesGuidage(b: BancEcran): Promise<Preuves> {
   await fermerSurfaces(b);
   await b.geste(() => b.etat().setDamageSetup({ ...b.etat().damageSetup,
     setsAuraExternes: [{ set: 'fight', nombre: 1 }, { set: 'determination', nombre: 1 }, { set: 'enhance', nombre: 1 }] }));
+  // Au bureau, l'ajout vit dans la colonne même où le guidage mène : elle est
+  // ouverte pour atteindre le bouton.
+  await ouvrirReglages(b);
   const ajouter = bouton("Ajouter un set d'aura");
-  preuves.push([!!ajouter && !surfaceOuverte(), '« Ajouter un set d’aura » présent, surfaces fermées']);
+  preuves.push([!!ajouter && (telephone() ? !surfaceOuverte() : true), telephone() ? '« Ajouter un set d’aura » présent, surfaces fermées' : '« Ajouter un set d’aura » présent, dans sa colonne ouverte']);
   if (!ajouter) return preuves;
   await b.geste(() => ajouter.click());
   preuves.push([b.etat().damageSetup.setsAuraExternes?.some((a) => a.set === 'accuracy') === true, 'clic : Accuracy ajouté aux auras externes']);
@@ -152,6 +171,8 @@ export async function preuvesRappelDeuxRendus(b: BancEcran): Promise<Preuves> {
   await b.geste(() => b.etat().choisirMembre('a', b.premier));
   const pli = bouton('Gérer mes listes');
   if (pli?.getAttribute('aria-expanded') === 'false') await b.geste(() => pli.click());
+  // Au bureau, la boîte des auras vit dans la colonne « Aura, exclusion, avancés ».
+  await ouvrirReglages(b);
   const zone = [...document.querySelectorAll<HTMLElement>('[aria-label="Rapport des critères"]')].find(visible)!.parentElement!;
   const messages = () => [...document.querySelectorAll<HTMLElement>('p')].filter((e) => e.textContent?.trim() === RAPPEL);
   const dansZone = () => messages().find((e) => zone.contains(e));
@@ -178,7 +199,7 @@ export async function preuvesRappelDeuxRendus(b: BancEcran): Promise<Preuves> {
   await attendre(300); // l'apparition (200 ms) glisse le message de quelques pixels avant sa place
   const apres = positions();
   preuves.push([!!dansZone() && visible(dansZone()!), 'clic sur un autre exemplaire avec auras : rappel sous la liste']);
-  preuves.push([!!dansBoite() && visible(dansBoite()!), '… et dans la boîte des auras d’« État de mon monstre »']);
+  preuves.push([!!dansBoite() && visible(dansBoite()!), `… et dans la boîte des auras (${telephone() ? '« État de mon monstre »' : 'colonne « Aura, exclusion, avancés »'})`]);
   preuves.push([avant.zone !== null && avant.zone === apres.zone && avant.boite !== null && avant.boite === apres.boite,
     `les deux messages paraissent à leur place réservée, rien ne bouge (${JSON.stringify([avant, apres])})`]);
   const avecRappel = sansMessage();

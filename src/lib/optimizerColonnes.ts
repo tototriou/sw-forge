@@ -6,6 +6,11 @@
 // l'écran, jamais dans `useOptimizerState` — rien à exporter dans une recette,
 // rien à remettre à zéro au changement de monstre (même règle que le
 // dépliement des réglages avancés).
+//
+// Les agencements du bureau (A1, A2, A3) se posent en CSS, par requêtes de
+// conteneur (`@container` à la racine de l'écran) : les seuils ci-dessous en
+// sont la source et la raison, et l'écran lit la même largeur de conteneur
+// pour ce que le CSS ne sait pas dire (l'état de départ, « les deux tiennent »).
 
 export type ColonneRepliable = 'artefacts' | 'complements';
 
@@ -28,6 +33,63 @@ export function colonnesAffichees(etat: ColonnesOuvertes, deuxTiennent: boolean)
   if (deuxTiennent || !(etat.artefacts && etat.complements)) return { artefacts: etat.artefacts, complements: etat.complements };
   const seule = etat.derniere ?? 'artefacts';
   return { artefacts: seule === 'artefacts', complements: seule === 'complements' };
+}
+
+// Ouvrir une colonne sans jamais la refermer (le guidage vers l'interrupteur
+// des auras RES/PRE, qui vit dans « Aura, exclusion, avancés »). L'autre reste
+// dans l'état : `colonnesAffichees` n'en montre qu'une là où une seule tient.
+export function ouvrirColonne(etat: ColonnesOuvertes, colonne: ColonneRepliable): ColonnesOuvertes {
+  return { ...etat, [colonne]: true, derniere: colonne };
+}
+
+// ── Agencements du bureau (docs/02-app/optimizer/ecran/README.md, « Ordre
+// d'usage et grille » et « Colonnes repliables selon la largeur ») ──────────
+// Les largeurs déclarées des boîtes, d'où se calcule chaque seuil : un seuil se
+// pose là où l'agencement suivant tient, jamais réglé au pixel. Les composants
+// de bureau déclarent les mêmes largeurs (`LARGEUR_*` de
+// src/components/outils/optimizer/bureau/), un test les compare.
+export const LARGEURS_BUREAU = { essentiels: 548, gouttiere: 16, artefacts: 320, complements: 340, exemplaire: 616 } as const;
+
+const L = LARGEURS_BUREAU;
+// À droite des essentiels : leur largeur et la gouttière.
+const DROITE_DES_ESSENTIELS = L.essentiels + L.gouttiere;
+
+export const SEUILS_BUREAU = {
+  // A2 : une colonne repliable (la plus large) ou le bloc étroit de 340 tient
+  // à droite des essentiels.
+  a2: DROITE_DES_ESSENTIELS + Math.max(L.artefacts, L.complements),
+  // A3 : « Exemplaire » tient à droite des essentiels.
+  a3: DROITE_DES_ESSENTIELS + L.exemplaire,
+  // Une colonne insérée entre les essentiels et « Exemplaire ».
+  artefactsInseree: DROITE_DES_ESSENTIELS + L.artefacts + L.gouttiere + L.exemplaire,
+  complementsInseree: DROITE_DES_ESSENTIELS + L.complements + L.gouttiere + L.exemplaire,
+  // Les deux, côte à côte.
+  deuxInserees: DROITE_DES_ESSENTIELS + L.artefacts + L.gouttiere + L.complements + L.gouttiere + L.exemplaire,
+} as const;
+
+export type AgencementBureau = 'A1' | 'A2' | 'A3';
+
+// L'agencement d'une largeur de conteneur (format bureau seulement : sous 728,
+// c'est le format téléphone qui s'applique, choisi par l'app).
+export function agencementBureau(largeur: number): AgencementBureau {
+  return largeur >= SEUILS_BUREAU.a3 ? 'A3' : largeur >= SEUILS_BUREAU.a2 ? 'A2' : 'A1';
+}
+
+// Les deux colonnes ne s'affichent ensemble qu'insérées côte à côte ; partout
+// ailleurs, une seule à la fois.
+export function deuxColonnesTiennent(largeur: number | null): boolean {
+  return largeur != null && largeur >= SEUILS_BUREAU.deuxInserees;
+}
+
+// L'état de départ, tant que l'utilisateur n'a touché à aucun onglet :
+// « Artéfacts et relique » ouverte en A1, en A2 et là où elle s'insère ; fermée
+// en A3 en dessous, où elle s'ouvrirait en panneau superposé aux résultats
+// (aucun panneau superposé ouvert d'office). « Aura, exclusion, avancés »
+// fermée. Largeur inconnue (rendu serveur, avant la première mesure) : comme
+// une largeur où elle s'insère.
+export function colonnesParDefaut(largeur: number | null): ColonnesOuvertes {
+  const superposee = largeur != null && largeur >= SEUILS_BUREAU.a3 && largeur < SEUILS_BUREAU.artefactsInseree;
+  return superposee ? AUCUNE_COLONNE : { artefacts: true, complements: false, derniere: 'artefacts' };
 }
 
 // Le clic sur un onglet. Recliquer l'onglet affiché referme sa colonne ;

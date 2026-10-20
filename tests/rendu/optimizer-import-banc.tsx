@@ -261,9 +261,17 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   } else {
     const ancre = bouton('Importer une équipe');
     const recherche = [...document.querySelectorAll<HTMLInputElement>('input[placeholder="Rechercher un monstre…"]')].find(visible)!;
-    const choisi = [...document.querySelectorAll('span')].find(e => visible(e) && e.textContent === 'Monstre 1'
-      && position(e).y >= position(recherche).y + position(recherche).height && position(e).y + position(e).height <= position(ancre).y);
-    verifier(!!choisi, 'le monstre choisi reste entre sa recherche et les contrôles de liste, sans bouton intercalé');
+    // Bureau : la liste de travail ouvre les essentiels — « Liste active » et
+    // l'import en tête, puis la carte de la liste, dont la rangée du titre
+    // porte la recherche et, à sa droite, le monstre choisi. Téléphone : le
+    // monstre choisi entre sa recherche et les contrôles de liste.
+    const auBureau = innerWidth >= 1024;
+    const choisi = [...document.querySelectorAll('span')].find(e => visible(e) && e.textContent === 'Monstre 1' && (auBureau
+      ? position(e).x >= position(recherche).x + position(recherche).width && position(e).y >= position(recherche).y
+        && position(e).y + position(e).height <= position(recherche).y + position(recherche).height && position(e).y >= position(ancre).y + position(ancre).height
+      : position(e).y >= position(recherche).y + position(recherche).height && position(e).y + position(e).height <= position(ancre).y));
+    verifier(!!choisi, auBureau ? 'bureau : le monstre choisi à droite de sa recherche, sur la rangée du titre de la liste, sous l’import'
+      : 'le monstre choisi reste entre sa recherche et les contrôles de liste, sans bouton intercalé');
     const pliListe = bouton('Gérer mes listes');
     if (pliListe) await geste(() => pliListe.click());
     const selecteurListe = bouton('Ancienne - Guilde');

@@ -42,10 +42,13 @@ Le reste de l'outil (listes, import d'équipes, exclusion, interruption) est dan
 
 ## Mise en page d'ensemble
 
-> **Cible de la refonte de l'écran de bureau.** Le code ne la suit pas
-> encore : il rend la grille décrite dans
-> [Grille du code actuel](#grille-du-code-actuel). Le format téléphone
-> garde sa propre mise en page.
+> **Refonte de l'écran de bureau, en cours.** Le code suit cette mise en
+> page ([PageBureau.tsx](src/components/outils/optimizer/bureau/PageBureau.tsx)),
+> sauf dans la colonne de droite : elle garde encore, empilés, « Exemplaire »,
+> la ligne d'estimation, la carte de l'objectif et des actions, la
+> progression et les résultats d'avant ; le bloc « Objectif et Rechercher »
+> n'y est pas encore. Le format téléphone garde sa propre mise en page
+> ([Grille du code actuel](#grille-du-code-actuel)).
 
 Au format bureau, tablette tactile comprise (même mise en page, densité du
 doigt), l'écran de l'Optimizer est fait de **quatre colonnes**, de gauche à
@@ -111,9 +114,12 @@ profite directement de la largeur (davantage de cartes par ligne).
 
 ## Ordre d'usage et grille
 
-> **Cible de la refonte de l'écran de bureau.** Le code ne la suit pas
-> encore : il rend la grille décrite dans
-> [Grille du code actuel](#grille-du-code-actuel).
+> **Refonte de l'écran de bureau, en cours.** Le code suit cette mise en
+> page ([PageBureau.tsx](src/components/outils/optimizer/bureau/PageBureau.tsx)),
+> sauf dans la colonne de droite : elle garde encore, empilés, « Exemplaire »,
+> la ligne d'estimation, la carte de l'objectif et des actions, la
+> progression et les résultats d'avant ; le bloc « Objectif et Rechercher »
+> n'y est pas encore.
 
 ⚠️ **L'ordre d'usage commande la mise en page :**
 
@@ -180,6 +186,12 @@ que dessinent Chromium et Electron sous Windows.
 | 2560 plein | 2 254 px | A3, les deux insérées |
 
 ## Panneaux repliables
+
+> **Avant la refonte du bureau.** Au bureau, « Réglages avancés » et
+> « Exclusion de runes » sont désormais en ligne dans la colonne « Aura,
+> exclusion, avancés » ([Mise en page d'ensemble](#mise-en-page-densemble)) :
+> les cartes repliées et leurs flottants décrits ici ne s'affichent plus à
+> aucun format, et restent dans le code jusqu'à leur retrait.
 
 ⚠️ **« Réglages avancés » ne pousse jamais rien en se dépliant** : la
 partie Critères de recherche ne se déplace pas vers le bas quand on le
@@ -251,10 +263,13 @@ options ».
 
 ## Placement et adaptation à la largeur
 
-> **Cible de la refonte de l'écran de bureau.** Le code ne la suit pas
-> encore : il rend la grille décrite dans
-> [Grille du code actuel](#grille-du-code-actuel). Le format téléphone est
-> décrit dans [Au format téléphone](#au-format-téléphone).
+> **Refonte de l'écran de bureau, en cours.** Le code suit cette mise en
+> page ([PageBureau.tsx](src/components/outils/optimizer/bureau/PageBureau.tsx)),
+> sauf dans la colonne de droite : elle garde encore, empilés, « Exemplaire »,
+> la ligne d'estimation, la carte de l'objectif et des actions, la
+> progression et les résultats d'avant ; le bloc « Objectif et Rechercher »
+> n'y est pas encore. Le format téléphone est décrit dans
+> [Au format téléphone](#au-format-téléphone).
 
 ### D'abord le format, ensuite l'agencement
 
@@ -375,9 +390,12 @@ les contrôles du panneau prennent toute la largeur.** Points tenus :
 
 ### Grille du code actuel
 
-Ce que rend aujourd'hui
+Ce que rendait
 [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx) au
-bureau : **une seule grille à partir de `xl`** (`grid gap-5 items-start
+bureau avant la refonte ; la même grille sert encore le format téléphone,
+où ses classes `lg:` et `xl:` ne s'appliquent pas, et ses cartes de bureau
+(dont les deux flottants de [Panneaux repliables](#panneaux-repliables))
+restent dans le code jusqu'à leur retrait : **une seule grille à partir de `xl`** (`grid gap-5 items-start
 xl:grid-cols-[1.35fr_1fr]`). Rangée 1, « Monstre & équipement » pleine
 largeur (`xl:col-span-2`), recherche à gauche et fiche d'équipement à
 droite, sa grille interne au même ratio que la page ; colonne 1,

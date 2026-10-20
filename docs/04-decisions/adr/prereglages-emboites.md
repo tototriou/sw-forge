@@ -12,7 +12,8 @@ préréglage de la recherche, plus, compartiment par compartiment, ce que
 retient chaque préréglage plus étroit, construit avec ses propres
 paramètres (son pool par emplacement, son `bucketCap`, ses bornes de sets).
 Aucun `bucketCap` n'est agrandi. La chaîne part de Bas : Moyen, le défaut,
-contient Bas.
+contient Bas. Chaque préréglage d'une moitié se construit **dans son propre
+Worker, en même temps que les autres** ; l'union se fait ensuite.
 
 ## Raisons
 
@@ -50,6 +51,19 @@ contient Bas.
 - **Emboîter à partir de Moyen seulement**, Moyen inchangé et Bas hors de
   la chaîne (possibilité écartée) : Moyen, le défaut, continuait de perdre
   des builds valides de Bas.
+- **Construire les préréglages l'un après l'autre dans le Worker de chaque
+  moitié** (possibilité écartée) : la construction s'allonge de celle de
+  chaque préréglage plus étroit, de l'ordre de plusieurs secondes sur une
+  recherche lourde à Moyen, ce qui n'est pas acceptable.
+- **Une seule passe sur le pool du préréglage de la recherche, qui
+  remplirait en même temps la rétention de chaque préréglage plus étroit**
+  (possibilité écartée) : elle ne retient pas les mêmes demi-builds que la
+  construction propre d'un préréglage plus étroit. L'ordre de son pool
+  n'est pas une sous-suite de celui du préréglage de la recherche, et la
+  rétention départage les scores égaux, fréquents, par l'ordre d'arrivée :
+  parcouru dans l'ordre du pool de Moyen, Bas garde quelques centaines de
+  demi-builds différents sur plus de 100 000 par moitié, et Bas ne serait
+  plus inclus dans Moyen.
 
 ## Conséquences
 
@@ -60,8 +74,11 @@ contient Bas.
   ajoutés prennent leur place dans l'ordre d'exploration : une recherche
   arrêtée par le filet de temps ou le plafond de candidats peut rendre
   d'autres builds que le préréglage plus étroit arrêté au même point.
-- **Chaque moitié construit un préréglage de plus par préréglage plus
-  étroit**, et l'appariement voit les paires des demi-builds ajoutés ; la
+- **Un Worker de construction de plus par préréglage plus étroit et par
+  moitié** (de 2 à Bas jusqu'à 8 à Extrême) : la construction dure à peu
+  près celle du préréglage de la recherche, le plus coûteux, et les
+  compartiments de chaque préréglage passent par le Worker de recherche
+  avant l'union. L'appariement voit les paires des demi-builds ajoutés ; la
   progression de la construction compte les runes de tous les préréglages
   construits.
 - La rétention et son union :

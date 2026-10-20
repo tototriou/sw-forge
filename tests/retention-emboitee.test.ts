@@ -13,8 +13,17 @@
 // 4. les builds valides, sur un profil du harnais, recherche complète :
 //    Bas ⊆ Moyen ⊆ Haut ⊆ Extrême, et l'ancienne rétention de Moyen (un seul
 //    préréglage) incluse dans la nouvelle ;
-// 5. la coquille Node des Workers de moitié rend la même union ;
-// 6. l'union refuse des préréglages non emboîtés.
+// 5. la construction en parallèle (un fil par moitié et par préréglage,
+//    `construireMoitiesEmboitees`, le chemin de l'écran et de la coquille Node)
+//    rend EXACTEMENT la construction séparée, préréglage après préréglage
+//    (`construireMoitie` d'un bloc, la référence), compartiment par
+//    compartiment et ordre compris : ajouts en Haut et en Extrême, venus de
+//    plusieurs préréglages à la fois, pools différents, ordres `objective` et
+//    `potential`, fils qui finissent dans le désordre ;
+// 6. l'union refuse des préréglages non emboîtés ;
+// 7. témoin du choix des fils séparés : parcouru dans l'ordre du pool large
+//    (une seule passe), un préréglage plus étroit ne retient pas les mêmes
+//    demi-builds que sa construction propre.
 // Voir docs/03-developpeur/optimizer/moteur/elagages.md § Préréglages emboîtés.
 
 import { BaseStats, RuneDetail } from '../src/types';
@@ -33,6 +42,8 @@ import {
   totalPairCount,
 } from '../src/lib/runeBuildOptim';
 import { apparier, construireMoitie, totalConstruction } from '../src/lib/rechercheRunes';
+import { LancerConstruction, construireMoitiesEmboitees, requetesDeLaMoitie } from '../src/lib/constructionEmboitee';
+import { construireMoitieRapide } from '../src/lib/constructionRapide';
 import { UnionDesRetentions } from '../src/lib/retentionEmboitee';
 import { StatKey } from '../src/lib/effects';
 import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
@@ -63,8 +74,28 @@ function parametres(pool: RuneDetail[], requirement: BuildRequirement, slotFilte
 }
 
 const seul = (p: PreparedSearch): PreparedSearch => ({ ...p, cransEmboites: [] });
-const moitie = (p: PreparedSearch, half: 'A' | 'B', slots: readonly [number, number, number]): Bucket[] =>
-  drain(construireMoitie(half, slots, p, half === 'A' ? p.maxSetsForA : p.maxSetsForB, 'objective'));
+type Ordre = 'potential' | 'relevance' | 'combined' | 'objective';
+const moitie = (p: PreparedSearch, half: 'A' | 'B', slots: readonly [number, number, number], ordre: Ordre = 'objective'): Bucket[] =>
+  drain(construireMoitie(half, slots, p, half === 'A' ? p.maxSetsForA : p.maxSetsForB, ordre));
+
+/**
+ * Un lanceur DANS ce fil, qui fait finir les fils dans le désordre (le
+ * préréglage le plus étroit d'abord) et relaie la progression de chacun.
+ */
+function lanceurDesordonne(): LancerConstruction {
+  let rang = 0;
+  return (requete, progression) => {
+    const delai = 40 - 10 * (rang++ % 4);
+    const gen = construireMoitie(requete.half, requete.slotIdxs, requete, requete.otherHalfMaxSets, requete.combosOrderMode);
+    let step = gen.next();
+    while (!step.done) {
+      progression(step.value.scanned, step.value.total);
+      step = gen.next();
+    }
+    const buckets = step.value;
+    return new Promise((resolve) => setTimeout(() => resolve(buckets), delai));
+  };
+}
 
 /* 1. Les pools ---------------------------------------------------------- */
 
@@ -233,6 +264,23 @@ function testBuildsValides() {
   egal(manquants(reduitSeul.cles, reduit.cles), 0, `Moyen à bucketCap 500 : ses ${reduitSeul.cles.size} builds sont gardés par l'union`);
   egal(manquants(res.get(40)!, reduit.cles), 0, `Moyen à bucketCap 500 ∪ Bas : contient les ${res.get(40)!.size} builds valides de Bas`);
   ok(reduit.cles.size > reduitSeul.cles.size, `Moyen à bucketCap 500 : l'union gagne des builds (${reduitSeul.cles.size} → ${reduit.cles.size})`);
+  // Pools DIFFÉRENTS d'un préréglage à l'autre, à leurs `bucketCap` dérivés
+  // (aucun override) : 150 runes par emplacement, aucun set ; Moyen seul y
+  // perd des builds valides de Bas, que l'union rend.
+  const pool = randomPool(mulberry32(4300), 150, SETS_JOKER);
+  const requirement: BuildRequirement = { sets: [], minStats: { spd: 400, cr: 185, cd: 355 } };
+  const synth = new Map<number, Set<string>>();
+  for (const cap of [40, 80, 150]) {
+    const r = rechercher(parametres(pool, requirement, cap));
+    ok(r.complet, `150 runes · ${cap} : recherche complète (${r.cles.size} builds valides)`);
+    synth.set(cap, r.cles);
+  }
+  egal([manquants(synth.get(40)!, synth.get(80)!), manquants(synth.get(40)!, synth.get(150)!), manquants(synth.get(80)!, synth.get(150)!)], [0, 0, 0],
+    '150 runes, pools différents : Bas ⊆ Moyen ⊆ Haut en builds valides');
+  const ancienMoyen = rechercher(parametres(pool, requirement, 80), true);
+  egal(manquants(ancienMoyen.cles, synth.get(80)!), 0, `150 runes : l'ancien Moyen (${ancienMoyen.cles.size} builds) est inclus dans le nouveau (${synth.get(80)!.size})`);
+  ok(manquants(synth.get(40)!, ancienMoyen.cles) > 0 && synth.get(80)!.size > ancienMoyen.cles.size,
+    `150 runes : l'ancien Moyen perdait ${manquants(synth.get(40)!, ancienMoyen.cles)} builds valides de Bas, le nouveau en gagne ${synth.get(80)!.size - ancienMoyen.cles.size}`);
 }
 
 /* 5. La coquille Node des Workers de moitié ----------------------------- */
@@ -243,6 +291,85 @@ async function testCoquilleNode(pool: RuneDetail[], requirement: BuildRequiremen
   const r = await construireMoitiesEnParallele(moyen.p, params, await ensureBuildHalfBundle());
   ok(empreinte(r.bucketsA) === empreinte(moyen.union.A) && empreinte(r.bucketsB) === empreinte(moyen.union.B),
     'coquille Node (worker_threads de moitié) : la même union que le chemin séquentiel, compartiment par compartiment');
+}
+
+/* 5 bis. Parallèle contre séquentiel, ajouts de plusieurs préréglages ---- */
+
+/** La construction en parallèle (lanceur dans ce fil, fils dans le désordre) contre `construireMoitie` d'un bloc, et sa progression. */
+async function comparerParallele(p: PreparedSearch, nom: string, ordre: Ordre, reference?: Record<'A' | 'B', Bucket[]>) {
+  const vus: Record<'A' | 'B', { scanned: number; total: number }[]> = { A: [], B: [] };
+  const par = await construireMoitiesEmboitees(p, ordre, lanceurDesordonne(), (half, scanned, total) => vus[half].push({ scanned, total }));
+  for (const { half, slots } of MOITIES) {
+    const ref = reference?.[half] ?? moitie(p, half, slots, ordre);
+    ok(empreinte(half === 'A' ? par.bucketsA : par.bucketsB) === empreinte(ref),
+      `${nom} · moitié ${half} : en parallèle (${p.cransEmboites.length + 1} fils, finis dans le désordre) = construction séparée, compartiment par compartiment, ordre compris`);
+    const total = totalConstruction(p, slots);
+    const v = vus[half];
+    ok(v.length > 0 && v.every((x, i) => x.total === total && (i === 0 || x.scanned >= v[i - 1].scanned)) && v[v.length - 1].scanned === total,
+      `${nom} · moitié ${half} : progression en un compte (total ${total}), qui ne recule pas et finit au total`);
+  }
+}
+
+async function testPlusieursPrereglages(etages: Map<number, Etage>, pool150: RuneDetail[], requirement150: BuildRequirement) {
+  // 400 runes par emplacement, aucun set : quatre pools différents, et
+  // chaque préréglage seul perd des demi-builds de PLUSIEURS préréglages plus
+  // étroits — Haut de Bas et de Moyen, Extrême de Bas et de Moyen.
+  const pool = randomPool(mulberry32(4400), 400, SETS_JOKER);
+  const requirement: BuildRequirement = { sets: [], minStats: { spd: 150, cr: 45, cd: 110 } };
+  const p = new Map(PRESETS.map((x) => [x.cap, prepareSearch(parametres(pool, requirement, x.cap))!]));
+  const seulA = new Map(PRESETS.map((x) => [x.cap, cles(moitie(seul(p.get(x.cap)!), 'A', [0, 1, 2]))]));
+  egal(new Set(PRESETS.map((x) => p.get(x.cap)!.filtered[0].length)).size, 4, '400 runes : quatre pools de tailles différentes');
+  const unionExtremeA = moitie(p.get(300)!, 'A', [0, 1, 2]);
+  for (const large of [150, 300]) {
+    const union = large === 300 ? unionExtremeA : moitie(p.get(large)!, 'A', [0, 1, 2]);
+    const cu = cles(union);
+    const etroits = PRESETS.filter((x) => x.cap < large);
+    const perdusSeul = etroits.map((x) => manquants(seulA.get(x.cap)!, seulA.get(large)!));
+    ok(perdusSeul.filter((n) => n > 0).length >= 2,
+      `400 runes · cap ${large} · moitié A : seul, il perd des demi-builds de plusieurs préréglages plus étroits (${etroits.map((x, i) => `${x.label} ${perdusSeul[i]}`).join(', ')})`);
+    egal(etroits.map((x) => manquants(seulA.get(x.cap)!, cu)), etroits.map(() => 0), `400 runes · cap ${large} · moitié A : l'union les contient tous`);
+    const attendu = new Set([...seulA.get(large)!, ...etroits.flatMap((x) => [...seulA.get(x.cap)!])]);
+    egal(cu.size, attendu.size, `400 runes · cap ${large} · moitié A : l'union est exactement le préréglage seul plus les manquants (${seulA.get(large)!.size} → ${cu.size})`);
+    ok(union.every((b) => ordonnerCombos(b.combos, p.get(large)!, 'objective', []).every((c, i) => c === b.combos[i])),
+      `400 runes · cap ${large} · moitié A : ajouts rangés selon combosOrderMode`);
+  }
+  // Le chemin de la coquille Node : vrais worker_threads, Extrême (4 fils par moitié).
+  const extreme = p.get(300)!;
+  const reference = { A: unionExtremeA, B: moitie(extreme, 'B', [3, 4, 5]) };
+  const r = await construireMoitiesEnParallele(extreme, parametres(pool, requirement, 300), await ensureBuildHalfBundle());
+  ok(empreinte(r.bucketsA) === empreinte(reference.A) && empreinte(r.bucketsB) === empreinte(reference.B),
+    '400 runes · Extrême : coquille Node (8 worker_threads) = construction séparée, compartiment par compartiment, ordre compris');
+  // Dans ce fil, fils dans le désordre : ordres `objective` et `potential`, Moyen et Haut.
+  await comparerParallele(etages.get(80)!.p, 'sans set · Moyen · objective', 'objective', etages.get(80)!.union);
+  // `potential` : Moyen sur 150 runes (ajouts de Bas), Haut sur 400 runes (ajouts de Moyen et de Bas).
+  for (const [cap, poolP, nomP] of [[80, pool150, 'sans set'], [150, pool, '400 runes']] as const) {
+    const q = prepareSearch(parametres(poolP, requirement150, cap))!;
+    const ref = { A: moitie(q, 'A', [0, 1, 2], 'potential'), B: moitie(q, 'B', [3, 4, 5], 'potential') };
+    const seulPot = moitie(seul(q), 'A', [0, 1, 2], 'potential');
+    ok(cles(ref.A).size > cles(seulPot).size, `${nomP} · cap ${cap} · potential : l'union ajoute des demi-builds (${cles(seulPot).size} → ${cles(ref.A).size})`);
+    let ordreRelatif = true;
+    ref.A.forEach((b, i) => {
+      const dans = new Set(seulPot[i].combos.map(cleCombo));
+      if (b.combos.map(cleCombo).filter((k) => dans.has(k)).join(';') !== seulPot[i].combos.map(cleCombo).join(';')) ordreRelatif = false;
+    });
+    ok(ordreRelatif, `${nomP} · cap ${cap} · potential : l'ordre relatif du préréglage seul est gardé`);
+    await comparerParallele(q, `${nomP} · cap ${cap} · potential`, 'potential', ref);
+  }
+}
+
+/* 7. Témoin : une seule passe dans l'ordre du pool large --------------- */
+
+function testUneSeulePasse(etages: Map<number, Etage>) {
+  const p = etages.get(80)!.p;
+  const cran = p.cransEmboites[0];
+  const inversions = cran.indices.map((idx) => idx.filter((x, i) => i > 0 && x < idx[i - 1]).length);
+  ok(inversions.some((n) => n > 0), `témoin : l'ordre du pool de Bas n'est pas une sous-suite de celui de Moyen (inversions par emplacement : ${inversions.join('/')})`);
+  const rq = requetesDeLaMoitie(p, 'A', 'objective')[1];
+  const dansLOrdreLarge = cran.indices.map((idx, s) => [...idx].sort((a, b) => a - b).map((i) => p.filtered[s][i]));
+  const propre = cles(drain(construireMoitieRapide('A', [0, 1, 2], rq, rq.otherHalfMaxSets, 'objective')));
+  const large = cles(drain(construireMoitieRapide('A', [0, 1, 2], { ...rq, filtered: dansLOrdreLarge }, rq.otherHalfMaxSets, 'objective')));
+  ok(manquants(propre, large) > 0,
+    `témoin : Bas parcouru dans l'ordre du pool de Moyen perd ${manquants(propre, large)} de ses ${propre.size} demi-builds (scores de tranche égaux départagés par l'ordre d'arrivée) — d'où un fil par préréglage`);
 }
 
 /* 6. Refus -------------------------------------------------------------- */
@@ -302,5 +429,7 @@ export default async function testRetentionEmboitee() {
   testProgressionEtTraceur(pool, requirement, etages);
   testBuildsValides();
   await testCoquilleNode(pool, requirement, etages);
+  await testPlusieursPrereglages(etages, pool, requirement);
   testRefus(etages);
+  testUneSeulePasse(etages);
 }

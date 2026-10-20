@@ -45,6 +45,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { build } from 'esbuild';
 import { Bucket, PreparedSearch, SearchParams } from '../../src/lib/runeBuildOptim';
+import { construireMoitiesEmboitees } from '../../src/lib/constructionEmboitee';
 // ⚠️ `import type` IMPÉRATIF : `build-half-worker.ts` exécute du code au
 // chargement (`workerData`, `parentPort!`) — c'est un point d'entrée de fil,
 // jamais un module à importer. Même précaution que perf-battery.ts.
@@ -108,10 +109,14 @@ export interface MoitiesConstruites {
 }
 
 /**
- * ⚠️ Reproduit la topologie réelle : les deux `Worker` sont lancés AVANT le
- * premier `await`, donc vraiment concurrents. Les créer dans un `await`
- * successif les rendrait séquentiels tout en donnant l'apparence du
- * parallélisme — c'est la précaution que `perf-battery.ts` documente déjà.
+ * ⚠️ Reproduit la topologie réelle (`construireMoitiesEmboitees`, le même
+ * orchestrateur que `runeBuildOptim.worker.ts`) : un fil par moitié ET par
+ * préréglage construit (préréglages emboîtés), tous lancés AVANT le premier
+ * `await`, donc vraiment concurrents. Les créer dans un `await` successif
+ * les rendrait séquentiels tout en donnant l'apparence du parallélisme —
+ * c'est la précaution que `perf-battery.ts` documente déjà. `msA`,
+ * `memoireA`, `progressionA` (et B) sont ceux du fil du préréglage de la
+ * recherche ; les préréglages plus étroits ne sont jamais horodatés.
  */
 export async function construireMoitiesEnParallele(
   prepared: PreparedSearch,
@@ -124,32 +129,23 @@ export async function construireMoitiesEnParallele(
    */
   horodaterProgression = false
 ): Promise<MoitiesConstruites> {
-  const commun = {
-    filtered: prepared.filtered,
-    distinctKeys: prepared.distinctKeys,
-    constrainedKeys: prepared.constrainedKeys,
-    retentionKeys: prepared.retentionKeys,
-    minEntries: prepared.minEntries,
-    bucketCap: prepared.bucketCap,
-    jokerCredit: prepared.jokerCredit,
-    requiredPieces: prepared.requiredPieces,
-    base: prepared.base,
-    objectiveKeys: prepared.objectiveKeys,
-    cransEmboites: prepared.cransEmboites,
-    // ⚠️ Relayé depuis `params` : sans lui, le worker retomberait sur le
-    // défaut interne de `buildBuckets` et ignorerait silencieusement ce que
-    // la recette demandait — trou déjà rencontré côté navigateur.
-    combosOrderMode: params.combosOrderMode,
-    horodaterProgression,
-  };
+  const propres: Partial<Record<'A' | 'B', BuildHalfWorkerResult>> = {};
   const t0 = performance.now();
-  const [a, b] = await Promise.all([
-    lancerFil(chemin, { ...commun, half: 'A', slotIdxs: [0, 1, 2], otherHalfMaxSets: prepared.maxSetsForA }),
-    lancerFil(chemin, { ...commun, half: 'B', slotIdxs: [3, 4, 5], otherHalfMaxSets: prepared.maxSetsForB }),
-  ]);
+  // ⚠️ `combosOrderMode` relayé depuis `params` : sans lui, le fil
+  // retomberait sur le défaut interne de la construction et ignorerait
+  // silencieusement ce que la recette demandait.
+  const { bucketsA, bucketsB } = await construireMoitiesEmboitees(prepared, params.combosOrderMode, async (requete) => {
+    // Le fil du préréglage de la recherche est celui qui porte le pool entier.
+    const propre = requete.filtered === prepared.filtered;
+    const r = await lancerFil(chemin, { ...requete, horodaterProgression: horodaterProgression && propre });
+    if (propre) propres[requete.half] = r;
+    return r.buckets;
+  });
+  const a = propres.A!;
+  const b = propres.B!;
   return {
-    bucketsA: a.buckets,
-    bucketsB: b.buckets,
+    bucketsA,
+    bucketsB,
     msA: a.ms,
     msB: b.ms,
     memoireA: a.memoire,

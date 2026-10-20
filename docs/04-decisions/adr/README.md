@@ -12,7 +12,7 @@ toujours ce qui est en vigueur : une décision qui change se réécrit.
 | [documentation-sans-outillage.md](documentation-sans-outillage.md) | La documentation se parcourt par ses README et tient sans outillage maison ; le dépôt porte ce qui est livré et ce qui permet de le comprendre, pas l'organisation du travail. |
 | [choix-de-recherche-degats-reels.md](choix-de-recherche-degats-reels.md) | Les stats et majorations des dégâts réels qui n'entrent pas dans la recherche des builds, parce qu'elles ne changent pas leur classement. |
 | [retention-a-parts-egales.md](retention-a-parts-egales.md) | Pendant la construction des moitiés de build, chaque tranche de rétention par stat a le même nombre de places : le moteur ne priorise pas les stats « difficiles », ce qui faisait trouver moins de builds valides. |
-| [prereglages-emboites.md](prereglages-emboites.md) | Les préréglages de pré-filtrage de l'Optimizer sont emboîtés (Bas ⊆ Moyen ⊆ Haut ⊆ Extrême) : chaque moitié de build garde aussi ce que retiennent les préréglages plus étroits, sans agrandir la rétention. |
+| [prereglages-emboites.md](prereglages-emboites.md) | Les préréglages de pré-filtrage de l'Optimizer sont emboîtés (Bas ⊆ Moyen ⊆ Haut ⊆ Extrême) : chaque moitié de build garde aussi ce que retiennent les préréglages plus étroits, construits en parallèle, sans agrandir la rétention. |
 | [appariement-par-seuils-exacts.md](appariement-par-seuils-exacts.md) | L'appariement des deux moitiés de build saute par seuils exacts les paires vouées au rejet et valide les autres sur tableaux typés ; au-delà de 100 M de paires, en parallèle sur un nombre de Workers qui suit la machine, en rendant l'ordre séquentiel. |
 
 ## Écrire un ADR

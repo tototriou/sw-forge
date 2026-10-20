@@ -105,9 +105,9 @@ import {
   RechercheRefusee,
   SearchParams,
   prepareSearch,
-  Bucket,
 } from '../src/lib/runeBuildOptim';
 import { apparier } from '../src/lib/rechercheRunes';
+import { construireMoitiesEmboitees } from '../src/lib/constructionEmboitee';
 import { Case, CASES, loadCase, loadCaseSearchParams } from './lib/perfShared';
 import { caseAvecRelique, jetonsRelique, parseOptionsRelique } from './lib/perfRelicOptions';
 // ⚠️ `import type` impératif ici : build-half-worker.ts / monotonicity-worker.ts
@@ -342,37 +342,25 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
   // est appelé (les deux `new Worker(...)` s'exécutent avant tout `await`),
   // donc vraiment concurrents — pas l'un après l'autre.
   const workerScript = await ensureBuildHalfWorkerBundle();
-  const inputBase = {
-    filtered: prepared.filtered,
-    distinctKeys: prepared.distinctKeys,
-    constrainedKeys: prepared.constrainedKeys,
-    retentionKeys: prepared.retentionKeys,
-    minEntries: prepared.minEntries,
-    bucketCap: prepared.bucketCap,
-    jokerCredit: prepared.jokerCredit,
-    requiredPieces: prepared.requiredPieces,
-    base: prepared.base,
-    objectiveKeys: prepared.objectiveKeys,
-    cransEmboites: prepared.cransEmboites,
-    // ⚠️ Relayé depuis params — voir build-half-worker.ts : sans lui, le
-    // worker retombe toujours sur le défaut interne de buildBuckets. CASES
-    // ne le fixe pas aujourd'hui (undefined partout), mais un futur appel
-    // qui voudrait forcer une valeur précise (mesure ciblée) doit pouvoir
-    // compter sur ce relais.
-    combosOrderMode: params.combosOrderMode,
-  };
+  // Préréglages emboîtés : un fil par moitié ET par préréglage construit
+  // (`construireMoitiesEmboitees`, l'orchestrateur de la production), puis
+  // l'union ici. ⚠️ `combosOrderMode` relayé depuis params — voir
+  // build-half-worker.ts : sans lui, le worker retombe toujours sur le défaut
+  // interne de buildBuckets.
+  const propres: Partial<Record<'A' | 'B', BuildHalfWorkerResult>> = {};
   const tBuildStart = performance.now();
-  const [outA, outB] = await Promise.all([
-    runWorker<BuildHalfWorkerData, BuildHalfWorkerResult>(workerScript, { ...inputBase, half: 'A', slotIdxs: [0, 1, 2], otherHalfMaxSets: prepared.maxSetsForA }),
-    runWorker<BuildHalfWorkerData, BuildHalfWorkerResult>(workerScript, { ...inputBase, half: 'B', slotIdxs: [3, 4, 5], otherHalfMaxSets: prepared.maxSetsForB }),
-  ]);
+  const { bucketsA, bucketsB } = await construireMoitiesEmboitees(prepared, params.combosOrderMode, async (requete) => {
+    const r = await runWorker<BuildHalfWorkerData, BuildHalfWorkerResult>(workerScript, requete);
+    // Le fil du préréglage de la recherche porte le pool entier (même référence).
+    if (requete.filtered === prepared.filtered) propres[requete.half] = r;
+    return r.buckets;
+  });
   const tBuildB = performance.now();
-  const bucketsA: Bucket[] = outA.buckets;
-  const bucketsB: Bucket[] = outB.buckets;
-  // Coût interne à CHAQUE fil (diagnostic), vs le temps RÉEL écoulé pour la
-  // phase dans son ensemble (`buildWallMs`, ce qui compte pour l'utilisateur).
-  const buildAMs = outA.ms;
-  const buildBMs = outB.ms;
+  // Coût interne au fil du préréglage de la recherche de CHAQUE moitié
+  // (diagnostic), vs le temps RÉEL écoulé pour la phase dans son ensemble
+  // (`buildWallMs`, ce qui compte pour l'utilisateur).
+  const buildAMs = propres.A!.ms;
+  const buildBMs = propres.B!.ms;
   const buildWallMs = tBuildB - tBuildStart;
 
   let foundMs: number | null = null;

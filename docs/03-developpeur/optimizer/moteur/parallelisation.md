@@ -41,7 +41,8 @@ diagnostic), l'appariement séquentiel retombe sur `pairBuckets` en rendant
 la main ; le coordinateur parallèle, lui, n'a aucun repli et refuse un
 appariement hors contrat. Ni le mode exhaustif, ni le filet de temps, ni le
 plafond de candidats n'entrent dans le choix. La construction des moitiés,
-elle, se fait toujours dans deux Workers, quelle que soit la taille du cas
+elle, se fait toujours dans des Workers, un par moitié et par préréglage
+construit, quelle que soit la taille du cas
 ([pipeline.md § Construction des moitiés](pipeline.md)).
 
 Le nombre de Workers est DÉRIVÉ de la machine, par une seule règle pour les

@@ -1,9 +1,10 @@
 /// <reference lib="webworker" />
-// Worker DÉDIÉ à la construction d'UNE SEULE moitié (`construireMoitie` :
-// le noyau sur tableaux typés, `buildBuckets` en repli), spawné
-// PAR `runeBuildOptim.worker.ts` (pas par l'app directement) pour paralléliser
-// la construction des deux moitiés A et B sur deux cœurs plutôt qu'un seul —
-// voir docs/03-developpeur/optimizer/ § Construction des moitiés.
+// Worker DÉDIÉ à la construction d'UN préréglage d'UNE moitié
+// (`construireMoitie` : le noyau sur tableaux typés, `buildBuckets` en
+// repli), spawné PAR `runeBuildOptim.worker.ts` (pas par l'app directement),
+// un par moitié et par préréglage construit (préréglages emboîtés,
+// `construireMoitiesEmboitees`) — voir
+// docs/03-developpeur/optimizer/moteur/pipeline.md § Construction des moitiés.
 // Reste minimal, comme runeBuildOptim.worker.ts : aucune
 // logique propre, pilote juste la construction pas à pas pour pouvoir relayer
 // une progression pendant que ça tourne.
@@ -15,42 +16,14 @@
 // Worker n'a donc besoin de gérer qu'UN seul message (la demande initiale),
 // jamais un second message « stop ».
 
-import { Bucket, CranEmboite } from '../lib/runeBuildOptim';
+import { Bucket } from '../lib/runeBuildOptim';
 import { construireMoitie, totalConstruction } from '../lib/rechercheRunes';
-import { StatKey } from '../lib/effects';
-import { RuneDetail, BaseStats } from '../types';
+import { RequeteMoitie } from '../lib/constructionEmboitee';
 
-export interface BuildHalfRequest {
-  half: 'A' | 'B';
-  slotIdxs: readonly [number, number, number];
-  filtered: RuneDetail[][];
-  distinctKeys: string[];
-  constrainedKeys: StatKey[];
-  retentionKeys: StatKey[];
-  minEntries: { k: StatKey; min: number }[];
-  bucketCap: number;
-  otherHalfMaxSets: number[];
-  jokerCredit: number;
-  requiredPieces: number[];
-  // ⚠️ Nécessaire à `retentionScore`/`combinedRetentionScore` (pondération
-  // pct/flat par base — voir BuildBucketsContext dans runeBuildOptim.ts).
-  base: BaseStats;
-  // PROTOTYPE (combosOrderMode='objective') — voir BuildBucketsContext dans
-  // runeBuildOptim.ts, même discipline de propagation que `base`.
-  objectiveKeys: StatKey[];
-  // Préréglages emboîtés : les préréglages plus étroits dont la rétention
-  // s'ajoute à celle de la moitié (`PreparedSearch.cransEmboites`, relayé
-  // tel quel). Obligatoire dans `construireMoitie` : l'oublier ici échoue au
-  // typage.
-  cransEmboites: CranEmboite[];
-  // ⚠️ Voir SearchParams.combosOrderMode dans
-  // runeBuildOptim.ts. Sans ce champ (et son relais ci-dessous jusqu'à
-  // `buildBuckets`), `SearchParams.combosOrderMode` n'aurait AUCUN effet sur
-  // le vrai chemin de production (Web Workers) : `buildBuckets` recevrait
-  // toujours `undefined` ici, retombant sur son défaut interne quel que
-  // soit ce que l'appelant avait demandé.
-  combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
-}
+// La requête d'UN préréglage d'une moitié (préréglages emboîtés : un Worker
+// par moitié ET par préréglage, `construireMoitiesEmboitees`), produite par
+// `requetesDeLaMoitie` — jamais assemblée à la main.
+export type BuildHalfRequest = RequeteMoitie;
 export interface BuildHalfProgressMessage {
   type: 'progress';
   half: 'A' | 'B';

@@ -13,7 +13,7 @@ porte chaque garantie (`fichier:lignes`).
 `--cas=<index|nom|tous>` fait tourner le harnais, l'un après l'autre, sur des
 cas réels de `scripts/lib/perfShared.ts` (`CASES`, la fixture de
 `scripts/perf-battery.ts`), par `scripts/lib/diagnosticLot.ts`
-(`scripts/diagnostic-harness.ts:52-58`). A-passif au sens littéral : le
+(`scripts/diagnostic-harness.ts:54-60`). A-passif au sens littéral : le
 module n'appelle aucune fonction du moteur, il boucle sur des runs du
 harnais. `ResultatLot` contient N `ResultatHarnais` sans en modifier un, et
 `OptionsLot = Omit<ConfigHarnais, 'source'>` est écrit en soustraction, pour
@@ -25,9 +25,9 @@ ponctuation mis à plat, un fragment de libellé suffit — jamais au résultat 
 un nom inconnu est refusé en listant les cas, un nom ambigu en listant ceux
 qu'il désigne, un indice hors bornes, signe compris, avant de lire un cas
 indéfini (`resoudreSelectionCas`, `scripts/lib/diagnosticLot.ts:120-182`,
-`tests/diagnostic-harness.test.ts:914-960`). `--cas` est une source à lui
+`tests/diagnostic-harness.test.ts:928-974`). `--cas` est une source à lui
 seul : il refuse `--synthetique`, `--compte` et `--recette`
-(`scripts/diagnostic-harness.ts:864-873`). Un cas dont l'export de compte
+(`scripts/diagnostic-harness.ts:866-875`). Un cas dont l'export de compte
 manque — ces exports ne sont pas suivis — est refusé au palier 1, fichier
 nommé, jamais sauté ni remplacé par un pool synthétique
 (`verifierComptesDisponibles`, `scripts/lib/diagnosticLot.ts:184-204`).
@@ -45,17 +45,17 @@ résolue : aucun appelant n'hérite d'un nettoyage.
 **Ce qu'un lot autorise.** Les runs sont indépendants, sans état partagé ni
 agrégation (`executerLot`, `scripts/lib/diagnosticLot.ts:283-315`), et chaque
 cas imprime la sortie qu'il aurait seul, palier 1 et avertissement de
-comparaison des temps compris (`scripts/diagnostic-harness.ts:855-931`). Le
+comparaison des temps compris (`scripts/diagnostic-harness.ts:857-933`). Le
 coût s'annonce avant d'être payé — cas nommés, point d'arrêt, nombre de
 recherches — et `--apercu` rend les N paliers 1 sans rien exécuter
 (`annoncerLot`, `scripts/lib/diagnosticLot.ts:321-358`,
-`tests/diagnostic-harness.test.ts:962-975`). Le récapitulatif imprime la
+`tests/diagnostic-harness.test.ts:976-989`). Le récapitulatif imprime la
 condition commune, puis `AVERTISSEMENT_LOT` AVANT le tableau : une
 différence entre deux lignes est une différence entre deux CAS, jamais
 l'effet d'un paramètre ; comparer deux conditions demande de les entrelacer
 (extensions.md § Le différentiel : l'oracle). L'avertissement part
 aussi dans `--json` (`ResultatLot.avertissementLot`,
-`scripts/lib/diagnosticLot.ts:364-403`, `tests/diagnostic-harness.test.ts:977-1030`).
+`scripts/lib/diagnosticLot.ts:364-403`, `tests/diagnostic-harness.test.ts:991-1044`).
 Les colonnes suivent le point d'arrêt ; les temps y sont des minimums, dont
 la dispersion se lit dans le bloc de chaque cas (`rendreRecapLot`,
 `scripts/lib/diagnosticLot.ts:408-515`).

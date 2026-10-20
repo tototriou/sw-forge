@@ -61,13 +61,14 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
   l'appariement par `pairBuckets`, entre une zone où le parallèle perdait et
   une zone où il gagnait, sans mesure entre les deux ; il n'est pas remesuré
   pour le noyau sur tableaux typés. La règle du nombre de Workers
-  (`nombreDeTravailleurs` : la moitié des fils logiques, au plus 8) n'est
-  mesurée que sur une machine à 8 cœurs et 16 fils, et ne suit pas la taille
-  de l'espace : sur les cas légers au-dessus du seuil, moins de Workers
-  pourraient suffire
+  (`nombreDeTravailleurs` : cœurs physiques − 2, bornés à [2, 8] ; sans
+  cœurs connus, la moitié des fils logiques − 2) est mesurée à 2, 4, 6 et
+  8 Workers, mais sur une seule machine (8 cœurs, 16 fils), et ne suit pas
+  la taille de l'espace : sous la seconde, 2 Workers battent 8, écart laissé
+  sans règle propre aux petits espaces
   ([03-developpeur/optimizer/moteur/parallelisation.md § Choix du régime](../03-developpeur/optimizer/moteur/parallelisation.md#choix-du-régime)).
-- **Idée** : mesurer le seuil pour le noyau, la règle à 2, 4 et 6 Workers,
-  et sur une machine sans deux fils par cœur.
+- **Idée** : mesurer le seuil pour le noyau, et la règle sur une machine
+  sans deux fils par cœur ou à moins de 8 fils.
 - **Bloque** : une campagne de mesure (`scripts/banc-appariement-rapide.ts`,
   `--workers=`, skill `optimizer-perf-testing`), jamais faite.
 

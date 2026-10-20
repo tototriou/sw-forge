@@ -1,7 +1,8 @@
 // Le régime de l'appariement — séquentiel ou parallèle — et le nombre de
 // Workers du parallèle, pour le navigateur ET Node : une seule règle, que
-// chaque plateforme alimente de sa propre concurrence
-// (`navigator.hardwareConcurrency`, `os.availableParallelism()`).
+// chaque plateforme alimente de ce qu'elle sait de la machine (fils logiques :
+// `navigator.hardwareConcurrency`, `os.availableParallelism()` ; cœurs
+// physiques quand elle les connaît).
 //
 // ⚠️ **Ce module doit rester NEUTRE** : jamais d'import de `worker_threads`,
 // jamais de `Worker` DOM, jamais de `self`. Vite tenterait sinon de résoudre
@@ -16,19 +17,43 @@
 // noyau sur tableaux typés.
 export const PARALLEL_PAIRING_THRESHOLD = 100_000_000;
 
-// Nombre de Workers de l'appariement parallèle, DÉRIVÉ de la machine :
-// `concurrence` compte les fils logiques ; sa moitié vaut le nombre de cœurs
-// physiques sur une machine à deux fils par cœur. Mesuré sur 8 cœurs / 16
-// fils : 8 Workers font mieux que 16 sur tous les cas. Au plus
-// `TRAVAILLEURS_MAX` : au-delà rien n'est mesuré, et chaque Worker reçoit sa
-// copie des tableaux et refait la préparation (mémoire). Concurrence
-// inconnue : `TRAVAILLEURS_PAR_DEFAUT`.
+// Nombre de Workers de l'appariement parallèle, DÉRIVÉ de la machine : ses
+// cœurs physiques moins `COEURS_LAISSES`, bornés à
+// [`TRAVAILLEURS_MIN`, `TRAVAILLEURS_MAX`].
+//  - Les cœurs physiques, quand la plateforme les connaît
+//    (`coeursPhysiques`) ; sinon la moitié des fils logiques
+//    (`concurrence` : `navigator.hardwareConcurrency`,
+//    `os.availableParallelism()`), qui les vaut sur une machine à deux fils
+//    par cœur.
+//  - Deux cœurs laissés : mesuré sur 8 cœurs / 16 fils, 6 Workers vont aussi
+//    vite que 8 sur la plus lourde recherche (20 milliards de paires) et
+//    plus vite sur une autre (10 milliards, 7,1 s contre 8,1 s) ; avec 8 fils
+//    occupés par d'autres tâches, le débit de celles-ci baisse de 8 % à 6
+//    Workers et de 13 % à 8 (par rapport à 2 Workers), pour une recherche
+//    aussi rapide à 6 qu'à 8 ; et sous la seconde, où lancement, copie des
+//    compartiments et préparation par Worker dominent, 2 Workers battent 8
+//    de 27 % — écart de 0,14 à 0,23 s, laissé sans règle propre aux petits
+//    espaces (décision).
+//  - Au moins 2 : une machine de moins de 8 fils n'est pas mesurée.
+//  - Au plus 8 : au-delà rien n'est mesuré, et chaque Worker reçoit sa copie
+//    des tableaux et refait la préparation (mémoire).
+//  - Rien de connu (ni cœurs, ni concurrence) : `TRAVAILLEURS_PAR_DEFAUT`.
+export const TRAVAILLEURS_MIN = 2;
 export const TRAVAILLEURS_MAX = 8;
 export const TRAVAILLEURS_PAR_DEFAUT = 4;
+export const COEURS_LAISSES = 2;
 
-export function nombreDeTravailleurs(concurrence: number | undefined): number {
-  if (concurrence == null || !Number.isFinite(concurrence) || concurrence < 1) return TRAVAILLEURS_PAR_DEFAUT;
-  return Math.min(TRAVAILLEURS_MAX, Math.max(1, Math.floor(concurrence / 2)));
+const connu = (n: number | null | undefined): n is number => n != null && Number.isFinite(n) && n >= 1;
+
+/**
+ * `coeursPhysiques` est obligatoire, `null` quand la plateforme ne les donne
+ * pas : chaque appelant décide d'où vient le nombre, et `tsc` signale celui
+ * qui l'oublie.
+ */
+export function nombreDeTravailleurs(concurrence: number | undefined, coeursPhysiques: number | null): number {
+  const coeurs = connu(coeursPhysiques) ? Math.floor(coeursPhysiques) : connu(concurrence) ? Math.floor(concurrence / 2) : null;
+  if (coeurs == null) return TRAVAILLEURS_PAR_DEFAUT;
+  return Math.min(TRAVAILLEURS_MAX, Math.max(TRAVAILLEURS_MIN, coeurs - COEURS_LAISSES));
 }
 
 export type RegimeAppariement = 'sequentiel' | 'parallele';

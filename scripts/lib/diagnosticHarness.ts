@@ -1001,7 +1001,8 @@ async function unPassage(
       : resolue.regimeForce ?? regimeAppariement(totalPairs, motifContrat);
   passage.regime = regime;
   passage.motifContrat = motifContrat;
-  passage.travailleurs = nombreDeTravailleurs(availableParallelism());
+  // Node ne connaît que les fils logiques : la règle du site (moitié des fils).
+  passage.travailleurs = nombreDeTravailleurs(availableParallelism(), null);
 
   if (arretApres === 'demi-builds') return passage;
 

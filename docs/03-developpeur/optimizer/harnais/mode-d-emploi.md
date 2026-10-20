@@ -365,7 +365,7 @@ numérique du noyau, jugé SANS le traceur (que la production ne pose jamais :
 suivre une cible ne change pas le régime) ; `regimeAppariement` rend
 l'appariement parallèle à partir de `PARALLEL_PAIRING_THRESHOLD` (100 M de
 paires, `src/workers/parallelPairing.ts`), contrat tenu, sur
-`nombreDeTravailleurs(os.availableParallelism())` Workers, sinon le
+`nombreDeTravailleurs(os.availableParallelism(), null)` Workers, sinon le
 séquentiel — la règle de `src/workers/runeBuildOptim.worker.ts`, alimentée
 par la concurrence de la machine. Le régime s'affiche avec sa raison et le
 nombre de Workers, « comme la production pour ce cas »

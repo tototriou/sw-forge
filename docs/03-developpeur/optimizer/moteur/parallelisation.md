@@ -46,17 +46,32 @@ construit, quelle que soit la taille du cas
 ([pipeline.md § Construction des moitiés](pipeline.md)).
 
 Le nombre de Workers est DÉRIVÉ de la machine, par une seule règle pour les
-deux plateformes : `nombreDeTravailleurs(concurrence)` = la moitié des fils
-logiques, au moins 1, au plus `TRAVAILLEURS_MAX` (8) ; concurrence inconnue,
-`TRAVAILLEURS_PAR_DEFAUT` (4). Le navigateur la lit dans
-`navigator.hardwareConcurrency`, Node dans `os.availableParallelism()`.
+deux plateformes : `nombreDeTravailleurs(concurrence, coeursPhysiques)` =
+les cœurs physiques moins `COEURS_LAISSES` (2), au moins `TRAVAILLEURS_MIN`
+(2), au plus `TRAVAILLEURS_MAX` (8). Sans cœurs physiques connus
+(`coeursPhysiques` à `null`), ils valent la moitié des fils logiques :
+`floor(concurrence / 2) − 2`, mêmes bornes ; ni l'un ni l'autre connu,
+`TRAVAILLEURS_PAR_DEFAUT` (4). La concurrence se lit dans
+`navigator.hardwareConcurrency` au navigateur, dans
+`os.availableParallelism()` sous Node. Sur la machine de mesure (8 cœurs,
+16 fils) : 6 Workers.
 
 - La moitié des fils logiques vaut le nombre de cœurs physiques sur une
-  machine à deux fils par cœur. Mesuré sur 8 cœurs et 16 fils : 8 Workers
-  font mieux que 16 sur tous les cas, du plus léger (une demi-seconde) au
-  plus lourd (20 milliards de paires). Une machine sans deux fils par cœur
-  (processeurs ARM, Apple) reçoit donc moins de Workers que de cœurs : non
-  mesuré.
+  machine à deux fils par cœur. Une machine sans deux fils par cœur
+  (processeurs ARM, Apple) reçoit donc, sans ses cœurs physiques, moins de
+  Workers que de cœurs : non mesuré.
+- Deux cœurs laissés, mesuré sur 8 cœurs et 16 fils. Au calme, 6 Workers
+  vont aussi vite que 8 sur la plus lourde recherche (20 milliards de
+  paires, 3,9 s contre 3,8 s) et plus vite sur une autre (10 milliards,
+  7,1 s contre 8,1 s). Avec 4 ou 8 fils occupés par d'autres tâches, 6 et 8
+  Workers restent proches (8 devant de 4 à 6 % sur la première, 6 devant
+  de 4 à 5 % sur la seconde), mais ce que la recherche prend à ces tâches croît avec le
+  nombre de Workers : avec 8 fils occupés, leur débit baisse de 8 % à 6
+  Workers et de 13 % à 8, par rapport à 2 Workers.
+- Sous la seconde, le lancement, la copie des compartiments et la
+  préparation par Worker dominent : 2 Workers y battent 8 de 27 % (0,14 à
+  0,23 s). Aucune règle propre aux petits espaces n'en est tirée (décision).
+- Au moins 2 : une machine de moins de 8 fils n'est pas mesurée.
 - Au plus 8 : au-delà rien n'est mesuré, et chaque Worker reçoit sa copie
   des compartiments et refait la préparation ; la mémoire croît avec leur
   nombre.
@@ -219,9 +234,9 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
   neutre.
 - `PARALLEL_PAIRING_THRESHOLD` et `nombreDeTravailleurs` vivent dans
   `parallelPairing.ts`, importable depuis Node : un outil Node les lit et
-  leur passe sa propre concurrence (`os.availableParallelism()`), il ne les
-  recode jamais, sinon il cesse de reproduire le régime que la production
-  choisirait.
+  leur passe sa propre concurrence (`os.availableParallelism()`, cœurs
+  physiques à `null` : la règle du site), il ne les recode jamais, sinon il
+  cesse de reproduire le régime que la production choisirait.
 - Un outil Node qui veut reproduire la production apparie par ce code
   commun, `apparierRapideEnParallele` avec `lancerTravailleurNode`, comme le
   harnais

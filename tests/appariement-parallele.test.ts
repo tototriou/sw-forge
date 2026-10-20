@@ -33,7 +33,7 @@ import {
   resultatApresErreur,
 } from '../src/lib/appariementRapideParallele';
 import {
-  PARALLEL_PAIRING_THRESHOLD, TRAVAILLEURS_MAX, TRAVAILLEURS_PAR_DEFAUT, nombreDeTravailleurs, regimeAppariement,
+  PARALLEL_PAIRING_THRESHOLD, COEURS_LAISSES, TRAVAILLEURS_MAX, TRAVAILLEURS_MIN, TRAVAILLEURS_PAR_DEFAUT, nombreDeTravailleurs, regimeAppariement,
 } from '../src/workers/parallelPairing';
 import { assurerBundleAppariementRapide, lancerTravailleurNode } from '../scripts/lib/appariementRapideNode';
 import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
@@ -333,11 +333,22 @@ function options(e: Espace, lancer: LancerTravailleur, extra: Partial<OptionsPar
 
 function testRegles(): void {
   titre('Appariement parallèle · nombre de Workers dérivé de la machine, régime');
-  egal(nombreDeTravailleurs(undefined), TRAVAILLEURS_PAR_DEFAUT, `concurrence inconnue → ${TRAVAILLEURS_PAR_DEFAUT} Workers`);
-  egal(nombreDeTravailleurs(Number.NaN), TRAVAILLEURS_PAR_DEFAUT, 'concurrence illisible (NaN) → défaut');
-  egal(nombreDeTravailleurs(0), TRAVAILLEURS_PAR_DEFAUT, 'concurrence nulle → défaut');
-  egal([1, 2, 3, 4, 6, 8, 12, 16, 24, 32].map(nombreDeTravailleurs), [1, 1, 1, 2, 3, 4, 6, 8, 8, 8],
-    `moitié des fils logiques, au moins 1, au plus ${TRAVAILLEURS_MAX} (16 fils → 8, le meilleur mesuré)`);
+  egal([TRAVAILLEURS_MIN, TRAVAILLEURS_MAX, TRAVAILLEURS_PAR_DEFAUT, COEURS_LAISSES], [2, 8, 4, 2], 'bornes [2, 8], défaut 4, deux cœurs laissés');
+  egal(nombreDeTravailleurs(undefined, null), TRAVAILLEURS_PAR_DEFAUT, `rien de connu → ${TRAVAILLEURS_PAR_DEFAUT} Workers (le défaut)`);
+  egal(nombreDeTravailleurs(Number.NaN, null), TRAVAILLEURS_PAR_DEFAUT, 'concurrence illisible (NaN) → défaut');
+  egal(nombreDeTravailleurs(0, null), TRAVAILLEURS_PAR_DEFAUT, 'concurrence nulle → défaut');
+  // Sans cœurs physiques : floor(fils / 2) − 2, borné à [2, 8].
+  egal([1, 2, 3, 4, 6, 8, 10, 12, 14, 16, 20, 24, 32].map((f) => nombreDeTravailleurs(f, null)), [2, 2, 2, 2, 2, 2, 3, 4, 5, 6, 8, 8, 8],
+    'fils logiques seuls : moitié moins deux, au moins 2, au plus 8 (16 fils → 6, la machine de mesure)');
+  egal(nombreDeTravailleurs(16, null), 6, 'critère : 16 fils → 6 Workers');
+  // Cœurs physiques fournis : ils priment sur les fils, cœurs − 2, mêmes bornes.
+  egal([1, 2, 4, 6, 8, 12, 16, 32].map((c) => nombreDeTravailleurs(16, c)), [2, 2, 2, 4, 6, 8, 8, 8],
+    'cœurs physiques fournis : cœurs − 2, bornés à [2, 8], quels que soient les fils');
+  egal(nombreDeTravailleurs(8, 8), 6, 'machine sans deux fils par cœur (8 cœurs, 8 fils) : 6 par les cœurs, là où les fils seuls diraient 2');
+  egal(nombreDeTravailleurs(undefined, 8), 6, 'cœurs connus, concurrence inconnue : les cœurs suffisent');
+  egal(nombreDeTravailleurs(16, 7.6), 5, 'cœurs non entiers : arrondis vers le bas');
+  for (const illisible of [0, -3, Number.NaN, Number.POSITIVE_INFINITY])
+    egal(nombreDeTravailleurs(16, illisible), 6, `cœurs illisibles (${illisible}) : repli sur la règle des fils`);
   egal(regimeAppariement(PARALLEL_PAIRING_THRESHOLD - 1, null), 'sequentiel', 'sous le seuil : séquentiel');
   egal(regimeAppariement(PARALLEL_PAIRING_THRESHOLD, null), 'parallele', 'au seuil, contrat tenu : parallèle');
   egal(regimeAppariement(10 * PARALLEL_PAIRING_THRESHOLD, 'traceur de diagnostic demandé'), 'sequentiel',
@@ -904,7 +915,7 @@ export async function testAppariementParalleleBranchement(): Promise<void> {
   const profil = trouverProfil('quota-parallele');
   const prod = await executerHarnais(configDuProfil(profil));
   const seq = await executerHarnais(configDuProfil(profil, { overrides: { regime: 'sequentiel' } }));
-  const n = nombreDeTravailleurs(availableParallelism());
+  const n = nombreDeTravailleurs(availableParallelism(), null);
   ok(prod.regime?.applique === 'parallele' && !prod.regime.force && prod.regime.explication.includes(`${n} Workers`),
     `régime de production : parallèle, ${n} Workers (nombreDeTravailleurs de cette machine), non forcé`);
   egal(seq.regime?.applique, 'sequentiel', 'bras témoin : séquentiel forcé');

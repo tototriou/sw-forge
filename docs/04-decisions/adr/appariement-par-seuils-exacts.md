@@ -23,9 +23,11 @@ ainsi :
   contrat numérique, vérifié avant toute paire, le parcours de référence
   prend l'appariement ;
 - **au-delà de 100 millions de paires, en parallèle sur un nombre de
-  Workers qui suit la machine** : la moitié de ses fils logiques, au moins
-  un, au plus huit (quatre quand la machine ne le dit pas). Le travail part
-  en morceaux de lignes consécutives, distribués à la demande ;
+  Workers qui suit la machine** : ses cœurs physiques moins deux, au moins
+  deux, au plus huit. Quand ils ne sont pas connus, ils se déduisent des
+  fils logiques (la moitié, deux fils par cœur) ; quand la machine ne dit
+  rien, quatre. Le travail part en morceaux de lignes consécutives,
+  distribués à la demande ;
 - **en rendant l'ordre séquentiel** : les morceaux se fusionnent dans
   l'ordre du parcours, et le plafond de candidats est global. Le parallèle
   rend exactement le résultat d'un parcours sur un seul fil, quel que soit
@@ -48,6 +50,12 @@ ainsi :
 - **Le nombre de cœurs change d'une machine à l'autre** : un nombre de
   Workers fixe laisse des cœurs inoccupés sur une grosse machine et en
   surcharge une petite.
+- **Deux cœurs laissés aux autres tâches ne ralentissent pas la
+  recherche** : sur 8 cœurs, 6 Workers vont aussi vite que 8 sur la plus
+  lourde recherche mesurée, et plus vite (de 13 %) sur une autre. Quand la
+  machine est occupée ailleurs, la recherche reste aussi rapide à 6 qu'à 8,
+  et prend moins à ce qui tourne à côté (8 % de débit en moins pour ces
+  tâches à 6 Workers, 13 % à 8).
 - **Un résultat qui dépend du découpage n'est pas reproductible** : avec
   l'ordre séquentiel et un plafond global, une recherche rend les mêmes
   builds sur toutes les machines, et le parcours sur un seul fil reste la
@@ -73,6 +81,12 @@ ainsi :
   fonctionnement, remplacé) : la répartition par compartiment donnait à la
   tranche la plus lourde 35 à 63 % des paires, et le temps d'une recherche
   était celui de cette tranche.
+- **Un Worker par cœur physique** (ancien fonctionnement, remplacé) : il
+  n'allait pas plus vite que deux de moins, et prenait davantage aux autres
+  tâches de la machine.
+- **Moins de Workers sur les petites recherches** (possibilité écartée) :
+  sous la seconde, deux Workers battent huit, mais l'écart ne dépasse pas
+  un quart de seconde.
 - **Une part du plafond de candidats par Worker** (ancien fonctionnement,
   remplacé) : un Worker arrêté sur sa part laisse son travail non visité,
   et les candidats gardés dépendent du découpage.

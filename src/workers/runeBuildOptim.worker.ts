@@ -317,7 +317,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     try {
       const resultat = await apparierRapideEnParallele({
         params, prepared, bucketsA, bucketsB, totalPaires: totalPairs,
-        travailleurs: nombreDeTravailleurs(self.navigator?.hardwareConcurrency),
+        travailleurs: nombreDeTravailleurs(self.navigator?.hardwareConcurrency, null),
         lancer: lancerTravailleurNavigateur, startedAt,
         surControle: (controle) => {
           arreterAppariement = controle.arreter;

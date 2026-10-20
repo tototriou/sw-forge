@@ -949,7 +949,36 @@ export async function testAppariementParalleleCession(): Promise<void> {
     await cederLaMain(null);
     egal(canaux, 1, 'MessageChannel absent : aucun canal créé');
     egal(minuteurs, 1, 'MessageChannel absent : repli sur setTimeout(0), et la promesse se résout');
+    class CanalRefuse {
+      constructor() {
+        throw new Error('canal refusé');
+      }
+    }
+    await cederLaMain(CanalRefuse as unknown as typeof MessageChannel);
+    egal(minuteurs, 2, 'création du canal qui lève : repli sur setTimeout(0), sans rejet');
   } finally {
+    (globalThis as { setTimeout: unknown }).setTimeout = vrai;
+  }
+  // La fabrique par défaut, celle des deux sites de production : le `MessageChannel` global quand il existe.
+  const global = globalThis as { MessageChannel?: unknown };
+  const original = global.MessageChannel;
+  canaux = 0;
+  minuteurs = 0;
+  (globalThis as { setTimeout: unknown }).setTimeout = ((f: () => void, ms?: number) => {
+    minuteurs++;
+    return vrai(f, ms);
+  }) as typeof setTimeout;
+  try {
+    global.MessageChannel = CanalEspion;
+    await cederLaMain();
+    egal(canaux, 1, 'fabrique par défaut : le MessageChannel global sert la cession');
+    egal(minuteurs, 0, 'fabrique par défaut : aucun setTimeout quand MessageChannel existe');
+    global.MessageChannel = undefined;
+    await cederLaMain();
+    egal(canaux, 1, 'fabrique par défaut, MessageChannel absent : aucun canal');
+    egal(minuteurs, 1, 'fabrique par défaut, MessageChannel absent : repli sur setTimeout(0)');
+  } finally {
+    global.MessageChannel = original;
     (globalThis as { setTimeout: unknown }).setTimeout = vrai;
   }
 }

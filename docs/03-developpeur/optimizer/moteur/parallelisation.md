@@ -19,6 +19,7 @@ casser : [../invariants.md § Workers](../invariants.md).
 | `src/workers/parallelPairing.ts` | le seuil du régime, la règle du nombre de Workers (`nombreDeTravailleurs`), le choix du régime (`regimeAppariement`) | neutre |
 | `src/lib/appariementRapideParallele.ts` | coordinateur : plan des morceaux, distribution à la demande, fusion dans l'ordre, progression, arrêt (`apparierRapideEnParallele`) | neutre |
 | `src/lib/travailleurAppariement.ts` | ce que fait un Worker d'appariement : `servirAppariement` (messages, tranches de `TRANCHE_MS`, arrêt), `MessageVersTravailleur` | neutre |
+| `src/lib/cession.ts` | `cederLaMain` : la cession entre deux tranches, par message de canal (repli `setTimeout(0)`) | neutre |
 | `src/lib/appariementRapide.ts` | corps d'un morceau (`initialiserTravailleur`, `parcourirMorceau` ; `traiterMorceau`, le même d'un bloc, pour les tests), le noyau, les types du protocole | neutre |
 | `src/workers/runeBuildOptim.worker.ts` | choix du régime, lanceur `lancerTravailleurNavigateur`, arrêt et erreur | navigateur |
 | `src/workers/appariementRapide.worker.ts` | coquille d'un Worker d'appariement | navigateur |
@@ -149,7 +150,9 @@ Aucun contact avec la plateforme.
 4. `parcourirMorceau` est un générateur qui rend la main après chaque
    ligne. `servirAppariement` le pilote par TRANCHES de `TRANCHE_MS`
    (100 ms) : entre deux tranches, il rend la main à la boucle d'événements
-   du Worker (un minuteur nul), qui lit les messages arrivés entre-temps.
+   du Worker (`cederLaMain` : un message de canal, `setTimeout(0)` si `MessageChannel`
+   manque ; jamais des `setTimeout` enchaînés, que Chromium ramène à 4 ms dès le
+   6ᵉ niveau, ~3,6 % du temps du Worker), qui lit les messages arrivés entre-temps.
    Une tranche court d'un morceau au SUIVANT : son chrono ne repart
    qu'après avoir rendu la main, jamais à l'entrée d'un morceau, et le temps
    se teste avant chaque ligne, la première d'un morceau comprise ; un

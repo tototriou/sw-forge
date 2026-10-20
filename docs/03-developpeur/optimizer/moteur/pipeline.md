@@ -188,8 +188,8 @@ Détail du régime parallèle et de la règle du nombre de Workers :
 générateur `apparier(prepared, bucketsA, bucketsB)`
 (`src/lib/rechercheRunes.ts`). Il poste la progression au plus une fois par
 `PROGRESS_THROTTLE_MS`, avec les seuls candidats nouveaux depuis le message
-précédent ; il rend la main à la boucle d'événements au plus une fois par
-`YIELD_THROTTLE_MS`, ce qui laisse arriver le message d'arrêt ; à l'arrêt
+précédent ; il rend la main à la boucle d'événements (`cederLaMain` : message de
+canal, non bridé) au plus une fois par `YIELD_THROTTLE_MS`, ce qui laisse arriver le message d'arrêt ; à l'arrêt
 (`isStopped`), il rend un résultat tronqué fait des candidats et du
 quasi-succès déjà accumulés. Le Worker ajoute à chaque message `found`,
 `totalPairs` et un pourcentage (`estimatePct`) ; le hook accumule les

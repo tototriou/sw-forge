@@ -36,7 +36,7 @@ moteur utilisait déjà (`PER_STAT_KEEP`, `PER_STAT_KEEP_OBJECTIVE`,
 `bucketCapFor`, `ALL_STAT_KEYS`, `weightedContribution` :
 `src/lib/runeBuildOptim.ts`, l. 1227, 1233, 1385, 1393, 1497), réutilisés
 plutôt que recopiés. Le CLI se lance par `npx tsx scripts/diagnostic-harness.ts …`,
-comme `scripts/perf-battery.ts:507` se relance ; il bundle ses deux workers par
+comme `scripts/perf-battery.ts:506` se relance ; il bundle ses deux workers par
 esbuild dans le dossier temporaire du système, une fois, avant toute mesure
 (`scripts/lib/buildHalvesNode.ts`, `scripts/lib/appariementRapideNode.ts`).
 
@@ -73,19 +73,19 @@ Une recette répond à « pourquoi ce cas de mon compte donne-t-il ça ? »
 (fidélité maximale, chemin de prod complet) ; un pool synthétique, à « quel
 comportement produit ce mécanisme, de façon reproductible ? » (pool forcé). La
 provenance figure toujours dans le résultat (`source`, `descriptionSource`,
-`scripts/lib/diagnosticHarness.ts:263-268`). La **recette** est le format
-qu'exporte l'écran (`parseOptimizerRecipe`, `src/lib/optimizerRecipe.ts:470`),
+`scripts/lib/diagnosticHarness.ts:260-265`). La **recette** est le format
+qu'exporte l'écran (`parseOptimizerRecipe`, `src/lib/optimizerRecipe.ts:478`),
 chargé par `chargerRecette` (`scripts/lib/chargerRecette.ts:1-20`, `:65`), la
 séquence de `scripts/optimizer-search.ts` mise en commun : repli d'un objectif
 retiré, chargeur box, RTA ou siège, contrôle du `com2usId`, données
 d'exclusion chargées seulement si la recette en déclare, puis
-`recipeToSearchParams` (`scripts/lib/recipeToSearchParams.ts:486`), qui résout
+`recipeToSearchParams` (`scripts/lib/recipeToSearchParams.ts:496`), qui résout
 `artifactBounds` et `objectiveStats` comme l'écran. Elle n'imprime rien : elle
 rend des avertissements. Le **pool synthétique** vient de
 `randomPool(mulberry32(seed), runes, sets)` sur la base de monstre fixe des
 tests et benchmarks (`scripts/lib/diagnosticConfig.ts:54-59`, `:113-136`) ;
 assortiments `SETS_JOKER` (défaut), `SETS_SANS_JOKER`, `SETS_VARIES`
-(`scripts/lib/randomPool.ts:72-78`). `--verrous` reproduit sans compte réel une
+(`scripts/lib/randomPool.ts:69-75`). `--verrous` reproduit sans compte réel une
 rune imposée. Ce pool n'est pas réaliste (sous-stats tirées uniformément) : une
 question qui dépend du réalisme des runes se pose sur un compte réel
 (`scripts/lib/randomPool.ts:25-30`).
@@ -94,7 +94,7 @@ La séquence de tirage de `randomPool` est un contrat : intervertir deux tirages
 décale tout le pool sans qu'un test de moteur échoue lisiblement, d'où les
 empreintes de `tests/random-pool.test.ts`, relevées sur le code d'avant la
 mise en commun (`scripts/lib/randomPool.ts:15-23`). Les générateurs
-volontairement biaisés (quatre fichiers, `scripts/lib/randomPool.ts:32-39`) ne
+volontairement biaisés (`scripts/lib/randomPool.ts:32-37`) ne
 passent pas par ce module : leur biais est le sujet de ce qu'ils mesurent, les
 migrer changerait leurs pools.
 
@@ -125,14 +125,14 @@ fonctionnalité distincte d'un point d'arrêt et non son inverse.
 `SearchResult.candidates` sort dans l'ordre de COLLECTE : `candidates[0]`
 n'est pas le meilleur build. Le harnais classe la liste ENTIÈRE par
 `sortCandidates` avec `optionsDeClassement`, le producteur de l'écran et du
-CLI (`scripts/lib/diagnosticHarness.ts:2028-2060`). En « Dégâts réels », il
+CLI (`scripts/lib/diagnosticHarness.ts:1963-1995`). En « Dégâts réels », il
 construit le contexte de dégâts comme le CLI (`buildRealDamageContext`) ; sans
 lui, `sortCandidates` laisse l'ordre de collecte sans lever
 (`tests/diagnostic-harness.test.ts:984-1014`). Le total affiché vient de
 `candidateMetricTotal`, recalculé depuis les vraies runes dans la métrique
 courante, jamais de `effTotal`, figé à la recherche. Le rang d'un build se
 prend sur la liste entière ; la coupe aux 20 premiers (`TAILLE_TOP_RENDU`,
-`scripts/lib/diagnosticHarness.ts:2007-2013`) n'est que celle de l'affichage.
+`scripts/lib/diagnosticHarness.ts:1942-1948`) n'est que celle de l'affichage.
 
 ## L'observateur onStage
 
@@ -141,7 +141,7 @@ le dernier état sort dans `PreparedSearch`. Pour distinguer une rune PROUVÉE
 impossible d'une rune seulement écartée par le pré-filtrage, un outil devrait
 sinon rappeler les fonctions une par une — un second pipeline. D'où
 `onStage?: (stage: PrepareStage, bySlot: RuneDetail[][]) => void`
-(`src/lib/runeBuildOptim.ts:3856-3879`) :
+(`src/lib/runeBuildOptim.ts:3710-3733`) :
 
 - SECOND argument de `prepareSearch`, pas champ de `SearchParams` : ce type
   traverse `postMessage`, où une fonction n'est pas sérialisable (`:3881-3896`) ;
@@ -156,25 +156,24 @@ sinon rappeler les fonctions une par une — un second pipeline. D'où
 identique avec et sans observateur, les quatre étages signalés dans l'ordre
 (même quand la préparation échoue), et qu'un étage ne fait que retirer, sans
 déplacer de rune. Le harnais y branche `releverPreparation`
-(`scripts/lib/diagnosticHarness.ts:751-768`) : identifiants et tailles par étage.
+(`scripts/lib/diagnosticHarness.ts:741-758`) : identifiants et tailles par étage.
 
 ## Le palier 1 : configuration effective et fidélité
 
 Le palier 1 est instantané : `resoudreConfig`
 (`scripts/lib/diagnosticConfig.ts:85-228`) calcule la configuration sans rien
 exécuter, le CLI l'imprime toujours en premier, et `--apercu` s'arrête là
-(`scripts/diagnostic-harness.ts:1044-1061`). Elle est résolue UNE fois : le run
+(`scripts/diagnostic-harness.ts:1030-1047`). Elle est résolue UNE fois : le run
 exécute celle que le palier 1 a décrite, sans relire recette ni export
-(`scripts/lib/diagnosticHarness.ts:194-224`).
+(`scripts/lib/diagnosticHarness.ts:191-221`).
 
 **Chaque paramètre effectif affiche son origine** : `recette`,
 `config synthétique`, `défaut moteur`, `DÉRIVÉ de <param>`, `OVERRIDE`,
 `recette (non surchargeable)` (`scripts/lib/diagnosticTypes.ts:149-169`). La
 table couvre la surface d'override et les paramètres effectifs non
-surchargeables : objectif et stats d'objectif, `adaptiveTrancheWeighting`,
-métrique, recherche exhaustive, composition du pool, verrous, artéfacts,
-bornes d'artéfact, relique, contexte relique, exclusions
-(`scripts/lib/diagnosticConfig.ts:259-318`).
+surchargeables : objectif et stats d'objectif, métrique, recherche
+exhaustive, composition du pool, verrous, artéfacts, bornes d'artéfact, relique, contexte relique, exclusions
+(`scripts/lib/diagnosticConfig.ts:259-317`).
 
 **La recette reste la vérité prod** : les overrides vivent dans une section
 distincte de la configuration (`overrides`), jamais fondus dans la recette.
@@ -182,7 +181,7 @@ Chaque paramètre porte la valeur qu'aurait la production ; dès qu'un seul
 diffère, le run est marqué « FIDÉLITÉ DES PARAMÈTRES SUIVIS : DIVERGE DE LA
 PROD » et chaque écart nommé (`bucketCap = 500  (prod : 6000)`), sinon
 « conforme à la production pour ce cas »
-(`scripts/lib/diagnosticConfig.ts:333-352`, `:377-394`). Suit, dans les deux
+(`scripts/lib/diagnosticConfig.ts:332-351`, `:377-394`). Suit, dans les deux
 cas, ce que la comparaison ne prouve pas : composition du pool (affichée,
 jamais comparée), paramètre absent de la table, coquille Node contre
 navigateur. La marque fait partie du résultat (`fidelite`), donc de `--json` :
@@ -199,7 +198,7 @@ que la recette porte en préréglage (`scripts/lib/diagnosticTypes.ts:54-83`).
 rétablirait un mesurerait une recherche tronquée que la production ne fait
 pas. `maxMs` est la seule borne qui puisse tronquer, et le premier paramètre à
 vérifier : 15 s par défaut moteur (`DEFAULT_MAX_MS`,
-`src/lib/runeBuildOptim.ts:1175`), 10 min à l'écran (`HARD_TIMEOUT_MS`,
+`src/lib/runeBuildOptim.ts:1174`), 10 min à l'écran (`HARD_TIMEOUT_MS`,
 `src/components/outils/OptimizerSection.tsx:918`), sans limite en recherche
 exhaustive. En synthétique sans `maxMs`, le harnais applique les 10 min de
 l'écran et le dit (`scripts/lib/diagnosticConfig.ts:137-147`).
@@ -214,7 +213,7 @@ slotFilterCap » (`scripts/lib/diagnosticConfig.ts:165-176`,
 **Piège B — le défaut du moteur n'est pas celui de la production.** Un run qui
 omet `slotFilterCap` prend 40 (`MAX_PER_SLOT_MATCH`) et 3000 de `bucketCap` ;
 la production, au préréglage « Moyen » de l'écran, 80 et 6000
-(`src/lib/runeBuildOptim.ts:594-615`) : la moitié de la rétention sur les deux
+(`src/lib/runeBuildOptim.ts:593-614`) : la moitié de la rétention sur les deux
 axes, en silence. En mode recette, le préréglage de la recette fait foi ; en
 synthétique, le harnais EXIGE `--cap` (sans défaut) et refuse le run sans lui
 (`scripts/lib/diagnosticConfig.ts:115-123`, `scripts/diagnostic-harness.ts:387-400`,
@@ -229,7 +228,7 @@ changements séparables.
 
 `--suivre=<id,…>` rend la présence de chaque rune à chaque étage et sa
 PREMIÈRE disparition, avec la nature de l'étage et ce qu'elle signifie
-(`suivrePiece`, `scripts/lib/diagnosticHarness.ts:1892-1906` ; natures,
+(`suivrePiece`, `scripts/lib/diagnosticHarness.ts:1827-1841` ; natures,
 `:115-137`) :
 
 | Étage | Nature | Ce qu'une disparition signifie |
@@ -246,7 +245,7 @@ absent au départ, jamais « éliminé au premier étage »
 - une rune qui atteint l'entrée réelle de `filterSlot` (sortie de
   `feasibility`, lue par `onStage`) reçoit son rang exact sur `relevance()` et
   par stat, avec les budgets `PER_STAT_KEEP`/`PER_STAT_KEEP_OBJECTIVE`
-  (`detailFiltrage`, `scripts/lib/diagnosticHarness.ts:1288-1335`) ;
+  (`detailFiltrage`, `scripts/lib/diagnosticHarness.ts:1223-1270`) ;
 - les 3 identifiants d'une même moitié (emplacements 1-3 ou 4-6) donnent le
   rang du demi-build dans son compartiment et ses voisins (`:353-366`,
   `:1344-1374`) ;
@@ -279,7 +278,7 @@ identifiant ; seules les runes y sont branchées. Qui l'étend :
 ## Complétude : jamais un « 0 candidat » nu
 
 Après l'appariement, `evaluerCompletude`
-(`scripts/lib/diagnosticHarness.ts:1846-1880`) rend `complet`,
+(`scripts/lib/diagnosticHarness.ts:1781-1815`) rend `complet`,
 `incomplet — raison : maxMs | maxCollected`, ou
 `INCOHÉRENT — incomplet, motif NON déductible`.
 
@@ -299,7 +298,7 @@ Après l'appariement, `evaluerCompletude`
 - **Une configuration invalide n'est pas un verdict.** Un emplacement vide
   fait rendre `null` à `prepareSearch` : le harnais dit « préparation
   impossible » et nomme la cause lue dans le verrou et le pool
-  (`scripts/lib/diagnosticHarness.ts:1227-1267`) — rune imposée absente du pool,
+  (`scripts/lib/diagnosticHarness.ts:1162-1202`) — rune imposée absente du pool,
   rune imposée à un autre emplacement (un verrou ne déplace pas une rune, il
   vide l'emplacement), sinon l'étage qui a vidé l'emplacement. Tests :
   `tests/diagnostic-harness.test.ts:371-402` et `:516-550`.
@@ -307,7 +306,7 @@ Après l'appariement, `evaluerCompletude`
 ## Faisabilité et blocages
 
 Le harnais appelle `diagnoseFeasibility` et `rankBlockingConditions` en
-gardant leur sémantique (`scripts/lib/diagnosticHarness.ts:1163-1215`) :
+gardant leur sémantique (`scripts/lib/diagnosticHarness.ts:1098-1150`) :
 
 - les **preuves** (`diagnoseFeasibility`, une passe) sont toujours calculées
   et rendues : `satisfiable: false` PROUVE l'impossibilité sur une stat isolée ;
@@ -328,7 +327,7 @@ chronomètres de phase (`tests/diagnostic-harness.test.ts:482-514`).
 Le budget `maxMs` court depuis `startedAt`, construction des demi-builds
 comprise : le harnais mesure donc `preparation`, `demiBuilds`, `appariement`
 et `total`, jamais le seul appariement présenté comme durée du run
-(`agregerTemps`, `scripts/lib/diagnosticHarness.ts:1970-2001`). `demiBuilds`
+(`agregerTemps`, `scripts/lib/diagnosticHarness.ts:1905-1936`). `demiBuilds`
 est le temps réel de la phase ; `demiBuildA` et `demiBuildB`, à côté, le coût
 de chaque fil — paralléliser ne fait jamais mieux que la moitié la plus lourde.
 Seules les phases qui ont tourné sont rendues, jamais à 0 ms. La fenêtre
@@ -339,7 +338,7 @@ blocages restent hors des chronomètres (`tests/diagnostic-harness.test.ts:158-1
 ## Séries de temps et comparaison
 
 Aucun temps n'est livré nu : chaque phase est une série de N répétitions
-(`serie`, `scripts/lib/diagnosticHarness.ts:1912-1928`) — le MINIMUM (une
+(`serie`, `scripts/lib/diagnosticHarness.ts:1847-1863`) — le MINIMUM (une
 interférence ne peut qu'ajouter du temps), la médiane, la dispersion
 `(max − min) / min`. Une mesure à une seule répétition porte « aucune
 conclusion comparative permise » ; `--repetitions` règle N.
@@ -397,7 +396,7 @@ Forcer un régime (`--regime=sequentiel|parallele`) est un override comme les
 autres : la table l'annonce `OVERRIDE`, le drapeau de fidélité bascule
 (`scripts/lib/diagnosticConfig.ts:207-212`), et l'explication dit « régime
 FORCÉ — ne décrit la production que par coïncidence »
-(`scripts/lib/diagnosticHarness.ts:374-377`). Deux usages légitimes : la
+(`scripts/lib/diagnosticHarness.ts:371-374`). Deux usages légitimes : la
 **reproductibilité** — les deux régimes collectent dans l'ordre séquentiel et
 rendent le même résultat, non tronqué ou coupé par le plafond, mais sous une
 troncature par le temps le parallèle garde ce que chaque morceau a trouvé
@@ -421,7 +420,7 @@ par message, la main rendue et l'arrêt coopératif servent le navigateur
 (`src/workers/pairingDriver.ts:37-77`) : en séquentiel, il vide
 `apparier(prepared, bucketsA, bucketsB)` — le noyau, ou `pairBuckets` hors de
 son contrat —, et en parallèle il appelle `apparierRapideEnParallele` avec le
-lanceur Node (`scripts/lib/diagnosticHarness.ts:1078-1083`), appels nus qui
+lanceur Node (`scripts/lib/diagnosticHarness.ts:1013-1018`), appels nus qui
 explorent ce que la production explore.
 
 Passer un vrai `prepared` à `buildBuckets` ou `pairBuckets` n'est pas une
@@ -443,7 +442,7 @@ paie pas. Ce chiffre est ARITHMÉTIQUE, non mesuré, et ce n'est pas le seul
 n'est pas établie, un temps du harnais n'est ni un plancher ni un plafond pour
 le navigateur, et les temps Node ne sont pas directement transposables. La note
 est imprimée avec toute mesure de temps (`noteNavigateur`,
-`scripts/lib/diagnosticConfig.ts:341-351`), et le test interdit qu'elle
+`scripts/lib/diagnosticConfig.ts:340-350`), et le test interdit qu'elle
 affirme une direction (`tests/diagnostic-harness.test.ts:122-135`).
 
 ## Validation du harnais
@@ -460,7 +459,7 @@ affirme une direction (`tests/diagnostic-harness.test.ts:122-135`).
    d'inventaire) ; `filterslot` sans attente stricte. Une divergence inattendue
    fait sortir en erreur.
 2. **Fidélité aux primitives** — par construction.
-3. **Invariants**, dans `node tests/run.mjs` (registre `tests/index.ts:631-634`) :
+3. **Invariants**, dans `node tests/run.mjs` (registre `tests/index.ts:632-635`) :
    un étage ne crée jamais de rune, sa sortie est incluse dans son entrée,
    aucune rune ne change d'emplacement (`testRuneOptimOnStage`) ; même graine,
    même pool (`testRandomPool`) ; complétude toujours explicite, configuration,
@@ -476,7 +475,7 @@ La rétention INTERNE de `buildBuckets` n'est pas observable. Un demi-build
 compartiments finaux, et `BuildingProgress` ne compte que la boucle
 EXTÉRIEURE : le `yield` est hors des boucles internes et `total` vaut la
 longueur du premier emplacement de la moitié
-(`src/lib/runeBuildOptim.ts:2654-2660`) ; les sous-arbres élagués n'y laissent
+(`src/lib/runeBuildOptim.ts:2509-2515`) ; les sous-arbres élagués n'y laissent
 rien, et remonter cette progression ne donne pas un débit d'énumération. Y
 répondre exigerait un second observateur dans `buildBuckets`, boucle chaude où
 son coût ne serait plus négligeable. Le harnais dit donc « absent des

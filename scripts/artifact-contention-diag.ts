@@ -252,7 +252,6 @@ async function main() {
       objective: c.objective,
       slotFilterCap: SLOT_FILTER_CAP,
       maxMs: Number.POSITIVE_INFINITY,
-      adaptiveTrancheWeighting: false,
     };
     const prepared = prepareSearch(params);
     if (!prepared) continue;

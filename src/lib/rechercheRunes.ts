@@ -21,7 +21,6 @@ import {
   TraceCandidat,
   buildBuckets,
   prepareSearch,
-  trancheReallocation,
 } from './runeBuildOptim';
 import { OrdreCombos, construireMoitieRapide } from './constructionRapide';
 import { apparierRapide } from './appariementRapide';
@@ -54,36 +53,24 @@ const TRIPLETS_MAX_NOYAU = 0x7fffffff;
 
 /**
  * Pourquoi une moitié se construit par `buildBuckets` plutôt que par le noyau
- * sur tableaux typés, ou `null` quand le noyau la prend. Quatre cas : un
+ * sur tableaux typés, ou `null` quand le noyau la prend. Trois cas : un
  * traceur de diagnostic (le noyau ne le remplit pas), une moitié de plus de
  * 2³¹ triplets (≈ 1 290 runes par emplacement), un `bucketCap` (override de
- * mesure) dont les tas sortiraient des entiers 32 bits, ou une capacité
- * redistribuée par « Prioriser les stats les plus difficiles » qui en
- * sortirait.
+ * mesure) dont les tas sortiraient des entiers 32 bits.
  */
 export function motifRepliConstruction(
   ctx: BuildBucketsContext,
-  slotIdxs: readonly [number, number, number],
-  adaptiveTrancheWeighting = false
+  slotIdxs: readonly [number, number, number]
 ): string | null {
   if (ctx.traceur) return 'traceur de diagnostic demandé';
   const triplets = slotIdxs.reduce((p, i) => p * ctx.filtered[i].length, 1);
   if (triplets > TRIPLETS_MAX_NOYAU) return `${triplets} triplets dépassent le code entier 32 bits du noyau`;
   // Les capacités des tas entrent dans un `Int32Array` : `bucketCap` (un
-  // override de mesure peut valoir 2³¹ ou `Infinity`) et celles que
-  // « Prioriser les stats les plus difficiles » en redistribue, dont aucune ne
-  // dépasse le budget total (une tranche par stat retenue, plus la générique
-  // et la combinée).
+  // override de mesure peut valoir 2³¹ ou `Infinity`), pour chaque tranche
+  // (une par stat retenue, plus la générique et la combinée).
   const tranches = 2 + ctx.retentionKeys.length;
   if (!Number.isInteger(ctx.bucketCap) || ctx.bucketCap < 0 || ctx.bucketCap * tranches > TRIPLETS_MAX_NOYAU) {
     return `bucketCap ${ctx.bucketCap} hors des capacités entières du noyau (${tranches} tranches)`;
-  }
-  if (adaptiveTrancheWeighting && ctx.retentionKeys.length > 0) {
-    const { reallocatedCap } = trancheReallocation(ctx.filtered, [...slotIdxs], ctx.retentionKeys, ctx.base, ctx.bucketCap);
-    for (const k of ctx.retentionKeys) {
-      const cap = reallocatedCap[k];
-      if (!Number.isInteger(cap) || cap < 0 || cap > TRIPLETS_MAX_NOYAU) return `capacité redistribuée de ${k} (${cap}) hors des entiers 32 bits du noyau`;
-    }
   }
   return null;
 }
@@ -102,13 +89,12 @@ export function* construireMoitie(
   slotIdxs: readonly [number, number, number],
   ctx: BuildBucketsContext,
   otherHalfMaxSets: number[],
-  adaptiveTrancheWeighting = false,
   combosOrderMode: OrdreCombos = 'objective'
 ): Generator<BuildingProgress, Bucket[], void> {
-  if (motifRepliConstruction(ctx, slotIdxs, adaptiveTrancheWeighting) != null) {
-    return yield* buildBuckets(half, slotIdxs, ctx, otherHalfMaxSets, undefined, adaptiveTrancheWeighting, combosOrderMode);
+  if (motifRepliConstruction(ctx, slotIdxs) != null) {
+    return yield* buildBuckets(half, slotIdxs, ctx, otherHalfMaxSets, undefined, combosOrderMode);
   }
-  return yield* construireMoitieRapide(half, slotIdxs, ctx, otherHalfMaxSets, adaptiveTrancheWeighting, combosOrderMode);
+  return yield* construireMoitieRapide(half, slotIdxs, ctx, otherHalfMaxSets, combosOrderMode);
 }
 
 /**
@@ -128,10 +114,10 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
     return { candidates: [], explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null, ...(traceurRejet ? { traceur: traceurRejet } : {}) };
   }
   const bucketsA = yield* construireMoitie(
-    'A', [0, 1, 2], prepared, prepared.maxSetsForA, params.adaptiveTrancheWeighting, params.combosOrderMode
+    'A', [0, 1, 2], prepared, prepared.maxSetsForA, params.combosOrderMode
   );
   const bucketsB = yield* construireMoitie(
-    'B', [3, 4, 5], prepared, prepared.maxSetsForB, params.adaptiveTrancheWeighting, params.combosOrderMode
+    'B', [3, 4, 5], prepared, prepared.maxSetsForB, params.combosOrderMode
   );
   return yield* apparier(prepared, bucketsA, bucketsB);
 }

@@ -202,8 +202,8 @@ interface Espace {
 function construire(nom: string, params: SearchParams): Espace | null {
   const prepared = prepareSearch(params);
   if (!prepared) return null;
-  const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, params.adaptiveTrancheWeighting, params.combosOrderMode));
-  const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, params.adaptiveTrancheWeighting, params.combosOrderMode));
+  const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, params.combosOrderMode));
+  const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, params.combosOrderMode));
   return { nom, params, prepared, bucketsA, bucketsB };
 }
 

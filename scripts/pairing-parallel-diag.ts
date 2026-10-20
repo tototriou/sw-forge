@@ -82,9 +82,7 @@ async function main() {
     // première version de ce script le forçait à `MAX_SAFE_INTEGER` — un
     // vrai écart de fidélité, pas un détail (voir le skill
     // `optimizer-perf-testing`/section « Fidélité des scripts diagnostics »
-    // d'`algo-verify`). `adaptiveTrancheWeighting` explicite à `false` pour
-    // la même raison : ce prototype ne teste PAS ce réglage, jamais implicite.
-    // `maxMs` reste infini : seul champ que `exhaustiveSearch` fait
+    // d'`algo-verify`). `maxMs` reste infini : seul champ que `exhaustiveSearch` fait
     // réellement varier en prod, donc le seul qu'on a le droit de diverger
     // du défaut d'écran ici.
     const params: SearchParams = {
@@ -97,7 +95,6 @@ async function main() {
       objective: c.objective,
       slotFilterCap: SLOT_FILTER_CAP,
       maxMs: Number.POSITIVE_INFINITY,
-      adaptiveTrancheWeighting: false,
     };
     const prepared = prepareSearch(params);
     if (!prepared) {

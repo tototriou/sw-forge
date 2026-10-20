@@ -311,9 +311,10 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
     coûte O(log cap), et une combinaison moins bonne que la pire déjà gardée
     s'écarte en un test. Les tranches sont fusionnées sans doublon et triées
     une seule fois par compartiment, à la fin.
-  - « Prioriser les stats les plus difficiles » (`adaptiveTrancheWeighting`)
-    répartit autrement les places des tranches par stat, selon leur
-    dispersion, à budget total égal (`trancheReallocation`).
+  - Les tranches par stat ont toutes `bucketCap` places : aucune stat n'en
+    reçoit plus selon sa dispersion. `SearchParams.adaptiveTrancheWeighting`
+    est accepté et sans effet
+    ([retention-a-parts-egales.md](../../../04-decisions/adr/retention-a-parts-egales.md)).
   - Les bornes d'élagage d'un compartiment (`maxPct`/`maxFlat`, par stat
     contrainte) s'étendent à partir de **toute** combinaison rencontrée,
     même celles finalement jetées : rester large ici ne coûte rien et
@@ -461,12 +462,16 @@ n'est pas en production. Les pistes encore ouvertes sont dans
 - Ne pas passer les stats en `Float32Array` : environ sept chiffres
   significatifs contre des stats au centième de pour cent, pour aucun coût
   de ramasse-miettes identifié (raisonnement, non mesuré).
+- Ne pas répartir les places des tranches par stat selon la dispersion de
+  chaque stat, mesurée sur le pool filtré avant la boucle (« Prioriser les
+  stats les plus difficiles ») : à budget égal, elle trouvait 5 à 11 % de
+  builds valides en moins et aucun meilleur build
+  ([retention-a-parts-egales.md](../../../04-decisions/adr/retention-a-parts-egales.md)).
 - Gardée en réserve, pas adoptée : une autre façon de prioriser les stats
   les plus difficiles, qui répartit les places des tranches d'après des
   accumulateurs tenus pendant la construction
   (`scripts/patches/piste-a-tranche-weighting.patch`, qui ne s'applique
-  plus tel quel). Elle coûte à la construction, là où
-  `trancheReallocation` estime la dispersion sur le pool filtré avant la
-  boucle, et son avantage pour trouver n'a été vu que sur un cas. À
-  reprendre si l'interrupteur actuel laisse encore des recherches
-  infructueuses.
+  plus tel quel). Elle coûte à la construction, et son avantage pour
+  trouver n'a été vu que sur un cas. À ne reprendre que mesurée en builds
+  valides trouvés, à pré-filtrage égal : c'est cette mesure qui a écarté la
+  répartition par dispersion.

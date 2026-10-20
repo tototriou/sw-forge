@@ -10,8 +10,8 @@
 // Usage : monster-search-multicount-diag.ts <export.json> <nomMonstre> [objective=degats]
 //
 // ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** : il ne pose pas une question
-// sur UN run, il compare SEIZE CONFIGURATIONS (4 préréglages × 2 métriques ×
-// `adaptiveTrancheWeighting` on/off). ⚠️ Comparer des configurations est le
+// sur UN run, il compare HUIT CONFIGURATIONS (4 préréglages × 2 métriques).
+// ⚠️ Comparer des configurations est le
 // rôle du différentiel du harnais, mais ce n'est PAS la raison de sa
 // survie : la raison, ce sont les deux grandeurs ci-dessous, que le harnais
 // ne produit pas, condition par condition.
@@ -24,10 +24,10 @@
 //     TOUS les `result.candidates` du préréglage « moyen » et vérifie, un par
 //     un, qu'ils restent atteignables à « extrême » — avec le harnais il
 //     faudrait un run par build trouvé, et connaître ces builds d'avance.
-//  2. **`metric` et `adaptiveTrancheWeighting` ne sont pas surchargeables.**
-//     Vérifié sur la sortie réelle du harnais : tous deux s'affichent
-//     « recette (non surchargeable) ». Les faire varier demande autant de
-//     recettes que de conditions, là où ce script les fait varier en un
+//  2. **`metric` n'est pas surchargeable.**
+//     Vérifié sur la sortie réelle du harnais : il s'affiche
+//     « recette (non surchargeable) ». Le faire varier demande autant de
+//     recettes que de conditions, là où ce script le fait varier en un
 //     appel — et un lot du harnais fait varier le CAS, jamais la CONDITION
 //     (`AVERTISSEMENT_LOT`).
 //
@@ -107,7 +107,7 @@ interface RunOutcome {
   runeIdSets: number[][]; // un tableau de 6 ids par candidat trouvé
 }
 
-function runOnce(slotFilterCap: number, adaptiveTrancheWeighting: boolean, metric: 'eff' | 'score' = 'eff'): RunOutcome {
+function runOnce(slotFilterCap: number, metric: 'eff' | 'score' = 'eff'): RunOutcome {
   const params: SearchParams = {
     base: sonia.gear.base,
     artifacts,
@@ -118,25 +118,20 @@ function runOnce(slotFilterCap: number, adaptiveTrancheWeighting: boolean, metri
     objective,
     maxMs: HARD_TIMEOUT_MS,
     slotFilterCap,
-    adaptiveTrancheWeighting,
   };
   const t0 = performance.now();
   const prepared = prepareSearch(params);
   const tPrepared = performance.now();
   if (!prepared) return { count: 0, truncated: false, explored: 0, prepMs: tPrepared - t0, buildWallMs: 0, pairingMs: 0, totalMs: tPrepared - t0, runeIdSets: [] };
-  if (slotFilterCap === 80 && !adaptiveTrancheWeighting) {
+  if (slotFilterCap === 80) {
     console.log(`    [pool par emplacement, metric=${metric}] ${prepared.filtered.map((s) => s.length).join(' x ')}`);
   }
 
   const bucketsA = drain(
-    buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA,
-      undefined, adaptiveTrancheWeighting
-    )
+    buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA)
   );
   const bucketsB = drain(
-    buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB,
-      undefined, adaptiveTrancheWeighting
-    )
+    buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB)
   );
   const tBuild = performance.now();
   // ⚠️ Le moteur n'a pas de budget de paires : un appel
@@ -168,15 +163,8 @@ for (const metric of ['eff', 'score'] as const) {
   console.log(`\n=== metric = ${metric} ===`);
   console.log('preset | cap | trouvés | tronqué | exploré | prep | construction | appariement | total');
   for (const { key, cap } of PRESETS) {
-    const out = runOnce(cap, false, metric);
+    const out = runOnce(cap, metric);
     if (metric === 'eff') outcomes.set(key, out);
-    console.log(
-      `${key.padEnd(7)} | ${String(cap).padEnd(3)} | ${String(out.count).padEnd(7)} | ${String(out.truncated).padEnd(7)} | ${out.explored.toLocaleString('fr-FR').padEnd(10)} | ${out.prepMs.toFixed(0)}ms | ${out.buildWallMs.toFixed(0)}ms | ${out.pairingMs.toFixed(0)}ms | ${out.totalMs.toFixed(0)}ms`
-    );
-  }
-  console.log(`--- avec "prioriser les stats les plus difficiles" (metric=${metric}) ---`);
-  for (const { key, cap } of PRESETS) {
-    const out = runOnce(cap, true, metric);
     console.log(
       `${key.padEnd(7)} | ${String(cap).padEnd(3)} | ${String(out.count).padEnd(7)} | ${String(out.truncated).padEnd(7)} | ${out.explored.toLocaleString('fr-FR').padEnd(10)} | ${out.prepMs.toFixed(0)}ms | ${out.buildWallMs.toFixed(0)}ms | ${out.pairingMs.toFixed(0)}ms | ${out.totalMs.toFixed(0)}ms`
     );

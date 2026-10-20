@@ -85,10 +85,10 @@ for (const sc of scenarios) {
   if (!prepared) continue;
 
   const bucketsA = drain(
-    buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, false, combosOrderMode)
+    buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, combosOrderMode)
   );
   const bucketsB = drain(
-    buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, false, combosOrderMode)
+    buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, combosOrderMode)
   );
   const total = totalPairCount(prepared, bucketsA, bucketsB);
 

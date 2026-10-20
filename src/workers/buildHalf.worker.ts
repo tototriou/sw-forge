@@ -38,9 +38,6 @@ export interface BuildHalfRequest {
   // PROTOTYPE (combosOrderMode='objective') — voir BuildBucketsContext dans
   // runeBuildOptim.ts, même discipline de propagation que `base`.
   objectiveKeys: StatKey[];
-  // Bouton « Prioriser les stats les plus difficiles » — voir SearchParams
-  // dans runeBuildOptim.ts, même paramètre relayé tel quel.
-  adaptiveTrancheWeighting?: boolean;
   // ⚠️ Voir SearchParams.combosOrderMode dans
   // runeBuildOptim.ts. Sans ce champ (et son relais ci-dessous jusqu'à
   // `buildBuckets`), `SearchParams.combosOrderMode` n'aurait AUCUN effet sur
@@ -68,7 +65,7 @@ export type BuildHalfResponse = BuildHalfProgressMessage | BuildHalfResultMessag
 const PROGRESS_THROTTLE_MS = 150;
 
 self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
-  const { half, slotIdxs, filtered, otherHalfMaxSets, adaptiveTrancheWeighting, combosOrderMode } = e.data;
+  const { half, slotIdxs, filtered, otherHalfMaxSets, combosOrderMode } = e.data;
   // Connu D'AVANCE (indépendant du générateur) : le total réel que
   // la construction utilisera pour CE premier emplacement de la moitié — sert
   // au message de fin garanti ci-dessous, voir son commentaire.
@@ -79,7 +76,7 @@ self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
   // trop (half/slotIdxs/otherHalfMaxSets/…) sont ignorés sans risque
   // puisque ce n'est pas un littéral d'objet (aucune vérification de
   // propriété excédentaire de TypeScript ici).
-  const gen = construireMoitie(half, slotIdxs, e.data, otherHalfMaxSets, adaptiveTrancheWeighting, combosOrderMode);
+  const gen = construireMoitie(half, slotIdxs, e.data, otherHalfMaxSets, combosOrderMode);
   let lastPost = 0;
   let step = gen.next();
   while (!step.done) {

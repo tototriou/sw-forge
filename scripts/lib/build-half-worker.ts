@@ -36,13 +36,10 @@ export interface BuildHalfWorkerData {
   base: BaseStats;
   // PROTOTYPE (combosOrderMode='objective') — même discipline que `base`.
   objectiveKeys: StatKey[];
-  // ⚠️ Manquaient tous les deux jusqu'ici — ce worker (utilisé par
-  // perf-battery.ts pour mesurer la construction « comme en prod ») ignorait
-  // silencieusement adaptiveTrancheWeighting ET combosOrderMode, retombant
-  // TOUJOURS sur le défaut interne de buildBuckets quel que soit ce que
-  // SearchParams portait — trouvé en corrigeant le même trou côté
-  // src/workers/buildHalf.worker.ts.
-  adaptiveTrancheWeighting?: boolean;
+  // ⚠️ Relayé depuis `SearchParams` : sans lui, ce worker (utilisé par
+  // perf-battery.ts pour mesurer la construction « comme en prod »)
+  // retomberait sur le défaut interne de buildBuckets quel que soit ce que
+  // SearchParams portait — même trou que côté src/workers/buildHalf.worker.ts.
   combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
   /**
    * A₂ — horodater les `BuildingProgress` que
@@ -153,7 +150,6 @@ function construire(): { buckets: Bucket[]; ms: number; progression?: Progressio
     data.slotIdxs,
     data,
     data.otherHalfMaxSets,
-    data.adaptiveTrancheWeighting,
     data.combosOrderMode
   );
   if (!data.horodaterProgression) {

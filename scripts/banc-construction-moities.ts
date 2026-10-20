@@ -15,15 +15,15 @@
 // Fidélité : les `SearchParams` viennent du chemin du harnais (`resoudreCas`
 // pour les cas de scripts/lib/perfShared.ts, `resoudreConfig` + `chargerRecette`
 // pour une recette), donc des mêmes réglages que le harnais ; `buildBuckets` reçoit
-// les arguments du Worker de moitié (`adaptiveTrancheWeighting` et
-// `combosOrderMode` des `SearchParams`, aucun `skylineKeys`). Un override
-// (`--ordre`, `--adaptatif`, `--slotFilterCap`) est imprimé « DIVERGE DE LA PROD ».
+// les arguments du Worker de moitié (`combosOrderMode` des `SearchParams`,
+// aucun `skylineKeys`). Un override (`--ordre`, `--slotFilterCap`) est
+// imprimé « DIVERGE DE LA PROD ».
 //
 // Usage :
 //   npx tsx scripts/banc-construction-moities.ts --cas=tous     (--cas répétable : --cas=3 --cas=ciri)
 //   npx tsx scripts/banc-construction-moities.ts --compte=<export.json> --recette=<recette.json> [--recette=…]
 //   options : --fils=<n> (8)  --moities=A,B  --ordre=<potential|relevance|combined|objective>
-//             --adaptatif  --slotFilterCap=<n>  --json=<fichier>
+//             --slotFilterCap=<n>  --json=<fichier>
 
 import { Worker } from 'worker_threads';
 import { mkdirSync, writeFileSync } from 'fs';
@@ -50,7 +50,6 @@ import type { MessageTranche } from './lib/construction-tranche-worker';
 const args = process.argv.slice(2);
 const valeurs = (nom: string) => args.filter((a) => a.startsWith(`--${nom}=`)).map((a) => a.slice(nom.length + 3));
 const valeur = (nom: string) => valeurs(nom)[0];
-const drapeau = (nom: string) => args.includes(`--${nom}`);
 
 const FILS = Number(valeur('fils') ?? 8);
 const MOITIES = (valeur('moities') ?? 'A,B').split(',') as ('A' | 'B')[];
@@ -123,7 +122,6 @@ async function main(): Promise<void> {
     const params: SearchParams = { ...c.params };
     const overrides: string[] = [];
     if (ORDRE) { params.combosOrderMode = ORDRE; overrides.push(`combosOrderMode=${ORDRE}`); }
-    if (drapeau('adaptatif')) { params.adaptiveTrancheWeighting = true; overrides.push('adaptiveTrancheWeighting=true'); }
     if (CAP != null) { params.slotFilterCap = CAP; delete params.bucketCap; overrides.push(`slotFilterCap=${CAP} (bucketCap dérivé)`); }
     const prepared = prepareSearch(params);
     console.log(`\n━━ ${c.libelle}`);
@@ -131,11 +129,10 @@ async function main(): Promise<void> {
       console.log('   préparation vide : aucun compartiment à comparer');
       continue;
     }
-    const adaptatif = params.adaptiveTrancheWeighting ?? false;
     const ordre: OrdreCombos = params.combosOrderMode ?? 'objective';
     console.log(
       `   pools ${prepared.filtered.map((l) => l.length).join(' ')} · slotFilterCap ${params.slotFilterCap} · bucketCap ${prepared.bucketCap} · ` +
-        `adaptatif ${adaptatif} · combosOrderMode ${ordre} · retentionKeys [${prepared.retentionKeys.join(',')}] · objectiveKeys [${prepared.objectiveKeys.join(',')}]` +
+        `combosOrderMode ${ordre} · retentionKeys [${prepared.retentionKeys.join(',')}] · objectiveKeys [${prepared.objectiveKeys.join(',')}]` +
         (overrides.length ? ` · ⚠️ DIVERGE DE LA PROD : ${overrides.join(', ')}` : ' · réglages de production')
     );
     const ctx = contexteDe(prepared);
@@ -144,22 +141,22 @@ async function main(): Promise<void> {
       const autre = half === 'A' ? prepared.maxSetsForA : prepared.maxSetsForB;
 
       let t = performance.now();
-      const ref: Bucket[] = drain(buildBuckets(half, slots, prepared, autre, undefined, params.adaptiveTrancheWeighting, params.combosOrderMode));
+      const ref: Bucket[] = drain(buildBuckets(half, slots, prepared, autre, undefined, params.combosOrderMode));
       const msProduction = performance.now() - t;
 
       // Dans une fonction : la sortie séquentielle n'est plus référencée quand les fils démarrent.
       const { msSequentiel, divergenceSequentiel } = (() => {
         const t0 = performance.now();
-        const seq = drain(construireMoitieRapide(half, slots, prepared, autre, adaptatif, ordre));
+        const seq = drain(construireMoitieRapide(half, slots, prepared, autre, ordre));
         return { msSequentiel: performance.now() - t0, divergenceSequentiel: premiereDivergence(ref, seq) };
       })();
 
       t = performance.now();
       const partition = repartirIdx0(prepared.filtered[slots[0]].length, FILS);
-      const messages = await Promise.all(partition.map((idx0s) => lancer(chemin, { ctx, slotIdxs: slots, otherHalfMaxSets: autre, adaptiveTrancheWeighting: adaptatif, idx0s })));
+      const messages = await Promise.all(partition.map((idx0s) => lancer(chemin, { ctx, slotIdxs: slots, otherHalfMaxSets: autre, idx0s })));
       const tf = performance.now();
       const tranches: ResultatTranche[] = messages.map((m) => m.resultat);
-      const par = fusionnerTranches(ctx, slots, autre, adaptatif, ordre, tranches);
+      const par = fusionnerTranches(ctx, slots, autre, ordre, tranches);
       const fin = performance.now();
       const divergenceTranches = premiereDivergence(ref, par);
 

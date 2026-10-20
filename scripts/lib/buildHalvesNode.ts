@@ -135,10 +135,9 @@ export async function construireMoitiesEnParallele(
     requiredPieces: prepared.requiredPieces,
     base: prepared.base,
     objectiveKeys: prepared.objectiveKeys,
-    // ⚠️ Relayés depuis `params` : sans eux, le worker retomberait sur le
+    // ⚠️ Relayé depuis `params` : sans lui, le worker retomberait sur le
     // défaut interne de `buildBuckets` et ignorerait silencieusement ce que
     // la recette demandait — trou déjà rencontré côté navigateur.
-    adaptiveTrancheWeighting: params.adaptiveTrancheWeighting,
     combosOrderMode: params.combosOrderMode,
     horodaterProgression,
   };

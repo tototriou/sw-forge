@@ -353,12 +353,11 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
     requiredPieces: prepared.requiredPieces,
     base: prepared.base,
     objectiveKeys: prepared.objectiveKeys,
-    // ⚠️ Relayés depuis params — voir build-half-worker.ts, le worker
-    // ignorait ces deux champs jusqu'ici, retombant toujours sur le défaut
-    // interne de buildBuckets. CASES ne les fixe pas aujourd'hui (undefined
-    // partout), mais un futur appel qui voudrait forcer une valeur précise
-    // (mesure ciblée) doit pouvoir compter sur ce relais.
-    adaptiveTrancheWeighting: params.adaptiveTrancheWeighting,
+    // ⚠️ Relayé depuis params — voir build-half-worker.ts : sans lui, le
+    // worker retombe toujours sur le défaut interne de buildBuckets. CASES
+    // ne le fixe pas aujourd'hui (undefined partout), mais un futur appel
+    // qui voudrait forcer une valeur précise (mesure ciblée) doit pouvoir
+    // compter sur ce relais.
     combosOrderMode: params.combosOrderMode,
   };
   const tBuildStart = performance.now();

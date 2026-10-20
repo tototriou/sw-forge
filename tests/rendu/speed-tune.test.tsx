@@ -21,7 +21,7 @@ const monstre = (nom: string, el: string) =>
 
 // ⚠️ **L'état de l'outil vit dans le magasin de `useStickyState`**, privé au
 // module et rempli par un effet — qui ne tourne pas en rendu serveur. Le
-// modifier pour l'exposer toucherait `src/hooks/`, interdit à la refonte.
+// modifier pour l'exposer toucherait `src/hooks/` pour le seul besoin d'un test.
 // On intercepte donc, LE TEMPS DU RENDU seulement, la lecture de ce
 // magasin : `Map.prototype.has`/`get` répondent pour les clés fournies, et
 // laissent passer toutes les autres (React s'en sert aussi).

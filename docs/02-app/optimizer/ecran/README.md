@@ -13,7 +13,7 @@ d'[OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx). Le reste d
 | Le changement touche… | Lire |
 | --- | --- |
 | la mise en page de `src/components/outils/OptimizerSection.tsx` : format, grille du téléphone, panneau « Options », changement d'onglet ; les cartes de réglage de `src/components/outils/optimizer/` | ce README |
-| la page de bureau : `src/components/outils/optimizer/bureau/PageBureau.tsx` (agencements, colonnes fixes, défilement), `src/components/outils/optimizer/bureau/panneau.ts` (panneaux et sections), `src/components/outils/optimizer/bureau/OngletsColonnes.tsx`, `src/lib/optimizerColonnes.ts` ; leur vue de développement | ce README ; [vue-des-gabarits.md](../../../03-developpeur/vue-des-gabarits.md) |
+| la page de bureau : `src/components/outils/optimizer/bureau/PageBureau.tsx` (agencements, page à hauteur de fenêtre, défilement des colonnes), `src/components/outils/optimizer/bureau/panneau.ts` (panneaux et sections), `src/components/outils/optimizer/bureau/OngletsColonnes.tsx`, `src/lib/optimizerColonnes.ts` ; leur vue de développement | ce README ; [vue-des-gabarits.md](../../../03-developpeur/vue-des-gabarits.md) |
 | la recherche du monstre et la liste de travail du bureau : `src/components/outils/MonsterSourcePicker.tsx`, `src/components/outils/optimizer/bureau/ListeDeTravailBureau.tsx`, `src/components/outils/optimizer/MonstreEquipementTelephone.tsx` | [recherche-du-monstre.md](recherche-du-monstre.md) |
 | « Meilleurs artéfacts offensifs pour ce build », `src/components/ArtifactSubLigne.tsx`, `src/components/outils/optimizer/MeilleursArtefacts.tsx`, `src/components/outils/optimizer/bureau/MeilleursArtefactsBureau.tsx` | [meilleurs-artefacts-offensifs.md](meilleurs-artefacts-offensifs.md) |
 | « Exemplaire » et sa fiche, `src/components/outils/optimizer/ExemplaireEtFiche.tsx`, `src/components/outils/optimizer/bureau/ExemplaireBureau.tsx` | [equipement-actuel.md](equipement-actuel.md) |
@@ -89,11 +89,15 @@ prend sa place moins 8 px (`RETRAIT_PANNEAU`) quand une autre colonne le
 suit, et l'écart visible vaut la gouttière de 16 px plus ce retrait. Aucun
 seuil n'a bougé ; une section garde la largeur de contenu de la carte qu'elle
 remplace (294 px dans « Artéfacts et relique », 314 dans « Aura, exclusion,
-avancés », 598 pour « Exemplaire »). La colonne de droite n'est pas une
-boîte : en A3, son panneau est un fond, case de la grille sous les siennes
-(`data-zone="fond-droite"`, décoratif), qui s'arrête sous les résultats (une
-dernière rangée flexible absorbe la hauteur des colonnes fixes plus hautes) ;
-en A1 et A2, « Exemplaire » en dessine le haut et les résultats le bas.
+avancés », 598 pour « Exemplaire »). La colonne de droite n'est une boîte
+qu'en A3 (`data-zone="droite"`) : un panneau qui défile seul, où « Exemplaire »
+tient la première piste (607 px, la place de 616 moins le bord du panneau) et
+le bloc étroit la seconde. En A1 et A2, cette boîte s'efface
+(`display: contents`) : « Exemplaire » et les résultats sont des cases de la
+grille de la page, et dessinent le haut et le bas du panneau. En A3, les
+panneaux des essentiels, des colonnes insérées et de la colonne de droite
+descendent jusqu'au bas de la page ; une colonne superposée garde la hauteur
+de son contenu.
 
 Chaque boîte a une **largeur fixe**, sauf deux, **élastiques** : le bloc
 « Objectif et Rechercher » (340 px au moins) et les résultats (360 px au
@@ -307,22 +311,48 @@ Le format téléphone est décrit dans
 
 ### Défilement
 
-- **A3** : la colonne de droite défile d'un bloc, avec la page :
-  « Exemplaire », le bloc « Objectif et Rechercher » et les cartes montent
-  ensemble. Les **essentiels restent fixes** ; plus hauts que la partie
-  visible de la fenêtre, ils défilent dans leur propre colonne. Le contrôle
-  à onglets et la colonne repliable ouverte, insérée ou superposée, restent
-  fixes de même, avec le même repli ; en défilant, « Exemplaire » et le bloc
-  passent sous le contrôle. Les essentiels font environ 721 px de haut
-  (mesuré, liste vide, monstre choisi ; la liste de travail les allonge
-  jusqu'à 308 px de membres) : ils tiennent entiers à 1 614 × 950 comme à
-  2 254 × 1 290.
-- ⚠️ **Une colonne fixe ne défile seule que si son contenu dépasse** la
-  partie visible : une boîte qui défile rogne les menus posés dedans, qu'il
-  vaut mieux laisser déborder tant que rien n'oblige à défiler. Les aides
+⚠️ **En A2 et A3, la page est à hauteur de fenêtre et ne défile pas** :
+elle occupe la partie visible sous la barre du haut (pleine page) ou le corps
+de son volet (écran partagé), moins 16 px de marge en bas, sans pied de page
+de l'app ([pied-de-page.md](../../transverse/feat-navigation/pied-de-page.md)).
+Sa hauteur se mesure (`useHauteurVisible`, `PageBureau.tsx`) : la fenêtre ou
+le volet, moins ce qui est au-dessus de la page ; ce qui la suit dans ce qui
+défile (rembourrages) est rendu par une marge négative. La fenêtre ne défile
+plus (`data-page-fenetre`, [index.css](src/index.css)). Les hauteurs se jugent
+sur la fenêtre réelle du navigateur (barre des tâches, onglets et barre
+d'adresse retranchés : ≈ 1 920 × 940 sur un écran de 1 920 × 1 080,
+≈ 1 536 × 730 sur un portable de 1 536 × 864), jamais sur celle de l'écran.
+
+- **A3 : chaque colonne est un panneau qui défile seul** — essentiels,
+  colonne repliable (insérée ou superposée), colonne de droite (« Exemplaire »,
+  le bloc « Objectif et Rechercher » et les cartes, qui montent ensemble).
+  Une molette au-dessus d'un panneau ne fait défiler que lui, et rien d'autre
+  une fois au bout (`overscroll-behavior: contain`). Le contrôle à onglets
+  reste en tête de la zone à droite des essentiels, dans sa rangée, sans
+  fond : les colonnes défilent sous sa rangée, jamais dessous. Les essentiels
+  font environ 721 px de haut (mesuré, liste vide, monstre choisi ; la liste
+  de travail les allonge jusqu'à 308 px de membres) : ils tiennent entiers à
+  1 920 × 940 (856 px de page), défilent de 60 px à 1 536 × 730 (646 px).
+- **A2 : la page défile en elle-même, d'un bloc**, la fenêtre (ou le volet)
+  immobile. « Exemplaire » (616 px) et les résultats passent sous les
+  essentiels : aucune colonne n'y va de haut en bas, et la colonne à droite
+  des essentiels (340 à 615 px) ne les tiendrait pas. Sa barre de défilement
+  est réservée hors du conteneur, comme celle de la fenêtre avant elle :
+  aucune largeur de boîte ne change.
+- ⚠️ **La colonne de droite réserve sa barre de défilement**
+  (`scrollbar-gutter: stable`), comme la page en A2 : les résultats qui
+  arrivent ne la rétrécissent pas, et « Rechercher » ne bouge pas sous le
+  clic. Le bloc étroit y perd ces 10 px : 337 px à son seuil (colonne de
+  droite de 972 px), sans débordement mesuré. En contrepartie, la fenêtre
+  n'a plus de barre en A2 et A3 : le conteneur gagne 10 px à fenêtre égale
+  (1 624 px à 1 920 de large au lieu des 1 614 du tableau des repères).
+- ⚠️ **Les autres colonnes ne défilent que si leur contenu dépasse** leur
+  hauteur : une boîte qui défile rogne les menus posés dedans, qu'il vaut
+  mieux laisser déborder tant que rien n'oblige à défiler. Les aides
   (`HelpPopover`) en sortent toujours, en portail : une bulle ancrée près du
   bord droit d'une colonne s'affiche en entier.
-- **A1 et A2** : la page défile, sans colonne fixe.
+- **A1** : la page défile dans la fenêtre (ou le volet), avec le pied de page ;
+  seule la barre fine du bloc est collée au bas de la partie visible.
 
 ### Bloc « Objectif et Rechercher »
 

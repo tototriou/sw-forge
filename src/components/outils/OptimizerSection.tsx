@@ -2017,19 +2017,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         : null
       : interrupteurResPreBureauRef.current;
     if (!el) return;
-    let correction = 0;
+    // Au bureau, en A3, c'est la colonne repliable qui défile, seule.
     const image = requestAnimationFrame(() => {
       el.scrollIntoView({ behavior: 'smooth', block: sousLg ? 'center' : 'nearest' });
-      // Au bureau, la colonne peut être fixe (`sticky`) et défiler seule : le
-      // défilement de la page la colle en chemin, ce que le calcul du
-      // navigateur ne prévoit pas. Une seconde passe, une fois la page
-      // arrêtée, ne fait défiler que ce qui manque.
-      if (!sousLg) correction = window.setTimeout(() => el.scrollIntoView({ block: 'nearest' }), 700);
     });
-    return () => {
-      cancelAnimationFrame(image);
-      window.clearTimeout(correction);
-    };
+    return () => cancelAnimationFrame(image);
   }, [attentionResPre, sousLg, menuOuvert, colonnesBureau]);
 
   function importRecipe(file: File) {

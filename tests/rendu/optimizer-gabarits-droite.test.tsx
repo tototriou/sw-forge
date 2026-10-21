@@ -187,11 +187,15 @@ export function testRenduOptimizerPageBureauDroite() {
       colonnes={{ artefacts: true, complements: true, derniere: 'complements' }} onColonnes={rien} rappelAuras={rappelAuras} />);
   const html = page(false);
   const zones = [...html.matchAll(/data-zone="([a-z-]+)"/g)].map((m) => m[1]);
-  egal(zones, ['fond-droite', 'essentiels', 'objectif', 'barre', 'onglets', 'colonnes', 'exemplaire', 'resultats'],
-    'ordre du DOM : le fond du panneau de droite (peint dessous), essentiels, bloc « Objectif et Rechercher » (l\'objectif se choisit tôt) et sa barre fine, onglets, colonnes, Exemplaire, résultats');
+  egal(zones, ['essentiels', 'objectif', 'barre', 'onglets', 'colonnes', 'droite', 'exemplaire', 'resultats'],
+    'ordre du DOM : essentiels, bloc « Objectif et Rechercher » (l\'objectif se choisit tôt) et sa barre fine, onglets, colonnes, colonne de droite (Exemplaire, résultats)');
   ok(/data-zone="objectif" data-forme="large"/.test(html) && texteVisible(html).includes('Bloc large reglages panneau') && texteVisible(html).includes('Bloc large barre panneau'),
     'largeur inconnue (rendu serveur) : comme en A1, le bloc large dans son panneau, ses réglages à leur place et sa barre fine à part');
-  ok(/aria-hidden="true" data-zone="fond-droite"/.test(html), 'le fond du panneau de droite est décoratif');
+  ok(/data-zone="droite" class="contents /.test(html) && /<div class="contents @\[1180px\]:grid/.test(html),
+    'hors A3, la colonne de droite s\'efface (`display: contents`) : Exemplaire et résultats sont des cases de la grille de la page');
+  ok(!/data-page-fenetre/.test(html) && !/style="[^"]*height/.test(html.slice(0, html.indexOf('>'))),
+    'largeur inconnue (rendu serveur) : la page n\'est pas à hauteur de fenêtre, comme en A1');
+  ok(!/sticky/.test(html.replace(/data-zone="barre" class="sticky/, '')), 'aucune colonne collée : seule la barre fine de A1 l\'est');
 
   // Le rappel des auras : la carte du bureau l'affiche sans l'annoncer ; la
   // page l'annonce dans une région toujours montée, hors des colonnes.

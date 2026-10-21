@@ -285,7 +285,6 @@ exemptés.
 | `useMediaQuery` | une media query lue depuis React ; ⚠️ dans un volet de l'écran partagé, une requête de largeur répond selon le volet (`LargeurVolet`) |
 | `useScrollBloque` | ⚠️ **compteur de verrous** — blocage du défilement, verrou `position: fixed` sur `body` (iOS ignore `overflow: hidden` au toucher) |
 | `useClavierOuvert` | clavier virtuel déployé ? via `visualViewport` |
-| `useRecalageEcran` | ramène dans l'écran un flottant qui déborde par la droite |
 | `useComboboxNav` | ↑/↓/Entrée/Échap des barres de recherche à suggestions |
 | `useSpeedTune` | ⚠️ **tout** l'état, les actions et les dérivées du speed tuning — la page ne fait que rendre |
 | `useDonneesKit` | charge kits, sorts et passifs d'une poignée de monstres (outil **et** siège, un seul chemin) |

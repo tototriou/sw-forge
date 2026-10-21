@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import OngletsColonnes from './OngletsColonnes';
-import { BANDE_FIXE, LISERE, PANNEAU, SECTIONS } from './panneau';
+import { BANDE, BANDE_FIXE, PANNEAU, SECTIONS, coinsDuPanneau } from './panneau';
 import { type PartieObjectif } from './ObjectifEtRechercherBureau';
 import { AidesHorsDeLaBoite } from '../../../HelpPopover';
 import {
@@ -218,16 +218,16 @@ const DEFILE_A3 = '@[1180px]:min-h-0 @[1180px]:overscroll-contain @[1180px]:data
 // la gouttière (336 ou 356), et elle est haute de la page, son panneau
 // jusqu'en bas. Les classes sont écrites en entier pour Tailwind ; l'ombre
 // (celle des flottants) va au panneau, superposé seulement. La bande braise
-// est sur le panneau en A1 et A2 (`LISERE`), fixe en haut de la boîte en A3
-// (`BANDE_FIXE`) : le panneau n'y garde que son ombre de flottant.
+// est le contour du haut du panneau (`BANDE`), recopiée en haut de la boîte
+// en A3 pour y rester quand la colonne défile (`BANDE_FIXE`).
 const COLONNE_A3: Record<ColonneRepliable, { boite: string; panneau: string }> = {
   artefacts: {
     boite: `${DEFILE_A3} @[1180px]:max-h-full @[1180px]:w-[326px] @[1180px]:-mr-[326px] @[1180px]:z-20 @[1516px]:h-full @[1516px]:mr-[10px] @[1516px]:z-auto`,
-    panneau: `${LISERE} ${BANDE_FIXE} @[1180px]:shadow-glow @[1180px]:shadow-black/60 @[1516px]:min-h-full @[1516px]:shadow-none`,
+    panneau: `${BANDE} ${BANDE_FIXE} @[1180px]:shadow-glow @[1180px]:shadow-black/60 @[1516px]:min-h-full @[1516px]:shadow-none`,
   },
   complements: {
     boite: `${DEFILE_A3} @[1180px]:max-h-full @[1180px]:w-[346px] @[1180px]:-mr-[346px] @[1180px]:z-20 @[1536px]:h-full @[1536px]:mr-[10px] @[1536px]:z-auto`,
-    panneau: `${LISERE} ${BANDE_FIXE} @[1180px]:shadow-glow @[1180px]:shadow-black/60 @[1536px]:min-h-full @[1536px]:shadow-none`,
+    panneau: `${BANDE} ${BANDE_FIXE} @[1180px]:shadow-glow @[1180px]:shadow-black/60 @[1536px]:min-h-full @[1536px]:shadow-none`,
   },
 };
 
@@ -246,18 +246,25 @@ const SECTIONS_COLONNE = '[&>*+*]:ml-2 [&>*+*]:border-l [&>*+*]:border-border-so
 // ⚠️ **Les aides en sortent toujours** (`AidesHorsDeLaBoite`, HelpPopover.tsx) :
 // une bulle de 340 px ancrée près du bord droit déborde de la colonne même
 // quand elle tient en hauteur ; en portail, elle s'affiche en entier.
+// ⚠️ **Une colonne qui défile garde les coins arrondis de son panneau** : la
+// boîte est rognée aux coins du haut du panneau (`coinsDuPanneau`), pour que
+// le contenu qui passe sous la bande ne s'y voie pas.
 function Colonne({ className, contenu, children, ...donnees }: {
   className: string; contenu: string; children: ReactNode; 'data-zone'?: string; 'data-colonne'?: string;
 }) {
   const boite = useRef<HTMLDivElement>(null);
   const interieur = useRef<HTMLDivElement>(null);
-  const [depasse, setDepasse] = useState(false);
+  const [coins, setCoins] = useState<string | null>(null);
   useLayoutEffect(() => {
     const b = boite.current, i = interieur.current;
     if (!b || !i || typeof ResizeObserver === 'undefined') return;
     // La boîte a la hauteur de son contenu tant que rien ne la borne (A1, A2,
     // colonne de droite effacée) : le contenu ne la dépasse alors jamais.
-    const lire = () => setDepasse(i.offsetHeight > b.clientHeight + 0.5);
+    const lire = () => {
+      if (i.offsetHeight <= b.clientHeight + 0.5) { setCoins(null); return; }
+      const largeur = Math.round(i.getBoundingClientRect().right - b.getBoundingClientRect().left);
+      setCoins(coinsDuPanneau(largeur, parseFloat(getComputedStyle(i).borderTopLeftRadius) || 0));
+    };
     lire();
     const obs = new ResizeObserver(lire);
     obs.observe(b);
@@ -265,7 +272,13 @@ function Colonne({ className, contenu, children, ...donnees }: {
     return () => obs.disconnect();
   }, []);
   return (
-    <div ref={boite} {...donnees} data-defile={depasse ? '' : undefined} className={className}>
+    <div
+      ref={boite}
+      {...donnees}
+      data-defile={coins != null ? '' : undefined}
+      style={coins != null ? { clipPath: coins } : undefined}
+      className={className}
+    >
       <div ref={interieur} className={contenu}>
         <AidesHorsDeLaBoite.Provider value>{children}</AidesHorsDeLaBoite.Provider>
       </div>
@@ -363,7 +376,7 @@ export default function PageBureau(props: PageBureauProps) {
             + ' @[904px]:col-[1] @[904px]:row-[1/span_3]'
             + ` @[1180px]:row-[1/-1] @[1180px]:h-full @[1180px]:w-[554px] ${DEFILE_A3}`
           }
-          contenu={`flex w-[540px] flex-col ${PANNEAU} ${LISERE} ${BANDE_FIXE} ${SECTIONS} @[1180px]:min-h-full @[1180px]:shadow-none`}
+          contenu={`flex w-[540px] flex-col ${PANNEAU} ${BANDE} ${BANDE_FIXE} ${SECTIONS} @[1180px]:min-h-full`}
         >
           {props.liste}
           {props.set}
@@ -456,7 +469,9 @@ export default function PageBureau(props: PageBureauProps) {
           contenu={
             'contents @[1180px]:grid @[1180px]:min-h-full @[1180px]:grid-cols-[607px_minmax(0,1fr)] @[1180px]:content-start'
             + ' @[1180px]:rounded-xl @[1180px]:border @[1180px]:border-border @[1180px]:bg-panel @[1180px]:p-2'
-            // La bande fixe, sur toutes les rangées de la grille du panneau.
+            // La bande (`BANDE`, en A3 seulement), et sa copie fixe, sur toutes
+            // les rangées de la grille du panneau.
+            + ' @[1180px]:border-t-[3px] @[1180px]:border-t-[rgb(var(--accent))] @[1180px]:pt-[6px]'
             + ` ${BANDE_FIXE} @[1180px]:before:col-[1/-1] @[1180px]:before:row-[1/span_3]`
           }
         >

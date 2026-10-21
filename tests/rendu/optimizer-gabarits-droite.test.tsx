@@ -6,6 +6,7 @@ import ArtefactsEtReliqueBureau from '../../src/components/outils/optimizer/bure
 import MeilleursArtefactsBureau from '../../src/components/outils/optimizer/bureau/MeilleursArtefactsBureau';
 import SetsAuraBureau from '../../src/components/outils/optimizer/bureau/SetsAuraBureau';
 import PageBureau from '../../src/components/outils/optimizer/bureau/PageBureau';
+import { coinsDuPanneau } from '../../src/components/outils/optimizer/bureau/panneau';
 import { AurasExternesSaisie } from '../../src/components/outils/EtatMonstre';
 import ExclusionRunesBureau from '../../src/components/outils/optimizer/bureau/ExclusionRunesBureau';
 import ReglagesAvancesBureau from '../../src/components/outils/optimizer/bureau/ReglagesAvancesBureau';
@@ -197,19 +198,29 @@ export function testRenduOptimizerPageBureauDroite() {
     'largeur inconnue (rendu serveur) : la page n\'est pas à hauteur de fenêtre, comme en A1');
   ok(!/(?<!before:)sticky/.test(html.replace(/data-zone="barre" class="sticky/, '')),
     'aucune colonne collée : seule la barre fine de A1 l\'est (la bande d\'une colonne, son `::before` collé en A3, n\'en est pas une)');
-  // La bande braise : sur le panneau hors A3 (`LISERE`), fixe en haut de la
-  // boîte qui défile en A3 (`BANDE_FIXE`), le panneau la retirant alors.
+  // La bande braise : le contour du haut du panneau (3 px de braise vive, à la
+  // place du trait de 1 px, rembourrage du haut réduit d'autant), recopiée en
+  // A3 par le `::before` collé au pixel 0 de la boîte qui défile (`BANDE_FIXE`),
+  // le panneau ne la dessinant plus lui-même.
   const panneauDe = (zone: string) => {
     const i = html.indexOf(`data-zone="${zone}"`);
     const m = /<div class="([^"]*)"/.exec(html.slice(i));
     return m ? m[1] : '';
   };
-  const essentiels = panneauDe('essentiels'), droite = panneauDe('droite');
-  ok(essentiels.includes('shadow-[inset_0_3px_0_rgb(var(--accent))]') && essentiels.includes('@[1180px]:shadow-none')
-    && essentiels.includes('@[1180px]:before:sticky') && essentiels.includes('@[1180px]:before:top-px'),
-    'essentiels : bande sur le panneau hors A3, collée au haut de la boîte en A3 (`::before`), le panneau sans la sienne');
-  ok(droite.includes('@[1180px]:before:sticky') && droite.includes('@[1180px]:before:row-[1/span_3]') && !/(^| )@\[1180px\]:shadow-\[inset/.test(droite),
-    'colonne de droite : bande collée en A3, placée sur toutes les rangées de la grille du panneau, et aucune sur le panneau');
+  const classes = (c: string) => c.split(/\s+/);
+  const essentiels = classes(panneauDe('essentiels')), droite = classes(panneauDe('droite'));
+  const bandeFixe = ['@[1180px]:border-t-transparent', '@[1180px]:before:sticky', '@[1180px]:before:top-0', '@[1180px]:before:rounded-t-xl',
+    '@[1180px]:before:border-t-[3px]', '@[1180px]:before:border-t-[rgb(var(--accent))]', '@[1180px]:before:border-x'];
+  ok(['border-t-[3px]', 'border-t-[rgb(var(--accent))]', 'pt-[6px]', 'rounded-xl', ...bandeFixe].every((c) => essentiels.includes(c))
+    && !essentiels.some((c) => c.includes('inset')),
+    'essentiels : la bande est le contour du haut du panneau, recopiée en A3 en haut de la boîte qui défile, sans ombre intérieure');
+  ok(['@[1180px]:border-t-[3px]', '@[1180px]:border-t-[rgb(var(--accent))]', '@[1180px]:pt-[6px]', ...bandeFixe, '@[1180px]:before:row-[1/span_3]'].every((c) => droite.includes(c))
+    && !droite.some((c) => c.includes('inset')),
+    'colonne de droite : même bande en A3, recopiée sur toutes les rangées de la grille du panneau');
+  // Les coins d'une colonne qui défile : la boîte est rognée aux coins du haut
+  // du panneau, la barre et l'écart à sa droite gardés.
+  egal(coinsDuPanneau(540, 14), "path('M 0 14 A 14 14 0 0 1 14 0 H 526 A 14 14 0 0 1 540 14 V 0 H 100000 V 100000 H 0 Z')",
+    'coins d\'une colonne qui défile : rognés à l\'arrondi du panneau, tout le reste de la boîte gardé');
 
   // Le rappel des auras : la carte du bureau l'affiche sans l'annoncer ; la
   // page l'annonce dans une région toujours montée, hors des colonnes.

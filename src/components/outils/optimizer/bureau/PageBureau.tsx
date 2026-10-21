@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import OngletsColonnes from './OngletsColonnes';
-import { LISERE, PANNEAU, SECTIONS } from './panneau';
+import { BANDE_FIXE, LISERE, PANNEAU, SECTIONS } from './panneau';
 import { type PartieObjectif } from './ObjectifEtRechercherBureau';
 import { AidesHorsDeLaBoite } from '../../../HelpPopover';
 import {
@@ -217,15 +217,17 @@ const DEFILE_A3 = '@[1180px]:min-h-0 @[1180px]:overscroll-contain @[1180px]:data
 // ce qu'elle montre) ; insérée au-delà, sa boîte et sa marge font sa place et
 // la gouttière (336 ou 356), et elle est haute de la page, son panneau
 // jusqu'en bas. Les classes sont écrites en entier pour Tailwind ; l'ombre
-// (celle des flottants) va au panneau, superposé seulement.
+// (celle des flottants) va au panneau, superposé seulement. La bande braise
+// est sur le panneau en A1 et A2 (`LISERE`), fixe en haut de la boîte en A3
+// (`BANDE_FIXE`) : le panneau n'y garde que son ombre de flottant.
 const COLONNE_A3: Record<ColonneRepliable, { boite: string; panneau: string }> = {
   artefacts: {
     boite: `${DEFILE_A3} @[1180px]:max-h-full @[1180px]:w-[326px] @[1180px]:-mr-[326px] @[1180px]:z-20 @[1516px]:h-full @[1516px]:mr-[10px] @[1516px]:z-auto`,
-    panneau: `${LISERE} @[1180px]:shadow-[inset_0_3px_0_rgb(var(--accent)),0_8px_24px_-8px_rgb(0_0_0/0.6)] @[1516px]:min-h-full @[1516px]:shadow-[inset_0_3px_0_rgb(var(--accent))]`,
+    panneau: `${LISERE} ${BANDE_FIXE} @[1180px]:shadow-glow @[1180px]:shadow-black/60 @[1516px]:min-h-full @[1516px]:shadow-none`,
   },
   complements: {
     boite: `${DEFILE_A3} @[1180px]:max-h-full @[1180px]:w-[346px] @[1180px]:-mr-[346px] @[1180px]:z-20 @[1536px]:h-full @[1536px]:mr-[10px] @[1536px]:z-auto`,
-    panneau: `${LISERE} @[1180px]:shadow-[inset_0_3px_0_rgb(var(--accent)),0_8px_24px_-8px_rgb(0_0_0/0.6)] @[1536px]:min-h-full @[1536px]:shadow-[inset_0_3px_0_rgb(var(--accent))]`,
+    panneau: `${LISERE} ${BANDE_FIXE} @[1180px]:shadow-glow @[1180px]:shadow-black/60 @[1536px]:min-h-full @[1536px]:shadow-none`,
   },
 };
 
@@ -361,7 +363,7 @@ export default function PageBureau(props: PageBureauProps) {
             + ' @[904px]:col-[1] @[904px]:row-[1/span_3]'
             + ` @[1180px]:row-[1/-1] @[1180px]:h-full @[1180px]:w-[554px] ${DEFILE_A3}`
           }
-          contenu={`flex w-[540px] flex-col ${PANNEAU} ${LISERE} ${SECTIONS} @[1180px]:min-h-full`}
+          contenu={`flex w-[540px] flex-col ${PANNEAU} ${LISERE} ${BANDE_FIXE} ${SECTIONS} @[1180px]:min-h-full @[1180px]:shadow-none`}
         >
           {props.liste}
           {props.set}
@@ -453,7 +455,9 @@ export default function PageBureau(props: PageBureauProps) {
           }
           contenu={
             'contents @[1180px]:grid @[1180px]:min-h-full @[1180px]:grid-cols-[607px_minmax(0,1fr)] @[1180px]:content-start'
-            + ' @[1180px]:rounded-xl @[1180px]:border @[1180px]:border-border @[1180px]:bg-panel @[1180px]:p-2 @[1180px]:shadow-[inset_0_3px_0_rgb(var(--accent))]'
+            + ' @[1180px]:rounded-xl @[1180px]:border @[1180px]:border-border @[1180px]:bg-panel @[1180px]:p-2'
+            // La bande fixe, sur toutes les rangées de la grille du panneau.
+            + ` ${BANDE_FIXE} @[1180px]:before:col-[1/-1] @[1180px]:before:row-[1/span_3]`
           }
         >
           {a3 && objectif}

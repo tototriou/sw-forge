@@ -57,9 +57,13 @@ export function testRenduOptimizerGabaritsComposants() {
   ok(!!bouton(sansSet, 'Swift') && !!bouton(sansSet, 'Fight'), 'set : la grille d\'ajout d\'aujourd\'hui est dans la surface (Set principal, Set secondaire)');
   ok(texteVisible(sansSet).includes('Critères de recherche') && texteVisible(sansSet).includes('0/6 runes'), 'set : titre de la carte et compte des runes');
   const message = 'Sélectionne au moins un set avant de lancer la recherche.';
-  ok(texteVisible(sansSet).includes(message) && /invisible[^"]*"[^>]*aria-hidden="true">Sélectionne/.test(sansSet), 'set valide : le message tient sa place, invisible');
+  // Le message prend la place du compte, sur la ligne du titre : aucune ligne réservée sous la liste.
+  const ligneTitre = (html: string) => texteVisible(html.split('Set de runes recherché</p>')[1]?.split('<button')[0] ?? '');
+  ok(!sansSet.includes(message) && ligneTitre(sansSet) === '0/6 runes', 'set valide : le compte sur la ligne du titre, aucun message monté (ni place réservée)');
   const refuse = rendre(<SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid comboSets={[]} onChangeSets={rien} />);
-  ok(/aria-hidden="false">Sélectionne/.test(refuse), 'set refusé : le message se lit');
+  // (La grille de la surface garde son propre compteur, hors de la ligne du titre.)
+  ok(ligneTitre(refuse) === message && (refuse.match(/Sélectionne au moins un set/g) ?? []).length === 1,
+    'set refusé : le message se lit une fois, à la place du compte, avant la liste');
   const repete = rendre(<SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid={false} comboSets={['blade', 'blade', 'fight']} onChangeSets={rien} />);
   ok(!!bouton(repete, 'Set de runes recherché : Blade, Blade, Fight'), 'set : un même set choisi deux fois se résume deux fois');
   ok(!!bouton(repete, 'Retirer Blade') && texteVisible(repete).includes('6/6 runes'), 'set : chaque set choisi garde sa croix de retrait');
@@ -115,7 +119,9 @@ export function testRenduOptimizerGabaritsVue() {
   // La liste de travail : vide, remplie, réelle.
   const liste = html.split('data-gabarit="liste"')[1].split('data-gabarit=')[0];
   const vide = texteVisible(liste.split('data-etat="vide"')[1].split('data-etat=')[0]);
-  ok(vide.includes('Aucun monstre dans cette liste pour l\'instant.') && vide.includes('Monstres de « Défense G3 »'), 'liste vide : la liste active, sans membre');
+  // Au bureau, la liste active se lit au bouton « Liste active » ; le titre de la carte nomme le champ, jamais la liste.
+  ok(vide.includes('Aucun monstre dans cette liste pour l\'instant.') && vide.includes('Liste active Défense G3 - ')
+    && vide.includes('Ajouter un monstre à la liste') && !vide.includes('Monstres de « Défense G3 »'), 'liste vide : la liste active, sans membre');
   const remplie = liste.split('data-etat="remplie"')[1].split('data-etat=')[0];
   ok(texteVisible(remplie).includes('Équipe 1') && texteVisible(remplie).includes('Sans équipe'), 'liste remplie : une équipe et des membres sans équipe');
   ok(/placeholder="Rechercher un monstre/.test(remplie), 'liste : « Rechercher un monstre… » dans la carte de la liste');

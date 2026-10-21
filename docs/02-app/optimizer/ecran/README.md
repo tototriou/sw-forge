@@ -54,8 +54,9 @@ droite. Au-dessus d'elles, ni bandeau ni phrase d'introduction.
 
 1. **Les essentiels**, toujours à l'écran, place de 548 px (panneau de
    540) : la liste de travail (« Liste active », « Importer une équipe »,
-   puis la carte de la liste, dont l'en-tête porte « Ajouter un monstre à la
-   liste », « Rechercher un monstre… » et le monstre actif) ; « Critères de
+   puis la carte de la liste, dont l'en-tête porte « Ajouter un monstre / à
+   la liste » sur deux lignes, sans nom de liste, « Rechercher un monstre… »
+   et le monstre actif) ; « Critères de
    recherche » avec le « Set de runes recherché » ; les « Conditions », et à
    leur droite la « Statistique principale imposée (slots pairs) » puis
    « État de mon monstre », réduit aux buffs et au lead.

@@ -6,14 +6,19 @@ export interface SelecteurListesProps {
   lists: UseOptimizerLists;
   memberCounts: Record<string, number>;
   action?: ReactNode;
+  // Au bureau, « Liste active » prend le style du titre « Critères de
+  // recherche » (décision de l'utilisateur) ; le téléphone garde
+  // l'étiquette.
+  titreSection?: boolean;
 }
 
 // Le sélecteur de listes branché tel quel sur `lists` : naviguer entre les
 // listes ou les gérer ne remet jamais la recherche à zéro.
-export default function SelecteurListes({ lists, memberCounts, action }: SelecteurListesProps) {
+export default function SelecteurListes({ lists, memberCounts, action, titreSection }: SelecteurListesProps) {
   return (
     <OptimizerListPicker
       action={action}
+      titreSection={titreSection}
       lists={lists.lists}
       activeListId={lists.activeListId}
       memberCounts={memberCounts}

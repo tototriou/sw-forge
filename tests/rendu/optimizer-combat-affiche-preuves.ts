@@ -54,7 +54,9 @@ export async function preuvesCombatAfficheOptimizer(b: Banc): Promise<[boolean, 
   const menuType = carte.querySelector<HTMLSelectElement>('select[aria-label="Type de leader skill"]')!;
   const lireAffichage = () => ({ type: menuType.value, libelle: menuType.selectedOptions[0]?.textContent,
     valeur: [...carte.querySelectorAll<HTMLSelectElement>('select[aria-label="Valeur du leader skill"]')].find(visible)?.value ?? null,
-    motif: [...carte.querySelectorAll('span')].find(e => visible(e) && e.textContent === 'Cette portée de lead est inactive pour ce contenu.')?.textContent ?? null });
+    // Au téléphone, le motif est un `span` de sa place réservée ; au bureau,
+    // un `p` qui ne paraît que s'il existe.
+    motif: [...carte.querySelectorAll('p, span')].find(e => visible(e) && e.textContent === 'Cette portée de lead est inactive pour ce contenu.')?.textContent ?? null });
   async function ouvrirEquipe() {
     const groupe = [...document.querySelectorAll<HTMLElement>('section[aria-label="Équipe 1"]')].find(visible)!;
     await b.geste(() => bouton('Modifier l’équipe', groupe).click());

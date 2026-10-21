@@ -1,4 +1,5 @@
 import { ajouterLeadEquipe } from './import-lead-equipe';
+import { listeActiveLue } from './optimizer-listes-preuves';
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
@@ -323,7 +324,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
       // Au téléphone, l'import déplie « Gérer mes listes » de lui-même.
       const pli = bouton('Gérer mes listes');
       verifier(!pli || pli.getAttribute('aria-expanded') === 'true', 'téléphone : « Gérer mes listes » déplié par l’import');
-      verifier(texte().includes(nom === 'defenses' ? 'Monstres de « Défenses de siège »' : nom === 'rta' ? 'Monstres de « Prépa RTA »' : 'Monstres de « Offense de siège »'), 'liste active importée lue à l’écran');
+      verifier(listeActiveLue(nom === 'defenses' ? 'Défenses de siège' : nom === 'rta' ? 'Prépa RTA' : 'Offense de siège', texte), 'liste active importée lue à l’écran');
       const minimum = [...document.querySelectorAll<HTMLInputElement>('[aria-label="VIT minimum"]')].find(visible);
       verifier(minimum?.value === String(nom === 'rta' ? 140 : 120), 'vitesse importée lue dans le champ réel de l’écran');
       verifier(etat.sourceSelector?.source === (nom === 'defenses' ? 'siege-defense' : nom === 'rta' ? 'rta' : 'siege-offense')

@@ -44,10 +44,11 @@ export default function EtatMonstreEssentiels({ setup, maj, equipe = false, moti
           onClick={() => maj({ spdBuff: !setup.spdBuff })} actif={setup.spdBuff} etroit={etroit} largeur="w-14" />
       </div>
       <LeaderSkillPicker setup={setup} maj={maj} />
-      {equipe && (
-        <p className="h-20 overflow-y-auto text-xs text-ink-dim">
-          {motifLeadAffiche(motifLead) && <span className="block text-warn">{motifLeadAffiche(motifLead)}</span>}
-        </p>
+      {/* Le motif d'un lead d'équipe inactif ne se montre que s'il existe, sans
+          place réservée (décision de l'utilisateur) : il paraît SOUS le lead,
+          qui ne bouge donc pas ; seuls les rappels, dessous, descendent. */}
+      {equipe && motifLeadAffiche(motifLead) && (
+        <p className="text-xs text-warn">{motifLeadAffiche(motifLead)}</p>
       )}
       <RappelsEtatMonstre setup={setup} artefacts={artefacts} rappelsBuffs={rappelsBuffs} />
     </section>

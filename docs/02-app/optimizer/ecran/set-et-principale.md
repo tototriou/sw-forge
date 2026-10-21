@@ -28,8 +28,8 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    bg-bad/15`), avec le message « Sélectionne au moins un set avant de lancer
    la recherche. » — au lieu de silencieusement ne rien faire :
    on montre OÙ agir. Repasse normale dès qu'un set est ajouté. Au bureau,
-   le message tient sa place, invisible le reste du temps : il ne pousse pas
-   les Conditions quand il paraît.
+   le message prend la place du compteur `N/6 runes`, à droite du libellé :
+   aucune ligne réservée sous la liste, et rien ne bouge quand il paraît.
    ⚠️ **Densité** :
    **Set principal (4 pièces) sur DEUX LIGNES en permanence**
    (`SetComboPicker.tsx`, `grid grid-cols-3` sans préfixe `compact:` — les
@@ -42,7 +42,8 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
 
    **Au bureau**, « Critères de recherche » est une section du panneau des
    essentiels, sous la liste de travail, en **forme compacte**
-   (`SetDeRunesCompact`) : le compteur `N/6 runes` à droite du libellé, puis
+   (`SetDeRunesCompact`) : le compteur `N/6 runes` à droite du libellé (le
+   message d'une recherche refusée sans set à sa place), puis
    une seule liste fermée (`SelecteurMultiple`, axe `surface`) qui montre les
    sets choisis, icône et nom, ou « Aucun ». Ouverte, elle porte la grille
    du téléphone telle quelle (jetons, retrait, deux groupes, « Plus de

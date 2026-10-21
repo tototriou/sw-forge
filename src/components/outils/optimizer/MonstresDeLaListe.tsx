@@ -39,17 +39,23 @@ export interface MonstresDeLaListeProps {
   setReleaseAllConfirm: Dispatch<SetStateAction<string | null>>;
   // Forme de bureau des essentiels (`bureau/ListeDeTravailBureau.tsx`),
   // que le téléphone ne prend pas : ce que la rangée du titre porte après lui
-  // (« Rechercher un monstre… », le monstre actif). Sans liste active, le
-  // titre y devient « Ajouter un monstre à la liste » : il nomme le champ qui
-  // le suit (décision de l'utilisateur, arrêt 4).
+  // (« Rechercher un monstre… », le monstre actif). Le titre y est toujours
+  // « Ajouter un monstre à la liste » : il nomme le champ qui le suit.
   enTete?: ReactNode;
 }
 
 export default function MonstresDeLaListe({ activeList, activeMembers, ajoutListe, handleAddToList, setEquipeOuverte, lists, optimizer, exclusionData, artifacts, rapportZoneC, groupesMembres, runeById, artifactById, choisirMembreDeLaListe, setReleaseConfirm, setReleaseArtifactsConfirm, setRemoveMemberConfirm, rappelAuras, listHasValidated, setReleaseAllConfirm, enTete }: MonstresDeLaListeProps) {
-  const titre = (
+  // Au bureau (`enTete`), le titre nomme toujours le champ qui le suit, sur
+  // deux lignes, sans le nom de la liste ni son compte : « Liste active » la
+  // nomme juste au-dessus (décision de l'utilisateur). L'espace avant le
+  // retour à la ligne garde « monstre à » séparés dans le texte lu (copie,
+  // recherche dans la page), sans rien changer à l'affichage.
+  const titre = enTete ? (
+    <p className="text-[12px] font-semibold leading-tight text-ink-dim">Ajouter un monstre{' '}<br />à la liste</p>
+  ) : (
     <>
-      <p className={`text-[12px] font-semibold text-ink-dim ${enTete && !activeList ? 'line-clamp-2' : 'truncate'}`}>
-        {activeList ? `Monstres de « ${activeList.name} »` : enTete ? 'Ajouter un monstre à la liste' : 'Monstres de la liste'}
+      <p className="truncate text-[12px] font-semibold text-ink-dim">
+        {activeList ? `Monstres de « ${activeList.name} »` : 'Monstres de la liste'}
       </p>
       {activeList && <span className="flex-none text-[11px] text-ink-dimmer">{activeMembers.length}</span>}
     </>

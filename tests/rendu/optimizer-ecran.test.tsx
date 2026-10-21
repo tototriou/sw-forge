@@ -102,9 +102,12 @@ export function testRenduOptimizerListeDeTravail() {
 
   const valide = { listId: 'a', selector: membre, runeIds: [1, 2, 3, 4, 5, 6], artifactIds: [], com2usId: BOX[0].monster.com2usId };
   const html = rendreOptimizer(AVEC_MONSTRE, false, stockage([membre], [valide]));
-  // Chaque copie de la zone C (bureau, téléphone) : de son titre à la fin de son bouton de libération.
+  // La zone C rendue (bureau) : du bouton « Liste active » qui nomme la liste
+  // (« Alpha - … » ; le titre de la carte, lui, ne la nomme plus) à la fin de
+  // son bouton de libération.
+  const ACTIVE = 'Alpha - ';
   const zones: string[] = [];
-  for (let i = html.indexOf('Monstres de « Alpha »'); i >= 0; i = html.indexOf('Monstres de « Alpha »', i + 1)) zones.push(html.slice(i));
+  for (let i = html.indexOf(ACTIVE); i >= 0; i = html.indexOf(ACTIVE, i + 1)) zones.push(html.slice(i));
   ok(zones.length > 0, 'la zone C de la liste active est rendue');
   for (const zone of zones) {
     const fin = zone.indexOf('Libérer toutes les runes de « Alpha »');
@@ -121,8 +124,8 @@ export function testRenduOptimizerListeDeTravail() {
     `même token que la boîte des auras (contour warn de 1 px, fond warn-soft, texte warn), un seul contour (${c.join(' ')})`);
   }
   const vide = rendreOptimizer(AVEC_MONSTRE, false, stockage([]));
-  const zoneVide = vide.slice(vide.indexOf('Monstres de « Alpha »'));
-  ok(vide.includes('Monstres de « Alpha »') && !zoneVide.slice(0, zoneVide.indexOf('Aucun monstre dans cette liste')).includes(RAPPEL.replace("'", '&#x27;'))
+  const zoneVide = vide.slice(vide.indexOf(ACTIVE));
+  ok(vide.includes(ACTIVE) && !zoneVide.slice(0, zoneVide.indexOf('Aucun monstre dans cette liste')).includes(RAPPEL.replace("'", '&#x27;'))
     && texteVisible(vide).includes("Aucun monstre dans cette liste pour l'instant."),
   'liste vide : aucun rappel monté sous la liste (aucun clic ne peut le poser)');
 }

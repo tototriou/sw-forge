@@ -208,10 +208,14 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   `warn-soft`, texte `warn`), même durée (`DUREE_ATTENTION_MS`, 3 s), même
   déclencheur : **un seul état du rappel pour les deux rendus**, celui que
   pose `doitRappeler` dans le `onClick` d'un membre — jamais un second
-  minuteur ni une seconde condition. Sa place est réservée sous la liste :
-  rendu avec elle, invisible hors rappel, rien ne bouge quand il paraît ni
-  quand il s'efface. Le même rendu sert les deux formats ; au téléphone, il
-  vit dans le dépliement de la zone C, ouvert au moment du clic. La boîte
+  minuteur ni une seconde condition. **Au téléphone**, sa place est réservée
+  sous la liste : rendu avec elle, invisible hors rappel, rien ne bouge quand
+  il paraît ni quand il s'efface ; il vit dans le dépliement de la zone C,
+  ouvert au moment du clic. **Au bureau**, il sort du flux (décision de
+  l'utilisateur) : aucune place réservée sous le dernier monstre, et il
+  paraît 3 s en surimpression au bas de la carte de la liste, dans ses bords
+  (la colonne des essentiels défile seule), sur fond de panneau et contour
+  `warn` de 1 px, sans rien déplacer ni intercepter de clic. La boîte
   des auras garde son surlignage ; elle seule annonce le message aux
   lecteurs d'écran (`aria-live`), pour qu'il ne soit pas lu deux fois.
 

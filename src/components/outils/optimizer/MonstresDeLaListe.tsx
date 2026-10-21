@@ -61,7 +61,7 @@ export default function MonstresDeLaListe({ activeList, activeMembers, ajoutList
     </>
   );
   return (
-    <div className="rounded-lg border border-border-soft bg-panel2/60 p-2.5">
+    <div className={`rounded-lg border border-border-soft bg-panel2/60 p-2.5${enTete ? ' relative' : ''}`}>
       {enTete ? (
         <div className="mb-1.5 flex items-center gap-2">
           <div className="flex min-w-0 max-w-[150px] flex-none items-baseline gap-1.5">{titre}</div>
@@ -222,22 +222,33 @@ export default function MonstresDeLaListe({ activeList, activeMembers, ajoutList
           membre ci-dessus, `choisirMembreDeLaListe` d'OptimizerSection), donc même minuterie (`DUREE_ATTENTION_MS`) —
           jamais un second minuteur ni une seconde condition —, même message,
           même token (`warn` / `warn-soft`, un seul contour de 1 px).
-          Rendu SANS condition du rappel, invisible le reste du temps : sa
-          place est réservée sous la liste, rien ne bouge quand il paraît ni
-          quand il s'efface (docs/03-developpeur/interface/, réponse n° 1). Monté avec
-          la liste seulement : sans membre, aucun clic ne peut le poser.
+          Au téléphone, rendu SANS condition du rappel, invisible le reste du
+          temps : sa place est réservée sous la liste, rien ne bouge quand il
+          paraît ni quand il s'efface. Monté avec la liste seulement : sans
+          membre, aucun clic ne peut le poser.
           Pas d'`aria-live` : la boîte des auras, montée en permanence au
           téléphone, l'annonce déjà ; au bureau, où cette boîte ne l'est que
           colonne ouverte, la page l'annonce (`AnnonceRappelAuras`,
           PageBureau.tsx) — deux régions liraient deux fois la même phrase.
-          Commun aux deux formats : au téléphone, il vit dans le dépliement
-          de la zone C, ouvert au moment du clic. */}
-      {activeMembers.length > 0 && (
+          Au téléphone, il vit dans le dépliement de la zone C, ouvert au
+          moment du clic. */}
+      {activeMembers.length > 0 && !enTete && (
         <p
           className={`mt-1 rounded-lg border border-warn bg-warn-soft px-2 py-1 text-xs font-semibold text-warn ${
             rappelAuras ? 'animate-[apparition_200ms_var(--ease-out)]' : 'invisible'
           }`}
         >
+          Pense à vérifier les sets d&apos;aura externes.
+        </p>
+      )}
+      {/* Au bureau (`enTete`), le rappel sort du flux : aucune place n'est
+          réservée sous la liste, et il paraît en surimpression au bas de la
+          carte (positionnée), DANS ses bords — la colonne des essentiels
+          défile seule et rognerait un débordement. Fond `panel` plein : il
+          reste lisible par-dessus les lignes. Sans événement de pointeur, il
+          ne masque aucun bouton pendant ses 3 s. */}
+      {activeMembers.length > 0 && enTete && rappelAuras && (
+        <p className="pointer-events-none absolute inset-x-2.5 bottom-2.5 z-10 animate-[apparition_200ms_var(--ease-out)] rounded-lg border border-warn bg-panel px-2 py-1 text-xs font-semibold text-warn">
           Pense à vérifier les sets d&apos;aura externes.
         </p>
       )}

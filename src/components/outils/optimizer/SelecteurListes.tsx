@@ -6,9 +6,8 @@ export interface SelecteurListesProps {
   lists: UseOptimizerLists;
   memberCounts: Record<string, number>;
   action?: ReactNode;
-  // Au bureau, « Liste active » prend le style du titre « Critères de
-  // recherche » (décision de l'utilisateur) ; le téléphone garde
-  // l'étiquette.
+  // Au bureau, « Liste active » prend le style d'un titre de section
+  // (décision de l'utilisateur) ; le téléphone garde l'étiquette.
   titreSection?: boolean;
 }
 

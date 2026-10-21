@@ -40,9 +40,10 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    en tête de la carte (`max-w-md`), avant le point suivant puis les
    Conditions, empilés.
 
-   **Au bureau**, « Critères de recherche » est une section du panneau des
-   essentiels, sous la liste de travail, en **forme compacte**
-   (`SetDeRunesCompact`) : le compteur `N/6 runes` à droite du libellé (le
+   **Au bureau**, le set de runes recherché est une section du panneau des
+   essentiels, sous la liste de travail, **sans le titre « Critères de
+   recherche »** du téléphone (le panneau et ses traits situent déjà la
+   section), en **forme compacte** (`SetDeRunesCompact`) : le compteur `N/6 runes` à droite du libellé (le
    message d'une recherche refusée sans set à sa place), puis
    une seule liste fermée (`SelecteurMultiple`, axe `surface`) qui montre les
    sets choisis, icône et nom, ou « Aucun ». Ouverte, elle porte la grille

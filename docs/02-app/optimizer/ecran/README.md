@@ -267,7 +267,8 @@ exclusion, avancés » ([Mise en page d'ensemble](#mise-en-page-densemble)) ;
 au téléphone, dans le panneau « Options ». Un même contenu sert les deux
 formats (`ExclusionRunesContenu`, `ReglagesAvancesContenu`), jamais écrit
 deux fois. Au bureau, chacun est une section de 314 px du panneau de la colonne, sans
-en-tête qui se replie, à la suite de « Sets d'aura des autres monstres » :
+en-tête (ni titre, ni icône, ni phrase d'accroche : le téléphone garde les
+siens dans le panneau « Options »), à la suite de « Sets d'aura des autres monstres » :
 empilés en A2 et A3 ; en A1, deux à deux, « Exclusion de runes » à droite
 des deux autres.
 

@@ -150,7 +150,7 @@ export const GABARITS_ESSENTIELS: Gabarit[] = [
     changements: [
       '« Rechercher un monstre… » et le monstre actif passent sur la rangée du titre de la carte de la liste ; plus de bloc « Monstre à optimiser » au-dessus.',
       'Le titre de la carte est toujours « Ajouter un monstre / à la liste », sur deux lignes (il nomme le champ qui le suit) : ni le nom de la liste ni son compte, que « Liste active » dit juste au-dessus.',
-      '« Liste active » prend le style du titre « Critères de recherche » (le téléphone garde l\'étiquette).',
+      '« Liste active » prend le style d\'un titre de section (13,5 px gras ; le téléphone garde l\'étiquette).',
       'Les puces d\'exemplaire (Box / RTA / Défenses siège / Offenses siège) quittent ce bloc pour la carte « Exemplaire ».',
       'Dans cette vue : « Importer une équipe » sans sources, gestes de la liste inertes (ils restent dans OptimizerSection).',
     ],

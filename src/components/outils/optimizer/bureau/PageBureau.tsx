@@ -1,7 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import OngletsColonnes from './OngletsColonnes';
 import { BANDE, BANDE_FIXE, PANNEAU, SECTIONS, coinsDuPanneau } from './panneau';
 import { type PartieObjectif } from './ObjectifEtRechercherBureau';
+import { SetDeplieContext } from './setDeplie';
 import { AidesHorsDeLaBoite } from '../../../HelpPopover';
 import {
   agencementBureau, basculerColonne, colonnesAffichees, colonnesParDefaut, deuxColonnesTiennent, formeObjectifBureau, ouvrirColonne,
@@ -251,18 +252,33 @@ const SECTIONS_COLONNE = '[&>*+*]:ml-2 [&>*+*]:border-l [&>*+*]:border-border-so
 // ⚠️ **Une colonne qui défile garde les coins arrondis de son panneau** : la
 // boîte est rognée aux coins du haut du panneau (`coinsDuPanneau`), pour que
 // le contenu qui passe sous la bande ne s'y voie pas.
-function Colonne({ className, contenu, children, ...donnees }: {
+// `surMesure` (les essentiels seuls) : la hauteur de la boîte et la hauteur
+// NATURELLE du contenu (le bas de son dernier enfant, sans la place que
+// `min-h-full` y ajoute), à chaque changement de l'une ou de l'autre.
+export interface MesureColonne { boite: number; naturelle: number }
+
+function Colonne({ className, contenu, children, surMesure, ...donnees }: {
   className: string; contenu: string; children: ReactNode; 'data-zone'?: string; 'data-colonne'?: string;
+  surMesure?: (mesure: MesureColonne) => void;
 }) {
   const boite = useRef<HTMLDivElement>(null);
   const interieur = useRef<HTMLDivElement>(null);
   const [coins, setCoins] = useState<string | null>(null);
+  const surMesureRef = useRef(surMesure);
+  surMesureRef.current = surMesure;
   useLayoutEffect(() => {
     const b = boite.current, i = interieur.current;
     if (!b || !i || typeof ResizeObserver === 'undefined') return;
     // La boîte a la hauteur de son contenu tant que rien ne la borne (A1, A2,
     // colonne de droite effacée) : le contenu ne la dépasse alors jamais.
     const lire = () => {
+      const dernier = i.lastElementChild;
+      if (surMesureRef.current && dernier) {
+        const st = getComputedStyle(i);
+        const naturelle = dernier.getBoundingClientRect().bottom - i.getBoundingClientRect().top
+          + (parseFloat(st.paddingBottom) || 0) + (parseFloat(st.borderBottomWidth) || 0);
+        surMesureRef.current({ boite: b.clientHeight, naturelle });
+      }
       if (i.offsetHeight <= b.clientHeight + 0.5) { setCoins(null); return; }
       const largeur = Math.round(i.getBoundingClientRect().right - b.getBoundingClientRect().left);
       setCoins(coinsDuPanneau(largeur, parseFloat(getComputedStyle(i).borderTopLeftRadius) || 0));
@@ -301,6 +317,51 @@ function AnnonceRappelAuras({ rappel }: { rappel: boolean }) {
   );
 }
 
+// « Set de runes recherché » dépliée (la grille du téléphone) quand la colonne
+// des essentiels tient sans défiler une fois dépliée, compacte sinon, en A3
+// seulement (ailleurs, la page défile d'un bloc : forme compacte).
+//
+// ⚠️ **La décision ne dépend ni d'un clic ni de la forme présente.** Elle se
+// prend sur la hauteur de la boîte de la colonne, la hauteur de ce qui s'y
+// empile en forme COMPACTE (la mesure en forme dépliée, moins l'écart, la
+// ramène là) et l'écart du dépli (que le set mesure sur des copies
+// invisibles) : même réponse quelle que soit la forme d'où l'on mesure, donc
+// pas d'oscillation. Et elle ne se REprend que quand la hauteur de la boîte,
+// l'écart ou l'agencement changent : un clic qui allonge la colonne (une
+// ligne de plus dans « Conditions ») ne replie jamais le set sous le
+// pointeur. Aucune bascule à la main n'existe au bureau : la forme déployée
+// n'a pas de contrôle de repli, la forme compacte s'ouvre en flottant.
+function useSetDeplie(a3: boolean) {
+  const [deplie, setDeplie] = useState(false);
+  const deplieRendu = useRef(deplie);
+  deplieRendu.current = deplie;
+  const a3Ref = useRef(a3);
+  a3Ref.current = a3;
+  const ecart = useRef<number | null>(null);
+  const derniere = useRef<MesureColonne | null>(null);
+  const evaluee = useRef('');
+  const decider = useCallback(() => {
+    const m = derniere.current;
+    if (!m) return;
+    const e = ecart.current;
+    const cle = `${Math.round(m.boite)}|${e == null ? '' : Math.round(e)}|${a3Ref.current}`;
+    if (cle === evaluee.current) return;
+    evaluee.current = cle;
+    const compacte = m.naturelle - (deplieRendu.current && e != null ? e : 0);
+    const cible = a3Ref.current && e != null && compacte + e <= m.boite + 0.5;
+    // `deplieRendu` ne suit que le rendu : une mesure prise avant que la
+    // nouvelle forme soit dessinée se rapporte encore à l'ancienne.
+    if (cible !== deplieRendu.current) setDeplie(cible);
+  }, []);
+  // L'agencement change sans que la colonne se mesure (A2 → A3 à hauteur
+  // égale) : on décide de nouveau.
+  useLayoutEffect(() => { decider(); }, [a3, decider]);
+  const surMesure = useCallback((m: MesureColonne) => { derniere.current = m; decider(); }, [decider]);
+  const reporterEcart = useCallback((e: number) => { ecart.current = e; decider(); }, [decider]);
+  const contexte = useMemo(() => ({ deplie, reporterEcart }), [deplie, reporterEcart]);
+  return { contexte, surMesure };
+}
+
 export default function PageBureau(props: PageBureauProps) {
   const racine = useRef<HTMLDivElement>(null);
   const { largeur, style } = useHauteurVisible(racine);
@@ -309,6 +370,7 @@ export default function PageBureau(props: PageBureauProps) {
   const affichees = colonnesAffichees(etat, deux);
   const forme = formeObjectifBureau(largeur, affichees);
   const etroite = forme === 'etroite';
+  const setDeplie = useSetDeplie(largeur != null && agencementBureau(largeur) === 'A3');
   // Le guidage : l'état résolu (départ compris) avec la colonne ouverte. Lu
   // par une ref pour ne réagir qu'à une NOUVELLE demande.
   const etatCourant = useRef(etat);
@@ -350,13 +412,13 @@ export default function PageBureau(props: PageBureauProps) {
   return (
     <div
       ref={racine}
-      // ⚠️ **Marges de 16 px à gauche et à droite, au lieu des 24 de l'app** :
-      // la page empiète de 8 px de chaque côté sur le rembourrage de la page
+      // ⚠️ **Marges de 12 px à gauche et à droite, au lieu des 24 de l'app** :
+      // la page empiète de 12 px de chaque côté sur le rembourrage de la page
       // (pleine page) ou du volet, sans toucher aux autres pages ni au
       // téléphone (décision de l'utilisateur : la place va aux colonnes). Le
-      // conteneur gagne ces 16 px : à fenêtre égale, chaque seuil est atteint
-      // 16 px plus tôt.
-      className="-mx-2 @container"
+      // conteneur gagne ces 24 px : à fenêtre égale, chaque seuil est atteint
+      // 24 px plus tôt.
+      className="-mx-3 @container"
       style={style}
       data-agencement={largeur != null ? agencement : undefined}
       // La page tient dans la partie visible (A2, A3) : sans pied de page de
@@ -379,6 +441,7 @@ export default function PageBureau(props: PageBureauProps) {
             haut de la page. */}
         <Colonne
           data-zone="essentiels"
+          surMesure={setDeplie.surMesure}
           className={
             'w-[548px]'
             + ' @[904px]:col-[1] @[904px]:row-[1/span_3]'
@@ -387,7 +450,7 @@ export default function PageBureau(props: PageBureauProps) {
           contenu={`flex w-[540px] flex-col ${PANNEAU} ${BANDE} ${BANDE_FIXE} ${SECTIONS} @[1180px]:min-h-full`}
         >
           {props.liste}
-          {props.set}
+          <SetDeplieContext.Provider value={setDeplie.contexte}>{props.set}</SetDeplieContext.Provider>
           <div className="flex items-start gap-2">
             {props.conditions}
             <div className={`flex min-w-0 flex-1 flex-col self-stretch border-l border-border-soft pl-2 ${SECTIONS}`}>
@@ -416,7 +479,7 @@ export default function PageBureau(props: PageBureauProps) {
           data-zone="onglets"
           className={
             '@[904px]:col-[2] @[904px]:row-[2]'
-            + ' @[1180px]:col-[2/-1] @[1180px]:row-[1] @[1180px]:pb-4'
+            + ' @[1180px]:col-[2/-1] @[1180px]:row-[1] @[1180px]:pb-2'
           }
         >
           <OngletsColonnes affichees={affichees} onBasculer={(c) => props.onColonnes(basculerColonne(etat, c, deux))} />
@@ -479,7 +542,7 @@ export default function PageBureau(props: PageBureauProps) {
             + ' @[1180px]:rounded-xl @[1180px]:border @[1180px]:border-border @[1180px]:bg-panel @[1180px]:p-2'
             // La bande (`BANDE`, en A3 seulement), et sa copie fixe, sur toutes
             // les rangées de la grille du panneau.
-            + ' @[1180px]:border-t-[3px] @[1180px]:border-t-[rgb(var(--accent))] @[1180px]:pt-[6px]'
+            + ' @[1180px]:border-t-[3px] @[1180px]:border-t-transparent @[1180px]:pt-[6px]'
             + ` ${BANDE_FIXE} @[1180px]:before:col-[1/-1] @[1180px]:before:row-[1/span_3]`
           }
         >

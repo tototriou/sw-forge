@@ -109,7 +109,7 @@ function ExclusionGabarit({ ctx, initial }: { ctx: ContexteGabarits; initial: Re
     <ExclusionRunesBureau
       monstrePrecisBlock={<ExclusionMonstrePrecis exclusionData={ctx.exclusionData} selectedUnitKey={exemplaire?.unitKey ?? null} selected={selected}
         excludedSelectors={selecteurs} setExcludedSelectors={setSelecteurs} bureau />}
-      dejaUtiliseesBlock={<RunesDejaUtilisees excludeUsedRunes={exclure} setExcludeUsedRunes={setExclure} excludeUsedScope={portee} setExcludeUsedScope={setPortee} />}
+      dejaUtiliseesBlock={<RunesDejaUtilisees excludeUsedRunes={exclure} setExcludeUsedRunes={setExclure} excludeUsedScope={portee} setExcludeUsedScope={setPortee} bureau />}
       runesImposeesBlock={<RunesImposees selected={selected} lockedRunes={verrous} setLockedRunes={setVerrous} bureau />}
     />
   );

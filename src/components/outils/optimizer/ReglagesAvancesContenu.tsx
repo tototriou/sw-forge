@@ -44,7 +44,8 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
           // Dans le panneau « Options » : pleine largeur, comme les autres
           // contrôles du tiroir. En ligne au bureau : serré à son contenu.
           size={dansPanneau ? 'lg' : undefined}
-          className={dansPanneau ? '' : 'w-fit'}
+          // Centrée dans sa carte au bureau (`mx-auto`, dans une rangée flex).
+          className={dansPanneau ? '' : 'mx-auto w-fit'}
         />
         {dansPanneau && estimate && (
           <span className="text-micro text-ink-dim">

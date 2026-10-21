@@ -19,7 +19,7 @@
 // responsabilités séparées, dont celle-ci est la seule testable sans
 // navigateur.
 
-import { BuildCandidate, BuildRequirement, Objective, OptionsDeClassement, sortCandidates } from './runeBuildOptim';
+import { BuildCandidate, BuildRequirement, Objective, OptionsDeClassement, trierCandidatsIncrementalement } from './runeBuildOptim';
 import { StatKey } from './effects';
 import { StatRow } from './stats';
 import { ArtifactDetail, RelicDetail } from '../types';
@@ -44,6 +44,9 @@ import { RelicContext } from './relicOptim';
 // pouvoir être ramassés. Une `Map` les retiendrait indéfiniment — 100 000
 // entrées par recherche, à vie.
 const CLES = new WeakMap<BuildCandidate, string>();
+// Les réponses sont remplacées dans la Map, jamais modifiées en place. Garder
+// la projection évite de perdre les mémos du candidat à chaque publication.
+const CANDIDATS_RESOLUS = new WeakMap<BuildCandidate, { resultat: ResultatArtefacts; candidat: BuildCandidate }>();
 
 export function cleBuild(c: BuildCandidate): string {
   const memo = CLES.get(c);
@@ -132,7 +135,12 @@ export interface ResultatArtefacts {
  */
 export function candidatAvecSaPaire(c: BuildCandidate, cache: ReadonlyMap<string, ResultatArtefacts>): BuildCandidate {
   const r = cache.get(cleBuild(c));
-  return r ? { ...c, stats: r.stats } : c;
+  if (!r) return c;
+  const connu = CANDIDATS_RESOLUS.get(c);
+  if (connu?.resultat === r) return connu.candidat;
+  const candidat = { ...c, stats: r.stats };
+  CANDIDATS_RESOLUS.set(c, { resultat: r, candidat });
+  return candidat;
 }
 
 // Combien de builds la file résout au maximum, hors page affichée. Mesuré :
@@ -549,7 +557,7 @@ export function classementResolu(
     base.filter((c) => parBuild.get(cleBuild(c))?.conforme !== false),
     (c) => parBuild.get(cleBuild(c))?.relique?.id
   );
-  return sortCandidates(conformes.map((c) => candidatAvecSaPaire(c, parBuild)), sortBy, options);
+  return trierCandidatsIncrementalement(conformes.map((c) => candidatAvecSaPaire(c, parBuild)), sortBy, options);
 }
 
 export interface CompteAffichable {

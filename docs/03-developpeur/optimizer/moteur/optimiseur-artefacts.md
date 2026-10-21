@@ -389,9 +389,10 @@ Une seule primitive, `chercherPaires`, sert deux entrées.
 - Le même sélecteur de principale sert les deux : sans optimisation
   d'artéfacts, l'écran impose « Garder l'artéfact équipé » des deux côtés ;
   avec, `'libre'` et les principales deviennent des filtres de candidats.
-- Ce qui garde la file légère pour le fil de l'écran : `sortCandidates`
-  calcule le score de chaque candidat une fois par tri, jamais dans le
-  comparateur ; `cleBuild` est mémoïsée par identité de candidat
+- Ce qui garde la file légère pour le fil de l'écran : `classementResolu`
+  réutilise les notes de dégâts réels inchangées ([classement incrémental](#classement-incrémental)) ;
+  `sortCandidates` calcule le score de chaque candidat une fois par tri,
+  jamais dans le comparateur ; `cleBuild` est mémoïsée par identité de candidat
   (`WeakMap`, qui laisse ramasser les candidats d'une recherche périmée) ;
   les résultats se publient regroupés (`PUBLICATION_MS`).
 - Ne pas remettre `triees.length` dans les dépendances de l'effet de la file
@@ -399,3 +400,76 @@ Une seule primitive, `chercherPaires`, sert deux entrées.
   l'effet se démonterait à ce rythme et son nettoyage annulerait la tâche de
   fond avant qu'elle tourne — la file n'avancerait plus pendant la
   recherche.
+
+### Classement incrémental
+
+`classementResolu` écarte les résultats non conformes, départage par
+identifiant de relique croissant puis clé de build, remplace les stats par
+celles de l'équipement résolu, et appelle `trierCandidatsIncrementalement`
+(`src/lib/runeBuildOptim.ts`). Le tri stable et son comparateur décroissant
+sont ceux de `sortCandidates`, le recalcul complet de référence. Cache de
+résolution vide, l'ordre de base est rendu tel quel, comme avant toute
+résolution. Chaque publication produit le même classement complet, égalités
+et valeurs non finies comprises ; aucune note approximative n'est utilisée.
+
+Seules les notes de **Dégâts réels** sont mémorisées. Pour une stat de fiche,
+Efficience/Score, les PV effectifs et la Vitesse,
+`trierCandidatsIncrementalement` rend directement `sortCandidates`, sans
+préparer d'empreinte : ces notes coûtent autant ou moins que le parcours de
+leurs entrées.
+
+Une seule note de dégâts est gardée par identité faible de **l'objet
+candidat**. Candidats, stats et données propres publiées sont immuables :
+un changement de stats produit un nouveau candidat ; une réponse de
+résolution est remplacée dans la Map, jamais modifiée en place.
+`candidatAvecSaPaire` garde la même projection tant que le candidat de base
+et la réponse sont identiques ; une nouvelle réponse crée une nouvelle
+projection. Un candidat inaccessible ne reste pas retenu par la mémoire.
+Le résultat complet reçu du Worker peut porter de nouveaux objets : ils
+sont notés à leur première apparition, sans rapprochement par ids.
+
+Le contexte complet de dégâts, hors profil d'artéfacts propre au build,
+est empreint **une fois par publication**. Sa chaîne est comparée une fois
+au contexte précédent ; les candidats ne comparent ensuite qu'une identité
+de contexte. Cela détecte aussi une modification du contexte en place.
+Aucune ligne de stats n'est parcourue pour construire une clé, aucune
+chaîne n'est construite par candidat.
+
+Les accesseurs sont toujours lus une fois par candidat : leurs closures,
+les auras et les profils d'artéfacts peuvent être recréés par l'écran à
+chaque publication. Leurs petites données (auras propres, profil effectif,
+apport exclusif) sont comparées directement, récursivement, avec raccourci
+par identité. Les stats reposent sur l'identité immuable du candidat.
+L'apport exclusif reste celui des mêmes accesseurs que le recalcul complet,
+y compris pour une relique fixe remplacée sous le même id. Ces comparaisons
+bornées par la taille des données dérivées conservent `NaN`, les infinis et
+le zéro négatif. Elles ne sérialisent ni ces données ni les stats.
+
+Les données sont sans cycle, comme celles du Worker. Si une fonction est
+rencontrée dans le contexte ou les données propres d'un seul candidat,
+**tout le tri reprend le calcul direct, sans réutiliser ni écrire de note** :
+une fermeture mutable ne se compare ni par identité ni par texte.
+La vérification des données propres précède tout accès aux notes, même
+si la fonction concerne le dernier candidat.
+
+L'appartenance et le départage sont toujours recalculés : un rejet retire
+le build et un autre identifiant de relique peut déplacer une égalité sans
+changer le score. La mémoire ne conserve aucun ordre publié et ne modifie
+ni les priorités de la file, ni sa cible, ni le traitement de l'aperçu.
+
+Pour les dégâts réels, l'observateur optionnel `surNote` reçoit chaque note
+effectivement utilisée au tri, mémorisée ou recalculée, sans exposer le
+cache. Il sert à comparer les notes au recalcul complet, build par build.
+
+Vérifications : les `testClassementIncremental…` comparent l'ordre et les
+notes à chaque publication (aperçu et résultat cloné, résolutions hors
+ordre, rejets, réglages, artéfacts, exclusives, égalités). Les invalidations
+sont aussi testées séparément : amorçage en Dégâts réels, une entrée
+modifiée, nouvelle publication sous le même critère, note effectivement
+recalculée et égale au complet ; un cas impose une inversion de classement.
+Les tests contrôlent aussi le repli de tout le tri sur une fonction et
+l'absence d'empreinte pour les autres critères. Sur 20 000 candidats et
+plusieurs publications, le nombre d'appels de sérialisation reste celui
+du seul contexte commun, comme pour un candidat ; aucune ligne de stats
+n'est parcourue pour une clé. Ce compte ne prouve pas un gain de temps
+dans le navigateur : celui-ci se vérifie dans l'app.

@@ -23,8 +23,9 @@ export interface SetDeRunesCompactProps {
 // multiensemble (deux fois le même set), que la grille sait dire et une case
 // par set non. `SelecteurMultiple` en prend la surface (axe `surface`).
 //
-// ⚠️ **Le message « Sélectionne au moins un set… » tient sa place**, invisible
-// le reste du temps : il ne pousse plus les Conditions quand il paraît.
+// ⚠️ **Le message « Sélectionne au moins un set… » prend la place du compte
+// « n/6 runes »**, sur la ligne du titre : pas de ligne réservée sous la liste
+// (décision de l'utilisateur), et rien ne bouge quand il paraît.
 //
 // ⚠️ **La rangée des jetons est réservée** (`reserverJetons`) : vide, elle a
 // déjà la hauteur d'un jeton, et le premier set choisi ne fait plus descendre
@@ -48,8 +49,12 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
         className={setPickerInvalid ? 'rounded-lg border border-bad bg-bad/15 p-2 -m-2 transition' : 'transition'}
       >
         <div className="mb-1.5 flex items-baseline justify-between gap-2">
-          <p className="label">Set de runes recherché</p>
-          <span className="font-mono text-micro text-ink-dim">{setsCost(comboSets)}/6 runes</span>
+          <p className="label flex-none">Set de runes recherché</p>
+          {setPickerInvalid ? (
+            <span className="min-w-0 text-right text-micro font-semibold text-bad">Sélectionne au moins un set avant de lancer la recherche.</span>
+          ) : (
+            <span className="font-mono text-micro text-ink-dim">{setsCost(comboSets)}/6 runes</span>
+          )}
         </div>
         <SelecteurMultiple
           libelle="Set de runes recherché"
@@ -71,9 +76,6 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
           onOuvertChange={setOuvert}
           surface={<SetComboPicker sets={comboSets} onChange={changer} reserverJetons />}
         />
-        <p className={`mt-1 text-micro font-semibold text-bad ${setPickerInvalid ? '' : 'invisible'}`} aria-hidden={!setPickerInvalid}>
-          Sélectionne au moins un set avant de lancer la recherche.
-        </p>
       </div>
     </section>
   );

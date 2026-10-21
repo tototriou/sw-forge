@@ -16,6 +16,8 @@ interface Props {
   onDelete: (id: string) => void;
   /** Action posée au bout de la même ligne, alignée sur la liste. */
   action?: ReactNode;
+  /** Titre « Liste active » au style d'un titre de section (bureau) plutôt qu'en étiquette. */
+  titreSection?: boolean;
 }
 
 // « Liste active » — menu déroulant, jamais de liste fixe (Box/RTA/
@@ -25,7 +27,7 @@ interface Props {
 // tout est créé, renommé, supprimé par l'utilisateur. Flotte par-dessus zone
 // C au lieu de la repousser (voir docs/03-developpeur/interface/, « un clic ne
 // déplace jamais ce qu'on vient de cliquer »).
-export default function OptimizerListPicker({ lists, activeListId, memberCounts, listContents, onSelect, onCreate, onEdit, onDelete, action }: Props) {
+export default function OptimizerListPicker({ lists, activeListId, memberCounts, listContents, onSelect, onCreate, onEdit, onDelete, action, titreSection = false }: Props) {
   const [open, setOpen] = useState(false);
   const [promptFor, setPromptFor] = useState<'create' | { renameId: string; name: string } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export default function OptimizerListPicker({ lists, activeListId, memberCounts,
       {/* Le menu s'ouvre sous la ligne sans repousser les membres. */}
       <div className={`relative grid items-end gap-2 ${action ? 'grid-cols-[minmax(0,1fr)_auto]' : 'grid-cols-1'}`}>
         <div className="min-w-0">
-          <p className="label mb-1.5">Liste active</p>
+          <p className={titreSection ? 'mb-1.5 text-[13.5px] font-bold text-ink' : 'label mb-1.5'}>Liste active</p>
           <Bouton
             pleineLargeur fond="plein" trait="plein"
             onClick={() => setOpen((v) => !v)}

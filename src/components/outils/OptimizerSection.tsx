@@ -2968,6 +2968,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       action={<OptimizerImportButton enLigne sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />}
       lists={lists}
       memberCounts={memberCountsByList}
+      titreSection
     />
   );
 

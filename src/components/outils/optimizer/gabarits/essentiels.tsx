@@ -77,7 +77,7 @@ function ListeGabarit({ ctx, mode }: { ctx: ContexteGabarits; mode: 'vide' | 're
   const rien = () => {};
   return (
     <ListeDeTravailBureau
-      listes={<SelecteurListes lists={lists} memberCounts={compte}
+      listes={<SelecteurListes lists={lists} memberCounts={compte} titreSection
         action={<OptimizerImportButton enLigne sources={[]} onImporter={optimizer.importerEquipe} rapport={null} />} />}
       recherche={<MonsterSourcePicker mode="bestiary" candidates={ctx.allMonsters} onPick={setActif} />}
       monstreActif={actif}
@@ -149,7 +149,8 @@ export const GABARITS_ESSENTIELS: Gabarit[] = [
     telephone: 'Partage MonstresDeLaListe avec le téléphone, par une variante qu\'il ne prend pas (prop enTete) ; SelecteurListes, MonsterSourcePicker et OptimizerImportButton tels quels.',
     changements: [
       '« Rechercher un monstre… » et le monstre actif passent sur la rangée du titre de la carte de la liste ; plus de bloc « Monstre à optimiser » au-dessus.',
-      'Sans liste active, le titre devient « Ajouter un monstre à la liste » (il nomme le champ qui le suit).',
+      'Le titre de la carte est toujours « Ajouter un monstre / à la liste », sur deux lignes (il nomme le champ qui le suit) : ni le nom de la liste ni son compte, que « Liste active » dit juste au-dessus.',
+      '« Liste active » prend le style du titre « Critères de recherche » (le téléphone garde l\'étiquette).',
       'Les puces d\'exemplaire (Box / RTA / Défenses siège / Offenses siège) quittent ce bloc pour la carte « Exemplaire ».',
       'Dans cette vue : « Importer une équipe » sans sources, gestes de la liste inertes (ils restent dans OptimizerSection).',
     ],
@@ -166,7 +167,7 @@ export const GABARITS_ESSENTIELS: Gabarit[] = [
     changements: [
       'La grille d\'icônes n\'est plus toujours déployée : une liste fermée montre les sets choisis, la grille (jetons, retrait, deux groupes) s\'ouvre en flottant ; un clic de plus pour choisir.',
       'Une seule liste (et non « Set principal » · « Set secondaire ») : deux fois le même set reste possible.',
-      '« Sélectionne au moins un set… » tient sa place : il ne pousse plus les Conditions en paraissant.',
+      '« Sélectionne au moins un set… » prend la place du compte « n/6 runes », sur la ligne du titre : aucune ligne réservée sous la liste, et rien ne bouge quand il paraît.',
       'Liste fermée sans set : « Aucun ».',
       'La liste reste ouverte pendant la composition (après un set de 4, il reste un set de 2 à choisir) ; elle se ferme d\'elle-même au choix qui remplit les six emplacements, sinon au clic ailleurs ou à Échap.',
     ],
@@ -214,7 +215,7 @@ export const GABARITS_ESSENTIELS: Gabarit[] = [
       'Réduit aux buffs et au lead ; « Sets d\'aura des autres monstres » passe en tête de la colonne « Aura, exclusion, avancés ».',
       'Les trois vignettes de buff en colonne, à toute largeur de fenêtre, centrée dans la carte.',
       'L\'aide du titre ne nomme plus les sets d\'aura et n\'a plus le paragraphe « Ce qui décrit le combat… ».',
-      'Aux deux formats : plus de phrase « Lead effectif de l\'équipe : … » ni de motif « Le contenu de combat de la liste n\'est pas défini… » ; seul le motif d\'un lead inactif garde sa place réservée.',
+      'Aux deux formats : plus de phrase « Lead effectif de l\'équipe : … » ni de motif « Le contenu de combat de la liste n\'est pas défini… ». Au bureau, le motif d\'un lead inactif ne paraît que s\'il existe, sous le lead, sans place réservée (le téléphone garde la sienne).',
     ],
     etats: [
       { id: 'defaut', nom: 'Ni buff ni lead', rendu: (ctx) => <EtatGabarit ctx={ctx} patch={{ atkBuff: false, defBuff: false, spdBuff: false, leaderSkill: undefined }} /> },

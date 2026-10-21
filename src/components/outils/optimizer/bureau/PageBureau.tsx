@@ -416,7 +416,7 @@ export default function PageBureau(props: PageBureauProps) {
           data-zone="onglets"
           className={
             '@[904px]:col-[2] @[904px]:row-[2]'
-            + ' @[1180px]:col-[2/-1] @[1180px]:row-[1] @[1180px]:pb-4'
+            + ' @[1180px]:col-[2/-1] @[1180px]:row-[1] @[1180px]:pb-2'
           }
         >
           <OngletsColonnes affichees={affichees} onBasculer={(c) => props.onColonnes(basculerColonne(etat, c, deux))} />

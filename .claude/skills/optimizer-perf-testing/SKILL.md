@@ -155,6 +155,17 @@ et l'appariement, où est le vrai coût.
 
 ### Contention CPU/mémoire — pas la même règle pour la justesse et le temps
 
+Avant une mesure de temps, réserver l’exclusivité de la machine par
+l’outillage local lorsqu’il est disponible ; annoncer ce qui est mesuré,
+puis libérer la réservation à la fin, même en cas d’échec. La réservation
+ne remplace pas le relevé des processus déjà actifs. Un contributeur sans
+cet outillage garde la même exigence d’absence de charge concurrente.
+
+Le contrat de vérification indique les commandes, ce qu’elles prouvent et
+leur durée observée dans le régime correspondant, ou « inconnue ». Une
+campagne imprévue de plus de dix minutes se signale avant lancement : le
+pilote réévalue son utilité et son coût, sans supprimer une preuve nécessaire.
+
 Plusieurs processus/threads concurrents sur la même machine se disputent
 les mêmes cœurs (changement de contexte, cache CPU écrasé à chaque bascule)
 et la même bande passante mémoire (pression GC accrue dans CHAQUE

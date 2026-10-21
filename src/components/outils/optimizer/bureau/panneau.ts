@@ -24,7 +24,23 @@ export const PANNEAU = 'rounded-xl border border-border bg-panel p-2';
 // dans le panneau. ⚠️ La braise VIVE (`--accent`, celle des aplats), pas
 // celle des traits que donne `border-accent` (`--accent-lisible`) : la bande
 // marque, elle ne cerne pas.
-export const BANDE = 'border-t-[3px] border-t-[rgb(var(--accent))] pt-[6px]';
+//
+// ⚠️ **La bande descend en dégradé jusqu'au bas de l'arrondi** : 3 px pleins
+// en haut, puis la braise s'efface vers le contour de 1 px sur la hauteur du
+// rayon (`--radius-xl`), le long des coins. Un contour CSS n'a qu'une couleur
+// par côté : la bande est donc le contour d'un pseudo-élément de la hauteur du
+// rayon (3 px en haut, 1 px de côté, coins du panneau), dont le fond (braise
+// en dégradé sur la couleur du contour) est rogné à l'anneau par un masque
+// (`mask-composite: exclude` entre la boîte pleine et sa boîte intérieure).
+// Le contour du panneau, lui, est transparent en haut. Ici, hors de l'A3, le
+// pseudo-élément est posé sur le contour du haut du panneau (`absolute`) ;
+// `BANDE_FIXE` le rend collant dès 1180 px.
+export const BANDE = 'relative border-t-[3px] border-t-transparent pt-[6px]'
+  + ' before:pointer-events-none before:absolute before:-inset-x-px before:-top-[3px] before:block before:h-[var(--radius-xl)]'
+  + ' before:rounded-t-xl before:border-x before:border-t-[3px] before:border-transparent'
+  + ' before:[background:linear-gradient(to_bottom,rgb(var(--accent))_3px,rgb(var(--accent)/0)_100%)_border-box,linear-gradient(rgb(var(--border)),rgb(var(--border)))_border-box]'
+  + ' before:[mask-image:linear-gradient(#000,#000),linear-gradient(#000,#000)] before:[mask-clip:padding-box,border-box] before:[mask-composite:exclude]'
+  + " before:content-['']";
 
 // ⚠️ **En A3, la bande reste en haut de sa colonne quand la colonne défile**
 // (décision de l'utilisateur : elle ne part pas avec le contenu, et le haut
@@ -37,10 +53,14 @@ export const BANDE = 'border-t-[3px] border-t-[rgb(var(--accent))] pt-[6px]';
 // élément : les sélecteurs de sections (`[&>*+*]`) ne le comptent pas. Dans
 // une grille, il se place en plus sur toutes les rangées, sinon il ne colle
 // qu'à la hauteur de la sienne. Ce qui défile sous ses coins est rogné par
-// la boîte (`coinsDuPanneau`).
-export const BANDE_FIXE = '@[1180px]:border-t-transparent @[1180px]:before:pointer-events-none @[1180px]:before:sticky @[1180px]:before:top-0 @[1180px]:before:z-[1]'
+// la boîte (`coinsDuPanneau`). Le dessin (anneau en dégradé, voir `BANDE`) est
+// repris en entier, sous le seuil : la colonne de droite n'a pas `BANDE`.
+export const BANDE_FIXE = '@[1180px]:border-t-transparent @[1180px]:before:pointer-events-none @[1180px]:before:sticky @[1180px]:before:inset-x-auto @[1180px]:before:top-0 @[1180px]:before:z-[1]'
   + ' @[1180px]:before:-mx-[9px] @[1180px]:before:-mt-[9px] @[1180px]:before:mb-[calc(9px-var(--radius-xl))] @[1180px]:before:block @[1180px]:before:h-[var(--radius-xl)] @[1180px]:before:self-stretch'
-  + ' @[1180px]:before:rounded-t-xl @[1180px]:before:border-x @[1180px]:before:border-t-[3px] @[1180px]:before:border-border @[1180px]:before:border-t-[rgb(var(--accent))]';
+  + ' @[1180px]:before:rounded-t-xl @[1180px]:before:border-x @[1180px]:before:border-t-[3px] @[1180px]:before:border-transparent'
+  + ' @[1180px]:before:[background:linear-gradient(to_bottom,rgb(var(--accent))_3px,rgb(var(--accent)/0)_100%)_border-box,linear-gradient(rgb(var(--border)),rgb(var(--border)))_border-box]'
+  + ' @[1180px]:before:[mask-image:linear-gradient(#000,#000),linear-gradient(#000,#000)] @[1180px]:before:[mask-clip:padding-box,border-box] @[1180px]:before:[mask-composite:exclude]'
+  + " @[1180px]:before:content-['']";
 
 // ⚠️ **Les coins d'une colonne qui défile** : la boîte qui défile est
 // rectangulaire, et le contenu qui passe sous la bande se verrait dans les

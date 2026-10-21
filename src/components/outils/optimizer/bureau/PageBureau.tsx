@@ -479,7 +479,7 @@ export default function PageBureau(props: PageBureauProps) {
             + ' @[1180px]:rounded-xl @[1180px]:border @[1180px]:border-border @[1180px]:bg-panel @[1180px]:p-2'
             // La bande (`BANDE`, en A3 seulement), et sa copie fixe, sur toutes
             // les rangées de la grille du panneau.
-            + ' @[1180px]:border-t-[3px] @[1180px]:border-t-[rgb(var(--accent))] @[1180px]:pt-[6px]'
+            + ' @[1180px]:border-t-[3px] @[1180px]:border-t-transparent @[1180px]:pt-[6px]'
             + ` ${BANDE_FIXE} @[1180px]:before:col-[1/-1] @[1180px]:before:row-[1/span_3]`
           }
         >

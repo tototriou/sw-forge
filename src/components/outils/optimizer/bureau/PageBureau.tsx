@@ -42,39 +42,39 @@ import {
 // Le panneau prend sa place moins `RETRAIT_PANNEAU` : 24 px entre deux
 // panneaux, aucun seuil déplacé.
 //
-// ⚠️ **Pas de boîte « colonne de droite »** : « Exemplaire », le bloc et les
-// résultats sont des cases de la grille de la page, placées par agencement.
-// Son panneau est un FOND, case de la grille sous les leurs en A3 (`FondDroite`,
-// décoratif) ; en A1 et A2, « Exemplaire » et les résultats, l'un sous
-// l'autre, en dessinent chacun une moitié.
-// Le bloc suit les essentiels dans le DOM (ordre d'usage : l'objectif se
-// choisit tôt), et la colonne de droite de A3 tient sur deux pistes
-// (`616px` d'« Exemplaire », le reste), où le bloc étroit prend la seconde.
-// Sa forme vient de `formeObjectifBureau` : largeur et colonnes insérées, donc
-// un clic d'onglet, jamais le lancement d'une recherche.
+// ⚠️ **La colonne de droite n'est une boîte qu'en A3** (`data-zone="droite"`) :
+// « Exemplaire », le bloc et les résultats y défilent ensemble, sur deux
+// pistes (`607px` d'« Exemplaire », le reste), où le bloc étroit prend la
+// seconde. En A1 et A2, cette boîte s'efface (`display: contents`) : ses
+// cases sont celles de la grille de la page, « Exemplaire » et les résultats,
+// l'un sous l'autre, en dessinent chacun une moitié du panneau.
+// Le bloc suit les essentiels dans le DOM en A1 et A2 (ordre d'usage :
+// l'objectif se choisit tôt) ; en A3, il ouvre la colonne de droite, qui suit
+// les colonnes repliables comme à l'écran. Sa place se choisit donc sur
+// l'agencement mesuré. Sa forme vient de `formeObjectifBureau` : largeur et
+// colonnes insérées, donc un clic d'onglet, jamais le lancement d'une
+// recherche.
 //
-// ⚠️ **En A3, essentiels, onglets et colonnes repliables restent fixes**
-// (`sticky`) pendant que la colonne de droite défile avec la page, d'un bloc ;
-// plus hauts que la partie visible, ils défilent dans leur propre colonne. Le
-// haut et la hauteur visibles se mesurent (`useColle`) : la page défile dans
-// la fenêtre, sous la barre du haut, ou dans son volet de l'écran partagé.
+// ⚠️ **En A2 et A3, la page tient dans la partie visible et ne défile pas** :
+// sa hauteur est celle de la fenêtre sous la barre du haut, ou du corps de son
+// volet de l'écran partagé, moins `MARGE_BAS` (`useHauteurVisible`). En A3,
+// chaque colonne est un panneau à hauteur de page qui défile seul :
+// essentiels, colonne repliable (insérée ou superposée), colonne de droite.
+// En A2, « Exemplaire » et les résultats passent sous les essentiels : aucune
+// colonne n'y va de haut en bas, et la page défile en elle-même, d'un bloc,
+// la fenêtre immobile. En A1, la page défile dans la fenêtre, comme avant ;
+// seule sa barre fine est collée. Aucun défilement ne se reporte d'un panneau à la page ou à un autre
+// (`overscroll-behavior: contain`).
 //
 // ⚠️ **Le contrôle à onglets ne bouge jamais au clic** : il a sa propre rangée,
-// la colonne s'ouvre dessous (A2, A3) ou après lui (A1).
+// la colonne s'ouvre dessous (A2, A3) ou après lui (A1). En A3, cette rangée
+// court au-dessus des colonnes repliables et de la colonne de droite, sans fond :
+// rien ne défile sous elle.
 
-// La partie haute que la barre fixe de l'app couvre quand la page défile dans
-// la fenêtre (App.tsx : barre de 48 px, contenu posé à 68 px) ; dans un volet,
-// c'est le rembourrage haut de la zone qui défile.
-const HAUT_PAGE = 68;
-// Ce qui reste libre sous une colonne fixe, au bas de la partie visible.
+// Ce qui reste libre au bas de la partie visible, sous les panneaux.
 const MARGE_BAS = 16;
-// L'espace entre le bord de la partie visible (barre du haut, haut du volet)
-// et le haut collé (68 − 48 en pleine page, le rembourrage de 20 du volet) :
-// en A3, la rangée des onglets le couvre de son fond (`-mt-5 pt-5`), pour que
-// rien de ce qui défile n'y paraisse au-dessus d'elle.
-const DESSUS = 20;
 
-interface Colle {
+interface Mesure {
   largeur: number | null;
   style: CSSProperties;
 }
@@ -87,29 +87,57 @@ function parentQuiDefile(el: HTMLElement): HTMLElement | null {
   return null;
 }
 
-// La largeur du conteneur (la même que lisent les requêtes de conteneur), et
-// les cotes des colonnes fixes de A3, en variables CSS sur la racine.
-function useColle(racine: RefObject<HTMLDivElement>, onglets: RefObject<HTMLDivElement>): Colle {
-  const [colle, setColle] = useState<Colle>({ largeur: null, style: {} });
+// Ce qui suit la racine jusqu'au bas de ce qui défile (rembourrages, contours
+// et marges des ancêtres) : la racine le rend par une marge négative, pour que
+// la page finisse à `MARGE_BAS` du bas de la partie visible, sans la faire
+// défiler. ⚠️ La racine est le dernier élément de la page dans le flux.
+function espaceApres(el: HTMLElement, defile: HTMLElement | null): number {
+  let total = 0;
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const s = getComputedStyle(p);
+    total += parseFloat(s.paddingBottom) || 0;
+    if (p === defile) break;
+    total += (parseFloat(s.borderBottomWidth) || 0) + (parseFloat(s.marginBottom) || 0);
+  }
+  return total;
+}
+
+// La largeur du conteneur (la même que lisent les requêtes de conteneur) ; en
+// A2 et A3, la hauteur de la page : la partie visible de ce qui défile (la
+// fenêtre, ou le corps du volet), moins ce qui est au-dessus de la page dans
+// ce qui défile et `MARGE_BAS`.
+function useHauteurVisible(racine: RefObject<HTMLDivElement>): Mesure {
+  const [mesure, setMesure] = useState<Mesure>({ largeur: null, style: {} });
   useLayoutEffect(() => {
     const el = racine.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
     const defile = parentQuiDefile(el);
     const mesurer = () => {
-      const largeur = el.getBoundingClientRect().width;
-      const haut = defile ? parseFloat(getComputedStyle(defile).paddingTop) || 0 : HAUT_PAGE;
-      // `innerHeight` et non `documentElement.clientHeight`, qui vaut la
-      // hauteur du document hors mode standard.
-      const visible = defile ? defile.clientHeight : window.innerHeight;
-      const rangeeOnglets = onglets.current?.offsetHeight ?? 0;
-      setColle((avant) => {
-        const style = {
-          '--colle-haut': `${haut}px`,
-          '--colle-onglets': `${haut - DESSUS}px`,
-          '--colle-colonnes': `${haut - DESSUS + rangeeOnglets}px`,
-          '--hauteur-essentiels': `${Math.max(0, visible - haut - MARGE_BAS)}px`,
-          '--hauteur-colonnes': `${Math.max(0, visible - haut + DESSUS - rangeeOnglets - MARGE_BAS)}px`,
-        } as CSSProperties;
+      // La largeur de CONTENU, barre de défilement de la page retirée (A2) :
+      // celle que lisent les requêtes de conteneur.
+      const largeur = el.getBoundingClientRect().width - (el.offsetWidth - el.clientWidth);
+      const agencement = agencementBureau(largeur);
+      let style: CSSProperties = {};
+      if (agencement !== 'A1') {
+        const haut = el.getBoundingClientRect().top;
+        // Le haut de la page dans ce qui défile, défilement retiré ;
+        // `innerHeight` et non `documentElement.clientHeight`, qui vaut la
+        // hauteur du document hors mode standard.
+        const dessus = defile
+          ? haut - defile.getBoundingClientRect().top - defile.clientTop + defile.scrollTop
+          : haut + window.scrollY;
+        const visible = defile ? defile.clientHeight : window.innerHeight;
+        style = {
+          height: `${Math.max(0, Math.round(visible - dessus - MARGE_BAS))}px`,
+          marginBottom: `${-Math.round(espaceApres(el, defile))}px`,
+          // A2 : aucune colonne n'y va de haut en bas ; la page défile en
+          // elle-même, sa barre réservée hors du conteneur (comme celle de la
+          // fenêtre avant elle : aucune largeur ne bouge) et toujours là (les
+          // résultats qui arrivent ne la rétrécissent pas).
+          ...(agencement === 'A2' ? { overflowY: 'auto', overscrollBehavior: 'contain', scrollbarGutter: 'stable' } : {}),
+        };
+      }
+      setMesure((avant) => {
         const meme = avant.largeur === largeur && JSON.stringify(avant.style) === JSON.stringify(style);
         return meme ? avant : { largeur, style };
       });
@@ -117,15 +145,16 @@ function useColle(racine: RefObject<HTMLDivElement>, onglets: RefObject<HTMLDivE
     mesurer();
     const obs = new ResizeObserver(mesurer);
     obs.observe(el);
-    if (defile) obs.observe(defile);
-    if (onglets.current) obs.observe(onglets.current);
+    // Ce qui défile change de hauteur avec la fenêtre, le volet ou ce qui
+    // s'affiche au-dessus de la page (message d'import).
+    obs.observe(defile ?? document.body);
     window.addEventListener('resize', mesurer);
     return () => {
       obs.disconnect();
       window.removeEventListener('resize', mesurer);
     };
-  }, [racine, onglets]);
-  return colle;
+  }, [racine]);
+  return mesure;
 }
 
 // Ce que la page demande au bloc « Objectif et Rechercher »
@@ -172,23 +201,26 @@ export interface PageBureauProps {
   guideComplements?: number | null;
 }
 
-// Une colonne repliable en A3 : fixe, à défilement propre ; superposée sous son
-// seuil d'insertion (marge négative de sa largeur : elle ne prend aucune
-// place), large de son panneau et de la barre de défilement (10 px) ; insérée
-// au-delà, large de sa place et de la gouttière (336 ou 356), où la barre de
-// défilement tient à droite du panneau. Les classes sont écrites en entier
-// pour Tailwind ; l'ombre (celle des flottants) va au panneau, superposé
-// seulement.
+// Le défilement d'une colonne en A3 : seule (`data-defile`, voir `Colonne`),
+// sans report sur la page ni sur une autre colonne une fois au bout.
+const DEFILE_A3 = '@[1180px]:min-h-0 @[1180px]:overscroll-contain @[1180px]:data-[defile]:overflow-y-auto @[1180px]:data-[defile]:overflow-x-hidden';
+
+// Une colonne repliable en A3, à défilement propre : superposée sous son seuil
+// d'insertion (marge négative de sa largeur : elle ne prend aucune place),
+// large de son panneau et de la barre de défilement (10 px), haute de son
+// contenu au plus de la page (elle ne couvre des résultats que ce qu'elle
+// montre) ; insérée au-delà, large de sa place et de la gouttière (336 ou
+// 356), où la barre de défilement tient à droite du panneau, et haute de la
+// page, son panneau jusqu'en bas. Les classes sont écrites en entier pour
+// Tailwind ; l'ombre (celle des flottants) va au panneau, superposé seulement.
 const COLONNE_A3: Record<ColonneRepliable, { boite: string; panneau: string }> = {
   artefacts: {
-    boite: '@[1180px]:sticky @[1180px]:top-[var(--colle-colonnes)] @[1180px]:max-h-[var(--hauteur-colonnes)] @[1180px]:data-[defile]:overflow-y-auto @[1180px]:data-[defile]:overflow-x-hidden'
-      + ' @[1180px]:w-[322px] @[1180px]:-mr-[322px] @[1180px]:z-20 @[1516px]:w-[336px] @[1516px]:mr-0 @[1516px]:z-auto',
-    panneau: '@[1180px]:shadow-glow @[1180px]:shadow-black/60 @[1516px]:shadow-none',
+    boite: `${DEFILE_A3} @[1180px]:max-h-full @[1180px]:w-[322px] @[1180px]:-mr-[322px] @[1180px]:z-20 @[1516px]:h-full @[1516px]:w-[336px] @[1516px]:mr-0 @[1516px]:z-auto`,
+    panneau: '@[1180px]:shadow-glow @[1180px]:shadow-black/60 @[1516px]:min-h-full @[1516px]:shadow-none',
   },
   complements: {
-    boite: '@[1180px]:sticky @[1180px]:top-[var(--colle-colonnes)] @[1180px]:max-h-[var(--hauteur-colonnes)] @[1180px]:data-[defile]:overflow-y-auto @[1180px]:data-[defile]:overflow-x-hidden'
-      + ' @[1180px]:w-[342px] @[1180px]:-mr-[342px] @[1180px]:z-20 @[1536px]:w-[356px] @[1536px]:mr-0 @[1536px]:z-auto',
-    panneau: '@[1180px]:shadow-glow @[1180px]:shadow-black/60 @[1536px]:shadow-none',
+    boite: `${DEFILE_A3} @[1180px]:max-h-full @[1180px]:w-[342px] @[1180px]:-mr-[342px] @[1180px]:z-20 @[1536px]:h-full @[1536px]:w-[356px] @[1536px]:mr-0 @[1536px]:z-auto`,
+    panneau: '@[1180px]:shadow-glow @[1180px]:shadow-black/60 @[1536px]:min-h-full @[1536px]:shadow-none',
   },
 };
 
@@ -198,16 +230,16 @@ const SECTIONS_COLONNE = '[&>*+*]:ml-2 [&>*+*]:border-l [&>*+*]:border-border-so
   + ' @[904px]:[&>*+*]:ml-0 @[904px]:[&>*+*]:border-l-0 @[904px]:[&>*+*]:pl-0'
   + ' @[904px]:[&>*+*]:mt-2 @[904px]:[&>*+*]:border-t @[904px]:[&>*+*]:pt-2';
 
-// Une colonne qui reste fixe en A3 (essentiels, colonne repliable) : son
+// Une colonne de A3 (essentiels, colonne repliable, colonne de droite) : son
 // contenu dans une boîte intérieure, mesurée. ⚠️ **Elle ne défile seule
-// (`overflow-y: auto`) que quand son contenu dépasse la hauteur visible**
+// (`overflow-y: auto`) que quand son contenu dépasse sa hauteur**
 // (`data-defile`) : une boîte qui défile rogne les flottants posés en
 // `absolute` dedans (menus), qu'il vaut mieux laisser déborder tant que rien
-// n'oblige à défiler. Hors A3, aucune hauteur maximale : jamais.
+// n'oblige à défiler. Hors A3, aucune hauteur imposée : jamais.
 // ⚠️ **Les aides en sortent toujours** (`AidesHorsDeLaBoite`, HelpPopover.tsx) :
 // une bulle de 340 px ancrée près du bord droit déborde de la colonne même
 // quand elle tient en hauteur ; en portail, elle s'affiche en entier.
-function ColonneFixe({ className, contenu, children, ...donnees }: {
+function Colonne({ className, contenu, children, ...donnees }: {
   className: string; contenu: string; children: ReactNode; 'data-zone'?: string; 'data-colonne'?: string;
 }) {
   const boite = useRef<HTMLDivElement>(null);
@@ -216,10 +248,9 @@ function ColonneFixe({ className, contenu, children, ...donnees }: {
   useLayoutEffect(() => {
     const b = boite.current, i = interieur.current;
     if (!b || !i || typeof ResizeObserver === 'undefined') return;
-    const lire = () => {
-      const max = parseFloat(getComputedStyle(b).maxHeight);
-      setDepasse(Number.isFinite(max) && i.offsetHeight > max + 0.5);
-    };
+    // La boîte a la hauteur de son contenu tant que rien ne la borne (A1, A2,
+    // colonne de droite effacée) : le contenu ne la dépasse alors jamais.
+    const lire = () => setDepasse(i.offsetHeight > b.clientHeight + 0.5);
     lire();
     const obs = new ResizeObserver(lire);
     obs.observe(b);
@@ -250,8 +281,7 @@ function AnnonceRappelAuras({ rappel }: { rappel: boolean }) {
 
 export default function PageBureau(props: PageBureauProps) {
   const racine = useRef<HTMLDivElement>(null);
-  const rangeeOnglets = useRef<HTMLDivElement>(null);
-  const { largeur, style } = useColle(racine, rangeeOnglets);
+  const { largeur, style } = useHauteurVisible(racine);
   const deux = deuxColonnesTiennent(largeur);
   const etat = props.colonnes ?? colonnesParDefaut(largeur);
   const affichees = colonnesAffichees(etat, deux);
@@ -269,10 +299,31 @@ export default function PageBureau(props: PageBureauProps) {
 
   // A1 (largeur inconnue comprise, la forme de départ) : le bloc à sa place,
   // sa barre fine collée à part. A3 : le bloc est une section du panneau de
-  // droite.
+  // droite, dont il ouvre la boîte.
   const agencement = largeur != null ? agencementBureau(largeur) : 'A1';
   const a1 = agencement === 'A1';
-  const cadre = agencement !== 'A3';
+  const a3 = agencement === 'A3';
+  const cadre = !a3;
+
+  // Le bloc « Objectif et Rechercher ». A1 : large, à sa place sous les
+  // essentiels. A2 : étroit, à droite des essentiels, au-dessus des onglets.
+  // A3 : section du panneau de droite, à côté d'« Exemplaire » (étroit,
+  // seconde piste) ou dessous (large).
+  const objectif = (
+    <div
+      data-zone="objectif"
+      data-forme={forme}
+      className={
+        a3
+          ? (etroite
+            ? 'col-[2] row-[1] border-l border-border-soft pl-2'
+            : 'col-[1/-1] row-[2] mt-2 border-t border-border-soft pt-2')
+          : '@[904px]:col-[2] @[904px]:row-[1]'
+      }
+    >
+      {props.objectif({ forme, cadre, partie: a1 ? 'reglages' : 'tout' })}
+    </div>
+  );
 
   return (
     <div
@@ -280,39 +331,32 @@ export default function PageBureau(props: PageBureauProps) {
       className="@container"
       style={style}
       data-agencement={largeur != null ? agencement : undefined}
+      // La page tient dans la partie visible (A2, A3) : sans pied de page de
+      // l'app, la fenêtre ne défile pas (index.css, « Optimizer à hauteur de
+      // fenêtre »).
+      data-page-fenetre={largeur != null && !a1 ? '' : undefined}
     >
       <AnnonceRappelAuras rappel={props.rappelAuras} />
       <div
         className={
           'grid grid-cols-[minmax(0,1fr)] items-start gap-y-6'
           + ' @[904px]:grid-cols-[548px_minmax(0,1fr)] @[904px]:grid-rows-[auto_auto_1fr_auto_auto] @[904px]:gap-x-4'
-          + ' @[1180px]:grid-cols-[564px_auto_616px_minmax(0,1fr)] @[1180px]:grid-rows-[auto_auto_auto_auto_1fr] @[1180px]:gap-x-0 @[1180px]:gap-y-0'
+          // A3 : la grille a la hauteur de la page, ses colonnes défilent.
+          + ' @[1180px]:h-full @[1180px]:grid-cols-[564px_auto_minmax(0,1fr)] @[1180px]:grid-rows-[auto_minmax(0,1fr)] @[1180px]:gap-x-0 @[1180px]:gap-y-0'
         }
       >
-        {/* Le panneau de la colonne de droite en A3 : un fond sous ses cases
-            (« Exemplaire », bloc, résultats), premier dans le DOM pour être
-            peint dessous. Décoratif. ⚠️ Il s'arrête à la rangée 4 : la
-            dernière (`1fr`) n'existe que pour absorber la hauteur des
-            colonnes fixes plus hautes que les résultats, sans quoi le
-            panneau s'allongeait d'un vide sous eux. */}
-        <div
-          aria-hidden
-          data-zone="fond-droite"
-          className={`hidden @[1180px]:block @[1180px]:col-[3/-1] @[1180px]:row-[2/5] @[1180px]:self-stretch ${PANNEAU}`}
-        />
-
         {/* Les essentiels : liste de travail en tête, à sa place stable ; à
             droite des Conditions, la sous-colonne des principales et de l'état
-            du monstre, qui finit à peu près à leur hauteur. */}
-        <ColonneFixe
+            du monstre, qui finit à peu près à leur hauteur. En A3, panneau
+            haut de la page. */}
+        <Colonne
           data-zone="essentiels"
           className={
             'w-[548px]'
             + ' @[904px]:col-[1] @[904px]:row-[1/span_3]'
-            + ' @[1180px]:row-[1/-1] @[1180px]:sticky @[1180px]:top-[var(--colle-haut)] @[1180px]:z-10 @[1180px]:max-h-[var(--hauteur-essentiels)]'
-            + ' @[1180px]:w-[564px] @[1180px]:data-[defile]:overflow-y-auto'
+            + ` @[1180px]:row-[1/-1] @[1180px]:h-full @[1180px]:w-[564px] ${DEFILE_A3}`
           }
-          contenu={`flex w-[540px] flex-col ${PANNEAU} ${SECTIONS}`}
+          contenu={`flex w-[540px] flex-col ${PANNEAU} ${SECTIONS} @[1180px]:min-h-full`}
         >
           {props.liste}
           {props.set}
@@ -323,27 +367,13 @@ export default function PageBureau(props: PageBureauProps) {
               {props.etat}
             </div>
           </div>
-        </ColonneFixe>
+        </Colonne>
 
-        {/* Le bloc « Objectif et Rechercher ». A1 : large, à sa place sous les
-            essentiels ; sa barre fine (« Rechercher » / « Arrêter » et la
-            progression) le suit, collée au bas de la partie visible tant que
-            sa place est plus bas (« Rechercher » toujours atteignable). A2 :
-            étroit, à droite des essentiels, au-dessus des onglets. A3 : section
-            du panneau de droite, à côté d'« Exemplaire » (étroit, seconde
-            piste) ou dessous (large). */}
-        <div
-          data-zone="objectif"
-          data-forme={forme}
-          className={
-            '@[904px]:col-[2] @[904px]:row-[1]'
-            + (etroite
-              ? ' @[1180px]:col-[4] @[1180px]:row-[2] @[1180px]:mr-[9px] @[1180px]:mt-[9px] @[1180px]:border-l @[1180px]:border-border-soft @[1180px]:pl-2'
-              : ' @[1180px]:col-[3/-1] @[1180px]:row-[3] @[1180px]:mx-[9px] @[1180px]:mt-2 @[1180px]:border-t @[1180px]:border-border-soft @[1180px]:pt-2')
-          }
-        >
-          {props.objectif({ forme, cadre, partie: a1 ? 'reglages' : 'tout' })}
-        </div>
+        {/* Le bloc, en A1 et A2 (en A3, il ouvre la colonne de droite) ; en
+            A1, sa barre fine (« Rechercher » / « Arrêter » et la progression)
+            le suit, collée au bas de la partie visible tant que sa place est
+            plus bas (« Rechercher » toujours atteignable). */}
+        {!a3 && objectif}
         {a1 && (
           <div data-zone="barre" className="sticky bottom-0 z-10 -mt-4 @[904px]:hidden">
             {props.objectif({ forme, cadre, partie: 'barre' })}
@@ -351,14 +381,14 @@ export default function PageBureau(props: PageBureauProps) {
         )}
 
         {/* Le contrôle à onglets : sa propre rangée, jamais déplacée par ce
-            qu'il ouvre. En A3, fixe, sur un fond qui masque ce qui défile
-            dessous. */}
+            qu'il ouvre. En A3, au-dessus des colonnes repliables et de la
+            colonne de droite, qui défilent chacune sous sa rangée, jamais
+            dessous : il n'a pas de fond. */}
         <div
-          ref={rangeeOnglets}
           data-zone="onglets"
           className={
             '@[904px]:col-[2] @[904px]:row-[2]'
-            + ' @[1180px]:col-[2/-1] @[1180px]:row-[1] @[1180px]:sticky @[1180px]:top-[var(--colle-onglets)] @[1180px]:z-30 @[1180px]:-mt-5 @[1180px]:bg-bg @[1180px]:pb-4 @[1180px]:pt-5'
+            + ' @[1180px]:col-[2/-1] @[1180px]:row-[1] @[1180px]:pb-4'
           }
         >
           <OngletsColonnes affichees={affichees} onBasculer={(c) => props.onColonnes(basculerColonne(etat, c, deux))} />
@@ -371,21 +401,21 @@ export default function PageBureau(props: PageBureauProps) {
             className={
               'flex flex-col gap-6'
               + ' @[904px]:col-[2] @[904px]:row-[3]'
-              + ' @[1180px]:col-[2] @[1180px]:row-[2/-1] @[1180px]:flex-row @[1180px]:items-start @[1180px]:gap-0 @[1180px]:self-stretch'
+              + ' @[1180px]:col-[2] @[1180px]:row-[2] @[1180px]:h-full @[1180px]:min-h-0 @[1180px]:flex-row @[1180px]:items-start @[1180px]:gap-0'
             }
           >
             {affichees.artefacts && (
-              <ColonneFixe
+              <Colonne
                 data-colonne="artefacts"
                 className={COLONNE_A3.artefacts.boite}
                 contenu={`flex w-fit items-start @[904px]:flex-col ${PANNEAU} ${SECTIONS_COLONNE} ${COLONNE_A3.artefacts.panneau}`}
               >
                 <div className="w-[294px]">{props.artefacts}</div>
                 {props.meilleurs && <div className="w-[294px]">{props.meilleurs}</div>}
-              </ColonneFixe>
+              </Colonne>
             )}
             {affichees.complements && (
-              <ColonneFixe
+              <Colonne
                 data-colonne="complements"
                 className={COLONNE_A3.complements.boite}
                 contenu={`grid w-fit grid-cols-[auto_auto] items-start @[904px]:flex @[904px]:flex-col ${PANNEAU} ${COLONNE_A3.complements.panneau}`}
@@ -395,42 +425,65 @@ export default function PageBureau(props: PageBureauProps) {
                   {props.exclusion}
                 </div>
                 <div className="col-start-1 row-start-2 mt-2 w-[314px] border-t border-border-soft pt-2">{props.avances}</div>
-              </ColonneFixe>
+              </Colonne>
             )}
           </div>
         )}
 
-        {/* « Exemplaire » : sous les réglages en A1 et A2, en tête de la
-            colonne de droite en A3. En A1 et A2, il dessine le haut du panneau
-            de droite, dont les résultats dessinent le bas ; en A3, le fond
-            (`fond-droite`) le dessine. */}
-        <div
-          data-zone="exemplaire"
+        {/* La colonne de droite. En A3, un panneau haut de la page, qui défile
+            seul : le bloc, « Exemplaire » et les résultats sur deux pistes
+            (« Exemplaire » sur la première, 616 de place moins le bord du
+            panneau ; le bloc étroit sur la seconde). En A1 et A2, effacée
+            (`display: contents`) : « Exemplaire » et les résultats sont des
+            cases de la grille de la page. Les classes de son panneau sont
+            celles de `PANNEAU`, en A3 seulement. ⚠️ Elle défile toujours, sa
+            barre réservée (`scrollbar-gutter: stable`) : les résultats qui
+            arrivent ne la rétrécissent pas, et « Rechercher » ne bouge pas
+            sous le clic. */}
+        <Colonne
+          data-zone="droite"
           className={
-            `rounded-b-none border-b-0 pb-2 ${PANNEAU}`
-            + ' @[904px]:col-[1/-1] @[904px]:row-[4]'
-            + ' @[1180px]:col-[3] @[1180px]:row-[2] @[1180px]:ml-[9px] @[1180px]:mt-[9px] @[1180px]:rounded-none @[1180px]:border-0 @[1180px]:bg-transparent @[1180px]:p-0'
+            'contents @[1180px]:col-[3] @[1180px]:row-[2] @[1180px]:block @[1180px]:h-full @[1180px]:min-h-0 @[1180px]:min-w-0'
+            + ' @[1180px]:overflow-y-auto @[1180px]:overflow-x-hidden @[1180px]:overscroll-contain @[1180px]:[scrollbar-gutter:stable]'
+          }
+          contenu={
+            'contents @[1180px]:grid @[1180px]:min-h-full @[1180px]:grid-cols-[607px_minmax(0,1fr)] @[1180px]:content-start'
+            + ' @[1180px]:rounded-xl @[1180px]:border @[1180px]:border-border @[1180px]:bg-panel @[1180px]:p-2'
           }
         >
-          {props.exemplaire}
-        </div>
+          {a3 && objectif}
 
-        {/* Les résultats, présents dès le départ (place d'attente) : sur toute
-            la largeur en A1 et A2, sous « Exemplaire » et le bloc en A3. Un
-            trait les sépare de ce qui les précède dans le panneau. */}
-        <div
-          data-zone="resultats"
-          className={
-            `-mt-6 min-w-0 rounded-t-none border-t-0 pt-0 ${PANNEAU}`
-            + ' @[904px]:col-[1/-1] @[904px]:row-[5]'
-            + ' @[1180px]:mx-[9px] @[1180px]:mb-[9px] @[1180px]:mt-0 @[1180px]:rounded-none @[1180px]:border-0 @[1180px]:bg-transparent @[1180px]:p-0'
-            + (etroite
-              ? ' @[1180px]:col-[3/-1] @[1180px]:row-[3]'
-              : ' @[1180px]:col-[3/-1] @[1180px]:row-[4]')
-          }
-        >
-          <div className="border-t border-border-soft pt-2 @[1180px]:mt-2">{props.resultats}</div>
-        </div>
+          {/* « Exemplaire » : sous les réglages en A1 et A2, il y dessine le
+              haut du panneau de droite, dont les résultats dessinent le bas ;
+              en tête de la colonne de droite en A3. */}
+          <div
+            data-zone="exemplaire"
+            className={
+              `rounded-b-none border-b-0 pb-2 ${PANNEAU}`
+              + ' @[904px]:col-[1/-1] @[904px]:row-[4]'
+              + ' @[1180px]:col-[1] @[1180px]:row-[1] @[1180px]:rounded-none @[1180px]:border-0 @[1180px]:bg-transparent @[1180px]:p-0'
+            }
+          >
+            {props.exemplaire}
+          </div>
+
+          {/* Les résultats, présents dès le départ (place d'attente) : sur
+              toute la largeur en A1 et A2, sous « Exemplaire » et le bloc en
+              A3. Un trait les sépare de ce qui les précède dans le panneau. */}
+          <div
+            data-zone="resultats"
+            className={
+              `-mt-6 min-w-0 rounded-t-none border-t-0 pt-0 ${PANNEAU}`
+              + ' @[904px]:col-[1/-1] @[904px]:row-[5]'
+              + ' @[1180px]:mt-0 @[1180px]:rounded-none @[1180px]:border-0 @[1180px]:bg-transparent @[1180px]:p-0'
+              + (etroite
+                ? ' @[1180px]:col-[1/-1] @[1180px]:row-[2]'
+                : ' @[1180px]:col-[1/-1] @[1180px]:row-[3]')
+            }
+          >
+            <div className="border-t border-border-soft pt-2 @[1180px]:mt-2">{props.resultats}</div>
+          </div>
+        </Colonne>
       </div>
     </div>
   );

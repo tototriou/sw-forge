@@ -195,9 +195,8 @@
      s'ouvre (jeton `guideComplements`, que `PageBureau` applique à l'état
      des onglets par `ouvrirColonne`), **puis** l'interrupteur, rendu dès
      que la colonne est ouverte, est amené à l'écran du strict nécessaire
-     (`nearest`) ; l'effet se rejoue quand l'état des onglets change. La
-     colonne peut être fixe et défiler seule : une seconde passe, une fois la
-     page arrêtée, ne fait défiler que ce qui manque.
+     (`nearest`) ; l'effet se rejoue quand l'état des onglets change. En
+     A3, c'est la colonne repliable qui défile, seule.
    - **Au doigt** — le panneau « Options de recherche » s'ouvre par-dessus
      la carte ; il reste piloté par la barre de navigation, l'écran le
      demande par la prop `onOuvrirMenu` (`App.tsx`, relayée par

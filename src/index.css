@@ -770,6 +770,23 @@ html:has([data-ecran-partage]) body {
   min-height: 0;
 }
 
+/* ⚠️ **Optimizer à hauteur de fenêtre : la FENÊTRE ne défile pas non plus.**
+   Au format bureau, dès que l'Optimizer a des colonnes (`data-page-fenetre`,
+   posé par sa page), il tient dans la partie visible et chaque colonne défile
+   seule : sans la hauteur minimale de `body`, qui ferait défiler la fenêtre
+   de 3 rem. Voir docs/02-app/optimizer/ecran/README.md, « Défilement ». */
+html:has([data-page-fenetre]) {
+  overflow: hidden;
+}
+html:has([data-page-fenetre]) body {
+  min-height: 0;
+}
+/* Ni le pied de page de l'app (`data-pied-de-page`, App.tsx) : les colonnes
+   vont jusqu'au bas de la fenêtre. */
+html:has([data-page-fenetre]) [data-pied-de-page] {
+  display: none;
+}
+
 /* ---- Cibles TACTILES ---------------------------------------------------- */
 /* ⚠️ **Au doigt, une cible fait au moins 40 px de haut.** L'app est dessinée
    pour la souris, qui vise au pixel : les pastilles de filtre tombent à 26 px,

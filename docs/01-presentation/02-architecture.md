@@ -174,7 +174,8 @@ partagées : `src/components/outils/optimizer/constantes.ts` ; types :
 Au format bureau, `OptimizerSection` rend la page en colonnes
 ([02-app/optimizer/ecran/](../02-app/optimizer/ecran/README.md)) par `PageBureau`
 (`src/components/outils/optimizer/bureau/PageBureau.tsx`) : racine en requêtes de conteneur,
-agencements A1, A2, A3, contrôle à onglets et colonnes repliables, colonnes fixes en A3 ; ses
+agencements A1, A2, A3, contrôle à onglets et colonnes repliables, page à hauteur de fenêtre en
+A2 et A3 (chaque colonne défile seule en A3) ; ses
 seuils et l'état de départ des onglets viennent de `src/lib/optimizerColonnes.ts`. Le téléphone
 garde la grille des cartes ci-dessus. Les boîtes de cette page vivent dans
 `src/components/outils/optimizer/bureau/` : la liste de

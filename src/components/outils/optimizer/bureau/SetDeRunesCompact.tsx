@@ -53,7 +53,7 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
           {setPickerInvalid ? (
             <span className="min-w-0 text-right text-micro font-semibold text-bad">Sélectionne au moins un set avant de lancer la recherche.</span>
           ) : (
-            <span className="font-mono text-micro text-ink-dim">{setsCost(comboSets)}/6 runes</span>
+            <span className="text-micro tabular-nums text-ink-dim">{setsCost(comboSets)}/6 runes</span>
           )}
         </div>
         <SelecteurMultiple

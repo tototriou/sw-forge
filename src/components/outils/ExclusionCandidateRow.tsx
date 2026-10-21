@@ -37,7 +37,7 @@ export default function ExclusionCandidateRow({ candidate: c, suffixe }: Props) 
         <div className="flex items-center gap-2.5">
           <span className="text-[13px] font-medium truncate flex-1">{c.monster.name}</span>
           <SetsPortes sets={sets} taille={14} espacement="gap-1" className="flex-none" />
-          <span className="font-mono text-[11px] text-ink-dim flex-none">
+          <span className="text-[11px] tabular-nums text-ink-dim flex-none">
             {c.gear.runes.length} rune{c.gear.runes.length > 1 ? 's' : ''}
           </span>
           {suffixe}

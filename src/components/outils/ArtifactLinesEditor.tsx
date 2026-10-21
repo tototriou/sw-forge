@@ -190,7 +190,7 @@ export default function ArtifactLinesEditor({
               </span>
             )}
             <span
-              className={`col-span-full font-mono text-nano tabular-nums ${exigeLesDeux ? 'text-warn' : 'text-ink-dimmer'}`}
+              className={`col-span-full text-nano tabular-nums ${exigeLesDeux ? 'text-warn' : 'text-ink-dimmer'}`}
             >
               {def?.sortes.length === 2
                 ? exigeLesDeux
@@ -255,7 +255,7 @@ export default function ArtifactLinesEditor({
         // prêtent rien. Verrouiller 5 lignes réservées au type est impossible
         // d'avance, quelle que soit la richesse de l'inventaire — et seul ce
         // découpage le montre PENDANT la saisie.
-        <div className="flex flex-wrap items-center gap-x-3 font-mono text-nano tabular-nums text-ink-dim">
+        <div className="flex flex-wrap items-center gap-x-3 text-nano tabular-nums text-ink-dim">
           <span>
             sous-propriétés&nbsp;: attribut{' '}
             <b className={budget.attribut > MAX_ARTIFACT_SUBS ? 'text-bad' : 'text-ink'}>
@@ -286,7 +286,7 @@ export default function ArtifactLinesEditor({
             <div key={d.code} className="flex items-baseline justify-between gap-2 text-xs">
               <span className="text-ink">{parCode.get(d.code)?.nom ?? `#${d.code}`}</span>
               <span className="flex items-baseline gap-1.5 shrink-0">
-                <span className="font-mono text-nano tabular-nums text-ink-dim">
+                <span className="text-nano tabular-nums text-ink-dim">
                   {d.min} % exigé · {d.auMieux} % au mieux
                 </span>
                 <span className={`font-semibold ${d.atteint ? 'text-good' : 'text-bad'}`}>

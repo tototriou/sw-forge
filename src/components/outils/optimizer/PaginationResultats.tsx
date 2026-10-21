@@ -22,7 +22,9 @@ export default function PaginationResultats({ setResultsPage, resultsPage, pageD
         className="h-8 w-8"
       />
 
-      <div className="flex items-center gap-1.5 font-mono text-[12.5px] text-ink-dim">
+      {/* « Page » en police du texte ; la mono sur les chiffres seuls (le
+          numéro saisi, le nombre de pages). */}
+      <div className="flex items-center gap-1.5 text-[12.5px] text-ink-dim">
         <span>Page</span>
         <Champ
           inputMode="numeric"
@@ -48,9 +50,9 @@ export default function PaginationResultats({ setResultsPage, resultsPage, pageD
           onKeyDown={(e) => {
             if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
           }}
-          className="w-11 px-1 py-1 text-center"
+          className="w-11 px-1 py-1 text-center font-mono"
         />
-        <span>/ {totalResultsPages}</span>
+        <span className="font-mono">/ {totalResultsPages}</span>
       </div>
 
       <BoutonIcone

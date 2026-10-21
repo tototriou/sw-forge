@@ -93,7 +93,7 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false 
             Plus de place (6 runes)
           </span>
         )}
-        <span className="font-mono text-micro text-ink-dim">{used}/6 runes</span>
+        <span className="text-micro tabular-nums text-ink-dim">{used}/6 runes</span>
       </div>
 
       {!full && (

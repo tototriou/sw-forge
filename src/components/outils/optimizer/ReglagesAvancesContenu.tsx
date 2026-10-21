@@ -47,7 +47,7 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
           className={dansPanneau ? '' : 'w-fit'}
         />
         {dansPanneau && estimate && (
-          <span className="font-mono text-micro text-ink-dim">
+          <span className="text-micro text-ink-dim">
             Pool de runes = {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))}
           </span>
         )}

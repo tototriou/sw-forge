@@ -60,9 +60,11 @@ export default function MeilleursArtefacts({ modeArtefactsSeuls, etroit, setArte
         {/* ⚠️ Aucun chiffre quand il n'y a rien à proposer : un « 0 / coup »
             se lirait comme un résultat, alors que rien n'a été cherché. */}
         {modeArtefactsSeuls.explication == null && (
-          <span className="flex items-baseline gap-1.5 font-mono text-micro">
+          // La mono sur les chiffres seuls (l'absolu, l'écart) ; « dégâts » et
+          // « / coup » en police du texte.
+          <span className="flex items-baseline gap-1.5 text-micro">
             <span className="text-ink">
-              {Math.round(modeArtefactsSeuls.degatsParCoup).toLocaleString('fr-FR')}
+              <span className="font-mono">{Math.round(modeArtefactsSeuls.degatsParCoup).toLocaleString('fr-FR')}</span>
               {modeArtefactsSeuls.surLeReel ? ' dégâts' : ' / coup'}
             </span>
             {/* ⚠️ **L’écart s’affiche AUSSI quand il est négatif.** Il ne
@@ -80,7 +82,7 @@ export default function MeilleursArtefacts({ modeArtefactsSeuls, etroit, setArte
                 ⚠️ Test sur l’ARRONDI, pas sur la valeur brute : un écart
                 de 0,4 aurait affiché « +0 ». */}
             {!modeArtefactsSeuls.dejaPorte && Math.round(modeArtefactsSeuls.gainBrutParCoup) !== 0 && (
-              <span className={modeArtefactsSeuls.gainBrutParCoup > 0 ? 'text-good' : 'text-bad'}>
+              <span className={`font-mono ${modeArtefactsSeuls.gainBrutParCoup > 0 ? 'text-good' : 'text-bad'}`}>
                 {modeArtefactsSeuls.gainBrutParCoup > 0 ? '+' : '−'}
                 {Math.abs(Math.round(modeArtefactsSeuls.gainBrutParCoup)).toLocaleString('fr-FR')}
               </span>

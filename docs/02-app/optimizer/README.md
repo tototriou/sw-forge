@@ -47,7 +47,7 @@ partagés avec `MonsterGear.tsx` (RTA/Siège/« Équipement actuel »), voir
 | « Équipement actuel » | [ecran/equipement-actuel.md](ecran/equipement-actuel.md) |
 | l'objectif de recherche, `src/components/outils/DamageSetupCard.tsx`, `src/components/outils/DamageSetupModale.tsx` | [ecran/objectif-de-recherche.md](ecran/objectif-de-recherche.md) |
 | le set recherché et les principales imposées, `src/components/outils/SetComboPicker.tsx` | [ecran/set-et-principale.md](ecran/set-et-principale.md) |
-| la carte « Artéfacts et reliques » | [ecran/artefacts.md](ecran/artefacts.md) |
+| la carte « Artéfacts et relique » | [ecran/artefacts.md](ecran/artefacts.md) |
 | le bloc « Relique », `src/components/RelicSlot.tsx` | [ecran/relique.md](ecran/relique.md) |
 | « État de mon monstre », `src/components/outils/EtatMonstre.tsx`, `src/lib/aurasExternes.ts`, `src/lib/buffsDePassif.ts` | [ecran/etat-de-mon-monstre.md](ecran/etat-de-mon-monstre.md) |
 | les sous-propriétés verrouillées | [ecran/sous-proprietes-verrouillees.md](ecran/sous-proprietes-verrouillees.md) |

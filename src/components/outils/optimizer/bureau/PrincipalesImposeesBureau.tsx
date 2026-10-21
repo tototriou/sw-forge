@@ -15,7 +15,8 @@ export const LARGEUR_COLONNE_ETROITE = 177;
 // classique, chaque principale choisie en surbrillance, sans case) ; une ou
 // plusieurs principales, comme les puces du téléphone (`StatPrincipaleImposee`,
 // inchangé). Mêmes props : le geste reste `toggleMainStat`, une principale à la
-// fois. Surface de 160 px : « Dmg Crit » y tient.
+// fois. La surface ouverte a la largeur du champ, jamais plus : « Dmg Crit »
+// y tient.
 //
 // ⚠️ **Le champ fermé montre toutes les valeurs choisies** (`resumeEntier`), à
 // la ligne entre deux valeurs : une ligne pour « Libre » ou deux ou trois
@@ -39,7 +40,6 @@ export default function PrincipalesImposeesBureau({ mainStatsBySlot, toggleMainS
                   vide="Libre"
                   forme="surbrillance"
                   resumeEntier
-                  largeurSurface="w-40"
                   options={SLOT_MAIN_OPTIONS[slot].map((code) => ({ valeur: code, libelle: RUNE_EFFECT[code]?.label ?? String(code) }))}
                   valeurs={avant}
                   onChange={(suivantes) => {

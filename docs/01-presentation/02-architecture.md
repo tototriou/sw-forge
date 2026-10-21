@@ -159,7 +159,7 @@ passe par props. « Monstre & équipement » (`MonstreEquipement`, avec
 `MonstreEquipementTelephone`, `BandeauBuildValide`, `BoutonValiderBuild` ; la liste de travail
 `MonstresDeLaListe` — zone C —, le choix de l'exemplaire `ChoixExemplaire` — zone D —, le
 sélecteur de listes `SelecteurListes`), « Critères de recherche » (`CriteresRecherche` :
-`SetDeRunes`, `StatPrincipaleImposee`, `Conditions`), « Artéfacts et reliques »
+`SetDeRunes`, `StatPrincipaleImposee`, `Conditions`), « Artéfacts et relique »
 (`ArtefactsEtReliques`, `MeilleursArtefacts`, `Relique`), `CarteEtatMonstre`, l'estimation
 (`EstimationPool`), et le panneau « Options de recherche » (`OptionsRechercheTelephone`), qui
 porte « Exclusion de runes » (`ExclusionRunesContenu`, `RunesDejaUtilisees`,

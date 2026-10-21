@@ -19,7 +19,7 @@ d'[OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx). Le reste d
 | « Exemplaire » et sa fiche, `src/components/outils/optimizer/ExemplaireEtFiche.tsx`, `src/components/outils/optimizer/bureau/ExemplaireBureau.tsx` | [equipement-actuel.md](equipement-actuel.md) |
 | l'objectif de recherche, `src/components/outils/DamageSetupCard.tsx`, `src/components/outils/DamageSetupModale.tsx`, `src/components/outils/optimizer/ObjectifEtActions.tsx`, `src/components/outils/optimizer/bureau/ObjectifEtRechercherBureau.tsx` | [objectif-de-recherche.md](objectif-de-recherche.md) |
 | le set recherché et les principales imposées, `src/components/outils/SetComboPicker.tsx`, `src/components/outils/optimizer/bureau/SetDeRunesCompact.tsx`, `src/components/outils/optimizer/bureau/PrincipalesImposeesBureau.tsx` | [set-et-principale.md](set-et-principale.md) |
-| la carte « Artéfacts et reliques », `src/components/outils/optimizer/ArtefactsEtReliques.tsx`, `src/components/outils/optimizer/bureau/ArtefactsEtReliqueBureau.tsx` | [artefacts.md](artefacts.md) |
+| la carte « Artéfacts et relique », `src/components/outils/optimizer/ArtefactsEtReliques.tsx`, `src/components/outils/optimizer/bureau/ArtefactsEtReliqueBureau.tsx` | [artefacts.md](artefacts.md) |
 | le bloc « Relique », `src/components/outils/optimizer/Relique.tsx`, `src/components/RelicSlot.tsx` | [relique.md](relique.md) |
 | « État de mon monstre » et les sets d'aura des autres monstres, `src/components/outils/EtatMonstre.tsx`, `src/components/outils/optimizer/bureau/EtatMonstreEssentiels.tsx`, `src/components/outils/optimizer/bureau/SetsAuraBureau.tsx`, `src/lib/aurasExternes.ts`, `src/lib/buffsDePassif.ts` | [etat-de-mon-monstre.md](etat-de-mon-monstre.md) |
 | les sous-propriétés verrouillées | [sous-proprietes-verrouillees.md](sous-proprietes-verrouillees.md) |
@@ -37,7 +37,7 @@ d'[OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx). Le reste d
 | [equipement-actuel.md](equipement-actuel.md) | La fiche d'équipement de l'exemplaire (« Exemplaire » au bureau). |
 | [objectif-de-recherche.md](objectif-de-recherche.md) | L'objectif de recherche, dont l'objectif « Dégâts réels ». |
 | [set-et-principale.md](set-et-principale.md) | Le set de runes recherché et la statistique principale imposée. |
-| [artefacts.md](artefacts.md) | La carte « Artéfacts et reliques ». |
+| [artefacts.md](artefacts.md) | La carte « Artéfacts et relique ». |
 | [relique.md](relique.md) | Le bloc « Relique ». |
 | [etat-de-mon-monstre.md](etat-de-mon-monstre.md) | « État de mon monstre » et les sets d'aura des autres monstres ; buffs de passif. |
 | [sous-proprietes-verrouillees.md](sous-proprietes-verrouillees.md) | Les sous-propriétés verrouillées. |
@@ -61,7 +61,7 @@ droite. Au-dessus d'elles, ni bandeau ni phrase d'introduction.
    leur droite la « Statistique principale imposée (slots pairs) » puis
    « État de mon monstre », réduit aux buffs et au lead.
 2. **« Artéfacts et relique »**, repliable, place de 320 px (panneau de
-   312) : « Artéfacts et reliques », relique comprise, puis « Meilleurs
+   312) : « Artéfacts et relique », relique comprise, puis « Meilleurs
    artéfacts offensifs pour ce build » dans sa propre section, présente dès
    qu'un monstre est choisi avec l'optimisation d'artéfacts active.
 3. **« Aura, exclusion, avancés »**, repliable, place de 340 px (panneau de
@@ -521,7 +521,7 @@ rien n'est appliqué à ton compte, l'outil est purement indicatif — c'est à 
 de re-runer dans le jeu. »), que le bureau n'a pas, puis une seule grille d'une
 colonne (`grid-cols-[minmax(0,1fr)] gap-5 items-start`) : « Monstre & équipement », « Critères de recherche » (Set de
 runes recherché et Statistique principale imposée, puis Conditions),
-« Artéfacts et reliques », « État de mon monstre », puis la ligne
+« Artéfacts et relique », « État de mon monstre », puis la ligne
 d'estimation ; « Exclusion de runes » et « Réglages avancés » sont dans le
 panneau « Options » ([Réglages avancés et exclusion de
 runes](#réglages-avancés-et-exclusion-de-runes)). ⚠️ La colonne est en

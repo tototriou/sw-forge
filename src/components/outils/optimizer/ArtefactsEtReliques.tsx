@@ -47,8 +47,8 @@ export default function ArtefactsEtReliques({ optimiserArtefacts, setOptimiserAr
         {/* ⚠️ Titre étendu à la relique (voir le bloc « Relique »
             ci-dessous) : le titre suit l'interrupteur, qui porte déjà les
             deux mots — à confirmer par l'utilisateur au premier rendu. */}
-        <p className="text-[13.5px] font-bold text-ink">Artéfacts et reliques</p>
-        <HelpPopover title="Artéfacts et reliques">
+        <p className="text-[13.5px] font-bold text-ink">Artéfacts et relique</p>
+        <HelpPopover title="Artéfacts et relique">
           <b className="text-ink">« Libre »</b> cherche parmi tous tes artéfacts équipables ; une{' '}
           <b className="text-ink">principale</b> restreint la recherche à ceux qui la portent.{' '}
           <b className="text-ink">« Comme équipé »</b> conserve la pièce entière portée sur le

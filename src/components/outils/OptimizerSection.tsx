@@ -3636,7 +3636,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         setRelicMinUpgrade={setRelicMinUpgrade}
       />
 
-      {/* ⚠️ **Carte à part, sous « Artéfacts et reliques »** — ces cinq
+      {/* ⚠️ **Carte à part, sous « Artéfacts et relique »** — ces cinq
           réglages ne sont PAS des réglages d'artéfact ni de relique. Ils
           décrivent le monstre : buffs reçus, leader skill d'équipe,
           compétences d'invocateur. Ils vivaient en bas de la carte

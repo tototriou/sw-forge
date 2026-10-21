@@ -139,7 +139,7 @@ const TELEPHONE_INCHANGE = 'aucun composant modifié : le téléphone garde sa c
 
 export const GABARITS_COLONNES: Gabarit[] = [
   {
-    id: 'artefacts', nom: 'Artéfacts et reliques (colonne « Artéfacts et relique »)', largeur: LARGEUR_ARTEFACTS, hauteurEstimee: 432,
+    id: 'artefacts', nom: 'Artéfacts et relique (colonne « Artéfacts et relique »)', largeur: LARGEUR_ARTEFACTS, hauteurEstimee: 432,
     composant: 'ArtefactsEtReliqueBureau (bureau/ArtefactsEtReliqueBureau.tsx) : ArtefactsEtReliques à 320 px, sans l\'encart des meilleurs artéfacts',
     telephone: `ArtefactsEtReliques (partagé) repris tel quel ; ${TELEPHONE_INCHANGE}`,
     changements: [
@@ -163,7 +163,7 @@ export const GABARITS_COLONNES: Gabarit[] = [
     composant: 'MeilleursArtefactsBureau (bureau/MeilleursArtefactsBureau.tsx) : MeilleursArtefacts en carte (prop carte)',
     telephone: 'Partage MeilleursArtefacts avec le téléphone, par une variante qu\'il ne prend pas (prop carte) ; replié au doigt comme aujourd\'hui.',
     changements: [
-      'Une carte à part sous la carte « Artéfacts et reliques » (donc sous la relique), au lieu d\'un encart entre les sous-propriétés et la relique.',
+      'Une carte à part sous la carte « Artéfacts et relique » (donc sous la relique), au lieu d\'un encart entre les sous-propriétés et la relique.',
     ],
     etats: [
       { id: 'aucune', nom: '0 proposition : aucun artéfact n\'apporte de dégâts', rendu: (ctx) => <MeilleursGabarit ctx={ctx} proposition={{ explication: 'Aucun artéfact équipable n’apporte de dégâts supplémentaires pour ce critère.' }} /> },

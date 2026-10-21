@@ -2,7 +2,7 @@
 
 2 bis. **« Meilleurs artéfacts offensifs pour ce build »** — au plus près
    des réglages d'artéfacts qui le produisent : au téléphone, un encart de
-   la carte **Artéfacts et reliques**, juste sous les **sous-propriétés
+   la carte **Artéfacts et relique**, juste sous les **sous-propriétés
    verrouillées** ; au bureau, une section à part, juste sous elle (un trait
    les sépare), dans le panneau de la colonne « Artéfacts et relique ». La meilleure paire pour l'équipement
    **affiché**, avec ce
@@ -180,7 +180,7 @@ qu'elle examine ; le bloc ne parle que du build affiché. Au téléphone, un
 **encadré à part dans la carte** (contour atténué, fond `panel2`), sous
 les sous-propriétés verrouillées et avant le bloc « Relique » ; au bureau,
 une **section à part** de 294 px (`MeilleursArtefactsBureau`), sans cadre,
-sous « Artéfacts et reliques », relique comprise, dans le même panneau.
+sous « Artéfacts et relique », relique comprise, dans le même panneau.
 
 Quand la paire portée est déjà la meilleure, l'écran le **dit** au lieu
 d'afficher « +0,0 % » — un zéro ressemble à une panne, la phrase est une

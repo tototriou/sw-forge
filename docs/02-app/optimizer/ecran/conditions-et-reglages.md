@@ -11,7 +11,7 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    vertical la sépare (`ConditionsBureau`). La colonne des libellés y prend
    la largeur du plus long d'entre eux, les colonnes s'écartent de 12 px, et
    Min et Max s'en rapprochent : les champs gardent leur largeur, et la
-   grille tient sans déborder. « Artéfacts et reliques » est une carte à
+   grille tient sans déborder. « Artéfacts et relique » est une carte à
    part (voir artefacts.md § Place de la carte à l'écran).
    - **Interrupteur « Stats de base exclues »**, activé par défaut : n'affecte
      que PV, ATQ, DEF et VIT — ces 4 stats ont une base qui grandit avec le
@@ -232,6 +232,6 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
 
    ⚠️ **Le seuil de niveau minimum de la relique N'EST PAS ICI** : il vit
    dans le bloc
-   « Relique » de la carte « Artéfacts et reliques » (« Niveau minimum »,
+   « Relique » de la carte « Artéfacts et relique » (« Niveau minimum »,
    voir relique.md § Relique), avec les deux autres réglages relique, pas dans
    « Réglages avancés ».

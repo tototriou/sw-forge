@@ -2,7 +2,7 @@
 
 Ce document décrit la carte « Artéfacts » de l'écran.
 
-6. **Artéfacts** — carte « Artéfacts et reliques », interrupteur
+6. **Artéfacts** — carte « Artéfacts et relique », interrupteur
    **« Activer l'optimisation d'artéfacts et reliques »**,
    **ACTIVÉ par défaut**.
 

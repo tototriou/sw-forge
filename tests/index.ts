@@ -1,3 +1,4 @@
+import { testWorktreeMesureCycle, testWorktreeMesureRefus, testWorktreeMesureLienPhysique } from './worktree-mesure.test';
 // Point d'entrée des vérifications — `npm test`.
 //
 // ⚠️ L'ORDRE compte un peu : `persistance` installe un faux `localStorage`
@@ -8,6 +9,9 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { bilan, debutVerification } from './outils';
 import { Execution, RefusManifeste } from './execution';
+import { lireArguments } from './arguments';
+import type { Selection } from './selection';
+import { testRunSelection } from './run-selection.test';
 import { testRenduOptimizerAlerteDefilement, testRenduOptimizerAlerteCycleDeVie,
   testRenduTelephoneOptimizerAlerteCycleDeVie, testRenduTelephoneOptimizerAlerteFermetures } from './rendu/optimizer-alerte.test';
 import { testRenduOptimizerBandesEquipesClair, testRenduOptimizerBandesEquipesSombre,
@@ -533,6 +537,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testSuiviLecture', testSuiviLecture],
   ['testSuiviTableau', testSuiviTableau],
   ['testRunSilencieux', testRunSilencieux],
+  ['testRunSelection', testRunSelection],
   ['testReco', testReco],
   ['testDefensesVisees', testDefensesVisees],
   ['testTrimPartage', testTrimPartage],
@@ -903,6 +908,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelephoneOptimizerPointSansMemoireListeSupprimee', testRenduTelephoneOptimizerPointSansMemoireListeSupprimee],
   ['testOptimizerEquipesHookModificationAvecOrpheline', testOptimizerEquipesHookModificationAvecOrpheline],
   ['testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine', testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine],
+  ['testWorktreeMesureCycle', testWorktreeMesureCycle],
+  ['testWorktreeMesureRefus', testWorktreeMesureRefus],
+  ['testWorktreeMesureLienPhysique', testWorktreeMesureLienPhysique],
   ['testSelectionFichiersInventaire', testSelectionFichiersInventaire],
   ['testSelectionFichiersChargeur', testSelectionFichiersChargeur],
   ['testSelectionFichiersCasReels', testSelectionFichiersCasReels],
@@ -922,30 +930,17 @@ function retenues(filtres: string[]): [string, () => void | Promise<void>][] {
   return VERIFICATIONS.filter(([nom]) => cibles.some((c) => plat(nom).includes(c)));
 }
 
-// Options à valeur : leur valeur n'est pas un filtre.
-const OPTIONS_A_VALEUR = new Set(['--selection', '--manifeste']);
-
-function lireArguments(args: string[]): { filtres: string[]; selection: string | null; manifeste: string | null } {
-  const filtres: string[] = [];
-  const valeurs = new Map<string, string | null>();
-  for (let i = 0; i < args.length; i++) {
-    if (OPTIONS_A_VALEUR.has(args[i])) { valeurs.set(args[i], args[i + 1] ?? null); i++; continue; }
-    if (!args[i].startsWith('-')) filtres.push(args[i]);
-  }
-  return { filtres, selection: valeurs.get('--selection') ?? null, manifeste: valeurs.get('--manifeste') ?? null };
-}
-
 // Sélection par fichiers modifiés, écrite par `tests/run.mjs --depuis/--plage`
 // (tests/selection.ts). Les noms d'un étalement ne se connaissent qu'ici : un
 // groupe d'étalements se retrouve entre les entrées nommées qui le bornent.
-function nomsSelectionnes(fichier: string): { noms: Set<string> | 'tout'; brut: unknown } {
-  const brut = JSON.parse(readFileSync(fichier, 'utf8'));
-  return { noms: nomsDeLaSelection(brut), brut };
+function nomsSelectionnes(fichier: string) {
+  const brut = JSON.parse(readFileSync(fichier, 'utf8')) as Selection;
+  const raisons = new Map<string, string[]>();
+  return { noms: nomsDeLaSelection(brut, raisons), brut, raisons };
 }
 
-function nomsDeLaSelection(brut: unknown): Set<string> | 'tout' {
-  const { execution } = brut as
-    { execution: { complet: boolean; noms: string[]; groupes: { avant: string | null; apres: string | null }[] } };
+function nomsDeLaSelection(brut: Selection, raisons: Map<string, string[]>): Set<string> | 'tout' {
+  const { execution } = brut;
   if (execution.complet) return 'tout';
   const position = new Map(VERIFICATIONS.map(([n], i) => [n, i]));
   if (position.size !== VERIFICATIONS.length) throw new Error('sélection : noms en double dans le registre');
@@ -953,12 +948,18 @@ function nomsDeLaSelection(brut: unknown): Set<string> | 'tout' {
   for (const n of execution.noms) {
     if (!position.has(n)) throw new Error(`sélection incohérente avec le registre : ${n} inconnu`);
     noms.add(n);
+    raisons.set(n, brut.retenues?.find((r) => r.nom === n)?.raisons ?? ['sélection par fichiers']);
   }
   for (const g of execution.groupes) {
     const debut = g.avant === null ? -1 : position.get(g.avant);
     const fin = g.apres === null ? VERIFICATIONS.length : position.get(g.apres);
     if (debut === undefined || fin === undefined) throw new Error(`sélection incohérente avec le registre : bornes ${g.avant} / ${g.apres}`);
-    for (let i = debut + 1; i < fin; i++) noms.add(VERIFICATIONS[i][0]);
+    const rs = brut.retenues?.filter((r) => r.genre === 'etalement' && g.etalements?.includes(r.identifiant ?? '')).flatMap((r) => r.raisons) ?? [];
+    for (let i = debut + 1; i < fin; i++) {
+      const nom = VERIFICATIONS[i][0];
+      noms.add(nom);
+      raisons.set(nom, ['groupe d’étalements : ' + (rs.join(' ; ') || 'sélection par fichiers')]);
+    }
   }
   return noms;
 }
@@ -967,20 +968,7 @@ function nomsDeLaSelection(brut: unknown): Set<string> | 'tout' {
 const RACINE = fileURLToPath(new URL('..', import.meta.url));
 
 async function main() {
-  const { filtres, selection, manifeste } = lireArguments(process.argv.slice(2));
-  if (process.argv.includes('--manifeste') && (manifeste === null || manifeste.startsWith('-'))) {
-    console.error('\x1b[31mRefus :\x1b[0m --manifeste attend un chemin de fichier');
-    process.exit(2);
-  }
-  // Avant tout : un emplacement de manifeste interdit est refusé, et toute sortie
-  // qui suit sans validation finale laisse le manifeste incomplet (tests/execution.ts).
-  let execution: Execution;
-  try {
-    execution = new Execution({ racine: RACINE, manifeste, registre: VERIFICATIONS.map(([n]) => n), bilan, debutVerification });
-  } catch (e) {
-    if (e instanceof RefusManifeste) { console.error(`\x1b[31mRefus :\x1b[0m ${e.message}`); process.exit(2); }
-    throw e;
-  }
+  const { filtres, selection, manifeste, lister, maxEntrees } = lireArguments(process.argv.slice(2));
   const parNom = filtres.length > 0 ? retenues(filtres) : [];
   if (filtres.length > 0 && parNom.length === 0) {
     console.error(
@@ -997,18 +985,49 @@ async function main() {
   // la liste lancée s'en déduit. Les deux sont comparés après l'exécution.
   let liste = filtres.length > 0 ? parNom : VERIFICATIONS;
   let attendues = liste.map(([n]) => n);
-  let detail: unknown = null;
+  let detail: Selection | null = null;
+  let raisonsFichiers = new Map<string, string[]>();
   if (selection !== null) {
-    const { noms: choisis, brut } = nomsSelectionnes(selection);
+    const { noms: choisis, brut, raisons } = nomsSelectionnes(selection);
+    raisonsFichiers = raisons;
     detail = brut;
     if (choisis !== 'tout') {
       for (const [n] of parNom) choisis.add(n);
-      attendues = [...choisis];
+      const rang = new Map(VERIFICATIONS.map(([nom], i) => [nom, i]));
+      attendues = [...choisis].sort((a, b) => rang.get(a)! - rang.get(b)!);
       liste = VERIFICATIONS.filter(([n]) => choisis.has(n));
     } else {
       liste = VERIFICATIONS;
       attendues = liste.map(([n]) => n);
     }
+  }
+  // Le même registre développé et la même liste servent à annoncer, compter et lancer.
+  const raisons = new Map<string, string[]>();
+  for (const [nom] of liste) {
+    const rs: string[] = [];
+    if (selection === null && filtres.length === 0) rs.push('suite complète');
+    if (parNom.some(([n]) => n === nom)) rs.push('filtre par nom : ' + filtres.filter((f) => retenues([f]).some(([n]) => n === nom)).join(', '));
+    if (detail?.execution?.complet) rs.push('suite complète : ' + (detail.causes?.join(' ; ') || 'repli de sélection'));
+    rs.push(...raisonsFichiers.get(nom) ?? []);
+    if (detail && rs.length === 0) rs.push('sélection par fichiers : groupe d’étalements');
+    raisons.set(nom, rs);
+  }
+  if (lister || maxEntrees !== null) {
+    console.log(`Entrées finales (${liste.length}/${VERIFICATIONS.length}) :`);
+    for (const [nom] of liste) console.log('  ' + nom + ' — ' + raisons.get(nom)!.join(' ; '));
+  }
+  if (maxEntrees !== null && liste.length > maxEntrees) {
+    console.error(`Refus : ${liste.length} entrées retenues, --max-entrees ${maxEntrees} dépassé ; aucune vérification lancée.`);
+    process.exit(2);
+  }
+  if (lister) { console.log('Prévisualisation : aucune vérification lancée.'); return; }
+  // L’Execution et son manifeste n’existent qu’après les gardes, jamais en prévisualisation.
+  let execution: Execution;
+  try {
+    execution = new Execution({ racine: RACINE, manifeste, registre: VERIFICATIONS.map(([n]) => n), bilan, debutVerification });
+  } catch (e) {
+    if (e instanceof RefusManifeste) { console.error(`Refus : ${e.message}`); process.exit(2); }
+    throw e;
   }
   execution.fixer(attendues, {
     mode: selection !== null ? 'fichiers modifiés' : filtres.length > 0 ? 'filtres' : 'suite complète',

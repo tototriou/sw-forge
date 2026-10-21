@@ -1,6 +1,6 @@
 # Harnais de diagnostic — cas connus et scripts voisins
 
-Voir aussi : mode-d-emploi.md, extensions.md, ../verification.md.
+Voir aussi : mode-d-emploi.md, extensions.md, ../verification/README.md.
 
 [mode-d-emploi.md](mode-d-emploi.md) décrit un run du harnais,
 [extensions.md](extensions.md) ses instruments et son
@@ -116,3 +116,21 @@ en-tête avant de se fier à leur sortie : `scripts/bucket-cap-scaling-diag.ts`
 `scripts/stress-tranche-weighting-attainable-diag.ts`
 (`scripts/stress-tranche-weighting-attainable-diag.ts:53-64`),
 `scripts/filterslot-topk-diag.ts` (`scripts/filterslot-topk-diag.ts:37-53`).
+
+## Worktrees de comparaison
+
+Le comparateur `scripts/perf-battery-compare.ts` utilise
+`scripts/lib/worktreeMesure.ts` pour créer un worktree détaché temporaire et
+lier les seuls chemins explicitement demandés. Aucun fichier suivi ou
+emplacement existant ne peut être remplacé par un lien.
+
+Le retrait vérifie la propriété du worktree, son identité Git, sa révision
+et chaque lien déclaré avant de délier quoi que ce soit. Une cible changée,
+un lien inattendu ou une incohérence laisse le worktree en place et nomme
+le chemin à examiner. Aucun retrait récursif ne suit une jonction. Les
+deux bras du comparateur doivent être terminés avant ce nettoyage.
+
+Un arrêt brutal peut laisser un worktree et son manifeste dans le dossier
+temporaire ; ils restent à examiner avant toute suppression. Les liens
+physiques partagent les fichiers sources : leur usage est en lecture seule.
+Le gestionnaire ne surveille pas des processus lancés hors de son appelant.

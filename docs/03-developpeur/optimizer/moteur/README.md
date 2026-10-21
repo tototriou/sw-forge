@@ -2,7 +2,7 @@
 
 Le moteur de recherche de l'Optimizer tel que le code l'exécute, un document par étape ou par
 dimension. Avant d'y toucher : [../invariants.md](../invariants.md), en entier ; les contrôles qui
-le couvrent sont dans [../verification.md](../verification.md).
+le couvrent sont dans [../verification/README.md](../verification/README.md).
 
 ## Le changement touche…
 

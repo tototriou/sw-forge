@@ -16,7 +16,7 @@ les replis rapides de `pairBuckets` écartent presque toutes les paires avant
 `computeStats`. Le gain le plus large viendrait donc d'explorer moins de
 paires, pas de les parcourir plus vite. Au préréglage le plus large, c'est
 la construction des compartiments qui domine
-([03-developpeur/optimizer/verification.md § Benchmarks](../03-developpeur/optimizer/verification.md#benchmarks)).
+([03-developpeur/optimizer/verification/mesures.md § Benchmarks](../03-developpeur/optimizer/verification/mesures.md#benchmarks)).
 
 Les entrées ci-dessous accélèrent la recherche sans changer ce qu'elle
 cherche. Celles qui changent le pool, les garanties ou le résultat, même
@@ -25,7 +25,7 @@ pour aller plus vite, sont dans
 paires (§ Optimalité prouvée : Branch & Bound sur les paires, statuts du
 résultat), couper plus tôt, autre partition des moitiés, GPU — et touchent
 la justesse : aucune sans la référence exhaustive qu'exige le skill
-`algo-verify` ([03-developpeur/optimizer/verification.md § Référence exhaustive : le test différentiel](../03-developpeur/optimizer/verification.md#référence-exhaustive--le-test-différentiel)).
+`algo-verify` ([03-developpeur/optimizer/verification/runes.md § Référence exhaustive : le test différentiel](../03-developpeur/optimizer/verification/runes.md#référence-exhaustive--le-test-différentiel)).
 
 ### Le temps relu à chaque paire
 

@@ -1,6 +1,6 @@
 # Harnais de diagnostic
 
-Voir aussi : extensions.md, scripts.md, ../invariants.md, ../verification.md, ../../../02-app/optimizer/ (routage-par-tache.md).
+Voir aussi : extensions.md, scripts.md, ../invariants.md, ../verification/README.md, ../../../02-app/optimizer/ (routage-par-tache.md).
 
 Le harnais rejoue une recherche de l'Optimizer en Node et dit ce qu'elle a
 fait : configuration appliquée, survie d'une rune étage par étage, régime,
@@ -352,8 +352,10 @@ deux runs séparés puis soustraits forment un protocole en BLOCS, dont le biais
 de position (échauffement, ramasse-miettes, fréquence) se reproduit et
 ressemble à un résultat ; ne jamais conclure sur un écart plus petit que la
 dispersion. Pour comparer deux conditions, entrelacer les répétitions (témoin,
-A, B, témoin, A, B…), jamais les grouper : `scripts/perf-battery-compare.ts`
-le fait sur la batterie de cas, `--differentiel` sur un profil synthétique.
+A, B, témoin, A, B…), jamais les grouper : `--differentiel` le fait sur un
+profil synthétique. `scripts/perf-battery-compare.ts` utilise un autre
+protocole : ancien et nouveau tournent simultanément, deux processus par
+répétition, avec une contention partagée ; ce n’est pas une mesure isolée.
 Toute mesure suit le skill `optimizer-perf-testing`
 (`tests/diagnostic-harness.test.ts:497-519`).
 

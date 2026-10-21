@@ -2,7 +2,7 @@
 
 L'outil qui rejoue une recherche de l'Optimizer hors de l'écran pour l'observer : une rune, un
 demi-build, un « 0 résultat », une configuration, un temps. Les contrôles de l'algorithme sont dans
-[../verification.md](../verification.md) ; les pièges de mesure dans le skill
+[../verification/README.md](../verification/README.md) ; les pièges de mesure dans le skill
 `optimizer-perf-testing`.
 
 ## Le changement touche…

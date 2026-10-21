@@ -59,6 +59,8 @@ npm run fetch-data     # régénère les données monstres et compétences depui
 npm run dev            # serveur de dev, http://localhost:5173
 npm run build          # build de prod (⚠️ seul endroit où l'on voit le CSS réellement émis)
 npm test               # = node tests/run.mjs
+node tests/run.mjs --lister <filtre>        # sélection finale, sans exécution
+node tests/run.mjs --max-entrees 30 <filtre> # limite explicite avant toute vérification
 npm run lint           # ESLint sur tout le dépôt (eslint.config.js)
 npm run benchmark:optim
 npm run bureau         # l'application de bureau sur le serveur de dev
@@ -120,6 +122,9 @@ Source de vérité du rendu : [03-developpeur/interface/](../03-developpeur/inte
   pas — `formule-sans-calcul` ne regarde que les sorts actifs, `mot-cle-sans-effet` trois mots
   seulement, rien n'est comparé au jeu.
 - `scripts/benchmark-*.mjs` — mesures de l'Optimizer.
+- `scripts/lib/worktreeMesure.ts` — création et nettoyage contrôlés des worktrees
+  temporaires de comparaison, sans suivre les jonctions au retrait ; contrat dans
+  [les scripts de diagnostic](../03-developpeur/optimizer/harnais/scripts.md#worktrees-de-comparaison).
 - `scripts/lib/relicOracle.ts` — oracle de contrôle de la dimension relique : N recherches du
   moteur réel, une par principale éligible distincte, et point d'entrée CLI pour les mesures.
 - `src/data/releases.ts` — le journal des versions, lu par l'accueil **et** la page Nouveautés.

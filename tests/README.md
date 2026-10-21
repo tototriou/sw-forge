@@ -150,6 +150,30 @@ par nom, elle ne le remplace pas ; les deux se combinent.
   `src/` comme du texte sont retenus par leur lecture, pas par un import
   (voir la garde plus bas).
 
+## Prévisualisation et garde de volume
+
+```bash
+node tests/run.mjs --lister speed-tune
+node tests/run.mjs --lister --depuis origin/<base> speed-tune
+node tests/run.mjs --max-entrees 30 speed-tune
+```
+
+`--lister` construit le registre et résout la même sélection que le lancement,
+sans invoquer de vérification ni écrire de manifeste d’exécution. Il affiche
+les **noms finaux**, dans l’ordre d’exécution, leur nombre sur le total du
+registre développé et leurs raisons. Les filtres et les fichiers se combinent
+par union ; groupes d’étalements, prérequis et repli sur la suite complète
+restent ceux de l’exécution. Cette liste reste détaillée avec `--silencieux`.
+La construction et le calcul de la sélection ont toujours lieu : la
+prévisualisation ne donne aucune durée de tests.
+
+`--max-entrees <n>` fixe une limite explicite, entier positif ou nul, sur
+cette sélection finale. Un dépassement sort en code 2 **avant toute
+vérification et avant la création du manifeste**, sans réduire la sélection.
+Cette garde peut aussi accompagner `--lister` ; sans elle, aucun seuil ne
+s’applique. Les options inconnues, répétées ou sans valeur valide sont refusées.
+Vérifié par `node tests/run.mjs runselection`.
+
 ## Sortie réduite : `--silencieux`
 
 ```bash

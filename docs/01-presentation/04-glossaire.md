@@ -188,7 +188,7 @@ fiche qui fait foi : les règles détaillées et les valeurs chiffrées restent 
 - **Recette** : une recherche de l'Optimizer exportée en fichier, rejouable par les scripts.
   Code : `OptimizerRecipe`. → [harnais/](../03-developpeur/optimizer/harnais/README.md)
 - **Harnais, oracle, différentiel** : les outils qui vérifient le moteur.
-  → [verification.md](../03-developpeur/optimizer/verification.md)
+  → [verification/README.md](../03-developpeur/optimizer/verification/README.md)
 - **`jumeauCollab`** : lien entre la version Summoners War et la version collab d'un monstre ;
   ils ont la même mécanique. → [valeurs-de-jeu-curees.md](../02-app/degats-reels/valeurs-de-jeu-curees.md)
 - **`com2us_id`** : l'identifiant d'un monstre dans le jeu, qui relie l'export de compte aux

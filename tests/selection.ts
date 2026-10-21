@@ -36,7 +36,7 @@ export const RACINES_SOURCES = ['src/', 'scripts/', 'public/', 'tests/', '.githo
 
 // Infrastructure des tests : toute modification relance tout. `tests/index.ts`
 // a son propre traitement (registre et imports), plus bas.
-export const INFRASTRUCTURE = ['tests/run.mjs', 'tests/outils.ts', 'tests/selection.ts', 'tests/execution.ts', 'package.json', 'package-lock.json'];
+export const INFRASTRUCTURE = ['tests/run.mjs', 'tests/arguments.ts', 'tests/outils.ts', 'tests/selection.ts', 'tests/execution.ts', 'package.json', 'package-lock.json'];
 const RE_TSCONFIG = /^tsconfig[^/]*\.json$/;
 
 // Fichiers qu'aucune vérification ne lit par un lien spécifique sans qu'il soit

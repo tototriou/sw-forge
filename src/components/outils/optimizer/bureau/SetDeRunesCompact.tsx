@@ -24,9 +24,11 @@ export interface SetDeRunesCompactProps {
 // multiensemble (deux fois le même set), que la grille sait dire et une case
 // par set non. `SelecteurMultiple` en prend la surface (axe `surface`).
 //
-// ⚠️ **Le message « Sélectionne au moins un set… » prend la place du compte
-// « n/6 runes »**, sur la ligne du titre : pas de ligne réservée sous la liste
-// (décision de l'utilisateur), et rien ne bouge quand il paraît.
+// ⚠️ **Le message « Sélectionne au moins un set… » se met à droite du titre**,
+// sur sa ligne : pas de ligne réservée sous la liste (décision de
+// l'utilisateur), et rien ne bouge quand il paraît. Le compte « n/6 runes »
+// n'y figure que déplié ; replié, la liste fermée suffit et la grille ouverte
+// porte son propre compte.
 //
 // ⚠️ **La rangée des jetons est réservée** (`reserverJetons`) : vide, elle a
 // déjà la hauteur d'un jeton, et le premier set choisi ne fait plus descendre
@@ -76,9 +78,9 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
           <p className="label flex-none">Set de runes recherché</p>
           {setPickerInvalid ? (
             <span className="min-w-0 text-right text-micro font-semibold text-bad">Sélectionne au moins un set avant de lancer la recherche.</span>
-          ) : (
+          ) : deplie ? (
             <span className="text-micro tabular-nums text-ink-dim">{setsCost(comboSets)}/6 runes</span>
-          )}
+          ) : null}
         </div>
         {deplie ? (
           <div className="max-w-md"><SetComboPicker sets={comboSets} onChange={onChangeSets} reserverJetons /></div>

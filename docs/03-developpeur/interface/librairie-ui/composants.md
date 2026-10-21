@@ -410,16 +410,49 @@ popup d'édition, formulaire ancré, liste de résultats d'une recherche.
 > « je suis au-dessus, et je vais repartir » — ce qui est faux d'un bouton actif
 > ou d'une carte sélectionnée, qui appartiennent à la page.
 
-> ⚠️ **Le `z-index` est un ORDRE, pas un nombre libre.** L'échelle de l'app —
-> contenu → barre du haut (20) → **flottants (30)** → onglets mobiles (40) →
-> panneau montant (50) → panneau de second niveau (60) → dialogues (70) — se
-> règle ici pour tout ce qui flotte. Un `z-40` écrit à la main « pour que ça
-> passe devant » se retrouve un jour derrière la barre d'onglets.
+> ⚠️ **Toujours au premier plan : la surface passe dans la couche supérieure
+> du navigateur** (`popover="manual"`, `showPopover()`). Posée en `absolute`
+> dans la page, elle était rognée par tout ancêtre qui défile seul — les
+> colonnes de l'Optimizer au bureau, la carte d'un deck du Siège — et passait
+> sous sa barre de défilement, voire sous la colonne voisine. La couche
+> supérieure échappe aux `overflow`, `clip-path`, `transform` et contextes
+> d'empilement de tous les ancêtres, ce que ni un `z-index` ni un
+> `position: fixed` en place ne garantissent.
 
-> ⚠️ Il ne s'occupe **pas du placement** : le recalage à l'écran reste au hook
-> `useRecalageEcran`, qui a besoin de mesurer. Mais il pose `left-0`, sans quoi
-> une valeur négative de recalage ne décale pas — elle repositionne depuis un
-> bord que le navigateur choisit seul.
+> ⚠️ **Pas un portail** : la surface reste à sa place dans le DOM. Les
+> fermetures au clic extérieur (`racine.contains(cible)`), le focus et la
+> navigation au clavier continuent de marcher sans qu'aucun écran le sache ; un
+> portail les aurait tous cassés.
+
+> ⚠️ **Il s'occupe donc du placement.** La position est calculée en
+> coordonnées de l'écran sur l'**ancre** — le premier ancêtre positionné, le
+> parent `relative` où l'écran pose le flottant — avant de peindre, puis à
+> chaque défilement de n'importe quelle boîte et à chaque redimensionnement :
+> - à 6 px sous l'ancre (ou au-dessus, ou à côté), alignée sur le bord
+>   demandé ; les décalages `left` / `top` de `style` se lisent comme avant
+>   dans le repère de l'ancre ;
+> - **bornée à l'écran** horizontalement, barre de défilement de la page
+>   exclue : une ancre au bout d'une rangée ne la fait plus sortir ;
+> - **basculée de l'autre côté** de l'ancre quand elle ne tient pas du sien et
+>   qu'il y a plus de place en face, et **bornée en hauteur** (avec
+>   défilement) quand elle ne tient d'aucun : ce qui sortirait de l'écran ne
+>   se rattraperait plus en faisant défiler la page ;
+> - **masquée** quand l'ancre sort de ce qui la montre (une colonne qui
+>   défile), plutôt que de flotter sur autre chose.
+
+> ⚠️ **Les largeurs en pourcentage se lisent sur l'ancre** : `w-full` (le
+> défaut) et `min-w-full` dans `largeur`, un `width` en `%` dans `style`, sont
+> convertis en pixels de la largeur de l'ancre. Hors de ces trois formes, une
+> classe en pourcentage vaudrait l'écran entier.
+
+> ⚠️ La feuille du navigateur centre un `popover` et lui impose cadre,
+> rembourrage et couleur : `:where([popover])` (`index.css`), de spécificité
+> nulle, rend la main aux classes. Le `z-30` reste, repli d'un navigateur sans
+> couche supérieure et rang dans l'échelle de l'app — contenu → barre du haut
+> (20) → **flottants (30)** → onglets mobiles (40) → panneau montant (50) →
+> panneau de second niveau (60) → dialogues (70). En couche supérieure, la
+> dernière surface ouverte passe devant les autres, y compris devant une
+> `Modale` ouverte après elle s'il en reste une ouverte.
 
 > ⚠️ `rembourrage="aucun"` pour une **liste** : ses entrées doivent toucher les
 > bords, sinon le survol laisse une bande morte et l'entrée surlignée paraît
@@ -453,13 +486,12 @@ gardant la surface ancrée à ce qui l'a ouverte.
 > le bas. `HelpPopover` pose les deux, et détache son titre (13 px, filet
 > dessous) du corps (12 px).
 
-> ⚠️ **Dans une boîte qui défile seule, la surface est rognée** : posée en
-> `absolute`, elle ne sort pas d'un ancêtre `overflow: auto`. Une boîte qui le
-> sait le déclare à `HelpPopover` par le contexte `AidesHorsDeLaBoite` (les
-> colonnes fixes de la page de bureau de l'Optimizer) : la bulle passe alors
-> par un portail, sous une ancre fantôme en `position: fixed` posée sur le
-> bouton, recalée à chaque défilement, refermée quand le bouton sort de ce qui
-> le montre. Sans ce contexte, rien ne change.
+> ⚠️ **Dans une boîte qui défile seule, la surface n'est plus rognée** : elle
+> est un `Flottant`, en couche supérieure. Le contexte `AidesHorsDeLaBoite` de
+> `HelpPopover` (les colonnes fixes de la page de bureau de l'Optimizer), né
+> avant, fait en plus REFERMER la bulle quand son bouton sort de ce qui le
+> montre ; la bulle y passe par un portail, sous une ancre fantôme en
+> `position: fixed` posée sur le bouton.
 
 > ⚠️ Pour ce qui est ancré à un élément **dont la position varie** : une tuile
 > dans une grille, une carte de monstre, un badge au bout d'une ligne. Ces ancres
@@ -476,11 +508,10 @@ gardant la surface ancrée à ce qui l'a ouverte.
 > bureau — la position calculée est **celle** d'un `left-0`/`right-0` :
 > le bornage n'agit que quand la surface sortirait, il ne change rien ailleurs.
 
-> ⚠️ **Distinct de `useRecalageEcran`**, qui *tire* une surface débordante vers
-> l'intérieur après coup. Ici on choisit le bon côté **avant** de peindre : pas
-> de saut visible, et la surface reste alignée sur son ancre au lieu de flotter à
-> une position corrigée. Le recalage reste utile quand la surface doit garder son
-> côté (le formulaire de catégorie, ancré à sa pilule).
+> ⚠️ **Ce qu'il ajoute à `Flottant`**, qui borne déjà toute surface à l'écran :
+> le bon **côté** d'ouverture, choisi **avant** de peindre. La surface s'ouvre
+> vers l'intérieur, alignée sur son ancre, et son animation part du bon coin,
+> au lieu d'être tirée vers l'intérieur depuis le mauvais côté.
 
 > ⚠️ `useLayoutEffect` et non `useEffect` : la mesure doit précéder la peinture.
 > Avec `useEffect`, la surface apparaîtrait un instant du mauvais côté puis

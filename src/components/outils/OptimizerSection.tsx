@@ -3490,6 +3490,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 setExcludeUsedRunes={setExcludeUsedRunes}
                 excludeUsedScope={excludeUsedScope}
                 setExcludeUsedScope={setExcludeUsedScope}
+                bureau
               />
             }
             runesImposeesBlock={<RunesImposees selected={selected} lockedRunes={lockedRunes} setLockedRunes={setLockedRunes} bureau />}

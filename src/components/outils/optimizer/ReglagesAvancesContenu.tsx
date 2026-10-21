@@ -3,7 +3,7 @@ import { SLOT_FILTER_PRESETS, type SlotFilterPresetKey } from '../../../lib/rune
 import { formatBig } from '../../../lib/formatBig';
 import HelpPopover from '../../HelpPopover';
 import { Interrupteur } from '../../../ui';
-import { type Dispatch, type SetStateAction, type RefObject } from 'react';
+import { type Dispatch, type SetStateAction, type RefObject, type ReactNode } from 'react';
 
 export interface ReglagesAvancesContenuProps {
   slotFilterPreset: SlotFilterPresetKey;
@@ -26,6 +26,34 @@ export interface ReglagesAvancesContenuProps {
   // dans la colonne « Aura, exclusion, avancés », plus dans « État de mon
   // monstre » (réduit aux buffs et au lead). Absent : le texte du téléphone.
   bureau?: boolean;
+}
+
+// Le libellé d'un interrupteur, son aide « ? » et l'interrupteur lui-même.
+// ⚠️ **Au bureau, le « ? » est collé à l'interrupteur** : libellé à gauche,
+// puis « ? » et interrupteur à droite, au même écart (12 px) dans toutes les
+// rangées, pour que les « ? » s'alignent d'une rangée à l'autre, quelle que
+// soit la longueur du libellé. Au téléphone, le « ? » suit le libellé, comme
+// avant (`etire` : le libellé prend la place et passe à la ligne).
+function LibelleEtAide({ bureau, etire = false, libelle, aide, interrupteur }: {
+  bureau: boolean; etire?: boolean; libelle: string; aide: ReactNode; interrupteur: ReactNode;
+}) {
+  if (bureau) {
+    return (
+      <>
+        <span className="min-w-0 flex-1 text-[11.5px] text-ink-dim">{libelle}</span>
+        <span className="flex flex-none items-center gap-3">{aide}{interrupteur}</span>
+      </>
+    );
+  }
+  return (
+    <>
+      <div className={etire ? 'flex min-w-0 flex-1 items-center gap-1.5' : 'flex items-center gap-1.5'}>
+        <span className={etire ? 'min-w-0 text-[11.5px] text-ink-dim' : 'text-[11.5px] text-ink-dim'}>{libelle}</span>
+        {aide}
+      </div>
+      {etire ? <span className="flex-none">{interrupteur}</span> : interrupteur}
+    </>
+  );
 }
 
 export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFilterPresetChange, dansPanneau, estimate, exhaustiveSearch, setExhaustiveSearch, diagnoseBlockingEnabled, setDiagnoseBlockingEnabled, optimiserArtefacts, verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons, interrupteurResPrePanneauRef, interrupteurResPreBureauRef, attentionResPre, compterAurasResPre, setCompterAurasResPre, bureau = false }: ReglagesAvancesContenuProps) {
@@ -68,34 +96,44 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
       {/* Désactivé par défaut, lu par `handleSearch` au clic sur
           « Rechercher », jamais un bouton qui lance sa propre recherche. */}
       <div className="flex items-center justify-between gap-2 py-3 first:pt-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11.5px] text-ink-dim">Rechercher jusqu'à épuisement complet</span>
+        <LibelleEtAide
+          bureau={bureau}
+          libelle="Rechercher jusqu'à épuisement complet"
+          interrupteur={
+            <Interrupteur
+              actif={exhaustiveSearch}
+              onChange={setExhaustiveSearch}
+              aria-label="Rechercher jusqu'à épuisement complet"
+            />
+          }
+          aide={
           <HelpPopover title="Rechercher jusqu'à épuisement complet">
             Retire la limite de temps de 10 minutes : la recherche continue tant qu'il reste des combinaisons
             à examiner. Peut prendre très longtemps sur une recherche avec peu de conditions — le bouton{' '}
             <b className="text-ink">« Arrêter »</b> reste disponible et garde le meilleur trouvé jusque-là.
             Le plafond de 100 000 résultats collectés, lui, reste actif.
           </HelpPopover>
-        </div>
-        <Interrupteur
-          actif={exhaustiveSearch}
-          onChange={setExhaustiveSearch}
-          aria-label="Rechercher jusqu'à épuisement complet"
+          }
         />
       </div>
 
       <div className="flex items-center justify-between gap-2 py-3">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11.5px] text-ink-dim">Diagnostic approfondi sur 0 résultat</span>
+        <LibelleEtAide
+          bureau={bureau}
+          libelle="Diagnostic approfondi sur 0 résultat"
+          interrupteur={
+            <Interrupteur
+              actif={diagnoseBlockingEnabled}
+              onChange={setDiagnoseBlockingEnabled}
+              aria-label="Diagnostic approfondi sur 0 résultat"
+            />
+          }
+          aide={
           <HelpPopover title="Diagnostic approfondi sur 0 résultat">
             Après une recherche à 0 résultat, identifie quelle condition posée libère le plus de candidats si
             on la retire — <b className="text-ink">un indice, pas une preuve</b>.
           </HelpPopover>
-        </div>
-        <Interrupteur
-          actif={diagnoseBlockingEnabled}
-          onChange={setDiagnoseBlockingEnabled}
-          aria-label="Diagnostic approfondi sur 0 résultat"
+          }
         />
       </div>
 
@@ -109,8 +147,17 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
           carte : rien ne bouge sous le clic. */}
       {optimiserArtefacts && (
         <div className="flex items-center justify-between gap-2 py-3 last:pb-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11.5px] text-ink-dim">Vérifier toutes les combinaisons trouvées</span>
+          <LibelleEtAide
+            bureau={bureau}
+            libelle="Vérifier toutes les combinaisons trouvées"
+            interrupteur={
+              <Interrupteur
+                actif={verifierToutesLesCombinaisons}
+                onChange={setVerifierToutesLesCombinaisons}
+                aria-label="Vérifier toutes les combinaisons trouvées"
+              />
+            }
+            aide={
             <HelpPopover title="Vérifier toutes les combinaisons trouvées">
               Par défaut, la vérification des artéfacts et de la relique s'arrête dès que{' '}
               <b className="text-ink">100 combinaisons sont confirmées</b> (300 quand la relique est cherchée) :
@@ -120,11 +167,7 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
               Activé, toutes les combinaisons trouvées sont vérifiées, au-delà de ces confirmées : le compte
               devient complet, mais cela peut prendre plusieurs minutes.
             </HelpPopover>
-          </div>
-          <Interrupteur
-            actif={verifierToutesLesCombinaisons}
-            onChange={setVerifierToutesLesCombinaisons}
-            aria-label="Vérifier toutes les combinaisons trouvées"
+            }
           />
         </div>
       )}
@@ -161,10 +204,18 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
             attentionResPre !== null ? 'border-warn bg-warn-soft' : 'border-transparent'
           }`}
         >
-          <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <span className="min-w-0 text-[11.5px] text-ink-dim">
-              Compter les effets d'auras Tolerance et Précision dans les conditions
-            </span>
+          <LibelleEtAide
+            bureau={bureau}
+            etire
+            libelle="Compter les effets d'auras Tolerance et Précision dans les conditions"
+            interrupteur={
+              <Interrupteur
+                actif={compterAurasResPre}
+                onChange={setCompterAurasResPre}
+                aria-label="Compter les effets d'auras Tolerance et Précision dans les conditions"
+              />
+            }
+            aide={
             <HelpPopover title="Compter les effets d'auras Tolerance et Précision dans les conditions">
               Activé, chaque set <b className="text-ink">Tolerance</b> ou <b className="text-ink">Accuracy</b> ajoute
               8 points de RES ou de Précision aux <b className="text-ink">minimums et aux maximums</b> de ces deux
@@ -175,14 +226,8 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
               Désactivé, ces deux conditions portent sur les statistiques sans aucune aura. Les dégâts et les PV
               effectifs comptent les auras dans les deux cas.
             </HelpPopover>
-          </div>
-          <span className="flex-none">
-            <Interrupteur
-              actif={compterAurasResPre}
-              onChange={setCompterAurasResPre}
-              aria-label="Compter les effets d'auras Tolerance et Précision dans les conditions"
-            />
-          </span>
+            }
+          />
         </div>
       </div>
     </div>

@@ -140,9 +140,50 @@ vide ou se corrige pendant qu'on tape.
 
 **`Selecteur`** — liste déroulante ([ton du sélecteur](../selecteur.md)). ⚠️ `appearance-none` + notre propre chevron :
 le contrôle natif dessine sa flèche avec les couleurs du **système**, qui ne
-suivent aucun des deux thèmes — sur fond sombre, une flèche noire disparaît. La
-**liste ouverte** reste celle du système : c'est le seul morceau de l'app qu'on
-ne dessine pas, et le remplacer coûterait un menu flottant complet à claviériser.
+suivent aucun des deux thèmes — sur fond sombre, une flèche noire disparaît.
+
+**Fermé, c'est le `<select>` natif ; ouverte, la liste est celle de la charte.**
+La liste du système (fond blanc, survol bleu) ignorait les deux thèmes.
+
+- ⚠️ **Le champ fermé ne change pas** : on garde le `<select>`, avec sa boîte, sa
+  valeur, son `onChange`, son étiquette, ce qu'en lisent les tests de rendu, et
+  les classes que les appelants posent sur lui. Seule l'ouverture est
+  remplacée : un clic (souris, stylet) ou une touche d'ouverture empêche la
+  liste du système et montre la nôtre. La taille d'aucun sélecteur ne bouge
+  (« Trier par » des runes 178 × 32, « LEAD » du speed tuning 125 × 28 au
+  bureau, 125 × 40 au téléphone, avant comme après).
+- **Le dessin des principales imposées** (`SelecteurMultiple`,
+  `forme="surbrillance"`) : surface `Flottant`, entrées de 32 px, survol gris
+  (`panel2`), valeur retenue en braise légère (contour et fond d'accent),
+  entrée atteinte au clavier cerclée de braise, en-tête discret par
+  `<optgroup>`, option désactivée atténuée.
+- **Les options se lisent dans le DOM du `<select>`** à l'ouverture
+  (`<option>`, `<optgroup>`, `disabled`, `hidden`, `title`) : aucun appelant ne
+  change. Choisir pose la valeur et émet l'événement `change` du `<select>` ;
+  une liste contrôlée qui revient à son invite (« Ajouter… ») le fait encore.
+- **Clavier** : Tab atteint le `<select>` (bordure d'accent au focus) ; Flèche
+  bas ou haut, Entrée, Espace, F4 ou une lettre ouvrent la liste — une flèche
+  ne change plus la valeur à l'aveugle, ce qui comptait pour les listes qui
+  agissent à chaque `change`. Dans la liste : flèches, Début / Fin, Page
+  préc. / suiv., recherche par lettres, Entrée ou Espace choisit, Échap ferme
+  sans fermer le dialogue ou le panneau qui la porte, Tab ferme sans choisir et
+  repart du `<select>`. Un clic dehors ferme aussi.
+- **Lecteurs d'écran** : la liste ouverte prend le focus, `role="listbox"`,
+  l'entrée active par `aria-activedescendant`, chaque entrée `role="option"`
+  et `aria-selected` ; le `<select>` porte `aria-expanded` et
+  `aria-controls` tant qu'elle est ouverte.
+- ⚠️ **Au doigt, la liste reste celle du système** : un appui tactile ouvre le
+  sélecteur natif du téléphone, fait pour le pouce. C'est le geste qui décide
+  (`pointerType`), pas la largeur de l'écran. Un navigateur sans l'API
+  `popover` garde aussi la liste native.
+- ⚠️ **Couche supérieure** (`popover`), en `position: fixed` sur la boîte du
+  `<select>` : ni un `overflow` d'ancêtre (les colonnes qui défilent de
+  l'Optimizer) ni un dialogue en `z-70` ne la coupent. Elle reste pourtant
+  dans le DOM à côté du `<select>` : un clic dedans reste un clic dans le
+  dialogue qui la porte, et ne remonte pas à une carte cliquable ou
+  déplaçable. Elle s'ouvre vers le haut quand la place manque dessous, vers la
+  gauche quand elle sortirait à droite, et suit son `<select>` quand la page
+  défile.
 
 #### `SelecteurMultiple`
 

@@ -418,31 +418,39 @@ Efficience/Score, les PV effectifs et la Vitesse,
 préparer d'empreinte : ces notes coûtent autant ou moins que le parcours de
 leurs entrées.
 
-Une seule note de dégâts est gardée par identité faible du tableau
-`runeIds`, partagé par un candidat et ses copies aux stats résolues. Un candidat devenu
-inaccessible ne reste pas retenu par cette mémoire. Le résultat final reçu
-du Worker peut porter de nouveaux objets : ils sont notés à leur première
-apparition, sans rapprochement sur les seuls identifiants des pièces.
+Une seule note de dégâts est gardée par identité faible de **l'objet
+candidat**. Candidats, stats et données propres publiées sont immuables :
+un changement de stats produit un nouveau candidat ; une réponse de
+résolution est remplacée dans la Map, jamais modifiée en place.
+`candidatAvecSaPaire` garde la même projection tant que le candidat de base
+et la réponse sont identiques ; une nouvelle réponse crée une nouvelle
+projection. Un candidat inaccessible ne reste pas retenu par la mémoire.
+Le résultat complet reçu du Worker peut porter de nouveaux objets : ils
+sont notés à leur première apparition, sans rapprochement par ids.
 
-La réutilisation compare le **contenu des entrées effectives des dégâts**,
-relu à chaque publication, et non l'identité des fonctions d'accès : stats
-du candidat, auras propres, profil d'artéfacts de ce build (repli sur le
-profil supposé), apport de l'exclusive retenue et contexte complet de
-dégâts, profil de sort et passifs compris.
+Le contexte complet de dégâts, hors profil d'artéfacts propre au build,
+est empreint **une fois par publication**. Sa chaîne est comparée une fois
+au contexte précédent ; les candidats ne comparent ensuite qu'une identité
+de contexte. Cela détecte aussi une modification du contexte en place.
+Aucune ligne de stats n'est parcourue pour construire une clé, aucune
+chaîne n'est construite par candidat.
 
-L'apport exclusif vient des mêmes accesseurs que le recalcul complet :
-une autre relique, son état ou ses réglages ne permettent la réutilisation
-que si l'apport produit reste identique. Les empreintes distinguent `NaN`,
-les deux infinis et le zéro négatif ; les sous-objets communs ne sont parcourus qu'une fois **par tri**,
-jamais supposés immuables entre deux publications. Ces entrées sont des
-données sans cycle, comme celles du Worker de résolution. Si une fonction
-est rencontrée dans le contexte ou dans les données propres d'un seul
-candidat, **tout le tri reprend le calcul direct, sans réutiliser ni écrire
-de note** : une fermeture mutable ne se compare ni par identité ni par
-texte. Toutes les empreintes sont préparées avant le premier accès aux
-notes pour garantir ce repli, même si la fonction est rencontrée sur le
-dernier candidat. Les accesseurs normaux sont exécutés ; ce sont les
-valeurs qu'ils rendent qui entrent dans les empreintes.
+Les accesseurs sont toujours lus une fois par candidat : leurs closures,
+les auras et les profils d'artéfacts peuvent être recréés par l'écran à
+chaque publication. Leurs petites données (auras propres, profil effectif,
+apport exclusif) sont comparées directement, récursivement, avec raccourci
+par identité. Les stats reposent sur l'identité immuable du candidat.
+L'apport exclusif reste celui des mêmes accesseurs que le recalcul complet,
+y compris pour une relique fixe remplacée sous le même id. Ces comparaisons
+bornées par la taille des données dérivées conservent `NaN`, les infinis et
+le zéro négatif. Elles ne sérialisent ni ces données ni les stats.
+
+Les données sont sans cycle, comme celles du Worker. Si une fonction est
+rencontrée dans le contexte ou les données propres d'un seul candidat,
+**tout le tri reprend le calcul direct, sans réutiliser ni écrire de note** :
+une fermeture mutable ne se compare ni par identité ni par texte.
+La vérification des données propres précède tout accès aux notes, même
+si la fonction concerne le dernier candidat.
 
 L'appartenance et le départage sont toujours recalculés : un rejet retire
 le build et un autre identifiant de relique peut déplacer une égalité sans
@@ -460,4 +468,8 @@ sont aussi testées séparément : amorçage en Dégâts réels, une entrée
 modifiée, nouvelle publication sous le même critère, note effectivement
 recalculée et égale au complet ; un cas impose une inversion de classement.
 Les tests contrôlent aussi le repli de tout le tri sur une fonction et
-l'absence d'empreinte pour les autres critères.
+l'absence d'empreinte pour les autres critères. Sur 20 000 candidats et
+plusieurs publications, le nombre d'appels de sérialisation reste celui
+du seul contexte commun, comme pour un candidat ; aucune ligne de stats
+n'est parcourue pour une clé. Ce compte ne prouve pas un gain de temps
+dans le navigateur : celui-ci se vérifie dans l'app.

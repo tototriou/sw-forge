@@ -112,15 +112,24 @@ export function testClassementIncremental() {
   verifier('réglage modifié en cours, objet conservé');
   x.realDamage.profile.skillupDamagePct += 20;
   verifier('profil de sort modifié en place');
-  x.realDamage.artefacts.brutPctAtk = 9;
+  // Le useMemo du profil supposé produit un nouvel objet, comme celui des
+  // paires résolues ; une note publiée ne possède pas de snapshot mutable.
+  x.realDamage.artefacts = { ...x.realDamage.artefacts, brutPctAtk: 9 };
   verifier('profil supposé modifié, seuls les non résolus le lisent');
-  const r = x.cache.get(cleBuild(x.builds[1]))!;
+  const cle = cleBuild(x.builds[1]);
+  let r = structuredClone(x.cache.get(cle)!);
   r.artefacts[0].subs[0].value += 5;
+  x.cache.set(cle, r);
   verifier('sous-propriété de la paire résolue modifiée');
+  r = structuredClone(r);
   r.relique!.unique!.percent = (r.relique!.unique!.percent ?? 0) + 4;
+  x.cache.set(cle, r);
   verifier('exclusive de même id modifiée');
-  r.stats.find((s) => s.key === 'atk')!.total += 150;
-  verifier('stats résolues modifiées en place');
+  // Les réponses du Worker sont clonées puis remplacées dans la Map ; les
+  // candidats et résultats déjà publiés ne sont jamais mutés dans l'app.
+  r = { ...r, stats: r.stats.map((s) => s.key === 'atk' ? { ...s, total: s.total + 150 } : s) };
+  x.cache.set(cle, r);
+  verifier('stats résolues remplacées par une nouvelle réponse');
   x.runeById.get(x.builds[0].runeIds[0])!.set = 'enhance';
   verifier('aura propre changée à ids constants');
   x.runeById.get(x.builds[0].runeIds[0])!.subs[0].value += 10;
@@ -161,7 +170,7 @@ export function testClassementIncrementalEgalites() {
   }
   const attendu = [...base].reverse().map(cleBuild);
   ok(isDeepStrictEqual(classementResolu(base, x.cache, 'degats_reels', optsEgaux).map(cleBuild), attendu), 'à égalité : rid croissant, indépendamment des publications');
-  for (const r of x.cache.values()) r.relique!.id = 1;
+  for (const [cle, r] of x.cache) x.cache.set(cle, { ...r, relique: { ...r.relique!, id: 1 } });
   identiques(classementResolu(base, x.cache, 'degats_reels', optsEgaux), complet(base, x.cache, 'degats_reels', optsEgaux), 'rid égaux : départage par clé');
   for (const critere of ['degats_reels', 'efficience'] as const) {
     const opts: OptionsDeClassement = { aurasPropresDe: aurasPropresParRunes(new Map()) };
@@ -169,7 +178,8 @@ export function testClassementIncrementalEgalites() {
   }
   const opts = x.options();
   for (const n of [NaN, Infinity, -Infinity, -0, 0, 1]) {
-    x.cache.get(cleBuild(base[3]))!.stats.find((s) => s.key === 'atk')!.total = n;
+    const cle = cleBuild(base[3]), r = x.cache.get(cle)!;
+    x.cache.set(cle, { ...r, stats: r.stats.map((s) => s.key === 'atk' ? { ...s, total: n } : s) });
     identiques(classementResolu(base, x.cache, 'atk', opts), complet(base, x.cache, 'atk', opts), `note ${String(n)} : même comparateur stable`);
     const degats = classementResolu(base, x.cache, 'degats_reels', optsEgaux);
     identiques(degats, complet(base, x.cache, 'degats_reels', optsEgaux), `dégâts, ATQ ${String(n)} : même classement`);
@@ -182,7 +192,7 @@ export function testClassementIncrementalNotes() {
   const x = corpus();
   let lecturesCalcul = 0;
   const suivre = (stats: StatRow[]) => new Proxy(stats, { get(cible, cle, receveur) {
-    // Le calcul de dégâts lit les stats par find ; l'empreinte ne l'appelle pas.
+    // Le calcul de dégâts lit les stats par find ; la clé ne les parcourt pas.
     if (cle === 'find') lecturesCalcul++;
     return Reflect.get(cible, cle, receveur);
   } });
@@ -193,7 +203,7 @@ export function testClassementIncrementalNotes() {
   lecturesCalcul = 0;
   trierCandidatsIncrementalement(x.builds, 'degats_reels', { ...opts });
   ok(lecturesCalcul === 0, 'seconde publication inchangée : aucun calcul de dégâts');
-  x.builds[8].stats.find((s) => s.key === 'atk')!.total += 50;
+  x.builds[8] = { ...x.builds[8], stats: suivre(x.builds[8].stats.map((s) => s.key === 'atk' ? { ...s, total: s.total + 50 } : s)) };
   lecturesCalcul = 0;
   trierCandidatsIncrementalement(x.builds, 'degats_reels', opts);
   const un = lecturesCalcul;
@@ -201,8 +211,41 @@ export function testClassementIncrementalNotes() {
   lecturesCalcul = 0;
   sortCandidates([x.builds[8]], 'degats_reels', opts);
   ok(un === lecturesCalcul, 'seul le build modifié est renoté, coût de lecture d’un seul build');
+
+  const cible = x.builds[1], cle = cleBuild(cible);
+  ok(candidatAvecSaPaire(cible, x.cache) === cible, 'non résolu : même objet candidat');
+  x.resoudre(1);
+  const projection = candidatAvecSaPaire(cible, x.cache);
+  ok(candidatAvecSaPaire(cible, new Map(x.cache)) === projection, 'publication par copie de Map : même projection résolue');
+  x.cache.set(cle, { ...x.cache.get(cle)! });
+  ok(candidatAvecSaPaire(cible, x.cache) !== projection, 'nouvelle réponse, même tableau de stats : nouvelle projection');
+  x.cache.delete(cle);
+  ok(candidatAvecSaPaire(cible, x.cache) === cible, 'suppression du résultat : retour au candidat de base');
+
+  let lignesParcourues = 0;
+  const stats = x.builds[0].stats.map((s) => ({ ...s, get label() { lignesParcourues++; return s.label; } }));
+  const gros = Array.from({ length: 20_000 }, (_, i) => ({ runeIds: [i], stats, effTotal: i }));
+  const reglages: OptionsDeClassement = { realDamage: x.realDamage, aurasPropresDe: () => ({ ...AUCUNE_AURA_PROPRE }) };
+  const compter = (candidats: BuildCandidate[]) => {
+    const stringify = JSON.stringify;
+    let appels = 0;
+    try {
+      JSON.stringify = ((...args: Parameters<typeof stringify>) => { appels++; return stringify.apply(JSON, args); }) as typeof stringify;
+      trierCandidatsIncrementalement(candidats, 'degats_reels', reglages);
+    } finally { JSON.stringify = stringify; }
+    return appels;
+  };
+  const commun = compter(gros.slice(0, 1));
+  lignesParcourues = 0;
+  const amorcage = compter(gros);
+  const publications = Array.from({ length: 4 }, () => compter(gros));
+  ok(commun > 0 && amorcage === commun && publications.every((n) => n === commun),
+    `20 000 candidats, 5 publications : ${commun} appels de sérialisation par publication, comme pour un seul candidat`);
+  ok(lignesParcourues === 0, 'aucune ligne de stats parcourue pour construire une clé, amorçage compris');
 }
 
+// Les réponses et données propres sont remplacées, comme les messages clonés
+// du Worker et les objets dérivés de React ; aucune mutation d'un objet publié.
 // Les accesseurs d'apport et d'aura de ce témoin ne lisent pas les stats :
 // les lectures find mesurent le calcul de dégâts seul, pas la clé de cache.
 function corpusDesInvalidations() {
@@ -212,12 +255,11 @@ function corpusDesInvalidations() {
   x.resoudre(8);
   const resultat = x.cache.get(cle)!;
   resultat.stats.find((s) => s.key === 'atk')!.total = 1;
-  const propres = { ...AUCUNE_AURA_PROPRE };
-  const apport = { ...APPORT_NEUTRE };
+  const donnees = { propres: { ...AUCUNE_AURA_PROPRE }, apport: { ...APPORT_NEUTRE } };
   const opts: OptionsDeClassement = {
     ...x.options(),
-    aurasPropresDe: (c) => cleBuild(c) === cle ? propres : AUCUNE_AURA_PROPRE,
-    exclusiveDuBuild: (c) => cleBuild(c) === cle ? apport : APPORT_NEUTRE,
+    aurasPropresDe: (c) => cleBuild(c) === cle ? donnees.propres : AUCUNE_AURA_PROPRE,
+    exclusiveDuBuild: (c) => cleBuild(c) === cle ? donnees.apport : APPORT_NEUTRE,
   };
   const lectures = new Map<string, number>();
   const suivre = (stats: StatRow[], cle: string) => new Proxy(stats, { get(cible, propriete, receveur) {
@@ -236,16 +278,24 @@ function corpusDesInvalidations() {
     identiques(tri.classes, sortCandidates(candidats, 'degats_reels', opts), cas);
     return { ...tri, recalcules };
   };
-  return { ...x, cle, resultat, propres, apport, opts, publier };
+  const remplacer = (modification: Partial<ResultatArtefacts>) => x.cache.set(cle, { ...x.cache.get(cle)!, ...modification });
+  return { ...x, cle, donnees, remplacer, suivre, opts, publier };
 }
 
 export function testClassementIncrementalInvalidations() {
   titre('Dégâts réels — chaque dépendance invalide sa note sans changer de critère');
   const cas: { nom: string; modifier: (x: ReturnType<typeof corpusDesInvalidations>) => void; commun?: boolean }[] = [
-    { nom: 'stats du build', modifier: (x) => { x.resultat.stats.find((s) => s.key === 'atk')!.total += 100000; } },
-    { nom: 'auras propres', modifier: (x) => { x.propres.fight = 1; } },
-    { nom: 'profil de la paire résolue', modifier: (x) => { x.resultat.artefacts[0].subs[0].value += 10; } },
-    { nom: 'apport exclusif de relique', modifier: (x) => { x.apport.dmgPct = 30; } },
+    { nom: 'stats du build', modifier: (x) => {
+      const stats = x.cache.get(x.cle)!.stats.map((s) => s.key === 'atk' ? { ...s, total: s.total + 100000 } : s);
+      x.remplacer({ stats: x.suivre(stats, x.cle) });
+    } },
+    { nom: 'auras propres', modifier: (x) => { x.donnees.propres = { ...x.donnees.propres, fight: 1 }; } },
+    { nom: 'profil de la paire résolue', modifier: (x) => {
+      const artefacts = structuredClone(x.cache.get(x.cle)!.artefacts);
+      artefacts[0].subs[0].value += 10;
+      x.remplacer({ artefacts });
+    } },
+    { nom: 'apport exclusif de relique', modifier: (x) => { x.donnees.apport = { ...x.donnees.apport, dmgPct: 30 }; } },
     { nom: 'contexte de dégâts', modifier: (x) => { x.realDamage.profile.skillupDamagePct += 20; }, commun: true },
   ];
   for (const c of cas) {

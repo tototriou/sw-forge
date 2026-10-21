@@ -112,10 +112,14 @@ retenus ni de la survie de l'optimum. Il peut étayer un plafonnement par
 (`scripts/lib/diagnosticHarness.ts:475-479`).
 
 **Mémoire de fin de construction** (`demiBuilds.memoire`) : `heapUsed`,
-`heapTotal`, `rss` par moitié ; le CLI y ajoute le rapport `heapUsed` A/B. Chaque moitié a
+`heapTotal`, `arrayBuffers`, `rss` par moitié ; le CLI y ajoute le rapport `heapUsed` A/B. Chaque moitié a
 son `worker_threads`, donc son tas (`scripts/lib/build-half-worker.ts:45-64`) ;
 `process.memoryUsage()` est lu en fin de fil, après le chronomètre et avant
-la sérialisation, hors de tout temps (`scripts/lib/build-half-worker.ts:175-189`).
+le transfert des colonnes, hors de tout temps (`scripts/lib/build-half-worker.ts`).
+`arrayBuffers` couvre leur stockage hors tas, que `heapUsed` ne compte pas,
+ainsi que les autres tampons encore alloués dans le fil ; ce n'est pas une
+taille attribuée aux seuls demi-builds. `rss` porte sur le processus entier,
+pas sur le seul fil : ne pas y ajouter `arrayBuffers`.
 C'est ce que la moitié laisse derrière elle, pas son pic, sans les pauses de
 ramassage. Le caveat imprimé (`CAVEAT_MEMOIRE`,
 `scripts/lib/diagnosticHarness.ts:684-689`, `tests/diagnostic-harness.test.ts:242-264`)
@@ -128,7 +132,9 @@ s'importent par `import type`, jamais par un import de valeur qui le ferait
 tourner dans le fil principal (`scripts/lib/buildHalvesNode.ts:49-52`,
 `scripts/lib/diagnosticHarness.ts:76-79`, `scripts/perf-battery.ts:113-117`) ;
 `scripts/perf-battery.ts`, qui le partage, n'en lit que `buckets` et `ms`
-(`scripts/perf-battery.ts:352-363`).
+(`scripts/perf-battery.ts:352-363`), puis convertit explicitement les colonnes
+pour son union et ses diagnostics objets. Le harnais, lui, garde les colonnes
+jusqu'à l'appariement ; seuls le suivi et le traceur demandent des objets.
 
 **Cartographie de l'élagage** (`--progression`, `horodaterProgression`,
 `scripts/diagnostic-harness.ts:80-83`, `scripts/diagnostic-harness.ts:324-324`) :

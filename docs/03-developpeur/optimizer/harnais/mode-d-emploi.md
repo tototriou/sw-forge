@@ -23,7 +23,7 @@ décrit le reste : construction observée, build cible, différentiel.
 | `scripts/lib/diagnosticTypes.ts` | le vocabulaire, types seuls |
 | `scripts/lib/randomPool.ts` | le pool synthétique à graine |
 | `scripts/lib/chargerRecette.ts` | recette + export de compte vers `SearchParams`, séquence partagée avec `scripts/optimizer-search.ts` |
-| `scripts/lib/buildHalvesNode.ts`, `scripts/lib/build-half-worker.ts` | les deux moitiés, sur deux `worker_threads`, par la construction de production (`construireMoitie`) |
+| `scripts/lib/buildHalvesNode.ts`, `scripts/lib/build-half-worker.ts` | les moitiés en colonnes, un `worker_threads` par moitié et préréglage, par `construireMoitieTypee` |
 | `scripts/lib/appariementRapideNode.ts`, `scripts/lib/appariement-rapide-worker.ts` | l'appariement parallèle : lanceur et coquille Node du serveur de production (`servirAppariement`, qui appelle `initialiserTravailleur` puis `parcourirMorceau` par tranches) |
 | `scripts/lib/diagnosticLot.ts`, `scripts/lib/diagnosticProfils.ts`, `scripts/lib/diagnosticDifferentiel.ts` | modes lot (`--cas`), profils synthétiques (`--profils`, `--profil`) et différentiel entrelacé (`--differentiel`), dont l'usage est en tête du CLI (l. 31-58) |
 | `scripts/diagnostic-harness-parite.ts` | parité contre l'ancienne reconstruction (voir « Validation du harnais ») |
@@ -106,7 +106,7 @@ La séquence est celle de `src/workers/runeBuildOptim.worker.ts`
 | Phase | Fonctions de production | Ce que le harnais observe |
 |---|---|---|
 | **A — Préparation** | `prepareSearch` : principale → `pruneDominated` → `eliminateInfeasible` → `filterSlot` | 4 étages via `onStage`, puis le `PreparedSearch` |
-| **B — Demi-builds** | `construireMoitie` pour A et pour B, en parallèle | compartiments, demi-builds, `totalPairCount` |
+| **B — Demi-builds** | `construireMoitieTypee` pour A et pour B, en parallèle | compartiments en colonnes, demi-builds, `compterPaires` |
 | **C — Appariement** | `apparier` en séquentiel, ou `apparierRapideEnParallele` | `SearchResult`, complétude |
 | **D — Classement** | `sortCandidates` | candidats classés |
 
@@ -292,7 +292,7 @@ Après l'appariement, `evaluerCompletude`
   temps AVANT de collecter un candidat et le plafond APRÈS ; tronquée au
   plafond atteint, c'est le plafond, sinon le temps. Exact en parallèle aussi,
   la fusion gardant le plafond global dans l'ordre séquentiel.
-- **Autodiagnostic** : `totalPairCount` est la borne exacte de l'espace (égale
+- **Autodiagnostic** : `compterPaires` (`totalPairCount` pour les objets) est la borne exacte de l'espace (égale
   à `explored`, les paires traitées, sans troncature, vérifié par
   `tests/rune-optim-differential.test.ts`).
   Le harnais affiche toujours `explored / totalPairs` ; un run annoncé complet
@@ -360,7 +360,7 @@ Toute mesure suit le skill `optimizer-perf-testing`
 ## Régime d'appariement : le seuil de la production
 
 Le harnais ne choisit pas : une fois les moitiés construites,
-`totalPairs = totalPairCount(prepared, bucketsA, bucketsB)`, puis le contrat
+`totalPairs = compterPaires(prepared, bucketsA, bucketsB)`, puis le contrat
 numérique du noyau, jugé SANS le traceur (que la production ne pose jamais :
 suivre une cible ne change pas le régime) ; `regimeAppariement` rend
 l'appariement parallèle à partir de `PARALLEL_PAIRING_THRESHOLD` (100 M de
@@ -376,13 +376,19 @@ plus lent ; en parallèle, le harnais apparie sans traceur.
 **La construction est toujours parallèle.** La production lance ses Web
 Workers de construction dans tous les cas, un par moitié et par préréglage
 construit ; le harnais aussi, sur autant de `worker_threads` qui appellent
-la vraie construction (`construireMoitie`, `scripts/lib/build-half-worker.ts`),
-orchestrés par la même `construireMoitiesEmboitees`, jamais selon la taille
+la vraie construction (`construireMoitieTypee`, `scripts/lib/build-half-worker.ts`),
+orchestrés par la même `construireMoitiesEmboiteesTypees`, jamais selon la taille
 du cas. Ce
 n'est pas qu'une question d'affichage : `maxMs` courant depuis `startedAt`, une
 construction séquentielle volerait du budget à l'appariement et trouverait
 moins de candidats sur un run tronqué par le temps
 (`scripts/lib/buildHalvesNode.ts:5-12`).
+Les fils transfèrent les `ArrayBuffer` des colonnes au parent. Le harnais
+les conserve jusqu'à l'appariement, rétentions emboîtées comprises.
+`--suivre` matérialise les objets nécessaires aux diagnostics de demi-build
+hors des chronos de phase ; le traceur séquentiel les matérialise à l'entrée de
+`pairBuckets`. Les outils qui lisent encore des `HalfCombo` demandent
+explicitement `construireMoitiesObjetsEnParallele`.
 
 **L'appariement parallèle est le code de production** :
 `apparierRapideEnParallele` (mêmes morceaux à la demande et même fusion dans
@@ -418,14 +424,14 @@ Le harnais n'appelle pas `runSearchToCompletion` (`scripts/lib/runSearch.ts`),
 qui enchaîne les phases d'un bloc et TOUJOURS en séquentiel — il ne modélise
 que ce régime et peut trouver moins de candidats que l'écran sur une grande
 recherche tronquée (`scripts/lib/runSearch.ts:13-20`) —, alors que le régime
-dépend de `totalPairCount`, connu après la construction ; piloter étage par
+dépend de `compterPaires`, connu après la construction ; piloter étage par
 étage sert aussi aux points d'arrêt et aux temps. Chaque appel est celui de la
 production (`scripts/lib/diagnosticHarness.ts:10-17`). Il n'utilise pas
 `drivePairing`, boucle autour du générateur d'appariement dont la progression
 par message, la main rendue et l'arrêt coopératif servent le navigateur
 (`src/workers/pairingDriver.ts:40-80`) : en séquentiel, il vide
-`apparier(prepared, bucketsA, bucketsB)` — le noyau, ou `pairBuckets` hors de
-son contrat —, et en parallèle il appelle `apparierRapideEnParallele` avec le
+`apparier(prepared, bucketsA, bucketsB)` — le noyau, le parcours sans sauts
+hors contrat numérique, ou `pairBuckets` avec le traceur —, et en parallèle il appelle `apparierRapideEnParallele` avec le
 lanceur Node (`scripts/lib/diagnosticHarness.ts:1013-1018`), appels nus qui
 explorent ce que la production explore.
 

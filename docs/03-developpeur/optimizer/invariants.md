@@ -219,6 +219,8 @@ Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce f
 
 ## Harnais
 
+- La construction du harnais garde les colonnes jusqu'à l'appariement : mêmes `construireMoitieTypee` et `construireMoitiesEmboiteesTypees` que l'écran, tampons transférés par les fils Node ; les consommateurs de `HalfCombo` demandent une adaptation explicite. Le relevé mémoire existant lit aussi `arrayBuffers` avant transfert : `heapUsed` seul ne compte pas les colonnes et `rss` reste global au processus. Source : harnais/mode-d-emploi.md § Régime d'appariement : le seuil de la production ; harnais/extensions.md § La construction observée
+
 - Un harnais observe le pipeline RÉEL de production, jamais n'en réimplémente une étape — sinon il mesure un comportement qui n'existe pas. Un diagnostic ne recopie pas une fonction du moteur : il l'exporte et l'appelle, une copie divergeant sans qu'aucun `tsc` le signale. Source : harnais/extensions.md § Étendre le harnais : quatre niveaux de coût ; harnais/mode-d-emploi.md § Pilotage : le harnais orchestre étage par étage ; moteur/parallelisation.md § Code commun aux deux plateformes ; harnais/scripts.md § Les scripts voisins
 - Le code du harnais vit dans `scripts/lib/`, jamais dans `src/lib/`. Source : harnais/mode-d-emploi.md § Les scripts du harnais
 - Les générateurs de pool synthétique volontairement biaisés ne migrent pas vers `randomPool` partagé : leur biais est le sujet même de ce qu'ils mesurent. Source : harnais/mode-d-emploi.md § Deux sources : une recette ou un pool synthétique

@@ -562,7 +562,7 @@ export interface RetentionMoitie {
 }
 
 /* --------------------------------------------------------------------------
- * Pic de tas par moitié (palier LÉGER)
+ * Mémoire de fin de construction par moitié (palier LÉGER)
  * ----------------------------------------------------------------------- */
 
 /**
@@ -573,8 +573,8 @@ export interface RetentionMoitie {
  * énumération close, mais celles auxquelles on avait pensé.
  *
  * ⚠️ La mesure est propre parce que **chaque moitié tourne dans son propre
- * `worker_threads`**, donc dans son propre tas : aucune confusion possible
- * entre A et B.
+ * `worker_threads`**, donc dans son propre tas. `arrayBuffers` comprend les
+ * colonnes hors tas avant transfert ; `rss` porte sur tout le processus.
  */
 export interface MemoireConstruction {
   A: import('./build-half-worker').MemoireMoitie;

@@ -720,11 +720,12 @@ function rendreResultat(r: ResultatHarnais): string {
     l.push('', 'Mémoire en fin de construction, par moitié (palier LÉGER)', '─'.repeat(72));
     for (const [moitie, m] of [['A', mem.A], ['B', mem.B]] as const) {
       l.push(
-        `  moitié ${moitie} : heapUsed ${mo(m.heapUsed)}   heapTotal ${mo(m.heapTotal)}   rss ${mo(m.rss)}`
+        `  moitié ${moitie} : heapUsed ${mo(m.heapUsed)}   heapTotal ${mo(m.heapTotal)}   arrayBuffers ${mo(m.arrayBuffers)}   rss ${mo(m.rss)}`
       );
     }
     const ecart = mem.B.heapUsed > 0 ? mem.A.heapUsed / mem.B.heapUsed : 0;
     l.push(`  rapport heapUsed A/B : ×${ecart.toFixed(2)}`);
+    l.push('  arrayBuffers : stockage hors tas, colonnes comprises, relevé avant transfert ; ne pas l’ajouter à rss.');
     l.push(`  ${mem.caveat}`);
 
     // ⚠️ La CARTOGRAPHIE DE L'ÉLAGAGE, et rien d'autre. La

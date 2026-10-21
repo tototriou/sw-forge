@@ -148,8 +148,14 @@ la construction et l'union en colonnes à `buildBuckets` et à l'union objet,
 dans les quatre ordres, sur des pools déterministes et sous éviction. Il
 compare aussi les candidats, le compte et le quasi-succès, sous plafond et
 sans plafond, puis exerce les transferts (tampons détachés) et de vrais
-Workers d'appariement. Les overrides de capacité et le repli numérique
-restent comparés à la référence objet.
+Workers Node de construction et d'appariement. Les colonnes, candidats et
+quasi-succès sont comparés valeur par valeur avec `Object.is`, qui distingue
+`-0` de `0` et `NaN` de `null`. Un aller-retour de `-0` et les deux sens
+d'appariement mixte (moitié objet / moitié typée) sont exercés.
+Le cas de base ATQ fractionnaire porte sur une stat contrainte : il affirme
+`chemin === 'actuel'` et le motif numérique, parcourt des paires, puis compare
+le résultat à la référence objet. Les capacités négatives produisent aussi
+le même résultat vide que la référence.
 
 `tests/appariement-rapide.test.ts` (`testAppariementRapide`) :
 

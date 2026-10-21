@@ -243,6 +243,14 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
 
 ## Code commun aux deux plateformes
 
+La construction Node du harnais suit aussi le chemin en colonnes :
+`scripts/lib/build-half-worker.ts` appelle `construireMoitieTypee`, puis
+transfère les tampons de `tamponsDesDemiBuilds` au parent.
+`scripts/lib/buildHalvesNode.ts` réunit les rétentions par
+`construireMoitiesEmboiteesTypees`, sans `HalfCombo` intermédiaire.
+L'adaptation objet est explicite pour les consommateurs d'outillage
+(`construireMoitiesObjetsEnParallele`) et pour les diagnostics de suivi.
+
 - `parallelPairing.ts`, `appariementRapideParallele.ts`,
   `travailleurAppariement.ts` et `appariementRapide.ts` n'importent jamais `worker_threads`, ni `self`, ni
   `postMessage`, ni le `Worker` du DOM : Vite tenterait de résoudre du code

@@ -247,6 +247,7 @@ export default async function testDiagnosticHarness() {
   {
     const mem = arretDemiBuilds.demiBuilds!.memoire;
     ok(mem.A.heapUsed > 0 && mem.B.heapUsed > 0, 'chaque moitié rend son relevé mémoire de fin de fil');
+    ok(mem.A.arrayBuffers > 0 && mem.B.arrayBuffers > 0, 'le relevé existant couvre aussi les ArrayBuffer des colonnes avant transfert');
     ok(
       mem.A.heapTotal >= mem.A.heapUsed && mem.B.heapTotal >= mem.B.heapUsed,
       'heapTotal englobe heapUsed — le relevé vient bien de process.memoryUsage()'

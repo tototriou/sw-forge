@@ -195,12 +195,19 @@ la sémantique de `heapPush`, y compris pour un override fractionnaire,
 négatif ou infini.
 
 La référence objet reste disponible à l'outillage : `construireMoitie`
-(CLI, fils Node de construction), `construireMoitieRapide` et
+(CLI), `construireMoitieRapide` et
 `objetsDesCompartiments` matérialisent les objets quand leur consommateur
 en a besoin. `motifRepliConstruction` garde les replis de cette API objet
 vers `buildBuckets` (traceur, codes ou capacités hors Int32). Un traceur
 de diagnostic demande cette référence, jamais le chemin de l'écran.
 `searchBuildsSteps` construit directement les deux moitiés en colonnes.
+Le harnais suit le même chemin : `construireMoitiesEnParallele` orchestre
+`construireMoitiesEmboiteesTypees` ; chaque fil Node appelle
+`construireMoitieTypee` et transfère les tampons des colonnes. Les outils
+qui lisent encore les runes des `HalfCombo` passent explicitement par
+`construireMoitiesObjetsEnParallele`. Les diagnostics `--suivre` adaptent
+seulement les moitiés suivies, hors des chronos de phase ; le traceur séquentiel
+garde son adaptation objet à l'entrée de `pairBuckets`.
 
 Un arrêt pendant cette phase termine tous les Workers enfants de construction
 (`terminate()`) et rejette l'attente (`stopBuildReject`) : la recherche rend

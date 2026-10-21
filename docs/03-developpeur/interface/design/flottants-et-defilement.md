@@ -123,6 +123,7 @@ Les quatre causes rencontrées, par ordre de fréquence :
 | `minmax(Npx, 1fr)` dans une grille | S'écrit `minmax(min(100%,Npx), 1fr)` |
 | Enfant flex qui refuse de se réduire | `min-w-0` — la valeur par défaut est `auto`, qui interdit de passer sous la largeur du contenu |
 | Flottant de largeur fixe ancré à gauche | Borné par `Flottant` lui-même (voir plus haut) |
+| Marge négative qui reprend le rembourrage du parent (la page de bureau de l'Optimizer, `-mx-3`) | L'empiètement se mesure : jamais plus que le rembourrage réellement laissé jusqu'au bord de ce qui défile ou de la fenêtre |
 
 ⚠️ Le symptôme apparaît **loin de sa cause** : un `min-width` calibré pour une
 carte fait défiler la page entière, et on le constate sur un écran qui n'a rien à

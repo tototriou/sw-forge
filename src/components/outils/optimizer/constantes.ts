@@ -42,7 +42,7 @@ export const CRITERE_ARTEFACTS_LABELS: { key: 'brut' | 'reel'; label: string }[]
 ];
 
 // ⚠️ **Largeur fixe et commune** aux quatre listes de la carte « Artéfacts
-// et reliques » (Attribut, Type, Principale, Propriété unique) — un
+// et relique » (Attribut, Type, Principale, Propriété unique) — un
 // `<select>` natif sans largeur explicite prend celle de sa plus longue
 // option (« Soins et boucliers accordés en fonction des PV » pour la
 // relique). `truncate` tronque la valeur FERMÉE par « … » ; la liste

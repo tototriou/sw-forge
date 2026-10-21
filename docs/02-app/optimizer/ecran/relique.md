@@ -1,7 +1,7 @@
 # Relique
 
 6 ter. **Relique** — **bloc
-   séparé** de la carte « Artéfacts et reliques », PAS une carte propre :
+   séparé** de la carte « Artéfacts et relique », PAS une carte propre :
    ferme la carte, séparé par un **trait horizontal** de 1 px
    (`border-border-soft`, un seul contour) — même JSX pour les deux formats,
    ordinateur et téléphone (`Relique.tsx`). Au téléphone, il suit l'encart

@@ -1,7 +1,7 @@
 # État de mon monstre
 
 6 bis. **État de mon monstre** — ⚠️ **une carte à part**, jamais le bas de la
-   carte « Artéfacts et reliques » séparé par un simple trait : ça
+   carte « Artéfacts et relique » séparé par un simple trait : ça
    laisserait croire que ces réglages servent les artéfacts, alors qu'ils
    décrivent le **monstre** et valent pour tout calcul. Le trait ne suffit
    pas à dire « autre métier » — une carte, si.
@@ -11,7 +11,7 @@
    **sets d'aura des autres monstres** de l'équipe. Ce qui rend le monstre
    plus fort, quel que soit l'adversaire.
 
-   **Au téléphone**, la carte suit « Artéfacts et reliques » et porte tout
+   **Au téléphone**, la carte suit « Artéfacts et relique » et porte tout
    ce contenu, sets d'aura compris. **Au bureau**, elle est réduite aux
    buffs et au lead, section des essentiels dans la sous-colonne de 177 px,
    sous la statistique principale imposée (`EtatMonstreEssentiels`) : les

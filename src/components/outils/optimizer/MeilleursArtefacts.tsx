@@ -29,7 +29,7 @@ export interface MeilleursArtefactsProps {
   artefactsProposesDejaReserves: boolean;
   // Bureau seulement (optimizer/bureau/MeilleursArtefactsBureau.tsx) : le bloc
   // devient une SECTION à part du panneau de la colonne, sans cadre, sous la
-  // relique, au lieu d'un encart de la carte « Artéfacts et reliques ». Le
+  // relique, au lieu d'un encart de la carte « Artéfacts et relique ». Le
   // téléphone ne le passe pas.
   carte?: boolean;
 }

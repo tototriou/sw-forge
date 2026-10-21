@@ -288,7 +288,9 @@ export default function BuildCandidateCard({
       <div className="flex items-start justify-between mb-2">
         <span className="font-mono text-xs font-bold text-star">#{rank}</span>
         <span className="flex flex-col items-end">
-          <span className="font-mono text-xs text-ink-dim">
+          {/* Une phrase : police du texte (la mono ne sert qu'aux chiffres
+              seuls) ; `tabular-nums` aligne la valeur d'une carte à l'autre. */}
+          <span className="text-xs tabular-nums text-ink-dim">
             {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(liveTotal / 6, metric)}
           </span>
           {/* L'écart avec la référence, SOUS la valeur qu'il qualifie
@@ -323,8 +325,10 @@ export default function BuildCandidateCard({
         <p className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
           <span className="text-micro text-ink-dim">Dégâts</span>
           <span className="flex flex-col items-end">
-            <span className="font-mono text-sm font-bold text-star">
-              {Math.round(degatsReels.total).toLocaleString('fr-FR')}
+            {/* La mono sur le chiffre seul : « tue la cible » / « N % des PV »
+                est une phrase, en police du texte. */}
+            <span className="text-sm font-bold text-star">
+              <span className="font-mono">{Math.round(degatsReels.total).toLocaleString('fr-FR')}</span>
               <span className="ml-1.5 font-normal text-micro text-ink-dim">
                 {degatsReels.partPvCible >= 100 ? 'tue la cible' : `${Math.round(degatsReels.partPvCible)} % des PV`}
               </span>

@@ -88,10 +88,18 @@ export default function ObjectifEtRechercherBureau({
     <div className={`grid ${etroite ? '' : `flex-none ${LARGEUR_RECHERCHER_LARGE}`}`}>
       {/* ⚠️ `comboSets.length === 0` hors de `disabled`, comme au téléphone
           (`ObjectifEtActions`) : le clic doit encore atteindre
-          `handleSearch`, qui ramène au « Set de runes recherché ». */}
+          `handleSearch`, qui ramène au « Set de runes recherché ».
+          ⚠️ **Braise pleine** (`fond="plein"`, le bouton principal de
+          `Bouton`) dès qu'un set est choisi : l'action qu'on vient faire doit
+          peser plus qu'un segment choisi, qui est lui aussi en braise pleine.
+          Sans set, le fond `doux` d'avant et son grisé : une braise pleine à
+          40 % d'opacité donne le brun boueux que `Bouton` écarte pour son
+          état désactivé. Même taille et même contour de 1 px dans les deux
+          fonds : le bouton ne bouge pas quand le premier set arrive. */}
       <Bouton
         taille="lg"
         ton="accent"
+        fond={comboSets.length === 0 ? 'doux' : 'plein'}
         pleineLargeur
         onClick={handleSearch}
         disabled={!selected || enCours}

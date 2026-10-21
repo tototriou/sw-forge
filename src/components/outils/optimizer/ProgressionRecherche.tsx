@@ -48,7 +48,10 @@ export default function ProgressionRecherche({ status, progress, refusal, compte
                     />
                   </div>
                 )}
-                <p className={`${compacte ? '' : 'mt-1 '}font-mono text-micro text-ink-dim`}>
+                {/* Phrases en police du texte (la mono ne sert qu'aux
+                    chiffres seuls) ; `tabular-nums` : les compteurs changent
+                    en place sans faire danser la ligne. */}
+                <p className={`${compacte ? '' : 'mt-1 '}text-micro tabular-nums text-ink-dim`}>
                   Préparation — moitié {half} :{' '}
                   {h ? `${h.scanned.toLocaleString('fr-FR')} / ${h.total.toLocaleString('fr-FR')} runes` : 'en attente…'}
                 </p>
@@ -73,13 +76,13 @@ export default function ProgressionRecherche({ status, progress, refusal, compte
               grandissait en cours de route et aurait fait RECULER la barre.
               C'est ce choix de l'interface qui a fini par emporter sa
               suppression du moteur. */}
-          <p className={`${compacte ? '' : 'mt-1 '}font-mono text-micro text-ink-dim`}>
+          <p className={`${compacte ? '' : 'mt-1 '}text-micro tabular-nums text-ink-dim`}>
             {progress === null
               ? 'Préparation…'
               : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${compteAffiche.compte.toLocaleString('fr-FR')} trouvée(s)`}
           </p>
           {progress !== null && (
-            <p className="mt-0.5 font-mono text-[11px] font-bold text-star">
+            <p className="mt-0.5 text-[11px] font-bold text-star">
               Attendez la fin de la recherche pour être sûr de trouver votre build optimal.
             </p>
           )}

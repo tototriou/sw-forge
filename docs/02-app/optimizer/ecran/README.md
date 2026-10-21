@@ -384,7 +384,11 @@ rien ouvrir ; les quatre objectifs
 et, sous « Dégâts réels » seulement, son résumé ; « Rechercher » ;
 « Exporter » · « Importer », en libellé court ; le message d'import d'une
 recette et la progression. ⚠️ « Rechercher » est en taille `lg` de
-`Bouton` ; pendant une recherche, « Arrêter » prend sa place exacte, avec
+`Bouton`, en braise pleine (`fond="plein"`, le bouton principal de la
+librairie) dès qu'un set est choisi : l'action qu'on vient faire pèse plus
+qu'un segment choisi, lui aussi en braise pleine. Sans set, il garde le fond
+`doux` et son aspect grisé (une braise pleine grisée tournerait au brun), à
+la même taille ; pendant une recherche, « Arrêter » prend sa place exacte, avec
 un carré plein, et reste inactif 300 ms : le double clic qui lance ne
 l'arrête pas.
 

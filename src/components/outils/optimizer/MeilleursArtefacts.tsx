@@ -190,7 +190,11 @@ export default function MeilleursArtefacts({ modeArtefactsSeuls, etroit, setArte
         // couperaient les libellés longs — ils repassent alors l'un sous
         // l'autre. `items-start` : l'artéfact qui a la principale la plus
         // courte ne s'étire pas à la hauteur de l'autre.
-        <div className="mt-1.5 grid grid-cols-1 items-start gap-x-4 gap-y-2 sm:grid-cols-2">
+        // ⚠️ **Au bureau (`carte`), empilés** : la colonne est trop étroite pour
+        // deux pièces côte à côte, qui tronquaient les sous-propriétés longues
+        // (« Dgts supp. en prop. de DEF : XX % ») ; une pièce par rangée leur
+        // rend la largeur de la colonne.
+        <div className={`mt-1.5 grid grid-cols-1 items-start gap-x-4 gap-y-2 ${carte ? '' : 'sm:grid-cols-2'}`}>
           {modeArtefactsSeuls.paire.map((a) => (
             /* ⚠️ **Atténuation LÉGÈRE sur la pièce figée** — elle
                 n’est pas une proposition, elle est un fait. Le bandeau et le

@@ -781,6 +781,11 @@ html:has([data-page-fenetre]) {
 html:has([data-page-fenetre]) body {
   min-height: 0;
 }
+/* Ni le pied de page de l'app (`data-pied-de-page`, App.tsx) : les colonnes
+   vont jusqu'au bas de la fenêtre. */
+html:has([data-page-fenetre]) [data-pied-de-page] {
+  display: none;
+}
 
 /* ---- Cibles TACTILES ---------------------------------------------------- */
 /* ⚠️ **Au doigt, une cible fait au moins 40 px de haut.** L'app est dessinée

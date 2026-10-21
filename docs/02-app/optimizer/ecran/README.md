@@ -81,7 +81,29 @@ trait fin (`border-soft`) — décision de l'utilisateur à l'arrêt 4 de la
 refonte : des cartes côte à côte se lisaient comme une mosaïque aérée.
 Écarts **serrés dans un panneau** (8 px de rembourrage, 8 px de part et
 d'autre d'un trait), **larges entre deux** : 24 px. Classes communes :
-`src/components/outils/optimizer/bureau/panneau.ts` (`PANNEAU`, `SECTIONS`).
+`src/components/outils/optimizer/bureau/panneau.ts` (`PANNEAU`, `SECTIONS`,
+`LISERE`, `BANDE_FIXE`).
+
+⚠️ **Une bande braise en haut de chaque panneau de colonne** : 3 px
+(ombre intérieure `accent`), en plus du contour de 1 px, pour distinguer
+les colonnes, que le seul panneau ne séparait pas assez (décision de
+l'utilisateur). C'est le seul cumul admis avec le contour
+([contours.md](../../../03-developpeur/interface/librairie-ui/contours.md)) :
+une section, un bloc posé dans une colonne ou une carte n'en porte pas. En
+A1 et A2, où la page défile, la bande est sur le panneau (`LISERE`). En A3,
+où chaque colonne défile seule, elle **reste en haut de sa colonne** quand
+son contenu défile : c'est le pseudo-élément `::before` du panneau, collé
+(`sticky`) au haut de la boîte qui défile, 1 px sous son bord (`BANDE_FIXE`) ;
+même dessin, aux coins du panneau, au-dessus du contenu, sans prendre de
+place ni recevoir de clic. Une colonne superposée garde son ombre de
+flottant.
+
+⚠️ **La barre de défilement d'une colonne se lit comme la sienne** : en A3,
+la boîte qui défile s'arrête à sa barre (le panneau, 4 px, la barre de
+10 px), et le reste de l'écart de 24 px jusqu'au panneau suivant est une
+marge, hors de la boîte. Une barre au bord de la place se collait au
+panneau suivant. La colonne de droite, la dernière, réserve sa barre contre
+son panneau, au bord de la page.
 
 Les largeurs ci-dessus sont des **places** (`LARGEURS_BUREAU`,
 src/lib/optimizerColonnes.ts), d'où se calculent les seuils : un panneau

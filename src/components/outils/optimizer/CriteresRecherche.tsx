@@ -7,9 +7,9 @@ export interface CriteresRechercheProps {
   conditions: ReactNode;
 }
 
-// Le titre de la carte, exporté pour la forme de bureau des essentiels
-// (`bureau/SetDeRunesCompact.tsx`) : un seul dessin.
-export function TitreCriteresRecherche({ className }: { className: string }) {
+// Le titre de la carte, au téléphone : le bureau n'en a pas
+// (`bureau/SetDeRunesCompact.tsx`).
+function TitreCriteresRecherche({ className }: { className: string }) {
   return (
     <div className={`${className} flex items-center gap-2`}>
       {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une

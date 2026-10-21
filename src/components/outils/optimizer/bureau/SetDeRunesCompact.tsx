@@ -2,7 +2,6 @@ import { useContext, useLayoutEffect, useRef, useState, type RefObject } from 'r
 import { SetDeplieContext } from './setDeplie';
 import SetComboPicker from '../../SetComboPicker';
 import RuneIcon from '../../../RuneIcon';
-import { TitreCriteresRecherche } from '../CriteresRecherche';
 import { SelecteurMultiple } from '../../../../ui';
 import { RUNE_SETS } from '../../../../types';
 import { runeSetIconFilter, setsCost } from '../../../../lib/effects';
@@ -14,8 +13,9 @@ export interface SetDeRunesCompactProps {
   onChangeSets: (next: string[]) => void;
 }
 
-// « Critères de recherche » et le set de runes recherché, au bureau, en forme
-// compacte, section des essentiels sans cadre (le panneau de la colonne le
+// Le set de runes recherché, au bureau, en forme compacte, sans le titre
+// « Critères de recherche » du téléphone (le panneau de la colonne situe la
+// section), section des essentiels sans cadre (le panneau de la colonne le
 // porte) : une liste fermée sur les sets choisis ; ouverte, la grille d'ajout
 // du téléphone (`SetComboPicker`, telle quelle : jetons, retrait, deux
 // groupes, « Plus de place »), en flottant — rien ne bouge dessous.
@@ -69,7 +69,6 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
   };
   return (
     <section aria-label="Critères de recherche">
-      <TitreCriteresRecherche className="mb-2" />
       <div
         ref={setPickerSectionRef}
         className={setPickerInvalid ? 'rounded-lg border border-bad bg-bad/15 p-2 -m-2 transition' : 'transition'}

@@ -1,9 +1,10 @@
-import { useId, type ReactNode } from 'react';
-import TitreReglagesAvances from '../TitreReglagesAvances';
+import { type ReactNode } from 'react';
 
 // « Réglages avancés », au bureau : EN LIGNE dans la colonne repliable « Aura,
 // exclusion, avancés », section de son panneau, jamais repliée derrière un
-// en-tête. Le contenu est
+// en-tête, et sans titre : le panneau de la colonne et les traits entre
+// sections situent déjà la section (le téléphone garde son titre dans le
+// panneau « Options »). Le contenu est
 // `ReglagesAvancesContenu`, hors panneau : sa grille
 // `minmax(260px, 1fr)` y tient sur une colonne. L'estimation du pool n'y est
 // plus : elle est en tête du bloc « Objectif et Rechercher ».
@@ -12,12 +13,8 @@ import TitreReglagesAvances from '../TitreReglagesAvances';
 // la hauteur de son contenu partagé. Le retrait d'un réglage (« Diagnostic
 // approfondi sur 0 résultat » est appelé à partir) passe sans retouche ici.
 export default function ReglagesAvancesBureau({ children }: { children: ReactNode }) {
-  const titre = useId();
   return (
-    <section aria-labelledby={titre}>
-      <div id={titre} className="mb-2 flex items-center gap-1.5 text-sm font-bold text-ink">
-        <TitreReglagesAvances />
-      </div>
+    <section aria-label="Réglages avancés">
       {children}
     </section>
   );

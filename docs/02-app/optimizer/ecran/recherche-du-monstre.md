@@ -192,7 +192,7 @@ commune :
 1. **la liste de travail**, première section du panneau des essentiels
    (`ListeDeTravailBureau`) : la rangée de « Liste active », que termine
    « Importer une équipe » ([../feat-import-equipes.md](../feat-import-equipes.md)),
-   son titre au style de « Critères de recherche » (au téléphone, une
+   son titre au style d'un titre de section, 13,5 px gras (au téléphone, une
    étiquette) et son bouton qui nomme la liste (« nom - contenu ») ; puis
    la carte de la liste, dont la rangée du titre porte « Ajouter un
    monstre / à la liste », toujours, sur deux lignes, sans le nom de la

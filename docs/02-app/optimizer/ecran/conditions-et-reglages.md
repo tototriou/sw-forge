@@ -140,7 +140,8 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
 
 9. **« Réglages avancés »**. ⚠️ **Au bureau, en ligne** dans la colonne
    repliable « Aura, exclusion, avancés », section de 314 px de son panneau,
-   après « Exclusion de runes », sur une seule colonne : pré-filtrage, puis
+   **sans titre** (ni icône ni en-tête : le téléphone garde le sien dans le
+   panneau « Options »), après « Exclusion de runes », sur une seule colonne : pré-filtrage, puis
    les interrupteurs (voir
    README.md § Réglages avancés et exclusion de runes). La section n'a ni
    hauteur fixe ni place réservée : elle suit son contenu. **Pré-filtrage par emplacement**, en

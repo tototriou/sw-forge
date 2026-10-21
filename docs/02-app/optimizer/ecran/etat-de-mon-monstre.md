@@ -19,7 +19,8 @@
    comme le schéma de l'utilisateur — « Lead », l'icône, la liste de la stat
    et, sous elle, celle du pourcentage, sans boîte autour, la liste de la
    stat entière (elle était coupée, « Aucu », dans l'ancienne carte de
-   170 px) —, le motif d'un lead inactif et les rappels. Son aide ne nomme ni les sets d'aura ni ce qui décrit le
+   170 px) —, le motif d'un lead inactif (seulement s'il existe) et les
+   rappels. Son aide ne nomme ni les sets d'aura ni ce qui décrit le
    combat. Les sets d'aura des autres monstres ont leur propre carte, en
    tête de la colonne « Aura, exclusion, avancés »
    ([Sets d'aura des autres monstres](#sets-daura-des-autres-monstres)).
@@ -88,9 +89,11 @@
 
    Pour un membre lié, le menu montre le **lead effectif**, ou « Aucun » avec
    son motif si le lead n’agit pas sur lui. Le type et la valeur changent le
-   lead partagé ; portée et élément se règlent dans le dialogue d’équipe. Le
-   motif a une place réservée sous les deux groupes, au bureau comme au
-   téléphone. ⚠️ **Aucune phrase d’explication du lead d’équipe, et jamais le
+   lead partagé ; portée et élément se règlent dans le dialogue d’équipe. Au
+   téléphone, le motif a une place réservée sous les deux groupes ; au
+   bureau, il ne paraît que s’il existe, sous le lead, sans place réservée
+   (décision de l’utilisateur) : le lead ne bouge pas, seuls les rappels
+   dessous descendent. ⚠️ **Aucune phrase d’explication du lead d’équipe, et jamais le
    motif « contenu de combat de la liste non défini »** (décision de
    l’utilisateur : « Je ne veux jamais le voir ») : la carte filtre ce motif
    (`motifLeadAffiche`, equipesOptimizer.ts), que le repère ⚠ de la liste et

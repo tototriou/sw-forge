@@ -192,10 +192,13 @@ commune :
 1. **la liste de travail**, première section du panneau des essentiels
    (`ListeDeTravailBureau`) : la rangée de « Liste active », que termine
    « Importer une équipe » ([../feat-import-equipes.md](../feat-import-equipes.md)),
-   puis la carte de la liste, dont la rangée du titre porte « Ajouter un
-   monstre à la liste » (sans liste active ; avec une liste, « Monstres de
-   « … » » et son compte), « Rechercher un monstre… » et le monstre actif
-   (portrait et nom). ⚠️ **La place du monstre actif est réservée, vide ou
+   son titre au style de « Critères de recherche » (au téléphone, une
+   étiquette) et son bouton qui nomme la liste (« nom - contenu ») ; puis
+   la carte de la liste, dont la rangée du titre porte « Ajouter un
+   monstre / à la liste », toujours, sur deux lignes, sans le nom de la
+   liste ni son compte (« Liste active » la nomme juste au-dessus ; au
+   téléphone, le titre reste « Monstres de « … » » et son compte),
+   « Rechercher un monstre… » et le monstre actif (portrait et nom). ⚠️ **La place du monstre actif est réservée, vide ou
    non** (132 px) : choisir un monstre ne déplace ni le champ ni la liste.
    Les membres prennent leur hauteur jusqu'à 308 px, comme au téléphone,
    puis défilent (décision de l'utilisateur à l'arrêt 4 : plus haute que

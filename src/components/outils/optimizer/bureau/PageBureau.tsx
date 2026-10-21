@@ -348,7 +348,13 @@ export default function PageBureau(props: PageBureauProps) {
   return (
     <div
       ref={racine}
-      className="@container"
+      // ⚠️ **Marges de 16 px à gauche et à droite, au lieu des 24 de l'app** :
+      // la page empiète de 8 px de chaque côté sur le rembourrage de la page
+      // (pleine page) ou du volet, sans toucher aux autres pages ni au
+      // téléphone (décision de l'utilisateur : la place va aux colonnes). Le
+      // conteneur gagne ces 16 px : à fenêtre égale, chaque seuil est atteint
+      // 16 px plus tôt.
+      className="-mx-2 @container"
       style={style}
       data-agencement={largeur != null ? agencement : undefined}
       // La page tient dans la partie visible (A2, A3) : sans pied de page de

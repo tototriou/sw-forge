@@ -1,6 +1,6 @@
 # Harnais de diagnostic — extensions
 
-Voir aussi : mode-d-emploi.md, scripts.md, ../invariants.md, ../verification.md.
+Voir aussi : mode-d-emploi.md, scripts.md, ../invariants.md, ../verification/README.md.
 
 Ce fichier prolonge [mode-d-emploi.md](mode-d-emploi.md), le mode d'emploi (sources,
 phases, palier 1, suivi d'une rune, complétude, temps, régime) : ce que le

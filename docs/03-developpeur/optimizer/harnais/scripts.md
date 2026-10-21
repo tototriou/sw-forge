@@ -1,6 +1,6 @@
 # Harnais de diagnostic — cas connus et scripts voisins
 
-Voir aussi : mode-d-emploi.md, extensions.md, ../verification.md.
+Voir aussi : mode-d-emploi.md, extensions.md, ../verification/README.md.
 
 [mode-d-emploi.md](mode-d-emploi.md) décrit un run du harnais,
 [extensions.md](extensions.md) ses instruments et son

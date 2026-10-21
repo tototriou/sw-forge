@@ -1,6 +1,6 @@
 # Algorithme (résumé fonctionnel)
 
-Voir aussi : pipeline.md, artefacts.md, ../../../02-app/optimizer/ (feat-interruption.md), ../verification.md, ../invariants.md.
+Voir aussi : pipeline.md, artefacts.md, ../../../02-app/optimizer/ (feat-interruption.md), ../verification/README.md, ../invariants.md.
 
 Calcul pur dans `src/lib/runeBuildOptim.ts`, exécuté dans un Web Worker
 (`src/workers/runeBuildOptim.worker.ts`) pour ne jamais geler l'interface.

@@ -179,7 +179,7 @@ suit s'applique intégralement.
 incomplet.
 
 ⚠️ Le moteur n'a ni budget de paires ni escalade (seules bornes :
-[docs/03-developpeur/optimizer/verification.md § Benchmarks](../../../docs/03-developpeur/optimizer/verification.md#benchmarks)) :
+[docs/03-developpeur/optimizer/verification/mesures.md § Benchmarks](../../../docs/03-developpeur/optimizer/verification/mesures.md#benchmarks)) :
 `pairBuckets(prepared, bucketsA, bucketsB)` prend trois arguments, et un
 appel nu explore exactement ce que la production explore. Un script qui
 ajoute une escalade ou un budget de paires est infidèle.

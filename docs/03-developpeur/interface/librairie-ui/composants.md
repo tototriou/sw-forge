@@ -166,16 +166,28 @@ La liste du système (fond blanc, survol bleu) ignorait les deux thèmes.
   ne change plus la valeur à l'aveugle, ce qui comptait pour les listes qui
   agissent à chaque `change`. Dans la liste : flèches, Début / Fin, Page
   préc. / suiv., recherche par lettres, Entrée ou Espace choisit, Échap ferme
-  sans fermer le dialogue ou le panneau qui la porte, Tab ferme sans choisir et
-  repart du `<select>`. Un clic dehors ferme aussi.
+  sans fermer le dialogue ou le panneau qui la porte. Un clic dehors ferme
+  aussi.
+- **Tab parcourt la liste ouverte**, comme les boutons des principales
+  imposées : ouverte à la souris, le premier Tab cercle la valeur retenue ;
+  ensuite Tab passe à l'entrée suivante, Maj+Tab à la précédente (les entrées
+  désactivées sont sautées). Après la dernière, Tab ferme sans choisir et
+  continue au contrôle qui suit le `<select>` ; avant la première, Maj+Tab
+  revient au `<select>`, liste ouverte — Tab ou une flèche y rentre, Échap,
+  Entrée ou Espace la ferme, Maj+Tab la ferme et continue avant lui. C'est le
+  parcours du `SelecteurMultiple`, dont le déclencheur précède les options.
+  L'entrée atteinte porte l'anneau de focus des boutons (1 px de braise
+  lisible, détaché de 1 px, collé à la bordure de la valeur retenue).
 - **Lecteurs d'écran** : la liste ouverte prend le focus, `role="listbox"`,
   l'entrée active par `aria-activedescendant`, chaque entrée `role="option"`
   et `aria-selected` ; le `<select>` porte `aria-expanded` et
   `aria-controls` tant qu'elle est ouverte.
-- ⚠️ **Au doigt, la liste reste celle du système** : un appui tactile ouvre le
-  sélecteur natif du téléphone, fait pour le pouce. C'est le geste qui décide
-  (`pointerType`), pas la largeur de l'écran. Un navigateur sans l'API
-  `popover` garde aussi la liste native.
+- ⚠️ **Au doigt aussi, la liste est celle de la charte** : la roue ou la
+  feuille du système ignorait les deux thèmes comme la liste du bureau. Ses
+  entrées montent à 40 px sous `(pointer: coarse)` (`compact:h-10`, la cible
+  tactile de [deux-formats.md](../deux-formats.md)) ; le champ fermé ne change
+  pas (« LEAD » du speed tuning 125 × 40 au téléphone). Seul un navigateur
+  sans l'API `popover` garde la liste native.
 - ⚠️ **Couche supérieure** (`popover`), en `position: fixed` sur la boîte du
   `<select>` : ni un `overflow` d'ancêtre (les colonnes qui défilent de
   l'Optimizer) ni un dialogue en `z-70` ne la coupent. Elle reste pourtant

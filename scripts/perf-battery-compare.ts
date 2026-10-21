@@ -125,7 +125,8 @@ function runCaseAt(dir: string, idx: number, label: 'nouveau' | 'ancien'): Promi
         reject(new Error(`(${label}) sortie ${code} : ${err.slice(0, 500)}`));
         return;
       }
-      resolvePromise(JSON.parse(out));
+      try { resolvePromise(JSON.parse(out)); }
+      catch (e) { reject(e); }
     });
   });
 }

@@ -1,4 +1,5 @@
-import { useState, type RefObject } from 'react';
+import { useContext, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { SetDeplieContext } from './setDeplie';
 import SetComboPicker from '../../SetComboPicker';
 import RuneIcon from '../../../RuneIcon';
 import { TitreCriteresRecherche } from '../CriteresRecherche';
@@ -31,11 +32,34 @@ export interface SetDeRunesCompactProps {
 // déjà la hauteur d'un jeton, et le premier set choisi ne fait plus descendre
 // la grille sous le pointeur.
 //
+// ⚠️ **Déplié ou compact, selon la place** : la page (`SetDeplieContext`) dit
+// `deplie` quand la première colonne tient sans défiler une fois la grille
+// du téléphone dépliée à la place de la liste. Elle décide sur la hauteur
+// disponible, jamais sur un clic ni sur ce qui est choisi : la forme ne change
+// donc pas sous le pointeur. Le set mesure ici, sur deux copies invisibles
+// (liste fermée, grille vide), ce que le dépli ajoute (`reporterEcart`) —
+// indépendant des sets choisis, donc sans oscillation.
+//
 // ⚠️ **La liste reste ouverte pendant la composition** (après un set de 4, il
 // reste un set de 2 à choisir) : elle ne se ferme d'elle-même qu'au choix qui
 // remplit les six emplacements, sinon au clic ailleurs ou à Échap.
 export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvalid, comboSets, onChangeSets }: SetDeRunesCompactProps) {
   const [ouvert, setOuvert] = useState(false);
+  const page = useContext(SetDeplieContext);
+  const copieGrille = useRef<HTMLDivElement>(null);
+  const copieListe = useRef<HTMLDivElement>(null);
+  const reporterEcart = page?.reporterEcart;
+  useLayoutEffect(() => {
+    const grille = copieGrille.current, liste = copieListe.current;
+    if (!reporterEcart || !grille || !liste || typeof ResizeObserver === 'undefined') return;
+    const mesurer = () => reporterEcart(grille.getBoundingClientRect().height - liste.getBoundingClientRect().height);
+    mesurer();
+    const obs = new ResizeObserver(mesurer);
+    obs.observe(grille);
+    obs.observe(liste);
+    return () => obs.disconnect();
+  }, [reporterEcart]);
+  const deplie = page?.deplie === true;
   const noms = comboSets.map((key) => RUNE_SETS.find((s) => s.key === key)?.label ?? key);
   const changer = (next: string[]) => {
     onChangeSets(next);
@@ -56,6 +80,9 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
             <span className="text-micro tabular-nums text-ink-dim">{setsCost(comboSets)}/6 runes</span>
           )}
         </div>
+        {deplie ? (
+          <div className="max-w-md"><SetComboPicker sets={comboSets} onChange={onChangeSets} reserverJetons /></div>
+        ) : (
         <SelecteurMultiple
           libelle="Set de runes recherché"
           vide="Aucun"
@@ -76,7 +103,21 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
           onOuvertChange={setOuvert}
           surface={<SetComboPicker sets={comboSets} onChange={changer} reserverJetons />}
         />
+        )}
       </div>
+      {/* Les deux copies invisibles de la mesure : hauteur nulle, hors de
+          l'arbre d'accessibilité, sans focus ni clic (`invisible`). Leur
+          largeur est celle de la vraie, la section. */}
+      {page && (
+        <div aria-hidden className="pointer-events-none h-0 overflow-hidden">
+          <div className="invisible">
+            <div ref={copieGrille} className="max-w-md"><SetComboPicker sets={[]} onChange={() => {}} reserverJetons /></div>
+            <div ref={copieListe}>
+              <SelecteurMultiple libelle="Set de runes recherché" vide="Aucun" surface={null} />
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

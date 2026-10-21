@@ -3,7 +3,6 @@ import OngletsColonnes from './OngletsColonnes';
 import { BANDE, BANDE_FIXE, PANNEAU, SECTIONS, coinsDuPanneau } from './panneau';
 import { type PartieObjectif } from './ObjectifEtRechercherBureau';
 import { SetDeplieContext } from './setDeplie';
-import { AidesHorsDeLaBoite } from '../../../HelpPopover';
 import {
   agencementBureau, basculerColonne, colonnesAffichees, colonnesParDefaut, deuxColonnesTiennent, formeObjectifBureau, ouvrirColonne,
   type ColonneRepliable, type ColonnesOuvertes, type FormeObjectifBureau,
@@ -75,6 +74,32 @@ import {
 // Ce qui reste libre au bas de la partie visible, sous les panneaux.
 const MARGE_BAS = 16;
 
+// Ce que la page reprend, à gauche et à droite, sur le rembourrage de ce qui
+// la porte (`-mx-3`, voir la racine).
+const EMPIETEMENT = 12;
+
+// L'empiètement possible de chaque côté : la place entre le contenu du parent
+// et le bord de ce qui défile (sa boîte de rembourrage), ou de la fenêtre,
+// au plus `EMPIETEMENT`. ⚠️ Sans rembourrage autour (la page montée seule), la
+// page empiéterait hors de la partie visible et ferait défiler en largeur.
+function empietement(el: HTMLElement, defile: HTMLElement | null): { gauche: number; droite: number } {
+  const parent = el.parentElement;
+  if (!parent) return { gauche: 0, droite: 0 };
+  const r = parent.getBoundingClientRect();
+  const s = getComputedStyle(parent);
+  const contenuG = r.left + (parseFloat(s.borderLeftWidth) || 0) + (parseFloat(s.paddingLeft) || 0);
+  const contenuD = r.right - (parseFloat(s.borderRightWidth) || 0) - (parseFloat(s.paddingRight) || 0);
+  let bordG = 0;
+  let bordD = document.documentElement.clientWidth;
+  if (defile) {
+    const d = defile.getBoundingClientRect();
+    bordG = d.left + defile.clientLeft;
+    bordD = bordG + defile.clientWidth;
+  }
+  const borne = (v: number) => Math.max(0, Math.min(EMPIETEMENT, Math.floor(v)));
+  return { gauche: borne(contenuG - bordG), droite: borne(bordD - contenuD) };
+}
+
 interface Mesure {
   largeur: number | null;
   style: CSSProperties;
@@ -118,7 +143,8 @@ function useHauteurVisible(racine: RefObject<HTMLDivElement>): Mesure {
       // celle que lisent les requêtes de conteneur.
       const largeur = el.getBoundingClientRect().width - (el.offsetWidth - el.clientWidth);
       const agencement = agencementBureau(largeur);
-      let style: CSSProperties = {};
+      const { gauche, droite } = empietement(el, defile);
+      let style: CSSProperties = { marginLeft: `${-gauche}px`, marginRight: `${-droite}px` };
       if (agencement !== 'A1') {
         const haut = el.getBoundingClientRect().top;
         // Le haut de la page dans ce qui défile, défilement retiré ;
@@ -129,6 +155,7 @@ function useHauteurVisible(racine: RefObject<HTMLDivElement>): Mesure {
           : haut + window.scrollY;
         const visible = defile ? defile.clientHeight : window.innerHeight;
         style = {
+          ...style,
           height: `${Math.max(0, Math.round(visible - dessus - MARGE_BAS))}px`,
           marginBottom: `${-Math.round(espaceApres(el, defile))}px`,
           // A2 : aucune colonne n'y va de haut en bas ; la page défile en
@@ -243,12 +270,9 @@ const SECTIONS_COLONNE = '[&>*+*]:ml-2 [&>*+*]:border-l [&>*+*]:border-border-so
 // Une colonne de A3 (essentiels, colonne repliable, colonne de droite) : son
 // contenu dans une boîte intérieure, mesurée. ⚠️ **Elle ne défile seule
 // (`overflow-y: auto`) que quand son contenu dépasse sa hauteur**
-// (`data-defile`) : une boîte qui défile rogne les flottants posés en
-// `absolute` dedans (menus), qu'il vaut mieux laisser déborder tant que rien
-// n'oblige à défiler. Hors A3, aucune hauteur imposée : jamais.
-// ⚠️ **Les aides en sortent toujours** (`AidesHorsDeLaBoite`, HelpPopover.tsx) :
-// une bulle de 340 px ancrée près du bord droit déborde de la colonne même
-// quand elle tient en hauteur ; en portail, elle s'affiche en entier.
+// (`data-defile`). Les flottants posés dedans (menus, listes, aides) n'en
+// dépendent pas : ils passent en couche supérieure (`Flottant`), qu'aucune
+// boîte qui défile ne rogne. Hors A3, aucune hauteur imposée : jamais.
 // ⚠️ **Une colonne qui défile garde les coins arrondis de son panneau** : la
 // boîte est rognée aux coins du haut du panneau (`coinsDuPanneau`), pour que
 // le contenu qui passe sous la bande ne s'y voie pas.
@@ -298,7 +322,7 @@ function Colonne({ className, contenu, children, surMesure, ...donnees }: {
       className={className}
     >
       <div ref={interieur} className={contenu}>
-        <AidesHorsDeLaBoite.Provider value>{children}</AidesHorsDeLaBoite.Provider>
+        {children}
       </div>
     </div>
   );
@@ -417,7 +441,9 @@ export default function PageBureau(props: PageBureauProps) {
       // (pleine page) ou du volet, sans toucher aux autres pages ni au
       // téléphone (décision de l'utilisateur : la place va aux colonnes). Le
       // conteneur gagne ces 24 px : à fenêtre égale, chaque seuil est atteint
-      // 24 px plus tôt.
+      // 24 px plus tôt. `-mx-3` vaut au premier rendu ; la mesure
+      // (`empietement`) la ramène ensuite à ce que le rembourrage laisse
+      // réellement, pour ne jamais déborder de la partie visible.
       className="-mx-3 @container"
       style={style}
       data-agencement={largeur != null ? agencement : undefined}

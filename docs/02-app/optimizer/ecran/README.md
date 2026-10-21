@@ -114,14 +114,17 @@ son panneau et sa barre, au bord de la page : ils sont pris sur les marges
 de la page (voir plus bas), et son panneau est, à fenêtre égale, 12 px plus
 large qu'avec des marges de 24.
 
-⚠️ **Marges de la page : 16 px à gauche et à droite**, au lieu des 24 de
+⚠️ **Marges de la page : 12 px à gauche et à droite**, au lieu des 24 de
 l'app, en pleine page comme dans un volet de l'écran partagé : la page de
-bureau empiète de 8 px de chaque côté sur le rembourrage de la page ou du
-volet (`-mx-2` à sa racine, `PageBureau.tsx`), sans toucher aux autres
+bureau empiète de 12 px de chaque côté sur le rembourrage de la page ou du
+volet (`-mx-3` à sa racine, `PageBureau.tsx`), sans toucher aux autres
 pages ni au téléphone. Décision de l'utilisateur : la place va aux colonnes.
-Le conteneur gagne ces 16 px : à fenêtre égale, il fait 16 px de plus, et
+Le conteneur gagne ces 24 px : à fenêtre égale, il fait 24 px de plus, et
 chaque seuil (exprimé en largeur de conteneur, inchangé) est atteint pour
-une fenêtre ou un volet 16 px plus étroit.
+une fenêtre ou un volet 24 px plus étroit. L'empiètement se mesure : jamais
+plus que le rembourrage réellement laissé jusqu'au bord de ce qui défile ou
+de la fenêtre — la page montée sans rembourrage autour ne déborde pas en
+largeur.
 
 Les largeurs ci-dessus sont des **places** (`LARGEURS_BUREAU`,
 src/lib/optimizerColonnes.ts), d'où se calculent les seuils : un panneau
@@ -394,10 +397,9 @@ d'adresse retranchés : ≈ 1 920 × 940 sur un écran de 1 920 × 1 080,
   16 px des marges (1 640 px à 1 920 de large au lieu des 1 614 du tableau
   des repères).
 - ⚠️ **Les autres colonnes ne défilent que si leur contenu dépasse** leur
-  hauteur : une boîte qui défile rogne les menus posés dedans, qu'il vaut
-  mieux laisser déborder tant que rien n'oblige à défiler. Les aides
-  (`HelpPopover`) en sortent toujours, en portail : une bulle ancrée près du
-  bord droit d'une colonne s'affiche en entier.
+  hauteur. Les menus, les listes et les aides (`HelpPopover`) posés dedans
+  n'en dépendent pas : en couche supérieure (`Flottant`), une bulle ancrée
+  près du bord droit d'une colonne qui défile s'affiche en entier.
 - **A1** : la page défile dans la fenêtre (ou le volet), avec le pied de page ;
   seule la barre fine du bloc est collée au bas de la partie visible.
 

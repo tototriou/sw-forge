@@ -82,28 +82,46 @@ refonte : des cartes côte à côte se lisaient comme une mosaïque aérée.
 Écarts **serrés dans un panneau** (8 px de rembourrage, 8 px de part et
 d'autre d'un trait), **larges entre deux** : 24 px. Classes communes :
 `src/components/outils/optimizer/bureau/panneau.ts` (`PANNEAU`, `SECTIONS`,
-`LISERE`, `BANDE_FIXE`).
+`BANDE`, `BANDE_FIXE`).
 
-⚠️ **Une bande braise en haut de chaque panneau de colonne** : 3 px
-(ombre intérieure `accent`), en plus du contour de 1 px, pour distinguer
-les colonnes, que le seul panneau ne séparait pas assez (décision de
-l'utilisateur). C'est le seul cumul admis avec le contour
+⚠️ **Le contour du haut d'un panneau de colonne est une bande braise de
+3 px**, à la place du trait de 1 px (braise vive, `--accent`), aux coins
+arrondis du panneau, pour distinguer les colonnes, que le seul panneau ne
+séparait pas assez (décision de l'utilisateur). C'est la seule exception à
+la règle du contour de 1 px
 ([contours.md](../../../03-developpeur/interface/librairie-ui/contours.md)) :
-une section, un bloc posé dans une colonne ou une carte n'en porte pas. En
-A1 et A2, où la page défile, la bande est sur le panneau (`LISERE`). En A3,
-où chaque colonne défile seule, elle **reste en haut de sa colonne** quand
-son contenu défile : c'est le pseudo-élément `::before` du panneau, collé
-(`sticky`) au haut de la boîte qui défile, 1 px sous son bord (`BANDE_FIXE`) ;
-même dessin, aux coins du panneau, au-dessus du contenu, sans prendre de
-place ni recevoir de clic. Une colonne superposée garde son ombre de
-flottant.
+une section, un bloc posé dans une colonne ou une carte n'en porte pas. Le
+rembourrage du haut du panneau perd les 2 px que le contour gagne : rien ne
+bouge dedans. En A1 et A2, où la page défile, la bande est le contour du
+panneau (`BANDE`). En A3, où chaque colonne défile seule, elle **reste en
+haut de sa colonne, arrondie**, quand son contenu défile : c'est le
+pseudo-élément `::before` du panneau, collé (`sticky`) au pixel 0 de la
+boîte qui défile (`BANDE_FIXE`), le même dessin que le haut du panneau
+(bande, contours de côté, coins), au-dessus du contenu, sans prendre de
+place ni recevoir de clic. Le panneau, lui, ne la dessine plus en A3
+(contour du haut transparent). Une colonne qui défile est rognée aux coins
+du haut de son panneau (`coinsDuPanneau`, un `clip-path` fixe au
+défilement) : le contenu qui passe sous la bande ne se voit pas dans les
+coins, où l'on voit ce qui est derrière la colonne, comme au repos. Une
+colonne superposée garde son ombre de flottant.
 
 ⚠️ **La barre de défilement d'une colonne se lit comme la sienne** : en A3,
 la boîte qui défile s'arrête à sa barre (le panneau, 4 px, la barre de
 10 px), et le reste de l'écart de 24 px jusqu'au panneau suivant est une
 marge, hors de la boîte. Une barre au bord de la place se collait au
-panneau suivant. La colonne de droite, la dernière, réserve sa barre contre
-son panneau, au bord de la page.
+panneau suivant. La colonne de droite, la dernière, garde aussi 4 px entre
+son panneau et sa barre, au bord de la page : ils sont pris sur les marges
+de la page (voir plus bas), et son panneau est, à fenêtre égale, 12 px plus
+large qu'avec des marges de 24.
+
+⚠️ **Marges de la page : 16 px à gauche et à droite**, au lieu des 24 de
+l'app, en pleine page comme dans un volet de l'écran partagé : la page de
+bureau empiète de 8 px de chaque côté sur le rembourrage de la page ou du
+volet (`-mx-2` à sa racine, `PageBureau.tsx`), sans toucher aux autres
+pages ni au téléphone. Décision de l'utilisateur : la place va aux colonnes.
+Le conteneur gagne ces 16 px : à fenêtre égale, il fait 16 px de plus, et
+chaque seuil (exprimé en largeur de conteneur, inchangé) est atteint pour
+une fenêtre ou un volet 16 px plus étroit.
 
 Les largeurs ci-dessus sont des **places** (`LARGEURS_BUREAU`,
 src/lib/optimizerColonnes.ts), d'où se calculent les seuils : un panneau
@@ -223,7 +241,12 @@ Aux largeurs repères, la fenêtre se réduit au contenu de l'Optimizer par
 les constantes de [volets.ts](src/lib/volets.ts) : barre latérale dépliée
 248 px, marges de page 2 × 24 ; en écran partagé, zone des volets 2 × 12,
 séparateur 12 au milieu, volet 50 ; puis la barre de défilement de 10 px
-que dessinent Chromium et Electron sous Windows.
+que dessinent Chromium et Electron sous Windows. La page de bureau reprend
+8 px de chaque côté sur les marges de page (marges de 16, voir
+[Panneaux et sections](#panneaux-et-sections)) : son conteneur fait 16 px
+de plus que la valeur du tableau (774, 1 094, 1 246, 1 630, 2 270), sans
+changer l'agencement d'aucun repère. Au format bureau, le conteneur fait
+donc au moins 744 px (728 de contenu, plus 16).
 
 | Repère | Contenu de l'Optimizer | Agencement |
 | --- | --- | --- |
@@ -364,10 +387,12 @@ d'adresse retranchés : ≈ 1 920 × 940 sur un écran de 1 920 × 1 080,
 - ⚠️ **La colonne de droite réserve sa barre de défilement**
   (`scrollbar-gutter: stable`), comme la page en A2 : les résultats qui
   arrivent ne la rétrécissent pas, et « Rechercher » ne bouge pas sous le
-  clic. Le bloc étroit y perd ces 10 px : 337 px à son seuil (colonne de
-  droite de 972 px), sans débordement mesuré. En contrepartie, la fenêtre
-  n'a plus de barre en A2 et A3 : le conteneur gagne 10 px à fenêtre égale
-  (1 624 px à 1 920 de large au lieu des 1 614 du tableau des repères).
+  clic. Le bloc étroit y perd ces 10 px et les 4 px entre le panneau et
+  la barre : 333 px à son seuil (colonne de droite de 972 px), pour 340
+  déclarés, sans débordement mesuré. En contrepartie, la fenêtre n'a plus
+  de barre en A2 et A3 : le conteneur gagne 10 px à fenêtre égale, plus les
+  16 px des marges (1 640 px à 1 920 de large au lieu des 1 614 du tableau
+  des repères).
 - ⚠️ **Les autres colonnes ne défilent que si leur contenu dépasse** leur
   hauteur : une boîte qui défile rogne les menus posés dedans, qu'il vaut
   mieux laisser déborder tant que rien n'oblige à défiler. Les aides

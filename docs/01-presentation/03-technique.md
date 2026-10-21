@@ -120,6 +120,9 @@ Source de vérité du rendu : [03-developpeur/interface/](../03-developpeur/inte
   pas — `formule-sans-calcul` ne regarde que les sorts actifs, `mot-cle-sans-effet` trois mots
   seulement, rien n'est comparé au jeu.
 - `scripts/benchmark-*.mjs` — mesures de l'Optimizer.
+- `scripts/lib/worktreeMesure.ts` — création et nettoyage contrôlés des worktrees
+  temporaires de comparaison, sans suivre les jonctions au retrait ; contrat dans
+  [les scripts de diagnostic](../03-developpeur/optimizer/harnais/scripts.md#worktrees-de-comparaison).
 - `scripts/lib/relicOracle.ts` — oracle de contrôle de la dimension relique : N recherches du
   moteur réel, une par principale éligible distincte, et point d'entrée CLI pour les mesures.
 - `src/data/releases.ts` — le journal des versions, lu par l'accueil **et** la page Nouveautés.

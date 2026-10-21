@@ -1,3 +1,4 @@
+import { testWorktreeMesureCycle, testWorktreeMesureRefus } from './worktree-mesure.test';
 // Point d'entrée des vérifications — `npm test`.
 //
 // ⚠️ L'ORDRE compte un peu : `persistance` installe un faux `localStorage`
@@ -903,6 +904,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelephoneOptimizerPointSansMemoireListeSupprimee', testRenduTelephoneOptimizerPointSansMemoireListeSupprimee],
   ['testOptimizerEquipesHookModificationAvecOrpheline', testOptimizerEquipesHookModificationAvecOrpheline],
   ['testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine', testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine],
+  ['testWorktreeMesureCycle', testWorktreeMesureCycle],
+  ['testWorktreeMesureRefus', testWorktreeMesureRefus],
   ['testSelectionFichiersInventaire', testSelectionFichiersInventaire],
   ['testSelectionFichiersChargeur', testSelectionFichiersChargeur],
   ['testSelectionFichiersCasReels', testSelectionFichiersCasReels],

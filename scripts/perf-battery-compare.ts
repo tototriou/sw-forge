@@ -46,10 +46,8 @@
 //                   retenu de chaque côté séparément (même principe que
 //                   perf-battery.ts).
 
-import { existsSync, unlinkSync, symlinkSync, linkSync, lstatSync } from 'fs';
-import { execSync, spawn } from 'child_process';
-import { join } from 'path';
-import { tmpdir } from 'os';
+import { spawn } from 'child_process';
+import { creerWorktreeMesure, type WorktreeMesure } from './lib/worktreeMesure';
 import { CASES } from './lib/perfShared';
 
 const positional = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -63,8 +61,8 @@ const caseIndices = caseArg ? [Number(caseArg.slice('--case='.length))] : CASES.
 const repeats = Number(process.argv.find((a) => a.startsWith('--repeats='))?.split('=')[1] ?? 1);
 
 const MAIN_DIR = process.cwd();
-const SAFE_REF = ref.replace(/[^a-zA-Z0-9_.-]/g, '_');
-const WORKTREE_DIR = join(tmpdir(), `swblacksmith-compare-${SAFE_REF}-${process.pid}`);
+let mesure: WorktreeMesure | null = null;
+let WORKTREE_DIR = '';
 
 // ⚠️ Liste EXPLICITE, jamais un motif — voir le piège n°2 en tête de
 // fichier. Alignée sur .gitignore (`tototriou-*.json`, `*Enzo-*.json`) et
@@ -72,82 +70,18 @@ const WORKTREE_DIR = join(tmpdir(), `swblacksmith-compare-${SAFE_REF}-${process.
 // utilise déjà pour identifier les exports réels du développeur.
 const ACCOUNT_FILES = ['tototriou-12889591.json', 'ß☆Enzo-6399149.json'];
 
-function isTrackedInWorktree(name: string): boolean {
-  try {
-    execSync(`git -C "${WORKTREE_DIR}" ls-files --error-unmatch -- "${name}"`, { stdio: 'ignore' });
-    return true; // exit 0 = trouvé dans l'index = SUIVI
-  } catch {
-    return false; // exit non nul = pas suivi
-  }
-}
-
-// Lie UN SEUL chemin, jamais par motif — et REFUSE d'écraser un fichier
-// suivi par git dans le worktree (piège n°2). Chaque appel est nommé
-// explicitement par l'appelant, pas dérivé d'une liste globbée.
-function linkIfSafe(name: string) {
-  const source = join(MAIN_DIR, name);
-  if (!existsSync(source)) {
-    console.log(`  (absent du répertoire principal, ignoré) ${name}`);
-    return;
-  }
-  if (isTrackedInWorktree(name)) {
-    console.warn(`  ⚠️ ${name} est SUIVI par git dans le worktree — refus de l'écraser par un lien. Ignoré.`);
-    return;
-  }
-  const dest = join(WORKTREE_DIR, name);
-  if (lstatSync(source).isDirectory()) {
-    // Jonction, pas un lien symbolique de répertoire : fonctionne sur
-    // Windows SANS privilège élevé (contrairement à un vrai symlink de
-    // dossier). `node_modules` est le seul cas concerné ici.
-    symlinkSync(source, dest, 'junction');
-    console.log(`  lié (jonction) : ${name}`);
-    return;
-  }
-  // ⚠️ Un lien symbolique de FICHIER exige un privilège élevé sur Windows
-  // (EPERM sans droits admin/Mode développeur — rencontré en le testant).
-  // Repli sur un lien PHYSIQUE (même volume, toujours le cas ici — tout
-  // sous le même profil utilisateur) : identique en lecture seule, seul
-  // usage dont ce script a besoin, et ne demande aucune élévation.
-  try {
-    symlinkSync(source, dest, 'file');
-    console.log(`  lié (symlink) : ${name}`);
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== 'EPERM') throw err;
-    linkSync(source, dest);
-    console.log(`  lié (lien physique — symlink refusé sans privilège) : ${name}`);
-  }
-}
-
 function setupWorktree() {
-  console.log(`Création du worktree ${WORKTREE_DIR} (${ref})…`);
-  execSync(`git worktree add "${WORKTREE_DIR}" ${ref}`, { stdio: 'inherit' });
-  console.log('\nLiaison des fichiers gitignorés nécessaires (piège n°1 — un par un, piège n°2 — jamais par motif) :');
-  linkIfSafe('node_modules');
-  for (const f of ACCOUNT_FILES) linkIfSafe(f);
+  mesure = creerWorktreeMesure(MAIN_DIR, ref);
+  WORKTREE_DIR = mesure.dossier;
+  console.log(`Worktree de comparaison : ${WORKTREE_DIR} (${ref})`);
+  for (const nom of ['node_modules', ...ACCOUNT_FILES]) {
+    const resultat = mesure.lier(nom);
+    console.log(`  ${nom} : ${resultat === 'lie' ? 'lié' : resultat === 'suivi' ? 'suivi, conservé sans lien' : 'absent, ignoré'}`);
+  }
 }
 
 function teardownWorktree() {
-  console.log(`\nNettoyage du worktree ${WORKTREE_DIR}…`);
-  // ⚠️ Retire les liens EXPLICITEMENT, un par un, AVANT `git worktree
-  // remove` — `unlinkSync` retire le lien lui-même, ne suit JAMAIS la
-  // cible (contrairement à un `rm -rf` naïf sur un dossier qui contiendrait
-  // un lien vers `node_modules` : selon l'outil, un retrait récursif peut
-  // suivre le lien et supprimer l'ORIGINAL). Sécurité, pas juste propreté.
-  for (const name of ['node_modules', ...ACCOUNT_FILES]) {
-    const p = join(WORKTREE_DIR, name);
-    if (existsSync(p)) {
-      try {
-        unlinkSync(p);
-      } catch {
-        /* pas un lien (jamais créé, ou déjà absent) — rien à faire */
-      }
-    }
-  }
-  try {
-    execSync(`git worktree remove "${WORKTREE_DIR}" --force`, { stdio: 'inherit' });
-  } catch {
-    console.warn(`⚠️ Échec du retrait automatique du worktree — à nettoyer à la main : git worktree remove "${WORKTREE_DIR}" --force`);
-  }
+  mesure?.retirer();
 }
 
 interface SideResult {
@@ -181,6 +115,7 @@ function runCaseAt(dir: string, idx: number, label: 'nouveau' | 'ancien'): Promi
   return new Promise((resolvePromise, reject) => {
     const cmd = `npx tsx scripts/perf-battery.ts --case=${idx} --bundle-dir=compare-${process.pid}-${label}`;
     const child = spawn(cmd, { cwd: dir, shell: true });
+    child.on('error', reject);
     let out = '';
     let err = '';
     child.stdout.on('data', (d) => (out += d));
@@ -210,10 +145,16 @@ async function compareCase(idx: number) {
     // Worker de buildA/buildB, même principe) : vraiment simultanés, pas
     // l'un après l'autre — c'est ce qui fait que les deux subissent les
     // mêmes conditions machine transitoires à cette répétition précise.
-    const [newR, oldR] = await Promise.all([
+    // Même si un bras échoue, attendre l’autre avant de retirer son worktree.
+    const bras = await Promise.allSettled([
       runCaseAt(MAIN_DIR, idx, 'nouveau'),
       runCaseAt(WORKTREE_DIR, idx, 'ancien'),
     ]);
+    const [nouveau, ancien] = bras;
+    if (nouveau.status === 'rejected') throw nouveau.reason;
+    if (ancien.status === 'rejected') throw ancien.reason;
+    const newR = nouveau.value;
+    const oldR = ancien.value;
     newRuns.push(newR);
     oldRuns.push(oldR);
   }

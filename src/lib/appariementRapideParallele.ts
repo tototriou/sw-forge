@@ -24,7 +24,8 @@
 // n'améliore pas son propre morceau ne peut pas améliorer l'état global, donc
 // le rejeu redonne l'état séquentiel exact.
 
-import { Bucket, BuildCandidate, NearMiss, PreparedSearch, SearchParams, SearchResult } from './runeBuildOptim';
+import { BuildCandidate, NearMiss, PreparedSearch, SearchParams, SearchResult } from './runeBuildOptim';
+import { Compartiment, lireCombo, nouvelleVueCombo } from './demiBuildsTypes';
 import {
   CompteursNoyau,
   EntreeQuasiSucces,
@@ -139,12 +140,13 @@ export function erreurDeWorkerEnfant(rappel: (erreur: unknown) => void): (evenem
  * que `totalPairCount` (prédicats de production, `comboAFeasible` par comboA) :
  * la somme des tailles vaut `totalPairCount`, le banc le vérifie.
  */
-export function planifierMorceaux(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[], cible: number): Morceau[] {
+export function planifierMorceaux(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[], cible: number): Morceau[] {
   const morceaux: Morceau[] = [];
   let segments: number[] = [];
   let drapeaux: number[] = [];
   let offset = 0;
   let taille = 0;
+  const vue = nouvelleVueCombo();
   const fermer = () => {
     if (segments.length === 0) return;
     morceaux.push({
@@ -163,7 +165,7 @@ export function planifierMorceaux(prepared: PreparedSearch, bucketsA: Bucket[], 
     const nB = bB.combos.length;
     let aDebut = 0;
     for (let a = 0; a < bA.combos.length; a++) {
-      const ouvert = comboAOuvert(prepared, bA.combos[a], bB);
+      const ouvert = comboAOuvert(prepared, lireCombo(bA, a, vue), bB);
       drapeaux.push(ouvert ? 1 : 0);
       if (ouvert) taille += nB;
       if (taille >= cible) {
@@ -182,8 +184,8 @@ export function planifierMorceaux(prepared: PreparedSearch, bucketsA: Bucket[], 
 export interface OptionsParallele {
   params: SearchParams;
   prepared: PreparedSearch;
-  bucketsA: Bucket[];
-  bucketsB: Bucket[];
+  bucketsA: Compartiment[];
+  bucketsB: Compartiment[];
   /** `totalPairCount` déjà calculé par l'appelant, celui qui a choisi le régime. */
   totalPaires: number;
   travailleurs: number;
@@ -318,8 +320,10 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
     }
   };
 
-  const tampons = () => {
-    const copie = copierCompartiments(ct);
+  const tampons = (dernier: boolean) => {
+    // Le coordinateur ne lit plus ces colonnes après le plan : le dernier
+    // Worker en prend possession, les autres ont une copie indépendante.
+    const copie = dernier ? ct : copierCompartiments(ct);
     return { copie, transfert: tamponsDe(copie) };
   };
   const nbTravailleurs = Math.max(1, Math.min(o.travailleurs, aDistribuer.length));
@@ -357,7 +361,7 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
       return;
     }
     for (let w = 0; w < nbTravailleurs; w++) {
-      const { copie, transfert } = tampons();
+      const { copie, transfert } = tampons(w === nbTravailleurs - 1);
       const p = o.lancer(
         { params: o.params, startedAt: o.startedAt, compartiments: copie, ...(o.forcerValidation ? { forcerValidation: o.forcerValidation } : {}) },
         transfert

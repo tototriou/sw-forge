@@ -50,7 +50,7 @@ import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
 import { drain } from '../scripts/lib/drain';
 import { resoudreConfig } from '../scripts/lib/diagnosticConfig';
 import { configDuProfil, trouverProfil } from '../scripts/lib/diagnosticProfils';
-import { construireMoitiesEnParallele, ensureBuildHalfBundle } from '../scripts/lib/buildHalvesNode';
+import { construireMoitiesObjetsEnParallele, ensureBuildHalfBundle } from '../scripts/lib/buildHalvesNode';
 import { egal, ok, titre } from './outils';
 
 const BASE: BaseStats = { hp: 8000, atk: 500, def: 400, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
@@ -288,7 +288,7 @@ function testBuildsValides() {
 async function testCoquilleNode(pool: RuneDetail[], requirement: BuildRequirement, etages: Map<number, Etage>) {
   const moyen = etages.get(80)!;
   const params = parametres(pool, requirement, 80);
-  const r = await construireMoitiesEnParallele(moyen.p, params, await ensureBuildHalfBundle());
+  const r = await construireMoitiesObjetsEnParallele(moyen.p, params, await ensureBuildHalfBundle());
   ok(empreinte(r.bucketsA) === empreinte(moyen.union.A) && empreinte(r.bucketsB) === empreinte(moyen.union.B),
     'coquille Node (worker_threads de moitié) : la même union que le chemin séquentiel, compartiment par compartiment');
 }
@@ -336,7 +336,7 @@ async function testPlusieursPrereglages(etages: Map<number, Etage>, pool150: Run
   // Le chemin de la coquille Node : vrais worker_threads, Extrême (4 fils par moitié).
   const extreme = p.get(300)!;
   const reference = { A: unionExtremeA, B: moitie(extreme, 'B', [3, 4, 5]) };
-  const r = await construireMoitiesEnParallele(extreme, parametres(pool, requirement, 300), await ensureBuildHalfBundle());
+  const r = await construireMoitiesObjetsEnParallele(extreme, parametres(pool, requirement, 300), await ensureBuildHalfBundle());
   ok(empreinte(r.bucketsA) === empreinte(reference.A) && empreinte(r.bucketsB) === empreinte(reference.B),
     '400 runes · Extrême : coquille Node (8 worker_threads) = construction séparée, compartiment par compartiment, ordre compris');
   // Dans ce fil, fils dans le désordre : ordres `objective` et `potential`, Moyen et Haut.

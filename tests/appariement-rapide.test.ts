@@ -109,7 +109,7 @@ function testFrontieres(): void {
     const totauxVus = new Map<string, Set<number>>();
     const restes = new Set<number>();
     for (let essai = 0; essai < 40; essai++) {
-      const A: MoitieTypee = { debut: Int32Array.of(0, 1), ids: new Float64Array(3), pct: new Int32Array(c.m), flat: new Int32Array(c.m) };
+      const A: MoitieTypee = { debut: Int32Array.of(0, 1), ids: new Float64Array(3), pasPct: c.m, indicesPct: Int8Array.from(c.cles, (_, i) => i), pct: new Int32Array(c.m), flat: new Int32Array(c.m) };
       for (let kk = 0; kk < c.m; kk++) {
         A.pct[kk] = Math.floor(rng() * 60);
         A.flat[kk] = Math.floor(rng() * 300);

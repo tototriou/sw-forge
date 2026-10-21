@@ -2,7 +2,7 @@
 // lancement, pendant de ce que `runeBuildOptim.worker.ts` fait avec ses Web
 // Workers de moitié : un fil par moitié ET par préréglage construit (2 à 8,
 // préréglages emboîtés), par le même orchestrateur
-// (`construireMoitiesEmboitees`).
+// (`construireMoitiesEmboiteesTypees`).
 //
 // ⚠️ **Pourquoi ça ne peut pas rester séquentiel dans un outil de mesure.**
 // Construire A puis B dans le même fil ne fausse pas qu'un affichage : le
@@ -21,7 +21,7 @@
 //
 // ⚠️ **Le travail lui-même n'est PAS dupliqué** : `build-half-worker.ts` est
 // le même fichier que celui de `perf-battery.ts`, qui appelle la vraie
-// construction de production (`construireMoitie`). Ce qui vit ici est
+// construction de production (`construireMoitieTypee`). Ce qui vit ici est
 // uniquement le bundling et le spawn — exactement le découpage retenu pour
 // l'appariement (`appariementRapideNode.ts` vs `lancerTravailleurNavigateur`),
 // où la LOGIQUE est partagée et seule la coquille de plateforme diffère.
@@ -48,7 +48,8 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { build } from 'esbuild';
 import { Bucket, PreparedSearch, SearchParams } from '../../src/lib/runeBuildOptim';
-import { construireMoitiesEmboitees } from '../../src/lib/constructionEmboitee';
+import { construireMoitiesEmboiteesTypees } from '../../src/lib/constructionEmboitee';
+import { CompartimentType, objetsDesCompartiments } from '../../src/lib/demiBuildsTypes';
 // ⚠️ `import type` IMPÉRATIF : `build-half-worker.ts` exécute du code au
 // chargement (`workerData`, `parentPort!`) — c'est un point d'entrée de fil,
 // jamais un module à importer. Même précaution que perf-battery.ts.
@@ -86,8 +87,8 @@ function lancerFil(chemin: string, data: BuildHalfWorkerData): Promise<BuildHalf
 }
 
 export interface MoitiesConstruites {
-  bucketsA: Bucket[];
-  bucketsB: Bucket[];
+  bucketsA: CompartimentType[];
+  bucketsB: CompartimentType[];
   /** Coût INTERNE à chaque fil — diagnostic, jamais la durée de la phase. */
   msA: number;
   msB: number;
@@ -112,7 +113,7 @@ export interface MoitiesConstruites {
 }
 
 /**
- * ⚠️ Reproduit la topologie réelle (`construireMoitiesEmboitees`, le même
+ * ⚠️ Reproduit la topologie réelle (`construireMoitiesEmboiteesTypees`, le même
  * orchestrateur que `runeBuildOptim.worker.ts`) : un fil par moitié ET par
  * préréglage construit (préréglages emboîtés), tous lancés AVANT le premier
  * `await`, donc vraiment concurrents. Les créer dans un `await` successif
@@ -137,7 +138,7 @@ export async function construireMoitiesEnParallele(
   // ⚠️ `combosOrderMode` relayé depuis `params` : sans lui, le fil
   // retomberait sur le défaut interne de la construction et ignorerait
   // silencieusement ce que la recette demandait.
-  const { bucketsA, bucketsB } = await construireMoitiesEmboitees(prepared, params.combosOrderMode, async (requete) => {
+  const { bucketsA, bucketsB } = await construireMoitiesEmboiteesTypees(prepared, params.combosOrderMode, async (requete) => {
     // Le fil du préréglage de la recherche (rang 0), celui qui porte le pool entier.
     const propre = requete.rangPrereglage === 0;
     const r = await lancerFil(chemin, { ...requete, horodaterProgression: horodaterProgression && propre });
@@ -157,4 +158,13 @@ export async function construireMoitiesEnParallele(
     progressionB: b.progression,
     wallMs: performance.now() - t0,
   };
+}
+
+/** Oracle et diagnostics qui lisent encore les runes des HalfCombo. */
+export async function construireMoitiesObjetsEnParallele(
+  ...args: Parameters<typeof construireMoitiesEnParallele>
+): Promise<Omit<MoitiesConstruites, 'bucketsA' | 'bucketsB'> & { bucketsA: Bucket[]; bucketsB: Bucket[] }> {
+  const r = await construireMoitiesEnParallele(...args);
+  return { ...r, bucketsA: objetsDesCompartiments(r.bucketsA, args[0].filtered),
+    bucketsB: objetsDesCompartiments(r.bucketsB, args[0].filtered) };
 }

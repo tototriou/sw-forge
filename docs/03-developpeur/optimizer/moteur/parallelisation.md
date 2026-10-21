@@ -32,13 +32,15 @@ casser : [../invariants.md § Workers](../invariants.md).
 ## Choix du régime
 
 Les moitiés construites, le Worker principal compare l'espace exact à
-parcourir, `totalPairCount(prepared, bucketsA, bucketsB)`, au seuil
+parcourir, `compterPaires(prepared, bucketsA, bucketsB)` (`totalPairCount`
+pour les compartiments objets des outils), au seuil
 `PARALLEL_PAIRING_THRESHOLD` (100 000 000 paires), et vérifie le contrat
 numérique du noyau (`verifierContrat`) : `regimeAppariement` rend le
 parallèle à partir du seuil, contrat tenu ; sinon le séquentiel, dans ce
-Worker. Hors contrat (une valeur non entière, un dépassement, un traceur de
-diagnostic), l'appariement séquentiel retombe sur `pairBuckets` en rendant
-la main ; le coordinateur parallèle, lui, n'a aucun repli et refuse un
+Worker. Hors contrat (une valeur non entière, un dépassement), le séquentiel
+parcourt les colonnes sans saut (`apparierSansSauts`) ; un traceur de
+diagnostic demande `pairBuckets`. Ces générateurs rendent la main ;
+le coordinateur parallèle, lui, n'a aucun repli et refuse un
 appariement hors contrat. Ni le mode exhaustif, ni le filet de temps, ni le
 plafond de candidats n'entrent dans le choix. La construction des moitiés,
 elle, se fait toujours dans des Workers, un par moitié et par préréglage
@@ -108,8 +110,10 @@ combinaison A ouverte face à un compartiment B ouvert, avec les prédicats de
   lève une erreur.
 - Chaque Worker reçoit UNE fois, à son lancement (`InitTravailleur`), les
   paramètres de la recherche tels quels, l'instant de départ global et sa
-  propre copie des compartiments sur tableaux typés (`encoderCompartiments`),
-  dont les tampons sont TRANSFÉRÉS : rien n'est partagé en mémoire.
+  propre jeu de colonnes (`encoderCompartiments`),
+  dont les tampons sont TRANSFÉRÉS : rien n'est partagé en mémoire. Les
+  premiers Workers reçoivent une copie indépendante ; le dernier reçoit
+  l'encodage original, que le coordinateur ne lit plus après le plan.
 - Les morceaux partent ensuite à la demande, `EN_VOL_PAR_TRAVAILLEUR` (2)
   en vol par Worker : le suivant attend déjà quand l'un se termine, et un
   Worker rapide en prend davantage. Un morceau voyage avec ses segments de
@@ -145,6 +149,15 @@ messages d'un Worker et rend un résultat par morceau ; il appelle
 `parcourirMorceau(contexte, morceau)` (`src/lib/appariementRapide.ts`).
 Aucun contact avec la plateforme.
 
+L'initialisation contient seulement les colonnes lues : pour A et B,
+début de chaque compartiment, trois identifiants par demi-build, valeurs
+plates des contraintes, pourcentages des seules contraintes PV/ATQ/DEF
+et leur index ; pour B aussi `W`, tri, permutation, début des blocs,
+minimum et maximum par bloc. Aucun score de rétention, contribution non
+contrainte, compte de set ni potentiel ne traverse ce message. Les
+identifiants permettent de retrouver les runes complètes dans le pool
+préparé du Worker, pour la validation et son repli de référence.
+
 1. `initialiserTravailleur` refait la préparation, `prepareSearch(params)` :
    une `PreparedSearch` porte des fonctions (`totalOf`), que le clonage ne
    transporte pas. Sur les mêmes paramètres, la préparation du Worker
@@ -163,8 +176,8 @@ Aucun contact avec la plateforme.
    son quasi-succès, ses paires traitées et visitées (et, pour chaque
    candidat, les visitées jusqu'à lui), et son issue (`IssueMorceau`) :
    `complet`, `temps`, `plafond`, `limite` (l'arrêt déterministe des tests
-   et du banc) ou `arret`. Le temps se teste à chaque ligne, à chaque paire
-   visitée et à chaque point de passage (`CHECKPOINT_EVERY` paires
+   et du banc) ou `arret`. Le temps se teste à chaque ligne
+   et à chaque point de passage (`CHECKPOINT_EVERY` paires
    TRAITÉES) qu'une ligne franchit, sautée ou non : une suite de lignes
    entièrement sautées ne le contourne pas. Coupé par le temps à un point de
    passage franchi pendant un saut, le morceau compte ses paires traitées
@@ -230,6 +243,14 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
 
 ## Code commun aux deux plateformes
 
+La construction Node du harnais suit aussi le chemin en colonnes :
+`scripts/lib/build-half-worker.ts` appelle `construireMoitieTypee`, puis
+transfère les tampons de `tamponsDesDemiBuilds` au parent.
+`scripts/lib/buildHalvesNode.ts` réunit les rétentions par
+`construireMoitiesEmboiteesTypees`, sans `HalfCombo` intermédiaire.
+L'adaptation objet est explicite pour les consommateurs d'outillage
+(`construireMoitiesObjetsEnParallele`) et pour les diagnostics de suivi.
+
 - `parallelPairing.ts`, `appariementRapideParallele.ts`,
   `travailleurAppariement.ts` et `appariementRapide.ts` n'importent jamais `worker_threads`, ni `self`, ni
   `postMessage`, ni le `Worker` du DOM : Vite tenterait de résoudre du code
@@ -262,7 +283,8 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
    l'appelant l'inscrive dans son registre d'arrêt (`arreterAppariement`
    dans `runeBuildOptim.worker.ts`) : le module neutre ne connaît pas ce
    registre ;
-2. vérifie le contrat numérique, encode les compartiments, planifie les
+2. vérifie le contrat numérique sur les colonnes de construction (ou les
+   objets d'un outil), projette les contraintes, planifie les
    morceaux, lance `min(travailleurs, morceaux)` Workers, puis distribue ;
 3. à chaque morceau reçu, fusionne ce qui suit le préfixe déjà fusionné
    (§ Fusion des résultats) et rappelle `surProgression(traitees,

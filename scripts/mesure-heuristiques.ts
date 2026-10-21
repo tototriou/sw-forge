@@ -66,7 +66,7 @@ import { chargerRecette } from './lib/chargerRecette';
 import { resoudreCas } from './lib/diagnosticLot';
 import { CASES } from './lib/perfShared';
 import { assurerBundleAppariementRapide, lancerTravailleurNode } from './lib/appariementRapideNode';
-import { construireMoitiesEnParallele, ensureBuildHalfBundle } from './lib/buildHalvesNode';
+import { construireMoitiesObjetsEnParallele, ensureBuildHalfBundle } from './lib/buildHalvesNode';
 import { LoadedMonster } from './lib/loadMonster';
 import { loadMonstersList } from './lib/monstersData';
 import { buildRealDamageContext } from './lib/realDamageCli';
@@ -244,7 +244,7 @@ async function run(): Promise<void> {
 
   // Construction : les Workers de moitié de production.
   t = performance.now();
-  const moities = await construireMoitiesEnParallele(prepared, params, await ensureBuildHalfBundle());
+  const moities = await construireMoitiesObjetsEnParallele(prepared, params, await ensureBuildHalfBundle());
   const { bucketsA, bucketsB } = moities;
   json.msConstruction = Math.round(performance.now() - t);
   const tA = tailleCompartiments(bucketsA);

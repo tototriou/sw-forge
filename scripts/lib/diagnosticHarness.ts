@@ -51,7 +51,6 @@ import {
   aurasPropresParRunes,
   optionsDeClassement,
   sortCandidates,
-  totalPairCount,
   weightedContribution,
 } from '../../src/lib/runeBuildOptim';
 // ⚠️ Les DEUX fonctions que `pairBuckets` appelle pour décider d'accepter une
@@ -62,7 +61,8 @@ import { missingSets } from '../../src/lib/recoMatch';
 import { availableParallelism } from 'os';
 import { PARALLEL_PAIRING_THRESHOLD, nombreDeTravailleurs, regimeAppariement } from '../../src/workers/parallelPairing';
 import { apparier } from '../../src/lib/rechercheRunes';
-import { verifierContrat } from '../../src/lib/appariementRapide';
+import { compterPaires, verifierContrat } from '../../src/lib/appariementRapide';
+import { CompartimentType, objetsDesCompartiments } from '../../src/lib/demiBuildsTypes';
 import { apparierRapideEnParallele, enResultatDeRecherche } from '../../src/lib/appariementRapideParallele';
 import { RuneDetail } from '../../src/types';
 import { drain } from './drain';
@@ -145,8 +145,8 @@ interface Passage {
    * conservé pour `detailFiltrage` — jamais recalculé, lu depuis `onStage`.
    */
   feasibilityBySlot?: RuneDetail[][];
-  bucketsA?: Bucket[];
-  bucketsB?: Bucket[];
+  bucketsA?: CompartimentType[];
+  bucketsB?: CompartimentType[];
   totalPairs?: number;
   regime?: RegimeAppariement;
   /** Pourquoi le noyau ne prend pas l'appariement (`verifierContrat`), `null` s'il le prend. */
@@ -355,10 +355,14 @@ async function deroulerHarnais(
   // lisible) et l'étage 4 (la paire de compartiments à évaluer) doivent
   // parler des mêmes trios, sans quoi ils pourraient se contredire.
   const moities = moitiesSuivies(options.suivre ?? [], resolue.poolInitial);
+  // Les diagnostics de suivi lisent les runes ; le chemin sans suivi garde
+  // ses colonnes. Ces conversions ont lieu hors des chronos de phase.
+  const objetsA = moities.A ? objetsDesCompartiments(dernier.bucketsA!, dernier.prepared!.filtered) : [];
+  const objetsB = moities.B ? objetsDesCompartiments(dernier.bucketsB!, dernier.prepared!.filtered) : [];
   {
     const detail: DetailDemiBuild[] = [];
-    if (moities.A) detail.push(detailDemiBuild('A', moities.A, dernier.bucketsA!, dernier.prepared!.retentionKeys));
-    if (moities.B) detail.push(detailDemiBuild('B', moities.B, dernier.bucketsB!, dernier.prepared!.retentionKeys));
+    if (moities.A) detail.push(detailDemiBuild('A', moities.A, objetsA, dernier.prepared!.retentionKeys));
+    if (moities.B) detail.push(detailDemiBuild('B', moities.B, objetsB, dernier.prepared!.retentionKeys));
     if (detail.length > 0) resultat.detailDemiBuilds = detail;
   }
   resultat.regime = {
@@ -419,8 +423,8 @@ async function deroulerHarnais(
       moities.A,
       moities.B,
       dernier.prepared!,
-      dernier.bucketsA!,
-      dernier.bucketsB!,
+      objetsA,
+      objetsB,
       classes,
       total
     );
@@ -684,6 +688,7 @@ const REGLE_INTERPRETATION_RETENTION =
 const CAVEAT_MEMOIRE =
   '⚠️ Le ramasse-miettes de Node N’EST PAS celui du navigateur : ces chiffres valent pour comparer A à B ' +
   'DANS LE MÊME PROCESSUS, jamais comme prédiction de ce que vit l’utilisateur. ⚠️ Relevé de FIN de fil ' +
+  '(arrayBuffers comprend les colonnes hors tas avant transfert ; rss porte sur tout le processus) ' +
   '(palier LÉGER) : il dit ce que la moitié laisse derrière elle, pas son pic instantané, et ne compte ni ' +
   'les pauses de ramassage ni leur durée — le PerformanceObserver sur gc reste ÉCARTÉ tant que ce relevé ' +
   'ne montre pas d’écart, son propre coût s’insérant dans la phase qu’il mesurerait.';
@@ -987,7 +992,7 @@ async function unPassage(
   passage.msTotal = tBuild - t0;
 
   // ── Le régime, décidé comme la production le déciderait.
-  const totalPairs = totalPairCount(prepared, bucketsA, bucketsB);
+  const totalPairs = compterPaires(prepared, bucketsA, bucketsB);
   passage.totalPairs = totalPairs;
   // Hors contrat numérique, le parallèle n'existe pas : la production apparie
   // alors en séquentiel, et un régime forcé aussi. ⚠️ Le contrat se juge SANS
@@ -1039,8 +1044,8 @@ async function unPassage(
 async function apparierEnParallele(
   params: SearchParams,
   prepared: PreparedSearch,
-  bucketsA: Bucket[],
-  bucketsB: Bucket[],
+  bucketsA: CompartimentType[],
+  bucketsB: CompartimentType[],
   totalPairs: number,
   travailleurs: number,
   cheminBundle: string,

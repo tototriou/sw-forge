@@ -3,8 +3,9 @@
 // puis chaque préréglage plus étroit, `PreparedSearch.cransEmboites`), chacun
 // construisant UN seul préréglage, tous lancés ensemble ; puis, par moitié,
 // l'union des rétentions (`UnionDesRetentions`) dans l'ordre des préréglages.
-// Rend EXACTEMENT ce que rend `construireMoitie` d'un bloc (même construction
-// de chaque préréglage, même union, dans le même ordre :
+// `construireMoitiesEmboiteesTypees` garde les colonnes de l'écran ; l'API
+// objet `construireMoitiesEmboitees` sert les outils. Chacune rend exactement
+// sa construction d'un bloc (même construction et union, dans le même ordre :
 // tests/retention-emboitee.test.ts).
 //
 // ⚠️ Module neutre (ni `self`, ni `worker_threads`) : la plateforme arrive par
@@ -24,7 +25,8 @@
 import { BaseStats, RuneDetail } from '../types';
 import { StatKey } from './effects';
 import { Bucket, CranEmboite, PreparedSearch } from './runeBuildOptim';
-import { UnionDesRetentions } from './retentionEmboitee';
+import { UnionDesRetentions, UnionDesRetentionsTypees } from './retentionEmboitee';
+import { CompartimentType } from './demiBuildsTypes';
 
 type OrdreCombos = 'potential' | 'relevance' | 'combined' | 'objective';
 
@@ -104,6 +106,26 @@ export async function construireMoitiesEmboitees(
   lancer: LancerConstruction,
   progression?: (half: 'A' | 'B', scanned: number, total: number) => void
 ): Promise<{ bucketsA: Bucket[]; bucketsB: Bucket[] }> {
+  return construireMoities(prepared, combosOrderMode, lancer, (propre, pools) => new UnionDesRetentions(propre, pools), progression);
+}
+
+/** Chemin de l'écran : les réponses des Workers et leur union restent en colonnes. */
+export async function construireMoitiesEmboiteesTypees(
+  prepared: PreparedSearch,
+  combosOrderMode: OrdreCombos | undefined,
+  lancer: (requete: RequeteMoitie, progression: (scanned: number, total: number) => void) => Promise<CompartimentType[]>,
+  progression?: (half: 'A' | 'B', scanned: number, total: number) => void
+): Promise<{ bucketsA: CompartimentType[]; bucketsB: CompartimentType[] }> {
+  return construireMoities(prepared, combosOrderMode, lancer, (propre, pools) => new UnionDesRetentionsTypees(propre, pools), progression);
+}
+
+async function construireMoities<T>(
+  prepared: PreparedSearch,
+  combosOrderMode: OrdreCombos | undefined,
+  lancer: (requete: RequeteMoitie, progression: (scanned: number, total: number) => void) => Promise<T[]>,
+  creerUnion: (propre: T[], pools: [RuneDetail[], RuneDetail[], RuneDetail[]]) => { ajouter(e: T[]): void; resultat(ctx: PreparedSearch, mode: OrdreCombos): T[] },
+  progression?: (half: 'A' | 'B', scanned: number, total: number) => void
+): Promise<{ bucketsA: T[]; bucketsB: T[] }> {
   const moitie = (half: 'A' | 'B') => {
     const requetes = requetesDeLaMoitie(prepared, half, combosOrderMode);
     const totaux = requetes.map((r) => r.filtered[r.slotIdxs[0]].length);
@@ -117,11 +139,11 @@ export async function construireMoitiesEmboitees(
   };
   const a = moitie('A');
   const b = moitie('B');
-  const unir = async ({ requetes, fils }: ReturnType<typeof moitie>): Promise<Bucket[]> => {
+  const unir = async ({ requetes, fils }: ReturnType<typeof moitie>): Promise<T[]> => {
     const [propre, ...etroits] = await Promise.all(fils);
     if (etroits.length === 0) return propre;
     const r = requetes[0];
-    const union = new UnionDesRetentions(propre, [r.filtered[r.slotIdxs[0]], r.filtered[r.slotIdxs[1]], r.filtered[r.slotIdxs[2]]]);
+    const union = creerUnion(propre, [r.filtered[r.slotIdxs[0]], r.filtered[r.slotIdxs[1]], r.filtered[r.slotIdxs[2]]]);
     for (const e of etroits) union.ajouter(e);
     return union.resultat(prepared, combosOrderMode ?? 'objective');
   };

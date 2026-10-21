@@ -45,11 +45,18 @@ L'appariement séquentiel et chaque Worker du parallèle décident de la même
 façon, sur le même pool ; le résultat dit lequel a servi
 (`cheminValidation`, `motifValidation`).
 
-Les demi-builds y sont rangés en tableaux typés (`encoderCompartiments`) :
-les trois runes de chacun (`Float64Array`, les identifiants du jeu dépassant
-l'`Int32`), ses pourcentages et valeurs plates par stat contrainte, et, pour
-la moitié B, la contribution scalaire `W`, triée par compartiment, avec le
-minimum et le maximum de chaque bloc de 64.
+Les demi-builds arrivent de la construction en colonnes
+(`CompartimentType`, `src/lib/demiBuildsTypes.ts`), préréglages emboîtés
+compris. `encoderCompartiments` en projette les seules colonnes utiles au
+noyau : les trois identifiants (`Float64Array`, ceux du jeu dépassent
+l'`Int32`), les valeurs plates par stat contrainte et les pourcentages des
+seules contraintes PV/ATQ/DEF (`pasPct`, `indicesPct` : −1 pour les autres,
+dont le calcul ignore le pourcentage). Les contributions passent en
+`Int32Array` seulement après vérification du contrat. La moitié B porte
+aussi `W`, son tri et sa permutation par compartiment, puis les bornes des
+blocs de 64. Score de rétention, stats non contraintes, comptes et potentiel
+ne sont pas copiés vers les Workers d'appariement. Les tables de validation
+se reconstruisent depuis les identifiants et le pool préparé, sans `HalfCombo`.
 
 ## Une stat, un entier
 
@@ -79,9 +86,13 @@ des demi-builds, apports garantis, d'artéfacts et de relique, aura externe,
 tous ENTIERS et bornés ; `|b × pct|` exact en `Float64` ; `W` dans un
 `Int32` ; minimums et maximums finis. Sous ces conditions, l'expression
 JavaScript de `quickOk` est l'arithmétique exacte et les équivalences
-tiennent. Sinon, ou quand un traceur de diagnostic est demandé (le noyau ne
-le remplit pas), `pairBuckets` prend l'appariement tel quel, en séquentiel ;
-le motif est nommé. Jamais de `Float32` pour juger.
+tiennent. Sinon, `apparierSansSauts` parcourt les colonnes en séquentiel,
+sans conversion en entiers ni saut : mêmes prédicats, expressions de
+`quickOk`, validation par `Collecteur.valider`, point de passage avant la
+paire toutes les 500 paires et test du temps à chaque paire, comme
+`pairBuckets`. Un traceur de diagnostic, que le noyau ne remplit pas, demande
+`pairBuckets` lui-même avec l'adaptateur objet. Le motif est nommé.
+Jamais de `Float32` pour juger.
 
 ## Trois sauts
 
@@ -131,6 +142,20 @@ Tous fondés sur la même équivalence (`survivantsLigne`) :
   avant de distribuer un morceau.
 
 ## Vérification
+
+`testConstructionColonnes` (`tests/construction-colonnes.test.ts`) compare
+la construction et l'union en colonnes à `buildBuckets` et à l'union objet,
+dans les quatre ordres, sur des pools déterministes et sous éviction. Il
+compare aussi les candidats, le compte et le quasi-succès, sous plafond et
+sans plafond, puis exerce les transferts (tampons détachés) et de vrais
+Workers Node de construction et d'appariement. Les colonnes, candidats et
+quasi-succès sont comparés valeur par valeur avec `Object.is`, qui distingue
+`-0` de `0` et `NaN` de `null`. Un aller-retour de `-0` et les deux sens
+d'appariement mixte (moitié objet / moitié typée) sont exercés.
+Le cas de base ATQ fractionnaire porte sur une stat contrainte : il affirme
+`chemin === 'actuel'` et le motif numérique, parcourt des paires, puis compare
+le résultat à la référence objet. Les capacités négatives produisent aussi
+le même résultat vide que la référence.
 
 `tests/appariement-rapide.test.ts` (`testAppariementRapide`) :
 

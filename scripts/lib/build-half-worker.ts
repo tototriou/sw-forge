@@ -12,10 +12,9 @@
 // TypeScript transpilé à la volée.
 
 import { parentPort, workerData } from 'worker_threads';
-import { Bucket } from '../../src/lib/runeBuildOptim';
-// La construction de production (noyau sur tableaux typés, `buildBuckets` en
-// repli), la même que `src/workers/buildHalf.worker.ts`.
-import { construireMoitie } from '../../src/lib/rechercheRunes';
+import { CompartimentType, tamponsDesDemiBuilds } from '../../src/lib/demiBuildsTypes';
+// Les mêmes colonnes que `src/workers/buildHalf.worker.ts`, sans HalfCombo.
+import { construireMoitieTypee } from '../../src/lib/rechercheRunes';
 import type { RequeteMoitie } from '../../src/lib/constructionEmboitee';
 import { drain } from './drain';
 
@@ -49,7 +48,7 @@ export interface BuildHalfWorkerData extends RequeteMoitie {
  *
  * ⚠️ **Pourquoi la mesure est propre ici et nulle part ailleurs** : chaque
  * moitié tourne dans son PROPRE `worker_threads`, donc dans son propre tas.
- * Un relevé par fil ne peut pas confondre A et B.
+ * Le tas et les ArrayBuffer sont propres au fil ; rss reste global au processus.
  *
  * ⚠️ **Palier LÉGER, et c'est un arbitrage** : trois lignes après la
  * construction, donc aucune perturbation de la phase mesurée. Le palier
@@ -61,6 +60,9 @@ export interface BuildHalfWorkerData extends RequeteMoitie {
 export interface MemoireMoitie {
   heapUsed: number;
   heapTotal: number;
+  /** Stockage hors tas des ArrayBuffer, colonnes comprises, avant transfert. */
+  arrayBuffers: number;
+  /** Mémoire résidente du processus entier, commune aux fils. */
   rss: number;
 }
 
@@ -111,7 +113,7 @@ export interface ProgressionMoitie {
 }
 
 export interface BuildHalfWorkerResult {
-  buckets: Bucket[];
+  buckets: CompartimentType[];
   ms: number;
   memoire: MemoireMoitie;
   /** A₂ — présent SEULEMENT si `horodaterProgression` a été demandé. */
@@ -128,8 +130,8 @@ const data = workerData as BuildHalfWorkerData;
  * `performance.now()` par émission. ⚠️ `drain.ts` n'est PAS touché : il est
  * importé par 28 fichiers, et A₂ ne concerne que ce worker-ci.
  */
-function construire(): { buckets: Bucket[]; ms: number; progression?: ProgressionMoitie } {
-  const gen = construireMoitie(
+function construire(): { buckets: CompartimentType[]; ms: number; progression?: ProgressionMoitie } {
+  const gen = construireMoitieTypee(
     data.half,
     data.slotIdxs,
     data,
@@ -181,10 +183,9 @@ const usage = process.memoryUsage();
 const result: BuildHalfWorkerResult = {
   buckets,
   ms,
-  memoire: { heapUsed: usage.heapUsed, heapTotal: usage.heapTotal, rss: usage.rss },
+  memoire: { heapUsed: usage.heapUsed, heapTotal: usage.heapTotal, arrayBuffers: usage.arrayBuffers, rss: usage.rss },
   // ⚠️ Le champ n'existe même pas quand l'horodatage n'a pas été demandé —
-  // `perf-battery.ts` ne voit donc rien changer, ni dans le type qu'il lit,
-  // ni dans la taille du message sérialisé.
+  // aucun tableau d'intervalles ne voyage dans le cas ordinaire.
   ...(progression != null ? { progression } : {}),
 };
-parentPort!.postMessage(result);
+parentPort!.postMessage(result, tamponsDesDemiBuilds(buckets));

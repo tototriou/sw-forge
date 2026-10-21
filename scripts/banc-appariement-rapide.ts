@@ -64,7 +64,7 @@ import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { chargerRecette } from './lib/chargerRecette';
 import { resoudreCas, resoudreSelectionCas, verifierComptesDisponibles } from './lib/diagnosticLot';
 import { CASES } from './lib/perfShared';
-import { construireMoitiesEnParallele, ensureBuildHalfBundle } from './lib/buildHalvesNode';
+import { construireMoitiesObjetsEnParallele, ensureBuildHalfBundle } from './lib/buildHalvesNode';
 import { assurerBundleAppariementRapide, lancerTravailleurNode } from './lib/appariementRapideNode';
 import { LoadedMonster } from './lib/loadMonster';
 import { classerCommeLEcran } from './lib/classementCli';
@@ -229,7 +229,7 @@ async function banc(src: Source, lignes: string[], json: Record<string, unknown>
     return true;
   }
   const bundleMoities = await ensureBuildHalfBundle();
-  const moities = await construireMoitiesEnParallele(prepared0, params, bundleMoities);
+  const moities = await construireMoitiesObjetsEnParallele(prepared0, params, bundleMoities);
   const { bucketsA, bucketsB } = moities;
   const totalPaires = totalPairCount(prepared0, bucketsA, bucketsB);
   const contrat = verifierContrat(prepared0, bucketsA, bucketsB);

@@ -108,6 +108,7 @@ import {
 } from '../src/lib/runeBuildOptim';
 import { apparier } from '../src/lib/rechercheRunes';
 import { construireMoitiesEmboitees } from '../src/lib/constructionEmboitee';
+import { objetsDesCompartiments } from '../src/lib/demiBuildsTypes';
 import { Case, CASES, loadCase, loadCaseSearchParams } from './lib/perfShared';
 import { caseAvecRelique, jetonsRelique, parseOptionsRelique } from './lib/perfRelicOptions';
 // ⚠️ `import type` impératif ici : build-half-worker.ts / monotonicity-worker.ts
@@ -353,7 +354,8 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
     const r = await runWorker<BuildHalfWorkerData, BuildHalfWorkerResult>(workerScript, requete);
     // Le fil du préréglage de la recherche (rang 0), celui qui porte le pool entier.
     if (requete.rangPrereglage === 0) propres[requete.half] = r;
-    return r.buckets;
+    // L'union et les diagnostics historiques de cette batterie lisent les objets.
+    return objetsDesCompartiments(r.buckets, requete.filtered);
   });
   const tBuildB = performance.now();
   // Coût interne au fil du préréglage de la recherche de CHAQUE moitié

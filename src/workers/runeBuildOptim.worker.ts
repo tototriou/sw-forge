@@ -3,9 +3,9 @@
 // lib/runeBuildOptim.ts et reste réutilisable dans les tests sans passer par
 // un Worker. Voir docs/02-app/compte/ §6 (Perf).
 //
-// ⚠️ Orchestre `prepareSearch` → `construireMoitie` (une par moitié ET par
+// ⚠️ Orchestre `prepareSearch` → `construireMoitieTypee` (une par moitié ET par
 // préréglage construit, EN PARALLÈLE, chacune dans son propre Worker enfant —
-// buildHalf.worker.ts, `construireMoitiesEmboitees`) → l'appariement par le
+// buildHalf.worker.ts, `construireMoitiesEmboiteesTypees`) → l'appariement par le
 // noyau sur tableaux typés, plutôt que de piloter `searchBuildsSteps` d'un
 // bloc : les deux moitiés A et B sont indépendantes (aucune ne dépend du
 // résultat construit de l'autre, seulement de bornes calculées d'avance par
@@ -20,15 +20,16 @@
 // (`apparierRapideEnParallele`) attend des Workers enfants, et la main revient
 // d'elle-même entre deux messages.
 
-import { totalPairCount, PreparedSearch, SearchParams, SearchResult, Bucket, BuildCandidate } from '../lib/runeBuildOptim';
+import { PreparedSearch, SearchParams, SearchResult, BuildCandidate } from '../lib/runeBuildOptim';
+import { CompartimentType } from '../lib/demiBuildsTypes';
 import { RelicVide } from '../lib/relicOptim';
 import { apparier } from '../lib/rechercheRunes';
-import { verifierContrat } from '../lib/appariementRapide';
+import { compterPaires, verifierContrat } from '../lib/appariementRapide';
 import {
   PoigneeTravailleur, apparierRapideEnParallele, enResultatDeRecherche, erreurDeWorkerEnfant, resultatApresErreur, type LancerTravailleur,
 } from '../lib/appariementRapideParallele';
 import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
-import { construireMoitiesEmboitees } from '../lib/constructionEmboitee';
+import { construireMoitiesEmboiteesTypees } from '../lib/constructionEmboitee';
 import { MessageVersAppariement } from './appariementRapide.worker';
 import { nombreDeTravailleurs, regimeAppariement } from './parallelPairing';
 import { drivePairing, PROGRESS_THROTTLE_MS } from './pairingDriver';
@@ -181,7 +182,7 @@ const lancerTravailleurNavigateur: LancerTravailleur = (init, transfert): Poigne
   };
 };
 
-function buildHalfInWorker(request: BuildHalfRequest, onProgress: (scanned: number, total: number) => void): Promise<Bucket[]> {
+function buildHalfInWorker(request: BuildHalfRequest, onProgress: (scanned: number, total: number) => void): Promise<CompartimentType[]> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./buildHalf.worker.ts', import.meta.url), { type: 'module' });
     activeHalfWorkers.push(worker);
@@ -249,8 +250,8 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   // `prepareSearch`) : construites en parallèle, un Worker par moitié ET par
   // préréglage construit (2 à 8), pour utiliser plusieurs cœurs plutôt qu'un
   // seul pendant cette phase.
-  let bucketsA: Bucket[];
-  let bucketsB: Bucket[];
+  let bucketsA: CompartimentType[];
+  let bucketsB: CompartimentType[];
   try {
     // ⚠️ Pas de throttle ICI (contrairement à la phase d'appariement plus
     // bas) : chacun des Workers enfants (buildHalf.worker.ts) throttle
@@ -274,7 +275,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     // emboîtés), tous lancés ensemble ; l'union des rétentions se fait ici,
     // par moitié, dans l'ordre des préréglages (`construireMoitiesEmboitees`).
     ({ bucketsA, bucketsB } = await Promise.race([
-      construireMoitiesEmboitees(prepared, params.combosOrderMode, buildHalfInWorker, postBuildProgress),
+      construireMoitiesEmboiteesTypees(prepared, params.combosOrderMode, buildHalfInWorker, postBuildProgress),
       abortPromise,
     ]));
   } catch {
@@ -300,13 +301,13 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   // Taille RÉELLE de l'espace à épuiser (voir `totalPairCount`) — calculée
   // UNE SEULE FOIS, maintenant que les deux moitiés sont construites (avant
   // ça, seule l'estimation brute pré-recherche, `estimateSearchSpace`,
-  // existe). Coût négligeable : O(compartiments A × compartiments B), une
-  // poignée de compartiments de chaque côté, jamais les combos eux-mêmes.
-  const totalPairs = totalPairCount(prepared, bucketsA, bucketsB);
+  // existe). Les prédicats de ligne lisent chaque demi-build A pour chaque
+  // paire de compartiments ouverte, jamais le produit des demi-builds A × B.
+  const totalPairs = compterPaires(prepared, bucketsA, bucketsB);
 
   // Le régime (parallelPairing.ts) : parallèle à partir du seuil, séquentiel
-  // en dessous ET hors contrat numérique du noyau, où `apparier` retombe sur
-  // `pairBuckets` en rendant la main — le coordinateur parallèle, lui, n'a
+  // en dessous ET hors contrat numérique du noyau, où `apparier` parcourt
+  // les colonnes sans saut — le coordinateur parallèle, lui, n'a
   // pas de repli.
   if (regimeAppariement(totalPairs, verifierContrat(prepared, bucketsA, bucketsB)) === 'parallele') {
     let envoyes = 0;

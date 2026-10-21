@@ -20,8 +20,8 @@ avant terme rend. Les contraintes à ne pas casser sont dans
 | --- | --- | --- | --- |
 | Lancement | `src/hooks/useBuildOptimSearch.ts` | `useBuildOptimSearch` (`run`, `stop`, `cancel`) | [02-app/optimizer/feat-interruption.md](../../../02-app/optimizer/feat-interruption.md) |
 | Préparation | `src/workers/prepareForSearch.ts`, `src/lib/runeBuildOptim.ts` | `prepareOrRefuse`, `prepareSearch` | [elagages.md](elagages.md) |
-| Construction des moitiés | `src/workers/runeBuildOptim.worker.ts`, `src/workers/buildHalf.worker.ts`, `src/lib/rechercheRunes.ts`, `src/lib/constructionRapide.ts` | `buildHalfInWorker`, `construireMoitie`, `construireMoitieRapide` | [elagages.md](elagages.md) |
-| Choix du régime | `src/workers/runeBuildOptim.worker.ts`, `src/workers/parallelPairing.ts`, `src/lib/runeBuildOptim.ts` | `totalPairCount`, `verifierContrat`, `regimeAppariement`, `nombreDeTravailleurs` | [parallelisation.md](parallelisation.md) |
+| Construction des moitiés | `src/workers/runeBuildOptim.worker.ts`, `src/workers/buildHalf.worker.ts`, `src/lib/rechercheRunes.ts`, `src/lib/constructionRapide.ts`, `src/lib/demiBuildsTypes.ts` | `buildHalfInWorker`, `construireMoitieTypee`, `construireMoitieRapideTypee` | [elagages.md](elagages.md) |
+| Choix du régime | `src/workers/runeBuildOptim.worker.ts`, `src/workers/parallelPairing.ts`, `src/lib/appariementRapide.ts` | `compterPaires`, `verifierContrat`, `regimeAppariement`, `nombreDeTravailleurs` | [parallelisation.md](parallelisation.md) |
 | Appariement séquentiel | `src/workers/pairingDriver.ts`, `src/lib/rechercheRunes.ts`, `src/lib/appariementRapide.ts` | `drivePairing`, `apparier`, `apparierRapide` | [elagages.md](elagages.md), [02-app/optimizer/feat-interruption.md](../../../02-app/optimizer/feat-interruption.md) |
 | Appariement parallèle | `src/lib/appariementRapideParallele.ts`, `src/workers/appariementRapide.worker.ts`, `src/lib/travailleurAppariement.ts`, `src/lib/appariementRapide.ts` | `apparierRapideEnParallele`, `servirAppariement`, `parcourirMorceau` | [parallelisation.md](parallelisation.md) |
 | Fin de l'appariement | `src/workers/runeBuildOptim.worker.ts`, `src/hooks/useBuildOptimSearch.ts` | `useBuildOptimSearch` | — |
@@ -101,7 +101,7 @@ eux-mêmes : [elagages.md § Élagages sûrs](elagages.md),
 ## Construction des moitiés
 
 Le Worker construit les moitiés en parallèle, UN Worker enfant par moitié
-ET par préréglage construit (`construireMoitiesEmboitees`,
+ET par préréglage construit (`construireMoitiesEmboiteesTypees`,
 `src/lib/constructionEmboitee.ts`, avec `buildHalfInWorker` sur
 `src/workers/buildHalf.worker.ts`) : le préréglage de la recherche, puis
 chaque préréglage plus étroit (`PreparedSearch.cransEmboites`, préréglages
@@ -120,13 +120,14 @@ sans effet, n'y est pas relayé. Les deux moitiés sont indépendantes :
 chacune ne lit que des bornes calculées par la préparation, jamais l'autre
 moitié construite.
 
-Chaque Worker enfant pilote le générateur `construireMoitie`
+Chaque Worker enfant pilote le générateur `construireMoitieTypee`
 (`src/lib/rechercheRunes.ts`) jusqu'au bout, poste sa progression au plus
 une fois par palier de temps, puis un dernier point de passage garanti, puis
-ses compartiments (`Bucket[]`). Le Worker de recherche fait l'union des
-rétentions de chaque moitié (`UnionDesRetentions`) dans l'ORDRE des
+ses compartiments (`CompartimentType[]`), dont les tampons sont transférés.
+Le Worker de recherche fait l'union des
+rétentions de chaque moitié (`UnionDesRetentionsTypees`) dans l'ORDRE des
 préréglages, du préréglage de la recherche au plus étroit, quel que soit
-l'ordre d'arrivée des Workers : il rend exactement ce que `construireMoitie`
+l'ordre d'arrivée des Workers : il rend exactement ce que `construireMoitieTypee`
 rend d'un bloc, préréglage après préréglage, dans un seul fil
 (`tests/retention-emboitee.test.ts`). Pourquoi des Workers séparés plutôt
 qu'une seule passe qui remplirait la liste de chaque préréglage :
@@ -144,7 +145,7 @@ et finit à `total`. Ce n'est pas une mesure du travail : une rune d'un
 préréglage plus étroit coûte moins (ses deux autres emplacements sont plus
 petits), et ses Workers finissent avant celui du préréglage de la recherche.
 
-Hors Worker (CLI, tests, `searchBuildsSteps`), `construireMoitie` fait le
+Hors Worker, `construireMoitieTypee` fait le
 même travail d'un bloc : le préréglage de la recherche, puis chaque
 préréglage plus étroit, et l'union au fil de l'eau ; le compte de sa
 progression enchaîne les préréglages dans cet ordre. Sans préréglage plus
@@ -162,15 +163,18 @@ par potentiel décroissant ; `combosOrderMode` ordonne les combinaisons à
 l'intérieur d'un compartiment. Détail :
 [elagages.md § Pré-filtrage heuristique et compartiments](elagages.md).
 
-`construireMoitie` confie la construction de chaque préréglage à un noyau
-sur tableaux typés, `construireMoitieRapide` (`src/lib/constructionRapide.ts`),
+`construireMoitieTypee` confie la construction de chaque préréglage à un noyau
+sur tableaux typés, `construireMoitieRapideTypee` (`src/lib/constructionRapide.ts`),
 qui rend exactement les compartiments de `buildBuckets`, la référence :
 
 - aucune allocation par combinaison : les sommes de chaque triplet vont dans
   un tampon, son compartiment est un entier (comptes en base 4, jokers en
   tête), une entrée de tas un couple (score, code du triplet) ; les
-  `HalfCombo` ne se construisent qu'à la fin, pour les triplets restés dans
-  un tas ;
+  triplets restés dans les tas sont dédupliqués dans le même ordre, puis
+  écrits directement dans les colonnes de `ColonnesCombos`
+  (`src/lib/demiBuildsTypes.ts`) : trois identifiants, pourcentages et
+  valeurs plates des stats suivies, score générique, tous en `Float64Array`.
+  Aucun `HalfCombo` entre la construction et l'appariement de l'écran ;
 - mêmes nombres au bit près : mêmes expressions dans le même ordre
   (`p0 + p1 + p2`, `ceil(b × pct / 100) + flat`, la tranche combinée sommée
   minimum par minimum) ; même tas, comparaison par comparaison et échange
@@ -180,20 +184,30 @@ qui rend exactement les compartiments de `buildBuckets`, la référence :
   compartiments et celui des clés de `maxPct`/`maxFlat` ;
 - le même point de passage, une fois par rune du premier emplacement.
 
-Trois cas restent à `buildBuckets` (`motifRepliConstruction`, qui nomme le
-motif) : un traceur de diagnostic demandé (`SearchParams.traceur`, que le
-noyau ne remplit pas), une moitié de plus de 2³¹ triplets, que le code
-entier ne couvre plus, et des capacités de tas hors des entiers 32 bits du
-noyau — `bucketCap` non entier, négatif ou tel que `bucketCap × (2 + stats
-retenues)` dépasse 2³¹ − 1 (un override de mesure à 2³¹ ou `Infinity`
-deviendrait négatif ou nul dans un `Int32Array`, et la moitié rendrait zéro
-combinaison). Le motif se juge préréglage par préréglage : avec un traceur,
-seul le préréglage de la recherche passe par `buildBuckets`, les plus
-étroits, construits sans traceur, restent au noyau. La
-même `construireMoitie` sert le CLI (`runSearchToCompletion`), les fils de
-construction de Node (`scripts/lib/build-half-worker.ts`, un par moitié et
-par préréglage, orchestrés par la même `construireMoitiesEmboitees` :
-harnais, `perf-battery`) et `searchBuildsSteps`.
+L'union conserve aussi des colonnes : elle copie seulement les lignes
+manquantes des crans plus étroits, puis trie les indices par
+`ordonnerCombos`, le tri stable partagé avec la référence objet. Comptes,
+jokers, bornes et potentiel restent des métadonnées par compartiment.
+`Float64` préserve les entrées fractionnaires ; les codes des triplets
+passent d'`Int32` à `Float64` au-delà de 2³¹ − 1, les capacités des tas ne
+sont pas tronquées en entiers 32 bits. La comparaison de capacité garde
+la sémantique de `heapPush`, y compris pour un override fractionnaire,
+négatif ou infini.
+
+La référence objet reste disponible à l'outillage : `construireMoitie`
+(CLI), `construireMoitieRapide` et
+`objetsDesCompartiments` matérialisent les objets quand leur consommateur
+en a besoin. `motifRepliConstruction` garde les replis de cette API objet
+vers `buildBuckets` (traceur, codes ou capacités hors Int32). Un traceur
+de diagnostic demande cette référence, jamais le chemin de l'écran.
+`searchBuildsSteps` construit directement les deux moitiés en colonnes.
+Le harnais suit le même chemin : `construireMoitiesEnParallele` orchestre
+`construireMoitiesEmboiteesTypees` ; chaque fil Node appelle
+`construireMoitieTypee` et transfère les tampons des colonnes. Les outils
+qui lisent encore les runes des `HalfCombo` passent explicitement par
+`construireMoitiesObjetsEnParallele`. Les diagnostics `--suivre` adaptent
+seulement les moitiés suivies, hors des chronos de phase ; le traceur séquentiel
+garde son adaptation objet à l'entrée de `pairBuckets`.
 
 Un arrêt pendant cette phase termine tous les Workers enfants de construction
 (`terminate()`) et rejette l'attente (`stopBuildReject`) : la recherche rend
@@ -204,12 +218,13 @@ statut `error`.
 ## Choix du régime
 
 Les deux moitiés construites, le Worker compte une seule fois l'espace exact
-à parcourir, `totalPairCount(prepared, bucketsA, bucketsB)` : le nombre de
+à parcourir, `compterPaires(prepared, bucketsA, bucketsB)` : le nombre de
 paires que l'appariement examinera s'il va au bout, avec les mêmes tests de
 paire de compartiments et de combinaison A que `pairBuckets`
 (`satisfiesSets`, jokers, `bucketPairFeasibleMin`, `comboAFeasible`).
-⚠️ Les deux boucles se modifient ensemble : leur égalité est vérifiée par
-`tests/rune-optim-differential.test.ts`.
+⚠️ Ce compte, `totalPairCount` sur la référence objet et l'appariement
+doivent rester égaux : leurs prédicats sont partagés, et le différentiel
+`tests/construction-colonnes.test.ts` compare leurs comptes.
 
 Ce total sert de dénominateur à la progression et décide du régime, avec le
 contrat numérique du noyau (`verifierContrat`) : `regimeAppariement`
@@ -239,7 +254,9 @@ Barre et pourcentage : [02-app/optimizer/feat-interruption.md § Barre de progre
 `apparier` confie l'appariement au noyau sur tableaux typés,
 `apparierRapide` (`src/lib/appariementRapide.ts`), qui rend exactement le
 résultat de `pairBuckets` (`src/lib/runeBuildOptim.ts`), la référence ; hors
-contrat numérique, ou avec un traceur de diagnostic, `pairBuckets` lui-même
+contrat numérique, `apparierSansSauts` parcourt les colonnes sans saut,
+avec les expressions et points de passage de la référence. Avec un traceur,
+`pairBuckets` lui-même
 (détail du noyau : [noyau-appariement.md § Trois sauts](noyau-appariement.md#trois-sauts)).
 L'un et l'autre parcourent toutes les paires de compartiments, par potentiel
 combiné décroissant (`orderedCompartmentPairs`). Pour chaque paire de
@@ -252,7 +269,7 @@ juger les paires qui échoueraient sûrement au test rapide (1 ci-dessous) et
 visite les autres dans le même ordre. Un point de passage tombe toutes les
 `CHECKPOINT_EVERY` paires traitées, sautées comprises, et le filet de temps
 est testé (`maxMs`, couru depuis `prepared.startedAt`, construction des
-moitiés comprise) à chaque point de passage et à chaque paire visitée.
+moitiés comprise) à chaque point de passage.
 
 Une paire visitée passe ensuite :
 
@@ -313,10 +330,10 @@ Le Worker poste le résultat (`type: 'result'`) ; le hook l'enregistre
 Le même enchaînement existe hors Worker : `searchBuildsSteps`
 (`src/lib/rechercheRunes.ts`, à part de `runeBuildOptim.ts` pour qu'aucun
 import n'y fasse de cycle) appelle
-`prepareSearch`, `construireMoitie` pour A puis pour B dans le même fil, puis
+`prepareSearch`, `construireMoitieTypee` pour A puis pour B dans le même fil, puis
 `apparier` ; `searchBuilds` le draine en un appel, sans Worker ni
-appariement parallèle. Des tests et le CLI (`runSearchToCompletion`, même
-séquence) l'utilisent ; le harnais pilote l'appariement parallèle sous Node
+appariement parallèle. Des tests l'utilisent ; le CLI (`runSearchToCompletion`)
+garde la construction objet, puis le même apparieur ; le harnais pilote l'appariement parallèle sous Node
 (`apparierRapideEnParallele` avec `lancerTravailleurNode`, `worker_threads`).
 Des scripts de diagnostic appellent `buildBuckets` et `pairBuckets`
 directement : ils mesurent la référence, pas la production.
@@ -501,10 +518,9 @@ le plafond de candidats ou par l'arrêt manuel. Valeurs, réglages et
 messages : [02-app/optimizer/feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel](../../../02-app/optimizer/feat-interruption.md#interruption--filet-de-temps-pré-filtrage-et-arrêt-manuel).
 
 Le filet de temps, `maxMs` (défaut `DEFAULT_MAX_MS`), court depuis
-`prepared.startedAt`. L'appariement le teste à chaque point de passage et à
-chaque paire visitée (§ Appariement séquentiel), chaque Worker du parallèle
-à chaque ligne et à chaque paire visitée, et rend alors un résultat tronqué
-(`truncated`). Une paire sautée par le noyau ne le teste pas une à une :
+`prepared.startedAt`. Le noyau le teste à chaque point de passage, chaque
+Worker du parallèle aussi à chaque entrée de ligne, et rend alors un résultat
+tronqué (`truncated`). Les points de passage comptent les paires sautées :
 l'arrêt peut tomber jusqu'à `CHECKPOINT_EVERY − 1` paires plus loin qu'avec
 `pairBuckets`, sur une recherche coupée par le temps seulement.
 Quand `maxMs` n'est pas fini, le terme de temps d'`estimatePct` vaut 0.

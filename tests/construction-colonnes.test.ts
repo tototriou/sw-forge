@@ -6,10 +6,11 @@ import { construireMoitieTypee, searchBuilds } from '../src/lib/rechercheRunes';
 import { construireMoitiesEmboiteesTypees, requetesDeLaMoitie } from '../src/lib/constructionEmboitee';
 import { UnionDesRetentions } from '../src/lib/retentionEmboitee';
 import { OrdreCombos, premiereDivergence } from '../src/lib/constructionRapide';
-import { CompartimentType, objetsDesCompartiments, tamponsDesDemiBuilds } from '../src/lib/demiBuildsTypes';
+import { CompartimentType, objetsDesCompartiments, tamponsDesDemiBuilds, typerCompartiments } from '../src/lib/demiBuildsTypes';
 import { apparierRapide, compterPaires, encoderCompartiments, tamponsDe } from '../src/lib/appariementRapide';
 import { apparierRapideEnParallele, enResultatDeRecherche } from '../src/lib/appariementRapideParallele';
 import { assurerBundleAppariementRapide, lancerTravailleurNode } from '../scripts/lib/appariementRapideNode';
+import { construireMoitiesEnParallele, ensureBuildHalfBundle } from '../scripts/lib/buildHalvesNode';
 import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
 import { drain } from '../scripts/lib/drain';
 import { egal, ok, titre } from './outils';
@@ -28,7 +29,21 @@ function reference(p: PreparedSearch, half: 'A' | 'B', mode: OrdreCombos): Bucke
 }
 
 function identiques(attendu: unknown, recu: unknown, cas: string): void {
-  if (JSON.stringify(attendu) !== JSON.stringify(recu)) throw new Error(`Premier écart ${cas}`);
+  function comparer(a: unknown, b: unknown, chemin: string): void {
+    if (Object.is(a, b)) return;
+    if (a == null || b == null || typeof a !== 'object' || typeof b !== 'object' || a.constructor !== b.constructor) {
+      const valeur = (v: unknown) => Object.is(v, -0) ? '-0' : String(v);
+      throw new Error(`Premier écart ${cas}, ${chemin} : attendu ${valeur(a)}, reçu ${valeur(b)}`);
+    }
+    if (Array.isArray(a) && Array.isArray(b)) comparer(a.length, b.length, `${chemin}.length`);
+    const clesA = Object.keys(a).sort();
+    const clesB = Object.keys(b).sort();
+    if (clesA.length !== clesB.length || clesA.some((k, i) => k !== clesB[i])) {
+      throw new Error(`Premier écart ${cas}, ${chemin} : clés ${clesA} / ${clesB}`);
+    }
+    for (const k of clesA) comparer((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k], `${chemin}.${k}`);
+  }
+  comparer(attendu, recu, '$');
   ok(true, cas);
 }
 
@@ -40,6 +55,15 @@ function comparerMoitie(p: PreparedSearch, half: 'A' | 'B', mode: OrdreCombos, n
   const typee = drain(construireMoitieTypee(half, slots, p, half === 'A' ? p.maxSetsForA : p.maxSetsForB, mode));
   const divergence = premiereDivergence(objet, objetsDesCompartiments(typee, p.filtered));
   if (divergence) throw new Error(`Premier écart ${nom}, ${half}, ${mode} : ${divergence}`);
+  for (const [i, b] of typee.entries()) {
+    const c = b.combos;
+    const combos = objet[i].combos;
+    identiques(Float64Array.from(combos.flatMap((hc) => hc.runes.map((r) => r.id))), c.ids, `${nom}, ${half}, compartiment ${i} : ids`);
+    for (const champ of ['pct', 'flat'] as const) {
+      identiques(Float64Array.from(combos.flatMap((hc) => c.cles.map((k) => hc[champ][k] ?? 0))), c[champ], `${nom}, ${half}, compartiment ${i} : ${champ}`);
+    }
+    identiques(Float64Array.from(combos.map((hc) => hc.relevanceScore)), c.relevance, `${nom}, ${half}, compartiment ${i} : pertinence`);
+  }
   ok(true, `${nom}, ${half}, ${mode} : mêmes demi-builds, ordre, bornes et potentiel`);
   ok(typee.every((b) => !Array.isArray(b.combos) && b.combos.ids instanceof Float64Array), `${nom}, ${half} : stockage en colonnes`);
   return { objet, typee };
@@ -47,6 +71,12 @@ function comparerMoitie(p: PreparedSearch, half: 'A' | 'B', mode: OrdreCombos, n
 
 export default async function testConstructionColonnes() {
   titre('Construction en colonnes · oracle objet, rétentions emboîtées et transferts');
+  for (const [a, b] of [[-0, 0], [NaN, null]]) {
+    let refuse = false;
+    try { identiques([a], [b], 'sentinelle du comparateur'); } catch { refuse = true; }
+    ok(refuse, 'le comparateur distingue -0/0 et NaN/null');
+  }
+  identiques([NaN, -0], [NaN, -0], 'Object.is conserve NaN et -0');
   for (let seed = 0; seed < 12; seed++) {
     const params: SearchParams = {
       base: BASE, artifacts: [], pool: randomPool(mulberry32(10800 + seed), 6, SETS_JOKER), metric: 'eff',
@@ -108,6 +138,11 @@ export default async function testConstructionColonnes() {
   structuredClone(ct, { transfer: transferts });
   ok(transferts.every((t) => t.byteLength === 0), 'tous les tampons d’appariement sont transférables');
   const ref = drain(pairBuckets(p, reference(p, 'A', 'objective'), reference(p, 'B', 'objective')));
+  const node = await construireMoitiesEnParallele(p, params, await ensureBuildHalfBundle());
+  identiques(parallele.bucketsA, node.bucketsA, 'vrais Workers Node : mêmes colonnes A, crans inclus');
+  identiques(parallele.bucketsB, node.bucketsB, 'vrais Workers Node : mêmes colonnes B, crans inclus');
+  ok(node.bucketsA.every((b) => b.combos.ids instanceof Float64Array) && node.bucketsB.every((b) => b.combos.ids instanceof Float64Array), 'la coquille Node conserve les colonnes reçues des Workers');
+  identiques(etat(ref), etat(drain(apparierRapide(p, node.bucketsA, node.bucketsB))), 'construction Node typée jusqu’à l’appariement : résultat objet identique');
   const r = await apparierRapideEnParallele({ params, prepared: p, ...parallele, totalPaires: compterPaires(p, parallele.bucketsA, parallele.bucketsB),
     startedAt: p.startedAt, travailleurs: 2, cibleMorceau: 2000, lancer: lancerTravailleurNode(await assurerBundleAppariementRapide()) });
   identiques(etat(ref), etat(enResultatDeRecherche(r)), 'vrais Workers : candidats, ordre, compte, quasi-succès, plafond identiques');
@@ -115,10 +150,36 @@ export default async function testConstructionColonnes() {
   // Les overrides hors Int32 et la validation fractionnaire restent exacts,
   // sans détour par des objets entre construction et appariement.
   for (const bucketCap of [3.5, -1, Infinity, 2 ** 31]) {
-    const q = prepareSearch({ ...params, base: { ...BASE, hp: BASE.hp + 0.5 }, pool: randomPool(mulberry32(10991), 4, SETS_JOKER), slotFilterCap: 40, bucketCap })!;
+    const q = prepareSearch({ ...params, base: { ...BASE, atk: BASE.atk + 0.5 }, pool: randomPool(mulberry32(10991), 4, SETS_JOKER), slotFilterCap: 40, bucketCap })!;
     const a = comparerMoitie(q, 'A', 'objective', `cap ${bucketCap}`);
     const b = comparerMoitie(q, 'B', 'objective', `cap ${bucketCap}`);
-    identiques(etat(drain(pairBuckets(q, a.objet, b.objet))), etat(drain(apparierRapide(q, a.typee, b.typee))), `cap ${bucketCap} : repli sans sauts en colonnes`);
+    const repli = drain(apparierRapide(q, a.typee, b.typee));
+    egal(repli.chemin, 'actuel', `cap ${bucketCap} : repli effectivement emprunté`);
+    ok(repli.motifChemin?.startsWith('base atk non entière') === true, 'la base ATQ contrainte force le repli numérique');
+    if (bucketCap > 0) ok(repli.traitees > 0, 'le repli parcourt réellement des paires');
+    identiques(etat(drain(pairBuckets(q, a.objet, b.objet))), etat(repli), `cap ${bucketCap} : repli sans sauts en colonnes`);
+  }
+
+  const mixte = prepareSearch({ ...params, pool: randomPool(mulberry32(10992), 4, SETS_JOKER), slotFilterCap: 40 })!;
+  const objetA = reference(mixte, 'A', 'objective');
+  const objetB = reference(mixte, 'B', 'objective');
+  ok(objetA.length > 0 && objetB.length > 0, 'cas mixte non vide');
+  // Le stockage et le transport doivent conserver le signe, même si les
+  // additions du calcul final peuvent légitimement produire +0.
+  objetA[0].combos[0].flat.atk = -0;
+  objetA[0].combos[0].relevanceScore = -0;
+  const typeA = typerCompartiments(objetA);
+  const typeB = typerCompartiments(objetB);
+  ok(Object.is(typeA[0].combos.flat[typeA[0].combos.cles.indexOf('atk')], -0), 'la colonne conserve -0');
+  const transferee = structuredClone(typeA, { transfer: tamponsDesDemiBuilds(typeA) });
+  identiques(objetA, objetsDesCompartiments(transferee, mixte.filtered), '-0 : aller-retour objet / colonnes transférées');
+  const attenduMixte = drain(pairBuckets(mixte, objetA, objetB));
+  ok(attenduMixte.explored > 0, 'les compartiments mixtes parcourent des paires réelles');
+  for (const [a, b] of [[objetA, typeB], [transferee, objetB]] as const) {
+    const obtenu = drain(apparierRapide(mixte, a, b));
+    egal(obtenu.chemin, 'noyau', 'appariement mixte sur le noyau réel');
+    identiques(etat(attenduMixte), etat(obtenu), 'moitiés objet / typée : candidats, compte et quasi-succès');
+    egal(compterPaires(mixte, a, b), totalPairCount(mixte, objetA, objetB), 'compte des compartiments mixtes');
   }
 
   // 1300³ codes possibles : les deux premières pièces Violent nécessaires

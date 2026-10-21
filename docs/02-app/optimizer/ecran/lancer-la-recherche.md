@@ -28,7 +28,9 @@ et la progression.
     (voir ../feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel).
     Au bureau, « Arrêter » prend la place exacte de « Rechercher », dans la
     même case, et reste inactif 300 ms après le lancement : le double clic
-    qui a lancé la recherche ne l'arrête pas. Au téléphone, « Rechercher »
+    qui a lancé la recherche ne l'arrête pas ; « Rechercher » y est en
+    braise pleine dès qu'un set est choisi (voir README.md § Bloc
+    « Objectif et Rechercher »). Au téléphone, « Rechercher »
     devient « Recherche… », inactif, et « Arrêter » s'ajoute au bout de la
     rangée. Sans set choisi, « Rechercher » reste cliquable sous son aspect
     grisé : le clic ramène au « Set de runes recherché » (voir

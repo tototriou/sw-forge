@@ -34,6 +34,12 @@ function cache(html: string, nom: string): boolean | undefined {
   return b ? /aria-hidden="true"/.test(b[1]) : undefined;
 }
 
+// Les classes du bouton dont le texte est `nom` ('' s'il manque).
+function classesBouton(html: string, nom: string): string {
+  const b = [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].find(([, , contenu]) => texteVisible(contenu) === nom);
+  return b?.[1].match(/class="([^"]*)"/)?.[1] ?? '';
+}
+
 export function testRenduOptimizerGabaritsColonnes() {
   titre('rendu · Optimizer — gabarits de bureau des colonnes repliables');
 
@@ -117,6 +123,18 @@ export function testRenduOptimizerGabaritsDroite() {
   ok(texteVisible(repos).indexOf('runes gardées après pré-filtrage') < texteVisible(repos).indexOf('Objectif de recherche'), 'étroite : l\'estimation du pool au-dessus de l\'objectif');
   ok(/grid-template-columns:repeat\(2, minmax\(0, 1fr\)\)/.test(repos), 'étroite : les quatre objectifs en 2 × 2');
   ok(bouton(repos, 'Rechercher')?.desactive === false && cache(repos, 'Rechercher') === false, 'au repos : « Rechercher » actif et lisible');
+  // « Rechercher » pèse plus qu'un segment choisi : la braise pleine du bouton
+  // principal dès qu'un set est choisi ; sans set, le fond doux et son grisé
+  // (une braise pleine grisée serait brune).
+  const pleinRepos = classesBouton(repos, 'Rechercher');
+  ok(/(^|\s)bg-accent(\s|$)/.test(pleinRepos) && /(^|\s)text-accent-ink(\s|$)/.test(pleinRepos) && !/opacity-40/.test(pleinRepos),
+    'set choisi : « Rechercher » en braise pleine (`fond="plein"`), sans grisé');
+  const sansSetBouton = classesBouton(rendre(<ObjectifEtRechercherBureau {...props({ comboSets: [] })} />), 'Rechercher');
+  ok(/(^|\s)bg-accent-soft(\s|$)/.test(sansSetBouton) && !/(^|\s)bg-accent(\s|$)/.test(sansSetBouton) && /(^|\s)opacity-40(\s|$)/.test(sansSetBouton),
+    'sans set : « Rechercher » au fond doux, grisé, toujours cliquable');
+  const gabarit = (c: string) => c.split(/\s+/).filter((k) => /^(lg:)?(px-|py-|p-|min-h-|rounded|w-full$|text-sm$|border$|border-transparent$)/.test(k)).sort().join(' ');
+  ok(gabarit(pleinRepos) !== '' && gabarit(pleinRepos) === gabarit(sansSetBouton),
+    `« Rechercher » : mêmes classes de taille et de contour avec ou sans set, le bouton ne bouge pas (${gabarit(pleinRepos)})`);
   ok(cache(repos, 'Arrêter') === true && !!bouton(repos, 'Arrêter')?.desactive, 'au repos : « Arrêter » garde la place, invisible et inactif');
   ok(!texteVisible(repos).includes('S3 · vs Feu') && !repos.includes('S3 · vs Feu'), 'hors « Dégâts réels » : aucun résumé du combat, ni place gardée (arrêt 4)');
   egal(bouton(repos, 'Exporter')?.ariaLabel, 'Exporter les paramètres de recherche', '« Exporter » en libellé court, le long reste le nom');

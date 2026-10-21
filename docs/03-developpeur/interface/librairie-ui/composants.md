@@ -490,12 +490,10 @@ gardant la surface ancrée à ce qui l'a ouverte.
 > le bas. `HelpPopover` pose les deux, et détache son titre (13 px, filet
 > dessous) du corps (12 px).
 
-> ⚠️ **Dans une boîte qui défile seule, la surface n'est plus rognée** : elle
-> est un `Flottant`, en couche supérieure. Le contexte `AidesHorsDeLaBoite` de
-> `HelpPopover` (les colonnes fixes de la page de bureau de l'Optimizer), né
-> avant, fait en plus REFERMER la bulle quand son bouton sort de ce qui le
-> montre ; la bulle y passe par un portail, sous une ancre fantôme en
-> `position: fixed` posée sur le bouton.
+> ⚠️ **Dans une boîte qui défile seule, la surface n'est pas rognée** : elle
+> est un `Flottant`, en couche supérieure, masqué quand son ancre sort de ce
+> qui la montre. Les aides de `HelpPopover` dans les colonnes de la page de
+> bureau de l'Optimizer n'ont donc ni portail ni ancre à part.
 
 > ⚠️ Pour ce qui est ancré à un élément **dont la position varie** : une tuile
 > dans une grille, une carte de monstre, un badge au bout d'une ligne. Ces ancres

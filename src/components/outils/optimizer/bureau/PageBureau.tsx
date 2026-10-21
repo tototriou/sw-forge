@@ -3,7 +3,6 @@ import OngletsColonnes from './OngletsColonnes';
 import { BANDE, BANDE_FIXE, PANNEAU, SECTIONS, coinsDuPanneau } from './panneau';
 import { type PartieObjectif } from './ObjectifEtRechercherBureau';
 import { SetDeplieContext } from './setDeplie';
-import { AidesHorsDeLaBoite } from '../../../HelpPopover';
 import {
   agencementBureau, basculerColonne, colonnesAffichees, colonnesParDefaut, deuxColonnesTiennent, formeObjectifBureau, ouvrirColonne,
   type ColonneRepliable, type ColonnesOuvertes, type FormeObjectifBureau,
@@ -271,12 +270,9 @@ const SECTIONS_COLONNE = '[&>*+*]:ml-2 [&>*+*]:border-l [&>*+*]:border-border-so
 // Une colonne de A3 (essentiels, colonne repliable, colonne de droite) : son
 // contenu dans une boîte intérieure, mesurée. ⚠️ **Elle ne défile seule
 // (`overflow-y: auto`) que quand son contenu dépasse sa hauteur**
-// (`data-defile`) : une boîte qui défile rogne les flottants posés en
-// `absolute` dedans (menus), qu'il vaut mieux laisser déborder tant que rien
-// n'oblige à défiler. Hors A3, aucune hauteur imposée : jamais.
-// ⚠️ **Les aides en sortent toujours** (`AidesHorsDeLaBoite`, HelpPopover.tsx) :
-// une bulle de 340 px ancrée près du bord droit déborde de la colonne même
-// quand elle tient en hauteur ; en portail, elle s'affiche en entier.
+// (`data-defile`). Les flottants posés dedans (menus, listes, aides) n'en
+// dépendent pas : ils passent en couche supérieure (`Flottant`), qu'aucune
+// boîte qui défile ne rogne. Hors A3, aucune hauteur imposée : jamais.
 // ⚠️ **Une colonne qui défile garde les coins arrondis de son panneau** : la
 // boîte est rognée aux coins du haut du panneau (`coinsDuPanneau`), pour que
 // le contenu qui passe sous la bande ne s'y voie pas.
@@ -326,7 +322,7 @@ function Colonne({ className, contenu, children, surMesure, ...donnees }: {
       className={className}
     >
       <div ref={interieur} className={contenu}>
-        <AidesHorsDeLaBoite.Provider value>{children}</AidesHorsDeLaBoite.Provider>
+        {children}
       </div>
     </div>
   );

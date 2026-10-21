@@ -397,10 +397,9 @@ d'adresse retranchés : ≈ 1 920 × 940 sur un écran de 1 920 × 1 080,
   16 px des marges (1 640 px à 1 920 de large au lieu des 1 614 du tableau
   des repères).
 - ⚠️ **Les autres colonnes ne défilent que si leur contenu dépasse** leur
-  hauteur : une boîte qui défile rogne les menus posés dedans, qu'il vaut
-  mieux laisser déborder tant que rien n'oblige à défiler. Les aides
-  (`HelpPopover`) en sortent toujours, en portail : une bulle ancrée près du
-  bord droit d'une colonne s'affiche en entier.
+  hauteur. Les menus, les listes et les aides (`HelpPopover`) posés dedans
+  n'en dépendent pas : en couche supérieure (`Flottant`), une bulle ancrée
+  près du bord droit d'une colonne qui défile s'affiche en entier.
 - **A1** : la page défile dans la fenêtre (ou le volet), avec le pied de page ;
   seule la barre fine du bloc est collée au bas de la partie visible.
 

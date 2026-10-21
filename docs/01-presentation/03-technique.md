@@ -59,6 +59,8 @@ npm run fetch-data     # régénère les données monstres et compétences depui
 npm run dev            # serveur de dev, http://localhost:5173
 npm run build          # build de prod (⚠️ seul endroit où l'on voit le CSS réellement émis)
 npm test               # = node tests/run.mjs
+node tests/run.mjs --lister <filtre>        # sélection finale, sans exécution
+node tests/run.mjs --max-entrees 30 <filtre> # limite explicite avant toute vérification
 npm run lint           # ESLint sur tout le dépôt (eslint.config.js)
 npm run benchmark:optim
 npm run bureau         # l'application de bureau sur le serveur de dev

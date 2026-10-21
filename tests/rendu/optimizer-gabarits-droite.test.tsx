@@ -217,6 +217,7 @@ export function testRenduOptimizerPageBureauDroite() {
   ok(['@[1180px]:border-t-[3px]', '@[1180px]:border-t-[rgb(var(--accent))]', '@[1180px]:pt-[6px]', ...bandeFixe, '@[1180px]:before:row-[1/span_3]'].every((c) => droite.includes(c))
     && !droite.some((c) => c.includes('inset')),
     'colonne de droite : même bande en A3, recopiée sur toutes les rangées de la grille du panneau');
+  ok(droite.includes('@[1180px]:mr-1'), 'colonne de droite : en A3, son panneau s\'arrête à 4 px de sa barre de défilement');
   // Les coins d'une colonne qui défile : la boîte est rognée aux coins du haut
   // du panneau, la barre et l'écart à sa droite gardés.
   egal(coinsDuPanneau(540, 14), "path('M 0 14 A 14 14 0 0 1 14 0 H 526 A 14 14 0 0 1 540 14 V 0 H 100000 V 100000 H 0 Z')",

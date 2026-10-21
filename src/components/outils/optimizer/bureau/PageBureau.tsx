@@ -208,8 +208,10 @@ const DEFILE_A3 = '@[1180px]:min-h-0 @[1180px]:overscroll-contain @[1180px]:data
 // ⚠️ **La boîte qui défile s'arrête à sa barre** : large de son panneau, de
 // 4 px et de la barre de défilement (10 px), pour que la barre se lise comme
 // celle de SA colonne ; le reste de l'écart entre deux panneaux (24 px) est
-// une marge, hors de la boîte. Décision de l'utilisateur à l'arrêt 4 : une
-// barre au bord de la place se collait au panneau suivant.
+// une marge, hors de la boîte. Décision de l'utilisateur : une barre au bord
+// de la place se collait au panneau suivant. La colonne de droite, la
+// dernière, garde aussi 4 px entre son panneau et sa barre, au bord de la
+// page.
 //
 // Une colonne repliable en A3, à défilement propre : superposée sous son seuil
 // d'insertion (marge négative de sa largeur : elle ne prend aucune place),
@@ -465,7 +467,7 @@ export default function PageBureau(props: PageBureauProps) {
             celles de `PANNEAU`, en A3 seulement. ⚠️ Elle défile toujours, sa
             barre réservée (`scrollbar-gutter: stable`) : les résultats qui
             arrivent ne la rétrécissent pas, et « Rechercher » ne bouge pas
-            sous le clic. */}
+            sous le clic. Son panneau s'arrête à 4 px de la barre. */}
         <Colonne
           data-zone="droite"
           className={
@@ -473,7 +475,7 @@ export default function PageBureau(props: PageBureauProps) {
             + ' @[1180px]:overflow-y-auto @[1180px]:overflow-x-hidden @[1180px]:overscroll-contain @[1180px]:[scrollbar-gutter:stable]'
           }
           contenu={
-            'contents @[1180px]:grid @[1180px]:min-h-full @[1180px]:grid-cols-[607px_minmax(0,1fr)] @[1180px]:content-start'
+            'contents @[1180px]:grid @[1180px]:mr-1 @[1180px]:min-h-full @[1180px]:grid-cols-[607px_minmax(0,1fr)] @[1180px]:content-start'
             + ' @[1180px]:rounded-xl @[1180px]:border @[1180px]:border-border @[1180px]:bg-panel @[1180px]:p-2'
             // La bande (`BANDE`, en A3 seulement), et sa copie fixe, sur toutes
             // les rangées de la grille du panneau.

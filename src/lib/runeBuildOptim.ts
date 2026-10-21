@@ -2472,7 +2472,7 @@ export type ContexteOrdreCombos = Pick<BuildBucketsContext, 'base' | 'minEntries
  * `buildBuckets` : générique (`relevanceScore`), combinée des minimums si un
  * minimum est posé, puis une par stat de `retentionKeys`.
  */
-export function scoresDeTranche(combo: HalfCombo, ctx: ContexteOrdreCombos): number[] {
+export function scoresDeTranche(combo: Pick<HalfCombo, 'pct' | 'flat' | 'relevanceScore'>, ctx: ContexteOrdreCombos): number[] {
   const s: number[] = [combo.relevanceScore];
   if (ctx.minEntries.length > 0) s.push(combinedRetentionScore(ctx.base, combo.pct, combo.flat, ctx.minEntries));
   for (const k of ctx.retentionKeys) s.push(retentionScore(ctx.base, combo.pct, combo.flat, k));
@@ -2486,28 +2486,31 @@ export function scoresDeTranche(combo: HalfCombo, ctx: ContexteOrdreCombos): num
  * (retentionEmboitee.ts). `globalBestBySlice` (le meilleur score de chaque
  * tranche sur toute la moitié) n'est lu que par l'ordre `'potential'`.
  */
-export function ordonnerCombos(
-  combos: HalfCombo[],
+export function ordonnerCombos<T = HalfCombo>(
+  combos: T[],
   ctx: ContexteOrdreCombos,
   combosOrderMode: 'potential' | 'relevance' | 'combined' | 'objective',
-  globalBestBySlice: readonly number[]
-): HalfCombo[] {
+  globalBestBySlice: readonly number[],
+  lire: (combo: T) => Pick<HalfCombo, 'pct' | 'flat' | 'relevanceScore'> = (combo) => combo as HalfCombo
+): T[] {
   const { base, minEntries, objectiveKeys } = ctx;
   const hasCombined = minEntries.length > 0;
   const scored = combos.map((combo) => {
-    const combined = hasCombined ? combinedRetentionScore(base, combo.pct, combo.flat, minEntries) : null;
-    const objectiveVal = objectiveKeys.length > 0 ? objectiveRetentionScore(base, combo.pct, combo.flat, objectiveKeys) : null;
-    const sliceScores = scoresDeTranche(combo, ctx);
+    const vue = lire(combo);
+    const relevance = vue.relevanceScore;
+    const combined = hasCombined ? combinedRetentionScore(base, vue.pct, vue.flat, minEntries) : null;
+    const objectiveVal = objectiveKeys.length > 0 ? objectiveRetentionScore(base, vue.pct, vue.flat, objectiveKeys) : null;
+    const sliceScores = scoresDeTranche(vue, ctx);
     let potential = -Infinity;
     for (let s = 0; s < sliceScores.length; s++) {
       const g = globalBestBySlice[s];
       const normalized = g > 0 ? sliceScores[s] / g : sliceScores[s];
       if (normalized > potential) potential = normalized;
     }
-    return { combo, potential, combined, objectiveVal };
+    return { combo, relevance, potential, combined, objectiveVal };
   });
   if (combosOrderMode === 'relevance') {
-    scored.sort((x, y) => y.combo.relevanceScore - x.combo.relevanceScore);
+    scored.sort((x, y) => y.relevance - x.relevance);
   } else if (combosOrderMode === 'combined') {
     // PROTOTYPE (forge/order-as-weight-contrib) — trie UNIQUEMENT par
     // combinedRetentionScore (Σ contribution/seuil sur TOUS les minimums
@@ -2515,7 +2518,7 @@ export function ordonnerCombos(
     // stat isolée. Repli sur relevanceScore si aucun minimum n'est posé
     // (`combined` vaut alors `null` pour tous les demi-builds — rien à
     // comparer sinon, un tri par `undefined - undefined` serait instable).
-    scored.sort((x, y) => (y.combined ?? y.combo.relevanceScore) - (x.combined ?? x.combo.relevanceScore));
+    scored.sort((x, y) => (y.combined ?? y.relevance) - (x.combined ?? x.relevance));
   } else if (combosOrderMode === 'objective') {
     // PROTOTYPE (forge/order-as-weight-contrib) — trie UNIQUEMENT par
     // objectiveRetentionScore (Σ contribution réelle sur les stats de
@@ -2523,7 +2526,7 @@ export function ordonnerCombos(
     // minimums posés, jamais l'efficience générique. Repli sur
     // relevanceScore si aucun objectif n'est choisi (« Efficience »,
     // `objectiveVal` vaut alors `null` pour tout le monde).
-    scored.sort((x, y) => (y.objectiveVal ?? y.combo.relevanceScore) - (x.objectiveVal ?? x.combo.relevanceScore));
+    scored.sort((x, y) => (y.objectiveVal ?? y.relevance) - (x.objectiveVal ?? x.relevance));
   } else {
     scored.sort((x, y) => y.potential - x.potential);
   }
@@ -3076,7 +3079,7 @@ export function bucketPairFeasibleMin(
 // consulté ici.
 // ⚠️ EXPORTÉE pour le harnais — voir `satisfiesSets` ci-dessus.
 export function comboAFeasible(
-  comboA: HalfCombo,
+  comboA: Pick<HalfCombo, 'pct' | 'flat'>,
   bB: { maxPct: Record<string, number>; maxFlat: Record<string, number> },
   minEntries: { k: StatKey; min: number }[],
   maxEntries: { k: StatKey; max: number }[],
@@ -3808,7 +3811,7 @@ export const CHECKPOINT_EVERY = 500;
 // Tout ce que `buildBuckets` (les DEUX moitiés) ET la phase d'appariement
 // (`pairBuckets`) doivent partager — factorisé pour que les deux moitiés
 // puissent être construites INDÉPENDAMMENT (en parallèle, potentiellement
-// dans deux Workers distincts, voir runeBuildOptim.worker.ts et
+// dans un Worker par moitié et par préréglage, voir runeBuildOptim.worker.ts et
 // docs/03-developpeur/optimizer/ § Construction des moitiés) sans dupliquer la
 // préparation (mainStatFilteredBySlot → pruneDominated → eliminateInfeasible
 // → filterSlot), qui elle reste séquentielle et bon marché en comparaison.

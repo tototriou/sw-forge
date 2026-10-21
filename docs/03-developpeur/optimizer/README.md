@@ -12,7 +12,7 @@ selon ce qu'on touche. Avant un chantier Optimizer : [invariants.md](invariants.
 | quoi que ce soit du moteur | [invariants.md](invariants.md), en entier, d'abord |
 | `src/workers/runeBuildOptim.worker.ts`, `src/workers/prepareForSearch.ts`, `src/hooks/useBuildOptimSearch.ts`, l'enchaînement d'une recherche | [moteur/pipeline.md](moteur/pipeline.md) |
 | l'énumération, les élagages, le pré-filtrage, les bornes de `src/lib/runeBuildOptim.ts` | [moteur/elagages.md](moteur/elagages.md) |
-| `src/lib/rechercheRunes.ts`, `src/lib/constructionRapide.ts` | [moteur/pipeline.md](moteur/pipeline.md) |
+| `src/lib/rechercheRunes.ts`, `src/lib/constructionRapide.ts`, `src/lib/demiBuildsTypes.ts` | [moteur/pipeline.md](moteur/pipeline.md) |
 | `src/lib/retentionEmboitee.ts`, `src/lib/constructionEmboitee.ts`, les préréglages emboîtés | [moteur/elagages.md](moteur/elagages.md) |
 | `src/lib/appariementRapide.ts`, `src/lib/validationRapide.ts`, le test rapide et la validation de l'appariement | [moteur/noyau-appariement.md](moteur/noyau-appariement.md) |
 | `src/workers/parallelPairing.ts`, `src/lib/appariementRapideParallele.ts`, `src/lib/travailleurAppariement.ts`, `src/workers/appariementRapide.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | [moteur/parallelisation.md](moteur/parallelisation.md) |

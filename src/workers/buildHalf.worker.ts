@@ -1,9 +1,9 @@
 /// <reference lib="webworker" />
 // Worker DÉDIÉ à la construction d'UN préréglage d'UNE moitié
-// (`construireMoitie` : le noyau sur tableaux typés, `buildBuckets` en
-// repli), spawné PAR `runeBuildOptim.worker.ts` (pas par l'app directement),
+// (`construireMoitieTypee` : colonnes typées, sans HalfCombo), spawné PAR
+// `runeBuildOptim.worker.ts` (pas par l'app directement),
 // un par moitié et par préréglage construit (préréglages emboîtés,
-// `construireMoitiesEmboitees`) — voir
+// `construireMoitiesEmboiteesTypees`) — voir
 // docs/03-developpeur/optimizer/moteur/pipeline.md § Construction des moitiés.
 // Reste minimal, comme runeBuildOptim.worker.ts : aucune
 // logique propre, pilote juste la construction pas à pas pour pouvoir relayer
@@ -17,8 +17,8 @@
 // Worker n'a donc besoin de gérer qu'UN seul message (la demande initiale),
 // jamais un second message « stop ».
 
-import { Bucket } from '../lib/runeBuildOptim';
-import { construireMoitie, totalConstruction } from '../lib/rechercheRunes';
+import { CompartimentType, tamponsDesDemiBuilds } from '../lib/demiBuildsTypes';
+import { construireMoitieTypee, totalConstruction } from '../lib/rechercheRunes';
 import { RequeteMoitie } from '../lib/constructionEmboitee';
 
 // La requête d'UN préréglage d'une moitié (préréglages emboîtés : un Worker
@@ -34,7 +34,7 @@ export interface BuildHalfProgressMessage {
 export interface BuildHalfResultMessage {
   type: 'result';
   half: 'A' | 'B';
-  buckets: Bucket[];
+  buckets: CompartimentType[];
 }
 export type BuildHalfResponse = BuildHalfProgressMessage | BuildHalfResultMessage;
 
@@ -57,7 +57,7 @@ self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
   // trop (half/slotIdxs/otherHalfMaxSets/…) sont ignorés sans risque
   // puisque ce n'est pas un littéral d'objet (aucune vérification de
   // propriété excédentaire de TypeScript ici).
-  const gen = construireMoitie(half, slotIdxs, e.data, otherHalfMaxSets, combosOrderMode);
+  const gen = construireMoitieTypee(half, slotIdxs, e.data, otherHalfMaxSets, combosOrderMode);
   let lastPost = 0;
   let step = gen.next();
   while (!step.done) {
@@ -83,5 +83,5 @@ self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
   const finalProgress: BuildHalfProgressMessage = { type: 'progress', half, scanned: total, total };
   (self as unknown as Worker).postMessage(finalProgress);
   const message: BuildHalfResultMessage = { type: 'result', half, buckets: step.value };
-  (self as unknown as Worker).postMessage(message);
+  (self as unknown as Worker).postMessage(message, tamponsDesDemiBuilds(step.value));
 };

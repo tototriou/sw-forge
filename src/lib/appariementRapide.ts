@@ -1,7 +1,7 @@
 // Noyau de l'appariement sur tableaux typés : le chemin de production
 // (`apparier` dans src/lib/rechercheRunes.ts en séquentiel,
 // `appariementRapideParallele.ts` en parallèle). `pairBuckets`
-// (runeBuildOptim.ts) reste la RÉFÉRENCE et le repli hors contrat numérique.
+// (runeBuildOptim.ts) reste la RÉFÉRENCE et le chemin du traceur de diagnostic.
 // Voir docs/03-developpeur/optimizer/moteur/pipeline.md § Appariement séquentiel.
 // Il ne remplace que la boucle la plus intérieure (`for comboB of bB.combos`) :
 // ordre des paires de compartiments, prédicats de compartiment et de comboA,
@@ -15,7 +15,7 @@
 // minimum `ceil(n / 100) < t` ⟺ `n ≤ 100 (t − 1)`, rejet du maximum
 // `ceil(n / 100) > t` ⟺ `n > 100 t`) ne valent que sous des préconditions
 // d'intégrité vérifiées avant toute paire (`verifierContrat`) ; sans elles,
-// le chemin actuel (`pairBuckets`) est pris tel quel.
+// les colonnes se parcourent sans saut (`apparierSansSauts`).
 //
 // Les bornes écrites, leurs préconditions et l'ordre de visite :
 // docs/03-developpeur/optimizer/moteur/noyau-appariement.md.
@@ -37,8 +37,8 @@ import { missingSets } from './recoMatch';
 import { AurasPropres, aurasPropresDesSetsActifs, pointsAuraResPrePropres } from './damage';
 import { OptimMetric } from './runeOptim';
 import { ValidationTypee } from './validationRapide';
+import { Compartiment, VueCombo, idCombo, lireCombo, nouvelleVueCombo, objetsDesCompartiments } from './demiBuildsTypes';
 import {
-  Bucket,
   BuildCandidate,
   BuildRequirement,
   CHECKPOINT_EVERY,
@@ -87,7 +87,7 @@ function valueOf(rune: RuneDetail, metric: OptimMetric): number {
 // Copie de `orderedCompartmentPairs` (runeBuildOptim.ts) — privée là-bas —,
 // qui rend les INDICES plutôt que les compartiments. Même tas, mêmes
 // départages : la séquence est celle de `pairBuckets`.
-export function* ordreDesCompartiments(bucketsA: Bucket[], bucketsB: Bucket[]): Generator<readonly [number, number], void, void> {
+export function* ordreDesCompartiments(bucketsA: Compartiment[], bucketsB: Compartiment[]): Generator<readonly [number, number], void, void> {
   interface Entry { i: number; j: number; sum: number }
   const heap: Entry[] = [];
   const seen = new Set<string>();
@@ -135,7 +135,7 @@ export function* ordreDesCompartiments(bucketsA: Bucket[], bucketsB: Bucket[]): 
 }
 
 /** Les prédicats de compartiment de `pairBuckets`, dans son ordre, par les fonctions de production. */
-export function paireDeCompartimentsOuverte(prepared: PreparedSearch, bA: Bucket, bB: Bucket): boolean {
+export function paireDeCompartimentsOuverte(prepared: PreparedSearch, bA: Compartiment, bB: Compartiment): boolean {
   const { distinctKeys, requirement, minEntries, guaranteedMin, relPctMax, artFlatMax, totalOf } = prepared;
   if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) return false;
   if (bA.jokers + bB.jokers > 1) return false;
@@ -143,9 +143,20 @@ export function paireDeCompartimentsOuverte(prepared: PreparedSearch, bA: Bucket
 }
 
 /** `comboAFeasible` de production, avec les arguments de `pairBuckets`. */
-export function comboAOuvert(prepared: PreparedSearch, comboA: Bucket['combos'][number], bB: Bucket): boolean {
+export function comboAOuvert(prepared: PreparedSearch, comboA: Pick<VueCombo, 'pct' | 'flat'>, bB: Compartiment): boolean {
   const { minEntries, maxEntries, guaranteed, guaranteedMin, relPctMax, artFlatMax, totalOf, artFlatMin, relPctMin } = prepared;
   return comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPctMax, artFlatMax, totalOf, artFlatMin, relPctMin);
+}
+
+/** Le compte exact de production, avec les mêmes prédicats que totalPairCount. */
+export function compterPaires(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[]): number {
+  let total = 0;
+  const vue = nouvelleVueCombo();
+  for (const a of bucketsA) for (const b of bucketsB) {
+    if (!paireDeCompartimentsOuverte(prepared, a, b)) continue;
+    for (let i = 0; i < a.combos.length; i++) if (comboAOuvert(prepared, lireCombo(a, i, vue), b)) total += b.combos.length;
+  }
+  return total;
 }
 
 /* --------------------------------------------------------------------------
@@ -157,9 +168,17 @@ export interface MoitieTypee {
   debut: Int32Array;
   /** Les trois runes de chaque demi-build (Float64 : les identifiants du jeu dépassent l'Int32). */
   ids: Float64Array;
-  /** `pct[c·m + k]`, `flat[c·m + k]` : `combo.pct[cle] ?? 0`, `combo.flat[cle] ?? 0`. */
+  /** Seules les contraintes PV/ATQ/DEF ont une colonne de pourcentages. */
+  pasPct: number;
+  indicesPct: Int8Array;
   pct: Int32Array;
+  /** `flat[c·m + k]` : `combo.flat[cle] ?? 0`. */
   flat: Int32Array;
+}
+
+function pctDe(moitie: MoitieTypee, g: number, k: number): number {
+  const i = moitie.indicesPct[k];
+  return i < 0 ? 0 : moitie.pct[g * moitie.pasPct + i];
 }
 
 export interface MoitieBTypee extends MoitieTypee {
@@ -185,7 +204,7 @@ export interface CompartimentsTypes {
 /** Les tampons d'un `CompartimentsTypes`, pour un transfert (`Transferable`). */
 export function tamponsDe(ct: CompartimentsTypes): ArrayBuffer[] {
   const { A, B } = ct;
-  return [A.debut, A.ids, A.pct, A.flat, B.debut, B.ids, B.pct, B.flat, B.W, B.tri, B.perm, B.debutBlocs, B.blocMin, B.blocMax].map(
+  return [A.debut, A.ids, A.indicesPct, A.pct, A.flat, B.debut, B.ids, B.indicesPct, B.pct, B.flat, B.W, B.tri, B.perm, B.debutBlocs, B.blocMin, B.blocMax].map(
     (t) => t.buffer as ArrayBuffer
   );
 }
@@ -197,9 +216,9 @@ export function copierCompartiments(ct: CompartimentsTypes): CompartimentsTypes 
   return {
     cles: [...ct.cles],
     m: ct.m,
-    A: { debut: c(A.debut), ids: A.ids.slice(), pct: c(A.pct), flat: c(A.flat) },
+    A: { debut: c(A.debut), ids: A.ids.slice(), pasPct: A.pasPct, indicesPct: A.indicesPct.slice(), pct: c(A.pct), flat: c(A.flat) },
     B: {
-      debut: c(B.debut), ids: B.ids.slice(), pct: c(B.pct), flat: c(B.flat), W: c(B.W), tri: c(B.tri), perm: c(B.perm),
+      debut: c(B.debut), ids: B.ids.slice(), pasPct: B.pasPct, indicesPct: B.indicesPct.slice(), pct: c(B.pct), flat: c(B.flat), W: c(B.W), tri: c(B.tri), perm: c(B.perm),
       debutBlocs: c(B.debutBlocs), blocMin: c(B.blocMin), blocMax: c(B.blocMax),
     },
   };
@@ -281,7 +300,7 @@ export function constantesNoyau(prepared: PreparedSearch): ConstantesNoyau {
  * Le contrat numérique (valeurs entières, produits exacts), vérifié AVANT toute paire. Rend `null`
  * s'il tient, sinon le motif du repli sur le chemin actuel.
  */
-export function verifierContrat(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): string | null {
+export function verifierContrat(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[]): string | null {
   if (prepared.traceur) return 'traceur de diagnostic demandé (le noyau ne le remplit pas)';
   const c = constantesNoyau(prepared);
   const { guaranteed, guaranteedMin, artFlatMax, artFlatMin, relPctMax, relPctMin } = prepared;
@@ -301,9 +320,14 @@ export function verifierContrat(prepared: PreparedSearch, bucketsA: Bucket[], bu
   for (const { k, min } of prepared.minEntries) if (!Number.isFinite(min)) return `minimum ${k} non fini`;
   for (const { k, max } of prepared.maxEntries) if (!Number.isFinite(max)) return `maximum ${k} non fini`;
   for (const [moitie, buckets] of [['A', bucketsA], ['B', bucketsB]] as const) {
+    const vue = nouvelleVueCombo();
     for (const bucket of buckets) {
-      for (const combo of bucket.combos) {
-        for (const r of combo.runes) if (!Number.isSafeInteger(r.id)) return `identifiant de rune non entier (${r.id})`;
+      for (let i = 0; i < bucket.combos.length; i++) {
+        const combo = lireCombo(bucket, i, vue);
+        for (let r = 0; r < 3; r++) {
+          const id = idCombo(bucket, i, r);
+          if (!Number.isSafeInteger(id)) return `identifiant de rune non entier (${id})`;
+        }
         for (let kk = 0; kk < c.m; kk++) {
           const k = c.cles[kk];
           const p = combo.pct[k] ?? 0;
@@ -320,35 +344,39 @@ export function verifierContrat(prepared: PreparedSearch, bucketsA: Bucket[], bu
   return null;
 }
 
-function encoderMoitie(buckets: Bucket[], cles: StatKey[]): MoitieTypee {
+function encoderMoitie(buckets: Compartiment[], cles: StatKey[]): MoitieTypee {
   const m = cles.length;
   const debut = new Int32Array(buckets.length + 1);
   for (let i = 0; i < buckets.length; i++) debut[i + 1] = debut[i] + buckets[i].combos.length;
   const n = debut[buckets.length];
   const ids = new Float64Array(3 * n);
-  const pct = new Int32Array(m * n);
+  let pasPct = 0;
+  const indicesPct = Int8Array.from(cles, (k) => estPct(k) ? pasPct++ : -1);
+  const pct = new Int32Array(pasPct * n);
   const flat = new Int32Array(m * n);
   let c = 0;
+  const vue = nouvelleVueCombo();
   for (const bucket of buckets) {
-    for (const combo of bucket.combos) {
-      ids[3 * c] = combo.runes[0].id;
-      ids[3 * c + 1] = combo.runes[1].id;
-      ids[3 * c + 2] = combo.runes[2].id;
+    for (let i = 0; i < bucket.combos.length; i++) {
+      const combo = lireCombo(bucket, i, vue);
+      ids[3 * c] = idCombo(bucket, i, 0);
+      ids[3 * c + 1] = idCombo(bucket, i, 1);
+      ids[3 * c + 2] = idCombo(bucket, i, 2);
       for (let kk = 0; kk < m; kk++) {
-        pct[c * m + kk] = combo.pct[cles[kk]] ?? 0;
+        if (indicesPct[kk] >= 0) pct[c * pasPct + indicesPct[kk]] = combo.pct[cles[kk]] ?? 0;
         flat[c * m + kk] = combo.flat[cles[kk]] ?? 0;
       }
       c++;
     }
   }
-  return { debut, ids, pct, flat };
+  return { debut, ids, pasPct, indicesPct, pct, flat };
 }
 
 /**
  * ⚠️ Suppose `verifierContrat` passé : toutes les valeurs écrites dans les
  * Int32Array y sont exactes.
  */
-export function encoderCompartiments(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): CompartimentsTypes {
+export function encoderCompartiments(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[]): CompartimentsTypes {
   const c = constantesNoyau(prepared);
   const { cles, m } = c;
   const A = encoderMoitie(bucketsA, cles);
@@ -357,7 +385,7 @@ export function encoderCompartiments(prepared: PreparedSearch, bucketsA: Bucket[
   const W = new Int32Array(m * nB);
   for (let g = 0; g < nB; g++) {
     for (let kk = 0; kk < m; kk++) {
-      W[g * m + kk] = c.pct[kk] ? c.b[kk] * base.pct[g * m + kk] + 100 * base.flat[g * m + kk] : base.flat[g * m + kk];
+      W[g * m + kk] = c.pct[kk] ? c.b[kk] * pctDe(base, g, kk) + 100 * base.flat[g * m + kk] : base.flat[g * m + kk];
     }
   }
   const tri = new Int32Array(m * nB);
@@ -411,7 +439,7 @@ export function encoderCompartiments(prepared: PreparedSearch, bucketsA: Bucket[
 export function seuilsLigne(c: ConstantesNoyau, A: MoitieTypee, ga: number, L: Float64Array, H: Float64Array): void {
   const m = c.m;
   for (let kk = 0; kk < m; kk++) {
-    const pA = A.pct[ga * m + kk];
+    const pA = pctDe(A, ga, kk);
     const fA = A.flat[ga * m + kk];
     const b = c.b[kk];
     const minC = c.minC[kk];
@@ -559,12 +587,12 @@ export function quickOkReference(c: ConstantesNoyau, ct: CompartimentsTypes, ga:
   const m = c.m;
   const { A, B } = ct;
   for (const e of c.minEntrees) {
-    const p = A.pct[ga * m + e.kk] + B.pct[gb * m + e.kk] + e.gmP + e.rp;
+    const p = pctDe(A, ga, e.kk) + pctDe(B, gb, e.kk) + e.gmP + e.rp;
     const f = A.flat[ga * m + e.kk] + B.flat[gb * m + e.kk] + e.gmF + e.af;
     if (c.totalOf(e.k, p, f) < e.min) return false;
   }
   for (const e of c.maxEntrees) {
-    const p = A.pct[ga * m + e.kk] + B.pct[gb * m + e.kk] + e.gP + e.rp;
+    const p = pctDe(A, ga, e.kk) + pctDe(B, gb, e.kk) + e.gP + e.rp;
     const f = A.flat[ga * m + e.kk] + B.flat[gb * m + e.kk] + e.gF + e.af;
     if (c.totalOf(e.k, p, f) > e.max) return false;
   }
@@ -777,9 +805,18 @@ export function validationDe(
 }
 
 /** Les runes des demi-builds, à plat, dans l'ordre de `encoderCompartiments`. */
-export function runesAPlat(buckets: Bucket[]): RuneDetail[] {
+export function runesAPlat(buckets: Compartiment[], pools: readonly RuneDetail[][] = []): RuneDetail[] {
   const out: RuneDetail[] = [];
-  for (const b of buckets) for (const c of b.combos) out.push(c.runes[0], c.runes[1], c.runes[2]);
+  const parId = new Map(pools.flat().map((r) => [r.id, r]));
+  for (const b of buckets) {
+    if (Array.isArray(b.combos)) {
+      for (const c of b.combos) out.push(c.runes[0], c.runes[1], c.runes[2]);
+    } else for (const id of b.combos.ids) {
+      const r = parId.get(id);
+      if (!r) throw new Error(`rune ${id} absente du pool préparé`);
+      out.push(r);
+    }
+  }
   return out;
 }
 
@@ -814,21 +851,73 @@ export interface OptionsAppariementRapide {
   observateur?: { visite(iA: number, a: number, iB: number, b: number): void };
 }
 
+/** Hors contrat entier : mêmes expressions et points de passage que pairBuckets, sans saut ni HalfCombo. */
+function* apparierSansSauts(prepared: PreparedSearch, A: Compartiment[], B: Compartiment[]): Generator<PairingProgress, SearchResult, void> {
+  const collecteur = new Collecteur(prepared, false, false);
+  const a = nouvelleVueCombo();
+  const b = nouvelleVueCombo();
+  const runesA = runesAPlat(A, prepared.filtered);
+  const runesB = runesAPlat(B, prepared.filtered);
+  const debuts = (buckets: Compartiment[]) => {
+    const d = [0];
+    for (const x of buckets) d.push(d[d.length - 1] + x.combos.length);
+    return d;
+  };
+  const da = debuts(A);
+  const db = debuts(B);
+  const c = constantesNoyau(prepared);
+  let explored = 0;
+  let truncated = false;
+  outer: for (const [iA, iB] of ordreDesCompartiments(A, B)) {
+    if (!paireDeCompartimentsOuverte(prepared, A[iA], B[iB])) continue;
+    for (let ia = 0; ia < A[iA].combos.length; ia++) {
+      const ca = lireCombo(A[iA], ia, a);
+      if (!comboAOuvert(prepared, ca, B[iB])) continue;
+      for (let ib = 0; ib < B[iB].combos.length; ib++) {
+        explored++;
+        if (explored % CHECKPOINT_EVERY === 0) yield { phase: 'pairing', candidates: collecteur.candidates, explored, nearMissByCondition: collecteur.snapshot(), globalNearMiss: collecteur.globalNearMiss };
+        if (Date.now() - prepared.startedAt > prepared.maxMs) { truncated = true; break outer; }
+        const cb = lireCombo(B[iB], ib, b);
+        let passe = true;
+        for (const e of c.minEntrees) {
+          const p = (ca.pct[e.k] ?? 0) + (cb.pct[e.k] ?? 0) + e.gmP + e.rp;
+          const f = (ca.flat[e.k] ?? 0) + (cb.flat[e.k] ?? 0) + e.gmF + e.af;
+          if (c.totalOf(e.k, p, f) < e.min) { passe = false; break; }
+        }
+        if (!passe) continue;
+        for (const e of c.maxEntrees) {
+          const p = (ca.pct[e.k] ?? 0) + (cb.pct[e.k] ?? 0) + e.gP + e.rp;
+          const f = (ca.flat[e.k] ?? 0) + (cb.flat[e.k] ?? 0) + e.gF + e.af;
+          if (c.totalOf(e.k, p, f) > e.max) { passe = false; break; }
+        }
+        if (!passe) continue;
+        const ga = da[iA] + ia;
+        const gb = db[iB] + ib;
+        if (collecteur.valider([runesA[3 * ga], runesA[3 * ga + 1], runesA[3 * ga + 2], runesB[3 * gb], runesB[3 * gb + 1], runesB[3 * gb + 2]], explored)
+          && collecteur.candidates.length >= prepared.maxCollected) { truncated = true; break outer; }
+      }
+    }
+  }
+  return { candidates: collecteur.candidates, explored, truncated, nearMissByCondition: collecteur.snapshot(), globalNearMiss: collecteur.globalNearMiss };
+}
+
 /**
  * Le pendant de `pairBuckets(prepared, bucketsA, bucketsB)` : même résultat,
  * mêmes points de passage (toutes les `CHECKPOINT_EVERY` paires TRAITÉES,
- * `explored` = `traitees`), le noyau en plus. Contrat non tenu → `pairBuckets`
- * lui-même (`chemin: 'actuel'`).
+ * `explored` = `traitees`), le noyau en plus. Contrat non tenu → parcours
+ * sans saut ; traceur → `pairBuckets` lui-même (`chemin: 'actuel'`).
  */
 export function* apparierRapide(
   prepared: PreparedSearch,
-  bucketsA: Bucket[],
-  bucketsB: Bucket[],
+  bucketsA: Compartiment[],
+  bucketsB: Compartiment[],
   options: OptionsAppariementRapide = {}
 ): Generator<PairingProgress, ResultatAppariementRapide, void> {
   const motif = verifierContrat(prepared, bucketsA, bucketsB);
   if (motif) {
-    const r = yield* pairBuckets(prepared, bucketsA, bucketsB);
+    const r = prepared.traceur
+      ? yield* pairBuckets(prepared, objetsDesCompartiments(bucketsA, prepared.filtered), objetsDesCompartiments(bucketsB, prepared.filtered))
+      : yield* apparierSansSauts(prepared, bucketsA, bucketsB);
     return {
       ...r, traitees: r.explored, visitees: r.explored, sautees: 0, chemin: 'actuel', motifChemin: motif,
       cheminValidation: 'reference', motifValidation: 'chemin actuel (pairBuckets)', compteurs: compteursVides(),
@@ -844,7 +933,10 @@ export function* apparierRapide(
   for (const b of bucketsB) maxB = Math.max(maxB, b.combos.length);
   const sortie = new Int32Array(maxB);
   const compteurs = compteursVides();
-  const { validation, motif: motifValidation } = validationDe(prepared, runesAPlat(bucketsA), runesAPlat(bucketsB), options.forcerValidation);
+  const runesA = runesAPlat(bucketsA, prepared.filtered);
+  const runesB = runesAPlat(bucketsB, prepared.filtered);
+  const { validation, motif: motifValidation } = validationDe(prepared, runesA, runesB, options.forcerValidation);
+  const runesDePaire = (ga: number, gb: number) => [runesA[3 * ga], runesA[3 * ga + 1], runesA[3 * ga + 2], runesB[3 * gb], runesB[3 * gb + 1], runesB[3 * gb + 2]];
   const collecteur = new Collecteur(prepared, false, false, validation);
   const candidates = collecteur.candidates;
   const progression = (traitees: number): PairingProgress => ({
@@ -857,6 +949,7 @@ export function* apparierRapide(
   // l'expiration du filet et le prochain contrôle, même sans survivant.
   let prochainPoint = CHECKPOINT_EVERY;
   let truncated = false;
+  const vueA = nouvelleVueCombo();
 
   outer: for (const [iA, iB] of ordreDesCompartiments(bucketsA, bucketsB)) {
     const bA = bucketsA[iA];
@@ -865,7 +958,7 @@ export function* apparierRapide(
     const nB = bB.combos.length;
     const offB = ct.B.debut[iB];
     for (let a = 0; a < bA.combos.length; a++) {
-      const comboA = bA.combos[a];
+      const comboA = lireCombo(bA, a, vueA);
       if (!comboAOuvert(prepared, comboA, bB)) continue;
       const debutLigne = traitees;
       const ga = ct.A.debut[iA] + a;
@@ -890,10 +983,10 @@ export function* apparierRapide(
           compteurs.gardeRejets++;
           continue;
         }
-        options.controleValidation?.paire(ga, offB + j, [...comboA.runes, ...bB.combos[j].runes]);
+        options.controleValidation?.paire(ga, offB + j, runesDePaire(ga, offB + j));
         const collecte = validation
           ? collecteur.validerTypee(ga, offB + j, g)
-          : collecteur.valider([...comboA.runes, ...bB.combos[j].runes], g);
+          : collecteur.valider(runesDePaire(ga, offB + j), g);
         if (!collecte) continue;
         if (candidates.length >= maxCollected) {
           truncated = true;

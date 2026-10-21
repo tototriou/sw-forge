@@ -30,6 +30,7 @@
 
 import { RuneDetail } from '../types';
 import { Bucket, ContexteOrdreCombos, HalfCombo, bucketKeyOf, ordonnerCombos, scoresDeTranche } from './runeBuildOptim';
+import { ColonnesCombos, CompartimentType, copierLigne, idCombo, lireCombo, nouvelleVueCombo, nouvellesColonnes } from './demiBuildsTypes';
 
 type OrdreCombos = 'potential' | 'relevance' | 'combined' | 'objective';
 
@@ -123,4 +124,82 @@ function meilleurParTranche(buckets: Bucket[], ctx: ContexteOrdreCombos): number
     }
   }
   return g;
+}
+
+/** Même union et même tri stable, sans conserver d'objets de demi-build. */
+export class UnionDesRetentionsTypees {
+  private readonly parCle = new Map<string, { bucket: CompartimentType; ajouts: ColonnesCombos; n: number }>();
+  private readonly vus = new Set<number>();
+  private readonly positions: Map<number, number>[];
+  private readonly n1: number;
+  private readonly n2: number;
+  private nAjouts = 0;
+
+  constructor(private readonly propre: CompartimentType[], pools: readonly [RuneDetail[], RuneDetail[], RuneDetail[]]) {
+    this.positions = pools.map((p) => new Map(p.map((r, i) => [r.id, i])));
+    this.n1 = pools[1].length;
+    this.n2 = pools[2].length;
+    for (const b of propre) {
+      this.parCle.set(bucketKeyOf(b.counts, b.jokers), { bucket: b, ajouts: nouvellesColonnes(0, b.combos.cles), n: 0 });
+      for (let i = 0; i < b.combos.length; i++) this.vus.add(this.code(b, i));
+    }
+  }
+
+  private code(b: CompartimentType, i: number): number {
+    let code = 0;
+    for (let r = 0; r < 3; r++) {
+      const id = idCombo(b, i, r);
+      const p = this.positions[r].get(id);
+      if (p === undefined) throw new Error(`retentionEmboitee : la rune ${id} manque au pool de la recherche (emplacement ${r + 1} de la moitié) — préréglages non emboîtés.`);
+      code = code * (r === 1 ? this.n1 : this.n2) + p;
+    }
+    return code;
+  }
+
+  ajouter(etroit: CompartimentType[]): void {
+    for (const b of etroit) {
+      const cle = bucketKeyOf(b.counts, b.jokers);
+      const cible = this.parCle.get(cle);
+      if (!cible) throw new Error(`retentionEmboitee : compartiment ${cle} d'un préréglage plus étroit absent de la recherche — préréglages non emboîtés.`);
+      for (let i = 0; i < b.combos.length; i++) {
+        const code = this.code(b, i);
+        if (this.vus.has(code)) continue;
+        this.vus.add(code);
+        if (cible.n === cible.ajouts.length) {
+          const agrandi = nouvellesColonnes(Math.max(16, cible.n * 2), cible.ajouts.cles);
+          for (let j = 0; j < cible.n; j++) copierLigne(agrandi, j, cible.ajouts, j);
+          cible.ajouts = agrandi;
+        }
+        copierLigne(cible.ajouts, cible.n++, b.combos, i);
+        this.nAjouts++;
+      }
+    }
+  }
+
+  get ajoutes(): number { return this.nAjouts; }
+
+  resultat(ctx: ContexteOrdreCombos, mode: OrdreCombos): CompartimentType[] {
+    if (this.nAjouts === 0) return this.propre;
+    const n = 1 + (ctx.minEntries.length > 0 ? 1 : 0) + ctx.retentionKeys.length;
+    const meilleur = new Array<number>(n).fill(-Infinity);
+    const vue = nouvelleVueCombo();
+    if (mode === 'potential') for (const b of this.propre) {
+      for (let i = 0; i < b.combos.length; i++) {
+        const scores = scoresDeTranche(lireCombo(b, i, vue), ctx);
+        for (let s = 0; s < n; s++) if (scores[s] > meilleur[s]) meilleur[s] = scores[s];
+      }
+    }
+    return this.propre.map((b) => {
+      const { ajouts, n } = this.parCle.get(bucketKeyOf(b.counts, b.jokers))!;
+      if (n === 0) return b;
+      const c = nouvellesColonnes(b.combos.length + n, b.combos.cles);
+      for (let i = 0; i < b.combos.length; i++) copierLigne(c, i, b.combos, i);
+      for (let i = 0; i < n; i++) copierLigne(c, b.combos.length + i, ajouts, i);
+      const complet = { ...b, combos: c };
+      const ordre = ordonnerCombos(Array.from({ length: c.length }, (_, i) => i), ctx, mode, meilleur, (i) => lireCombo(complet, i, vue));
+      const trie = nouvellesColonnes(c.length, c.cles);
+      ordre.forEach((j, i) => copierLigne(trie, i, c, j));
+      return { ...b, combos: trie };
+    });
+  }
 }

@@ -2,7 +2,7 @@
 // les deux moitiés, puis leur appariement, dans le même fil. Les tests, le
 // CLI et les scripts passent par ici ; le Worker de l'écran
 // (`src/workers/runeBuildOptim.worker.ts`) enchaîne les mêmes étapes, les
-// moitiés dans deux Workers enfants.
+// un Worker enfant par moitié et par préréglage construit.
 //
 // ⚠️ Module à part de `runeBuildOptim.ts` : l'orchestration appelle des
 // modules qui importent eux-mêmes `runeBuildOptim.ts`, et un import de valeur
@@ -25,22 +25,23 @@ import {
   prepareSearch,
 } from './runeBuildOptim';
 import { RuneDetail } from '../types';
-import { OrdreCombos, construireMoitieRapide } from './constructionRapide';
+import { OrdreCombos, construireMoitieRapide, construireMoitieRapideTypee } from './constructionRapide';
 import { apparierRapide } from './appariementRapide';
-import { UnionDesRetentions } from './retentionEmboitee';
+import { UnionDesRetentions, UnionDesRetentionsTypees } from './retentionEmboitee';
+import { Compartiment, CompartimentType, typerCompartiments } from './demiBuildsTypes';
 
 /**
  * L'appariement séquentiel par le chemin de production : le noyau sur
  * tableaux typés (`apparierRapide`), qui saute sans les juger un à un les
  * comboB dont la paire échouerait au test rapide (`quickOk`) et visite les
- * autres dans l'ordre de `pairBuckets` ; `pairBuckets` lui-même hors contrat
- * numérique ou avec un traceur (`verifierContrat`). Même résultat que
+ * autres dans l'ordre de `pairBuckets` ; parcours sans sauts hors contrat
+ * numérique, `pairBuckets` avec un traceur (`verifierContrat`). Même résultat que
  * `pairBuckets` (`tests/appariement-rapide.test.ts`), mêmes points de passage
  * (toutes les `CHECKPOINT_EVERY` paires TRAITÉES, sautées comprises,
  * `explored` = paires traitées). Le résultat est un `SearchResult` strict :
  * les compteurs propres au noyau (`visitees`, `chemin`…) ne voyagent pas.
  */
-export function* apparier(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): Generator<PairingProgress, SearchResult, void> {
+export function* apparier(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[]): Generator<PairingProgress, SearchResult, void> {
   const r = yield* apparierRapide(prepared, bucketsA, bucketsB);
   return {
     candidates: r.candidates,
@@ -125,7 +126,7 @@ export function totalConstruction(ctx: ContexteMoitie, slotIdxs: readonly [numbe
 }
 
 /** Les points de passage d'une construction, décalés dans le compte unique de la moitié. */
-function* decaler(gen: Generator<BuildingProgress, Bucket[], void>, deja: number, total: number): Generator<BuildingProgress, Bucket[], void> {
+function* decaler<T>(gen: Generator<BuildingProgress, T, void>, deja: number, total: number): Generator<BuildingProgress, T, void> {
   let step = gen.next();
   while (!step.done) {
     yield { phase: 'building', half: step.value.half, scanned: deja + step.value.scanned, total };
@@ -177,6 +178,30 @@ export function* construireMoitie(
   return buckets;
 }
 
+/** Chemin en colonnes de la recherche ; seul le traceur demande la référence objet. */
+export function* construireMoitieTypee(
+  half: 'A' | 'B', slotIdxs: readonly [number, number, number], ctx: ContexteMoitie,
+  otherHalfMaxSets: number[], mode: OrdreCombos = 'objective'
+): Generator<BuildingProgress, CompartimentType[], void> {
+  if (ctx.traceur) return typerCompartiments(yield* construireMoitie(half, slotIdxs, ctx, otherHalfMaxSets, mode));
+  const un = function* (c: BuildBucketsContext, autre: number[]): Generator<BuildingProgress, CompartimentType[], void> {
+    return yield* construireMoitieRapideTypee(half, slotIdxs, c, autre, mode);
+  };
+  if (ctx.cransEmboites.length === 0) return yield* un(ctx, otherHalfMaxSets);
+  const total = totalConstruction(ctx, slotIdxs);
+  const propre = yield* decaler(un(ctx, otherHalfMaxSets), 0, total);
+  let deja = ctx.filtered[slotIdxs[0]].length;
+  const pools = slotIdxs.map((s) => ctx.filtered[s]) as [RuneDetail[], RuneDetail[], RuneDetail[]];
+  const union = new UnionDesRetentionsTypees(propre, pools);
+  for (const cran of ctx.cransEmboites) {
+    const filtered = cran.indices.map((idx, s) => idx.map((i) => ctx.filtered[s][i]));
+    const c = { ...ctx, filtered, bucketCap: cran.bucketCap, jokerCredit: cran.jokerCredit };
+    union.ajouter(yield* decaler(un(c, half === 'A' ? cran.maxSetsForA : cran.maxSetsForB), deja, total));
+    deja += filtered[slotIdxs[0]].length;
+  }
+  return union.resultat(ctx, mode);
+}
+
 /**
  * La présence finale de la moitié traceuse, relue sur les compartiments de
  * l'union : un préréglage plus étroit peut avoir ajouté un demi-build que les
@@ -210,10 +235,10 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   if (!prepared) {
     return { candidates: [], explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null, ...(traceurRejet ? { traceur: traceurRejet } : {}) };
   }
-  const bucketsA = yield* construireMoitie(
+  const bucketsA = yield* construireMoitieTypee(
     'A', [0, 1, 2], prepared, prepared.maxSetsForA, params.combosOrderMode
   );
-  const bucketsB = yield* construireMoitie(
+  const bucketsB = yield* construireMoitieTypee(
     'B', [3, 4, 5], prepared, prepared.maxSetsForB, params.combosOrderMode
   );
   return yield* apparier(prepared, bucketsA, bucketsB);

@@ -286,7 +286,7 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   paires que l'appariement visite.
 - **Compartiments construits EN FLUX, bornés en mémoire** (`buildBuckets`, la
   référence, et le noyau sur tableaux typés qui en rend exactement les
-  compartiments en production, `construireMoitieRapide` :
+  compartiments en production, `construireMoitieRapideTypee` :
   [pipeline.md § Construction des moitiés](pipeline.md)) :
   chaque combinaison d'une moitié est évaluée puis, selon son mérite,
   retenue ou **immédiatement jetée** — jamais de tableau intermédiaire de
@@ -339,8 +339,9 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   plus de demi-builds, c'est plus de paires et jamais un build valide de
   moins. Pourquoi :
   [prereglages-emboites.md](../../../04-decisions/adr/prereglages-emboites.md).
-- **La rétention d'une moitié est une union** (`construireMoitie`,
-  `UnionDesRetentions`, `src/lib/retentionEmboitee.ts`) : celle du
+- **La rétention d'une moitié est une union** (`construireMoitieTypee`,
+  `UnionDesRetentionsTypees`, `src/lib/retentionEmboitee.ts` ; adaptateurs
+  objets `construireMoitie` et `UnionDesRetentions` pour les outils) : celle du
   préréglage de la recherche, puis, compartiment par compartiment, les
   demi-builds que retient chaque préréglage plus étroit et qui lui
   manquent. Chaque préréglage plus étroit se construit avec SES paramètres,
@@ -373,11 +374,11 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
     leur ordre suivis des ajouts : les premiers gardent leur ordre relatif,
     les ajouts prennent leur place selon `combosOrderMode`, et un
     compartiment sans ajout est rendu tel quel.
-- **Un Worker par préréglage** (`construireMoitiesEmboitees`,
+- **Un Worker par préréglage** (`construireMoitiesEmboiteesTypees`,
   `src/lib/constructionEmboitee.ts`) : à l'écran, chaque moitié construit
   ses 1 + n préréglages en même temps, chacun dans son Worker, et l'union se
   fait ensuite, dans l'ordre des préréglages ; le résultat est exactement
-  celui de `construireMoitie` d'un bloc, qui les construit l'un après
+  celui de `construireMoitieTypee` d'un bloc, qui les construit l'un après
   l'autre dans un seul fil (CLI, tests). Le temps de construction est donc
   celui du préréglage de la recherche, le plus coûteux (un préréglage plus
   étroit coûte bien moins : ses triplets croissent comme le cube de son
@@ -394,11 +395,15 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   construction (mesuré : quelques centaines sur 100 000 à 140 000 par moitié
   sur deux recherches réelles, `tests/retention-emboitee.test.ts` en garde
   un témoin). L'inclusion Bas ⊆ Moyen ne vaudrait plus.
-- **Mémoire** : l'union n'ajoute que les demi-builds qui manquent, repérés
+- **Mémoire** : la construction et l'union gardent les demi-builds en
+  colonnes typées, sans objets `HalfCombo` sur le chemin de l'écran.
+  L'union n'ajoute que les demi-builds qui manquent, repérés
   par la position de leurs trois runes dans le pool de la recherche ; dans
   un seul fil, elle ne garde d'un préréglage plus étroit que ces ajouts,
   jamais ses compartiments entiers. En parallèle, les compartiments de
-  chaque préréglage arrivent entiers au Worker de recherche avant l'union.
+  chaque préréglage arrivent entiers, tampons transférés, au Worker de
+  recherche avant l'union. Le tri de leurs indices passe par
+  `ordonnerCombos`, avec une vue de stats réutilisée, comme le tri objet.
 - ⚠️ **Sous troncature, l'inclusion ne vaut plus.** Les ajouts s'intercalent
   dans leurs compartiments : l'ordre de visite change, et une recherche que
   le filet de temps ou `MAX_COLLECTED` arrête ne rend pas forcément les
@@ -486,7 +491,7 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   (`src/lib/stats.ts`), la même fonction que partout ailleurs dans l'app.
 - **Écrit comme un générateur** (`searchBuildsSteps`,
   `src/lib/rechercheRunes.ts` : `prepareSearch`,
-  puis `construireMoitie` pour chaque moitié, puis `apparier`), pas une seule
+  puis `construireMoitieTypee` pour chaque moitié, puis `apparier`), pas une seule
   boucle qui tourne jusqu'au bout : l'appariement rend un point de passage
   toutes les `CHECKPOINT_EVERY` (500) paires traitées, la construction à
   chaque rune du premier emplacement de la moitié. `searchBuilds`, appelé

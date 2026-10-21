@@ -1,9 +1,8 @@
 // Construction des moitiés sur tableaux typés : le chemin de production
-// (`construireMoitie`, src/lib/rechercheRunes.ts, appelé par les Workers de
-// moitié, le CLI, le harnais et `searchBuilds`). `buildBuckets` reste la
-// RÉFÉRENCE et le repli (`motifRepliConstruction` : traceur de diagnostic,
-// moitié de plus de 2³¹ triplets, `bucketCap` hors des entiers 32 bits des
-// tas). Contrat : rendre EXACTEMENT les compartiments de
+// (`construireMoitieTypee`, src/lib/rechercheRunes.ts, Workers de l'écran et
+// `searchBuilds`). Le CLI et le harnais gardent l'adaptateur objet
+// `construireMoitie`. `buildBuckets` reste la RÉFÉRENCE et le chemin du
+// traceur de diagnostic. Contrat : rendre EXACTEMENT les compartiments de
 // `buildBuckets` (mêmes clés, comptes, jokers, `combos` dans le même ordre avec
 // leurs `pct`/`flat`/`relevanceScore`, mêmes `maxPct`/`maxFlat` jusqu'à l'ordre
 // de leurs clés, même `potential`), vérifié par `premiereDivergence`
@@ -21,8 +20,8 @@
 //   tranche (profil sur Eivor, moitié A : 22 % de ramasse-miettes, ~17 % dans
 //   l'écriture des `Record`). Ici les sommes vont dans un tampon `Float64Array`,
 //   le compartiment est un entier, et une entrée de tas est un couple (score,
-//   code du triplet) dans deux tableaux typés. Les `HalfCombo` ne sont
-//   construits qu'à la fin, pour les seuls triplets encore présents dans un tas.
+//   code du triplet) dans deux tableaux typés. Les triplets retenus restent
+//   en colonnes ; seul l'adaptateur d'outillage construit des `HalfCombo`.
 // - Les sommes et les scores reprennent les MÊMES expressions dans le même
 //   ordre (`p0 + p1 + p2`, `Math.ceil((b * pct) / 100) + flat`, la somme de la
 //   tranche combinée minimum par minimum) : mêmes nombres au bit près. Le tas
@@ -59,10 +58,10 @@ import {
   Bucket,
   BuildBucketsContext,
   BuildingProgress,
-  HalfCombo,
+  ordonnerCombos,
   runeContribution,
-  weightedContribution,
 } from './runeBuildOptim';
+import { CompartimentType, copierLigne, lireCombo, nouvelleVueCombo, nouvellesColonnes, objetsDesCompartiments } from './demiBuildsTypes';
 
 export type OrdreCombos = 'potential' | 'relevance' | 'combined' | 'objective';
 
@@ -104,12 +103,12 @@ interface Tas {
   cap: number;
   len: number;
   scores: Float64Array;
-  items: Int32Array;
+  items: Int32Array | Float64Array;
 }
 
-function nouveauTas(cap: number): Tas {
+function nouveauTas(cap: number, codesLarges: boolean): Tas {
   const init = Math.max(1, Math.min(cap, 64));
-  return { cap, len: 0, scores: new Float64Array(init), items: new Int32Array(init) };
+  return { cap, len: 0, scores: new Float64Array(init), items: codesLarges ? new Float64Array(init) : new Int32Array(init) };
 }
 
 /** Vrai si l'entrée est entrée dans le tas (même décision que `heapPush`). */
@@ -120,7 +119,7 @@ function pousser(h: Tas, score: number, item: number): boolean {
       const n = Math.min(h.cap, s.length * 2);
       const ns = new Float64Array(n);
       ns.set(s);
-      const ni = new Int32Array(n);
+      const ni = h.items instanceof Float64Array ? new Float64Array(n) : new Int32Array(n);
       ni.set(h.items);
       h.scores = ns;
       h.items = ni;
@@ -194,19 +193,22 @@ interface Noyau {
   /** Indices suivis des `retentionKeys`. */
   retIdx: Int32Array;
   sliceCount: number;
-  caps: Int32Array;
+  caps: Int32Array | Float64Array;
+  codesLarges: boolean;
 }
 
 function preparerNoyau(
   ctx: ContexteConstruction,
   slotIdxs: readonly [number, number, number],
-  otherHalfMaxSets: number[]
+  otherHalfMaxSets: number[],
+  elargir = false
 ): Noyau {
   const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base } = ctx;
   const [i0, i1, i2] = slotIdxs;
   const pools: [RuneDetail[], RuneDetail[], RuneDetail[]] = [filtered[i0], filtered[i1], filtered[i2]];
   const n: [number, number, number] = [pools[0].length, pools[1].length, pools[2].length];
-  if (n[0] * n[1] * n[2] > 0x7fffffff) {
+  const codesLarges = n[0] * n[1] * n[2] > 0x7fffffff;
+  if (codesLarges && !elargir) {
     throw new Error(`constructionRapide : ${n.join('×')} triplets dépassent le code entier 32 bits du noyau.`);
   }
   const trackedKeys = Array.from(new Set<StatKey>([...constrainedKeys, ...retentionKeys]));
@@ -271,7 +273,11 @@ function preparerNoyau(
 
   const sliceCount = 1 + (hasCombined ? 1 : 0) + retentionKeys.length;
   // Chaque tranche a `bucketCap` places, comme dans `buildBuckets`.
-  const caps = new Int32Array(sliceCount).fill(bucketCap);
+  // heapPush accepte ceil(cap) entrées pour cap > 0, y compris Infinity.
+  // Le chemin en colonnes garde ces overrides sans détour par HalfCombo.
+  const caps = elargir
+    ? new Float64Array(sliceCount).fill(bucketCap > 0 ? Math.ceil(bucketCap) : 0)
+    : new Int32Array(sliceCount).fill(bucketCap);
 
   return {
     pools, n, D, T, trackedKeys,
@@ -281,7 +287,7 @@ function preparerNoyau(
     cPct: [p[0].cPct, p[1].cPct, p[2].cPct],
     cFlat: [p[0].cFlat, p[1].cFlat, p[2].cFlat],
     requiredPieces, seuil12, seuil2, fourPiece, hasFourPiece, rescueIdxI2: Int32Array.from(rescue),
-    constr, wcBase, wcPct, minIdx, minVal, hasCombined, retIdx, sliceCount, caps,
+    constr, wcBase, wcPct, minIdx, minVal, hasCombined, retIdx, sliceCount, caps, codesLarges,
   };
 }
 
@@ -363,7 +369,7 @@ function compartimentDe(etat: Etat, counts: Int32Array, jokers: number, premier:
     premier,
     counts: Array.from(counts),
     jokers,
-    tas: Array.from(noyau.caps, (cap) => nouveauTas(cap)),
+    tas: Array.from(noyau.caps, (cap) => nouveauTas(cap, noyau.codesLarges)),
     maxPct: new Float64Array(C),
     maxFlat: new Float64Array(C),
     premierPct: new Float64Array(C).fill(Infinity),
@@ -481,14 +487,8 @@ function parcourirR0(etat: Etat, idx0: number): void {
 }
 
 /* --------------------------------------------------------------------------
- * Du dernier état des tas aux `Bucket` de buildBuckets (même fin de fonction)
+ * Du dernier état des tas aux colonnes (même ordre que buildBuckets)
  * ----------------------------------------------------------------------- */
-
-function enregistrement(keys: StatKey[], valeurs: ArrayLike<number>): Record<string, number> {
-  const r: Record<string, number> = {};
-  for (let j = 0; j < keys.length; j++) r[keys[j]] = valeurs[j];
-  return r;
-}
 
 /** Les clés de `maxPct`/`maxFlat` dans l'ordre où buildBuckets les crée : première valeur non nulle, puis ordre des stats contraintes. */
 function bornes(noyau: Noyau, max: Float64Array, premier: Float64Array): Record<string, number> {
@@ -505,101 +505,54 @@ function materialiser(
   ctx: ContexteConstruction,
   compartiments: CompartimentEnCours[],
   combosOrderMode: OrdreCombos
-): Bucket[] {
+): CompartimentType[] {
   const { pools, n, T, trackedKeys, cPct, cFlat, eff, sliceCount } = noyau;
-  const { base, minEntries, retentionKeys, objectiveKeys } = ctx;
-  const hasCombined = minEntries.length > 0;
   const n12 = n[1] * n[2];
-  const sp = new Float64Array(T);
-  const sf = new Float64Array(T);
-
-  const combo = (code: number, counts: number[], jokers: number): HalfCombo => {
+  const remplir = (c: CompartimentType['combos'], i: number, code: number): void => {
     const idx0 = Math.floor(code / n12);
     const rest = code - idx0 * n12;
     const idx1 = Math.floor(rest / n[2]);
     const idx2 = rest - idx1 * n[2];
     for (let t = 0; t < T; t++) {
-      sp[t] = cPct[0][idx0 * T + t] + cPct[1][idx1 * T + t] + cPct[2][idx2 * T + t];
-      sf[t] = cFlat[0][idx0 * T + t] + cFlat[1][idx1 * T + t] + cFlat[2][idx2 * T + t];
+      c.pct[i * T + t] = cPct[0][idx0 * T + t] + cPct[1][idx1 * T + t] + cPct[2][idx2 * T + t];
+      c.flat[i * T + t] = cFlat[0][idx0 * T + t] + cFlat[1][idx1 * T + t] + cFlat[2][idx2 * T + t];
     }
-    return {
-      runes: [pools[0][idx0], pools[1][idx1], pools[2][idx2]],
-      counts: counts.slice(),
-      jokers,
-      pct: enregistrement(trackedKeys, sp),
-      flat: enregistrement(trackedKeys, sf),
-      relevanceScore: (eff[0][idx0] + eff[1][idx1] + eff[2][idx2]) / 1000,
-    };
+    c.ids[3 * i] = pools[0][idx0].id;
+    c.ids[3 * i + 1] = pools[1][idx1].id;
+    c.ids[3 * i + 2] = pools[2][idx2].id;
+    c.relevance[i] = (eff[0][idx0] + eff[1][idx1] + eff[2][idx2]) / 1000;
   };
 
-  const out: Bucket[] = [];
+  const out: CompartimentType[] = [];
   const bucketBestBySlice: number[][] = [];
-  const bucketSeen: HalfCombo[][] = [];
   const globalBestBySlice = new Array(sliceCount).fill(-Infinity);
   for (const c of compartiments) {
-    const b: Bucket = { counts: c.counts, jokers: c.jokers, combos: [], maxPct: bornes(noyau, c.maxPct, c.premierPct), maxFlat: bornes(noyau, c.maxFlat, c.premierFlat), potential: 0 };
-    out.push(b);
-    const parCode = new Map<number, HalfCombo>();
-    const seen: HalfCombo[] = [];
+    const seen = new Set<number>();
     const bestBySlice = new Array(sliceCount).fill(-Infinity);
     for (let s = 0; s < sliceCount; s++) {
       const h = c.tas[s];
       for (let e = 0; e < h.len; e++) {
         const code = h.items[e];
-        if (!parCode.has(code)) {
-          const hc = combo(code, c.counts, c.jokers);
-          parCode.set(code, hc);
-          seen.push(hc);
-        }
+        seen.add(code);
         if (h.scores[e] > bestBySlice[s]) bestBySlice[s] = h.scores[e];
       }
       if (bestBySlice[s] > globalBestBySlice[s]) globalBestBySlice[s] = bestBySlice[s];
     }
     bucketBestBySlice.push(bestBySlice);
-    bucketSeen.push(seen);
+    const combos = nouvellesColonnes(seen.size, trackedKeys);
+    let i = 0;
+    for (const code of seen) remplir(combos, i++, code);
+    out.push({ counts: c.counts, jokers: c.jokers, combos, maxPct: bornes(noyau, c.maxPct, c.premierPct), maxFlat: bornes(noyau, c.maxFlat, c.premierFlat), potential: 0 });
   }
 
-  // Seconde passe : même tri que buildBuckets, mêmes scores recalculés sur les Record.
-  const wc = (pct: Record<string, number>, flat: Record<string, number>, k: StatKey) => weightedContribution(base, k, pct[k] ?? 0, flat[k] ?? 0);
+  // Le tri partagé lit une vue réutilisée ; aucune matérialisation de HalfCombo.
   for (let bi = 0; bi < out.length; bi++) {
     const b = out[bi];
-    const scored = bucketSeen[bi].map((hc) => {
-      let combined: number | null = null;
-      if (hasCombined) {
-        let sc = 0;
-        for (const { k, min } of minEntries) {
-          if (min <= 0) continue;
-          sc += wc(hc.pct, hc.flat, k) / min;
-        }
-        combined = sc;
-      }
-      let objectiveVal: number | null = null;
-      if (objectiveKeys.length > 0) {
-        let sc = 0;
-        for (const k of objectiveKeys) sc += wc(hc.pct, hc.flat, k);
-        objectiveVal = sc;
-      }
-      const sliceScores: number[] = [hc.relevanceScore];
-      if (combined != null) sliceScores.push(combined);
-      for (const k of retentionKeys) sliceScores.push(wc(hc.pct, hc.flat, k));
-      let potential = -Infinity;
-      for (let s = 0; s < sliceCount; s++) {
-        const g = globalBestBySlice[s];
-        const normalized = g > 0 ? sliceScores[s] / g : sliceScores[s];
-        if (normalized > potential) potential = normalized;
-      }
-      return { combo: hc, potential, combined, objectiveVal };
-    });
-    if (combosOrderMode === 'relevance') {
-      scored.sort((x, y) => y.combo.relevanceScore - x.combo.relevanceScore);
-    } else if (combosOrderMode === 'combined') {
-      scored.sort((x, y) => (y.combined ?? y.combo.relevanceScore) - (x.combined ?? x.combo.relevanceScore));
-    } else if (combosOrderMode === 'objective') {
-      scored.sort((x, y) => (y.objectiveVal ?? y.combo.relevanceScore) - (x.objectiveVal ?? x.combo.relevanceScore));
-    } else {
-      scored.sort((x, y) => y.potential - x.potential);
-    }
-    b.combos = scored.map((s) => s.combo);
+    const vue = nouvelleVueCombo();
+    const ordre = ordonnerCombos(Array.from({ length: b.combos.length }, (_, i) => i), ctx, combosOrderMode, globalBestBySlice, (i) => lireCombo(b, i, vue));
+    const combos = nouvellesColonnes(ordre.length, trackedKeys);
+    ordre.forEach((j, i) => copierLigne(combos, i, b.combos, j));
+    b.combos = combos;
   }
   for (let bi = 0; bi < out.length; bi++) {
     const bx = bucketBestBySlice[bi];
@@ -627,15 +580,15 @@ function refuserTraceur(ctx: BuildBucketsContext | ContexteConstruction): void {
  * Pendant de `buildBuckets` (mêmes arguments, sans `skylineKeys` : aucun appel
  * de production n'en passe), même progression par rune du premier emplacement.
  */
-export function* construireMoitieRapide(
+export function* construireMoitieRapideTypee(
   half: 'A' | 'B',
   slotIdxs: readonly [number, number, number],
   ctx: BuildBucketsContext,
   otherHalfMaxSets: number[],
   combosOrderMode: OrdreCombos = 'objective'
-): Generator<BuildingProgress, Bucket[], void> {
+): Generator<BuildingProgress, CompartimentType[], void> {
   refuserTraceur(ctx);
-  const noyau = preparerNoyau(ctx, slotIdxs, otherHalfMaxSets);
+  const noyau = preparerNoyau(ctx, slotIdxs, otherHalfMaxSets, true);
   const etat = nouvelEtat(noyau, false);
   const total = noyau.n[0];
   for (let idx0 = 0; idx0 < total; idx0++) {
@@ -643,6 +596,14 @@ export function* construireMoitieRapide(
     parcourirR0(etat, idx0);
   }
   return materialiser(noyau, ctx, etat.compartiments, combosOrderMode);
+}
+
+/** Référence objet pour les consommateurs d'outillage. */
+export function* construireMoitieRapide(
+  half: 'A' | 'B', slotIdxs: readonly [number, number, number], ctx: BuildBucketsContext,
+  otherHalfMaxSets: number[], combosOrderMode: OrdreCombos = 'objective'
+): Generator<BuildingProgress, Bucket[], void> {
+  return objetsDesCompartiments(yield* construireMoitieRapideTypee(half, slotIdxs, ctx, otherHalfMaxSets, combosOrderMode), ctx.filtered);
 }
 
 /** Une tranche du découpage parallèle : à exécuter dans un Worker, sur une partie des runes du premier emplacement. */
@@ -756,7 +717,7 @@ export function fusionnerTranches(
       }
     }
   }
-  return materialiser(noyau, ctx, etat.compartiments, combosOrderMode);
+  return objetsDesCompartiments(materialiser(noyau, ctx, etat.compartiments, combosOrderMode), ctx.filtered);
 }
 
 /* --------------------------------------------------------------------------

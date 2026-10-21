@@ -153,6 +153,9 @@ Moteur `src/lib/runeBuildOptim.ts`, ses noyaux sur tableaux typés (`constructio
 (`rechercheRunes.ts`), exécuté dans `src/workers/runeBuildOptim.worker.ts`,
 `src/workers/buildHalf.worker.ts` et, au-delà du seuil, `src/workers/appariementRapide.worker.ts`
 — [03-developpeur/optimizer/](../03-developpeur/optimizer/README.md).
+Les demi-builds de l'écran restent en colonnes typées
+(`src/lib/demiBuildsTypes.ts`) de la construction à l'appariement ; les
+adaptateurs objets servent le CLI et les références de contrôle.
 ⚠️ Disposition mobile dédiée pour « Monstre & équipement » seul — le reste de l'écran n'est pas
 encore audité en mobile.
 

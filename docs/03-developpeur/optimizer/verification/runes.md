@@ -10,6 +10,7 @@ Voir aussi : [index](README.md).
 | `testRuneOptim` | `tests/rune-optim.test.ts` | cas écrits à la main : statistique principale imposée, conditions maximum, chaque élagage sûr isolé, runes imposées, joker, diagnostics |
 | `testRuneOptimDeadHalfPruning` | `tests/rune-optim-dead-half-pruning.test.ts` | l'élagage exact des demi-builds sans aucune pièce d'un set demandé à plus de 3 pièces |
 | `testFilterSlotTopK` | `tests/rune-optim-filterslot-topk.test.ts` | le top-K de `filterSlot` par le vrai tas (`heapPush`) contre un tri complet |
+| `testRuneOptimAurasCoupesMinimum`, `testRuneOptimAurasCoupesDiagnostics`, `testRuneOptimAurasCoupesRetention`, `testRuneOptimAurasCoupesBladeIntangible`, `testRuneOptimAurasCoupesDifferentiel`, `testRuneOptimAurasCoupesDominance` | `tests/rune-optim-auras-coupes.test.ts` | un oracle exhaustif indépendant des coupes sûres, auras propres au build comprises |
 
 ## Référence exhaustive : le test différentiel
 
@@ -114,7 +115,6 @@ différentiel aléatoire sur soixante graines (6300 à 6359).
 
 Limite : cet oracle ne note pas. Il compare un maximum par critère, sans
 sort, sans artéfact ni relique : il est aveugle à l'effet unique de la
-relique et aux lignes 218–221 (`:20-29`), que portent les oracles notés de
-la section suivante. Ne pas étendre `criteresUtiles` aux stats de l'effet
+relique et aux lignes 218–221 (`:20-29`), que portent les [oracles notés](reliques-et-artefacts.md#vérification--oracle-noté-paire-tirée-et-différentiel-ciblé). Ne pas étendre `criteresUtiles` aux stats de l'effet
 unique ou des lignes : il recopierait la règle de `contexteDominance` qu'il
 contrôle, au lieu de la juger.

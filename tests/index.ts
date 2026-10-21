@@ -989,8 +989,9 @@ async function main() {
     detail = brut;
     if (choisis !== 'tout') {
       for (const [n] of parNom) choisis.add(n);
+      const rang = new Map(VERIFICATIONS.map(([nom], i) => [nom, i]));
+      attendues = [...choisis].sort((a, b) => rang.get(a)! - rang.get(b)!);
       liste = VERIFICATIONS.filter(([n]) => choisis.has(n));
-      attendues = liste.map(([n]) => n);
     } else {
       liste = VERIFICATIONS;
       attendues = liste.map(([n]) => n);

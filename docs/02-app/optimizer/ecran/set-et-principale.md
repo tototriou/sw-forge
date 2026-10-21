@@ -84,7 +84,7 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    « Libre » sans choix, sinon **toutes** les valeurs choisies, à la ligne
    entre deux valeurs : une ligne pour « Libre » ou deux ou trois valeurs,
    deux pour les cinq d'un slot ; rien n'est tronqué. Sans hauteur réservée :
-   ouverte (160 px de large, « Dmg Crit » y tient), la surface se pose à la
+   ouverte (de la largeur du champ, « Dmg Crit » y tient), la surface se pose à la
    hauteur qu'avait le champ à l'ouverture et n'en bouge plus, même quand un
    choix allonge le champ sous elle ; seules les rangées suivantes
    descendent. Chaque valeur choisie est en surbrillance, sans case. Le

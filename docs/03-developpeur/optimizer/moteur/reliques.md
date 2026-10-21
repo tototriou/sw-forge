@@ -1,6 +1,6 @@
 # Dimension relique du moteur
 
-Voir aussi : pipeline.md, elagages.md, artefacts.md, ../../../02-app/optimizer/ (ecran/relique.md), ../verification.md, ../invariants.md.
+Voir aussi : pipeline.md, elagages.md, artefacts.md, ../../../02-app/optimizer/ (ecran/relique.md), ../verification/README.md, ../invariants.md.
 
 La principale d'une relique est un pourcentage de PV, d'ATQ ou de DEF
 (codes 100, 101, 102), sommé avec les pourcentages des runes et des sets
@@ -452,4 +452,4 @@ configuration. Elle ne prouve pas l'exactitude du moteur de runes.
   `tests/relic-search.test.ts`), et classe toute perte : faux négatif
   (échec), dilution ou troncature. Aucune perte n'y est un faux négatif ;
   sur la fixture C (`bucketCap` 10), l'optimum est perdu par dilution.
-  Registre des contrôles : [../verification.md § Les contrôles, par nom de registre](../verification.md).
+  Registre des contrôles : [../verification/README.md § Les contrôles, par nom de registre](../verification/README.md).

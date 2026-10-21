@@ -17,7 +17,7 @@ selon ce qu'on touche. Avant un chantier Optimizer : [invariants.md](invariants.
 | `src/lib/artifactQueue.ts`, `src/lib/artifactFiche.ts`, `src/lib/artifactEvaluation.ts`, la paire d'artéfacts d'un build | [moteur/artefacts.md](moteur/artefacts.md) |
 | `src/lib/artifactOptim.ts`, l'éligibilité ou l'effet d'une ligne d'artéfact | [moteur/optimiseur-artefacts.md](moteur/optimiseur-artefacts.md) |
 | `src/lib/relicOptim.ts`, `src/lib/relicQueue.ts`, `src/lib/relicExclusive.ts` | [moteur/reliques.md](moteur/reliques.md) |
-| un contrôle de l'algorithme : oracle, différentiel, benchmark | [verification.md](verification.md) |
+| un contrôle de l'algorithme : oracle, différentiel, benchmark | [verification/README.md](verification/README.md) |
 | `scripts/lib/diagnosticHarness.ts`, `scripts/diagnostic-harness.ts` | [harnais/mode-d-emploi.md](harnais/mode-d-emploi.md), [harnais/extensions.md](harnais/extensions.md) |
 | un script de diagnostic de `scripts/`, le harnais sur les cas réels (`--cas`) | [harnais/scripts.md](harnais/scripts.md) |
 
@@ -27,7 +27,7 @@ selon ce qu'on touche. Avant un chantier Optimizer : [invariants.md](invariants.
 | --- | --- |
 | [invariants.md](invariants.md) | Les contraintes critiques de l'Optimizer, chacune avec sa source. Se lit en entier. |
 | [moteur/](moteur/README.md) | Le moteur de recherche tel que le code l'exécute : le chemin d'une recherche, les élagages, la parallélisation, les diagnostics, les artéfacts, l'optimiseur d'artéfacts, les reliques. |
-| [verification.md](verification.md) | Les contrôles qui couvrent l'algorithme de recherche : référence exhaustive, oracles, différentiels, benchmarks, validation sur un compte réel. |
+| [verification/README.md](verification/README.md) | Les contrôles qui couvrent l'algorithme de recherche : référence exhaustive, oracles, différentiels, benchmarks, validation sur un compte réel. |
 | [harnais/](harnais/README.md) | Le harnais de diagnostic : son mode d'emploi, ses extensions, les cas réels connus et les scripts voisins. |
 
 ## Tenir `invariants.md`

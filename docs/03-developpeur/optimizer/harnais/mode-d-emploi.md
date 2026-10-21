@@ -1,6 +1,6 @@
 # Harnais de diagnostic
 
-Voir aussi : extensions.md, scripts.md, ../invariants.md, ../verification.md, ../../../02-app/optimizer/ (routage-par-tache.md).
+Voir aussi : extensions.md, scripts.md, ../invariants.md, ../verification/README.md, ../../../02-app/optimizer/ (routage-par-tache.md).
 
 Le harnais rejoue une recherche de l'Optimizer en Node et dit ce qu'elle a
 fait : configuration appliquée, survie d'une rune étage par étage, régime,

@@ -1,6 +1,6 @@
 # Parallélisation de l'appariement et Worker de résolution
 
-Voir aussi : pipeline.md, ../../../02-app/optimizer/ (feat-interruption.md), ../harnais/mode-d-emploi.md, ../verification.md, artefacts.md, ../invariants.md.
+Voir aussi : pipeline.md, ../../../02-app/optimizer/ (feat-interruption.md), ../harnais/mode-d-emploi.md, ../verification/README.md, artefacts.md, ../invariants.md.
 
 Deux usages des Workers suivent le même patron : un corps neutre, qui porte
 toute la logique et ne connaît aucune plateforme, et une coquille par
@@ -404,7 +404,7 @@ contexte, annulations, demandes ; détail dans
   `scripts/lib/pairing-quota-worker.ts`, en mode `fixed`, qui reproduit la
   division du plafond. Un changement de `runPairSlice` ou de
   `driveParallelPairing` ne s'y voit pas. Ses deux régimes :
-  [../verification.md § Échelle réelle et appariement parallèle](../verification.md).
+  [../verification/parallelisation.md § Échelle réelle et appariement parallèle](../verification/parallelisation.md#échelle-réelle-et-appariement-parallèle).
 - L'égalité exacte avec le séquentiel ne se démontre que sans troncature.
   Ne jamais simuler séquentiellement, dans un seul processus, ce qui dépend
   de l'horloge ou de la concurrence : le test du temps lit l'horloge, chaque

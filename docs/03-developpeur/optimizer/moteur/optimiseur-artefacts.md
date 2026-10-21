@@ -412,6 +412,13 @@ résolution vide, l'ordre de base est rendu tel quel, comme avant toute
 résolution. Chaque publication produit le même classement complet, égalités
 et valeurs non finies comprises ; aucune note approximative n'est utilisée.
 
+Le départage prépare une fois par candidat et par appel le couple (`rid`
+de la relique retenue, ou `+∞` si absent ; `cleBuild`). Son comparateur ne
+lit que ces valeurs : `rid` croissant, puis clé par `<`/`>`, sans `localeCompare`.
+À couple égal, le tri stable conserve l'ordre d'entrée, objets distincts de
+même build et doublons compris. Les comparaisons ne relisent ni le cache
+de résolution, ni `ridDe`, ni `cleBuild`.
+
 Seules les notes de **Dégâts réels** sont mémorisées. Pour une stat de fiche,
 Efficience/Score, les PV effectifs et la Vitesse,
 `trierCandidatsIncrementalement` rend directement `sortCandidates`, sans
@@ -463,7 +470,10 @@ cache. Il sert à comparer les notes au recalcul complet, build par build.
 
 Vérifications : les `testClassementIncremental…` comparent l'ordre et les
 notes à chaque publication (aperçu et résultat cloné, résolutions hors
-ordre, rejets, réglages, artéfacts, exclusives, égalités). Les invalidations
+ordre, rejets, réglages, artéfacts, exclusives, égalités). `testArtefactFile`
+compare le départage à l'oracle qui lit les valeurs dans le comparateur,
+sur des cas construits et 6 000 entrées pseudo-aléatoires à graine fixe ;
+il impose un appel à `ridDe` par entrée et par appel, doublons compris. Les invalidations
 sont aussi testées séparément : amorçage en Dégâts réels, une entrée
 modifiée, nouvelle publication sous le même critère, note effectivement
 recalculée et égale au complet ; un cas impose une inversion de classement.

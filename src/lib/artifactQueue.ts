@@ -514,14 +514,16 @@ export function signatureArtefacts(parts: {
  * résolus reste déterministe (par `cleBuild`), sans prétendre à un rang exact.
  */
 export function ordonnerParDepartage<T extends BuildCandidate>(candidats: readonly T[], ridDe: (c: T) => number | undefined): T[] {
-  return [...candidats].sort((a, b) => {
-    const ra = ridDe(a) ?? Number.POSITIVE_INFINITY;
-    const rb = ridDe(b) ?? Number.POSITIVE_INFINITY;
-    if (ra !== rb) return ra - rb;
-    const ca = cleBuild(a);
-    const cb = cleBuild(b);
-    return ca < cb ? -1 : ca > cb ? 1 : 0;
-  });
+  // Le couple est lu une fois par entrée ; le comparateur ne relit pas le
+  // cache de résolution. Le tri stable garde l'ordre des couples égaux.
+  return candidats.map((candidat) => ({
+    candidat,
+    rid: ridDe(candidat) ?? Number.POSITIVE_INFINITY,
+    cle: cleBuild(candidat),
+  })).sort((a, b) => {
+    if (a.rid !== b.rid) return a.rid - b.rid;
+    return a.cle < b.cle ? -1 : a.cle > b.cle ? 1 : 0;
+  }).map(({ candidat }) => candidat);
 }
 
 /**

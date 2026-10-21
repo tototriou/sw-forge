@@ -14,6 +14,18 @@ import type { ArtifactDetail } from '../src/types';
 import { egal, ok, titre } from './outils';
 
 const build = (...runeIds: number[]) => ({ runeIds }) as unknown as BuildCandidate;
+// Implémentation de référence : les deux valeurs sont lues dans le
+// comparateur, indépendamment de la préparation utilisée en production.
+function departageDeReference<T extends BuildCandidate>(candidats: readonly T[], ridDe: (c: T) => number | undefined): T[] {
+  return [...candidats].sort((a, b) => {
+    const ra = ridDe(a) ?? Number.POSITIVE_INFINITY;
+    const rb = ridDe(b) ?? Number.POSITIVE_INFINITY;
+    if (ra !== rb) return ra - rb;
+    const ca = cleBuild(a);
+    const cb = cleBuild(b);
+    return ca < cb ? -1 : ca > cb ? 1 : 0;
+  });
+}
 // Le cache de la file : des builds résolus ET conformes. La conformité ne change
 // la fenêtre que pour un écarté (`tests/file-confirmees.test.ts`).
 const resolus = (...cles: string[]) => new Map(cles.map((cle) => [cle, { conforme: true }]));
@@ -523,5 +535,79 @@ export default function testArtefactFile() {
       [cleBuild(resolu), cleBuild(enAttente)],
       'un candidat non résolu (rid absent) va en dernier'
     );
+  }
+
+  titre('File d’artéfacts — départage préparé identique à la référence');
+  {
+    const verifier = (entree: readonly BuildCandidate[], ridDe: (c: BuildCandidate) => number | undefined, cas: string) => {
+      const avant = [...entree];
+      const attendu = departageDeReference(entree, ridDe);
+      const recu = ordonnerParDepartage(entree, ridDe);
+      // Comparer les identités, pas seulement les clés : deux objets de même
+      // build doivent rester dans leur ordre d'entrée, doublons compris.
+      ok(recu.length === attendu.length && recu.every((c, i) => c === attendu[i]), `${cas} : mêmes objets au même rang`);
+      ok(entree.every((c, i) => c === avant[i]) && recu !== entree, `${cas} : entrée conservée, nouveau tableau rendu`);
+    };
+    const c1 = build(2, 3, 4, 5, 6, 7);
+    const c2 = build(10, 11, 12, 13, 14, 15);
+    const copie = build(7, 6, 5, 4, 3, 2);
+    const absent1 = build(20), absent2 = build(3), zero = build(99);
+    const rid = new Map<BuildCandidate, number>([[c1, 5], [copie, 5], [c2, 5], [zero, 0]]);
+    const ridDe = (c: BuildCandidate) => rid.get(c);
+    verifier([], ridDe, 'aucun candidat');
+    verifier([c1], ridDe, 'un seul candidat');
+    const melanges = Object.freeze([absent1, c1, c2, copie, absent2, zero, c1]);
+    verifier(melanges, ridDe, 'rid absents, égaux et nul, clés égales et doublon');
+    verifier([...melanges].reverse(), ridDe, 'ordre mélangé inversé');
+    const classes = ordonnerParDepartage(melanges, ridDe);
+    ok(classes[0] === zero && classes[1] === c2, 'rid croissant puis clé en comparaison de chaînes (10 avant 2)');
+    ok(classes[2] === c1 && classes[3] === copie && classes[4] === c1, 'égalité totale : ordre d’entrée conservé, même objet répété compris');
+    ok(classes[5] === absent1 && classes[6] === absent2, 'rid absents en dernier, départagés par clé');
+
+    let graine = 1616;
+    const tirer = () => { graine = (Math.imul(graine, 1664525) + 1013904223) >>> 0; return graine; };
+    const candidats: BuildCandidate[] = [];
+    const reliques = new Map<BuildCandidate, number | undefined>();
+    for (let i = 0; i < 6000; i++) {
+      const precedent = candidats.length ? candidats[tirer() % candidats.length] : undefined;
+      // Identités répétées et objets distincts de même clé exercent les
+      // égalités stables au milieu de milliers d'autres candidats.
+      const c = precedent && i % 7 === 0 ? precedent
+        : precedent && i % 5 === 0 ? build(...[...precedent.runeIds].reverse())
+          : build(...Array.from({ length: 6 }, () => 1 + tirer() % 1000));
+      if (!reliques.has(c)) {
+        const n = tirer() % 12;
+        reliques.set(c, n < 3 ? undefined : n % 4);
+      }
+      candidats.push(c);
+    }
+    for (let i = candidats.length - 1; i > 0; i--) {
+      const j = tirer() % (i + 1);
+      [candidats[i], candidats[j]] = [candidats[j], candidats[i]];
+    }
+    const lireRelique = (c: BuildCandidate) => reliques.get(c);
+    verifier(Object.freeze(candidats), lireRelique, '6 000 entrées pseudo-aléatoires, graine 1616');
+    for (const c of new Set(candidats)) reliques.set(c, tirer() % 3 === 0 ? undefined : tirer() % 5);
+    verifier(candidats, lireRelique, 'publication suivante, mêmes objets et accesseur, rid modifiés');
+  }
+
+  titre('File d’artéfacts — une lecture de rid par candidat et par appel');
+  {
+    const c1 = build(1), c2 = build(2);
+    for (const candidats of [[], [c1], [c2, c1, c2, c1, build(3)]]) {
+      const attendues = new Map<BuildCandidate, number>();
+      for (const c of candidats) attendues.set(c, (attendues.get(c) ?? 0) + 1);
+      for (let publication = 0; publication < 2; publication++) {
+        let appels = 0;
+        const lectures = new Map<BuildCandidate, number>();
+        ordonnerParDepartage(candidats, (c) => {
+          appels++;
+          lectures.set(c, (lectures.get(c) ?? 0) + 1);
+          return c === c1 ? 4 : undefined;
+        });
+        egal(appels, candidats.length, `${candidats.length} entrées, appel ${publication + 1} : exactement une lecture par entrée`);
+        ok([...attendues].every(([c, nombre]) => lectures.get(c) === nombre), 'chaque candidat est lu, y compris chaque occurrence d’un doublon');
+      }
+    }
   }
 }

@@ -984,10 +984,6 @@ export function sortCandidates(
   }
 ): BuildCandidate[] {
   const score = scorerPour(sortBy, opts);
-  return classerParNote(candidates, score);
-}
-
-function classerParNote(candidates: BuildCandidate[], score: ((c: BuildCandidate) => number) | null): BuildCandidate[] {
   // Contexte manquant (« Dégâts réels » sans sort calculable, « Efficience »
   // sans runeById/metric) : ordre laissé en place, jamais une exception.
   if (!score) return candidates.slice();
@@ -1020,70 +1016,6 @@ function classerParNote(candidates: BuildCandidate[], score: ((c: BuildCandidate
   decore.sort((x, y) => y.s - x.s);
   return decore.map((d) => d.c);
 }
-
-// Une seule note par build encore accessible, jamais un stock global par ids.
-// Les copies portant les stats résolues gardent le tableau de runes d'origine.
-const NOTES_CLASSEMENT = new WeakMap<number[], { contexte: string; entrees: string; note: number }>();
-
-/** Même tri stable, seules les notes de dégâts réels sont mémorisées. */
-export function trierCandidatsIncrementalement(
-  candidates: BuildCandidate[], sortBy: StatKey | Objective, opts: OptionsDeClassement,
-  surNote?: (c: BuildCandidate, note: number) => void
-): BuildCandidate[] {
-  // Les autres notes coûtent moins que leur empreinte ; aucun parcours des
-  // entrées de dégâts ni aucune sérialisation ne doit accompagner leur tri.
-  if (sortBy !== 'degats_reels') return sortCandidates(candidates, sortBy, opts);
-  // Les empreintes sont relues à CHAQUE publication, même à identité égale.
-  // Pendant un tri les entrées sont pures : les sous-objets communs ne se
-  // sérialisent qu'une fois (profil de sort, paire neutre, réglage…).
-  const empreintes = new WeakMap<object, string>();
-  const fonctionRencontree = Symbol();
-  function empreinte(v: unknown): string {
-    // Une fermeture mutable ne se compare ni par identité ni par son texte.
-    if (typeof v === 'function') throw fonctionRencontree;
-    if (v === null) return 'null';
-    if (typeof v === 'number') return `n${Object.is(v, -0) ? '-0' : String(v)}`;
-    if (typeof v !== 'object') return `${typeof v}:${JSON.stringify(v)}`;
-    const connue = empreintes.get(v);
-    if (connue !== undefined) return connue;
-    const s = Array.isArray(v) ? `[${v.map(empreinte).join(',')}]`
-      : `{${Object.entries(v).map(([k, valeur]) => `${JSON.stringify(k)}:${empreinte(valeur)}`).join(',')}}`;
-    empreintes.set(v, s);
-    return s;
-  }
-  const memoriser: MemoriserNote = (contexte, entreesDe, calculer) => {
-    const commun = empreinte([sortBy, contexte]);
-    const entreesParCandidat = new WeakMap<BuildCandidate, string>();
-    // Détecter une fonction AVANT tout hit ou écriture, même si elle ne
-    // concerne que le dernier build : le repli porte sur le tri entier.
-    for (const c of candidates) entreesParCandidat.set(c, empreinte(entreesDe(c)));
-    return (c) => {
-      const entrees = entreesParCandidat.get(c)!;
-      const connue = NOTES_CLASSEMENT.get(c.runeIds);
-      if (connue?.contexte === commun && connue.entrees === entrees) return connue.note;
-      const note = calculer(c);
-      NOTES_CLASSEMENT.set(c.runeIds, { contexte: commun, entrees, note });
-      return note;
-    };
-  };
-  let score: ReturnType<typeof scorerPour>;
-  try {
-    score = scorerPour(sortBy, opts, memoriser);
-  } catch (e) {
-    if (e !== fonctionRencontree) throw e;
-    score = scorerPour(sortBy, opts);
-  }
-  // L'observateur lit la note EFFECTIVEMENT utilisée, hit compris, pour
-  // comparer les notes à une référence sans exposer la mémoire globale.
-  const noter = score;
-  return classerParNote(candidates, surNote && noter ? (c) => {
-    const note = noter(c);
-    surNote(c, note);
-    return note;
-  } : noter);
-}
-
-type MemoriserNote = (contexte: unknown, entreesDe: (c: BuildCandidate) => unknown, calculer: (c: BuildCandidate) => number) => (c: BuildCandidate) => number;
 
 /**
  * Le score d'UN candidat, EXACTEMENT celui qui le classe dans
@@ -1217,8 +1149,7 @@ function scorerPour(
     artefactsDuBuild?: (c: BuildCandidate) => ArtifactDamageProfile | null;
     exclusiveDuBuild?: (c: BuildCandidate) => ApportExclusive | null;
     aurasPropresDe: (c: BuildCandidate) => AurasPropres;
-  },
-  memoriser?: MemoriserNote
+  }
 ): ((c: BuildCandidate) => number) | null {
   // Même patron qu'`artefactsDuBuild` : ce qui est PROPRE à un candidat une
   // fois son équipement résolu. Absent, ou rendant `null` (relique pas encore
@@ -1232,25 +1163,10 @@ function scorerPour(
   if (sortBy === 'degats_reels') {
     const ctx = opts.realDamage;
     if (!ctx) return null;
-    if (!memoriser) return (c) => {
+    return (c) => {
       const propre = opts.artefactsDuBuild?.(c);
       return objectiveScore(c, sortBy, opts.aurasPropresDe(c), propre ? { ...ctx, artefacts: propre } : ctx, apportDe(c));
     };
-    // Matérialiser les accesseurs une fois par build : le calcul et sa clé
-    // lisent EXACTEMENT les mêmes valeurs, même si les closures ont changé.
-    const lire = (c: BuildCandidate) => ({ propres: opts.aurasPropresDe(c), artefacts: opts.artefactsDuBuild?.(c) ?? ctx.artefacts, apport: apportDe(c) });
-    const valeurs = new WeakMap<BuildCandidate, ReturnType<typeof lire>>();
-    const de = (c: BuildCandidate) => {
-      let v = valeurs.get(c);
-      if (!v) { v = lire(c); valeurs.set(c, v); }
-      return v;
-    };
-    const calculer = (c: BuildCandidate) => {
-      const v = de(c);
-      return objectiveScore(c, sortBy, v.propres, { ...ctx, artefacts: v.artefacts }, v.apport);
-    };
-    const { artefacts: _repli, ...commun } = ctx;
-    return memoriser(commun, (c) => [c.stats, de(c)], calculer);
   }
   if (sortBy === 'ehp' || sortBy === 'vitesse')
     return (c) => objectiveScore(c, sortBy, opts.aurasPropresDe(c), undefined, apportDe(c), opts.damageSetup);

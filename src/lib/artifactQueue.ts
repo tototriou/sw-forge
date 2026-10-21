@@ -19,7 +19,7 @@
 // responsabilités séparées, dont celle-ci est la seule testable sans
 // navigateur.
 
-import { BuildCandidate, BuildRequirement, Objective, OptionsDeClassement, trierCandidatsIncrementalement } from './runeBuildOptim';
+import { BuildCandidate, BuildRequirement, Objective, OptionsDeClassement, sortCandidates } from './runeBuildOptim';
 import { StatKey } from './effects';
 import { StatRow } from './stats';
 import { ArtifactDetail, RelicDetail } from '../types';
@@ -549,7 +549,7 @@ export function classementResolu(
     base.filter((c) => parBuild.get(cleBuild(c))?.conforme !== false),
     (c) => parBuild.get(cleBuild(c))?.relique?.id
   );
-  return trierCandidatsIncrementalement(conformes.map((c) => candidatAvecSaPaire(c, parBuild)), sortBy, options);
+  return sortCandidates(conformes.map((c) => candidatAvecSaPaire(c, parBuild)), sortBy, options);
 }
 
 export interface CompteAffichable {

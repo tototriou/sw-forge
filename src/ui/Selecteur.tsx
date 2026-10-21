@@ -24,7 +24,7 @@ import Flottant from './Flottant';
 // `<select>` comme champ fermé — sa boîte, sa valeur, son `onChange`, son
 // étiquette et ce qu'en lisent les tests ne changent pas, ni la taille d'aucun
 // appelant (31 usages, dont les classes visent le `<select>` lui-même) — et on
-// remplace seulement ce qu'il ouvre : à la souris et au clavier, une liste
+// remplace seulement ce qu'il ouvre : à la souris, au doigt et au clavier, une liste
 // dessinée comme celle des principales imposées (`SelecteurMultiple`,
 // `forme="surbrillance"`) : survol gris, valeur retenue en braise légère, entrée
 // atteinte au clavier cerclée de braise. Les options se lisent dans le DOM du
@@ -33,10 +33,16 @@ import Flottant from './Flottant';
 // `<select>` et émet son événement `change` : l'`onChange` de l'appelant le
 // reçoit comme d'un choix natif.
 //
-// ⚠️ **Au doigt, la liste reste celle du système.** Un appui tactile ouvre le
-// sélecteur natif du téléphone (roue ou feuille), fait pour le pouce ; c'est
-// le geste qui décide (`pointerType`), pas la largeur de l'écran. Un navigateur
-// sans l'API `popover` garde aussi la liste native.
+// ⚠️ **Au doigt aussi, la liste est la nôtre**, aux entrées de 40 px (la cible
+// tactile de la doc d'interface, sous `(pointer: coarse)`) au lieu de 32 : la
+// roue ou la feuille du système ignorait la charte comme la liste du bureau.
+// Seul un navigateur sans l'API `popover` garde la liste native.
+//
+// ⚠️ **Tab parcourt la liste ouverte**, comme les boutons des principales
+// imposées : Tab va à l'entrée suivante, Maj+Tab à la précédente. Après la
+// dernière, Tab ferme sans choisir et continue après le `<select>` ; avant la
+// première, Maj+Tab revient au `<select>`, liste ouverte (Tab y rentre) — le
+// parcours du `SelecteurMultiple`, dont le déclencheur précède les options.
 //
 // ⚠️ **La liste passe par la couche supérieure (`popover`)**, posée en
 // `position: fixed` sur la boîte du `<select>` : ni un `overflow` d'ancêtre (les
@@ -124,9 +130,12 @@ const sansAccents = (s: string) =>
 
 const POPOVER_DISPONIBLE = typeof HTMLElement !== 'undefined' && 'showPopover' in HTMLElement.prototype;
 
-// Hauteur d'une entrée (`h-8`) et plafond de la liste avant défilement.
+// Hauteur d'une entrée (`h-8`, `compact:h-10` au doigt) et plafond de la liste
+// avant défilement.
 const HAUTEUR_ENTREE = 32;
+const HAUTEUR_ENTREE_DOIGT = 40;
 const HAUTEUR_MAX = 320;
+const AU_DOIGT = '(pointer: coarse)';
 
 interface Ouverture {
   parClavier: boolean;
@@ -162,12 +171,15 @@ function ListeSelecteur({ select, id, ouverture, onChoisir, onFermer }: ListePro
   const [boite, setBoite] = useState(() => select.getBoundingClientRect());
   const [cote, setCote] = useState<'gauche' | 'droite'>('gauche');
 
+  const [hauteurEntree] = useState(() =>
+    window.matchMedia?.(AU_DOIGT).matches ? HAUTEUR_ENTREE_DOIGT : HAUTEUR_ENTREE,
+  );
   const nbGroupesNommes = groupes.filter((g) => g.libelle).length;
-  const hauteurVoulue = Math.min(HAUTEUR_MAX, options.length * HAUTEUR_ENTREE + nbGroupesNommes * 24 + 8);
+  const hauteurVoulue = Math.min(HAUTEUR_MAX, options.length * hauteurEntree + nbGroupesNommes * 24 + 8);
   const espaceDessous = window.innerHeight - boite.bottom - 12;
   const espaceDessus = boite.top - 12;
   const dessus = espaceDessous < hauteurVoulue && espaceDessus > espaceDessous;
-  const hauteurMax = Math.max(HAUTEUR_ENTREE + 8, Math.min(HAUTEUR_MAX, dessus ? espaceDessus : espaceDessous));
+  const hauteurMax = Math.max(hauteurEntree + 8, Math.min(HAUTEUR_MAX, dessus ? espaceDessus : espaceDessous));
 
   // Couche supérieure : montrée au montage, avant la première peinture.
   useLayoutEffect(() => {
@@ -253,7 +265,7 @@ function ListeSelecteur({ select, id, ouverture, onChoisir, onFermer }: ListePro
   }, []);
 
   const auClavier = (e: ReactKeyboardEvent) => {
-    const page = Math.max(1, Math.floor(hauteurMax / HAUTEUR_ENTREE) - 1);
+    const page = Math.max(1, Math.floor(hauteurMax / hauteurEntree) - 1);
     let suivant: number | null = null;
     switch (e.key) {
       case 'ArrowDown':
@@ -300,11 +312,33 @@ function ListeSelecteur({ select, id, ouverture, onChoisir, onFermer }: ListePro
         e.stopPropagation();
         onFermer(true);
         return;
-      case 'Tab':
-        // Ferme sans choisir ; le focus revient au `<select>` AVANT l'action par
-        // défaut, qui repart donc de lui (et la boucle de Tab d'un dialogue aussi).
+      case 'Tab': {
+        // Ouverte à la souris, rien n'est encore cerclé : le premier Tab cercle
+        // l'entrée active (la valeur retenue), comme il atteint la première
+        // option d'une liste à boutons.
+        if (!parClavier && actif >= 0) {
+          suivant = actif;
+          break;
+        }
+        const voisin = deplacer(actif, e.shiftKey ? -1 : 1);
+        if (voisin !== actif) {
+          suivant = voisin;
+          break;
+        }
+        if (e.shiftKey) {
+          // Avant la première entrée : retour au `<select>`, la liste reste
+          // ouverte (Tab y rentre, voir le `<select>`).
+          e.preventDefault();
+          e.stopPropagation();
+          select.focus({ preventScroll: true });
+          return;
+        }
+        // Après la dernière : ferme sans choisir ; le focus revient au `<select>`
+        // AVANT l'action par défaut, qui repart donc de lui (et la boucle de Tab
+        // d'un dialogue aussi).
         onFermer(true);
         return;
+      }
       default:
         if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) suivant = chercher(e.key, actif);
     }
@@ -404,11 +438,17 @@ function ListeSelecteur({ select, id, ouverture, onChoisir, onFermer }: ListePro
                     onClick={() => {
                       if (!o.disabled) onChoisir(o.valeur);
                     }}
+                    // ⚠️ L'entrée atteinte au clavier porte l'anneau de focus
+                    // des boutons de l'app (`:focus-visible` d'index.css) :
+                    // 1 px de braise lisible, détaché de 1 px, collé à la
+                    // bordure d'accent de la valeur retenue.
                     className={`flex h-8 w-full cursor-pointer items-center whitespace-nowrap rounded-md border px-2
-                      text-left text-sm text-ink transition ${
+                      text-left text-sm text-ink transition compact:h-10 ${
                         o.disabled ? 'cursor-not-allowed opacity-40' : ''
                       } ${choisie ? 'border-accent bg-accent-soft' : 'border-transparent hoverable:bg-panel2'} ${
-                        parClavier && i === actif ? 'outline outline-1 outline-offset-0 outline-accent' : ''
+                        parClavier && i === actif
+                          ? `outline outline-1 outline-accent ${choisie ? 'outline-offset-0' : 'outline-offset-1'}`
+                          : ''
                       }`}
                   >
                     {o.libelle || ' '}
@@ -431,9 +471,9 @@ const Selecteur = forwardRef<HTMLSelectElement, SelecteurProps>(function Selecte
     ton = 'neutre',
     className = '',
     children,
-    onPointerDown,
     onMouseDown,
     onKeyDown,
+    onBlur,
     ...reste
   },
   ref,
@@ -448,7 +488,6 @@ const Selecteur = forwardRef<HTMLSelectElement, SelecteurProps>(function Selecte
     [ref],
   );
   const [ouverture, setOuverture] = useState<Ouverture | null>(null);
-  const dernierPointeur = useRef<string>('mouse');
   const id = useId();
 
   const fermer = useCallback((rendreFocus: boolean) => {
@@ -471,7 +510,9 @@ const Selecteur = forwardRef<HTMLSelectElement, SelecteurProps>(function Selecte
     [fermer],
   );
 
-  const prendLaMain = () => POPOVER_DISPONIBLE && !reste.disabled && dernierPointeur.current !== 'touch';
+  const prendLaMain = () => POPOVER_DISPONIBLE && !reste.disabled;
+  // La surface de la liste ouverte (la couche `popover` qui porte la listbox).
+  const coucheListe = () => document.getElementById(id)?.closest('[popover]') ?? null;
 
   return (
     <>
@@ -495,9 +536,12 @@ const Selecteur = forwardRef<HTMLSelectElement, SelecteurProps>(function Selecte
         } ${className}`}
         {...(taille === 'dense' ? { 'data-cible-fine': true } : {})}
         {...(ouverture ? { 'aria-expanded': true, 'aria-controls': id } : {})}
-        onPointerDown={(e) => {
-          dernierPointeur.current = e.pointerType;
-          onPointerDown?.(e);
+        onBlur={(e) => {
+          onBlur?.(e);
+          // Revenu au `<select>` par Maj+Tab, liste ouverte : un focus parti
+          // ailleurs que dans la liste la ferme (vers rien, ce n'est pas un départ).
+          const vers = e.relatedTarget as Node | null;
+          if (ouverture && vers && !coucheListe()?.contains(vers)) fermer(false);
         }}
         onMouseDown={(e) => {
           onMouseDown?.(e);
@@ -513,7 +557,23 @@ const Selecteur = forwardRef<HTMLSelectElement, SelecteurProps>(function Selecte
         }}
         onKeyDown={(e) => {
           onKeyDown?.(e);
-          if (e.defaultPrevented || ouverture || !POPOVER_DISPONIBLE || reste.disabled) return;
+          if (e.defaultPrevented || !POPOVER_DISPONIBLE || reste.disabled) return;
+          if (ouverture) {
+            // Le focus est revenu au `<select>` (Maj+Tab depuis la première
+            // entrée) : Tab et les flèches rentrent dans la liste, Échap, Entrée
+            // et Espace la ferment, Maj+Tab la ferme et continue avant lui.
+            if ((e.key === 'Tab' && !e.shiftKey) || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+              e.preventDefault();
+              (document.getElementById(id) as HTMLElement | null)?.focus({ preventScroll: true });
+            } else if (['Escape', 'Enter', ' '].includes(e.key)) {
+              e.preventDefault();
+              e.stopPropagation();
+              fermer(true);
+            } else if (e.key === 'Tab') {
+              fermer(false);
+            }
+            return;
+          }
           const lettre = e.key.length === 1 && e.key !== ' ' && !e.ctrlKey && !e.metaKey && !e.altKey;
           // Les touches qui ouvrent (ou, sous Windows, changeaient la valeur sans
           // rien montrer) ouvrent la liste : une flèche ne choisit jamais à

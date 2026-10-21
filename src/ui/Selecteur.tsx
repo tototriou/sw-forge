@@ -44,13 +44,16 @@ import Flottant from './Flottant';
 // première, Maj+Tab revient au `<select>`, liste ouverte (Tab y rentre) — le
 // parcours du `SelecteurMultiple`, dont le déclencheur précède les options.
 //
-// ⚠️ **La liste passe par la couche supérieure (`popover`)**, posée en
-// `position: fixed` sur la boîte du `<select>` : ni un `overflow` d'ancêtre (les
-// colonnes qui défilent de l'Optimizer) ni un `z-index` (un dialogue en 70) ne
-// la coupent. Elle reste pourtant DANS le DOM à côté du `<select>` : un clic
-// dedans reste un clic dans le dialogue ou le panneau qui la porte, et le Tab
-// repart du `<select>`. Le dessin de la surface est celui de `Flottant`, tel
-// quel.
+// ⚠️ **La liste est un `Flottant` ancré sur le `<select>`** (`ancre`) : la
+// couche supérieure qu'il porte la met au-dessus de tout — ni un `overflow`
+// d'ancêtre (les colonnes qui défilent de l'Optimizer) ni un `z-index` (un
+// dialogue en 70) ne la coupent — et il la place, la recale au défilement, la
+// borne à l'écran et la masque quand le `<select>` sort de sa boîte. Une seule
+// couche : aucune boîte intermédiaire posée sur le `<select>`. La surface reste
+// DANS le DOM juste après le `<select>` : un clic dedans reste un clic dans le
+// dialogue ou le panneau qui la porte, et le Tab repart du `<select>`. Ici, on
+// ne choisit que le côté (dessous ou dessus, gauche ou droite) et la hauteur
+// de la liste, qui défile seule.
 //
 // ⚠️ **`dense` n'est pas « plus petit », c'est une EXEMPTION tactile.** Il
 // descend à 32 px là où la règle générale impose 40 px, et ne s'emploie que dans
@@ -136,6 +139,9 @@ const HAUTEUR_ENTREE = 32;
 const HAUTEUR_ENTREE_DOIGT = 40;
 const HAUTEUR_MAX = 320;
 const AU_DOIGT = '(pointer: coarse)';
+// Écart de `Flottant` à son ancre (6), sa marge au bord de l'écran (8) et les
+// deux traits du contour de la surface (2).
+const RESERVE = 16;
 
 interface Ouverture {
   parClavier: boolean;
@@ -164,7 +170,6 @@ function ListeSelecteur({ select, id, ouverture, onChoisir, onFermer }: ListePro
   });
   // L'entrée active ne se cercle qu'au clavier : à la souris, le survol suffit.
   const [parClavier, setParClavier] = useState(ouverture.parClavier);
-  const couche = useRef<HTMLDivElement>(null);
   const surface = useRef<HTMLDivElement>(null);
   const liste = useRef<HTMLDivElement>(null);
   const recherche = useRef({ texte: '', minuterie: 0 });
@@ -176,30 +181,36 @@ function ListeSelecteur({ select, id, ouverture, onChoisir, onFermer }: ListePro
   );
   const nbGroupesNommes = groupes.filter((g) => g.libelle).length;
   const hauteurVoulue = Math.min(HAUTEUR_MAX, options.length * hauteurEntree + nbGroupesNommes * 24 + 8);
-  const espaceDessous = window.innerHeight - boite.bottom - 12;
-  const espaceDessus = boite.top - 12;
+  // La place que `Flottant` laisse de chaque côté du `<select>` (son écart, sa
+  // marge à l'écran et le contour de la surface) : la LISTE défile dans cette
+  // hauteur, la surface n'a jamais à se borner elle-même — sans quoi deux
+  // barres de défilement s'empilent.
+  const espaceDessous = window.innerHeight - boite.bottom - RESERVE;
+  const espaceDessus = boite.top - RESERVE;
   const dessus = espaceDessous < hauteurVoulue && espaceDessus > espaceDessous;
   const hauteurMax = Math.max(hauteurEntree + 8, Math.min(HAUTEUR_MAX, dessus ? espaceDessus : espaceDessous));
 
-  // Couche supérieure : montrée au montage, avant la première peinture.
+  // La surface est montrée par `Flottant` (couche supérieure) avant cet effet :
+  // la liste peut prendre le focus avant la première peinture.
   useLayoutEffect(() => {
-    const el = couche.current as (HTMLDivElement & { showPopover?: () => void }) | null;
-    el?.showPopover?.();
     liste.current?.focus({ preventScroll: true });
   }, []);
 
-  // Côté horizontal : vers la gauche si la surface sortirait de l'écran à droite.
+  // Côté horizontal : aligné à droite du `<select>` si, alignée à gauche, la
+  // surface sortirait de l'écran (`Flottant` la bornerait au bord, décollée
+  // du `<select>`).
   useLayoutEffect(() => {
-    const r = surface.current?.getBoundingClientRect();
-    if (r && cote === 'gauche' && r.right > window.innerWidth - 8) setCote('droite');
+    const largeur = surface.current?.offsetWidth ?? 0;
+    if (cote === 'gauche' && boite.left + largeur > document.documentElement.clientWidth - 8) setCote('droite');
   }, [cote, boite]);
 
-  // La surface suit son `<select>` quand la page défile ou change de taille ;
-  // un défilement DANS la liste ne la déplace pas.
+  // La place au-dessus et au-dessous du `<select>` suit la page qui défile ou
+  // change de taille (`Flottant`, lui, suit la position) ; un défilement DANS
+  // la liste n'y change rien.
   useEffect(() => {
     let cadre = 0;
     const suivre = (e: Event) => {
-      if (e.target instanceof Node && couche.current?.contains(e.target)) return;
+      if (e.target instanceof Node && surface.current?.contains(e.target)) return;
       cancelAnimationFrame(cadre);
       cadre = requestAnimationFrame(() => setBoite(select.getBoundingClientRect()));
     };
@@ -217,7 +228,7 @@ function ListeSelecteur({ select, id, ouverture, onChoisir, onFermer }: ListePro
   useEffect(() => {
     const dehors = (e: PointerEvent) => {
       const cible = e.target as Node;
-      if (couche.current?.contains(cible) || select.contains(cible)) return;
+      if (surface.current?.contains(cible) || select.contains(cible)) return;
       onFermer(false);
     };
     document.addEventListener('pointerdown', dehors);
@@ -350,116 +361,97 @@ function ListeSelecteur({ select, id, ouverture, onChoisir, onFermer }: ListePro
   };
 
   let index = -1;
-  // Le `popover` n'est pas encore dans les types de React 18.
-  const attributsCouche = { popover: 'manual' } as Record<string, string>;
   return (
-    <div
-      ref={couche}
-      {...attributsCouche}
-      // ⚠️ Posée EXACTEMENT sur la boîte du `<select>` : le `Flottant` s'y ancre
-      // comme à un parent `relative`. Transparente aux clics, sauf la surface.
-      style={{
-        position: 'fixed',
-        inset: 'auto',
-        left: boite.left,
-        top: boite.top,
-        width: boite.width,
-        height: boite.height,
-        margin: 0,
-        padding: 0,
-        border: 0,
-        background: 'transparent',
-        overflow: 'visible',
-        pointerEvents: 'none',
-      }}
-      // Un clic, un appui ou un glisser dans la liste ne remonte pas à ce qui
-      // porte le `<select>` (une carte cliquable ou déplaçable) : la liste du
-      // système ne le faisait pas non plus.
-      onClick={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
-      onDragStart={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
+    <Flottant
+      ref={surface}
+      ancre={select}
+      rembourrage="aucun"
+      largeur="w-max min-w-full max-w-[90vw]"
+      ancrage={dessus ? 'dessus' : 'dessous'}
+      cote={cote}
+      // ⚠️ La surface est la sœur du `<select>` dans le DOM : une règle du
+      // parent qui écarte ses enfants (`space-x-*`, `[&>*+*]:ml-*`) lui
+      // donnerait une marge, qui la décalerait de sa position calculée.
+      style={{ margin: 0 }}
     >
-      <Flottant
-        ref={surface}
-        rembourrage="aucun"
-        largeur="w-max min-w-full max-w-[90vw]"
-        ancrage={dessus ? 'dessus' : 'dessous'}
-        cote={cote}
-        className="pointer-events-auto"
+      <div
+        ref={liste}
+        id={id}
+        role="listbox"
+        tabIndex={-1}
+        aria-label={select.getAttribute('aria-label') ?? (select.title || undefined)}
+        aria-activedescendant={actif >= 0 ? `${id}-${actif}` : undefined}
+        onKeyDown={auClavier}
+        onBlur={(e) => {
+          const vers = e.relatedTarget as Node | null;
+          if (vers && (surface.current?.contains(vers) || vers === select)) return;
+          if (vers) onFermer(false);
+        }}
+        // Un clic, un appui ou un glisser dans la liste ne remonte pas à ce qui
+        // porte le `<select>` (une carte cliquable ou déplaçable) : la liste du
+        // système ne le faisait pas non plus.
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onDragStart={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        // ⚠️ Le focus est porté par l'ENTRÉE active (cerclée), pas par le
+        // cadre de la liste : un anneau autour de toute la surface doublerait
+        // celui de l'entrée.
+        className="overflow-y-auto overscroll-contain p-1 focus:outline-none"
+        style={{ maxHeight: hauteurMax }}
       >
-        <div
-          ref={liste}
-          id={id}
-          role="listbox"
-          tabIndex={-1}
-          aria-label={select.getAttribute('aria-label') ?? (select.title || undefined)}
-          aria-activedescendant={actif >= 0 ? `${id}-${actif}` : undefined}
-          onKeyDown={auClavier}
-          onBlur={(e) => {
-            const vers = e.relatedTarget as Node | null;
-            if (vers && (couche.current?.contains(vers) || vers === select)) return;
-            if (vers) onFermer(false);
-          }}
-          // ⚠️ Le focus est porté par l'ENTRÉE active (cerclée), pas par le
-          // cadre de la liste : un anneau autour de toute la surface doublerait
-          // celui de l'entrée.
-          className="overflow-y-auto overscroll-contain p-1 focus:outline-none"
-          style={{ maxHeight: hauteurMax }}
-        >
-          {groupes.map((g, gi) => (
-            <div key={gi} role={g.libelle ? 'group' : 'presentation'} aria-label={g.libelle || undefined}>
-              {g.libelle && (
-                <div aria-hidden className="px-2 pb-0.5 pt-1.5 text-micro font-medium text-ink-dim">
-                  {g.libelle}
+        {groupes.map((g, gi) => (
+          <div key={gi} role={g.libelle ? 'group' : 'presentation'} aria-label={g.libelle || undefined}>
+            {g.libelle && (
+              <div aria-hidden className="px-2 pb-0.5 pt-1.5 text-micro font-medium text-ink-dim">
+                {g.libelle}
+              </div>
+            )}
+            {g.options.map((o) => {
+              index += 1;
+              const i = index;
+              const choisie = o.valeur === courante;
+              return (
+                // ⚠️ Le marqueur des filtres (contour et fond d'accent) sur la
+                // valeur retenue, un contour transparent sur les autres : la
+                // valeur garde sa place, retenue ou non — le dessin des
+                // principales imposées.
+                <div
+                  key={`${o.valeur}-${i}`}
+                  id={`${id}-${i}`}
+                  data-index={i}
+                  role="option"
+                  aria-selected={choisie}
+                  aria-disabled={o.disabled || undefined}
+                  title={o.title}
+                  onPointerMove={() => setParClavier(false)}
+                  onClick={() => {
+                    if (!o.disabled) onChoisir(o.valeur);
+                  }}
+                  // ⚠️ L'entrée atteinte au clavier porte l'anneau de focus
+                  // des boutons de l'app (`:focus-visible` d'index.css) :
+                  // 1 px de braise lisible, détaché de 1 px, collé à la
+                  // bordure d'accent de la valeur retenue.
+                  className={`flex h-8 w-full cursor-pointer items-center whitespace-nowrap rounded-md border px-2
+                    text-left text-sm text-ink transition compact:h-10 ${
+                      o.disabled ? 'cursor-not-allowed opacity-40' : ''
+                    } ${choisie ? 'border-accent bg-accent-soft' : 'border-transparent hoverable:bg-panel2'} ${
+                      parClavier && i === actif
+                        ? `outline outline-1 outline-accent ${choisie ? 'outline-offset-0' : 'outline-offset-1'}`
+                        : ''
+                    }`}
+                >
+                  {o.libelle || ' '}
                 </div>
-              )}
-              {g.options.map((o) => {
-                index += 1;
-                const i = index;
-                const choisie = o.valeur === courante;
-                return (
-                  // ⚠️ Le marqueur des filtres (contour et fond d'accent) sur la
-                  // valeur retenue, un contour transparent sur les autres : la
-                  // valeur garde sa place, retenue ou non — le dessin des
-                  // principales imposées.
-                  <div
-                    key={`${o.valeur}-${i}`}
-                    id={`${id}-${i}`}
-                    data-index={i}
-                    role="option"
-                    aria-selected={choisie}
-                    aria-disabled={o.disabled || undefined}
-                    title={o.title}
-                    onPointerMove={() => setParClavier(false)}
-                    onClick={() => {
-                      if (!o.disabled) onChoisir(o.valeur);
-                    }}
-                    // ⚠️ L'entrée atteinte au clavier porte l'anneau de focus
-                    // des boutons de l'app (`:focus-visible` d'index.css) :
-                    // 1 px de braise lisible, détaché de 1 px, collé à la
-                    // bordure d'accent de la valeur retenue.
-                    className={`flex h-8 w-full cursor-pointer items-center whitespace-nowrap rounded-md border px-2
-                      text-left text-sm text-ink transition compact:h-10 ${
-                        o.disabled ? 'cursor-not-allowed opacity-40' : ''
-                      } ${choisie ? 'border-accent bg-accent-soft' : 'border-transparent hoverable:bg-panel2'} ${
-                        parClavier && i === actif
-                          ? `outline outline-1 outline-accent ${choisie ? 'outline-offset-0' : 'outline-offset-1'}`
-                          : ''
-                      }`}
-                  >
-                    {o.libelle || ' '}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </Flottant>
-    </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </Flottant>
   );
 }
 
@@ -511,7 +503,8 @@ const Selecteur = forwardRef<HTMLSelectElement, SelecteurProps>(function Selecte
   );
 
   const prendLaMain = () => POPOVER_DISPONIBLE && !reste.disabled;
-  // La surface de la liste ouverte (la couche `popover` qui porte la listbox).
+  // La surface de la liste ouverte (le `Flottant`, en couche supérieure, qui
+  // porte la listbox).
   const coucheListe = () => document.getElementById(id)?.closest('[popover]') ?? null;
 
   return (

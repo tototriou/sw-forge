@@ -95,7 +95,9 @@ Les deux se règlent dans `Flottant` (`src/ui/`), pour toute l'app, sans rien
   ancêtres, et passe devant tout. Elle reste à sa place dans le DOM : clic
   extérieur, focus et clavier ne changent pas.
 - **Position mesurée, pas déduite** : calculée sur l'ancre (le parent
-  `relative`) avant peinture (`useLayoutEffect`), puis à chaque défilement de
+  `relative`, ou l'élément passé en `ancre` — le `<select>` d'un `Selecteur`,
+  dont la liste ouverte est ce `Flottant`, seule couche ouverte) avant
+  peinture (`useLayoutEffect`), puis à chaque défilement de
   n'importe quelle boîte et à chaque redimensionnement — une rotation de
   téléphone change la largeur sous un flottant déjà ouvert.
 - **Bornée à l'écran** horizontalement, barre de défilement de la page exclue ;

@@ -188,14 +188,16 @@ La liste du système (fond blanc, survol bleu) ignorait les deux thèmes.
   tactile de [deux-formats.md](../deux-formats.md)) ; le champ fermé ne change
   pas (« LEAD » du speed tuning 125 × 40 au téléphone). Seul un navigateur
   sans l'API `popover` garde la liste native.
-- ⚠️ **Couche supérieure** (`popover`), en `position: fixed` sur la boîte du
-  `<select>` : ni un `overflow` d'ancêtre (les colonnes qui défilent de
-  l'Optimizer) ni un dialogue en `z-70` ne la coupent. Elle reste pourtant
-  dans le DOM à côté du `<select>` : un clic dedans reste un clic dans le
-  dialogue qui la porte, et ne remonte pas à une carte cliquable ou
-  déplaçable. Elle s'ouvre vers le haut quand la place manque dessous, vers la
-  gauche quand elle sortirait à droite, et suit son `<select>` quand la page
-  défile.
+- ⚠️ **La liste est un `Flottant` ancré sur le `<select>`** (`ancre`), en
+  couche supérieure, et la seule couche ouverte : ni un `overflow` d'ancêtre
+  (les colonnes qui défilent de l'Optimizer) ni un dialogue en `z-70` ne la
+  coupent. `Flottant` la place à 6 px du `<select>`, la recale quand la page
+  défile, la borne à l'écran et la masque quand le `<select>` sort de sa
+  boîte. Elle reste dans le DOM juste après le `<select>` : un clic dedans
+  reste un clic dans le dialogue qui la porte, et ne remonte pas à une carte
+  cliquable ou déplaçable. Le `Selecteur` choisit le côté — vers le haut
+  quand la place manque dessous, alignée à droite du `<select>` quand elle
+  sortirait de l'écran — et la hauteur de la liste, qui défile seule.
 
 #### `SelecteurMultiple`
 
@@ -426,7 +428,9 @@ popup d'édition, formulaire ancré, liste de résultats d'une recherche.
 
 > ⚠️ **Il s'occupe donc du placement.** La position est calculée en
 > coordonnées de l'écran sur l'**ancre** — le premier ancêtre positionné, le
-> parent `relative` où l'écran pose le flottant — avant de peindre, puis à
+> parent `relative` où l'écran pose le flottant, ou l'élément passé en `ancre`
+> (sa boîte de bordure) quand on ne peut pas l'envelopper sans changer sa
+> taille : le `<select>` du `Selecteur` — avant de peindre, puis à
 > chaque défilement de n'importe quelle boîte et à chaque redimensionnement :
 > - à 6 px sous l'ancre (ou au-dessus, ou à côté), alignée sur le bord
 >   demandé ; les décalages `left` / `top` de `style` se lisent comme avant

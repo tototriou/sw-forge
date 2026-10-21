@@ -27,7 +27,8 @@ import { CSSProperties, ReactNode, forwardRef, useCallback, useEffect, useLayout
 //
 // ⚠️ **La position est donc CALCULÉE**, en coordonnées de l'écran, sur l'ANCRE :
 // le premier ancêtre positionné, celui qui servait de repère à l'`absolute`
-// (le parent `relative` où l'écran pose le flottant). Elle se recalcule à
+// (le parent `relative` où l'écran pose le flottant), ou l'élément passé en
+// `ancre` (le `<select>` du `Selecteur`). Elle se recalcule à
 // chaque rendu, à chaque défilement (de n'importe quelle boîte) et à chaque
 // redimensionnement. La surface :
 //  - se pose sous l'ancre (ou au-dessus, ou à côté), à 6 px, alignée sur le
@@ -86,6 +87,14 @@ export interface FlottantProps {
   // s'ouvre alors vers l'intérieur. Voir [FlottantAuto](FlottantAuto.tsx), qui
   // choisit ce côté tout seul en mesurant.
   cote?: 'gauche' | 'droite';
+  // L'élément auquel la surface s'ancre, quand ce n'est pas son premier
+  // ancêtre positionné : sa boîte de BORDURE sert de repère.
+  //
+  // ⚠️ Sert à ce qu'on ne peut pas envelopper d'un parent `relative` sans
+  // changer sa taille : le `<select>` du `Selecteur`, dont les appelants
+  // visent la boîte par leurs classes. La surface reste dans le DOM juste
+  // après lui.
+  ancre?: HTMLElement | null;
   style?: CSSProperties;
   className?: string;
   role?: string;
@@ -146,6 +155,7 @@ const Flottant = forwardRef<HTMLDivElement, FlottantProps>(function Flottant(
     largeur = 'w-full',
     ancrage = 'dessous',
     cote = 'gauche',
+    ancre: ancreDonnee,
     style,
     className = '',
     ...reste
@@ -177,8 +187,11 @@ const Flottant = forwardRef<HTMLDivElement, FlottantProps>(function Flottant(
   if (largeurEnPourcent) delete styleReste.width;
   const masque = /(^|\s)hidden(\s|$)/.test(className);
 
-  const consignes = useRef({ ancrage, cote, gauche: enPixels(styleGauche), haut: enPixels(styleHaut), pourcent, minPleine, masque });
-  consignes.current = { ancrage, cote, gauche: enPixels(styleGauche), haut: enPixels(styleHaut), pourcent, minPleine, masque };
+  const lues = () => ({
+    ancrage, cote, ancre: ancreDonnee ?? null, gauche: enPixels(styleGauche), haut: enPixels(styleHaut), pourcent, minPleine, masque,
+  });
+  const consignes = useRef(lues());
+  consignes.current = lues();
 
   const placer = useCallback(() => {
     const el = boite.current;
@@ -196,14 +209,17 @@ const Flottant = forwardRef<HTMLDivElement, FlottantProps>(function Flottant(
     }
     if (c.masque || el.getClientRects().length === 0) return;
 
-    const ancre = ancreDe(el);
+    // Ancre donnée : sa boîte de bordure. Ancêtre positionné : sa boîte de
+    // rembourrage, le repère de l'`absolute`.
+    const ancre = c.ancre ?? ancreDe(el);
     const ra = ancre.getBoundingClientRect();
-    const sa = getComputedStyle(ancre);
+    const sa = c.ancre ? null : getComputedStyle(ancre);
+    const bord = (v: string | undefined) => (sa ? parseFloat(v ?? '') || 0 : 0);
     const a = {
-      left: ra.left + (parseFloat(sa.borderLeftWidth) || 0),
-      top: ra.top + (parseFloat(sa.borderTopWidth) || 0),
-      right: ra.right - (parseFloat(sa.borderRightWidth) || 0),
-      bottom: ra.bottom - (parseFloat(sa.borderBottomWidth) || 0),
+      left: ra.left + bord(sa?.borderLeftWidth),
+      top: ra.top + bord(sa?.borderTopWidth),
+      right: ra.right - bord(sa?.borderRightWidth),
+      bottom: ra.bottom - bord(sa?.borderBottomWidth),
     };
     el.style.visibility = visibleDansSesBoites(ancre) ? '' : 'hidden';
     if (c.pourcent != null) el.style.width = `${(a.right - a.left) * c.pourcent}px`;
@@ -267,14 +283,14 @@ const Flottant = forwardRef<HTMLDivElement, FlottantProps>(function Flottant(
     if (el && typeof ResizeObserver !== 'undefined') {
       obs = new ResizeObserver(() => placer());
       obs.observe(el);
-      obs.observe(ancreDe(el));
+      obs.observe(ancreDonnee ?? ancreDe(el));
     }
     return () => {
       window.removeEventListener('scroll', surDefilement, true);
       window.removeEventListener('resize', placer);
       obs?.disconnect();
     };
-  }, [placer]);
+  }, [placer, ancreDonnee]);
 
   return (
     <div

@@ -79,6 +79,7 @@ import testArtefactOptim, {
 import testArtefactFile from './artefact-file.test';
 import testArtifactEvaluation, { testArtifactPaireReelleEhp, testArtifactPaireReelleDegatsEffetUnique } from './artifact-evaluation.test';
 import { testResolutionProducteurPartage, testClassementResolu } from './resolution-partagee.test';
+import { testClassementIncremental, testClassementIncrementalEgalites, testClassementIncrementalNotes, testClassementIncrementalInvalidations, testClassementIncrementalFonctions, testClassementIncrementalAutresCriteres } from './classement-incremental.test';
 import { testResolutionCaches } from './resolution-caches.test';
 import { testResolutionWorker } from './resolution-worker.test';
 import { testResolutionDistante } from './resolution-distante.test';
@@ -755,6 +756,12 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testArtefactsFicheParamsDifferentiel', testArtefactsFicheParamsDifferentiel],
   ['testResolutionProducteurPartage', testResolutionProducteurPartage],
   ['testClassementResolu', testClassementResolu],
+  ['testClassementIncremental', testClassementIncremental],
+  ['testClassementIncrementalEgalites', testClassementIncrementalEgalites],
+  ['testClassementIncrementalNotes', testClassementIncrementalNotes],
+  ['testClassementIncrementalInvalidations', testClassementIncrementalInvalidations],
+  ['testClassementIncrementalFonctions', testClassementIncrementalFonctions],
+  ['testClassementIncrementalAutresCriteres', testClassementIncrementalAutresCriteres],
   ['testResolutionCaches', testResolutionCaches],
   ['testResolutionWorker', testResolutionWorker],
   ['testResolutionDistante', testResolutionDistante],

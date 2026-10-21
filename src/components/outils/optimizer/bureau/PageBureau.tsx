@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import OngletsColonnes from './OngletsColonnes';
-import { PANNEAU, SECTIONS } from './panneau';
+import { LISERE, PANNEAU, SECTIONS } from './panneau';
 import { type PartieObjectif } from './ObjectifEtRechercherBureau';
 import { AidesHorsDeLaBoite } from '../../../HelpPopover';
 import {
@@ -205,22 +205,27 @@ export interface PageBureauProps {
 // sans report sur la page ni sur une autre colonne une fois au bout.
 const DEFILE_A3 = '@[1180px]:min-h-0 @[1180px]:overscroll-contain @[1180px]:data-[defile]:overflow-y-auto @[1180px]:data-[defile]:overflow-x-hidden';
 
+// ⚠️ **La boîte qui défile s'arrête à sa barre** : large de son panneau, de
+// 4 px et de la barre de défilement (10 px), pour que la barre se lise comme
+// celle de SA colonne ; le reste de l'écart entre deux panneaux (24 px) est
+// une marge, hors de la boîte. Décision de l'utilisateur à l'arrêt 4 : une
+// barre au bord de la place se collait au panneau suivant.
+//
 // Une colonne repliable en A3, à défilement propre : superposée sous son seuil
 // d'insertion (marge négative de sa largeur : elle ne prend aucune place),
-// large de son panneau et de la barre de défilement (10 px), haute de son
-// contenu au plus de la page (elle ne couvre des résultats que ce qu'elle
-// montre) ; insérée au-delà, large de sa place et de la gouttière (336 ou
-// 356), où la barre de défilement tient à droite du panneau, et haute de la
-// page, son panneau jusqu'en bas. Les classes sont écrites en entier pour
-// Tailwind ; l'ombre (celle des flottants) va au panneau, superposé seulement.
+// haute de son contenu au plus de la page (elle ne couvre des résultats que
+// ce qu'elle montre) ; insérée au-delà, sa boîte et sa marge font sa place et
+// la gouttière (336 ou 356), et elle est haute de la page, son panneau
+// jusqu'en bas. Les classes sont écrites en entier pour Tailwind ; l'ombre
+// (celle des flottants) va au panneau, superposé seulement.
 const COLONNE_A3: Record<ColonneRepliable, { boite: string; panneau: string }> = {
   artefacts: {
-    boite: `${DEFILE_A3} @[1180px]:max-h-full @[1180px]:w-[322px] @[1180px]:-mr-[322px] @[1180px]:z-20 @[1516px]:h-full @[1516px]:w-[336px] @[1516px]:mr-0 @[1516px]:z-auto`,
-    panneau: '@[1180px]:shadow-glow @[1180px]:shadow-black/60 @[1516px]:min-h-full @[1516px]:shadow-none',
+    boite: `${DEFILE_A3} @[1180px]:max-h-full @[1180px]:w-[326px] @[1180px]:-mr-[326px] @[1180px]:z-20 @[1516px]:h-full @[1516px]:mr-[10px] @[1516px]:z-auto`,
+    panneau: `${LISERE} @[1180px]:shadow-[inset_0_3px_0_rgb(var(--accent)),0_8px_24px_-8px_rgb(0_0_0/0.6)] @[1516px]:min-h-full @[1516px]:shadow-[inset_0_3px_0_rgb(var(--accent))]`,
   },
   complements: {
-    boite: `${DEFILE_A3} @[1180px]:max-h-full @[1180px]:w-[342px] @[1180px]:-mr-[342px] @[1180px]:z-20 @[1536px]:h-full @[1536px]:w-[356px] @[1536px]:mr-0 @[1536px]:z-auto`,
-    panneau: '@[1180px]:shadow-glow @[1180px]:shadow-black/60 @[1536px]:min-h-full @[1536px]:shadow-none',
+    boite: `${DEFILE_A3} @[1180px]:max-h-full @[1180px]:w-[346px] @[1180px]:-mr-[346px] @[1180px]:z-20 @[1536px]:h-full @[1536px]:mr-[10px] @[1536px]:z-auto`,
+    panneau: `${LISERE} @[1180px]:shadow-[inset_0_3px_0_rgb(var(--accent)),0_8px_24px_-8px_rgb(0_0_0/0.6)] @[1536px]:min-h-full @[1536px]:shadow-[inset_0_3px_0_rgb(var(--accent))]`,
   },
 };
 
@@ -354,9 +359,9 @@ export default function PageBureau(props: PageBureauProps) {
           className={
             'w-[548px]'
             + ' @[904px]:col-[1] @[904px]:row-[1/span_3]'
-            + ` @[1180px]:row-[1/-1] @[1180px]:h-full @[1180px]:w-[564px] ${DEFILE_A3}`
+            + ` @[1180px]:row-[1/-1] @[1180px]:h-full @[1180px]:w-[554px] ${DEFILE_A3}`
           }
-          contenu={`flex w-[540px] flex-col ${PANNEAU} ${SECTIONS} @[1180px]:min-h-full`}
+          contenu={`flex w-[540px] flex-col ${PANNEAU} ${LISERE} ${SECTIONS} @[1180px]:min-h-full`}
         >
           {props.liste}
           {props.set}
@@ -448,7 +453,7 @@ export default function PageBureau(props: PageBureauProps) {
           }
           contenu={
             'contents @[1180px]:grid @[1180px]:min-h-full @[1180px]:grid-cols-[607px_minmax(0,1fr)] @[1180px]:content-start'
-            + ' @[1180px]:rounded-xl @[1180px]:border @[1180px]:border-border @[1180px]:bg-panel @[1180px]:p-2'
+            + ' @[1180px]:rounded-xl @[1180px]:border @[1180px]:border-border @[1180px]:bg-panel @[1180px]:p-2 @[1180px]:shadow-[inset_0_3px_0_rgb(var(--accent))]'
           }
         >
           {a3 && objectif}

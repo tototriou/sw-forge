@@ -1,3 +1,4 @@
+import { createRequire, syncBuiltinESMExports } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -105,4 +106,35 @@ export function testWorktreeMesureRefus() {
     b.temoins();
     egal(readFileSync(join(autre, 'temoin.txt'), 'utf8'), 'autre intact', 'le nettoyage final préserve aussi l’autre cible');
   } finally { b.retirer(); }
+}
+export function testWorktreeMesureLienPhysique() {
+  titre('Worktree de mesure — repli sans droit de symlink');
+  const b = bac();
+  const fs = createRequire(import.meta.url)('node:fs') as typeof import('node:fs');
+  const original = fs.symlinkSync;
+  const m = creerWorktreeMesure(b.depot, 'HEAD');
+  try {
+    // Simuler le refus Windows, puis créer un vrai lien physique par le repli.
+    fs.symlinkSync = ((cible, destination, genre) => {
+      if (genre === 'file') throw Object.assign(new Error('Droit de symlink absent'), { code: 'EPERM' });
+      return original(cible, destination, genre);
+    }) as typeof fs.symlinkSync;
+    syncBuiltinESMExports();
+    egal(m.lier('compte.txt'), 'lie', 'EPERM se replie sur un vrai lien physique');
+    const fichier = join(m.dossier, 'compte.txt');
+    egal(fs.lstatSync(fichier).ino, fs.statSync(join(b.depot, 'compte.txt')).ino, 'les deux entrées portent le même fichier');
+    ok(!fs.lstatSync(fichier).isSymbolicLink(), 'le repli ne laisse pas un symlink');
+    unlinkSync(fichier);
+    writeFileSync(fichier, 'remplacement');
+    refuse(() => m.retirer(), 'Lien physique remplacé');
+    unlinkSync(fichier);
+    fs.linkSync(join(b.depot, 'compte.txt'), fichier);
+    m.retirer();
+    b.temoins();
+  } finally {
+    fs.symlinkSync = original;
+    syncBuiltinESMExports();
+    if (existsSync(m.dossier)) m.retirer();
+    b.retirer();
+  }
 }

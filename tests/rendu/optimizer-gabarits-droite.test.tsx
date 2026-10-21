@@ -195,7 +195,21 @@ export function testRenduOptimizerPageBureauDroite() {
     'hors A3, la colonne de droite s\'efface (`display: contents`) : Exemplaire et résultats sont des cases de la grille de la page');
   ok(!/data-page-fenetre/.test(html) && !/style="[^"]*height/.test(html.slice(0, html.indexOf('>'))),
     'largeur inconnue (rendu serveur) : la page n\'est pas à hauteur de fenêtre, comme en A1');
-  ok(!/sticky/.test(html.replace(/data-zone="barre" class="sticky/, '')), 'aucune colonne collée : seule la barre fine de A1 l\'est');
+  ok(!/(?<!before:)sticky/.test(html.replace(/data-zone="barre" class="sticky/, '')),
+    'aucune colonne collée : seule la barre fine de A1 l\'est (la bande d\'une colonne, son `::before` collé en A3, n\'en est pas une)');
+  // La bande braise : sur le panneau hors A3 (`LISERE`), fixe en haut de la
+  // boîte qui défile en A3 (`BANDE_FIXE`), le panneau la retirant alors.
+  const panneauDe = (zone: string) => {
+    const i = html.indexOf(`data-zone="${zone}"`);
+    const m = /<div class="([^"]*)"/.exec(html.slice(i));
+    return m ? m[1] : '';
+  };
+  const essentiels = panneauDe('essentiels'), droite = panneauDe('droite');
+  ok(essentiels.includes('shadow-[inset_0_3px_0_rgb(var(--accent))]') && essentiels.includes('@[1180px]:shadow-none')
+    && essentiels.includes('@[1180px]:before:sticky') && essentiels.includes('@[1180px]:before:top-px'),
+    'essentiels : bande sur le panneau hors A3, collée au haut de la boîte en A3 (`::before`), le panneau sans la sienne');
+  ok(droite.includes('@[1180px]:before:sticky') && droite.includes('@[1180px]:before:row-[1/span_3]') && !/(^| )@\[1180px\]:shadow-\[inset/.test(droite),
+    'colonne de droite : bande collée en A3, placée sur toutes les rangées de la grille du panneau, et aucune sur le panneau');
 
   // Le rappel des auras : la carte du bureau l'affiche sans l'annoncer ; la
   // page l'annonce dans une région toujours montée, hors des colonnes.

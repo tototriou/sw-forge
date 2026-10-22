@@ -60,11 +60,10 @@ export default function MonstresDeLaListe({ activeList, activeMembers, ajoutList
       {activeList && <span className="flex-none text-[11px] text-ink-dimmer">{activeMembers.length}</span>}
     </>
   );
-  // ⚠️ **Au bureau (`enTete`), ni carte ni lignes encadrées** : la liste est
-  // une section du panneau de sa colonne, et chaque monstre une ligne sous un
-  // trait fin (docs/02-app/optimizer/ecran/README.md, « Panneaux et
-  // sections »). Décision de l'utilisateur : des cadres de même poids que le
-  // panneau empêchaient de lire la colonne. Le téléphone garde carte et lignes.
+  // ⚠️ **Au bureau (`enTete`), pas de carte autour de la liste** : elle est
+  // une section du panneau de sa colonne (docs/02-app/optimizer/ecran/README.md,
+  // « Panneaux et sections ») ; chaque monstre garde sa propre carte. Le
+  // téléphone garde aussi la carte de la liste.
   const bureau = enTete !== undefined;
   return (
     <div className={bureau ? 'relative' : 'rounded-lg border border-border-soft bg-panel2/60 p-2.5'}>
@@ -138,10 +137,9 @@ export default function MonstresDeLaListe({ activeList, activeMembers, ajoutList
             const absentes = build ? runesManquantesDuBuild(build, runeById) : [];
             const artsAbsents = build ? artefactsManquantsDuBuild(build, artifactById) : [];
             return (
-              // Au bureau, un trait au-dessus de chaque ligne : une ligne n'est
-              // jamais la première de son groupe (en-tête d'équipe ou « Sans
-              // équipe » avant elle), aucun trait n'est donc perdu en tête.
-              <div key={key} className={`flex flex-wrap items-center gap-x-2 ${bureau ? 'border-t border-border-soft py-1.5' : 'rounded-lg border border-border-soft bg-panel/60 px-2 py-1.5'}`}>
+              // Chaque monstre garde sa carte, au bureau aussi (décision de
+              // l'utilisateur : plus lisible que des lignes sous un trait).
+              <div key={key} className="flex flex-wrap items-center gap-x-2 rounded-lg border border-border-soft bg-panel/60 px-2 py-1.5">
                 <ZoneCliquable
                   imbrique
                   disabled={!resolved}

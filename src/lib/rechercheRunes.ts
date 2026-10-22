@@ -30,7 +30,7 @@ import { OrdreCombos, construireMoitieRapide, construireMoitieRapideTypee } from
 import { apparierRapide } from './appariementRapide';
 import { UnionDesRetentions, UnionDesRetentionsTypees } from './retentionEmboitee';
 import { Compartiment, CompartimentType, typerCompartiments } from './demiBuildsTypes';
-import { creerColonnesCandidats, objetsDesCandidats, extraireBlocs } from './candidatsCompacts';
+import { creerColonnesCandidats, objetsDesCandidats } from './candidatsCompacts';
 
 /**
  * L'appariement séquentiel par le chemin de production : le noyau sur
@@ -49,7 +49,7 @@ export function* apparier(prepared: PreparedSearch, bucketsA: Compartiment[], bu
   const candidates: BuildCandidate[] = [];
   const adapter = () => {
     for (const c of objetsDesCandidats(collecte)) candidates.push(c);
-    extraireBlocs(collecte);
+    collecte.blocs = [];
   };
   const gen = apparierRapide(prepared, bucketsA, bucketsB, { collecte });
   let step = gen.next();

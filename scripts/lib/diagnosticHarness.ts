@@ -62,7 +62,7 @@ import { availableParallelism } from 'os';
 import { PARALLEL_PAIRING_THRESHOLD, nombreDeTravailleurs, regimeAppariement } from '../../src/workers/parallelPairing';
 import { apparier } from '../../src/lib/rechercheRunes';
 import { compterPaires, verifierContrat } from '../../src/lib/appariementRapide';
-import { ColonnesCandidats, creerColonnesCandidats, objetsDesCandidats, extraireBlocs } from '../../src/lib/candidatsCompacts';
+import { ColonnesCandidats, creerColonnesCandidats, objetsDesCandidats } from '../../src/lib/candidatsCompacts';
 import { CompartimentType, objetsDesCompartiments } from '../../src/lib/demiBuildsTypes';
 import { apparierRapideEnParallele, enResultatDeRecherche } from '../../src/lib/appariementRapideParallele';
 import { RuneDetail } from '../../src/types';
@@ -1073,7 +1073,7 @@ async function apparierEnParallele(
     surProgression: (explored, candidats) => {
       // Adaptateur objet explicite du CLI : les blocs sont libérés au fil de leur projection.
       const nouveaux = objetsDesCandidats(candidats);
-      extraireBlocs(candidats);
+      candidats.blocs = [];
       for (const c of nouveaux) objets.push(c);
       observateur?.observer(explored, nouveaux, candidats.length);
     },

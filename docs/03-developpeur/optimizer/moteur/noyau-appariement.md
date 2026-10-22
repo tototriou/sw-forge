@@ -150,6 +150,20 @@ jugement ni saut. Les quasi-succès utilisent les mêmes objets et règles.
 
 ## Vérification
 
+Les contrôles du flux compact (`tests/flux-candidats.test.ts`) comparent à
+`pairBuckets` des candidats distincts avec conditions et quasi-succès, sous
+coupe après plusieurs morceaux puis un bloc `suite`. Un vrai Worker attend
+le retour d'un crédit après expiration du filet ; sa coupe est comparée à
+la référence au même point logique, sans comparer deux recherches au même
+instant réel. Une panne pendant un transfert `MessageChannel` doit encore
+permettre de sceller exactement le préfixe reçu. Les tampons de vingt blocs
+unitaires occupent exactement 2 400 octets, sans capacité cachée.
+
+Chaque appel parallèle explicite de ces tests a un délai de garde de
+15 secondes, qui signale une erreur et ferme les Workers encore vivants ;
+ce délai détecte un interblocage, il n'est pas un budget de performance.
+Un lanceur muet vérifie aussi ce chemin d'expiration et son nettoyage.
+
 `testConstructionColonnes` (`tests/construction-colonnes.test.ts`) compare
 la construction et l'union en colonnes à `buildBuckets` et à l'union objet,
 dans les quatre ordres, sur des pools déterministes et sous éviction. Il

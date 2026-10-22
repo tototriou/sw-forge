@@ -103,6 +103,14 @@ export function fusionnerCandidats(dest: SortieCandidats, source: SortieCandidat
 export function extraireBlocs(sortie: ColonnesCandidats): BlocCandidats[] {
   const blocs = sortie.blocs;
   sortie.blocs = [];
+  // Une sous-vue conserverait la réserve entière chez le propriétaire suivant.
+  for (const b of blocs) {
+    const ajuster = (c: Float64Array) => c.length === b.longueur && c.byteOffset === 0 && c.buffer.byteLength === b.longueur * 8
+      ? c : c.slice(0, b.longueur);
+    b.ids = b.ids.map(ajuster);
+    b.totaux = b.totaux.map(ajuster);
+    b.efficience = ajuster(b.efficience);
+  }
   return blocs;
 }
 export function tamponsCandidats(blocs: readonly BlocCandidats[]): ArrayBuffer[] {
@@ -124,7 +132,7 @@ export class RecepteurCandidats {
     for (const b of blocs) {
       exiger(b.schema === 1 && b.debut === this.nombre && b.longueur > 0 && b.longueur <= LIGNES_PAR_BLOC, 'Plage de candidats non contiguë');
       exiger(b.ids.length === 6 && b.totaux.length === 8 && b.gabarits.length === 8, 'Schéma de bloc inconnu');
-      exiger([...b.ids, ...b.totaux, b.efficience].every((c) => c instanceof Float64Array && c.length >= b.longueur && c.length <= LIGNES_PAR_BLOC), 'Longueur de colonne invalide');
+      exiger([...b.ids, ...b.totaux, b.efficience].every((c) => c instanceof Float64Array && c.length === b.longueur && c.byteOffset === 0 && c.buffer.byteLength === b.longueur * 8), 'Longueur de colonne invalide');
       if (this.gabarits) exiger(b.gabarits.every((g, j) => memeGabarit(g, this.gabarits![j])), 'Gabarit du flux incohérent');
       this.gabarits ??= b.gabarits;
       for (let i = 0; i < b.longueur && this.apercu.length < this.plafondApercu; i++) this.apercu.push(candidatDuBloc(b, i));

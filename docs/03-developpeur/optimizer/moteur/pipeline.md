@@ -246,10 +246,16 @@ repli objet n'en garde qu'un candidat temporaire. Les quasi-succès restent
 des objets. L'adaptateur objet explicite sert au CLI et au différentiel.
 
 Les blocs scellés portent des ordinaux contigus et sont transférés une seule
-fois. Le bilan final scelle leur nombre sans réémettre l'aperçu. La page
+fois. Leurs quinze colonnes sont ajustées à la longueur écrite avant de
+quitter le collecteur : exactement `15 × 8 × longueur` octets de tampons,
+même pour un bloc d'une ligne ou coupé à la fusion. Une sous-vue d'un tampon
+plus grand ne respecte pas ce contrat et le récepteur la refuse. Le bilan
+final scelle leur nombre sans réémettre l'aperçu. La page
 matérialise les 3 000 premières lignes pour l'aperçu, puis les suivantes à la
 fin, en réutilisant les objets déjà publiés. Les autres blocs attendent en
 colonnes et sont libérés à leur adaptation ; aucun écran ne change de contrat.
+Une projection objet qui consomme les blocs les libère directement, sans
+ajuster des colonnes qui ne seront pas transférées.
 
 `drivePairing` (`src/workers/pairingDriver.ts`) pilote pas à pas le
 générateur `apparierRapide` avec sa sortie en colonnes. `EmetteurCandidats`

@@ -493,12 +493,22 @@ la tranche suivante relit la file à jour.
 
 ## Résultat affiché
 
+Le cache de `useArtifactOptimQueue` journalise les écritures des deux voies
+de résolution. Les instantanés restent des `Map`, associés à leur journal
+par identité ; aucun changement de l'appel de l'écran n'est nécessaire.
+`classementResolu` utilise le magasin et l'index compacts pour les publications
+versionnées compatibles, et le classement complet de référence sinon.
+Le tableau affiché reste complet ; sa matérialisation parcourt les références,
+sans décompacter tous les candidats. Les contrôles et les notes suivent les
+seules versions modifiées. Contrat, ordre exact et replis :
+[optimiseur-artefacts.md](optimiseur-artefacts.md#magasin-compact-et-publications-versionnées).
+
 `classementResolu` (`src/lib/artifactQueue.ts`) produit le classement
 affiché (`affichees`), le même pour l'écran et le CLI. Il part de l'ordre de
 base et retire les builds que la résolution a écartés (`conforme: false`). Il
-départage à score égal par `ordonnerParDepartage` (relique retenue, puis
-`cleBuild`) et lit chaque build à travers son équipement résolu
-(`candidatAvecSaPaire`). Il retrie enfin par `sortCandidates`. Un build résolu
+départage à score égal par relique retenue puis `cleBuild` et lit chaque
+build à travers son équipement résolu (`candidatAvecSaPaire`). L'index suit
+le même ordre que `ordonnerParDepartage` puis `sortCandidates`. Un build résolu
 peut donc passer devant ; un build non résolu garde ses stats d'origine.
 
 `compositionDePage` compose une page. Ses cartes sont les seuls builds

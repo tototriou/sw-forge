@@ -403,83 +403,98 @@ Une seule primitive, `chercherPaires`, sert deux entrées.
 
 ### Classement incrémental
 
-`classementResolu` écarte les résultats non conformes, départage par
-identifiant de relique croissant puis clé de build, remplace les stats par
-celles de l'équipement résolu, et appelle `trierCandidatsIncrementalement`
-(`src/lib/runeBuildOptim.ts`). Le tri stable et son comparateur décroissant
-sont ceux de `sortCandidates`, le recalcul complet de référence. Cache de
-résolution vide, l'ordre de base est rendu tel quel, comme avant toute
-résolution. Chaque publication produit le même classement complet, égalités
-et valeurs non finies comprises ; aucune note approximative n'est utilisée.
+#### Magasin compact et publications versionnées
 
-Le départage prépare une fois par candidat et par appel le couple (`rid`
-de la relique retenue, ou `+∞` si absent ; `cleBuild`). Son comparateur ne
-lit que ces valeurs : `rid` croissant, puis clé par `<`/`>`, sans `localeCompare`.
-À couple égal, le tri stable conserve l'ordre d'entrée, objets distincts de
-même build et doublons compris. Les comparaisons ne relisent ni le cache
-de résolution, ni `ridDe`, ni `cleBuild`.
+`candidatsCompacts.ts` porte six colonnes d'identifiants et huit colonnes de
+totaux en `Float64`, avec l'efficience reçue. Les huit gabarits et bases sont
+communs. L'ingestion vérifie chaque champ et `Object.is(bonus, total - base)` ;
+la reconstruction utilise cette même soustraction, sans nouvel arrondi.
+Une entrée hors contrat reste sur la référence objet. Les identifiants bruts
+ne passent jamais en `Int32`, les valeurs ne passent jamais en `Float32`.
+Les doublons partagent un groupe d'équipement, jamais leur identité de ligne
+ni leurs stats collectées. Le hachage vérifie les six identifiants triés en
+cas de collision ; les rangs de clés utilisent les chaînes jointes exactes,
+comparées par `<` et `>`, préparées à l'ouverture puis abandonnées.
 
-Seules les notes de **Dégâts réels** sont mémorisées. Pour une stat de fiche,
-Efficience/Score, les PV effectifs et la Vitesse,
-`trierCandidatsIncrementalement` rend directement `sortCandidates`, sans
-préparer d'empreinte : ces notes coûtent autant ou moins que le parcours de
-leurs entrées.
+Le cache de la file journalise ses écritures, suppressions et vidages. Chaque
+publication garde la même `Map` de résultats qu'un instantané ordinaire et
+lui associe, dans une table faible, génération, version et changements depuis
+la précédente. Le journal coûte les clés touchées, indépendamment de la copie
+de Map requise par l'interface. Une génération nouvelle, un journal absent,
+une version manquée ou une incohérence impose un classement complet.
+Le journal ne retient pas une chaîne d'anciens instantanés.
 
-Une seule note de dégâts est gardée par identité faible de **l'objet
-candidat**. Candidats, stats et données propres publiées sont immuables :
-un changement de stats produit un nouveau candidat ; une réponse de
-résolution est remplacée dans la Map, jamais modifiée en place.
-`candidatAvecSaPaire` garde la même projection tant que le candidat de base
-et la réponse sont identiques ; une nouvelle réponse crée une nouvelle
-projection. Un candidat inaccessible ne reste pas retenu par la mémoire.
-Le résultat complet reçu du Worker peut porter de nouveaux objets : ils
-sont notés à leur première apparition, sans rapprochement par ids.
+`classementCompact.ts` conserve l'ordre dans un AVL en colonnes typées.
+Une différence retire les anciennes clés, ingère les nouveaux équipements,
+incrémente leurs versions, contrôle et renote leurs seules lignes (doublons
+compris), puis les réinsère. Un contexte ou critère différent invalide toutes
+les notes. Un rejet sort de l'index sans supprimer la ligne. Les comptes de
+sous-arbre permettent une sélection par rang et une page sans balayage total.
+Initialisation : O(N log N) ; différence : O(Δ log N), où Δ comprend les
+doublons ; page : O(log N + taille). L'adaptateur de l'écran rend encore un
+tableau complet de références aux objets existants, en O(N), sans reconstruire
+N candidats. Cette matérialisation de compatibilité est distincte du travail
+de contrôle, de notation et de mise à jour de l'index.
 
-Le contexte complet de dégâts, hors profil d'artéfacts propre au build,
-est empreint **une fois par publication**. Sa chaîne est comparée une fois
-au contexte précédent ; les candidats ne comparent ensuite qu'une identité
-de contexte. Cela détecte aussi une modification du contexte en place.
-Aucune ligne de stats n'est parcourue pour construire une clé, aucune
-chaîne n'est construite par candidat.
+Cache vide, l'ordre de base est rendu tel quel. Cache non vide, même hors
+recherche, l'ordre fini est : note décroissante, relique croissante (absente
+en dernier), clé lexicographique, puis position dans l'ordre de base fourni.
+Sans note calculable, seul le départage s'applique. Les doublons restent des
+lignes distinctes. `NaN`, les infinis ou un identifiant de relique hors
+contrat prennent deux tris natifs stables sur des indices JavaScript, avec
+les expressions de la référence ; aucune normalisation de note ni
+comparaison composite ne leur impose un nouvel ordre.
 
-Les accesseurs sont toujours lus une fois par candidat : leurs closures,
-les auras et les profils d'artéfacts peuvent être recréés par l'écran à
-chaque publication. Leurs petites données (auras propres, profil effectif,
-apport exclusif) sont comparées directement, récursivement, avec raccourci
-par identité. Les stats reposent sur l'identité immuable du candidat.
-L'apport exclusif reste celui des mêmes accesseurs que le recalcul complet,
-y compris pour une relique fixe remplacée sous le même id. Ces comparaisons
-bornées par la taille des données dérivées conservent `NaN`, les infinis et
-le zéro négatif. Elles ne sérialisent ni ces données ni les stats.
+Les contrôles portent sur les données à l'ingestion et sur chaque nouvelle
+version. Les données collectées et les inventaires sont immuables. Les
+options produites par `optionsDeClassement` identifient les données communes
+et la relique fixe ; les entrées propres dépendent de l'équipement journalisé.
+Un appel générique sans cette provenance reste sur la référence complète.
+Une fonction dans les données communes ou propres désactive le chemin
+compact avant réutilisation ; la garde du tri objet reste inchangée.
+`classementResoluReference` conserve l'assemblage objet servant d'oracle.
 
-Les données sont sans cycle, comme celles du Worker. Si une fonction est
-rencontrée dans le contexte ou les données propres d'un seul candidat,
-**tout le tri reprend le calcul direct, sans réutiliser ni écrire de note** :
-une fermeture mutable ne se compare ni par identité ni par texte.
-La vérification des données propres précède tout accès aux notes, même
-si la fonction concerne le dernier candidat.
+#### Référence objet et mémoire des notes
 
-L'appartenance et le départage sont toujours recalculés : un rejet retire
-le build et un autre identifiant de relique peut déplacer une égalité sans
-changer le score. La mémoire ne conserve aucun ordre publié et ne modifie
-ni les priorités de la file, ni sa cible, ni le traitement de l'aperçu.
+`classementResoluReference` filtre les rejets, départage par relique puis
+clé, projette les stats et appelle `trierCandidatsIncrementalement`.
+`sortCandidates` est son recalcul complet de référence : même tri stable,
+même soustraction décroissante, égalités et non-finis compris. Cache vide,
+l'ordre de base est rendu tel quel. `ordonnerParDepartage` prépare une fois
+par candidat et par appel (`rid` ou `+∞`, `cleBuild`) ; le comparateur ne
+relit ni cache, ni `ridDe`, ni clé. Couple égal : ordre d'entrée conservé,
+doublons compris. Aucune note approximative, aucune priorité de file modifiée.
 
-Pour les dégâts réels, l'observateur optionnel `surNote` reçoit chaque note
-effectivement utilisée au tri, mémorisée ou recalculée, sans exposer le
-cache. Il sert à comparer les notes au recalcul complet, build par build.
+Seules les notes de Dégâts réels sont mémorisées par identité faible de
+l'objet candidat ; les autres critères passent directement par
+`sortCandidates`, sans empreinte. Candidats, stats et données propres sont
+immuables ; la réponse est remplacée dans la Map, jamais mutée.
+`candidatAvecSaPaire` garde sa projection tant que base et réponse sont
+identiques. Un objet candidat nouveau est noté à sa première apparition,
+sans rapprochement par ids ; la mémoire ne retient pas les objets morts.
 
-Vérifications : les `testClassementIncremental…` comparent l'ordre et les
-notes à chaque publication (aperçu et résultat cloné, résolutions hors
-ordre, rejets, réglages, artéfacts, exclusives, égalités). `testArtefactFile`
-compare le départage à l'oracle qui lit les valeurs dans le comparateur,
-sur des cas construits et 6 000 entrées pseudo-aléatoires à graine fixe ;
-il impose un appel à `ridDe` par entrée et par appel, doublons compris. Les invalidations
-sont aussi testées séparément : amorçage en Dégâts réels, une entrée
-modifiée, nouvelle publication sous le même critère, note effectivement
-recalculée et égale au complet ; un cas impose une inversion de classement.
-Les tests contrôlent aussi le repli de tout le tri sur une fonction et
-l'absence d'empreinte pour les autres critères. Sur 20 000 candidats et
-plusieurs publications, le nombre d'appels de sérialisation reste celui
-du seul contexte commun, comme pour un candidat ; aucune ligne de stats
-n'est parcourue pour une clé. Ce compte ne prouve pas un gain de temps
-dans le navigateur : celui-ci se vérifie dans l'app.
+Le contexte de dégâts, hors profil propre, est empreint et comparé une fois
+par publication, puis identifié par objet, modification en place comprise.
+Aucune clé par candidat, aucun parcours de stats pour une clé. Les accesseurs
+sont relus pour chaque candidat, même recréés ; leurs petites données
+(auras, profil effectif, apport exclusif, relique fixe remplacée sous le même
+id comprise) sont comparées récursivement, avec raccourci par identité et
+`Object.is`. Ni ces données ni les stats ne sont sérialisées ; `NaN`, infinis
+et zéro négatif sont conservés. Les données sont sans cycle, comme le Worker.
+Une fonction dans les données communes ou propres d'un seul candidat fait
+reprendre tout le tri directement, sans lecture ni écriture de note mémorisée.
+La garde précède tout accès aux notes, même sur le dernier candidat.
+L'appartenance et le départage sont recalculés à chaque appel : un rejet ou
+un rid différent peut changer l'ordre. La mémoire objet ne garde aucun ordre.
+
+L'observateur `surNote` reçoit chaque note de dégâts réellement utilisée,
+hit compris. Les `testClassementIncremental…` comparent ordre et notes à
+chaque publication : aperçu, résultat cloné, résolutions hors ordre, rejets,
+réglages, profils, exclusives, égalités et invalidations isolées à critère
+constant (dont une inversion). Ils contrôlent le repli sur fonction,
+l'absence d'empreinte des autres critères et une seule sérialisation commune
+sur 20 000 candidats. `testArtefactFile` compare le départage à l'oracle sur
+6 000 entrées à graine fixe et borne `ridDe` à un appel par entrée.
+Les `testClassementCompact…` ajoutent ordinaux, comptes, pages, journal absent
+ou manqué, non-finis et travail par différence ; l'aller-retour contrôle les
+champs exacts. Ces comptes ne prouvent aucun gain de temps au navigateur.

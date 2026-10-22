@@ -38,7 +38,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RuneDetail } from '../types';
 import { BuildCandidate } from '../lib/runeBuildOptim';
-import { ResultatArtefacts, cleBuild, prochainsATraiter, voieDeLaFile } from '../lib/artifactQueue';
+import { CacheResolutionJournalise, ResultatArtefacts, cleBuild, prochainsATraiter, voieDeLaFile } from '../lib/artifactQueue';
 import { EntreesResolutionSerialisables, ReponseResolution } from '../workers/resolutionBody';
 import { PortsResolutionDistante, ResolutionDistante, repliSurErreur } from '../workers/resolutionDistante';
 
@@ -215,7 +215,7 @@ export function useArtifactOptimQueue(opts: {
 
   // Le cache vit dans une ref ET dans l'état : la ref pour que la boucle le
   // lise sans re-rendu, l'état pour que l'écran se rafraîchisse.
-  const cacheRef = useRef(new Map<string, ResultatArtefacts>());
+  const cacheRef = useRef(new CacheResolutionJournalise());
   // Une écriture du cache retenue par la cadence et pas encore publiée. Dans
   // une ref, pas dans l'effet : une relance de l'effet (K qui change) perdrait
   // sinon la trace d'une écriture faite par la boucle précédente — le
@@ -229,8 +229,8 @@ export function useArtifactOptimQueue(opts: {
   // ⚠️ Un changement de réglage VIDE le cache. Garder les résultats d'avant
   // afficherait des paires optimales pour un réglage quitté.
   useEffect(() => {
-    cacheRef.current = new Map();
-    setParBuild(new Map());
+    cacheRef.current = new CacheResolutionJournalise();
+    setParBuild(cacheRef.current.publier());
   }, [signature]);
 
   useEffect(() => {
@@ -294,7 +294,7 @@ export function useArtifactOptimQueue(opts: {
       }
       dernierePublication = now;
       nonPublieeRef.current = false;
-      setParBuild(new Map(cacheRef.current));
+      setParBuild(cacheRef.current.publier());
     };
 
     const tranche = () => {
@@ -387,7 +387,7 @@ export function useArtifactOptimQueue(opts: {
     const d = distantRef.current;
     distantRef.current = null;
     if (d) {
-      if (d.pilote.renoncer()) setParBuild(new Map(cacheRef.current));
+      if (d.pilote.renoncer()) setParBuild(cacheRef.current.publier());
       d.worker.terminate();
     }
     setEnRepli(true);
@@ -449,7 +449,7 @@ export function useArtifactOptimQueue(opts: {
         const now = Date.now();
         if (!forcer && now - dernierePublication < PUBLICATION_MS) return false;
         dernierePublication = now;
-        setParBuild(new Map(cacheRef.current));
+        setParBuild(cacheRef.current.publier());
         return true;
       },
       enAttente: (n) => setEnAttente(n),

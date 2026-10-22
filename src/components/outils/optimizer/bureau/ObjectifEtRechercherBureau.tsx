@@ -9,17 +9,20 @@ import { ResumeCombat, TitreObjectifRecherche, type ObjectifEtActionsProps } fro
 import { PANNEAU } from './panneau';
 
 export const LARGEUR_OBJECTIF_ETROIT = 340;
-// La forme large prend la largeur de sa colonne : au moins celle d'« Exemplaire ».
-export const LARGEUR_OBJECTIF_LARGE_MIN = 616;
+// La forme large prend la largeur de sa colonne : au moins la place
+// d'« Exemplaire » (`LARGEURS_BUREAU.exemplaire`).
+export const LARGEUR_OBJECTIF_LARGE_MIN = 592;
 // « Arrêter » reste inactif ce temps après le lancement : le double clic qui a
 // lancé la recherche ne l'arrête pas (A.2.2-8 de la refonte).
 export const DELAI_ARRET_MS = 300;
-// « Rechercher » dans la forme large : à DROITE de sa rangée, à cette largeur.
-// En A3, sous ≈ 1536, une colonne repliable ouverte se superpose au bord
-// gauche de la colonne de droite (332 px au plus, panneau d'« Aura,
-// exclusion, avancés ») : « Rechercher », posé à droite, en sort toujours
-// (colonne de droite de 616 px au moins, moins 9 de cadre : il commence à
-// 367). « Rechercher toujours atteignable » (A.2.2-8 de la refonte).
+// « Rechercher » dans la forme large : à DROITE de sa rangée, à cette largeur,
+// jamais réduit ; l'écart avec « Importer » prend ce qui manque.
+// En A3, sous ≈ 1512, une colonne repliable ouverte se superpose au bord
+// gauche de la colonne de droite (332 px de panneau au plus, 346 avec sa
+// barre, pour « Aura, exclusion, avancés ») : « Rechercher », posé à droite,
+// commence à 329 px du bord de la colonne à sa largeur minimale (592, moins
+// 23 de barre et de cadre, moins 240), à 346 dès 609. Entre les deux, ses
+// 17 px de gauche au plus passent sous la boîte de la colonne superposée.
 const LARGEUR_RECHERCHER_LARGE = 'w-60';
 
 // La progression la plus haute que la recherche affiche (phase d'appariement,

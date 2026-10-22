@@ -34,7 +34,7 @@ export const PANNEAU = 'rounded-xl border border-border bg-panel p-2';
 // (`mask-composite: exclude` entre la boîte pleine et sa boîte intérieure).
 // Le contour du panneau, lui, est transparent en haut. Ici, hors de l'A3, le
 // pseudo-élément est posé sur le contour du haut du panneau (`absolute`) ;
-// `BANDE_FIXE` le rend collant dès 1180 px.
+// `BANDE_FIXE` le rend collant dès 1156 px.
 export const BANDE = 'relative border-t-[3px] border-t-transparent pt-[6px]'
   + ' before:pointer-events-none before:absolute before:-inset-x-px before:-top-[3px] before:block before:h-[var(--radius-xl)]'
   + ' before:rounded-t-xl before:border-x before:border-t-[3px] before:border-transparent'
@@ -55,12 +55,12 @@ export const BANDE = 'relative border-t-[3px] border-t-transparent pt-[6px]'
 // qu'à la hauteur de la sienne. Ce qui défile sous ses coins est rogné par
 // la boîte (`coinsDuPanneau`). Le dessin (anneau en dégradé, voir `BANDE`) est
 // repris en entier, sous le seuil : la colonne de droite n'a pas `BANDE`.
-export const BANDE_FIXE = '@[1180px]:border-t-transparent @[1180px]:before:pointer-events-none @[1180px]:before:sticky @[1180px]:before:inset-x-auto @[1180px]:before:top-0 @[1180px]:before:z-[1]'
-  + ' @[1180px]:before:-mx-[9px] @[1180px]:before:-mt-[9px] @[1180px]:before:mb-[calc(9px-var(--radius-xl))] @[1180px]:before:block @[1180px]:before:h-[var(--radius-xl)] @[1180px]:before:self-stretch'
-  + ' @[1180px]:before:rounded-t-xl @[1180px]:before:border-x @[1180px]:before:border-t-[3px] @[1180px]:before:border-transparent'
-  + ' @[1180px]:before:[background:linear-gradient(to_bottom,rgb(var(--accent))_3px,rgb(var(--accent)/0)_100%)_border-box,linear-gradient(rgb(var(--border)),rgb(var(--border)))_border-box]'
-  + ' @[1180px]:before:[mask-image:linear-gradient(#000,#000),linear-gradient(#000,#000)] @[1180px]:before:[mask-clip:padding-box,border-box] @[1180px]:before:[mask-composite:exclude]'
-  + " @[1180px]:before:content-['']";
+export const BANDE_FIXE = '@[1156px]:border-t-transparent @[1156px]:before:pointer-events-none @[1156px]:before:sticky @[1156px]:before:inset-x-auto @[1156px]:before:top-0 @[1156px]:before:z-[1]'
+  + ' @[1156px]:before:-mx-[9px] @[1156px]:before:-mt-[9px] @[1156px]:before:mb-[calc(9px-var(--radius-xl))] @[1156px]:before:block @[1156px]:before:h-[var(--radius-xl)] @[1156px]:before:self-stretch'
+  + ' @[1156px]:before:rounded-t-xl @[1156px]:before:border-x @[1156px]:before:border-t-[3px] @[1156px]:before:border-transparent'
+  + ' @[1156px]:before:[background:linear-gradient(to_bottom,rgb(var(--accent))_3px,rgb(var(--accent)/0)_100%)_border-box,linear-gradient(rgb(var(--border)),rgb(var(--border)))_border-box]'
+  + ' @[1156px]:before:[mask-image:linear-gradient(#000,#000),linear-gradient(#000,#000)] @[1156px]:before:[mask-clip:padding-box,border-box] @[1156px]:before:[mask-composite:exclude]'
+  + " @[1156px]:before:content-['']";
 
 // ⚠️ **Les coins d'une colonne qui défile** : la boîte qui défile est
 // rectangulaire, et le contenu qui passe sous la bande se verrait dans les

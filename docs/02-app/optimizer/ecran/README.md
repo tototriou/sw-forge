@@ -68,9 +68,13 @@ droite. Au-dessus d'elles, ni bandeau ni phrase d'introduction.
    332) : « Sets d'aura des autres monstres », « Exclusion de runes » et
    « Réglages avancés », en ligne dans la colonne.
 4. **La colonne de droite**, jamais repliée, qui prend le reste de la
-   largeur : « Exemplaire » (616 px de place : puces Box / RTA / Défenses
-   siège / Offenses siège, fiche, « Valider ce build »), le bloc « Objectif
-   et Rechercher », puis les résultats.
+   largeur : « Exemplaire » (puces Box / RTA / Défenses siège / Offenses
+   siège, fiche, « Valider ce build »), le bloc « Objectif et Rechercher »,
+   puis les résultats. ⚠️ **Sa largeur minimale est celle de la fiche
+   d'« Exemplaire » à pleine taille** (statistiques, artéfacts, roue de
+   runes, relique : 560 px mesurés), panneau et barre de défilement compris :
+   592 px de place. Au-dessus, tout le reste de la colonne suit la largeur
+   de son panneau, sans jamais en sortir (décision de l'utilisateur).
 
 ### Panneaux et sections
 
@@ -157,19 +161,26 @@ prend sa place moins 8 px (`RETRAIT_PANNEAU`) quand une autre colonne le
 suit, et l'écart visible vaut la gouttière de 16 px plus ce retrait. Aucun
 seuil n'a bougé ; une section garde la largeur de contenu de la carte qu'elle
 remplace (294 px dans « Artéfacts et relique », 314 dans « Aura, exclusion,
-avancés », 598 pour « Exemplaire »). La colonne de droite n'est une boîte
-qu'en A3 (`data-zone="droite"`) : un panneau qui défile seul, où « Exemplaire »
-tient la première piste (607 px, la place de 616 moins le bord du panneau) et
-le bloc étroit la seconde. En A1 et A2, cette boîte s'efface
+avancés », 598 au plus pour « Exemplaire »). La colonne de droite n'est une
+boîte qu'en A3 (`data-zone="droite"`) : un panneau qui défile seul, où
+« Exemplaire » tient la première piste (598 px au plus) et le bloc étroit la
+seconde (340 px au moins, 9 px plus loin, derrière un trait). ⚠️ **Aucune
+piste n'y est fixe** : à la largeur minimale de la colonne (592 px de place,
+soit 560 de contenu : 592 moins la barre de défilement réservée et ses 4 px,
+moins le contour et le rembourrage du panneau), « Exemplaire » prend la
+largeur de sa fiche, ses quatre puces se partagent cette largeur à parts
+égales, le bloc large et les résultats la prennent aussi ; rien ne sort du
+panneau, ses marges de 8 px restent. En A1 et A2, cette boîte s'efface
 (`display: contents`) : « Exemplaire » et les résultats sont des cases de la
 grille de la page, et dessinent le haut et le bas du panneau. En A3, les
 panneaux des essentiels, des colonnes insérées et de la colonne de droite
 descendent jusqu'au bas de la page ; une colonne superposée garde la hauteur
 de son contenu.
 
-Chaque boîte a une **largeur fixe**, sauf deux, **élastiques** : le bloc
-« Objectif et Rechercher » (340 px au moins) et les résultats (360 px au
-moins, une carte, sans maximum). Une boîte fixe ne s'étire jamais : la place
+Chaque boîte a une **largeur fixe**, sauf trois, **élastiques** : le bloc
+« Objectif et Rechercher » (340 px au moins), les résultats (360 px au
+moins, une carte, sans maximum) et « Exemplaire » en A3 (de la largeur de
+sa fiche, 560 px, à 598). Une boîte fixe ne s'étire jamais : la place
 en plus va aux résultats, ou reste en marge (voir
 [Placement et adaptation à la largeur](#placement-et-adaptation-à-la-largeur)).
 
@@ -250,21 +261,25 @@ Chacun vaut sur une plage `[a, b[` :
   progression, la seule partie collée au bas de la fenêtre) ; le contrôle à
   onglets ; la colonne repliable ouverte, dans la page, ses sections deux à
   deux ; « Exemplaire » ; les résultats.
-- **A2, de 904 à 1 180 px.** Les essentiels à gauche ; à leur droite, de
+- **A2, de 904 à 1 156 px.** Les essentiels à gauche ; à leur droite, de
   haut en bas, le bloc « Objectif et Rechercher », le contrôle à onglets et
   la colonne repliable ouverte, ses sections empilées. Dessous, sur toute la
   largeur, « Exemplaire » puis les résultats.
-- **A3, dès 1 180 px.** Les essentiels à gauche ; le contrôle à onglets en
+- **A3, dès 1 156 px.** Les essentiels à gauche ; le contrôle à onglets en
   haut, à leur droite ; sous lui, la colonne de droite : « Exemplaire », le
   bloc « Objectif et Rechercher » (à côté d'« Exemplaire » quand la
-  colonne de droite fait au moins 972 px, dessous sinon), les résultats.
+  colonne de droite fait au moins 948 px, dessous sinon), les résultats.
   Une colonne repliable
   ouverte s'insère entre les essentiels et la colonne de droite là où elle
   tient avec « Exemplaire », et se superpose aux résultats sinon.
 
 Chaque seuil se pose là où l'agencement suivant tient : 904 = essentiels
 548 + gouttière 16 + 340 (le bloc étroit, ou la plus large des colonnes
-repliables) ; 1 180 = 548 + 16 + « Exemplaire » 616.
+repliables) ; 1 156 = 548 + 16 + « Exemplaire » 592, la largeur minimale
+de la colonne de droite (voir
+[Panneaux et sections](#panneaux-et-sections)) : la place d'« Exemplaire »
+compte la barre de défilement réservée de la colonne, sans quoi le contenu
+déborderait du panneau à son seuil.
 
 Aux largeurs repères, la fenêtre se réduit au contenu de l'Optimizer par
 les constantes de [volets.ts](src/lib/volets.ts) : barre latérale dépliée
@@ -369,22 +384,25 @@ Le format téléphone est décrit dans
 
 ### Colonnes repliables selon la largeur
 
-- **A3** : « Artéfacts et relique » s'insère dès 1 516 px (548 + 16 + 320 +
-  16 + 616), « Aura, exclusion, avancés » dès 1 536 (même calcul avec 340),
-  les deux ensemble dès 1 872. Sous son seuil, une colonne ouverte se pose
+- **A3** : « Artéfacts et relique » s'insère dès 1 492 px (548 + 16 + 320 +
+  16 + 592), « Aura, exclusion, avancés » dès 1 512 (même calcul avec 340),
+  les deux ensemble dès 1 848. Sous son seuil, une colonne ouverte se pose
   en **panneau superposé** à la colonne de droite, à 24 px des essentiels,
   avec une ombre : elle ne prend aucune place dans la grille, rien ne bouge
   dessous, et les résultats ne descendent jamais sous la largeur d'une carte.
-  Elle couvre le bord gauche de la colonne de droite (312 ou 332 px), jamais
-  « Rechercher », posé à droite dans la forme large du bloc (voir
-  [Bloc « Objectif et Rechercher »](#bloc--objectif-et-rechercher-)).
+  Elle couvre le bord gauche de la colonne de droite (312 ou 332 px de
+  panneau, 326 ou 346 avec sa barre), loin de « Rechercher », posé à droite
+  dans la forme large du bloc (voir
+  [Bloc « Objectif et Rechercher »](#bloc--objectif-et-rechercher-)), sauf
+  à la largeur minimale de la colonne, où ses 17 px de gauche au plus
+  passent sous « Aura, exclusion, avancés ».
 - **A2** : la colonne ouverte se place à droite des essentiels, sous le bloc
   « Objectif et Rechercher » et le contrôle à onglets. **A1** : dans la
   page, entre le contrôle et « Exemplaire ».
-- **Une à la fois sous 1 872 px** : ouvrir l'une ferme l'autre. Revenue
-  sous 1 872 avec les deux ouvertes, la page garde la dernière ouverte.
+- **Une à la fois sous 1 848 px** : ouvrir l'une ferme l'autre. Revenue
+  sous 1 848 avec les deux ouvertes, la page garde la dernière ouverte.
 - **Par défaut**, « Artéfacts et relique » est ouverte en A1, en A2 et dès
-  1 516 px ; fermée en A3 sous 1 516 (aucun panneau superposé ouvert
+  1 492 px ; fermée en A3 sous 1 492 (aucun panneau superposé ouvert
   d'office). « Aura, exclusion, avancés » est fermée. Tant que l'utilisateur
   n'a touché à aucun onglet, cet état de départ suit la largeur : une
   fenêtre ou un volet redimensionné le recalcule. Le premier clic d'onglet,
@@ -419,17 +437,18 @@ d'adresse retranchés : ≈ 1 920 × 940 sur un écran de 1 920 × 1 080,
   de travail les allonge jusqu'à 308 px de membres) : ils tiennent entiers à
   1 920 × 940 (856 px de page), défilent de 60 px à 1 536 × 730 (646 px).
 - **A2 : la page défile en elle-même, d'un bloc**, la fenêtre (ou le volet)
-  immobile. « Exemplaire » (616 px) et les résultats passent sous les
-  essentiels : aucune colonne n'y va de haut en bas, et la colonne à droite
-  des essentiels (340 à 615 px) ne les tiendrait pas. Sa barre de défilement
+  immobile. « Exemplaire » (592 px de place au moins) et les résultats
+  passent sous les essentiels : aucune colonne n'y va de haut en bas, et la
+  colonne à droite des essentiels (340 à 591 px) ne les tiendrait pas. Sa barre de défilement
   est réservée hors du conteneur, comme celle de la fenêtre avant elle :
   aucune largeur de boîte ne change.
 - ⚠️ **La colonne de droite réserve sa barre de défilement**
   (`scrollbar-gutter: stable`), comme la page en A2 : les résultats qui
   arrivent ne la rétrécissent pas, et « Rechercher » ne bouge pas sous le
-  clic. Le bloc étroit y perd ces 10 px et les 4 px entre le panneau et
-  la barre : 333 px à son seuil (colonne de droite de 972 px), pour 340
-  déclarés, sans débordement mesuré. En contrepartie, la fenêtre n'a plus
+  clic. Ces 10 px et les 4 px entre le panneau et la barre font partie de
+  la largeur minimale de la colonne (592) ; à côté d'« Exemplaire », le bloc
+  étroit mesure 331 px à son seuil (colonne de droite de 948 px), pour 340
+  déclarés, et « Exemplaire » 567, sans débordement mesuré. En contrepartie, la fenêtre n'a plus
   de barre en A2 et A3 : le conteneur gagne 10 px à fenêtre égale, plus les
   24 px des marges (1 648 px à 1 920 de large au lieu des 1 614 du tableau
   des repères).
@@ -476,18 +495,23 @@ Deux formes, selon la place :
   lignes, mesuré en A2), objectifs en 2 × 2, « Exporter » · « Importer »
   sous « Rechercher », à parts égales : en A2, à droite des essentiels,
   dans son propre panneau ; en A3, section du panneau de droite, à côté
-  d'« Exemplaire », quand la colonne de droite fait au moins 972 px
-  (616 + 16 + 340), soit un conteneur d'au moins 1 536 px sans colonne
-  repliable insérée, 1 872 avec « Artéfacts et relique » insérée, 1 892 avec
+  d'« Exemplaire », quand la colonne de droite fait au moins 948 px
+  (592 + 16 + 340), soit un conteneur d'au moins 1 512 px sans colonne
+  repliable insérée, 1 848 avec « Artéfacts et relique » insérée, 1 868 avec
   « Aura, exclusion, avancés » insérée ;
 - **large**, ≈ 138 px de haut au repos (estimation sur une ligne, mesuré en
   A3), à la largeur de sa colonne : objectifs sur une ligne, « Exporter » ·
-  « Importer » à gauche, « Rechercher » à droite, 240 px de large : partout
-  ailleurs (A1, et A3 quand la colonne de droite fait moins de 972 px), sous
+  « Importer » à gauche, « Rechercher » à droite, 240 px de large, jamais
+  réduit : l'écart entre « Importer » et « Rechercher » prend ce qui manque
+  quand la colonne se resserre, les marges du panneau restent : partout
+  ailleurs (A1, et A3 quand la colonne de droite fait moins de 948 px), sous
   « Exemplaire ». ⚠️ **À droite, parce qu'en A3 une colonne repliable
-  superposée couvre le bord gauche de la colonne de droite** (332 px au
-  plus) : « Rechercher », qui commence au plus près à 367 px de ce bord,
-  reste toujours atteignable.
+  superposée couvre le bord gauche de la colonne de droite** (346 px au
+  plus, barre comprise) : « Rechercher » commence à 329 px de ce bord à la
+  largeur minimale de la colonne (592), à 346 dès 609 ; entre les deux,
+  ses 17 px de gauche au plus passent sous « Aura, exclusion, avancés »
+  superposée, le reste du bouton (223 px au moins) restant atteignable
+  (mesuré).
 
 ⚠️ Le bloc ne change de forme qu'au clic d'un onglet, qui ouvre ou ferme
 une colonne insérée, jamais au lancement d'une recherche.

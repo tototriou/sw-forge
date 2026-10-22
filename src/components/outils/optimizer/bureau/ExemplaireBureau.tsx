@@ -1,10 +1,16 @@
 import ExemplaireEtFiche, { type ExemplaireEtFicheProps } from '../ExemplaireEtFiche';
 
-// La place d'« Exemplaire » en tête de la colonne de droite : la largeur
-// minimale de son panneau. La section y prend 598 px, rembourrage et contour
-// du panneau retirés.
-export const LARGEUR_EXEMPLAIRE = 616;
-const LARGEUR_SECTION = 598;
+// La place d'« Exemplaire » en tête de la colonne de droite, et la largeur
+// minimale de cette colonne (`LARGEURS_BUREAU.exemplaire`,
+// src/lib/optimizerColonnes.ts) : la fiche à pleine taille (statistiques,
+// artéfacts, roue de runes, relique : 560 px mesurés), plus le contour et le
+// rembourrage du panneau, l'écart et la barre de défilement de la colonne.
+export const LARGEUR_EXEMPLAIRE = 592;
+const LARGEUR_FICHE = 560;
+// La section prend la largeur de sa piste, au plus 598 px (sa largeur quand la
+// place ne manque pas), jamais moins que la fiche : les puces de source se
+// partagent ce qui reste, la fiche ne se réduit pas.
+const LARGEUR_SECTION_MAX = 598;
 
 // « Exemplaire », au bureau : en tête de la colonne de droite (A3) ou sous les
 // réglages (A1, A2), section du panneau de cette colonne. Le contenu est
@@ -14,7 +20,7 @@ const LARGEUR_SECTION = 598;
 // travail tient sa place dans les essentiels.
 export default function ExemplaireBureau(props: ExemplaireEtFicheProps) {
   return (
-    <section aria-label="Exemplaire" style={{ width: LARGEUR_SECTION }}>
+    <section aria-label="Exemplaire" className="w-full" style={{ maxWidth: LARGEUR_SECTION_MAX, minWidth: LARGEUR_FICHE }}>
       <ExemplaireEtFiche {...props} />
     </section>
   );

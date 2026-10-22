@@ -11,7 +11,9 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    vertical la sépare (`ConditionsBureau`). La colonne des libellés y prend
    la largeur du plus long d'entre eux, les colonnes s'écartent de 12 px, et
    Min et Max s'en rapprochent : les champs gardent leur largeur, et la
-   grille tient sans déborder. « Artéfacts et relique » est une carte à
+   grille tient sans déborder. ⚠️ La grille est centrée dans la section :
+   autant de marge du bord du panneau aux libellés que des « Max » au trait
+   (décision de l'utilisateur ; 17,75 px mesurés de chaque côté). « Artéfacts et relique » est une carte à
    part (voir artefacts.md § Place de la carte à l'écran).
    - **Interrupteur « Stats de base exclues »**, activé par défaut : n'affecte
      que PV, ATQ, DEF et VIT — ces 4 stats ont une base qui grandit avec le
@@ -139,7 +141,7 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
 ## Réglages avancés
 
 9. **« Réglages avancés »**. ⚠️ **Au bureau, en ligne** dans la colonne
-   repliable « Aura, exclusion, avancés », section de 314 px de son panneau,
+   repliable « Aura, exclusion, avancés », section de 294 px de son panneau,
    **sans titre** (ni icône ni en-tête : le téléphone garde le sien dans le
    panneau « Options »), après « Exclusion de runes », sur une seule colonne : pré-filtrage, puis
    les interrupteurs (voir

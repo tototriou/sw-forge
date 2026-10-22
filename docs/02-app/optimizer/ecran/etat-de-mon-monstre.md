@@ -112,7 +112,7 @@
 
    **Sets d'aura des autres monstres** — au téléphone, une troisième
    boîte d'« État de mon monstre », sous les groupes pour éviter le
-   débordement ; au bureau, une carte à part de 340 px, en tête de la
+   débordement ; au bureau, une section de 294 px, en tête de la
    colonne repliable « Aura, exclusion, avancés » (`SetsAuraBureau`), avec la
    même saisie (`AurasExternesSaisie`). Elle saisit `DamageSetup.setsAuraExternes` : les sets Fight,
    Determination, Enhance, Accuracy et Tolerance portés par les **autres**

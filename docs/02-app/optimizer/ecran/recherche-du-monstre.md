@@ -199,7 +199,10 @@ commune :
    liste ni son compte (« Liste active » la nomme juste au-dessus ; au
    téléphone, le titre reste « Monstres de « … » » et son compte),
    « Rechercher un monstre… » et le monstre actif (portrait et nom). ⚠️ **La place du monstre actif est réservée, vide ou
-   non** (132 px) : choisir un monstre ne déplace ni le champ ni la liste.
+   non**, de la largeur d'« Importer une équipe » au-dessus d'elle (lue sur
+   la page) : choisir un monstre ne déplace ni le champ ni la liste, et la
+   droite du champ s'aligne sur celle de la liste déroulante des listes
+   (décision de l'utilisateur).
    Les membres prennent leur hauteur jusqu'à 308 px, comme au téléphone,
    puis défilent (décision de l'utilisateur à l'arrêt 4 : plus haute que
    les quatre lignes d'avant) ;

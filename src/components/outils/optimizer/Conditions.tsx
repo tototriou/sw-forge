@@ -18,7 +18,11 @@ export interface ConditionsProps {
   // Variante des essentiels du bureau (`bureau/ConditionsBureau.tsx`, section
   // de 328 px) : la colonne des libellés prend la largeur du plus long d'entre
   // eux au lieu de 90 px au moins, les colonnes s'écartent de 12 px au lieu de
-  // 16, Min et Max s'en rapprochent. Le téléphone ne la passe pas.
+  // 16, Min et Max s'en rapprochent, et la grille est centrée dans la
+  // section : autant de marge du bord du panneau aux libellés que des « Max »
+  // au trait qui la suit (décision de l'utilisateur) ; 1 px de plus à droite
+  // (`pr-px`) compense le contour du panneau, compté à gauche. Le téléphone ne
+  // la passe pas.
   bureau?: boolean;
 }
 
@@ -58,7 +62,7 @@ export default function Conditions({ excludeBase, setExcludeBase, baseOf, artifa
           colonnes redeviennent SERRÉES, quelle que soit la largeur de la
           carte qui l'entoure. Demande explicite : « resserré ». */}
       <div className={bureau
-        ? 'grid w-fit grid-cols-[auto_auto_auto] items-center gap-x-3 gap-y-1.5'
+        ? 'mx-auto grid w-fit grid-cols-[auto_auto_auto] items-center gap-x-3 gap-y-1.5 pr-px'
         : 'grid w-fit grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4'}>
         {/* ⚠️ En-têtes Min/Max AU DOIGT seulement. Sur téléphone, le libellé
             « Min »/« Max » collé à chaque champ faisait déborder la rangée

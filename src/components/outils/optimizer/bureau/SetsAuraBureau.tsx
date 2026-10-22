@@ -1,9 +1,10 @@
 import { type ComponentProps } from 'react';
 import { AurasExternesSaisie } from '../../EtatMonstre';
 
-// La place de la colonne « Aura, exclusion, avancés » : son panneau en prend
-// 332 (`RETRAIT_PANNEAU`), ses sections 314.
-export const LARGEUR_COMPLEMENTS = 340;
+// La place de la colonne « Aura, exclusion, avancés », celle d'« Artéfacts et
+// relique » (décision de l'utilisateur) : son panneau en prend 312
+// (`RETRAIT_PANNEAU`), ses sections 294.
+export const LARGEUR_COMPLEMENTS = 320;
 
 // « Sets d'aura des autres monstres », au bureau : en tête de la colonne
 // repliable « Aura, exclusion, avancés », sa section du panneau. La saisie est

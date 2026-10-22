@@ -17,12 +17,11 @@ export const LARGEUR_OBJECTIF_LARGE_MIN = 592;
 export const DELAI_ARRET_MS = 300;
 // « Rechercher » dans la forme large : à DROITE de sa rangée, à cette largeur,
 // jamais réduit ; l'écart avec « Importer » prend ce qui manque.
-// En A3, sous ≈ 1512, une colonne repliable ouverte se superpose au bord
-// gauche de la colonne de droite (332 px de panneau au plus, 346 avec sa
-// barre, pour « Aura, exclusion, avancés ») : « Rechercher », posé à droite,
-// commence à 329 px du bord de la colonne à sa largeur minimale (592, moins
-// 23 de barre et de cadre, moins 240), à 346 dès 609. Entre les deux, ses
-// 17 px de gauche au plus passent sous la boîte de la colonne superposée.
+// En A3, sous 1492, une colonne repliable ouverte se superpose au bord
+// gauche de la colonne de droite (312 px de panneau, 326 avec sa barre) :
+// « Rechercher », posé à droite, commence à 329 px du bord de la colonne à
+// sa largeur minimale (592, moins 23 de barre et de cadre, moins 240), hors
+// de la boîte superposée.
 const LARGEUR_RECHERCHER_LARGE = 'w-60';
 
 // La progression la plus haute que la recherche affiche (phase d'appariement,

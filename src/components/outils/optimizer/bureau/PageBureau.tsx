@@ -31,7 +31,7 @@ import {
 //   toute la largeur, « Exemplaire » puis les résultats ;
 // - A3 dès 1156 : essentiels à gauche, onglets en haut à leur droite ; dessous,
 //   la colonne repliable ouverte, INSÉRÉE avant la colonne de droite là où elle
-//   tient avec « Exemplaire » (« Artéfacts » dès 1492, « Aura… » dès 1512), en
+//   tient avec « Exemplaire » (l'une ou l'autre dès 1492, de même largeur), en
 //   PANNEAU SUPERPOSÉ aux résultats sinon (marge négative de sa largeur : elle
 //   ne prend aucune place, rien ne bouge dessous) ; la colonne de droite :
 //   « Exemplaire », le bloc à côté de lui (étroit) quand elle fait au moins 948
@@ -247,7 +247,7 @@ const DEFILE_A3 = '@[1156px]:min-h-0 @[1156px]:overscroll-contain @[1156px]:data
 // d'insertion (marge négative de sa largeur : elle ne prend aucune place),
 // haute de son contenu au plus de la page (elle ne couvre des résultats que
 // ce qu'elle montre) ; insérée au-delà, sa boîte et sa marge font sa place et
-// la gouttière (336 ou 356), et elle est haute de la page, son panneau
+// la gouttière (336), et elle est haute de la page, son panneau
 // jusqu'en bas. Les classes sont écrites en entier pour Tailwind ; l'ombre
 // (celle des flottants) va au panneau, superposé seulement. La bande braise
 // est le contour du haut du panneau (`BANDE`), recopiée en haut de la boîte
@@ -258,8 +258,8 @@ const COLONNE_A3: Record<ColonneRepliable, { boite: string; panneau: string }> =
     panneau: `${BANDE} ${BANDE_FIXE} @[1156px]:shadow-glow @[1156px]:shadow-black/60 @[1492px]:min-h-full @[1492px]:shadow-none`,
   },
   complements: {
-    boite: `${DEFILE_A3} @[1156px]:max-h-full @[1156px]:w-[346px] @[1156px]:-mr-[346px] @[1156px]:z-20 @[1512px]:h-full @[1512px]:mr-[10px] @[1512px]:z-auto`,
-    panneau: `${BANDE} ${BANDE_FIXE} @[1156px]:shadow-glow @[1156px]:shadow-black/60 @[1512px]:min-h-full @[1512px]:shadow-none`,
+    boite: `${DEFILE_A3} @[1156px]:max-h-full @[1156px]:w-[326px] @[1156px]:-mr-[326px] @[1156px]:z-20 @[1492px]:h-full @[1492px]:mr-[10px] @[1492px]:z-auto`,
+    panneau: `${BANDE} ${BANDE_FIXE} @[1156px]:shadow-glow @[1156px]:shadow-black/60 @[1492px]:min-h-full @[1492px]:shadow-none`,
   },
 };
 
@@ -539,11 +539,11 @@ export default function PageBureau(props: PageBureauProps) {
                 className={COLONNE_A3.complements.boite}
                 contenu={`grid w-fit grid-cols-[auto_auto] items-start @[904px]:flex @[904px]:flex-col ${PANNEAU} ${COLONNE_A3.complements.panneau}`}
               >
-                <div className="w-[314px]">{props.auras}</div>
-                <div className="row-span-2 ml-2 w-[323px] border-l border-border-soft pl-2 @[904px]:ml-0 @[904px]:mt-2 @[904px]:w-[314px] @[904px]:border-l-0 @[904px]:border-t @[904px]:pl-0 @[904px]:pt-2">
+                <div className="w-[294px]">{props.auras}</div>
+                <div className="row-span-2 ml-2 w-[303px] border-l border-border-soft pl-2 @[904px]:ml-0 @[904px]:mt-2 @[904px]:w-[294px] @[904px]:border-l-0 @[904px]:border-t @[904px]:pl-0 @[904px]:pt-2">
                   {props.exclusion}
                 </div>
-                <div className="col-start-1 row-start-2 mt-2 w-[314px] border-t border-border-soft pt-2">{props.avances}</div>
+                <div className="col-start-1 row-start-2 mt-2 w-[294px] border-t border-border-soft pt-2">{props.avances}</div>
               </Colonne>
             )}
           </div>

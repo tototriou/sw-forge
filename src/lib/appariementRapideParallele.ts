@@ -62,6 +62,8 @@ export const MORCEAUX_PAR_TRAVAILLEUR = 64;
 export const TAILLE_MIN_MORCEAU = 2_000_000;
 /** Morceaux en vol par Worker (le suivant attend déjà quand l'un se termine). */
 export const EN_VOL_PAR_TRAVAILLEUR = 2;
+/** Réception compacte : places réservées par producteur, bilans vides compris. */
+export const BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR = 4;
 
 export interface ResultatParallele<C = BuildCandidate[]> extends ResultatAppariementRapide<C> {
   /**
@@ -210,7 +212,7 @@ export interface OptionsParallele<C extends SortieCandidats = BuildCandidate[]> 
    */
   surControle?: (controle: { arreter: () => void }) => void;
   /**
-   * À chaque morceau reçu : les paires traitées et la liste des candidats des
+   * Après réception/fusion : les paires traitées et la liste des candidats des
    * morceaux FUSIONNÉS, dans l'ordre séquentiel — les mêmes comptes que le
    * résultat, dont la dernière progression est l'état final. La liste ne fait
    * que grandir : un aperçu en est toujours un préfixe du résultat. À
@@ -253,7 +255,7 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
   // et chacun s'arrête de lui-même au point de passage `arret`.
   const aDistribuer = arret == null ? plan : plan.filter((m) => m.offset + 1 < arret).map((m) => ({ ...m, limite: arret }));
 
-  const resultats: ({ r: ResultatMorceau<C>; w: number } | undefined)[] = new Array(aDistribuer.length);
+  const resultats: { r: ResultatMorceau<C>; w: number }[][] = Array.from({ length: aDistribuer.length }, () => []);
   const parTravailleur: number[] = new Array(o.travailleurs).fill(0);
   let validationsTypees = 0;
   let validationsReference = 0;
@@ -335,6 +337,8 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
   const nbTravailleurs = Math.max(1, Math.min(o.travailleurs, aDistribuer.length));
   const poignees: PoigneeTravailleur<C>[] = [];
   const enVolParTravailleur = new Array(nbTravailleurs).fill(0) as number[];
+  const enAttenteParTravailleur = new Array(nbTravailleurs).fill(0) as number[];
+  const creditDiffere = new Array(nbTravailleurs).fill(false) as boolean[];
   let prochainADistribuer = 0;
   // L'erreur d'un Worker termine l'attente comme une fin : l'état fusionné
   // jusque-là est rendu, porté par `ErreurAppariementParallele`.
@@ -354,19 +358,72 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
     // calculer aux morceaux en attente (`servirAppariement`).
     surArret = () => {
       for (const p of poignees) p.arreter();
-      if (enVol === 0) finir();
+      // Des bilans peuvent être reçus mais pas encore fusionnés par la pompe.
+      if (enVol === 0 && !pompeEnCours && resultats.every((file) => file.length === 0)) finir();
     };
     const distributionTerminee = () => fusionTerminee() || tempsEcoule || arrete || overBudget();
     const distribuer = (w: number) => {
       if (distributionTerminee()) return;
-      // Un résultat arrivé en avance ne crée pas un nouveau crédit de morceau.
-      if (prochainADistribuer - prochainAFusionner >= nbTravailleurs * EN_VOL_PAR_TRAVAILLEUR) return;
+      // En compact, les places de réception bornent les résultats terminés
+      // sans faire dépendre la distribution de leur ordre de fusion.
+      if (!compact && prochainADistribuer - prochainAFusionner >= nbTravailleurs * EN_VOL_PAR_TRAVAILLEUR) return;
       if (enVolParTravailleur[w] >= EN_VOL_PAR_TRAVAILLEUR) return;
       if (prochainADistribuer >= aDistribuer.length) return;
       const m = aDistribuer[prochainADistribuer++];
       enVol++;
       enVolParTravailleur[w]++;
       poignees[w].envoyer(m, [m.segments.buffer as ArrayBuffer, m.drapeaux.buffer as ArrayBuffer]);
+    };
+    const libererPlace = (w: number) => {
+      enAttenteParTravailleur[w]--;
+      if (creditDiffere[w]) {
+        creditDiffere[w] = false;
+        poignees[w].acquitter!();
+      }
+    };
+    let pompeEnCours = false;
+    let receptionsANotifier = 0;
+    const prefixeDisponible = () => prochainAFusionner < resultats.length && resultats[prochainAFusionner].length > 0;
+    const programmerFusion = () => {
+      if (pompeEnCours || termine) return;
+      pompeEnCours = true;
+      // Un seul réveil, sans retenir les réponses dans une chaîne de fermetures.
+      receptions = Promise.resolve().then(async () => {
+        try {
+          while (!termine && (receptionsANotifier > 0 || prefixeDisponible())) {
+            const notifications = receptionsANotifier;
+            receptionsANotifier = 0;
+            let blocsFusionnes = 0;
+            while (!fusionTerminee() && prefixeDisponible() && (!compact || blocsFusionnes < nbTravailleurs)) {
+              const entree = resultats[prochainAFusionner].shift()!;
+              fusionner(entree.r, aDistribuer[prochainAFusionner]);
+              libererPlace(entree.w);
+              blocsFusionnes++;
+              if (entree.r.issue === 'suite') continue;
+              prochainAFusionner++;
+              traiteesMorceau = 0; visitesMorceau = 0; compteursMorceau = compteursVides();
+            }
+            if (fusionTerminee()) {
+              for (let i = prochainAFusionner; i < resultats.length; i++) {
+                for (const entree of resultats[i]) libererPlace(entree.w);
+                resultats[i] = [];
+              }
+            }
+            // La publication compacte est bornée à W blocs, indépendamment
+            // des réponses reçues pendant l'attente de la page.
+            const rappels = compact ? 1 : notifications;
+            for (let n = 0; n < rappels; n++) await o.surProgression?.(traitees, candidates);
+            if (termine) return;
+            for (let k = 0; k < EN_VOL_PAR_TRAVAILLEUR; k++) for (let t = 0; t < nbTravailleurs; t++) distribuer(t);
+            if ((distributionTerminee() || prochainADistribuer >= aDistribuer.length) && enVol === 0 && !prefixeDisponible()) finir();
+          }
+        } catch (erreur: unknown) {
+          enErreur = { erreur }; finir();
+        } finally {
+          pompeEnCours = false;
+          if (receptionsANotifier > 0) programmerFusion();
+        }
+      });
     };
     if (aDistribuer.length === 0 || arrete) {
       finir();
@@ -389,7 +446,7 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
         finir();
       });
       p.surMessage((r) => {
-        receptions = receptions.then(async () => {
+        try {
           // Après une erreur, aucun message suivant n'étend le préfixe rendu.
           if (termine) return;
           const terminal = r.issue !== 'suite';
@@ -400,42 +457,23 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
             if (r.validationTypee) validationsTypees++;
             else validationsReference++;
           }
-          if (resultats[r.id]) throw new Error('Bloc de morceau reçu sans crédit');
-          resultats[r.id] = { r, w };
-          const aAcquitter: number[] = [];
+          resultats[r.id].push({ r, w });
+          enAttenteParTravailleur[w]++;
+          if (compact) {
+            if (enAttenteParTravailleur[w] > BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR || creditDiffere[w]) throw new Error('Bloc reçu sans place de réception');
+            if (enAttenteParTravailleur[w] < BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR) p.acquitter!();
+            else creditDiffere[w] = true;
+          }
           if (r.issue === 'temps') tempsEcoule = true;
-          // La fusion avance sur le préfixe contigu des morceaux reçus. Les
-          // morceaux partent dans l'ordre et l'attente ne se termine qu'une fois
-          // tous ceux partis reçus : à la fin, tout ce qui est parti est fusionné.
-          while (!fusionTerminee() && prochainAFusionner < aDistribuer.length && resultats[prochainAFusionner]) {
-            const entree = resultats[prochainAFusionner]!;
-            resultats[prochainAFusionner] = undefined;
-            fusionner(entree.r, aDistribuer[prochainAFusionner]);
-            aAcquitter.push(entree.w);
-            if (entree.r.issue === 'suite') break;
-            prochainAFusionner++;
-            traiteesMorceau = 0; visitesMorceau = 0; compteursMorceau = compteursVides();
-          }
-          if (fusionTerminee()) {
-            for (let i = prochainAFusionner; i < resultats.length; i++) {
-              const entree = resultats[i];
-              if (entree) { resultats[i] = undefined; aAcquitter.push(entree.w); }
-            }
-          }
-          // La page possède ses propres crédits ; le producteur peut reprendre
-          // dès l'adoption de ses colonnes, avant toute publication asynchrone.
-          for (const t of aAcquitter) poignees[t].acquitter?.();
-          await o.surProgression?.(traitees, candidates);
-          if (termine) return;
-          for (let k = 0; k < EN_VOL_PAR_TRAVAILLEUR; k++) for (let t = 0; t < nbTravailleurs; t++) distribuer(t);
-          if ((distributionTerminee() || prochainADistribuer >= aDistribuer.length) && enVol === 0) finir();
-        }).catch((erreur: unknown) => { enErreur = { erreur }; finir(); });
+          receptionsANotifier++;
+          programmerFusion();
+        } catch (erreur: unknown) { enErreur = { erreur }; finir(); }
       });
     }
     for (let k = 0; k < EN_VOL_PAR_TRAVAILLEUR; k++) for (let w = 0; w < nbTravailleurs; w++) distribuer(w);
     // Rien de parti (filet de temps déjà dépassé) : aucun message ne viendra
     // terminer l'attente.
-    if (enVol === 0) finir();
+    if (enVol === 0 && prochainADistribuer === 0) finir();
   });
   try {
     await attendreMorceaux();

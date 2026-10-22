@@ -294,13 +294,15 @@ L'adaptation objet est explicite pour les consommateurs d'outillage
 2. vérifie le contrat numérique sur les colonnes de construction (ou les
    objets d'un outil), projette les contraintes, planifie les
    morceaux, lance `min(travailleurs, morceaux)` Workers, puis distribue ;
-3. à chaque morceau reçu, fusionne ce qui suit le préfixe déjà fusionné
+3. à chaque bloc reçu, le met en file dans son morceau et rend le crédit
+   dès réception tant que la fenêtre du producteur a une place libre ;
+   une pompe unique fusionne ce qui suit le préfixe déjà fusionné
    (§ Fusion des résultats) et rappelle `surProgression(traitees,
    candidats)` : les paires traitées et les colonnes des candidats
    FUSIONNÉS, dans l'ordre séquentiel — les comptes du résultat, dont la
    dernière progression est l'état final. Le Worker principal transmet ces
-   blocs puis les retire ; le crédit du producteur revient dès la fusion,
-   avant tout rappel de progression. La transmission admet jusqu'à seize
+   blocs puis les retire ; le crédit du producteur est indépendant de cette
+   publication. La transmission admet jusqu'à seize
    blocs sans attendre la page ; seul le remplissage de cette fenêtre
    impose une contre-pression. Les messages de progression sont espacés
    (au plus un par `PROGRESS_THROTTLE_MS`), avec `totalPairs` et le
@@ -320,14 +322,27 @@ voyagent avec le même préfixe. La fusion conserve le même morceau courant
 jusqu'à son bilan, et coupe avant toute émission au candidat du plafond.
 
 Un Worker attend l'acquittement de son bloc avant de produire le suivant.
-Les crédits sont rendus dès la fusion, avant le rappel asynchrone de
-progression, y compris pour les blocs jetés après une coupe ; chaque Worker
-a une place réservée, donc le premier morceau attendu peut toujours
-avancer. Avec huit Workers au plus, les colonnes et
-positions non acquittées restent sous 8 Mio. La distribution a aussi une
-fenêtre bornée par les morceaux non fusionnés, indépendante de leur vitesse.
-L'attente cède la main aux messages et compte dans le filet global. L'arrêt
-coopératif draine ces blocs et les bilans des morceaux déjà partis.
+Le coordinateur réserve `BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR` (4) places par
+Worker, bilans vides compris. Il acquitte dès la réception, avant toute
+fusion, tant que moins de quatre messages attendent pour ce producteur.
+Le quatrième reste sans crédit jusqu'à la libération d'une place : seule
+la saturation de cette fenêtre impose une contre-pression. Les places
+d'un autre producteur ne peuvent pas la consommer ; le morceau de tête
+peut donc toujours avancer. Les files sont des FIFO par morceau et la
+fusion ne passe au suivant qu'après le bilan terminal, même lorsque
+plusieurs blocs `suite` sont déjà reçus.
+
+La pompe de fusion est unique et les réveils sont regroupés : pas de
+promesse conservant chaque réponse après son adoption. Une publication
+adopte au plus W blocs, où W est le nombre de Workers ; la pompe recommence
+si le préfixe reçu permet encore d'avancer. En compact, la distribution
+garde deux morceaux en vol par Worker, sans attendre la fusion des morceaux
+terminés ; les quatre places de réception bornent aussi leurs bilans en
+attente. Au plus 6W morceaux distribués ne sont pas encore fusionnés
+(4W bilans reçus, 2W morceaux en vol). Le chemin objet des outils garde sa
+fenêtre globale de 2W morceaux. L'attente cède la main aux messages et
+compte dans le filet global. L'arrêt coopératif draine les blocs et bilans
+des morceaux déjà partis, puis la fusion ou le rejet rend toute place.
 
 Les crédits de la page sont distincts de ceux des producteurs.
 `EmetteurCandidats` transfère au plus `BLOCS_EN_VOL_VERS_PAGE` (16) blocs
@@ -336,9 +351,13 @@ réelles. Il attend seulement à saturation de cette fenêtre, puis au
 scellement pour que tous les blocs soient reçus. Une page complètement
 arrêtée impose donc encore une contre-pression ; aucune file illimitée ne
 la masque. Avec W Workers, la collecte compacte en transit occupe au plus
-16 + 2W blocs de colonnes : seize vers la page, W dans la publication
-courante et W chez les producteurs ou reçus en attente de fusion. Cette
-borne exclut les candidats déjà reçus par la page, qui constituent le
+16 + 5W blocs de colonnes : seize vers la page, W dans la publication
+courante et 4W chez les producteurs ou reçus en attente de fusion. Les
+colonnes transférées restent ajustées aux lignes ; les positions et visites
+reçues occupent au plus `4W × 4096 × 16` octets, hors publication courante.
+Les quatre places limitent l'anticipation sans allouer un morceau entier.
+Cette borne décrit le chemin de production, qui retire chaque publication ;
+elle exclut les candidats déjà reçus par la page, qui constituent le
 résultat, les positions de coupe et les métadonnées des morceaux.
 
 - Dans l'ORDRE DES MORCEAUX, donc dans l'ordre séquentiel : chaque morceau

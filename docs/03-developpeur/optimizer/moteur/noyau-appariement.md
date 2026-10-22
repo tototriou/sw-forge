@@ -169,6 +169,19 @@ contrôle sans acquittement remplit les seize places de la fenêtre, vérifie
 que le dix-septième bloc attend, puis que le scellement attend tous les
 crédits. Les tampons partiels restent ajustés aux lignes.
 
+`testFluxCandidatsReceptionOrdre` retient le lancement du morceau de tête
+avec une barrière logique, pendant que le suivant tourne dans un vrai
+Worker Node. Il compte les crédits encore attendus après réception : le
+suivant doit livrer son bloc `suite` puis son bilan, crédités avant le
+départ de la tête, sans attente liée à l'ordre. Le second scénario remplit
+les quatre places d'un producteur ; cette saturation retient son crédit,
+puis la tête doit encore avancer et tout se drainer. Les candidats
+distincts, les quasi-succès, les comptes et le motif sont comparés à
+`pairBuckets` ; les octets des colonnes, positions et visites en attente
+sont contrôlés contre la borne par Worker. Un arrêt demandé immédiatement
+après réception du dernier bilan ne doit pas précéder sa fusion. Aucun
+chronomètre n'intervient dans ces barrières ou ces compteurs.
+
 Chaque appel parallèle explicite de ces tests a un délai de garde de
 15 secondes, qui signale une erreur et ferme les Workers encore vivants ;
 ce délai détecte un interblocage, il n'est pas un budget de performance.

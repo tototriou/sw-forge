@@ -4,7 +4,7 @@ import { ResultatMorceau, apparierRapide, compterPaires, encoderCompartiments, i
 import { construireMoitieTypee } from '../src/lib/rechercheRunes';
 import { objetsDesCompartiments } from '../src/lib/demiBuildsTypes';
 import { BlocCandidats, ColonnesCandidats, LIGNES_PAR_BLOC, RecepteurCandidats, ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs, fusionnerCandidats, objetsDesCandidats, tamponsCandidats } from '../src/lib/candidatsCompacts';
-import { ErreurAppariementParallele, LancerTravailleur, OptionsParallele, PoigneeTravailleur, apparierRapideEnParallele, enResultatDeRecherche, planifierMorceaux } from '../src/lib/appariementRapideParallele';
+import { BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR, ErreurAppariementParallele, LancerTravailleur, OptionsParallele, PoigneeTravailleur, apparierRapideEnParallele, enResultatDeRecherche, planifierMorceaux } from '../src/lib/appariementRapideParallele';
 import { tamponsResultatMorceau } from '../src/lib/travailleurAppariement';
 import { BLOCS_EN_VOL_VERS_PAGE, EmetteurCandidats, drivePairing } from '../src/workers/pairingDriver';
 import { assurerBundleAppariementRapide, lancerTravailleurNode } from '../scripts/lib/appariementRapideNode';
@@ -398,6 +398,7 @@ export async function testFluxCandidatsPageLente() {
   const brut = lancerTravailleurNode<ColonnesCandidats>(chemin);
   const attendent = new Map<number, { numero: number; r: ResultatMorceau<ColonnesCandidats> }>();
   const retenusParPage = new Set<number>();
+  const plan = planifierMorceaux(e.p, e.A, e.B, 8192);
   let numeros = 0, credits = 0, fils = 0, tours = 0, blocs = 0, prochainMorceau = 0;
   const compter = () => {
     for (const { numero, r } of attendent.values()) {
@@ -415,8 +416,6 @@ export async function testFluxCandidatsPageLente() {
         rappel(r);
       }),
       acquitter: () => {
-        const recu = attendent.get(w)!;
-        if (recu.r.id === prochainMorceau && recu.r.issue !== 'suite') prochainMorceau++;
         credits++; attendent.delete(w); fil.acquitter!();
       },
     };
@@ -438,7 +437,11 @@ export async function testFluxCandidatsPageLente() {
   });
   const r = await paralleleBorne({ params: { ...e.params, maxCollected }, prepared: { ...e.p, maxCollected }, bucketsA: e.A, bucketsB: e.B,
     totalPaires: e.total, travailleurs: 2, lancer, startedAt: e.p.startedAt, collecte: creerColonnesCandidats(), cibleMorceau: 8192,
-    surProgression: (_, c) => transport.transmettre(c),
+    surProgression: (explored, c) => {
+      // Le crédit de réception ne dit plus quel morceau a été fusionné.
+      while (prochainMorceau < plan.length && plan[prochainMorceau].offset + plan[prochainMorceau].taille <= explored) prochainMorceau++;
+      return transport.transmettre(c);
+    },
   });
   const nombre = await transport.sceller(r.candidates);
   await receptionsPage;
@@ -449,6 +452,106 @@ export async function testFluxCandidatsPageLente() {
   ok(blocs > 10 && tours === blocs * 8 && credits > 10 && attendent.size === 0, `${blocs} blocs, ${credits} crédits, ${tours} tours de page lente, tous rendus`);
   ok(retenusParPage.size === 0, `${retenusParPage.size} attente(s) de crédit après fusion dues à la page (attendu : zéro)`);
   await fenetrePage(reference.candidates[0]);
+}
+
+/** Retard logique imposé au lancement du morceau de tête : les suivants
+ * exécutent réellement le serveur Node pendant que la tête est retenue. */
+export async function testFluxCandidatsReceptionOrdre() {
+  titre('Flux candidats · réception créditée avant la fusion du morceau de tête');
+  const e = espaceDistinct();
+  const reference = drain(pairBuckets(e.p, e.A, e.B));
+  const chemin = await assurerBundleAppariementRapide();
+  for (const saturer of [false, true]) await receptionAvantFusion(e, reference, chemin, saturer);
+  await arretApresDerniereReception(e, reference, chemin);
+}
+
+async function arretApresDerniereReception(e: ReturnType<typeof espaceDistinct>, reference: SearchResult, chemin: string) {
+  const brut = lancerTravailleurNode<ColonnesCandidats>(chemin);
+  let arreter: (() => void) | undefined;
+  let arretDemande = false;
+  const lancer: LancerTravailleur<ColonnesCandidats> = (init, transfert) => {
+    const fil = brut(init, transfert);
+    return { ...fil, surMessage: (rappel) => fil.surMessage((r) => {
+      rappel(r);
+      if (r.issue === 'complet') {
+        // Le bilan est reçu, mais sa fusion attend encore la microtâche de la pompe.
+        arretDemande = true; arreter!();
+      }
+    }) };
+  };
+  const r = await paralleleBorne({ params: e.params, prepared: e.p, bucketsA: e.A, bucketsB: e.B, totalPaires: e.total,
+    travailleurs: 1, lancer, startedAt: e.p.startedAt, collecte: creerColonnesCandidats(), cibleMorceau: e.total,
+    surControle: (controle) => { arreter = controle.arreter; },
+  });
+  identiques(etat(reference), etat(objets(r)), 'arrêt après réception du dernier bilan : aucun candidat ni compte perdu avant fusion');
+  identiques(r.traitees, reference.explored, 'arrêt après dernière réception : même travail complet');
+  identiques(r.motif, 'aucun', 'tout le travail achevé reste un épuisement malgré le signal tardif');
+  ok(arretDemande, 'arrêt entre dernière réception et fusion : bilan drainé entièrement');
+}
+
+async function receptionAvantFusion(e: ReturnType<typeof espaceDistinct>, reference: SearchResult, chemin: string, saturer: boolean) {
+  const brut = lancerTravailleurNode<ColonnesCandidats>(chemin);
+  let fils = 0, credits = 0, retours = 0, attentesOrdre = 0, suitesAvantTete = 0;
+  let teteLiberee = false, rapideTermineAvantTete = false, saturationVue = false;
+  let picBlocs = 0, picOctets = 0;
+  const departsRetenus: (() => void)[] = [];
+  const retenus = new Map<number, ResultatMorceau<ColonnesCandidats>[]>();
+  const attendent = new Map<number, { acquitte: boolean; r: ResultatMorceau<ColonnesCandidats> }>();
+  const libererTete = () => {
+    if (teteLiberee) return;
+    teteLiberee = true;
+    for (const partir of departsRetenus) partir();
+    departsRetenus.length = 0;
+  };
+  const lancer: LancerTravailleur<ColonnesCandidats> = (init, transfert) => {
+    const w = fils++, fil = brut(init, transfert);
+    return { ...fil,
+      envoyer: (m, t) => {
+        if (w === 0 && !teteLiberee) departsRetenus.push(() => fil.envoyer(m, t));
+        else fil.envoyer(m, t);
+      },
+      surMessage: (rappel) => fil.surMessage((r) => {
+        if (attendent.has(w)) throw new Error('Deux résultats du même Worker sans crédit');
+        const file = (retenus.get(w) ?? []).filter((r) => r.candidats.blocs.length > 0);
+        file.push(r); retenus.set(w, file);
+        const octets = file.reduce((s, x) => s + tamponsResultatMorceau(x).reduce((n, b) => n + b.byteLength, 0), 0);
+        picBlocs = Math.max(picBlocs, file.length); picOctets = Math.max(picOctets, octets);
+        identiques(tamponsResultatMorceau(r).reduce((s, b) => s + b.byteLength, 0), r.candidats.length * 136, 'réception : colonnes, positions et visites ajustées aux lignes');
+        const recu = { acquitte: false, r }; attendent.set(w, recu); retours++;
+        rappel(r);
+        if (r.id === 1 && !teteLiberee) setImmediate(() => {
+          if (r.issue === 'suite') suitesAvantTete++;
+          if (!recu.acquitte) {
+            if (saturer && file.length === BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR) saturationVue = true;
+            else attentesOrdre++;
+            // Le témoin doit terminer aussi : relever le blocage puis relâcher la tête.
+            libererTete();
+          } else if (r.issue !== 'suite') {
+            rapideTermineAvantTete = true;
+            libererTete();
+          }
+        });
+      }),
+      acquitter: () => {
+        const recu = attendent.get(w);
+        if (!recu) throw new Error('Crédit sans résultat');
+        recu.acquitte = true; attendent.delete(w); credits++; fil.acquitter!();
+      },
+    };
+  };
+  const r = await paralleleBorne({ params: e.params, prepared: e.p, bucketsA: e.A, bucketsB: e.B, totalPaires: e.total,
+    travailleurs: 2, lancer, startedAt: e.p.startedAt, collecte: creerColonnesCandidats(), cibleMorceau: saturer ? e.total / 2 : 16_384 });
+  identiques(etat(reference), etat(objets(r)), `tête lente${saturer ? ', saturation' : ''} : tous les candidats distincts, champs, rangs et quasi-succès`);
+  identiques(r.traitees, reference.explored, 'tête lente : mêmes paires traitées');
+  identiques(r.motif, 'aucun', 'tête lente : même épuisement');
+  identiques(credits, retours, 'un crédit par résultat, même lorsque plusieurs blocs précèdent la fusion');
+  ok(attentesOrdre === 0, `${attentesOrdre} attente(s) de crédit dues à l'ordre de fusion (attendu : zéro)`);
+  if (saturer) ok(saturationVue && picBlocs === BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR && attendent.size === 0,
+    `saturation : ${picBlocs} blocs reçus par Worker au plus, la tête reprend et tout est drainé`);
+  else ok(rapideTermineAvantTete && suitesAvantTete >= 1 && attendent.size === 0,
+    `morceau suivant entièrement reçu avant le départ de la tête (${suitesAvantTete} bloc suite puis son bilan), tous les crédits rendus`);
+  ok(picBlocs <= BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR && picOctets <= BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR * LIGNES_PAR_BLOC * 136,
+    `réception bornée par Worker : ${picBlocs} blocs et ${picOctets} octets, positions et visites comprises`);
 }
 
 async function fenetrePage(base: BuildCandidate) {

@@ -48,16 +48,25 @@ export function ouvrirColonne(etat: ColonnesOuvertes, colonne: ColonneRepliable)
 // pose là où l'agencement suivant tient, jamais réglé au pixel. Les composants
 // de bureau déclarent les mêmes largeurs (`LARGEUR_*` de
 // src/components/outils/optimizer/bureau/), un test les compare.
-// ⚠️ **« Exemplaire » est la largeur minimale de la colonne de droite**, et
-// elle se déduit de la fiche (statistiques, artéfacts, roue de runes, relique)
-// à pleine taille : 560 px mesurés, plus le contour et le rembourrage du
-// panneau (2 × 9) et, la colonne de droite étant la dernière, les 4 px entre
-// son panneau et sa barre de défilement réservée et la barre (10) : 592. Tout
-// le reste de la colonne (puces, objectif, « Rechercher », résultats) s'adapte
-// au-dessus de ce minimum.
+// ⚠️ **La colonne de droite a deux largeurs repères, toutes deux tirées de
+// la fiche d'« Exemplaire »** (statistiques, artéfacts, roue de runes,
+// relique), plus le contour et le rembourrage du panneau (2 × 9) et, la
+// colonne de droite étant la dernière, les 4 px entre son panneau et sa barre
+// de défilement réservée et la barre (10), soit 32 :
+// - `exemplaireMin`, sa largeur MINIMALE : la fiche repliée (artéfacts, roue
+//   et relique sous les statistiques), 356 px mesurés avec une relique ATQ ou
+//   DEF à deux chiffres : 388. C'est d'elle que part A3 ;
+// - `exemplaire`, la place où la fiche reste DÉPLIÉE : 564 px mesurés avec la
+//   même relique, 596. Une colonne repliable ne s'insère que si la colonne de
+//   droite garde cette place (décision de l'utilisateur) : en dessous, elle se
+//   superpose. Le bloc étroit se pose à côté d'elle à partir d'elle aussi.
+// Tout le reste de la colonne (puces, objectif, « Rechercher », résultats)
+// s'adapte au-dessus du minimum.
 // « Aura, exclusion, avancés » a la place d'« Artéfacts et relique »
 // (décision de l'utilisateur), ses sources de siège sur deux lignes.
-export const LARGEURS_BUREAU = { essentiels: 548, gouttiere: 16, artefacts: 320, complements: 320, exemplaire: 592, objectifEtroit: 340 } as const;
+export const LARGEURS_BUREAU = {
+  essentiels: 548, gouttiere: 16, artefacts: 320, complements: 320, exemplaireMin: 388, exemplaire: 596, objectifEtroit: 340,
+} as const;
 
 // ⚠️ **Ces largeurs sont des PLACES.** Chaque colonne se dessine en panneau
 // (src/components/outils/optimizer/bureau/panneau.ts), 8 px plus étroit que
@@ -76,9 +85,9 @@ export const SEUILS_BUREAU = {
   // A2 : une colonne repliable et le bloc étroit tiennent à droite des
   // essentiels, l'un sous l'autre : le plus large des trois.
   a2: DROITE_DES_ESSENTIELS + Math.max(L.artefacts, L.complements, L.objectifEtroit),
-  // A3 : « Exemplaire » tient à droite des essentiels.
-  a3: DROITE_DES_ESSENTIELS + L.exemplaire,
-  // Une colonne insérée entre les essentiels et « Exemplaire ».
+  // A3 : « Exemplaire », fiche repliée, tient à droite des essentiels.
+  a3: DROITE_DES_ESSENTIELS + L.exemplaireMin,
+  // Une colonne insérée entre les essentiels et « Exemplaire », fiche dépliée.
   artefactsInseree: DROITE_DES_ESSENTIELS + L.artefacts + L.gouttiere + L.exemplaire,
   complementsInseree: DROITE_DES_ESSENTIELS + L.complements + L.gouttiere + L.exemplaire,
   // Les deux, côte à côte.
@@ -104,7 +113,9 @@ export function deuxColonnesTiennent(largeur: number | null): boolean {
 export type FormeObjectifBureau = 'etroite' | 'large';
 
 // En A3, la forme étroite se pose à côté d'« Exemplaire » quand la colonne de
-// droite les tient tous deux, gouttière comprise : 592 + 16 + 340.
+// droite les tient tous deux, la fiche dépliée, gouttière comprise :
+// 596 + 16 + 340. Entre le minimum de la colonne et ce seuil, le bloc est large,
+// sous « Exemplaire ».
 export const COLONNE_DROITE_OBJECTIF_A_COTE = L.exemplaire + L.gouttiere + L.objectifEtroit;
 
 // La largeur de la colonne de droite en A3 : le conteneur, moins les

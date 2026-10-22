@@ -9,27 +9,23 @@ import { ResumeCombat, TitreObjectifRecherche, type ObjectifEtActionsProps } fro
 import { PANNEAU } from './panneau';
 
 export const LARGEUR_OBJECTIF_ETROIT = 340;
-// La forme large prend la largeur de sa colonne : au moins la place
-// d'« Exemplaire » (`LARGEURS_BUREAU.exemplaire`).
-export const LARGEUR_OBJECTIF_LARGE_MIN = 592;
+// La forme large prend la largeur de sa colonne : au plus étroit, le contenu
+// de la colonne de droite à sa largeur minimale (`LARGEURS_BUREAU.exemplaireMin`,
+// 388, moins 32 de barre, d'écart et de cadre).
+export const LARGEUR_OBJECTIF_LARGE_MIN = 356;
 // « Arrêter » reste inactif ce temps après le lancement : le double clic qui a
 // lancé la recherche ne l'arrête pas (A.2.2-8 de la refonte).
 export const DELAI_ARRET_MS = 300;
 // « Rechercher » dans la forme large : à DROITE de sa rangée, à cette largeur,
 // jamais réduit ; l'écart avec « Importer » prend ce qui manque.
-// En A3, sous 1492, une colonne repliable ouverte se superpose au bord
-// gauche de la colonne de droite (312 px de panneau, 326 avec sa barre) :
-// « Rechercher », posé à droite, commence à 329 px du bord de la colonne à
-// sa largeur minimale (592, moins 23 de barre et de cadre, moins 240), hors
-// de la boîte superposée.
 const LARGEUR_RECHERCHER_LARGE = 'w-60';
 // ⚠️ **Sous 448 px de rangée, « Rechercher » passe sous « Exporter » ·
 // « Importer », pleine largeur** : « Exporter » 96 + 8 + « Importer » 96 + 8
-// + « Rechercher » 240 (mesurés), ce qu'une colonne de droite étroite ne
-// tient plus. Une requête sur la rangée elle-même, conteneur nommé
-// (`rangee`) : le passage ne dépend que de sa largeur, jamais d'un clic, et
-// « Arrêter » prend la même place que « Rechercher » dans les deux formes.
-// Classes écrites en entier pour Tailwind.
+// + « Rechercher » 240 (mesurés), ce que la colonne de droite ne tient plus
+// près de son minimum (356 de contenu). Une requête sur la rangée elle-même,
+// conteneur nommé (`rangee`) : le passage ne dépend que de sa largeur, jamais
+// d'un clic, et « Arrêter » prend la même place que « Rechercher » dans les
+// deux formes. Classes écrites en entier pour Tailwind.
 const RANGEE_LARGE = 'flex flex-col-reverse gap-2 @[448px]/rangee:flex-row-reverse @[448px]/rangee:items-center @[448px]/rangee:justify-between';
 const RECHERCHER_DANS_LA_RANGEE = 'w-full @[448px]/rangee:w-60 @[448px]/rangee:flex-none';
 

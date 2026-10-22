@@ -26,16 +26,17 @@ import {
 //   la progression), seule collée au bas de la partie visible tant que sa
 //   place est plus bas ; onglets, colonne repliable ouverte (ses sections deux
 //   à deux), « Exemplaire », résultats ;
-// - A2 [904, 1156[ : essentiels à gauche ; à leur droite, le bloc (étroit), les
+// - A2 [904, 952[ : essentiels à gauche ; à leur droite, le bloc (étroit), les
 //   onglets puis la colonne repliable ouverte (cartes empilées) ; dessous, sur
 //   toute la largeur, « Exemplaire » puis les résultats ;
-// - A3 dès 1156 : essentiels à gauche, onglets en haut à leur droite ; dessous,
+// - A3 dès 952 : essentiels à gauche, onglets en haut à leur droite ; dessous,
 //   la colonne repliable ouverte, INSÉRÉE avant la colonne de droite là où elle
-//   tient avec « Exemplaire » (l'une ou l'autre dès 1492, de même largeur), en
-//   PANNEAU SUPERPOSÉ aux résultats sinon (marge négative de sa largeur : elle
-//   ne prend aucune place, rien ne bouge dessous) ; la colonne de droite :
-//   « Exemplaire », le bloc à côté de lui (étroit) quand elle fait au moins 948
-//   px, dessous (large) sinon, puis les résultats.
+//   tient avec « Exemplaire » fiche dépliée (l'une ou l'autre dès 1496, de même
+//   largeur), en PANNEAU SUPERPOSÉ à la colonne de droite sinon (marge
+//   négative de sa largeur : elle ne prend aucune place, rien ne bouge
+//   dessous) ; la colonne de droite : « Exemplaire », le bloc à côté de lui
+//   (étroit) quand elle fait au moins 952 px, dessous (large) sinon, puis les
+//   résultats.
 //
 // ⚠️ **Chaque colonne est un panneau** (bureau/panneau.ts) : essentiels,
 // colonnes repliables, colonne de droite ; leurs boîtes y sont des sections.
@@ -45,9 +46,10 @@ import {
 // ⚠️ **La colonne de droite n'est une boîte qu'en A3** (`data-zone="droite"`) :
 // « Exemplaire », le bloc et les résultats y défilent ensemble, sur deux
 // pistes (« Exemplaire », 598 px au plus, le reste), où le bloc étroit prend
-// la seconde. ⚠️ **Sa largeur minimale est celle de la fiche d'« Exemplaire »**
-// (`LARGEURS_BUREAU.exemplaire`) : au-dessus, tout y suit la largeur du
-// panneau, rien n'en sort. En A1 et A2, cette boîte s'efface (`display: contents`) : ses
+// la seconde. ⚠️ **Sa largeur minimale est celle de la fiche REPLIÉE
+// d'« Exemplaire »** (`LARGEURS_BUREAU.exemplaireMin`) : au-dessus, tout y
+// suit la largeur du panneau, rien n'en sort ; une colonne superposée ouverte
+// peut y couvrir les résultats et « Rechercher » (décision de l'utilisateur). En A1 et A2, cette boîte s'efface (`display: contents`) : ses
 // cases sont celles de la grille de la page, « Exemplaire » et les résultats,
 // l'un sous l'autre, en dessinent chacun une moitié du panneau.
 // Le bloc suit les essentiels dans le DOM en A1 et A2 (ordre d'usage :
@@ -233,7 +235,7 @@ export interface PageBureauProps {
 
 // Le défilement d'une colonne en A3 : seule (`data-defile`, voir `Colonne`),
 // sans report sur la page ni sur une autre colonne une fois au bout.
-const DEFILE_A3 = '@[1156px]:min-h-0 @[1156px]:overscroll-contain @[1156px]:data-[defile]:overflow-y-auto @[1156px]:data-[defile]:overflow-x-hidden';
+const DEFILE_A3 = '@[952px]:min-h-0 @[952px]:overscroll-contain @[952px]:data-[defile]:overflow-y-auto @[952px]:data-[defile]:overflow-x-hidden';
 
 // ⚠️ **La boîte qui défile s'arrête à sa barre** : large de son panneau, de
 // 4 px et de la barre de défilement (10 px), pour que la barre se lise comme
@@ -254,12 +256,12 @@ const DEFILE_A3 = '@[1156px]:min-h-0 @[1156px]:overscroll-contain @[1156px]:data
 // en A3 pour y rester quand la colonne défile (`BANDE_FIXE`).
 const COLONNE_A3: Record<ColonneRepliable, { boite: string; panneau: string }> = {
   artefacts: {
-    boite: `${DEFILE_A3} @[1156px]:max-h-full @[1156px]:w-[326px] @[1156px]:-mr-[326px] @[1156px]:z-20 @[1492px]:h-full @[1492px]:mr-[10px] @[1492px]:z-auto`,
-    panneau: `${BANDE} ${BANDE_FIXE} @[1156px]:shadow-glow @[1156px]:shadow-black/60 @[1492px]:min-h-full @[1492px]:shadow-none`,
+    boite: `${DEFILE_A3} @[952px]:max-h-full @[952px]:w-[326px] @[952px]:-mr-[326px] @[952px]:z-20 @[1496px]:h-full @[1496px]:mr-[10px] @[1496px]:z-auto`,
+    panneau: `${BANDE} ${BANDE_FIXE} @[952px]:shadow-glow @[952px]:shadow-black/60 @[1496px]:min-h-full @[1496px]:shadow-none`,
   },
   complements: {
-    boite: `${DEFILE_A3} @[1156px]:max-h-full @[1156px]:w-[326px] @[1156px]:-mr-[326px] @[1156px]:z-20 @[1492px]:h-full @[1492px]:mr-[10px] @[1492px]:z-auto`,
-    panneau: `${BANDE} ${BANDE_FIXE} @[1156px]:shadow-glow @[1156px]:shadow-black/60 @[1492px]:min-h-full @[1492px]:shadow-none`,
+    boite: `${DEFILE_A3} @[952px]:max-h-full @[952px]:w-[326px] @[952px]:-mr-[326px] @[952px]:z-20 @[1496px]:h-full @[1496px]:mr-[10px] @[1496px]:z-auto`,
+    panneau: `${BANDE} ${BANDE_FIXE} @[952px]:shadow-glow @[952px]:shadow-black/60 @[1496px]:min-h-full @[1496px]:shadow-none`,
   },
 };
 
@@ -460,7 +462,7 @@ export default function PageBureau(props: PageBureauProps) {
           'grid grid-cols-[minmax(0,1fr)] items-start gap-y-6'
           + ' @[904px]:grid-cols-[548px_minmax(0,1fr)] @[904px]:grid-rows-[auto_auto_1fr_auto_auto] @[904px]:gap-x-4'
           // A3 : la grille a la hauteur de la page, ses colonnes défilent.
-          + ' @[1156px]:h-full @[1156px]:grid-cols-[564px_auto_minmax(0,1fr)] @[1156px]:grid-rows-[auto_minmax(0,1fr)] @[1156px]:gap-x-0 @[1156px]:gap-y-0'
+          + ' @[952px]:h-full @[952px]:grid-cols-[564px_auto_minmax(0,1fr)] @[952px]:grid-rows-[auto_minmax(0,1fr)] @[952px]:gap-x-0 @[952px]:gap-y-0'
         }
       >
         {/* Les essentiels : liste de travail en tête, à sa place stable ; à
@@ -473,9 +475,9 @@ export default function PageBureau(props: PageBureauProps) {
           className={
             'w-[548px]'
             + ' @[904px]:col-[1] @[904px]:row-[1/span_3]'
-            + ` @[1156px]:row-[1/-1] @[1156px]:h-full @[1156px]:w-[554px] ${DEFILE_A3}`
+            + ` @[952px]:row-[1/-1] @[952px]:h-full @[952px]:w-[554px] ${DEFILE_A3}`
           }
-          contenu={`flex w-[540px] flex-col ${PANNEAU} ${BANDE} ${BANDE_FIXE} ${SECTIONS} @[1156px]:min-h-full`}
+          contenu={`flex w-[540px] flex-col ${PANNEAU} ${BANDE} ${BANDE_FIXE} ${SECTIONS} @[952px]:min-h-full`}
         >
           {props.liste}
           <SetDeplieContext.Provider value={setDeplie.contexte}>{props.set}</SetDeplieContext.Provider>
@@ -507,7 +509,7 @@ export default function PageBureau(props: PageBureauProps) {
           data-zone="onglets"
           className={
             '@[904px]:col-[2] @[904px]:row-[2]'
-            + ' @[1156px]:col-[2/-1] @[1156px]:row-[1] @[1156px]:pb-2'
+            + ' @[952px]:col-[2/-1] @[952px]:row-[1] @[952px]:pb-2'
           }
         >
           <OngletsColonnes affichees={affichees} onBasculer={(c) => props.onColonnes(basculerColonne(etat, c, deux))} />
@@ -520,7 +522,7 @@ export default function PageBureau(props: PageBureauProps) {
             className={
               'flex flex-col gap-6'
               + ' @[904px]:col-[2] @[904px]:row-[3]'
-              + ' @[1156px]:col-[2] @[1156px]:row-[2] @[1156px]:h-full @[1156px]:min-h-0 @[1156px]:flex-row @[1156px]:items-start @[1156px]:gap-0'
+              + ' @[952px]:col-[2] @[952px]:row-[2] @[952px]:h-full @[952px]:min-h-0 @[952px]:flex-row @[952px]:items-start @[952px]:gap-0'
             }
           >
             {affichees.artefacts && (
@@ -554,9 +556,10 @@ export default function PageBureau(props: PageBureauProps) {
             (« Exemplaire » sur la première, 598 px au plus ; le bloc étroit
             sur la seconde, 340 au moins, 9 px plus loin). ⚠️ **Aucune piste
             fixe** : à la largeur minimale de la colonne
-            (`LARGEURS_BUREAU.exemplaire`), « Exemplaire » prend la largeur
-            de sa fiche, et rien ne sort du panneau ; le bloc étroit ne se pose
-            à côté que là où la fiche tient encore (`formeObjectifBureau`). En
+            (`LARGEURS_BUREAU.exemplaireMin`), « Exemplaire » prend la largeur
+            de sa fiche repliée, et rien ne sort du panneau ; le bloc étroit ne
+            se pose à côté que là où la fiche tient encore dépliée
+            (`formeObjectifBureau`). En
             A1 et A2, effacée
             (`display: contents`) : « Exemplaire » et les résultats sont des
             cases de la grille de la page. Les classes de son panneau sont
@@ -567,19 +570,19 @@ export default function PageBureau(props: PageBureauProps) {
         <Colonne
           data-zone="droite"
           className={
-            'contents @[1156px]:col-[3] @[1156px]:row-[2] @[1156px]:block @[1156px]:h-full @[1156px]:min-h-0 @[1156px]:min-w-0'
-            + ' @[1156px]:overflow-y-auto @[1156px]:overflow-x-hidden @[1156px]:overscroll-contain @[1156px]:[scrollbar-gutter:stable]'
+            'contents @[952px]:col-[3] @[952px]:row-[2] @[952px]:block @[952px]:h-full @[952px]:min-h-0 @[952px]:min-w-0'
+            + ' @[952px]:overflow-y-auto @[952px]:overflow-x-hidden @[952px]:overscroll-contain @[952px]:[scrollbar-gutter:stable]'
           }
           contenu={
-            'contents @[1156px]:grid @[1156px]:mr-1 @[1156px]:min-h-full @[1156px]:content-start'
+            'contents @[952px]:grid @[952px]:mr-1 @[952px]:min-h-full @[952px]:content-start'
             + (etroite
-              ? ' @[1156px]:grid-cols-[minmax(0,598px)_minmax(340px,1fr)] @[1156px]:gap-x-[9px]'
-              : ' @[1156px]:grid-cols-[minmax(0,598px)_minmax(0,1fr)]')
-            + ' @[1156px]:rounded-xl @[1156px]:border @[1156px]:border-border @[1156px]:bg-panel @[1156px]:p-2'
+              ? ' @[952px]:grid-cols-[minmax(0,598px)_minmax(340px,1fr)] @[952px]:gap-x-[9px]'
+              : ' @[952px]:grid-cols-[minmax(0,598px)_minmax(0,1fr)]')
+            + ' @[952px]:rounded-xl @[952px]:border @[952px]:border-border @[952px]:bg-panel @[952px]:p-2'
             // La bande (`BANDE`, en A3 seulement), et sa copie fixe, sur toutes
             // les rangées de la grille du panneau.
-            + ' @[1156px]:border-t-[3px] @[1156px]:border-t-transparent @[1156px]:pt-[6px]'
-            + ` ${BANDE_FIXE} @[1156px]:before:col-[1/-1] @[1156px]:before:row-[1/span_3]`
+            + ' @[952px]:border-t-[3px] @[952px]:border-t-transparent @[952px]:pt-[6px]'
+            + ` ${BANDE_FIXE} @[952px]:before:col-[1/-1] @[952px]:before:row-[1/span_3]`
           }
         >
           {a3 && objectif}
@@ -592,7 +595,7 @@ export default function PageBureau(props: PageBureauProps) {
             className={
               `rounded-b-none border-b-0 pb-2 ${PANNEAU}`
               + ' @[904px]:col-[1/-1] @[904px]:row-[4]'
-              + ' @[1156px]:col-[1] @[1156px]:row-[1] @[1156px]:rounded-none @[1156px]:border-0 @[1156px]:bg-transparent @[1156px]:p-0'
+              + ' @[952px]:col-[1] @[952px]:row-[1] @[952px]:rounded-none @[952px]:border-0 @[952px]:bg-transparent @[952px]:p-0'
             }
           >
             {props.exemplaire}
@@ -606,13 +609,13 @@ export default function PageBureau(props: PageBureauProps) {
             className={
               `-mt-6 min-w-0 rounded-t-none border-t-0 pt-0 ${PANNEAU}`
               + ' @[904px]:col-[1/-1] @[904px]:row-[5]'
-              + ' @[1156px]:mt-0 @[1156px]:rounded-none @[1156px]:border-0 @[1156px]:bg-transparent @[1156px]:p-0'
+              + ' @[952px]:mt-0 @[952px]:rounded-none @[952px]:border-0 @[952px]:bg-transparent @[952px]:p-0'
               + (etroite
-                ? ' @[1156px]:col-[1/-1] @[1156px]:row-[2]'
-                : ' @[1156px]:col-[1/-1] @[1156px]:row-[3]')
+                ? ' @[952px]:col-[1/-1] @[952px]:row-[2]'
+                : ' @[952px]:col-[1/-1] @[952px]:row-[3]')
             }
           >
-            <div className="border-t border-border-soft pt-2 @[1156px]:mt-2">{props.resultats}</div>
+            <div className="border-t border-border-soft pt-2 @[952px]:mt-2">{props.resultats}</div>
           </div>
         </Colonne>
       </div>

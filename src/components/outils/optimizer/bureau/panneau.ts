@@ -34,7 +34,7 @@ export const PANNEAU = 'rounded-xl border border-border bg-panel p-2';
 // (`mask-composite: exclude` entre la boîte pleine et sa boîte intérieure).
 // Le contour du panneau, lui, est transparent en haut. Ici, hors de l'A3, le
 // pseudo-élément est posé sur le contour du haut du panneau (`absolute`) ;
-// `BANDE_FIXE` le rend collant dès 1156 px.
+// `BANDE_FIXE` le rend collant dès 952 px (A3).
 export const BANDE = 'relative border-t-[3px] border-t-transparent pt-[6px]'
   + ' before:pointer-events-none before:absolute before:-inset-x-px before:-top-[3px] before:block before:h-[var(--radius-xl)]'
   + ' before:rounded-t-xl before:border-x before:border-t-[3px] before:border-transparent'
@@ -55,12 +55,12 @@ export const BANDE = 'relative border-t-[3px] border-t-transparent pt-[6px]'
 // qu'à la hauteur de la sienne. Ce qui défile sous ses coins est rogné par
 // la boîte (`coinsDuPanneau`). Le dessin (anneau en dégradé, voir `BANDE`) est
 // repris en entier, sous le seuil : la colonne de droite n'a pas `BANDE`.
-export const BANDE_FIXE = '@[1156px]:border-t-transparent @[1156px]:before:pointer-events-none @[1156px]:before:sticky @[1156px]:before:inset-x-auto @[1156px]:before:top-0 @[1156px]:before:z-[1]'
-  + ' @[1156px]:before:-mx-[9px] @[1156px]:before:-mt-[9px] @[1156px]:before:mb-[calc(9px-var(--radius-xl))] @[1156px]:before:block @[1156px]:before:h-[var(--radius-xl)] @[1156px]:before:self-stretch'
-  + ' @[1156px]:before:rounded-t-xl @[1156px]:before:border-x @[1156px]:before:border-t-[3px] @[1156px]:before:border-transparent'
-  + ' @[1156px]:before:[background:linear-gradient(to_bottom,rgb(var(--accent))_3px,rgb(var(--accent)/0)_100%)_border-box,linear-gradient(rgb(var(--border)),rgb(var(--border)))_border-box]'
-  + ' @[1156px]:before:[mask-image:linear-gradient(#000,#000),linear-gradient(#000,#000)] @[1156px]:before:[mask-clip:padding-box,border-box] @[1156px]:before:[mask-composite:exclude]'
-  + " @[1156px]:before:content-['']";
+export const BANDE_FIXE = '@[952px]:border-t-transparent @[952px]:before:pointer-events-none @[952px]:before:sticky @[952px]:before:inset-x-auto @[952px]:before:top-0 @[952px]:before:z-[1]'
+  + ' @[952px]:before:-mx-[9px] @[952px]:before:-mt-[9px] @[952px]:before:mb-[calc(9px-var(--radius-xl))] @[952px]:before:block @[952px]:before:h-[var(--radius-xl)] @[952px]:before:self-stretch'
+  + ' @[952px]:before:rounded-t-xl @[952px]:before:border-x @[952px]:before:border-t-[3px] @[952px]:before:border-transparent'
+  + ' @[952px]:before:[background:linear-gradient(to_bottom,rgb(var(--accent))_3px,rgb(var(--accent)/0)_100%)_border-box,linear-gradient(rgb(var(--border)),rgb(var(--border)))_border-box]'
+  + ' @[952px]:before:[mask-image:linear-gradient(#000,#000),linear-gradient(#000,#000)] @[952px]:before:[mask-clip:padding-box,border-box] @[952px]:before:[mask-composite:exclude]'
+  + " @[952px]:before:content-['']";
 
 // ⚠️ **Les coins d'une colonne qui défile** : la boîte qui défile est
 // rectangulaire, et le contenu qui passe sous la bande se verrait dans les

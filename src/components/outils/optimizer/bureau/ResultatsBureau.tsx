@@ -3,18 +3,20 @@ import type { AttenteResultats } from '../../../../lib/optimizerColonnes';
 
 export type { AttenteResultats };
 
-// Une carte de résultat (360, resultats.md) : les résultats ne descendent
-// jamais sous cette largeur. Section sans cadre du panneau de la colonne de
-// droite (bureau/panneau.ts), qui porte rembourrage et contour.
-export const LARGEUR_RESULTATS_MIN = 360;
+// Le contenu de la colonne de droite à sa largeur minimale (388 de place, moins
+// 32 de barre, d'écart et de cadre) : une carte de résultat s'y tient
+// (resultats.md), et les résultats ne descendent jamais sous cette largeur.
+// Section sans cadre du panneau de la colonne de droite (bureau/panneau.ts),
+// qui porte rembourrage et contour.
+export const LARGEUR_RESULTATS_MIN = 356;
 
-// Les résultats, au bureau : une boîte ÉLASTIQUE (360 px au moins, sans
+// Les résultats, au bureau : une boîte ÉLASTIQUE (356 px au moins, sans
 // maximum), présente dès le départ dans la colonne de droite. Avant la première
 // recherche, une place d'attente (en-tête et message, ≈ 160 px) tient la place
 // où arrivent les cartes : leur arrivée ne déplace jamais ce qu'on vient de
 // cliquer. Ensuite, le contenu partagé avec le téléphone, passé par l'écran : en-tête
 // (compte, « Adapter les artéfacts et reliques au tri », tri), diagnostics,
-// grille de cartes (`GrilleResultats`, ≥ 360 px par carte) et pagination.
+// grille de cartes (`GrilleResultats`, ≥ 360 px par carte, ou toute la largeur en dessous) et pagination.
 // L'état d'attente vient d'`attenteResultats` (src/lib/optimizerColonnes.ts) :
 // pendant une recherche encore sans carte, le cadre reste, la phrase
 // « Aucune recherche lancée… » non (sa ligne garde sa place).

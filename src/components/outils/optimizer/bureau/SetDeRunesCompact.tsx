@@ -17,8 +17,10 @@ export interface SetDeRunesCompactProps {
 // « Critères de recherche » du téléphone (le panneau de la colonne situe la
 // section), section des essentiels sans cadre (le panneau de la colonne le
 // porte) : une liste fermée sur les sets choisis ; ouverte, la grille d'ajout
-// du téléphone (`SetComboPicker`, telle quelle : jetons, retrait, deux
-// groupes, « Plus de place »), en flottant — rien ne bouge dessous.
+// du téléphone (`SetComboPicker` : jetons, retrait, deux groupes, « Plus de
+// place »), sans sa boîte (`sansCadre`), en flottant — rien ne bouge dessous.
+// Sans boîte aussi dépliée dans la section, et dans la copie de mesure, qui
+// doit rester la même grille.
 //
 // ⚠️ **Une liste, pas deux** (principal · secondaire) : le choix est un
 // multiensemble (deux fois le même set), que la grille sait dire et une case
@@ -82,7 +84,7 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
           ) : null}
         </div>
         {deplie ? (
-          <div className="max-w-md"><SetComboPicker sets={comboSets} onChange={onChangeSets} reserverJetons /></div>
+          <div className="max-w-md"><SetComboPicker sets={comboSets} onChange={onChangeSets} reserverJetons sansCadre /></div>
         ) : (
         <SelecteurMultiple
           libelle="Set de runes recherché"
@@ -102,7 +104,7 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
           }
           ouvert={ouvert}
           onOuvertChange={setOuvert}
-          surface={<SetComboPicker sets={comboSets} onChange={changer} reserverJetons />}
+          surface={<SetComboPicker sets={comboSets} onChange={changer} reserverJetons sansCadre />}
         />
         )}
       </div>
@@ -112,7 +114,7 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
       {page && (
         <div aria-hidden className="pointer-events-none h-0 overflow-hidden">
           <div className="invisible">
-            <div ref={copieGrille} className="max-w-md"><SetComboPicker sets={[]} onChange={() => {}} reserverJetons /></div>
+            <div ref={copieGrille} className="max-w-md"><SetComboPicker sets={[]} onChange={() => {}} reserverJetons sansCadre /></div>
             <div ref={copieListe}>
               <SelecteurMultiple libelle="Set de runes recherché" vide="Aucun" surface={null} />
             </div>

@@ -210,30 +210,67 @@ export async function preuvesRappelDeuxRendus(b: BancEcran): Promise<Preuves> {
     const r = e.getBoundingClientRect(), c = cadre.getBoundingClientRect();
     return JSON.stringify([r.x - c.x, r.y - c.y, r.width, r.height]);
   };
-  const positions = () => ({ zone: relatif(dansZone(), zone), boite: relatif(dansBoite(), dansBoite()?.parentElement?.parentElement) });
-  const avant = positions();
-  // La zone C ne lit le rappel qu'à un endroit : hors la classe du message,
-  // rien d'autre n'y change quand il paraît.
-  // Comparé après le clic, rappel affiché puis effacé : le clic lui-même change
-  // l'exemplaire affiché (et le rapport des critères), le rappel rien d'autre.
-  const sansMessage = () => { const m = dansZone(); const c = m?.className; if (m) m.className = ''; const h = zone.innerHTML; if (m) m.className = c!; return h; };
-  preuves.push([!!dansZone() && !visible(dansZone()!) && !!dansBoite() && !visible(dansBoite()!),
-    'hors rappel : les deux messages sont montés, invisibles (place réservée)']);
-  preuves.push([annonces().length === 0, 'hors rappel : aucune région ne l’annonce']);
   const lignes = [...zone.querySelectorAll<HTMLElement>('[role="button"]')];
+  // Au bureau, le rappel de la zone C sort du flux : aucune place réservée
+  // sous la liste, il paraît en surimpression au bas de la carte de la liste
+  // (positionnée), dans ses bords. Ce qui ne doit pas bouger y est la carte
+  // elle-même ; au téléphone, le message à sa place réservée.
+  // La carte de la liste est le parent du rappel une fois paru ; avant, sa
+  // place se relit dans le relevé de toutes les boîtes de la zone.
+  const carteListe = () => dansZone()?.parentElement ?? undefined;
+  const boitesAvant = new Map([zone, ...zone.querySelectorAll<HTMLElement>('div')].map((d) => [d, relatif(d, zone)]));
+  const positions = (avantClic: boolean) => ({
+    zone: telephone() ? relatif(dansZone(), zone)
+      : avantClic ? null : (boitesAvant.get(carteListe()!) ?? null) === relatif(carteListe(), zone) ? 'carte immobile' : `carte déplacée ${relatif(carteListe(), zone)}`,
+    boite: relatif(dansBoite(), dansBoite()?.parentElement?.parentElement),
+  });
+  const avant = positions(true);
+  // La zone C ne lit le rappel qu'à un endroit : hors le message (sa classe au
+  // téléphone, l'élément lui-même au bureau), rien d'autre n'y change quand il
+  // paraît. Comparé après le clic, rappel affiché puis effacé : le clic
+  // lui-même change l'exemplaire affiché (et le rapport des critères), le
+  // rappel rien d'autre.
+  const sansMessage = () => {
+    const m = dansZone();
+    if (!m) return zone.innerHTML;
+    if (!telephone()) return zone.innerHTML.replace(m.outerHTML, '');
+    const c = m.className; m.className = ''; const h = zone.innerHTML; m.className = c; return h;
+  };
+  preuves.push([telephone() ? !!dansZone() && !visible(dansZone()!) && !!dansBoite() && !visible(dansBoite()!)
+    : !dansZone() && !!dansBoite() && !visible(dansBoite()!),
+  telephone() ? 'hors rappel : les deux messages sont montés, invisibles (place réservée)'
+    : 'hors rappel : la boîte des auras garde son message invisible ; sous la liste, rien n’est monté (aucune place réservée)']);
+  preuves.push([annonces().length === 0, 'hors rappel : aucune région ne l’annonce']);
   const cible = lignes.find((e) => e.textContent?.includes('Premier') && e !== lignes[0]) ?? lignes[2];
   await b.geste(() => cible.click());
   await attendre(300); // l'apparition (200 ms) glisse le message de quelques pixels avant sa place
-  const apres = positions();
+  const apres = positions(false);
   preuves.push([!!dansZone() && visible(dansZone()!), 'clic sur un autre exemplaire avec auras : rappel sous la liste']);
+  // Le dessin : un seul contour warn de 1 px, texte warn ; fond warn-soft à
+  // sa place réservée (téléphone), fond plein du panneau en surimpression
+  // (bureau), pour rester lisible par-dessus les lignes.
+  const cl = [...(dansZone()?.classList ?? [])];
+  preuves.push([['border', 'border-warn', 'text-warn', telephone() ? 'bg-warn-soft' : 'bg-panel'].every((x) => cl.includes(x))
+    && cl.filter((x) => /^border(-|$)/.test(x)).join(' ') === 'border border-warn' && !cl.some((x) => /^(ring|outline)/.test(x)),
+  `rappel de la zone C : contour warn de 1 px, un seul, texte warn, ${telephone() ? 'fond warn-soft' : 'fond plein du panneau'} (${cl.join(' ')})`]);
+  if (!telephone()) {
+    const m = dansZone(), c = carteListe();
+    const r = m?.getBoundingClientRect(), rc = c?.getBoundingClientRect();
+    preuves.push([!!m && !!c && c.contains(m) && getComputedStyle(m).position === 'absolute' && getComputedStyle(m).pointerEvents === 'none'
+      && !!r && !!rc && r.left >= rc.left && r.right <= rc.right && r.bottom <= rc.bottom && r.top >= rc.top,
+    `au bureau : rappel en surimpression au bas de la carte de la liste, dans ses bords, sans recevoir de clic (${JSON.stringify([r, rc])})`]);
+  }
   preuves.push([!!dansBoite() && visible(dansBoite()!), `… et dans la boîte des auras (${telephone() ? '« État de mon monstre »' : 'colonne « Aura, exclusion, avancés »'})`]);
-  preuves.push([avant.zone !== null && avant.zone === apres.zone && avant.boite !== null && avant.boite === apres.boite,
-    `les deux messages paraissent à leur place réservée, rien ne bouge (${JSON.stringify([avant, apres])})`]);
+  preuves.push([(telephone() ? avant.zone !== null && avant.zone === apres.zone : apres.zone === 'carte immobile')
+    && avant.boite !== null && avant.boite === apres.boite,
+    telephone() ? `les deux messages paraissent à leur place réservée, rien ne bouge (${JSON.stringify([avant, apres])})`
+      : `le message de la boîte paraît à sa place réservée, la carte de la liste garde sa place et sa taille (${JSON.stringify([avant, apres])})`]);
   preuves.push([annonces().length === 1, `pendant le rappel : une seule région l’annonce (${annonces().length})`]);
   const avecRappel = sansMessage();
   await attendre(3100);
-  preuves.push([!!dansZone() && !visible(dansZone()!) && sansMessage() === avecRappel,
-    'zone C : rappel effacé après trois secondes, et seul le message a changé — rien d’autre n’y est monté sous sa condition']);
+  preuves.push([(telephone() ? !!dansZone() && !visible(dansZone()!) : !dansZone()) && sansMessage() === avecRappel,
+    telephone() ? 'zone C : rappel effacé après trois secondes, et seul le message a changé — rien d’autre n’y est monté sous sa condition'
+      : 'zone C : rappel démonté après trois secondes, et seul le message a changé — rien d’autre n’y est monté sous sa condition']);
   if (!telephone()) {
     // Au bureau, colonne « Aura, exclusion, avancés » FERMÉE (la carte des
     // auras démontée) : le rappel s'annonce encore, hors de la colonne.

@@ -38,6 +38,10 @@ nombre de Workers suit la machine (la moitié de ses fils logiques, au plus
 cours (chaque Worker le lit entre deux tranches de 100 ms) et rend tout ce
 qu'ils ont trouvé.
 
+Une erreur de réception des candidats ou de validation de leur nombre final
+termine la recherche et ses Workers, avec un état d'erreur visible. Une
+nouvelle recherche peut être lancée et arrêtée normalement.
+
 ## Barre de progression
 
 Poste des messages de progression **entre** les points de passage internes,

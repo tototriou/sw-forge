@@ -22,7 +22,7 @@ avant terme rend. Les contraintes à ne pas casser sont dans
 | Préparation | `src/workers/prepareForSearch.ts`, `src/lib/runeBuildOptim.ts` | `prepareOrRefuse`, `prepareSearch` | [elagages.md](elagages.md) |
 | Construction des moitiés | `src/workers/runeBuildOptim.worker.ts`, `src/workers/buildHalf.worker.ts`, `src/lib/rechercheRunes.ts`, `src/lib/constructionRapide.ts`, `src/lib/demiBuildsTypes.ts` | `buildHalfInWorker`, `construireMoitieTypee`, `construireMoitieRapideTypee` | [elagages.md](elagages.md) |
 | Choix du régime | `src/workers/runeBuildOptim.worker.ts`, `src/workers/parallelPairing.ts`, `src/lib/appariementRapide.ts` | `compterPaires`, `verifierContrat`, `regimeAppariement`, `nombreDeTravailleurs` | [parallelisation.md](parallelisation.md) |
-| Appariement séquentiel | `src/workers/pairingDriver.ts`, `src/lib/rechercheRunes.ts`, `src/lib/appariementRapide.ts` | `drivePairing`, `apparier`, `apparierRapide` | [elagages.md](elagages.md), [02-app/optimizer/feat-interruption.md](../../../02-app/optimizer/feat-interruption.md) |
+| Appariement séquentiel | `src/workers/pairingDriver.ts`, `src/lib/rechercheRunes.ts`, `src/lib/appariementRapide.ts` | `lancerAppariement`, `drivePairing`, `apparier`, `apparierRapide` | [elagages.md](elagages.md), [02-app/optimizer/feat-interruption.md](../../../02-app/optimizer/feat-interruption.md) |
 | Appariement parallèle | `src/lib/appariementRapideParallele.ts`, `src/workers/appariementRapide.worker.ts`, `src/lib/travailleurAppariement.ts`, `src/lib/appariementRapide.ts` | `apparierRapideEnParallele`, `servirAppariement`, `parcourirMorceau` | [parallelisation.md](parallelisation.md) |
 | Fin de l'appariement | `src/workers/runeBuildOptim.worker.ts`, `src/hooks/useBuildOptimSearch.ts` | `useBuildOptimSearch` | — |
 | Résolution de l'équipement d'un build | `src/lib/relicQueue.ts`, `src/lib/resolutionRapide.ts`, `src/lib/resolutionExhaustive.ts` | `entreeResolutionDuBuild`, `resoudreEquipementDuBuild`, `resoudreEquipementDuBuildRapide`, `resoudreEquipementDuBuildExhaustif` | [artefacts.md](artefacts.md), [reliques.md](reliques.md) |
@@ -243,7 +243,8 @@ La collecte du Worker écrit directement les six identifiants, huit totaux et
 l'efficience en colonnes Float64, selon le schéma de `candidatsCompacts.ts`.
 La validation typée partage son expression des totaux avec `lignes` ; le
 repli objet n'en garde qu'un candidat temporaire. Les quasi-succès restent
-des objets. L'adaptateur objet explicite sert au CLI et au différentiel.
+des objets. Les outils gardent les colonnes jusqu'au scellement ; leurs
+objets de sortie servent au classement et au différentiel.
 
 Les blocs scellés portent des ordinaux contigus et sont transférés une seule
 fois. Leurs quinze colonnes sont ajustées à la longueur écrite avant de
@@ -254,10 +255,11 @@ final scelle leur nombre sans réémettre l'aperçu. La page
 matérialise les 3 000 premières lignes pour l'aperçu, puis les suivantes à la
 fin, en réutilisant les objets déjà publiés. Les autres blocs attendent en
 colonnes et sont libérés à leur adaptation ; aucun écran ne change de contrat.
-Une projection objet qui consomme les blocs les libère directement, sans
-ajuster des colonnes qui ne seront pas transférées.
+L'API synchrone `apparier` conserve aussi les colonnes entre ses points de
+passage et ne projette ses objets qu'à son retour.
 
-`drivePairing` (`src/workers/pairingDriver.ts`) pilote pas à pas le
+`lancerAppariement` (`src/workers/pairingDriver.ts`) est le lanceur de
+l'écran et des outils Node. En séquentiel, `drivePairing` pilote pas à pas le
 générateur `apparierRapide` avec sa sortie en colonnes. `EmetteurCandidats`
 transfère les blocs dans l'ordre, avec une fenêtre de seize blocs non
 acquittés au plus. Il attend la page seulement à saturation de cette
@@ -352,15 +354,22 @@ candidats. Le hook scelle le nombre reçu, adapte les lignes restantes en
 objets, libère les colonnes, enregistre le résultat, efface la progression
 et passe en `done`. Les objets d'aperçu gardent leur identité. Une plage
 manquante, répétée ou hors schéma est refusée par le récepteur.
+Ce refus est journalisé, passe le hook en `error` et termine le Worker avec
+ses enfants ; toute réponse tardive est invalidée. Un rejet de publication
+finale dans le Worker principal poste un message `error` par la garde de
+messagerie, qui couvre aussi les appels depuis les chemins de repli.
 
 Le même enchaînement existe hors Worker : `searchBuildsSteps`
 (`src/lib/rechercheRunes.ts`, à part de `runeBuildOptim.ts` pour qu'aucun
 import n'y fasse de cycle) appelle
 `prepareSearch`, `construireMoitieTypee` pour A puis pour B dans le même fil, puis
 `apparier` ; `searchBuilds` le draine en un appel, sans Worker ni
-appariement parallèle. Des tests l'utilisent ; le CLI (`runSearchToCompletion`)
-garde la construction objet, puis le même apparieur ; le harnais pilote l'appariement parallèle sous Node
-(`apparierRapideEnParallele` avec `lancerTravailleurNode`, `worker_threads`).
+appariement parallèle. Des tests l'utilisent. Le CLI (`runSearchToCompletion`,
+asynchrone) et le harnais construisent les moitiés typées dans leurs Workers
+Node, choisissent le régime avec les règles de l'écran, puis passent par
+`apparierNode` et `lancerAppariement` : mêmes crédits et distribution
+compacte, objets seulement après scellement. Un traceur séquentiel reste
+l'instrument explicite de l'oracle objet.
 Des scripts de diagnostic appellent `buildBuckets` et `pairBuckets`
 directement : ils mesurent la référence, pas la production.
 

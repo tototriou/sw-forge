@@ -30,7 +30,7 @@ const loaded = deckIdArg
 printMonsterSummary(deckIdArg ? 'siège offense' : 'box', loaded);
 
 const params = recipeToSearchParams(recipe, loaded);
-const result = runSearchToCompletion(params);
+const result = await runSearchToCompletion(params);
 console.error(
   `${result.candidates.length} candidat(s) — tronqué : ${result.truncated} — ${result.explored.toLocaleString('fr-FR')} paires — ${(result.totalMs / 1000).toFixed(1)}s`
 );

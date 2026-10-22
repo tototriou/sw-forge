@@ -59,7 +59,8 @@ import {
   traiterMorceau,
   verifierContrat,
 } from '../src/lib/appariementRapide';
-import { LancerTravailleur, apparierRapideEnParallele } from '../src/lib/appariementRapideParallele';
+import { LancerTravailleur } from '../src/lib/appariementRapideParallele';
+import { apparierObjetPourTest as apparierRapideEnParallele } from './flux-candidats.test';
 import { egal, ok, titre } from './outils';
 import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
 import { drain } from '../scripts/lib/drain';

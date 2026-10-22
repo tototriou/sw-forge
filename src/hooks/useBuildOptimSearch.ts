@@ -129,6 +129,7 @@ export function useBuildOptimSearch() {
     if (workerRef.current) {
       workerRef.current.onmessage = null;
       workerRef.current.onerror = null;
+      workerRef.current.onmessageerror = null;
       workerRef.current.terminate();
     }
     workerRef.current = null;
@@ -150,55 +151,61 @@ export function useBuildOptimSearch() {
       });
       workerRef.current = worker;
       const candidatsRecus = new RecepteurCandidats(PREVIEW_CANDIDATES_CAP);
-      worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
-        if (runIdRef.current !== myRunId) return; // message périmé d'une recherche déjà remplacée — voir commentaire ci-dessus
-        const data = e.data;
-        if (data.type === 'candidats') {
-          candidatsRecus.recevoir([data.bloc]);
-          worker.postMessage({ credit: true });
-          return;
-        }
-        if (data.type === 'progress') {
-          if (data.phase === 'building') {
-            setProgress((prev) => {
-              const halves = prev && prev.phase === 'building' ? prev.halves : { A: null, B: null };
-              return { phase: 'building', halves: { ...halves, [data.half]: { scanned: data.scanned, total: data.total, pct: data.pct } } };
-            });
-          } else {
-            const candidates = candidatsRecus.apercuCourant();
-            setProgress(() => {
-              return {
-                phase: 'pairing',
-                explored: data.explored,
-                found: data.found,
-                pct: data.pct,
-                totalPairs: data.totalPairs,
-                candidates,
-              };
-            });
-          }
-          return;
-        }
-        if (data.type === 'refus') {
-          setRefusal({ motif: data.motif, vide: data.vide });
-          setProgress(null);
-          setStatus('refused');
-          return;
-        }
-        if (data.type === 'error') {
-          setProgress(null);
-          setStatus('error');
-          return;
-        }
-        const { type: _type, nombre, ...res } = data;
-        setResult({ ...res, candidates: candidatsRecus.sceller(nombre) });
-        setProgress(null);
-        setStatus('done');
-      };
-      worker.onerror = () => {
+      const echouer = (erreur: unknown) => {
         if (runIdRef.current !== myRunId) return;
+        console.error('Recherche de runes interrompue :', erreur);
+        cancel();
+        setProgress(null);
         setStatus('error');
       };
+      worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
+        if (runIdRef.current !== myRunId) return; // message périmé d'une recherche déjà remplacée — voir commentaire ci-dessus
+        try {
+          const data = e.data;
+          if (data.type === 'candidats') {
+            candidatsRecus.recevoir([data.bloc]);
+            worker.postMessage({ credit: true });
+            return;
+          }
+          if (data.type === 'progress') {
+            if (data.phase === 'building') {
+              setProgress((prev) => {
+                const halves = prev && prev.phase === 'building' ? prev.halves : { A: null, B: null };
+                return { phase: 'building', halves: { ...halves, [data.half]: { scanned: data.scanned, total: data.total, pct: data.pct } } };
+              });
+            } else {
+              const candidates = candidatsRecus.apercuCourant();
+              setProgress(() => {
+                return {
+                  phase: 'pairing',
+                  explored: data.explored,
+                  found: data.found,
+                  pct: data.pct,
+                  totalPairs: data.totalPairs,
+                  candidates,
+                };
+              });
+            }
+            return;
+          }
+          if (data.type === 'refus') {
+            setRefusal({ motif: data.motif, vide: data.vide });
+            setProgress(null);
+            setStatus('refused');
+            return;
+          }
+          if (data.type === 'error') {
+            echouer(new Error(data.message));
+            return;
+          }
+          const { type: _type, nombre, ...res } = data;
+          setResult({ ...res, candidates: candidatsRecus.sceller(nombre) });
+          setProgress(null);
+          setStatus('done');
+        } catch (erreur) { echouer(erreur); }
+      };
+      worker.onerror = echouer;
+      worker.onmessageerror = echouer;
       const demande: DemandeDeRecherche = { type: 'recherche', params, coeursPhysiques: coeursPhysiquesRef.current };
       worker.postMessage(demande);
     },

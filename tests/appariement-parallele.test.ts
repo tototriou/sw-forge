@@ -29,9 +29,11 @@ import {
 } from '../src/lib/appariementRapide';
 import { MessageVersTravailleur, resultatVide, servirAppariement } from '../src/lib/travailleurAppariement';
 import {
-  ErreurAppariementParallele, LancerTravailleur, OptionsParallele, apparierRapideEnParallele, enResultatDeRecherche, erreurDeWorkerEnfant, messageDe, planifierMorceaux,
+  ErreurAppariementParallele, LancerTravailleur, OptionsParallele, enResultatDeRecherche, erreurDeWorkerEnfant, messageDe, planifierMorceaux,
   resultatApresErreur,
 } from '../src/lib/appariementRapideParallele';
+import { apparierObjetPourTest as apparierRapideEnParallele } from './flux-candidats.test';
+import { ColonnesCandidats, objetsDesCandidats } from '../src/lib/candidatsCompacts';
 import {
   PARALLEL_PAIRING_THRESHOLD, COEURS_LAISSES, TRAVAILLEURS_MAX, TRAVAILLEURS_MIN, TRAVAILLEURS_PAR_DEFAUT, nombreDeTravailleurs, regimeAppariement,
 } from '../src/workers/parallelPairing';
@@ -91,7 +93,7 @@ function espionner(lancer: LancerTravailleur, recus: RecusParMorceau): LancerTra
     return {
       ...p,
       surMessage: (rappel) => p.surMessage((r) => {
-        recus.set(r.id, { issue: r.issue, candidats: r.candidats.length, traitees: r.traitees });
+        recus.set(r.id, { issue: r.issue, candidats: (recus.get(r.id)?.candidats ?? 0) + r.candidats.length, traitees: r.traitees });
         rappel(r);
       }),
     };
@@ -168,6 +170,7 @@ function lanceurSimule(rng: () => number, journal: { lances: number; termines: n
         surErreur = r;
       },
       arreter: () => livrer({ type: 'arret' }),
+      acquitter: () => livrer({ type: 'credit' }),
       terminer: () => {
         journal.termines++;
       },
@@ -374,7 +377,7 @@ async function testCoordination(liste: Espace[]): Promise<void> {
       },
     }));
     egal(etat(enResultatDeRecherche(r)), etat(e.reference), `${e.nom} : non tronqué, résultat identique au séquentiel (ordre compris)`);
-    ok(progression.length === r.morceauxTraites && progression.length > 1, `${e.nom} : une progression par morceau reçu (${progression.length})`);
+    ok(progression.length > 1, `${e.nom} : publications du préfixe fusionné (${progression.length})`);
     ok(progression.every((p, i) => i === 0 || (p.traitees >= progression[i - 1].traitees && p.n >= progression[i - 1].n)) && progression[progression.length - 1].traitees === e.total,
       `${e.nom} : paires traitées et candidats ne reculent jamais, et finissent à totalPairCount`);
     ok(progression.every((p) => p.prefixe) && estPrefixe(precedente, r.candidates), `${e.nom} : l'aperçu est toujours un préfixe du résultat`);
@@ -789,6 +792,7 @@ const ID_SIGNAL = -1;
 function avecSignalPret(lancer: LancerTravailleur, prets: number[], arrivees?: { t: number; r: ResultatMorceau }[]): LancerTravailleur {
   return (init, transfert) => {
     const p = lancer(init, transfert);
+    const candidatsParMorceau = new Map<number, BuildCandidate[]>();
     const vide: Morceau = { type: 'morceau', id: ID_SIGNAL, offset: 0, taille: 0, segments: new Int32Array(0), drapeaux: new Uint8Array(0) };
     p.envoyer(vide, []);
     return {
@@ -796,9 +800,15 @@ function avecSignalPret(lancer: LancerTravailleur, prets: number[], arrivees?: {
       surMessage: (rappel) => p.surMessage((r) => {
         if (r.id === ID_SIGNAL) {
           prets.push(Date.now());
+          p.acquitter?.();
           return;
         }
-        arrivees?.push({ t: Date.now(), r });
+        if (arrivees) {
+          const candidats = candidatsParMorceau.get(r.id) ?? [];
+          for (const c of objetsDesCandidats(r.candidats as unknown as ColonnesCandidats)) candidats.push(c);
+          candidatsParMorceau.set(r.id, candidats);
+          if (r.issue !== 'suite') arrivees.push({ t: Date.now(), r: { ...r, candidats } });
+        }
         rappel(r);
       }),
     };

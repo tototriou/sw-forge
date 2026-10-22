@@ -2,18 +2,14 @@
 // ce qu'elles font. Il ne réimplémente AUCUNE étape algorithmique.
 //
 // La séquence exécutée ici est celle de `runeBuildOptim.worker.ts`, c'est-à-
-// dire du chemin de production : `prepareSearch` → `construireMoitie` ×2 EN
-// PARALLÈLE (deux fils, comme les deux Web Workers de l'app) →
-// `totalPairCount` et le contrat numérique (qui décident du régime) →
-// `apparier` séquentiel OU `apparierRapideEnParallele` → `sortCandidates`.
+// dire du chemin de production : `prepareSearch` → moitiés typées dans leurs
+// Workers → `compterPaires` et contrat numérique → `lancerAppariement`,
+// en compact et avec les crédits de l'écran → `sortCandidates`.
 //
 // ⚠️ **Pourquoi le harnais orchestre lui-même au lieu d'appeler
 // `runSearchToCompletion`** : ce dernier fait prepare + build + pair d'un
-// bloc, et TOUJOURS en séquentiel. Or le régime que la production
-// choisirait dépend de `totalPairCount`, qui n'existe qu'une fois les deux
-// moitiés construites — impossible à décider depuis l'extérieur d'un appel
-// monolithique. Piloter étage par étage est de toute façon nécessaire pour
-// `arretApres` et pour les temps par phase. Aucune étape n'est pour autant
+// bloc. Piloter étage par étage est nécessaire pour `arretApres`, les
+// observations et les temps par phase. Aucune étape n'est pour autant
 // recréée : chaque appel est celui de la prod.
 //
 // ⚠️ **Le régime n'est pas un choix offert à l'utilisateur.** Par défaut le
@@ -42,7 +38,6 @@ import {
   mainStatFilteredBySlot,
   objectiveKeysOf,
   CHECKPOINT_EVERY,
-  SearchProgress,
   prepareSearch,
   rankBlockingConditions,
   relevance,
@@ -60,19 +55,16 @@ import { activeSets } from '../../src/lib/effects';
 import { missingSets } from '../../src/lib/recoMatch';
 import { availableParallelism } from 'os';
 import { PARALLEL_PAIRING_THRESHOLD, nombreDeTravailleurs, regimeAppariement } from '../../src/workers/parallelPairing';
-import { apparier } from '../../src/lib/rechercheRunes';
 import { compterPaires, verifierContrat } from '../../src/lib/appariementRapide';
-import { ColonnesCandidats, creerColonnesCandidats, objetsDesCandidats } from '../../src/lib/candidatsCompacts';
+import { ColonnesCandidats, identifiantsDesCandidats } from '../../src/lib/candidatsCompacts';
 import { CompartimentType, objetsDesCompartiments } from '../../src/lib/demiBuildsTypes';
-import { apparierRapideEnParallele, enResultatDeRecherche } from '../../src/lib/appariementRapideParallele';
 import { RuneDetail } from '../../src/types';
-import { drain } from './drain';
 import { buildRealDamageContext } from './realDamageCli';
 import { loadMonstersList } from './monstersData';
 import { DEFAULT_DAMAGE_SETUP } from '../../src/lib/damage';
 import { etatReliqueDuBuild } from '../../src/lib/relicQueue';
 import { ConfigResolue, resoudreConfig } from './diagnosticConfig';
-import { assurerBundleAppariementRapide, lancerTravailleurNode } from './appariementRapideNode';
+import { apparierNode, assurerBundleAppariementRapide } from './appariementRapideNode';
 import { construireMoitiesEnParallele, ensureBuildHalfBundle } from './buildHalvesNode';
 // ⚠️ `import type` IMPÉRATIF : `build-half-worker.ts` exécute du code au
 // chargement (`workerData`, `parentPort!`). Un import de valeur le ferait
@@ -807,7 +799,7 @@ function rendreDecouverte(
       (sequentiel
         ? `l’appariement séquentiel n’émet un point de passage que toutes les ${CHECKPOINT_EVERY} paires, donc la cible ` +
           'était déjà là quelque part dans les 500 précédentes. ✅ Reproductible : deux runs identiques rendent le même instant.'
-        : '⚠️⚠️ le régime PARALLÈLE relève sa progression à chaque MORCEAU reçu, et `explored` y est la SOMME des ' +
+        : '⚠️⚠️ le régime PARALLÈLE relève sa progression à chaque PUBLICATION fusionnée, et `explored` y est la SOMME des ' +
           'morceaux déjà fusionnés, préfixe du plan qui avance par bonds selon l’ordre où les fils les rendent. L’ordre des candidats est celui du ' +
           'séquentiel, mais l’instant où l’un d’eux apparaît dépend de l’arrivée des morceaux : ' +
           'DEUX RUNS IDENTIQUES PEUVENT RENDRE DEUX INSTANTS DIFFÉRENTS. Ne comparer deux configurations sur cette ' +
@@ -845,11 +837,9 @@ export const JALONS_RENDEMENT = [1, 5, 10, 25, 50, 75, 100];
 /**
  * L'observateur de DÉCOUVERTE.
  *
- * ⚠️ **Niveau A-passif au sens strict** : il lit les `PairingProgress` que
- * `pairBuckets` émet DÉJÀ, n'ajoute aucun `yield`, n'appelle aucune fonction
- * du moteur et ne touche pas à `src/`. Le seul coût est un `findIndex` sur les
- * candidats NOUVEAUX de chaque point de passage — et il s'arrête dès que la
- * cible est vue.
+ * Il lit les colonnes d'ids des points de passage séquentiels ou des
+ * publications parallèles déjà émises, sans ajouter de yield ni matérialiser
+ * les fiches. La recherche de la cible cesse dès sa première apparition.
  */
 class ObservateurDecouverte {
   exploredALaDecouverte: number | null = null;
@@ -863,12 +853,12 @@ class ObservateurDecouverte {
     private readonly totalPairs: number
   ) {}
 
-  /** À appeler à CHAQUE point de passage de l'appariement, quel que soit le régime. */
-  observer(explored: number, candidats: { runeIds: number[] }[], cumul: number): void {
+  /** Point de passage séquentiel ou publication parallèle, avant transfert. */
+  observer(explored: number, candidats: ColonnesCandidats, cumul: number): void {
     this.dernierExplored = explored;
     this.derniersCandidats = cumul;
-    if (this.exploredALaDecouverte === null && candidats.some((c) => estLeBuildCible(c, this.cibles))) {
-      this.exploredALaDecouverte = explored;
+    if (this.exploredALaDecouverte === null) for (const runeIds of identifiantsDesCandidats(candidats)) {
+      if (estLeBuildCible({ runeIds }, this.cibles)) { this.exploredALaDecouverte = explored; break; }
     }
     this.avancerJalons(explored, cumul);
   }
@@ -907,8 +897,8 @@ class ObservateurDecouverte {
   cloturer(resultat: SearchResult): void {
     // ⚠️ L'`explored` FINAL vient du résultat, jamais du dernier relevé vu :
     // en séquentiel les relevés tombent aux points de passage, et la fin du
-    // parcours peut suivre le dernier ; en parallèle, un relevé par bloc
-    // reçu, dont le dernier vaut le résultat — le prendre au résultat vaut
+    // parcours peut suivre le dernier ; en parallèle, un relevé par publication
+    // fusionnée, dont le dernier vaut le résultat — le prendre au résultat vaut
     // pour les deux régimes.
     this.dernierExplored = Math.max(this.dernierExplored, resultat.explored);
     this.derniersCandidats = Math.max(this.derniersCandidats, resultat.candidates.length);
@@ -1014,15 +1004,15 @@ async function unPassage(
 
   // ── Phase C : appariement, par le chemin que la production emprunterait.
   // ⚠️ L'observateur de découverte n'existe que si une cible COMPLÈTE
-  // est suivie : `null` sinon, et le chemin repasse par `drain`, strictement
-  // inchangé — l'instrument ne se paie que quand il sert.
+  // est suivie : `null` sinon, sans modifier le lanceur ni son protocole.
   const observateur = cibleComplete ? new ObservateurDecouverte(cibleComplete, totalPairs) : null;
-  const resultat =
-    regime === 'parallele'
-      ? await apparierEnParallele(params, prepared, bucketsA, bucketsB, totalPairs, passage.travailleurs, cheminBundleTranches!, observateur)
-      : observateur
-        ? drainEnObservant(apparier(prepared, bucketsA, bucketsB), observateur)
-        : drain(apparier(prepared, bucketsA, bucketsB));
+  const { resultat } = await apparierNode({
+    params: regime === 'parallele' ? { ...params, traceur: undefined } : params,
+    prepared: regime === 'parallele' ? { ...prepared, traceur: undefined } : prepared,
+    bucketsA, bucketsB, totalPaires: totalPairs, travailleurs: passage.travailleurs,
+    startedAt: prepared.startedAt, regime, cheminBundle: cheminBundleTranches!,
+    ...(observateur ? { observer: (explored: number, candidats: ColonnesCandidats) => observateur.observer(explored, candidats, candidats.length) } : {}),
+  });
   if (observateur) {
     observateur.cloturer(resultat);
     passage.decouverte = observateur;
@@ -1032,77 +1022,6 @@ async function unPassage(
   passage.msAppariement = tPair - tBuild;
   passage.msTotal = tPair - t0;
   return passage;
-}
-
-/**
- * ⚠️ Le VRAI chemin parallèle de production : `apparierRapideEnParallele`
- * (les mêmes morceaux à la demande, la même fusion dans l'ordre séquentiel que
- * le navigateur) avec le lanceur Node injecté, dont les fils exécutent
- * `servirAppariement` → `parcourirMorceau` — le code de production
- * lui-même, par tranches, comme au navigateur. Rien n'est reproduit
- * ici. Le traceur est retiré (le noyau ne le remplit pas, voir `unPassage`).
- */
-async function apparierEnParallele(
-  params: SearchParams,
-  prepared: PreparedSearch,
-  bucketsA: CompartimentType[],
-  bucketsB: CompartimentType[],
-  totalPairs: number,
-  travailleurs: number,
-  cheminBundle: string,
-  observateur: ObservateurDecouverte | null
-): Promise<SearchResult> {
-  // ⚠️ La progression arrive à chaque bloc REÇU : `explored` et les
-  // candidats y sont ceux des blocs déjà FUSIONNÉS, dans l'ordre
-  // séquentiel, un préfixe du plan qui avance par bonds selon l'ordre où les
-  // fils rendent les morceaux. L'ordre de collecte est donc reproductible,
-  // mais pas l'instant de découverte, qui dépend de l'arrivée des morceaux.
-  const objets: BuildCandidate[] = [];
-  const resultat = await apparierRapideEnParallele({
-    collecte: creerColonnesCandidats(),
-    params: { ...params, traceur: undefined },
-    prepared: { ...prepared, traceur: undefined },
-    bucketsA,
-    bucketsB,
-    // Le même `totalPairs` que celui qui a choisi le régime : le plan des
-    // morceaux le vérifie.
-    totalPaires: totalPairs,
-    travailleurs,
-    lancer: lancerTravailleurNode<ColonnesCandidats>(cheminBundle),
-    startedAt: prepared.startedAt,
-    surProgression: (explored, candidats) => {
-      // Adaptateur objet explicite du CLI : les blocs sont libérés au fil de leur projection.
-      const nouveaux = objetsDesCandidats(candidats);
-      candidats.blocs = [];
-      for (const c of nouveaux) objets.push(c);
-      observateur?.observer(explored, nouveaux, candidats.length);
-    },
-  });
-  return { ...enResultatDeRecherche(resultat), candidates: objets };
-}
-
-/**
- * `drain`, mais en laissant l'observateur voir chaque point de passage.
- *
- * ⚠️ **Il ne remplace PAS `drain` partout** : le chemin sans cible garde
- * `drain` tel quel, pour que le harnais ne paie rien quand personne ne
- * regarde. Deux chemins, une seule raison de diverger — la présence d'une
- * cible.
- */
-function drainEnObservant(
-  gen: Generator<SearchProgress, SearchResult, void>,
-  observateur: ObservateurDecouverte
-): SearchResult {
-  let step = gen.next();
-  while (!step.done) {
-    const p = step.value;
-    // ⚠️ `buildBuckets` n'est pas dans ce générateur, mais `SearchProgress`
-    // est une union : le garde sur la phase est ce qui rend la lecture sûre
-    // si `pairBuckets` venait un jour à émettre autre chose.
-    if (p.phase === 'pairing') observateur.observer(p.explored, p.candidates, p.candidates.length);
-    step = gen.next();
-  }
-  return step.value;
 }
 
 /**

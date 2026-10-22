@@ -436,9 +436,9 @@ if (recipe.objective === 'degats_reels') {
 }
 
 console.log('\nRecherche en cours (chemin de prod complet, séquentiel — peut prendre plusieurs minutes)…');
-let result: ReturnType<typeof runSearchToCompletion>;
+let result: Awaited<ReturnType<typeof runSearchToCompletion>>;
 try {
-  result = runSearchToCompletion(params);
+  result = await runSearchToCompletion(params);
 } catch (e) {
   // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche) :
   // imprimé tel quel, jamais présenté comme « 0 build ».

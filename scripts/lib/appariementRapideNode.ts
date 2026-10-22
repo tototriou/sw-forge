@@ -13,6 +13,10 @@ import { ResultatMorceau } from '../../src/lib/appariementRapide';
 import { LancerTravailleur } from '../../src/lib/appariementRapideParallele';
 import { SortieCandidats } from '../../src/lib/candidatsCompacts';
 import { BuildCandidate } from '../../src/lib/runeBuildOptim';
+import { ColonnesCandidats, RecepteurCandidats, creerColonnesCandidats } from '../../src/lib/candidatsCompacts';
+import { OptionsParallele, ResultatParallele } from '../../src/lib/appariementRapideParallele';
+import { SearchResult } from '../../src/lib/runeBuildOptim';
+import { EmetteurCandidats, lancerAppariement } from '../../src/workers/pairingDriver';
 
 let bundlePath: string | null = null;
 
@@ -52,4 +56,27 @@ export function lancerTravailleurNode<C extends SortieCandidats = BuildCandidate
       },
     };
   };
+}
+
+/** Les objets appartiennent à la sortie de l'outil ; le transport reste celui de l'écran. */
+export async function apparierNode(
+  options: Omit<OptionsParallele<ColonnesCandidats>, 'lancer'> & {
+    regime: 'sequentiel' | 'parallele';
+    cheminBundle?: string;
+    observer?: (explored: number, candidats: ColonnesCandidats) => void;
+    estArrete?: () => boolean;
+  }
+): Promise<{ resultat: SearchResult; parallele?: ResultatParallele }> {
+  const recepteur = new RecepteurCandidats(0);
+  const flux = new EmetteurCandidats((bloc, transfert) => {
+    recepteur.recevoir([structuredClone(bloc, { transfer: transfert })]);
+    flux.acquitter();
+  });
+  const r = await lancerAppariement({
+    ...options, collecte: creerColonnesCandidats(), flux,
+    lancer: lancerTravailleurNode<ColonnesCandidats>(options.cheminBundle ?? await assurerBundleAppariementRapide()),
+  });
+  const candidates = recepteur.sceller(await flux.sceller(r.resultat.candidates));
+  return { resultat: { ...r.resultat, candidates },
+    ...(r.parallele ? { parallele: { ...r.parallele, candidates } } : {}) };
 }

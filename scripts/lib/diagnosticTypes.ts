@@ -883,7 +883,7 @@ export interface DecouverteBuildCible {
   /** La courbe de rendement, aux jalons de `JALONS_RENDEMENT`. */
   jalons: JalonRendement[];
   regime: RegimeAppariement;
-  /** Le pas des points de passage : un nombre de paires en séquentiel, `null` en parallèle (un morceau reçu, de taille variable). */
+  /** Le pas des points de passage : un nombre de paires en séquentiel, `null` en parallèle (une publication fusionnée, de taille variable). */
   granularitePaires: number | null;
   reproductible: boolean;
   /** Renseigné SEULEMENT si la cible n'est jamais apparue — avec ce que ça autorise à conclure. */

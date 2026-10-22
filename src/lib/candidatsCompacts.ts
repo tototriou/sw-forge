@@ -80,6 +80,12 @@ export function objetsDesCandidats(sortie: SortieCandidats): BuildCandidate[] {
   return out;
 }
 
+/** Lecture de diagnostic sans matérialiser les fiches des candidats. */
+export function* identifiantsDesCandidats(sortie: SortieCandidats): Generator<number[]> {
+  if (Array.isArray(sortie)) { for (const c of sortie) yield c.runeIds; return; }
+  for (const b of sortie.blocs) for (let i = 0; i < b.longueur; i++) yield b.ids.map((colonne) => colonne[i]);
+}
+
 /** Adoption des tampons, coupe au même ordinal que les comptes ; aucune reconstruction d'objet. */
 export function fusionnerCandidats(dest: SortieCandidats, source: SortieCandidats, nombre: number): void {
   if (Array.isArray(dest)) {

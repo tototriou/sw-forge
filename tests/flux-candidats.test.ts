@@ -4,8 +4,8 @@ import { ResultatMorceau, apparierRapide, compterPaires, encoderCompartiments, i
 import { construireMoitieTypee } from '../src/lib/rechercheRunes';
 import { objetsDesCompartiments } from '../src/lib/demiBuildsTypes';
 import { BlocCandidats, ColonnesCandidats, LIGNES_PAR_BLOC, RecepteurCandidats, ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs, fusionnerCandidats, objetsDesCandidats, tamponsCandidats } from '../src/lib/candidatsCompacts';
-import { BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR, ErreurAppariementParallele, LancerTravailleur, OptionsParallele, PoigneeTravailleur, apparierRapideEnParallele, enResultatDeRecherche, planifierMorceaux } from '../src/lib/appariementRapideParallele';
-import { tamponsResultatMorceau } from '../src/lib/travailleurAppariement';
+import { BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR, ErreurAppariementParallele, LancerTravailleur, OptionsParallele, PoigneeTravailleur, ResultatParallele, apparierRapideEnParallele, enResultatDeRecherche, planifierMorceaux } from '../src/lib/appariementRapideParallele';
+import { servirAppariement, tamponsResultatMorceau } from '../src/lib/travailleurAppariement';
 import { BLOCS_EN_VOL_VERS_PAGE, EmetteurCandidats, drivePairing } from '../src/workers/pairingDriver';
 import { assurerBundleAppariementRapide, lancerTravailleurNode } from '../scripts/lib/appariementRapideNode';
 import { drain } from '../scripts/lib/drain';
@@ -15,6 +15,14 @@ import { executerHarnais } from '../scripts/lib/diagnosticHarness';
 import { configDuProfil, trouverProfil } from '../scripts/lib/diagnosticProfils';
 import { RuneDetail } from '../src/types';
 import { ok, titre } from './outils';
+import React from 'react';
+import { useBuildOptimSearch } from '../src/hooks/useBuildOptimSearch';
+import { build } from 'esbuild';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { resolve } from 'node:path';
+import { runInNewContext } from 'node:vm';
+import { resoudreConfig } from '../scripts/lib/diagnosticConfig';
 
 const BASE = { hp: 8073, atk: 517, def: 401, spd: 103, cr: 15, cd: 50, res: 15, acc: 0 };
 
@@ -31,6 +39,46 @@ function identiques(a: unknown, b: unknown, chemin: string): void {
 }
 const etat = <C,>(r: SearchResult<C>) => ({ candidates: r.candidates, explored: r.explored, truncated: r.truncated, nearMissByCondition: r.nearMissByCondition, globalNearMiss: r.globalNearMiss });
 const objets = (r: SearchResult<ColonnesCandidats>): SearchResult => ({ ...r, candidates: objetsDesCandidats(r.candidates) });
+
+/** Projection réservée aux différentiels ; aucune distribution propre à l'oracle objet. */
+export async function apparierObjetPourTest(o: OptionsParallele): Promise<ResultatParallele> {
+  const candidates: BuildCandidate[] = [];
+  const adapter = (c: ColonnesCandidats) => {
+    for (const x of objetsDesCandidats(c)) candidates.push(x);
+    c.blocs = [];
+  };
+  try {
+    const r = await apparierRapideEnParallele({ ...o, collecte: creerColonnesCandidats(),
+      lancer: (init, transfert) => {
+        const fil = o.lancer(init, transfert);
+        return { ...fil,
+          surMessage: (r) => {
+            fil.surMessage((message) => {
+              // Les vrais fils parlent déjà compact. Seuls les scénarios d'oracle
+              // fabriquent un résultat objet de morceau dans ce fichier de tests.
+              if (!Array.isArray(message.candidats)) { r(message as unknown as ResultatMorceau<ColonnesCandidats>); return; }
+              const c = creerColonnesCandidats();
+              for (const candidat of message.candidats) ajouterObjetCandidat(c, candidat);
+              c.blocs = extraireBlocs(c);
+              r({ ...message, candidats: c });
+            });
+          },
+          acquitter: () => fil.acquitter?.(),
+        };
+      },
+      surProgression: async (n, c) => { adapter(c); await o.surProgression?.(n, candidates); },
+    });
+    adapter(r.candidates);
+    return { ...r, candidates };
+  } catch (e) {
+    if (e instanceof ErreurAppariementParallele) {
+      const r = e.resultat as ResultatParallele<ColonnesCandidats>;
+      adapter(r.candidates);
+      throw new ErreurAppariementParallele(e.erreur, { ...r, candidates });
+    }
+    throw e;
+  }
+}
 
 /** Une fusion bloquée échoue ; le minuteur ne constitue aucune mesure de performance. */
 async function paralleleBorne(o: OptionsParallele<ColonnesCandidats>, delaiMs = 15_000) {
@@ -185,7 +233,7 @@ export async function testFluxCandidatsCoupe() {
   } finally { Date.now = maintenant; }
   ok(true, 'mêmes candidats, rangs, comptes et arrêts aux frontières de blocs et de morceaux');
   await coupeDistincte(chemin);
-  await tempsApresSuite(chemin);
+  await tempsApresSuite();
 }
 
 function auPoint500<C>(gen: Generator<PairingProgress<C>, SearchResult<C>, void>): SearchResult<C> {
@@ -232,46 +280,51 @@ async function coupeDistincte(chemin: string) {
   ok(true, `candidats distincts, quasi-succès et coupe après ${avant} candidats de morceaux précédents, puis 4096 + 19`);
 }
 
-async function tempsApresSuite(chemin: string) {
+async function tempsApresSuite() {
   const e = espaceDistinct();
   if (e.B.length !== 1) throw new Error('fixture temps : une seule largeur de ligne attendue');
   const largeur = e.B[0].combos.length;
-  const startedAt = Date.now(), maxMs = 2000;
+  const startedAt = 0, maxMs = 10;
+  let horloge = 0;
   let point = 0;
   let retenu = false;
   let terminal: ResultatMorceau<ColonnesCandidats> | undefined;
-  const brut = lancerTravailleurNode<ColonnesCandidats>(chemin);
-  const lancer: LancerTravailleur<ColonnesCandidats> = (init, transfert) => {
-    const fil = brut(init, transfert);
-    let garderCredit = false;
-    let minuteur: ReturnType<typeof setTimeout> | undefined;
-    return { ...fil,
-      surMessage: (rappel) => fil.surMessage((r) => {
+  const lancer: LancerTravailleur<ColonnesCandidats> = (init) => {
+    let rappel: (r: ResultatMorceau<ColonnesCandidats>) => void = () => {};
+    let erreur: (e: unknown) => void = () => {};
+    const serveur = servirAppariement<ColonnesCandidats>((r) => {
         const prochainPoint = (Math.floor(r.traitees / CHECKPOINT_EVERY) + 1) * CHECKPOINT_EVERY;
         const finLigne = Math.ceil(r.traitees / largeur) * largeur;
         if (!retenu && r.issue === 'suite' && prochainPoint <= finLigne) {
-          retenu = true; garderCredit = true; point = prochainPoint;
+          retenu = true; point = prochainPoint;
+          // Avancer au passage logique voulu, avant le crédit, sans délai machine.
+          horloge = maxMs + 1;
         }
         if (r.issue !== 'suite') terminal = r;
         rappel(r);
-      }),
-      acquitter: () => {
-        if (!garderCredit) { fil.acquitter!(); return; }
-        garderCredit = false;
-        // Le crédit revient après expiration : aucun chronométrage ni comparaison de débit.
-        minuteur = setTimeout(() => fil.acquitter!(), Math.max(0, startedAt + maxMs + 50 - Date.now()));
-      },
-      terminer: () => { clearTimeout(minuteur); fil.terminer(); },
+    }, { maintenant: () => 0 });
+    const recevoir = (m: Parameters<typeof serveur.recevoir>[0]) => { void serveur.recevoir(m).catch((e) => erreur(e)); };
+    recevoir({ type: 'init', init });
+    return {
+      envoyer: (m) => recevoir(m),
+      surMessage: (r) => { rappel = r; }, surErreur: (r) => { erreur = r; },
+      acquitter: () => recevoir({ type: 'credit' }),
+      arreter: () => recevoir({ type: 'arret' }), terminer: () => recevoir({ type: 'arret' }),
     };
   };
-  const r = await paralleleBorne({ params: { ...e.params, maxMs }, prepared: { ...e.p, startedAt, maxMs }, bucketsA: e.A, bucketsB: e.B,
-    totalPaires: e.total, travailleurs: 2, lancer, startedAt, collecte: creerColonnesCandidats(), cibleMorceau: e.total });
+  const ancienneHorloge = Date.now;
+  let r;
+  try {
+    Date.now = () => horloge;
+    r = await paralleleBorne({ params: { ...e.params, maxMs }, prepared: { ...e.p, startedAt, maxMs }, bucketsA: e.A, bucketsB: e.B,
+      totalPaires: e.total, travailleurs: 1, lancer, startedAt, collecte: creerColonnesCandidats(), cibleMorceau: e.total });
+  } finally { Date.now = ancienneHorloge; }
   if (!retenu || !point || !terminal || terminal.issue !== 'temps' || r.candidates.length < LIGNES_PAR_BLOC) throw new Error('le filet n’a pas coupé après un bloc suite');
   const reference = auPoint(pairBuckets(e.p, e.A, e.B), point);
   identiques(etat(reference), etat(objets(r)), `temps après suite, référence au même travail ${point}`);
   identiques(r.traitees, point, 'temps : même nombre de paires traitées au point logique de coupe');
   identiques(r.motif, 'maxMs', 'filet expiré après le bloc plein');
-  ok(true, 'vrai Worker : filet après suite, mêmes candidats ordonnés, comptes et quasi-succès que la référence au point logique de coupe');
+  ok(true, 'horloge logique : filet après suite, mêmes candidats ordonnés, comptes et quasi-succès que la référence au point logique de coupe');
 }
 
 export async function testFluxCandidatsCredits() {
@@ -319,12 +372,43 @@ export async function testFluxCandidatsCredits() {
 
   let arreter: (() => void) | undefined;
   const objetsRecus: BuildCandidate[] = [];
+  const parMorceau = new Map<number, { traitees: number; visitees: number }>();
+  const suiviArret: LancerTravailleur<ColonnesCandidats> = (init, transfert) => {
+    const fil = brut(init, transfert);
+    return { ...fil, surMessage: (rappel) => fil.surMessage((r) => {
+      parMorceau.set(r.id, { traitees: r.traitees, visitees: r.visitees });
+      rappel(r);
+    }) };
+  };
   const coupe = await paralleleBorne({ params: e.params, prepared: e.p, bucketsA: e.A, bucketsB: e.B, totalPaires: e.total,
-    travailleurs: 2, lancer: brut, startedAt: e.p.startedAt, collecte: creerColonnesCandidats(), cibleMorceau: 8192,
+    travailleurs: 2, lancer: suiviArret, startedAt: e.p.startedAt, collecte: creerColonnesCandidats(), cibleMorceau: 8192,
     surControle: (c) => { arreter = c.arreter; },
     surProgression: (_, c) => { for (const x of objetsDesCandidats(c)) objetsRecus.push(x); extraireBlocs(c); arreter?.(); },
   });
-  identiques(coupe.candidates.length, objetsRecus.length, 'arrêt : aucun candidat reçu perdu au drainage');
+  const contexteArret = initialiserTravailleur({ params: e.params, startedAt: e.p.startedAt, compartiments: encoderCompartiments(e.p, e.A, e.B), forcerValidation: 'reference' });
+  const planArret = planifierMorceaux(e.p, e.A, e.B, 8192);
+  const attenduArret: SearchResult = { candidates: [], explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null };
+  const conditions = new Map<string, SearchResult['nearMissByCondition'][number]>();
+  let distance = Infinity, visitesAttendues = 0;
+  for (const m of planArret) {
+    const recu = parMorceau.get(m.id);
+    if (!recu) continue;
+    const oracle = traiterMorceau(contexteArret, m);
+    const position = m.offset + recu.traitees;
+    for (let i = 0; i < oracle.candidats.length; i++) if (oracle.positions[i] <= position) attenduArret.candidates.push(oracle.candidats[i]);
+    for (const a of oracle.ameliorations) if (a.pos <= position) {
+      if (a.type === 'condition') {
+        const avant = conditions.get(a.cle);
+        if (!avant || a.entree.miss.shortfalls[0].shortfall < avant.miss.shortfalls[0].shortfall) conditions.set(a.cle, a.entree);
+      } else if (a.distance < distance) { distance = a.distance; attenduArret.globalNearMiss = a.miss; }
+    }
+    attenduArret.explored += recu.traitees;
+    visitesAttendues += recu.visitees;
+  }
+  attenduArret.nearMissByCondition = [...conditions.values()];
+  identiques(etat(attenduArret), etat({ ...coupe, candidates: objetsRecus }), 'arrêt parallèle : chaque candidat, rang, compte et quasi-succès contre la référence');
+  identiques(coupe.visitees, visitesAttendues, 'arrêt parallèle : toutes les visites reçues sont fusionnées');
+  identiques(coupe.sautees, coupe.traitees - visitesAttendues, 'arrêt parallèle : même périmètre des sauts');
   identiques(coupe.motif, 'manuel', 'arrêt coopératif pendant les crédits');
   ok(objetsRecus.length > 0 && objetsRecus.length < e.total, 'arrêt après un bloc avec résultat partiel');
 
@@ -334,6 +418,10 @@ export async function testFluxCandidatsCredits() {
   let publicationAchevee = false;
   let panneAvantReception = false;
   let nombrePublie = 0, blocsTransferes = 0;
+  let libererPage = false, reglee = false, saturationVue = false;
+  let notifierSaturation!: () => void;
+  const saturation = new Promise<void>((resolve) => { notifierSaturation = resolve; });
+  const retenusPage: BlocCandidats[] = [];
   const recepteur = new RecepteurCandidats();
   const canal = new MessageChannel();
   const transport = new EmetteurCandidats((bloc, transfert) => {
@@ -341,13 +429,11 @@ export async function testFluxCandidatsCredits() {
     blocsTransferes++;
     canal.port1.postMessage(bloc, transfert);
     if (!transfert.every((t) => t.byteLength === 0)) throw new Error('transfert de panne sans détachement');
-    panneAvantReception = !publicationAchevee;
-    signalerPanne?.(new Error('panne avec bloc dans le canal'));
   });
+  const adopter = (bloc: BlocCandidats) => { recepteur.recevoir([bloc]); transport.acquitter(); };
   canal.port2.onmessage = (e: MessageEvent<BlocCandidats>) => {
-    recepteur.recevoir([e.data]);
-    publicationAchevee = true;
-    transport.acquitter();
+    if (libererPage) adopter(e.data);
+    else retenusPage.push(e.data);
   };
   let rejet: unknown;
   const panne: LancerTravailleur<ColonnesCandidats> = (init, transfert) => {
@@ -355,12 +441,30 @@ export async function testFluxCandidatsCredits() {
     return { ...fil, surErreur: (rappel) => { signalerPanne = rappel; fil.surErreur(rappel); } };
   };
   try {
-    try {
-      await paralleleBorne({ params: e.params, prepared: e.p, bucketsA: e.A, bucketsB: e.B, totalPaires: e.total,
+    const execution = paralleleBorne({ params: e.params, prepared: e.p, bucketsA: e.A, bucketsB: e.B, totalPaires: e.total,
         travailleurs: 2, lancer: panne, startedAt: e.p.startedAt, collecte: creerColonnesCandidats(), cibleMorceau: 8192,
-        surProgression: (_, c) => transport.transmettre(c),
-      });
-    } catch (erreur) { rejet = erreur; }
+        surProgression: async (_, c) => {
+          const pleine = blocsTransferes + c.blocs.length > BLOCS_EN_VOL_VERS_PAGE;
+          const transfert = transport.transmettre(c);
+          if (pleine) {
+            saturationVue = true;
+            panneAvantReception = !libererPage;
+            signalerPanne?.(new Error('panne pendant la transmission du dix-septième bloc'));
+            notifierSaturation();
+          }
+          await transfert;
+          if (pleine) publicationAchevee = true;
+        },
+      }).then(() => { reglee = true; }, (erreur) => { reglee = true; rejet = erreur; });
+    await Promise.race([saturation, execution.then(() => { throw new Error('panne sans saturation de la fenêtre'); })]);
+    // Un tour complet, et ses microtâches : retirer await receptions rendrait
+    // déjà le rejet, alors que le dix-septième bloc attend encore son crédit.
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    const attenteObservee = !reglee && !publicationAchevee && blocsTransferes === BLOCS_EN_VOL_VERS_PAGE;
+    libererPage = true;
+    for (const bloc of retenusPage.splice(0)) adopter(bloc);
+    await execution;
+    ok(attenteObservee, 'panne : bilan retenu pendant la publication bloquée derrière les seize blocs sans crédit');
     if (!(rejet instanceof ErreurAppariementParallele)) throw rejet ?? new Error('panne non portée');
     const resultat = rejet.resultat as typeof r;
     const nombre = await transport.sceller(resultat.candidates);
@@ -369,9 +473,13 @@ export async function testFluxCandidatsCredits() {
     identiques(etat(prefixeReference), etat({ ...resultat, candidates: finaux }), 'panne : préfixe scellé contre référence, chaque champ et chaque rang');
     identiques(resultat.traitees, prefixeReference.explored, 'panne : même nombre de paires traitées');
     identiques(resultat.motif, 'erreur', 'panne signalée sans résultat ordinaire');
-    ok(blocsTransferes > 0 && panneAvantReception && publicationAchevee && nombre === nombrePublie && new Set(finaux.map(cle)).size === nombre,
+    ok(saturationVue && blocsTransferes > BLOCS_EN_VOL_VERS_PAGE && panneAvantReception && publicationAchevee && nombre === nombrePublie && new Set(finaux.map(cle)).size === nombre,
       'vrai transfert MessageChannel : tampons détachés, panne en vol, scellement sans doublon ni perte');
-  } finally { canal.port1.close(); canal.port2.close(); }
+  } finally {
+    libererPage = true;
+    for (const bloc of retenusPage.splice(0)) adopter(bloc);
+    canal.port1.close(); canal.port2.close();
+  }
 
   let terminesMuets = 0, lancesMuets = 0;
   const muet: LancerTravailleur<ColonnesCandidats> = (init, transfert) => {
@@ -579,7 +687,7 @@ async function fenetrePage(base: BuildCandidate) {
   identiques(postes, BLOCS_EN_VOL_VERS_PAGE + 1, 'un seul crédit admet exactement un nouveau bloc');
   let scelle = false;
   const fin = transport.sceller(sortie).then((n) => { scelle = true; return n; });
-  await Promise.resolve();
+  await new Promise<void>((resolve) => setImmediate(resolve));
   identiques(scelle, false, 'le scellement attend les blocs encore non acquittés');
   while (enVol > 0) { enVol--; transport.acquitter(); }
   identiques(attendus, reception.sceller(await fin), 'fenêtre saturée : chaque ligne reçue une fois et dans l’ordre');
@@ -674,4 +782,130 @@ export async function testFluxCandidatsApercuFinal() {
   const candidats = reception.sceller(total);
   identiques(etat(drain(pairBuckets(e.p, e.A, e.B))), etat({ ...resultat, candidates: candidats }), 'producteur, pilote, transfert et récepteur ensemble');
   ok(preview.length === 3000 && preview.every((c, i) => c === candidats[i]), 'pilote réel : aperçu et final partagent les mêmes objets');
+}
+
+/** Le hook réel, cellules React synchrones ; aucun rendu ni ordonnanceur DOM simulé. */
+function monterRecherche() {
+  const internes = (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+  const cellules: unknown[] = [];
+  let index = 0;
+  const dispatcher = {
+    useState(initial: unknown) {
+      const i = index++;
+      if (!(i in cellules)) cellules[i] = initial;
+      return [cellules[i], (v: any) => { cellules[i] = typeof v === 'function' ? v(cellules[i]) : v; }];
+    },
+    useRef(initial: unknown) {
+      const i = index++;
+      if (!(i in cellules)) cellules[i] = { current: initial };
+      return cellules[i];
+    },
+    useCallback<T>(callback: T) { return callback; }, useEffect() {},
+  };
+  const rendre = () => {
+    const avant = internes.ReactCurrentDispatcher.current;
+    internes.ReactCurrentDispatcher.current = dispatcher;
+    index = 0;
+    try { return useBuildOptimSearch(); } finally { internes.ReactCurrentDispatcher.current = avant; }
+  };
+  const fils: any[] = [];
+  class Fil {
+    onmessage: any = null; onerror: any = null; onmessageerror: any = null;
+    termine = false; envoyes: unknown[] = [];
+    constructor() { fils.push(this); }
+    postMessage(m: unknown) { if (this.termine) throw new Error('envoi après terminaison'); this.envoyes.push(m); }
+    terminate() { this.termine = true; }
+  }
+  return { rendre, fils, Fil };
+}
+
+function refusDuHook(type: 'recevoir' | 'sceller') {
+  const ancienWorker = globalThis.Worker, ancienError = console.error;
+  const banc = monterRecherche();
+  const erreurs: unknown[] = [];
+  try {
+    globalThis.Worker = banc.Fil as unknown as typeof Worker;
+    console.error = (...args) => { erreurs.push(args); };
+    const hook = banc.rendre();
+    hook.run(espaceDense().params);
+    const fil = banc.fils[0], recevoir = fil.onmessage;
+    const message = type === 'recevoir'
+      ? { type: 'candidats', bloc: { schema: 1, debut: 1, longueur: 1 } }
+      : { type: 'result', nombre: 1, explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null };
+    recevoir({ data: message });
+    identiques(banc.rendre().status, 'error', `${type} refusé : erreur visible`);
+    ok(fil.termine && fil.onmessage === null && erreurs.length === 1, `${type} refusé : Worker terminé et erreur journalisée`);
+    hook.stop();
+    recevoir({ data: { type: 'result', nombre: 0, explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null } });
+    identiques(banc.rendre().status, 'error', `${type} refusé : réponse tardive ignorée, Arrêter sans blocage`);
+    banc.rendre().run(espaceDense().params);
+    banc.rendre().stop();
+    identiques(banc.fils[1].envoyes[1], { stop: true }, `${type} refusé : Arrêter reste branché après une relance`);
+    banc.rendre().cancel();
+  } finally { globalThis.Worker = ancienWorker; console.error = ancienError; }
+}
+
+export function testFluxCandidatsRefusRecevoir() {
+  titre('Flux candidats · refus de recevoir visible et nettoyage');
+  refusDuHook('recevoir');
+}
+
+export function testFluxCandidatsRefusSceller() {
+  titre('Flux candidats · refus de sceller visible et nettoyage');
+  refusDuHook('sceller');
+}
+
+export async function testFluxCandidatsRefusResultat() {
+  titre('Flux candidats · rejet de posterResultat rattrapé par la coquille réelle');
+  const paquet = await build({ stdin: { contents: "import '../src/workers/runeBuildOptim.worker';", resolveDir: resolve('tests'), loader: 'ts' },
+    bundle: true, platform: 'browser', format: 'iife', write: false, logLevel: 'error' });
+  const messages: any[] = [], erreurs: unknown[] = [];
+  const self: any = { postMessage: (m: any) => {
+    if (m.type === 'result') throw new Error('publication finale refusée');
+    messages.push(m);
+  } };
+  runInNewContext(paquet.outputFiles[0].text, { self, Error, console: { error: (...args: unknown[]) => erreurs.push(args) } });
+  self.onmessage({ data: { type: 'recherche', params: { ...espaceDense().params, pool: [] }, coeursPhysiques: null } });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  identiques(messages, [{ type: 'error', message: 'publication finale refusée' }], 'la promesse rejetée poste une erreur nommée au parent');
+  ok(erreurs.length === 1, 'rejet final journalisé une seule fois, aucun rejet non géré');
+  const ancienWorker = globalThis.Worker, ancienError = console.error;
+  const banc = monterRecherche();
+  try {
+    globalThis.Worker = banc.Fil as unknown as typeof Worker; console.error = () => {};
+    banc.rendre().run(espaceDense().params);
+    banc.fils[0].onmessage({ data: messages[0] });
+    ok(banc.rendre().status === 'error' && banc.fils[0].termine, 'message réel : hook en error et Worker terminé');
+    banc.rendre().stop();
+  } finally { globalThis.Worker = ancienWorker; console.error = ancienError; }
+}
+
+export async function testFluxCandidatsLanceurCommun() {
+  titre('Flux candidats · CLI et harnais empruntent le lanceur de l’écran');
+  const cliSource = readFileSync('scripts/optimizer-search.ts', 'utf8');
+  ok(/import\s*\{\s*runSearchToCompletion\s*\}\s*from\s*['"]\.\/lib\/runSearch['"]/.test(cliSource)
+    && /result\s*=\s*await runSearchToCompletion\(params\)/.test(cliSource), 'entrée CLI : recherche attendue par le cœur instrumenté ci-dessous');
+  let appels = 0;
+  const paquet = await build({ stdin: { contents: "export { runSearchToCompletion } from './scripts/lib/runSearch'; export { executerHarnais } from './scripts/lib/diagnosticHarness';",
+      resolveDir: process.cwd(), loader: 'ts' }, bundle: true, platform: 'node', format: 'cjs', write: false, external: ['esbuild'], logLevel: 'error',
+    plugins: [{ name: 'observer-lanceur-reel', setup(b) {
+      b.onLoad({ filter: /pairingDriver\.ts$/ }, (args) => ({ loader: 'ts', contents:
+        readFileSync(args.path, 'utf8').replace('export async function lancerAppariement(', 'async function lancerObserve(') +
+        '\nexport async function lancerAppariement(...args: Parameters<typeof lancerObserve>) { globalThis.observerLanceur(); return lancerObserve(...args); }' }));
+    } }],
+  });
+  const module = { exports: {} as any };
+  const require = createRequire(resolve('package.json'));
+  const contexte = { module, exports: module.exports, require, process, performance, console, setTimeout, clearTimeout, setImmediate,
+    structuredClone, MessageChannel, Error, ArrayBuffer, Float64Array, Int32Array, Uint32Array, Uint8Array,
+    observerLanceur: () => { appels++; } };
+  runInNewContext(paquet.outputFiles[0].text, contexte);
+  const profil = configDuProfil(trouverProfil('quota-parallele'));
+  const resolue = resoudreConfig(profil);
+  const cli = await module.exports.runSearchToCompletion(resolue.params);
+  identiques(appels, 1, 'CLI : appel du lanceur commun, instrumenté sans changer son corps');
+  const harnais = await module.exports.executerHarnais(profil);
+  identiques(appels, 2, 'harnais : appel du même lanceur, y compris en parallèle');
+  identiques(etat(cli), etat(harnais.brut), 'CLI et harnais : chaque candidat, rang, compte et quasi-succès');
+  ok(true, 'les deux vrais consommateurs utilisent le lanceur commun et sa distribution compacte');
 }

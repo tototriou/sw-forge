@@ -57,7 +57,6 @@ import {
 } from '../src/lib/runeBuildOptim';
 import { tailleCompartiments } from '../src/lib/constructionRapide';
 import { verifierContrat } from '../src/lib/appariementRapide';
-import { apparierRapideEnParallele } from '../src/lib/appariementRapideParallele';
 import { etatReliqueDuBuild } from '../src/lib/relicQueue';
 import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
 import { StatKey } from '../src/lib/effects';
@@ -65,7 +64,7 @@ import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { chargerRecette } from './lib/chargerRecette';
 import { resoudreCas } from './lib/diagnosticLot';
 import { CASES } from './lib/perfShared';
-import { assurerBundleAppariementRapide, lancerTravailleurNode } from './lib/appariementRapideNode';
+import { apparierNode, assurerBundleAppariementRapide } from './lib/appariementRapideNode';
 import { construireMoitiesObjetsEnParallele, ensureBuildHalfBundle } from './lib/buildHalvesNode';
 import { LoadedMonster } from './lib/loadMonster';
 import { loadMonstersList } from './lib/monstersData';
@@ -294,11 +293,12 @@ async function run(): Promise<void> {
   dire(`Chemin d'appariement : ${contrat ? `ACTUEL (contrat numérique non tenu : ${contrat})` : 'noyau (contrat tenu)'}`);
 
   // Appariement parallèle de production.
-  const lanceur = lancerTravailleurNode(await assurerBundleAppariementRapide());
+  const cheminBundle = await assurerBundleAppariementRapide();
   t = performance.now();
-  const r = await apparierRapideEnParallele({
-    params, prepared, bucketsA, bucketsB, totalPaires, travailleurs: fils, lancer: lanceur, startedAt: Date.now(),
+  const { parallele: r } = await apparierNode({
+    params, prepared, bucketsA, bucketsB, totalPaires, travailleurs: fils, cheminBundle, regime: 'parallele', startedAt: prepared.startedAt,
   });
+  if (!r) throw new Error('Bilan parallèle manquant');
   json.msAppariement = Math.round(performance.now() - t);
   const candidates = r.candidates;
   json.motif = r.motif;

@@ -106,9 +106,12 @@ import {
   SearchParams,
   prepareSearch,
 } from '../src/lib/runeBuildOptim';
-import { apparier } from '../src/lib/rechercheRunes';
-import { construireMoitiesEmboitees } from '../src/lib/constructionEmboitee';
-import { objetsDesCompartiments } from '../src/lib/demiBuildsTypes';
+import { construireMoitiesEmboiteesTypees } from '../src/lib/constructionEmboitee';
+import { compterPaires, verifierContrat } from '../src/lib/appariementRapide';
+import { identifiantsDesCandidats } from '../src/lib/candidatsCompacts';
+import { nombreDeTravailleurs, regimeAppariement } from '../src/workers/parallelPairing';
+import { availableParallelism } from 'os';
+import { apparierNode, assurerBundleAppariementRapide } from './lib/appariementRapideNode';
 import { Case, CASES, loadCase, loadCaseSearchParams } from './lib/perfShared';
 import { caseAvecRelique, jetonsRelique, parseOptionsRelique } from './lib/perfRelicOptions';
 // ⚠️ `import type` impératif ici : build-half-worker.ts / monotonicity-worker.ts
@@ -301,6 +304,7 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
   // défaut interne du moteur), un pré-filtrage plus étroit que ce que
   // l'app utilise réellement, faussant toute comparaison.
   const params = loadCaseSearchParams(c, maxMs);
+  const cheminBundleAppariement = await assurerBundleAppariementRapide();
 
   const t0 = performance.now();
   const prepared = prepareSearch(params);
@@ -350,12 +354,11 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
   // interne de buildBuckets.
   const propres: Partial<Record<'A' | 'B', BuildHalfWorkerResult>> = {};
   const tBuildStart = performance.now();
-  const { bucketsA, bucketsB } = await construireMoitiesEmboitees(prepared, params.combosOrderMode, async (requete) => {
+  const { bucketsA, bucketsB } = await construireMoitiesEmboiteesTypees(prepared, params.combosOrderMode, async (requete) => {
     const r = await runWorker<BuildHalfWorkerData, BuildHalfWorkerResult>(workerScript, requete);
     // Le fil du préréglage de la recherche (rang 0), celui qui porte le pool entier.
     if (requete.rangPrereglage === 0) propres[requete.half] = r;
-    // L'union et les diagnostics historiques de cette batterie lisent les objets.
-    return objetsDesCompartiments(r.buckets, requete.filtered);
+    return r.buckets;
   });
   const tBuildB = performance.now();
   // Coût interne au fil du préréglage de la recherche de CHAQUE moitié
@@ -370,25 +373,24 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
   let pairingFoundMs: number | null = null;
   const isTarget = (ids: number[]) => ids.length === 6 && ids.every((id) => targetRuneIds.has(id));
 
-  // ⚠️ Pilotage pas à pas, PAS un `drain()` : c'est ici qu'on repère l'instant
-  // EXACT où le build cible apparaît (`foundMs`/`foundExplored`), ce qu'un
-  // résultat final ne dit pas. Ce fut aussi l'endroit où l'escalade du budget
-  // de paires devait être reproduite, sous peine de mesurer une recherche
-  // tronquée ; ce budget n'existe plus. L'appariement est celui de la
-  // production en séquentiel (`apparier` : le noyau sur tableaux typés,
-  // `pairBuckets` en repli hors contrat numérique), même au-delà du seuil.
-  const gen = apparier(prepared, bucketsA, bucketsB);
-  let step = gen.next();
-  while (!step.done) {
-    const progress = step.value;
-    if (foundMs === null && progress.candidates.some((c2) => isTarget(c2.runeIds))) {
-      foundMs = performance.now() - t0;
-      pairingFoundMs = performance.now() - tBuildB;
-      foundExplored = progress.explored;
-    }
-    step = gen.next();
-  }
-  const res = step.value;
+  // Découverte par lecture des ids, sans projection des fiches : point de
+  // passage en séquentiel, publication fusionnée en parallèle. C'est un
+  // majorant, et sa valeur parallèle dépend de l'arrivée des morceaux.
+  const totalPaires = compterPaires(prepared, bucketsA, bucketsB);
+  const { resultat: res } = await apparierNode({ params, prepared, bucketsA, bucketsB, totalPaires,
+    travailleurs: nombreDeTravailleurs(availableParallelism(), null), startedAt: prepared.startedAt,
+    regime: regimeAppariement(totalPaires, verifierContrat(prepared, bucketsA, bucketsB)),
+    cheminBundle: cheminBundleAppariement,
+    observer: (explored, candidats) => {
+      if (foundMs !== null) return;
+      for (const ids of identifiantsDesCandidats(candidats)) if (isTarget(ids)) {
+        foundMs = performance.now() - t0;
+        pairingFoundMs = performance.now() - tBuildB;
+        foundExplored = explored;
+        break;
+      }
+    },
+  });
   const tEnd = performance.now();
   const totalMs = tEnd - t0;
   const pairingTotalMs = tEnd - tBuildB;

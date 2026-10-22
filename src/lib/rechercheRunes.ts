@@ -1,8 +1,7 @@
 // Le moteur de recherche de runes d'un bloc, hors Worker : `prepareSearch`,
-// les deux moitiés, puis leur appariement, dans le même fil. Les tests, le
-// CLI et les scripts passent par ici ; le Worker de l'écran
-// (`src/workers/runeBuildOptim.worker.ts`) enchaîne les mêmes étapes, les
-// un Worker enfant par moitié et par préréglage construit.
+// les deux moitiés, puis leur appariement, dans le même fil. Cette API
+// synchrone sert aux tests ; l'écran et les outils asynchrones passent par
+// `lancerAppariement`, un Worker enfant par moitié et par préréglage construit.
 //
 // ⚠️ Module à part de `runeBuildOptim.ts` : l'orchestration appelle des
 // modules qui importent eux-mêmes `runeBuildOptim.ts`, et un import de valeur
@@ -11,14 +10,12 @@
 
 import {
   Bucket,
-  BuildCandidate,
   BuildBucketsContext,
   BuildingProgress,
   CranEmboite,
   PairingProgress,
   PreparedSearch,
   SearchParams,
-  SearchProgress,
   SearchResult,
   TraceCandidat,
   bucketKeyOf,
@@ -30,7 +27,7 @@ import { OrdreCombos, construireMoitieRapide, construireMoitieRapideTypee } from
 import { apparierRapide } from './appariementRapide';
 import { UnionDesRetentions, UnionDesRetentionsTypees } from './retentionEmboitee';
 import { Compartiment, CompartimentType, typerCompartiments } from './demiBuildsTypes';
-import { creerColonnesCandidats, objetsDesCandidats } from './candidatsCompacts';
+import { ColonnesCandidats, creerColonnesCandidats, objetsDesCandidats } from './candidatsCompacts';
 
 /**
  * L'appariement séquentiel par le chemin de production : le noyau sur
@@ -43,25 +40,18 @@ import { creerColonnesCandidats, objetsDesCandidats } from './candidatsCompacts'
  * `explored` = paires traitées). Le résultat est un `SearchResult` strict :
  * les compteurs propres au noyau (`visitees`, `chemin`…) ne voyagent pas.
  */
-export function* apparier(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[]): Generator<PairingProgress, SearchResult, void> {
-  // Adaptation explicite pour le CLI et l'API objet ; les Workers utilisent directement les colonnes.
+export function* apparier(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[]): Generator<PairingProgress<ColonnesCandidats>, SearchResult, void> {
+  // L'API objet ne projette qu'à sa sortie ; les points de passage gardent les colonnes.
   const collecte = creerColonnesCandidats();
-  const candidates: BuildCandidate[] = [];
-  const adapter = () => {
-    for (const c of objetsDesCandidats(collecte)) candidates.push(c);
-    collecte.blocs = [];
-  };
   const gen = apparierRapide(prepared, bucketsA, bucketsB, { collecte });
   let step = gen.next();
   while (!step.done) {
-    adapter();
-    yield { ...step.value, candidates };
+    yield step.value;
     step = gen.next();
   }
-  adapter();
   const r = step.value;
   return {
-    candidates,
+    candidates: objetsDesCandidats(collecte),
     explored: r.explored,
     truncated: r.truncated,
     nearMissByCondition: r.nearMissByCondition,
@@ -242,7 +232,7 @@ function relirePresenceTraceur(traceur: TraceCandidat, half: 'A' | 'B', buckets:
  * toutes les `CHECKPOINT_EVERY` paires à l'appariement. `searchBuilds` le
  * draine d'un bloc.
  */
-export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgress, SearchResult, void> {
+export function* searchBuildsSteps(params: SearchParams): Generator<BuildingProgress | PairingProgress<ColonnesCandidats>, SearchResult, void> {
   // Le traceur d'un rejet par pré-filtrage : `prepareSearch` le construit puis le perd en rendant
   // `null` — récupéré ici via `onReject` pour qu'un résultat vide reste
   // diagnosticable (étage `feasibility`/`filterslot` à 0), au lieu de

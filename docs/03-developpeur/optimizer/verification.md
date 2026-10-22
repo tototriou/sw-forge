@@ -23,6 +23,9 @@ contient le filtre (registre : `tests/index.ts`), par exemple
 | `testRuneOptimScaleMonotonicity` | `tests/rune-optim-scale-monotonicity.test.ts` | à l'échelle d'un compte réel, élargir le pré-filtrage ne perd pas les demi-builds déjà retenus |
 | `testAppariementRapide` | `tests/appariement-rapide.test.ts` | le noyau d'appariement sur tableaux typés : seuils aux frontières, oracle paire par paire (aucune paire sautée ne passe `quickOk`), différentiel contre `pairBuckets`, scènes à relique portée et paire d'artéfacts figée comprises ; expiration du filet de temps pendant une ligne entièrement sautée en séquentiel, coupure au point suivant et borne de 499 paires |
 | `testAppariementHorloge` | `tests/appariement-rapide.test.ts` | horloge simulée : cadence par paires traitées, borne de 499 paires supplémentaires sous `maxMs` court, résultat complet inchangé, points globaux d'un morceau décalé |
+| `testFluxCandidatsCompactOrdre`, `testFluxCandidatsCoupe`, `testFluxCandidatsCredits`, `testFluxCandidatsApercuFinal`, `testFluxCandidatsPageLente`, `testFluxCandidatsReceptionOrdre` | `tests/flux-candidats.test.ts` | oracle objet contre colonnes, champs et ordre ; arrêts aux frontières des blocs, horloge logique après `suite`, arrêt parallèle comparé à la référence de chaque morceau reçu ; panne avec seize blocs non acquittés et publication suivante bloquée, attente réelle du scellement, crédits de réception indépendants de la fusion, transferts et drainage |
+| `testFluxCandidatsRefusRecevoir`, `testFluxCandidatsRefusSceller`, `testFluxCandidatsRefusResultat` | `tests/flux-candidats.test.ts` | hook réel avec cellules React synchrones et Worker simulé : statut `error`, terminaison, réponses tardives et arrêt après relance ; coquille de recherche réelle importée par une entrée esbuild et exécutée dans un contexte isolé : rejet de publication finale converti en message `error`. Aucun rendu DOM ni ordonnancement de navigateur prouvé |
+| `testFluxCandidatsLanceurCommun` | `tests/flux-candidats.test.ts` | instrumente `lancerAppariement` sans modifier son corps, exécute les vrais consommateurs CLI et harnais sur `quota-parallele`, vérifie les deux appels et leurs résultats entiers. La projection `apparierObjetPourTest` des différentiels reste dans ce fichier de tests, sans distribution propre |
 | `testAppariementParallele`, `testAppariementParalleleWorkers`, `testAppariementParalleleCoupeWorkers`, `testAppariementParalleleBranchement` | `tests/appariement-parallele.test.ts` | le nombre de Workers et le régime ; le coordinateur parallèle contre le séquentiel (Workers simulés, puis vrais `worker_threads`) : plafond global, progression, arrêt manuel, filet de temps, panne ; un morceau coupé avant un morceau suivant achevé ; la tranche d'un Worker d'un morceau au suivant ; sur vrais `worker_threads`, des morceaux coupés en cours par le temps et par l'arrêt ; le branchement du chemin de production |
 | `testValidationRapide` | `tests/validation-rapide.test.ts` | la validation typée de l'appariement (`ValidationTypee`) contre `activeSets`, `computeStats` et le test conjoint de `pairBuckets` : cas écrits, paire par paire, collecteur contre collecteur, appariement entier, contrat tenu ou non |
 | `testResolutionRapide`, `testResolutionRapideNaN` | `tests/resolution-rapide.test.ts` | la résolution rapide de l'équipement (`src/lib/resolutionRapide.ts`) et le point d'entrée de l'app (`resoudreEquipementDuBuild`, avec les formes de la file) contre le calcul exhaustif (`resoudreEquipementDuBuildExhaustif`), build par build, sans et avec diagnostic ; les notes NaN et leur repli |
@@ -271,8 +274,12 @@ script sur la machine du moment, en suivant le skill
   paralléliser ses mesures de temps : la contention entre processus
   fausserait ce qu'elles mesurent. `--monotonicity`, qui ne compare aucun
   temps, tourne sur des `worker_threads` (`scripts/lib/monotonicity-worker.ts`).
-  Il construit les moitiés et apparie par le chemin de production
-  (`construireMoitie`, `apparier`), en séquentiel même au-delà du seuil.
+  Il construit les moitiés typées et apparie par le lanceur compact de
+  l'écran (`apparierNode` → `lancerAppariement`), avec son régime, sa
+  distribution et ses crédits. La découverte lit les ids à chaque point
+  de passage séquentiel ou publication parallèle ; c'est un majorant,
+  dépendant de l'arrivée des morceaux en parallèle. Une référence de temps
+  prise sous un autre régime ne permet pas une comparaison de débit.
 - `scripts/banc-appariement-rapide.ts` et
   `scripts/banc-construction-moities.ts` : le chemin de production de
   l'appariement et de la construction contre `pairBuckets` et

@@ -12,7 +12,8 @@ import { apparier, construireMoitie, searchBuilds } from '../src/lib/rechercheRu
 import { readFileSync } from 'node:fs';
 import { prepareOrRefuse } from '../src/workers/prepareForSearch';
 import { PARALLEL_PAIRING_THRESHOLD } from '../src/workers/parallelPairing';
-import { apparierRapideEnParallele, enResultatDeRecherche } from '../src/lib/appariementRapideParallele';
+import { enResultatDeRecherche } from '../src/lib/appariementRapideParallele';
+import { apparierObjetPourTest as apparierRapideEnParallele } from './flux-candidats.test';
 import { assurerBundleAppariementRapide, lancerTravailleurNode } from '../scripts/lib/appariementRapideNode';
 import { runSearchToCompletion } from '../scripts/lib/runSearch';
 import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
@@ -939,7 +940,7 @@ export async function testAurasPariteRegimes() {
     `FIDÉLITÉ : DIVERGE DE LA PROD — ${totalPairs} paires < ${PARALLEL_PAIRING_THRESHOLD} : parallèle FORCÉ, 3 Workers`);
   const sequentiel = drain(apparier(prepared, bucketsA, bucketsB));
   egal(JSON.stringify(sequentiel), JSON.stringify(drain(pairBuckets(prepared, bucketsA, bucketsB))), 'Worker séquentiel (apparier) = pairBuckets, la référence');
-  const cli = runSearchToCompletion(params);
+  const cli = await runSearchToCompletion(params);
   const lancer = lancerTravailleurNode(await assurerBundleAppariementRapide());
   const rParallele = await apparierRapideEnParallele({
     params: message, prepared, bucketsA, bucketsB, totalPaires: totalPairs, travailleurs: 3, lancer, startedAt: prepared.startedAt,

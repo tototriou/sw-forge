@@ -101,10 +101,12 @@ chaque monstre y garde la sienne (décision de l'utilisateur : plus lisible
 que des lignes sous un trait) ; la grille des sets est dans un « coffre » en
 creux (fond `panel2`, sans contour), centré, dépliée comme dans sa liste
 ouverte ; la fiche de l'exemplaire, les sets d'aura, le pré-filtrage et les
-interrupteurs avancés n'ont plus de boîte ; une carte de résultat et un diagnostic sans
-résultat se posent sous un trait fin, sans contour ni fond (les rangées
-« Dégâts », « PV effectifs » et les écarts d'une carte gardent leur fond,
-sans contour). Restent marqués : les objets du jeu (runes, artéfacts,
+interrupteurs avancés n'ont plus de boîte ; un diagnostic sans résultat se
+pose sous un trait fin, sans contour ni fond. ⚠️ **Exception : chaque
+résultat garde sa carte** (contour et fond, décision de l'utilisateur :
+sans elle, les résultats se lisaient mal d'une carte à l'autre) ; ses
+rangées « Dégâts », « PV effectifs » et ses écarts n'y gardent que leur
+fond, la carte portant le seul contour. Restent marqués : les objets du jeu (runes, artéfacts,
 reliques), les états (set manquant, rappel des auras, place d'attente des
 résultats, « Vérification… », emplacement figé), les contrôles (champs,
 listes, boutons, segments, panneau de statistiques cliquable, résumé du

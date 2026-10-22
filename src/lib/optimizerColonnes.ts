@@ -48,7 +48,14 @@ export function ouvrirColonne(etat: ColonnesOuvertes, colonne: ColonneRepliable)
 // pose là où l'agencement suivant tient, jamais réglé au pixel. Les composants
 // de bureau déclarent les mêmes largeurs (`LARGEUR_*` de
 // src/components/outils/optimizer/bureau/), un test les compare.
-export const LARGEURS_BUREAU = { essentiels: 548, gouttiere: 16, artefacts: 320, complements: 340, exemplaire: 616, objectifEtroit: 340 } as const;
+// ⚠️ **« Exemplaire » est la largeur minimale de la colonne de droite**, et
+// elle se déduit de la fiche (statistiques, artéfacts, roue de runes, relique)
+// à pleine taille : 560 px mesurés, plus le contour et le rembourrage du
+// panneau (2 × 9) et, la colonne de droite étant la dernière, les 4 px entre
+// son panneau et sa barre de défilement réservée et la barre (10) : 592. Tout
+// le reste de la colonne (puces, objectif, « Rechercher », résultats) s'adapte
+// au-dessus de ce minimum.
+export const LARGEURS_BUREAU = { essentiels: 548, gouttiere: 16, artefacts: 320, complements: 340, exemplaire: 592, objectifEtroit: 340 } as const;
 
 // ⚠️ **Ces largeurs sont des PLACES.** Chaque colonne se dessine en panneau
 // (src/components/outils/optimizer/bureau/panneau.ts), 8 px plus étroit que
@@ -95,7 +102,7 @@ export function deuxColonnesTiennent(largeur: number | null): boolean {
 export type FormeObjectifBureau = 'etroite' | 'large';
 
 // En A3, la forme étroite se pose à côté d'« Exemplaire » quand la colonne de
-// droite les tient tous deux, gouttière comprise : 616 + 16 + 340.
+// droite les tient tous deux, gouttière comprise : 592 + 16 + 340.
 export const COLONNE_DROITE_OBJECTIF_A_COTE = L.exemplaire + L.gouttiere + L.objectifEtroit;
 
 // La largeur de la colonne de droite en A3 : le conteneur, moins les

@@ -204,7 +204,7 @@ commune :
    puis défilent (décision de l'utilisateur à l'arrêt 4 : plus haute que
    les quatre lignes d'avant) ;
 2. **« Exemplaire »**, en tête de la colonne de droite en A3, sous les
-   réglages en A1 et A2, section de 598 px du panneau de droite
+   réglages en A1 et A2, section de 598 px au plus du panneau de droite
    (`ExemplaireBureau`) : les puces de source,
    la zone D en flottant (300 px de haut au plus, qui défile), puis
    la fiche ([equipement-actuel.md](equipement-actuel.md)).

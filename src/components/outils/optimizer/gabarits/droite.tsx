@@ -228,7 +228,7 @@ export const GABARITS_DROITE: Gabarit[] = [
     telephone: 'Comme la forme étroite.',
     changements: [
       'Les changements de la forme étroite, sauf la disposition : objectifs sur une ligne, « Rechercher » · « Exporter » · « Importer » sur une rangée.',
-      'À la largeur de sa colonne (élastique) : A1, et A3 quand la colonne de droite fait moins de 972 px.',
+      'À la largeur de sa colonne (élastique) : A1, et A3 quand la colonne de droite fait moins de 948 px.',
     ],
     etats: [
       ...etatsObjectif('large'),

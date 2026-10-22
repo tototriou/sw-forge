@@ -424,6 +424,14 @@ mémoire de clés jamais relues et la ferait se vider à sa borne ; un élément
 `undefined` vaut `null`, comme dans `computeTotalDamage`. Bornes `BORNE_CHRONOLOGIES` (16),
 `BORNE_STATS_PAR_REGLAGE` (64), `BORNE_COMBATS_PAR_STATS` (16) ; durée de
 vie : celle de l'évaluateur.
+`sortsConnus` n'a pas de borne propre : cet évaluateur garde le même profil
+de sort pour tous ses appels ; les profils dérivés par paire n'y entrent
+pas. L'API directe qui partagerait un memo entre des profils toujours
+nouveaux ne bénéficie pas de cette limite. Au vidage des chronologies,
+tous les réglages et sorts connus sont oubliés, ceux de l'appel courant
+compris ; la chronologie courante est ensuite retenue et ses réglages
+dérivés réinscrits. Le réglage et le sort de `computeTotalDamage` ne
+reviennent qu'à son prochain appel.
 
 ## Mesurer un changement des bornes
 

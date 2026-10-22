@@ -18,6 +18,7 @@ import { LecturesSysteme, lireCoeursPhysiques } from './coeursPur';
 const DELAI_COMMANDE_MS = 15_000;
 
 export const lecturesDuSysteme: LecturesSysteme = {
+  dossierWindows: () => process.env.SystemRoot,
   executer: (commande, args) =>
     new Promise((resolve, reject) => {
       execFile(commande, [...args], { windowsHide: true, timeout: DELAI_COMMANDE_MS, encoding: 'utf8' }, (erreur, sortie) => {

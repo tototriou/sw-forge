@@ -78,6 +78,8 @@ export function coeursDeLscpu(sortie: string): number | null {
 
 /** Les lectures du système, passées par bureau/coeurs.ts (simulées par les tests). */
 export interface LecturesSysteme {
+  /** Dossier Windows lu dans SystemRoot à l'exécution ; absent hors Windows. */
+  dossierWindows: () => string | undefined;
   /** Lance une commande, rend sa sortie standard ; rejette si elle échoue. */
   executer: (commande: string, args: readonly string[]) => Promise<string>;
   /** Lit un fichier texte ; rejette s'il manque. */
@@ -87,7 +89,7 @@ export interface LecturesSysteme {
 // La commande Windows : PowerShell, présent sur toute version prise en
 // charge ; sans profil ni interaction, pour une sortie nue.
 export const COMMANDE_WINDOWS = {
-  commande: 'powershell.exe',
+  cheminRelatif: 'System32\\WindowsPowerShell\\v1.0\\powershell.exe',
   args: ['-NoProfile', '-NonInteractive', '-Command', '(Get-CimInstance -ClassName Win32_Processor).NumberOfCores'],
 } as const;
 export const CPUINFO = '/proc/cpuinfo';
@@ -108,7 +110,13 @@ const ouNull = async (lecture: () => Promise<number | null>): Promise<number | n
  */
 export async function lireCoeursPhysiques(plateforme: string, lectures: LecturesSysteme): Promise<number | null> {
   if (plateforme === 'win32') {
-    return ouNull(async () => coeursDeWindows(await lectures.executer(COMMANDE_WINDOWS.commande, COMMANDE_WINDOWS.args)));
+    return ouNull(async () => {
+      const dossier = lectures.dossierWindows();
+      // Ne jamais chercher l'exécutable dans le dossier courant ou le PATH.
+      if (!dossier || !/^[a-z]:[\\/]/i.test(dossier)) return null;
+      const commande = `${dossier.replace(/[\\/]+$/, '')}\\${COMMANDE_WINDOWS.cheminRelatif}`;
+      return coeursDeWindows(await lectures.executer(commande, COMMANDE_WINDOWS.args));
+    });
   }
   if (plateforme === 'linux') {
     const parCpuinfo = await ouNull(async () => coeursDeCpuinfo(await lectures.lireFichier(CPUINFO)));

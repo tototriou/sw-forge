@@ -511,7 +511,7 @@ export default function BuildCandidateCard({
           dessous — les trois blocs s'y écrasaient jusqu'à devenir illisibles.
           Empilés, chacun garde sa taille de lecture. */}
       <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
-        <StatPanel stats={candidate.stats} />
+        <StatPanel stats={candidate.stats} serre={bureau} />
         {/* ⚠️ À LA SOURIS, la relique est TOUJOURS SOUS LA ROUE (carte de résultat seulement) :
             fiche 200 px + artéfacts 26 px + roue 94 px (échelle 0,45) et leurs
             écarts font 332 px, ce qu'une carte de 360 px contient tout juste —

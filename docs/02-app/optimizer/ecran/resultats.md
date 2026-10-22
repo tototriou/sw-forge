@@ -52,6 +52,11 @@ ils suivent la progression, sur toute la largeur.
     la carte tient sans déborder (mesuré, relique comprise). La bascule base+bonus ↔ total ne
     déplace jamais les artéfacts, la roue ou la relique voisins : `StatPanel` a une **largeur
     fixe** (`w-[200px]`, voir [rta/feat-sections-runes.md](../../rta/feat-sections-runes.md)).
+    ⚠️ **Au bureau, ses lignes sont resserrées** (`StatPanel`, `serre`,
+    décision de l'utilisateur) : un pas de 22 px au lieu de 27, taille du
+    texte inchangée (interligne `snug`, 2 px de rembourrage au lieu de 4).
+    Mesuré : le panneau passe de 241 à 197 px, la carte de 288 à 244 px. La
+    fiche d'« Exemplaire » et le téléphone gardent le pas de 27 px.
     ⚠️ **À la souris, la relique est toujours SOUS LA ROUE** (carte de
     résultat seulement —
     `MonsterGear` garde la sienne à droite) : fiche, artéfacts et roue font

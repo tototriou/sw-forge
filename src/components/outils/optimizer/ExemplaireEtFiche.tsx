@@ -58,8 +58,13 @@ export default function ExemplaireEtFiche({ zoneDRef, sourceOptions, matchesVali
       {/* La fiche sans encadré : « Exemplaire » est une section du panneau de
           la colonne de droite (docs/02-app/optimizer/ecran/README.md,
           « Panneaux et sections »). Le panneau de statistiques, cliquable,
-          et l'emplacement de relique, objet du jeu, gardent leur contour. */}
-      <div>
+          et l'emplacement de relique, objet du jeu, gardent leur contour.
+          ⚠️ Boîte à la largeur de la fiche (`w-fit`, centrée) : « Valider ce
+          build », pleine largeur, va du bord gauche du panneau de
+          statistiques au bord droit de la relique (décision de
+          l'utilisateur), jamais au-delà. `max-w-full` laisse la fiche se
+          réduire comme avant quand la place manque. */}
+      <div className="mx-auto w-fit max-w-full">
         {validatedBadge}
         <MonsterGear
           gear={selected?.gear ?? EMPTY_GEAR}

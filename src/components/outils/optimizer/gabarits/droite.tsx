@@ -242,7 +242,7 @@ export const GABARITS_DROITE: Gabarit[] = [
     telephone: 'Les composants des résultats repris tels quels ; aucun modifié.',
     changements: [
       'Présents dès le départ, dans leur cadre : avant la première recherche, une place d\'attente (≈ 160 px, libellés nouveaux à valider) tient la place des cartes.',
-      'Le reste comme aujourd\'hui : en-tête, tri, « Adapter les artéfacts et reliques au tri », cartes de 360 px au moins, 20 par page, pagination.',
+      'Le reste comme aujourd\'hui : en-tête, tri, « Adapter les artéfacts et reliques au tri », cartes de 328 px au moins, 20 par page, pagination.',
     ],
     etats: [
       { id: 'sans-monstre', nom: 'Attente : aucun monstre', rendu: enveloppe((ctx) => <ResultatsGabarit ctx={ctx} mode="sans-monstre" />, LARGEUR_RESULTATS_MIN) },

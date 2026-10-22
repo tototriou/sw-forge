@@ -17,12 +17,20 @@ ils suivent la progression, sur toute la largeur.
     rune** dans la mesure choisie — « Efficience moyenne : X » ou « Score
     moyen : X » selon le réglage global (Efficience/Score SW).
     ⚠️ **Au bureau, l'en-tête d'une carte tient sur une ligne** (décision
-    de l'utilisateur : la carte raccourcit) : rang, valeur moyenne et sets,
-    au lieu d'une ligne de sets à part. « Comparer » et « Valider ce build »
+    de l'utilisateur : la carte raccourcit) : le rang et ses sets à gauche,
+    la valeur moyenne calée à droite (décision de l'utilisateur), au lieu
+    d'une ligne de sets à part ; des sets trop longs se replient sous le
+    rang, jamais la valeur. « Comparer » et « Valider ce build »
     restent **en bas de la carte**, comme au téléphone (décision de
     l'utilisateur) : « Comparer » à sa largeur, « Valider » à la largeur fixe
     de son plus long libellé (160 px ; « Valider les artéfacts » en mesure
     123), si bien que passer à « Validé » ne déplace ni lui ni « Comparer ».
+    ⚠️ **Au bureau, l'écart de « Comparer » s'affiche À GAUCHE de la valeur
+    qu'il qualifie**, sur sa ligne (valeur moyenne, PV effectifs, dégâts ;
+    décision de l'utilisateur) : sous elle, il faisait grandir la carte au
+    clic, et « Comparer » descendait sous le pointeur. Sa place (44 px) est
+    réservée même vide : la valeur reste calée à droite et la ligne garde sa
+    hauteur. Le téléphone garde l'écart sous la valeur.
     Mesuré (carte de 356 à 716 px, compte d'exemple, sans « Dégâts ») :
     en-tête de 19 px, carte de 284 px avec un ou deux boutons. Le téléphone
     garde son en-tête et sa ligne de sets ; ses deux boutons se partagent la
@@ -50,6 +58,18 @@ ils suivent la progression, sur toute la largeur.
     la carte tient sans déborder (mesuré, relique comprise). La bascule base+bonus ↔ total ne
     déplace jamais les artéfacts, la roue ou la relique voisins : `StatPanel` a une **largeur
     fixe** (`w-[200px]`, voir [rta/feat-sections-runes.md](../../rta/feat-sections-runes.md)).
+    ⚠️ **Au bureau, à la souris, une carte tient dans 328 px** (décision
+    de l'utilisateur : une carte de plus par rangée) : la grille passe à
+    `minmax(min(328px,100%),1fr)`, et la fiche de stats se resserre à
+    174 px, fixe elle aussi, avec 6 px de rembourrage latéral au lieu de 12 :
+    la place retirée est l'écart entre la colonne des libellés et celle des
+    stats de base. La table garde 160 px pour 157 au pire cas mesuré (base à
+    six chiffres comme les 19 755 PV, la plus haute des données, bonus
+    « +40 000 ») : rien n'est tronqué ni replié. Rembourrage de la carte et
+    creux entre cartes inchangés. Mesuré (compte d'exemple, A3) : 3 cartes
+    par rangée au lieu de 2 à 1920 × 940, 2 au lieu de 1 avec « Artéfacts et
+    relique » ; 5 au lieu de 4 à 2560 × 1300, 4 au lieu de 3 avec la
+    colonne. Au doigt et au téléphone, 360 px et la fiche de 200 px.
     ⚠️ **Au bureau, ses lignes sont resserrées** (`StatPanel`, `serre`,
     décision de l'utilisateur) : un pas de 22 px au lieu de 27, taille du
     texte inchangée (interligne `snug`, 2 px de rembourrage au lieu de 4).

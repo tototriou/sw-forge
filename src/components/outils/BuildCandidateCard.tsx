@@ -128,7 +128,8 @@ interface Props {
 // ⚠️ Calibrée pour que DEUX cartes tiennent par ligne dans le conteneur
 // `max-w-3xl` (768px) de OptimizerSection.tsx — voir le `minmax` du grid.
 /**
- * Un écart avec le build de référence, sous la valeur qu'il qualifie.
+ * Un écart avec le build de référence, sous la valeur qu'il qualifie (au
+ * bureau, à sa gauche, sur sa ligne : `EmplacementEcart`).
  *
  * ⚠️ Un seul composant pour les trois (dégâts, PV effectifs, efficience) :
  * trois rendus séparés auraient divergé de couleur ou de format au premier
@@ -149,6 +150,18 @@ function Delta({ valeur, suffixe = '' }: { valeur: number; suffixe?: string }) {
       {suffixe}
     </span>
   );
+}
+
+/**
+ * La place d'un écart À GAUCHE de sa valeur (bureau) : réservée même vide, à
+ * la largeur d'un écart courant (« −12,3 % », 44 px), pour que son apparition
+ * au clic sur « Comparer » ne déplace ni la valeur ni ce qui l'entoure.
+ * ⚠️ Taille et interligne de l'écart (`text-nano`) sur la place elle-même :
+ * sans eux, elle prenait l'interligne du corps du texte, et la ligne
+ * grandissait de 5 px à l'apparition de l'écart (mesuré).
+ */
+function EmplacementEcart({ children }: { children: ReactNode }) {
+  return <span className="min-w-11 text-right text-nano">{children}</span>;
 }
 
 const WHEEL_SCALE = 0.45;
@@ -287,19 +300,37 @@ export default function BuildCandidateCard({
   );
 
   const rang = <span className="font-mono text-xs font-bold text-star">#{rank}</span>;
-  const valeurMoyenne = (
-    <span className={`flex flex-col ${bureau ? 'items-start' : 'items-end'}`}>
-      {/* Une phrase : police du texte (la mono ne sert qu'aux chiffres
-          seuls) ; `tabular-nums` aligne la valeur d'une carte à l'autre. */}
-      <span className="text-xs tabular-nums text-ink-dim">
-        {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(liveTotal / 6, metric)}
-      </span>
+  // Une phrase : police du texte (la mono ne sert qu'aux chiffres seuls) ;
+  // `tabular-nums` aligne la valeur d'une carte à l'autre.
+  const texteMoyen = (
+    <span className="text-xs tabular-nums text-ink-dim">
+      {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(liveTotal / 6, metric)}
+    </span>
+  );
+  const ecartMoyen = metricDelta != null && <Delta valeur={metricDelta / 6} suffixe={metric === 'eff' ? ' %' : ''} />;
+  const valeurMoyenne = bureau ? (
+    // ⚠️ **Au bureau, l'écart va À GAUCHE de la valeur, sur sa ligne**
+    // (décision de l'utilisateur) : sous elle, il faisait grandir l'en-tête au
+    // clic sur « Comparer », et le bouton descendait sous le pointeur. Sa
+    // place est réservée (`EmplacementEcart`) : la valeur reste calée à droite
+    // et la ligne garde sa hauteur, avec ou sans écart.
+    <span className="flex flex-none items-baseline gap-x-1.5">
+      <EmplacementEcart>{ecartMoyen}</EmplacementEcart>
+      {texteMoyen}
+    </span>
+  ) : (
+    <span className="flex flex-col items-end">
+      {texteMoyen}
       {/* L'écart avec la référence, SOUS la valeur qu'il qualifie
           (demande explicite) — jamais à côté, où il se lirait comme une
           seconde mesure. */}
-      {metricDelta != null && <Delta valeur={metricDelta / 6} suffixe={metric === 'eff' ? ' %' : ''} />}
+      {ecartMoyen}
     </span>
   );
+  // La valeur de l'objectif (PV effectifs, dégâts) et son écart : au bureau,
+  // l'écart à gauche sur la même ligne, place réservée (voir `valeurMoyenne`) ;
+  // au téléphone, sous la valeur.
+  const groupeValeur = bureau ? 'flex flex-none items-baseline gap-x-1.5' : 'flex flex-col items-end';
   const lesSets = sets.map((key, i) => (
     <span key={`${key}-${i}`} className="text-micro text-ink-dim">
       {RUNE_SETS.find((s) => s.key === key)?.label ?? key}
@@ -390,13 +421,17 @@ export default function BuildCandidateCard({
     >
       {bureau ? (
         // ⚠️ **Au bureau, l'en-tête tient sur une ligne** (décision de
-        // l'utilisateur : la carte raccourcit) : rang, valeur moyenne et sets,
-        // au lieu d'une ligne de sets à part ; les boutons restent en bas de
-        // la carte, comme au téléphone.
-        <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-2">
-          {rang}
+        // l'utilisateur : la carte raccourcit) : le rang et ses sets à gauche,
+        // la valeur moyenne calée à droite (décision de l'utilisateur), au lieu
+        // d'une ligne de sets à part ; les boutons restent en bas de la carte,
+        // comme au téléphone. Les sets se replient sous le rang plutôt que de
+        // pousser la valeur : elle ne bouge pas d'une carte à l'autre.
+        <div className="mb-2 flex items-baseline justify-between gap-x-2">
+          <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+            {rang}
+            {lesSets}
+          </span>
           {valeurMoyenne}
-          {lesSets}
         </div>
       ) : (
         <div className="flex items-start justify-between mb-2">
@@ -412,11 +447,12 @@ export default function BuildCandidateCard({
       {pvEffectifs && (
         <p className={`mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg ${contourRangee} bg-panel2 px-2 py-1`}>
           <span className="text-micro text-ink-dim">PV effectifs</span>
-          <span className="flex flex-col items-end">
+          <span className={groupeValeur}>
+            {bureau && <EmplacementEcart>{pvEffectifs.delta != null && <Delta valeur={pvEffectifs.delta} />}</EmplacementEcart>}
             <span className="font-mono text-sm font-bold text-star">
               {Math.round(pvEffectifs.total).toLocaleString('fr-FR')}
             </span>
-            {pvEffectifs.delta != null && <Delta valeur={pvEffectifs.delta} />}
+            {!bureau && pvEffectifs.delta != null && <Delta valeur={pvEffectifs.delta} />}
           </span>
         </p>
       )}
@@ -429,7 +465,8 @@ export default function BuildCandidateCard({
       {degatsReels && (
         <p className={`mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg ${contourRangee} bg-panel2 px-2 py-1`}>
           <span className="text-micro text-ink-dim">Dégâts</span>
-          <span className="flex flex-col items-end">
+          <span className={groupeValeur}>
+            {bureau && <EmplacementEcart>{degatsReels.delta != null && <Delta valeur={degatsReels.delta} />}</EmplacementEcart>}
             {/* La mono sur le chiffre seul : « tue la cible » / « N % des PV »
                 est une phrase, en police du texte. */}
             <span className="text-sm font-bold text-star">
@@ -438,7 +475,7 @@ export default function BuildCandidateCard({
                 {degatsReels.partPvCible >= 100 ? 'tue la cible' : `${Math.round(degatsReels.partPvCible)} % des PV`}
               </span>
             </span>
-            {degatsReels.delta != null && <Delta valeur={degatsReels.delta} />}
+            {!bureau && degatsReels.delta != null && <Delta valeur={degatsReels.delta} />}
           </span>
           {/* ⚠️ **Il y avait ici une rangée réservée « artéfacts pas encore
               optimisés »**, toujours présente pour que la hauteur de la carte
@@ -479,7 +516,9 @@ export default function BuildCandidateCard({
         <StatPanel stats={candidate.stats} serre={bureau} />
         {/* ⚠️ À LA SOURIS, la relique est TOUJOURS SOUS LA ROUE (carte de résultat seulement) :
             fiche 200 px + artéfacts 26 px + roue 94 px (échelle 0,45) et leurs
-            écarts font 332 px, ce qu'une carte de 360 px contient tout juste —
+            écarts font 332 px, ce qu'une carte de 360 px contient tout juste
+            (au bureau, fiche resserrée de 174 px : 306 px dans une carte de
+            328, sa largeur au plancher, voir GrilleResultats.tsx) —
             la relique à droite de la roue débordait des deux côtés. Grille à
             deux colonnes : artéfacts | roue, puis la relique dans la case sous
             la roue, centrée. Les artéfacts restent centrés sur la ROUE (la

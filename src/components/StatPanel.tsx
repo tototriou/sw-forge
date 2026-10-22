@@ -20,7 +20,18 @@ function fmt(n: number): string {
 // changeait de taille au clic et poussait les artéfacts/la roue/la relique
 // voisins d'un côté à l'autre. Une largeur fixe garantit que basculer
 // base+bonus ↔ total ne déplace RIEN autour de lui.
-const PANEL_WIDTH = 'w-[200px]';
+//
+// ⚠️ **Plus étroite en lignes resserrées, à la souris** (cartes de résultat
+// de l'Optimizer au bureau, décision de l'utilisateur : une carte de plus par
+// rangée) : 174 px et 6 px de rembourrage latéral au lieu de 12. La place
+// retirée est l'écart entre la colonne des libellés et celle des stats de
+// base, que la table répartit : la table garde 160 px, pour 157 px de contenu
+// au pire cas mesuré (base à six chiffres comme les 19 755 PV, la plus haute
+// des données, et bonus « +40 000 ») : rien n'est tronqué ni replié. Toujours
+// FIXE : la bascule ne déplace rien. Au doigt, la largeur et le rembourrage
+// habituels.
+const PANEL_WIDTH = 'w-[200px] p-3';
+const PANEL_WIDTH_SERRE = 'w-[174px] px-1.5 py-3 compact:w-[200px]';
 
 interface Props {
   stats: StatRow[];
@@ -58,7 +69,7 @@ export default function StatPanel({ stats, spdCible = null, serre = false }: Pro
       aria-pressed={showTotal}
       // ⚠️ Rembourrage réduit au doigt : le panneau porte HUIT lignes, et
       // chaque pixel de marge s'y multiplie par huit.
-      className={`rounded-lg border border-border bg-panel/50 p-3 self-start ${PANEL_WIDTH} cursor-pointer
+      className={`rounded-lg border border-border bg-panel/50 self-start ${serre ? PANEL_WIDTH_SERRE : PANEL_WIDTH} cursor-pointer
                  transition hoverable:border-accent compact:p-2`}
     >
       {/* ⚠️ **Resserré d'un cran au doigt.** Huit lignes à 12 px plus 8 px

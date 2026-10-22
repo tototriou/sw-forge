@@ -23,7 +23,17 @@ export interface GrilleResultatsProps {
 
 export default function GrilleResultats({ grilleResultatsRef, composition, runeById, relicUsageById, metric, openDetailKey, onToggleDetail, proprietesCarte, hauteurCarte, bureau = false }: GrilleResultatsProps) {
   return (
-    <div ref={grilleResultatsRef} className="grid grid-cols-[repeat(auto-fill,minmax(min(360px,100%),1fr))] gap-3">
+    // Au bureau, à la souris, une carte tient dans 328 px (fiche de stats
+    // resserrée, `StatPanel`) : une carte de plus par rangée (resultats.md).
+    // Au téléphone et au doigt, 360 px comme avant.
+    <div
+      ref={grilleResultatsRef}
+      className={`grid gap-3 ${
+        bureau
+          ? 'grid-cols-[repeat(auto-fill,minmax(min(328px,100%),1fr))] compact:grid-cols-[repeat(auto-fill,minmax(min(360px,100%),1fr))]'
+          : 'grid-cols-[repeat(auto-fill,minmax(min(360px,100%),1fr))]'
+      }`}
+    >
       {composition.cartes.map((c, i) => (
         <BuildCandidateCard
           key={c.runeIds.join('-')}

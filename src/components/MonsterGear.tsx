@@ -25,7 +25,8 @@ interface Props {
   // composants qui l'exposent déjà nativement (voir leurs propres fichiers,
   // déjà utilisés à échelle réduite par `BuildCandidateCard.tsx`). `StatPanel`
   // reste à sa largeur FIXE (`w-[200px]`, voir son commentaire de tête) : elle
-  // ne bouge JAMAIS, quel que soit l'appelant — un panneau qui rétrécirait ici
+  // ne bouge JAMAIS — seules les cartes de résultat de l'Optimizer au bureau
+  // la posent plus étroite (`serre`), fixe elle aussi — un panneau qui rétrécirait ici
   // recréerait exactement le déplacement au clic base+bonus↔total que sa
   // largeur fixe existe pour empêcher. `undefined` = taille normale
   // (comportement historique inchangé pour RTA/Siège, seuls appelants avant

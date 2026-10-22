@@ -51,7 +51,11 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    figure pas (la liste fermée suffit, la grille ouverte porte le sien).
    Ouverte, elle porte la grille
    du téléphone telle quelle (jetons, retrait, deux groupes, « Plus de
-   place ») en flottant : rien ne bouge dessous. ⚠️ **Une liste, pas deux**
+   place ») en flottant : rien ne bouge dessous. ⚠️ **Au bureau, la grille
+   est la même dépliée et dans la liste ouverte** (décision de
+   l'utilisateur) : dans son coffre en creux (`coffre`), Set secondaire sur
+   8 colonnes, et les deux groupes centrés dans le coffre, au même écart de
+   ses bords gauche et droit. ⚠️ **Une liste, pas deux**
    (principal · secondaire) : le choix est un multiensemble (deux fois le
    même set), que la grille sait dire et une case par set non.
    - ⚠️ **La liste reste ouverte pendant la composition** : après un set de

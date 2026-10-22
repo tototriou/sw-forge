@@ -17,8 +17,10 @@ ils suivent la progression, sur toute la largeur.
     rune** dans la mesure choisie — « Efficience moyenne : X » ou « Score
     moyen : X » selon le réglage global (Efficience/Score SW).
     ⚠️ **Au bureau, l'en-tête d'une carte tient sur une ligne** (décision
-    de l'utilisateur : la carte raccourcit) : rang, valeur moyenne et sets,
-    au lieu d'une ligne de sets à part. « Comparer » et « Valider ce build »
+    de l'utilisateur : la carte raccourcit) : le rang et ses sets à gauche,
+    la valeur moyenne calée à droite (décision de l'utilisateur), au lieu
+    d'une ligne de sets à part ; des sets trop longs se replient sous le
+    rang, jamais la valeur. « Comparer » et « Valider ce build »
     restent **en bas de la carte**, comme au téléphone (décision de
     l'utilisateur) : « Comparer » à sa largeur, « Valider » à la largeur fixe
     de son plus long libellé (160 px ; « Valider les artéfacts » en mesure

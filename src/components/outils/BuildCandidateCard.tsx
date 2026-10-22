@@ -288,7 +288,7 @@ export default function BuildCandidateCard({
 
   const rang = <span className="font-mono text-xs font-bold text-star">#{rank}</span>;
   const valeurMoyenne = (
-    <span className={`flex flex-col ${bureau ? 'items-start' : 'items-end'}`}>
+    <span className={`flex flex-col items-end ${bureau ? 'flex-none' : ''}`}>
       {/* Une phrase : police du texte (la mono ne sert qu'aux chiffres
           seuls) ; `tabular-nums` aligne la valeur d'une carte à l'autre. */}
       <span className="text-xs tabular-nums text-ink-dim">
@@ -390,13 +390,17 @@ export default function BuildCandidateCard({
     >
       {bureau ? (
         // ⚠️ **Au bureau, l'en-tête tient sur une ligne** (décision de
-        // l'utilisateur : la carte raccourcit) : rang, valeur moyenne et sets,
-        // au lieu d'une ligne de sets à part ; les boutons restent en bas de
-        // la carte, comme au téléphone.
-        <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-2">
-          {rang}
+        // l'utilisateur : la carte raccourcit) : le rang et ses sets à gauche,
+        // la valeur moyenne calée à droite (décision de l'utilisateur), au lieu
+        // d'une ligne de sets à part ; les boutons restent en bas de la carte,
+        // comme au téléphone. Les sets se replient sous le rang plutôt que de
+        // pousser la valeur : elle ne bouge pas d'une carte à l'autre.
+        <div className="mb-2 flex items-baseline justify-between gap-x-2">
+          <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+            {rang}
+            {lesSets}
+          </span>
           {valeurMoyenne}
-          {lesSets}
         </div>
       ) : (
         <div className="flex items-start justify-between mb-2">

@@ -582,7 +582,7 @@ collée par le bas, une barre qui grandirait ferait monter « Rechercher » /
   l'arrivée de la première carte : la recherche relancée vide les
   résultats, et la page, devenue plus courte que son défilement, remonterait
   d'un coup sous le pointeur, « Rechercher » compris.
-- **La place en plus** va aux résultats, en cartes de 360 px par rangée
+- **La place en plus** va aux résultats, en cartes de 328 px au moins (360 au doigt)
   (une seule, à toute la largeur, en dessous ; [resultats.md](resultats.md)) : en A3, la largeur gagnée ajoute des
   cartes par rangée. En A1 et en A2, la place qui reste à droite des boîtes
   fixes reste une marge.

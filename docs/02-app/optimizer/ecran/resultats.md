@@ -52,6 +52,18 @@ ils suivent la progression, sur toute la largeur.
     la carte tient sans déborder (mesuré, relique comprise). La bascule base+bonus ↔ total ne
     déplace jamais les artéfacts, la roue ou la relique voisins : `StatPanel` a une **largeur
     fixe** (`w-[200px]`, voir [rta/feat-sections-runes.md](../../rta/feat-sections-runes.md)).
+    ⚠️ **Au bureau, à la souris, une carte tient dans 328 px** (décision
+    de l'utilisateur : une carte de plus par rangée) : la grille passe à
+    `minmax(min(328px,100%),1fr)`, et la fiche de stats se resserre à
+    174 px, fixe elle aussi, avec 6 px de rembourrage latéral au lieu de 12 :
+    la place retirée est l'écart entre la colonne des libellés et celle des
+    stats de base. La table garde 160 px pour 157 au pire cas mesuré (base à
+    six chiffres comme les 19 755 PV, la plus haute des données, bonus
+    « +40 000 ») : rien n'est tronqué ni replié. Rembourrage de la carte et
+    creux entre cartes inchangés. Mesuré (compte d'exemple, A3) : 3 cartes
+    par rangée au lieu de 2 à 1920 × 940, 2 au lieu de 1 avec « Artéfacts et
+    relique » ; 5 au lieu de 4 à 2560 × 1300, 4 au lieu de 3 avec la
+    colonne. Au doigt et au téléphone, 360 px et la fiche de 200 px.
     ⚠️ **Au bureau, ses lignes sont resserrées** (`StatPanel`, `serre`,
     décision de l'utilisateur) : un pas de 22 px au lieu de 27, taille du
     texte inchangée (interligne `snug`, 2 px de rembourrage au lieu de 4).

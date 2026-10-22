@@ -483,7 +483,9 @@ export default function BuildCandidateCard({
         <StatPanel stats={candidate.stats} serre={bureau} />
         {/* ⚠️ À LA SOURIS, la relique est TOUJOURS SOUS LA ROUE (carte de résultat seulement) :
             fiche 200 px + artéfacts 26 px + roue 94 px (échelle 0,45) et leurs
-            écarts font 332 px, ce qu'une carte de 360 px contient tout juste —
+            écarts font 332 px, ce qu'une carte de 360 px contient tout juste
+            (au bureau, fiche resserrée de 174 px : 306 px dans une carte de
+            328, sa largeur au plancher, voir GrilleResultats.tsx) —
             la relique à droite de la roue débordait des deux côtés. Grille à
             deux colonnes : artéfacts | roue, puis la relique dans la case sous
             la roue, centrée. Les artéfacts restent centrés sur la ROUE (la

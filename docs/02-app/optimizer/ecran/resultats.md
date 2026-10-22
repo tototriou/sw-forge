@@ -30,7 +30,10 @@ ils suivent la progression, sur toute la largeur.
     dégâts ; décision de l'utilisateur) : sous elle, il faisait grandir la
     carte au clic, et « Comparer » descendait sous le pointeur. Sa place
     (44 px) est réservée même vide : la valeur reste calée à droite et la
-    ligne garde sa hauteur.
+    ligne garde sa hauteur. Vérifié au navigateur aux deux formats, avec
+    l'en-tête du bureau, les boutons à parts égales du téléphone et la
+    fiche resserrée au pire cas
+    ([optimizer-carte-resultat-navigateur.test.ts](tests/rendu/optimizer-carte-resultat-navigateur.test.ts)).
     Mesuré (carte de 356 à 716 px, compte d'exemple, sans « Dégâts ») :
     en-tête de 19 px, carte de 284 px avec un ou deux boutons. Le téléphone
     garde son en-tête et sa ligne de sets ; ses deux boutons se partagent la
@@ -78,8 +81,8 @@ ils suivent la progression, sur toute la largeur.
     ⚠️ **À la souris, la relique est toujours SOUS LA ROUE** (carte de
     résultat seulement —
     `MonsterGear` garde la sienne à droite) : fiche, artéfacts et roue font
-    332 px à l'échelle 0,45, ce que la carte au plancher contient tout
-    juste ; à droite de la roue, la relique déborderait des deux côtés. Le
+    332 px à l'échelle 0,45 (306 au bureau, fiche de 174 px, dans une carte
+    de 328), ce que la carte au plancher contient tout juste ; à droite de la roue, la relique déborderait des deux côtés. Le
     groupe artéfacts / roue est une grille à deux colonnes : la relique
     occupe la case sous la roue, centrée, et les artéfacts restent centrés
     sur la roue. La colonne vaut la largeur de la roue (`min-content`) : la

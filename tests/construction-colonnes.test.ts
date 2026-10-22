@@ -7,7 +7,7 @@ import { construireMoitiesEmboiteesTypees, requetesDeLaMoitie } from '../src/lib
 import { UnionDesRetentions } from '../src/lib/retentionEmboitee';
 import { OrdreCombos, premiereDivergence } from '../src/lib/constructionRapide';
 import { CompartimentType, objetsDesCompartiments, tamponsDesDemiBuilds, typerCompartiments } from '../src/lib/demiBuildsTypes';
-import { apparierRapide, compterPaires, encoderCompartiments, tamponsDe } from '../src/lib/appariementRapide';
+import { apparierRapide, compterPaires, encoderCompartiments, tamponsDe, verifierContrat } from '../src/lib/appariementRapide';
 import { apparierRapideEnParallele, enResultatDeRecherche } from '../src/lib/appariementRapideParallele';
 import { assurerBundleAppariementRapide, lancerTravailleurNode } from '../scripts/lib/appariementRapideNode';
 import { construireMoitiesEnParallele, ensureBuildHalfBundle } from '../scripts/lib/buildHalvesNode';
@@ -159,6 +159,25 @@ export default async function testConstructionColonnes() {
     if (bucketCap > 0) ok(repli.traitees > 0, 'le repli parcourt réellement des paires');
     identiques(etat(drain(pairBuckets(q, a.objet, b.objet))), etat(repli), `cap ${bucketCap} : repli sans sauts en colonnes`);
   }
+
+  // Base et apports entiers : la fraction vient de la rune elle-même,
+  // conservée dans le demi-build sur une stat réellement contrainte.
+  const poolFractionnaire = Array.from({ length: 6 }, (_, i) => ({
+    id: 20000 + i, slot: i + 1, set: 'violent', rank: 6, rarity: 5, level: 15,
+    main: { code: 3, value: i === 0 ? 10.5 : 100 }, subs: [],
+  }));
+  const fractionnaire = prepareSearch({ ...params, pool: poolFractionnaire,
+    requirement: { sets: ['violent'], minStats: { atk: 800 } }, slotFilterCap: 40, maxCollected: Infinity })!;
+  const fractionA = comparerMoitie(fractionnaire, 'A', 'objective', 'demi-build fractionnaire');
+  const fractionB = comparerMoitie(fractionnaire, 'B', 'objective', 'demi-build fractionnaire');
+  ok(verifierContrat(fractionnaire, fractionA.typee, fractionB.typee)?.startsWith('demi-build A : atk non entier') === true,
+    'la fraction ATQ du demi-build contraint force le repli de verifierContrat');
+  const refFractionnaire = drain(pairBuckets(fractionnaire, fractionA.objet, fractionB.objet));
+  const repliFractionnaire = drain(apparierRapide(fractionnaire, fractionA.typee, fractionB.typee));
+  egal(repliFractionnaire.chemin, 'actuel', 'demi-build fractionnaire : repli effectivement emprunté');
+  ok(repliFractionnaire.traitees > 0 && refFractionnaire.candidates.length > 0, 'demi-build fractionnaire : paires et candidats réels');
+  egal(repliFractionnaire.traitees, refFractionnaire.explored, 'demi-build fractionnaire : même compte traité');
+  identiques(etat(refFractionnaire), etat(repliFractionnaire), 'demi-build fractionnaire : résultats et ordre identiques à la référence');
 
   const mixte = prepareSearch({ ...params, pool: randomPool(mulberry32(10992), 4, SETS_JOKER), slotFilterCap: 40 })!;
   const objetA = reference(mixte, 'A', 'objective');

@@ -5963,6 +5963,11 @@ export class MemoCombat {
   // Par réglage connu, puis par tableau de stats.
   private parReglage = new Map<DamageSetup, Map<StatRow[], StatsRetenues>>();
   // Les sorts de `computeTotalDamage` : seules leurs chronologies se relisent.
+  // Sans borne propre : l'évaluateur de production garde un seul profil de
+  // sort pour la vie du memo (artifactEvaluation.ts, evaluerPourRegime).
+  // Les profils dérivés par paire ne passent pas par connaitre. L'API directe
+  // qui lui fournirait des profils toujours nouveaux n'a pas cette garantie ;
+  // sans chronologie retenue, aucun vidage ne limiterait alors cet ensemble.
   private sortsConnus = new Set<SkillDamageProfile>();
   private readonly element: ElementKey | null;
 
@@ -6014,8 +6019,10 @@ export class MemoCombat {
     // appel ne redemandera cette chronologie, ni les réglages qu'elle rend.
     if (!this.parReglage.has(setup) || !this.sortsConnus.has(profile)) return valeur;
     if (this.chronologies.length >= BORNE_CHRONOLOGIES) {
-      // Les réglages connus par les chronologies oubliées partent avec elles ;
-      // celui et le sort de `computeTotalDamage` reviennent au prochain appel.
+      // Tous les réglages et sorts connus sont oubliés, ceux de l'appel courant
+      // compris : ils ne reviennent qu'au prochain computeTotalDamage.
+      // La chronologie courante est retenue et ses réglages dérivés réinscrits
+      // ci-dessous ; le calcul déjà fait reste utilisable pendant cet appel.
       this.chronologies = [];
       this.parReglage.clear();
       this.sortsConnus.clear();

@@ -298,8 +298,10 @@ et celles des tests, du harnais et des scripts de mesure :
   score, ne se calcule plus pendant la résolution de l'app, qui ne note que
   les paires faisables : la fonction du CLI `resoudreEquipementCli`
   (`scripts/lib/recipeToSearchParams.ts`) le calcule sur son option
-  `diagnostic`, par le calcul exhaustif, mais seul
-  `scripts/banc-resolution-rapide.ts --diagnostic` l'appelle ainsi ; ni le
+  `diagnostic`, par le calcul exhaustif, mais seuls
+  `scripts/banc-resolution-rapide.ts --diagnostic` et le test différentiel
+  [tests/cli-classement.test.ts](../../tests/cli-classement.test.ts) (appel
+  à la ligne 244) l'appellent ainsi ; ni le
   script du CLI (`classementCli.ts` résout sans l'option) ni le harnais ne
   l'exposent
   ([03-developpeur/optimizer/moteur/reliques.md § Résolution rapide — le chemin de l'app](../03-developpeur/optimizer/moteur/reliques.md#résolution-rapide--le-chemin-de-lapp)).

@@ -177,11 +177,11 @@ function ResultatsGabarit({ ctx, mode }: { ctx: ContexteGabarits; mode: AttenteR
         optimiserArtefacts={ctx.optimizer.optimiserArtefacts} adapterArtefactsAuTri={adapter} setAdapterArtefactsAuTri={setAdapter}
         sortBy={tri} setSortBy={setTri} setResultsPage={setPage} realDamage={null} fileArtefacts={{ enAttente: 0 } as UseArtifactOptimQueue}
         compteAffiche={{ compte: confirmees, ecartes: 0, raison: null }} />
-      <DiagnosticsSansResultat result={result}
+      <DiagnosticsSansResultat bureau result={result}
         feasibilityDiagnosis={mode === 'zero' ? [{ key: 'spd', kind: 'min', requested: 0, bound: 0, satisfiable: true }] : []}
         impossibleFeasibility={[]} blockingDiagnosis={null} diagnoseBlockingEnabled={false} runeById={runeById} metric={metric}
         objective={ctx.optimizer.objective} aurasPropresDe={() => AUCUNE_AURA} damageSetup={ctx.optimizer.damageSetup} />
-      <GrilleResultats grilleResultatsRef={grille} composition={{ cartes: candidats, premierRang: 1, placesEnAttente: 0, aVerifier: [] }}
+      <GrilleResultats bureau grilleResultatsRef={grille} composition={{ cartes: candidats, premierRang: 1, placesEnAttente: 0, aVerifier: [] }}
         runeById={runeById} relicUsageById={undefined} metric={metric} openDetailKey={null} onToggleDetail={rien}
         proprietesCarte={() => ({ artifacts: exemplaire?.gear.artifacts ?? [], onValidate: rien, validated: 'non', onCompare: rien })} hauteurCarte={null} />
       {mode === 'vingt' && (

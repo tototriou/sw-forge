@@ -3247,6 +3247,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           />
   
           <DiagnosticsSansResultat
+            bureau={!sousLg}
             result={result}
             feasibilityDiagnosis={feasibilityDiagnosis}
             impossibleFeasibility={impossibleFeasibility}
@@ -3275,6 +3276,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               (`useHauteurDesCartes`), pour que rien ne saute quand la carte
               arrive. */}
           <GrilleResultats
+            bureau={!sousLg}
             grilleResultatsRef={grilleResultatsRef}
             composition={composition}
             runeById={runeById}

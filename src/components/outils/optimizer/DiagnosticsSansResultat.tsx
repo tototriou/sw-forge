@@ -17,9 +17,15 @@ export interface DiagnosticsSansResultatProps {
   objective: Objective;
   aurasPropresDe: (c: { runeIds: number[]; }) => Readonly<Record<SetAura, number>>;
   damageSetup: DamageSetup;
+  // ⚠️ Au bureau, chaque diagnostic sans encadré, sous un trait fin : les
+  // résultats sont une section du panneau de la colonne de droite, où une
+  // boîte de plus ferait la mosaïque que le trait évite
+  // (docs/02-app/optimizer/ecran/README.md, « Panneaux et sections »).
+  // Le téléphone garde ses encadrés.
+  bureau?: boolean;
 }
 
-export default function DiagnosticsSansResultat({ result, feasibilityDiagnosis, impossibleFeasibility, blockingDiagnosis, diagnoseBlockingEnabled, runeById, metric, objective, aurasPropresDe, damageSetup }: DiagnosticsSansResultatProps) {
+export default function DiagnosticsSansResultat({ result, feasibilityDiagnosis, impossibleFeasibility, blockingDiagnosis, diagnoseBlockingEnabled, runeById, metric, objective, aurasPropresDe, damageSetup, bureau = false }: DiagnosticsSansResultatProps) {
   return (
     <>
     {/* ⚠️ Diagnostic affiché UNIQUEMENT sur 0 résultat — voir
@@ -32,6 +38,7 @@ export default function DiagnosticsSansResultat({ result, feasibilityDiagnosis, 
     {result?.candidates.length === 0 && feasibilityDiagnosis.length > 0 && (
       <DiagnosticFaisabilite
         impossibleFeasibility={impossibleFeasibility}
+        bureau={bureau}
       />
     )}
 
@@ -41,7 +48,7 @@ export default function DiagnosticsSansResultat({ result, feasibilityDiagnosis, 
         Deux affichages selon l'état de la bascule : le classement s'il
         est activé, une invitation discrète sinon. */}
     {result?.candidates.length === 0 && (
-      <DiagnosticApprofondi blockingDiagnosis={blockingDiagnosis} diagnoseBlockingEnabled={diagnoseBlockingEnabled} />
+      <DiagnosticApprofondi blockingDiagnosis={blockingDiagnosis} diagnoseBlockingEnabled={diagnoseBlockingEnabled} bureau={bureau} />
     )}
 
     {/* ⚠️ Quasi-succès à l'appariement — sous-produit GRATUIT de la
@@ -59,6 +66,7 @@ export default function DiagnosticsSansResultat({ result, feasibilityDiagnosis, 
         objective={objective}
         aurasPropresDe={aurasPropresDe}
         damageSetup={damageSetup}
+        bureau={bureau}
       />
     )}
     </>

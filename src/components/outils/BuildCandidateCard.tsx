@@ -112,6 +112,13 @@ interface Props {
    * comment cette résolution se fait.
    */
   comparaison?: { key: string; label: string; suffix: string; delta: number }[];
+  // ⚠️ **Au bureau, la carte sans cadre** : un trait fin au-dessus, ni
+  // contour, ni fond, ni rembourrage de côté ; ses rangées « Dégâts »,
+  // « PV effectifs » et ses écarts gardent leur fond, sans contour. Les
+  // résultats sont une section du panneau de la colonne de droite
+  // (docs/02-app/optimizer/ecran/README.md, « Panneaux et sections ») ;
+  // décision de l'utilisateur. Le téléphone garde la carte encadrée.
+  bureau?: boolean;
 }
 
 // ⚠️ Même FORME que l'affichage de l'équipement actuellement équipé (RTA/
@@ -169,7 +176,11 @@ export default function BuildCandidateCard({
   comparaison,
   pvEffectifs,
   metricDelta,
+  bureau = false,
 }: Props) {
+  // Le contour des rangées mises en avant : sans lui au bureau, où la carte
+  // n'en a plus (elles deviendraient les seuls cadres de la section).
+  const contourRangee = bureau ? '' : 'border border-border-soft';
   const runes = candidate.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => !!r);
   const sets = activeSets(runes.map((r) => r.set));
   // ⚠️ Une même rune peut apparaître dans PLUSIEURS candidats affichés (une
@@ -278,7 +289,7 @@ export default function BuildCandidateCard({
       // de résultats, plus tard dans l'ordre du DOM — même sans chevauchement
       // apparent, l'empilement par défaut suit l'ordre du DOM, pas la
       // position à l'écran.
-      className={`rounded-xl border border-border bg-panel p-2.5 ${
+      className={`${bureau ? 'border-t border-border-soft pt-2.5' : 'rounded-xl border border-border bg-panel p-2.5'} ${
         detailOuvertIci ? 'relative z-10' : ''
       }`}
       // Lu par `useHauteurDesCartes` : les places « Vérification… » prennent
@@ -305,7 +316,7 @@ export default function BuildCandidateCard({
           lui, on triait par PV effectifs sans jamais voir la valeur triée —
           signalé à l'usage. */}
       {pvEffectifs && (
-        <p className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
+        <p className={`mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg ${contourRangee} bg-panel2 px-2 py-1`}>
           <span className="text-micro text-ink-dim">PV effectifs</span>
           <span className="flex flex-col items-end">
             <span className="font-mono text-sm font-bold text-star">
@@ -322,7 +333,7 @@ export default function BuildCandidateCard({
           lisible sans calcul mental (« ça tue ou pas »), le seul rôle des PV
           adverses saisis — ils n'entrent jamais dans le classement. */}
       {degatsReels && (
-        <p className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
+        <p className={`mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg ${contourRangee} bg-panel2 px-2 py-1`}>
           <span className="text-micro text-ink-dim">Dégâts</span>
           <span className="flex flex-col items-end">
             {/* La mono sur le chiffre seul : « tue la cible » / « N % des PV »
@@ -534,7 +545,7 @@ export default function BuildCandidateCard({
           carte à l'autre, et laisserait croire qu'une stat absente n'a pas été
           comparée. */}
       {comparaison && (
-        <div className="mt-2 grid grid-cols-[repeat(auto-fit,minmax(72px,1fr))] gap-x-2 gap-y-0.5 rounded border border-border-soft bg-panel2 px-2 py-1.5">
+        <div className={`mt-2 grid grid-cols-[repeat(auto-fit,minmax(72px,1fr))] gap-x-2 gap-y-0.5 rounded ${contourRangee} bg-panel2 px-2 py-1.5`}>
           {comparaison.map((s) => (
             <div key={s.key} className="flex items-baseline justify-between gap-1">
               <span className="text-nano text-ink-dim">{s.label}</span>

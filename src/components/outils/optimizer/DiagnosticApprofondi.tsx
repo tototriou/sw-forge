@@ -4,11 +4,13 @@ import { type BlockingConditionsDiagnosis } from '../../../lib/runeBuildOptim';
 export interface DiagnosticApprofondiProps {
   blockingDiagnosis: BlockingConditionsDiagnosis | null;
   diagnoseBlockingEnabled: boolean;
+  // Au bureau, sans encadré, sous un trait fin (voir `DiagnosticsSansResultat`).
+  bureau?: boolean;
 }
 
-export default function DiagnosticApprofondi({ blockingDiagnosis, diagnoseBlockingEnabled }: DiagnosticApprofondiProps) {
+export default function DiagnosticApprofondi({ blockingDiagnosis, diagnoseBlockingEnabled, bureau = false }: DiagnosticApprofondiProps) {
   return blockingDiagnosis && blockingDiagnosis.impacts.length > 0 ? (
-    <div className="mb-3 rounded-lg border border-border bg-panel p-3">
+    <div className={bureau ? 'mb-3 border-t border-border-soft pt-3' : 'mb-3 rounded-lg border border-border bg-panel p-3'}>
       <p className="mb-1.5 text-xs font-semibold text-ink">
         Diagnostic approfondi — pool le plus restreint : {blockingDiagnosis.baselineMinSlot} candidat(s)
         actuellement.

@@ -13,6 +13,8 @@
 // Voir docs/03-developpeur/optimizer/moteur/parallelisation.md.
 
 import { cederLaMain } from './cession';
+import { BuildCandidate } from './runeBuildOptim';
+import { SortieCandidats, creerColonnesCandidats, tamponsCandidats } from './candidatsCompacts';
 import {
   ContexteTravailleur,
   InitTravailleur,
@@ -26,12 +28,17 @@ import {
 /** Travail continu d'un Worker entre deux lectures de ses messages, en millisecondes. */
 export const TRANCHE_MS = 100;
 
-export type MessageVersTravailleur = { type: 'init'; init: InitTravailleur } | Morceau | { type: 'arret' };
+export type MessageVersTravailleur = { type: 'init'; init: InitTravailleur } | Morceau | { type: 'arret' } | { type: 'credit' };
+
+export function tamponsResultatMorceau(r: ResultatMorceau<SortieCandidats>): ArrayBuffer[] {
+  if (Array.isArray(r.candidats)) return [];
+  return [...tamponsCandidats(r.candidats.blocs), (r.positions as Float64Array).buffer as ArrayBuffer, (r.visitesAuCandidat as Float64Array).buffer as ArrayBuffer];
+}
 
 /** Le résultat d'un morceau jamais commencé, rendu après un arrêt (`validationTypee` : celle du Worker). */
-export function resultatVide(morceau: Morceau, validationTypee: boolean): ResultatMorceau {
+export function resultatVide<C extends SortieCandidats = BuildCandidate[]>(morceau: Morceau, validationTypee: boolean, candidats: C = [] as unknown as C): ResultatMorceau<C> {
   return {
-    type: 'resultat', id: morceau.id, traitees: 0, visitees: 0, candidats: [], positions: [], visitesAuCandidat: [],
+    type: 'resultat', id: morceau.id, traitees: 0, visitees: 0, candidats, positions: Array.isArray(candidats) ? [] : new Float64Array(0), visitesAuCandidat: Array.isArray(candidats) ? [] : new Float64Array(0),
     ameliorations: [], issue: 'arret', validationTypee, compteurs: compteursVides(),
   };
 }
@@ -42,13 +49,13 @@ const cederParDefaut = () => cederLaMain();
 
 /**
  * Le serveur d'un Worker : `recevoir(message)` pour chaque message entrant ;
- * `envoyer` reçoit chaque résultat, un par morceau, dans l'ordre de réception.
+ * `envoyer` reçoit les blocs puis le bilan de chaque morceau, dans l'ordre de réception.
  * Une exception (initialisation, morceau) remonte par la promesse rejetée de
  * `recevoir` : la coquille la laisse échapper, son `onerror` la porte au
  * coordinateur.
  */
-export function servirAppariement(
-  envoyer: (resultat: ResultatMorceau) => void,
+export function servirAppariement<C extends SortieCandidats = BuildCandidate[]>(
+  envoyer: (resultat: ResultatMorceau<C>) => void,
   options: { trancheMs?: number; ceder?: () => Promise<void>; maintenant?: () => number } = {}
 ): { recevoir: (message: MessageVersTravailleur) => Promise<void> } {
   const trancheMs = options.trancheMs ?? TRANCHE_MS;
@@ -58,6 +65,15 @@ export function servirAppariement(
   let arrete = false;
   const enAttente: Morceau[] = [];
   let enCours = false;
+  let compact = false;
+  let rendreCredit: (() => void) | null = null;
+  const transmettre = async (r: ResultatMorceau<C>) => {
+    if (!compact) { envoyer(r); return; }
+    // Installer l'attente avant l'envoi : un lanceur de test peut acquitter immédiatement.
+    const credit = new Promise<void>((resolve) => { rendreCredit = resolve; });
+    envoyer(r);
+    await credit;
+  };
 
   const traiter = async (): Promise<void> => {
     if (enCours) return;
@@ -79,20 +95,21 @@ export function servirAppariement(
           debut = maintenant();
         }
         if (arrete) {
-          envoyer(resultatVide(morceau, contexte?.validation != null));
+          await transmettre(resultatVide(morceau, contexte?.validation != null, (compact ? creerColonnesCandidats() : []) as C));
           continue;
         }
         if (!contexte) throw new Error('Worker d’appariement : morceau reçu avant l’initialisation');
-        const gen = parcourirMorceau(contexte, morceau);
+        const gen = parcourirMorceau(contexte, morceau, (compact ? creerColonnesCandidats() : []) as C);
         let step = gen.next(false);
         while (!step.done) {
+          if (step.value) await transmettre(step.value);
           if (expiree()) {
             await ceder();
             debut = maintenant();
           }
           step = gen.next(arrete);
         }
-        envoyer(step.value);
+        await transmettre(step.value);
       }
     } finally {
       enCours = false;
@@ -102,11 +119,18 @@ export function servirAppariement(
   return {
     recevoir: async (message) => {
       if (message.type === 'init') {
+        compact = message.init.collecteCompacte === true;
         contexte = initialiserTravailleur(message.init);
         return;
       }
       if (message.type === 'arret') {
         arrete = true;
+        return;
+      }
+      if (message.type === 'credit') {
+        const rendre = rendreCredit;
+        rendreCredit = null;
+        rendre?.();
         return;
       }
       enAttente.push(message);

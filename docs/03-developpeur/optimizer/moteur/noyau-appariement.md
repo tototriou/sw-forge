@@ -35,8 +35,8 @@ résultat :
   tentative, relique en « OU » du mode `recherche` comprise (`ecarts(a, f)`
   : la principale de la relique représentative `f` ajoutée à la somme
   entière des pourcentages avant le `ceil`, valeur entière exigée par le
-  contrat) ; les `StatRow` ne se
-  construisent que pour une paire gardée ou un quasi-succès amélioré ;
+  contrat) ; la sortie compacte écrit directement les totaux, les `StatRow`
+  ne se construisent que pour l'adaptation objet ou un quasi-succès amélioré ;
 - la **référence** (`Collecteur.valider`), copie conforme du bloc de
   `pairBuckets`, quand le contrat de la validation typée ne tient pas
   (une valeur sommée non entière ou non bornée : `ValidationTypee.motif`).
@@ -110,6 +110,13 @@ Tous fondés sur la même équivalence (`survivantsLigne`) :
 
 ## Ordre, garde et comptes
 
+La sortie de collecte est injectée : objets pour la référence et les outils,
+colonnes Float64 pour les Workers. La validation typée écrit les totaux par
+la même fonction que `lignes`, sans construire de `StatRow` par candidat.
+Le chemin de repli adapte un seul objet temporaire. Les blocs, positions et
+visites se coupent ensemble ; les pauses de transport n'ajoutent aucun
+jugement ni saut. Les quasi-succès utilisent les mêmes objets et règles.
+
 - **Ordre de visite** : celui de `pairBuckets`. Le quasi-succès « le premier
   vu » et les candidats gardés sous `maxCollected` sont donc les mêmes.
 - **Garde de référence** : une paire qui franchit les seuils repasse par
@@ -142,6 +149,43 @@ Tous fondés sur la même équivalence (`survivantsLigne`) :
   avant de distribuer un morceau.
 
 ## Vérification
+
+Les contrôles du flux compact (`tests/flux-candidats.test.ts`) comparent à
+`pairBuckets` des candidats distincts avec conditions et quasi-succès, sous
+coupe après plusieurs morceaux puis un bloc `suite`. Un vrai Worker attend
+le retour d'un crédit après expiration du filet ; sa coupe est comparée à
+la référence au même point logique, sans comparer deux recherches au même
+instant réel. Une panne pendant un transfert `MessageChannel` doit encore
+permettre de sceller exactement le préfixe reçu. Les tampons de vingt blocs
+unitaires occupent exactement 2 400 octets, sans capacité cachée.
+
+`testFluxCandidatsPageLente` utilise de vrais Workers Node et une page
+simulée qui acquitte chaque bloc après huit tours de boucle. Il compte les
+crédits retenus après fusion, ainsi que les blocs contigus reçus qui
+attendraient une publication précédente : aucune attente liée à la page
+dans ce scénario, sans mesure de temps. Il compare les 77 125 candidats,
+les comptes, les quasi-succès et le motif à la référence séquentielle. Un
+contrôle sans acquittement remplit les seize places de la fenêtre, vérifie
+que le dix-septième bloc attend, puis que le scellement attend tous les
+crédits. Les tampons partiels restent ajustés aux lignes.
+
+`testFluxCandidatsReceptionOrdre` retient le lancement du morceau de tête
+avec une barrière logique, pendant que le suivant tourne dans un vrai
+Worker Node. Il compte les crédits encore attendus après réception : le
+suivant doit livrer son bloc `suite` puis son bilan, crédités avant le
+départ de la tête, sans attente liée à l'ordre. Le second scénario remplit
+les quatre places d'un producteur ; cette saturation retient son crédit,
+puis la tête doit encore avancer et tout se drainer. Les candidats
+distincts, les quasi-succès, les comptes et le motif sont comparés à
+`pairBuckets` ; les octets des colonnes, positions et visites en attente
+sont contrôlés contre la borne par Worker. Un arrêt demandé immédiatement
+après réception du dernier bilan ne doit pas précéder sa fusion. Aucun
+chronomètre n'intervient dans ces barrières ou ces compteurs.
+
+Chaque appel parallèle explicite de ces tests a un délai de garde de
+15 secondes, qui signale une erreur et ferme les Workers encore vivants ;
+ce délai détecte un interblocage, il n'est pas un budget de performance.
+Un lanceur muet vérifie aussi ce chemin d'expiration et son nettoyage.
 
 `testConstructionColonnes` (`tests/construction-colonnes.test.ts`) compare
 la construction et l'union en colonnes à `buildBuckets` et à l'union objet,

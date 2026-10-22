@@ -20,11 +20,11 @@
 // (`apparierRapideEnParallele`) attend des Workers enfants, et la main revient
 // d'elle-même entre deux messages.
 
-import { PreparedSearch, SearchParams, SearchResult, BuildCandidate } from '../lib/runeBuildOptim';
+import { PreparedSearch, SearchParams, SearchResult } from '../lib/runeBuildOptim';
+import { BlocCandidats, ColonnesCandidats, creerColonnesCandidats } from '../lib/candidatsCompacts';
 import { CompartimentType } from '../lib/demiBuildsTypes';
 import { RelicVide } from '../lib/relicOptim';
-import { apparier } from '../lib/rechercheRunes';
-import { compterPaires, verifierContrat } from '../lib/appariementRapide';
+import { apparierRapide, compterPaires, verifierContrat } from '../lib/appariementRapide';
 import {
   PoigneeTravailleur, apparierRapideEnParallele, enResultatDeRecherche, erreurDeWorkerEnfant, resultatApresErreur, type LancerTravailleur,
 } from '../lib/appariementRapideParallele';
@@ -32,7 +32,7 @@ import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
 import { construireMoitiesEmboiteesTypees } from '../lib/constructionEmboitee';
 import { MessageVersAppariement } from './appariementRapide.worker';
 import { nombreDeTravailleurs, regimeAppariement } from './parallelPairing';
-import { drivePairing, PROGRESS_THROTTLE_MS } from './pairingDriver';
+import { drivePairing, EmetteurCandidats, PROGRESS_THROTTLE_MS } from './pairingDriver';
 import { prepareOrRefuse } from './prepareForSearch';
 
 // La demande d'une recherche : ses paramètres, et ce que la page sait de la
@@ -46,7 +46,7 @@ export interface DemandeDeRecherche {
   params: SearchParams;
   coeursPhysiques: number | null;
 }
-export type WorkerRequest = DemandeDeRecherche | { stop: true };
+export type WorkerRequest = DemandeDeRecherche | { stop: true } | { credit: true };
 
 // ⚠️ Deux formes, comme `SearchProgress` côté moteur (voir son commentaire) :
 // la construction des compartiments (`phase: 'building'`) peut à elle seule
@@ -76,17 +76,10 @@ export interface WorkerPairingMessage {
   // suppression du budget de nœuds, c'est le seul dénominateur
   // que le Worker ait à transmettre.
   totalPairs: number;
-  // ⚠️ Les candidats NOUVEAUX depuis le dernier message, PAS la liste
-  // entière accumulée jusqu'ici (voir docs/03-developpeur/optimizer/
-  // § Appariement séquentiel) : `progress.candidates` peut
-  // grossir jusqu'à `maxCollected` (100 000 par défaut) sur une recherche
-  // lâche — le retransmettre EN ENTIER à chaque point de passage throttlé
-  // (~150 ms) recopierait le même préfixe des dizaines de fois pour rien.
-  // Charge à qui reçoit (useBuildOptimSearch.ts) d'accumuler ce delta.
-  newCandidates: BuildCandidate[];
 }
 export type WorkerProgressMessage = WorkerBuildingMessage | WorkerPairingMessage;
-export type WorkerResultMessage = { type: 'result' } & SearchResult;
+export type WorkerResultMessage = { type: 'result'; nombre: number } & Omit<SearchResult, 'candidates'>;
+export type WorkerCandidatsMessage = { type: 'candidats'; bloc: BlocCandidats };
 // Refus NOMMÉ (pool de reliques vide en mode `recherche`) — jamais un
 // `result` vide qui se présenterait comme « 0 build ». `useBuildOptimSearch.ts` le distingue de
 // `error` par un statut propre (`'refused'`).
@@ -99,7 +92,7 @@ export interface WorkerErrorMessage {
   type: 'error';
   message: string;
 }
-export type WorkerResponse = WorkerProgressMessage | WorkerResultMessage | WorkerRefusMessage | WorkerErrorMessage;
+export type WorkerResponse = WorkerProgressMessage | WorkerResultMessage | WorkerCandidatsMessage | WorkerRefusMessage | WorkerErrorMessage;
 
 // Barre de progression, pas une roue qui tourne : approxime « à quel point on
 // approche d'un arrêt » en prenant le plus avancé des trois budgets qui
@@ -152,6 +145,7 @@ let stopBuildReject: (() => void) | null = null;
 // attend leurs réponses et rend tout ce qui a été trouvé, comme un
 // arrêt en phase séquentielle (« garde le meilleur trouvé jusque-là »).
 let arreterAppariement: (() => void) | null = null;
+let emetteur: EmetteurCandidats | null = null;
 
 // Lanceur de plateforme passé à `apparierRapideEnParallele` — la SEULE partie
 // du chemin parallèle qui reste liée à Vite/navigateur (`new Worker(new
@@ -159,12 +153,13 @@ let arreterAppariement: (() => void) | null = null;
 // (scripts/lib/appariementRapideNode.ts). L'initialisation part en premier,
 // ses tableaux typés transférés ; l'ordre des messages garantit qu'elle
 // précède tout morceau.
-const lancerTravailleurNavigateur: LancerTravailleur = (init, transfert): PoigneeTravailleur => {
+const lancerTravailleurNavigateur: LancerTravailleur<ColonnesCandidats> = (init, transfert): PoigneeTravailleur<ColonnesCandidats> => {
   const worker = new Worker(new URL('./appariementRapide.worker.ts', import.meta.url), { type: 'module' });
   const message: MessageVersAppariement = { type: 'init', init };
   worker.postMessage(message, transfert);
   return {
     envoyer: (morceau, t) => worker.postMessage(morceau, t),
+    acquitter: () => worker.postMessage({ type: 'credit' }),
     surMessage: (rappel) => {
       worker.onmessage = (e) => rappel(e.data);
     },
@@ -208,6 +203,7 @@ function buildHalfInWorker(request: BuildHalfRequest, onProgress: (scanned: numb
 }
 
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
+  if ('credit' in e.data) { emetteur?.acquitter(); return; }
   if ('stop' in e.data) {
     stopped = true;
     terminerMoitiesEnCours();
@@ -218,6 +214,17 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   stopped = false;
   const { params, coeursPhysiques } = e.data;
   const startedAt = Date.now();
+  const flux = new EmetteurCandidats((bloc, transfert) => {
+    const message: WorkerCandidatsMessage = { type: 'candidats', bloc };
+    (self as unknown as Worker).postMessage(message, transfert);
+  });
+  emetteur = flux;
+  const posterResultat = async (r: SearchResult<ColonnesCandidats>) => {
+    const nombre = await flux.sceller(r.candidates);
+    const message: WorkerResultMessage = { type: 'result', nombre, explored: r.explored, truncated: r.truncated,
+      nearMissByCondition: r.nearMissByCondition, globalNearMiss: r.globalNearMiss };
+    (self as unknown as Worker).postMessage(message);
+  };
 
   // ⚠️ `prepareSearch` peut lever `RechercheRefusee` (pool de reliques vide
   // en mode `recherche`) — jamais un simple appel direct ICI : un rejet
@@ -239,8 +246,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     return;
   }
   if (outcome.kind === 'empty') {
-    const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null };
-    (self as unknown as Worker).postMessage(result);
+    await posterResultat({ candidates: creerColonnesCandidats(), explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null });
     return;
   }
   const prepared = outcome.prepared;
@@ -283,8 +289,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     // rien n'existe encore à ressortir (aucune paire n'a pu être évaluée) — un
     // résultat vide, tronqué, est le seul choix honnête, même comportement que
     // l'ancien code pour `phase: 'building'`.
-    const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null };
-    (self as unknown as Worker).postMessage(result);
+    await posterResultat({ candidates: creerColonnesCandidats(), explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null });
     return;
   } finally {
     stopBuildReject = null;
@@ -293,8 +298,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     terminerMoitiesEnCours();
   }
   if (stopped) {
-    const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null };
-    (self as unknown as Worker).postMessage(result);
+    await posterResultat({ candidates: creerColonnesCandidats(), explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null });
     return;
   }
 
@@ -310,9 +314,9 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   // les colonnes sans saut — le coordinateur parallèle, lui, n'a
   // pas de repli.
   if (regimeAppariement(totalPairs, verifierContrat(prepared, bucketsA, bucketsB)) === 'parallele') {
-    let envoyes = 0;
     let dernierMessage = 0;
-    const postProgress = (explored: number, candidats: readonly BuildCandidate[]) => {
+    const postProgress = async (explored: number, candidats: ColonnesCandidats) => {
+      await flux.transmettre(candidats);
       const now = Date.now();
       if (now - dernierMessage <= PROGRESS_THROTTLE_MS) return;
       dernierMessage = now;
@@ -323,11 +327,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         found: candidats.length,
         pct: estimatePct(prepared, totalPairs, explored, candidats.length, now - startedAt),
         totalPairs,
-        // Les candidats FUSIONNÉS, dans l'ordre séquentiel : l'aperçu est
-        // toujours un préfixe du résultat final.
-        newCandidates: candidats.slice(envoyes),
       };
-      envoyes = candidats.length;
       (self as unknown as Worker).postMessage(message);
     };
     // ⚠️ `try/catch` à ne pas retirer, comme pour la phase de construction
@@ -340,6 +340,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     // l'écran garde les candidats déjà montrés, et l'erreur est journalisée.
     try {
       const resultat = await apparierRapideEnParallele({
+        collecte: creerColonnesCandidats(),
         params, prepared, bucketsA, bucketsB, totalPaires: totalPairs,
         travailleurs: nombreDeTravailleurs(self.navigator?.hardwareConcurrency, coeursPhysiques),
         lancer: lancerTravailleurNavigateur, startedAt,
@@ -348,12 +349,10 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         },
         surProgression: postProgress,
       });
-      const result: WorkerResultMessage = { type: 'result', ...enResultatDeRecherche(resultat) };
-      (self as unknown as Worker).postMessage(result);
+      await posterResultat(enResultatDeRecherche(resultat));
     } catch (erreur) {
       console.error('Appariement parallèle interrompu par une erreur ; résultat rendu tronqué, avec ce qui a été fusionné :', erreur);
-      const result: WorkerResultMessage = { type: 'result', ...resultatApresErreur(erreur) };
-      (self as unknown as Worker).postMessage(result);
+      await posterResultat(resultatApresErreur(erreur, creerColonnesCandidats()));
     } finally {
       arreterAppariement = null;
     }
@@ -365,8 +364,9 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   // `totalPairCount` dans runeBuildOptim.ts) : l'appariement va au bout de
   // `totalPairs`, sauf arrêt par `maxMs`, par `maxCollected` ou par le bouton
   // « Arrêter » (`stopped`).
-  const gen = apparier(prepared, bucketsA, bucketsB);
-  const result = await drivePairing(gen, () => stopped, (explored, newCandidates, foundTotal) => {
+  const gen = apparierRapide(prepared, bucketsA, bucketsB, { collecte: creerColonnesCandidats() });
+  const result = await drivePairing(gen, () => stopped, async (explored, nouveaux, foundTotal) => {
+    await flux.transmettre(nouveaux);
     const message: WorkerPairingMessage = {
       type: 'progress',
       phase: 'pairing',
@@ -374,10 +374,8 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       found: foundTotal,
       pct: estimatePct(prepared, totalPairs, explored, foundTotal, Date.now() - startedAt),
       totalPairs,
-      newCandidates,
     };
     (self as unknown as Worker).postMessage(message);
   });
-  const message: WorkerResultMessage = { type: 'result', ...result };
-  (self as unknown as Worker).postMessage(message);
+  await posterResultat(result);
 };

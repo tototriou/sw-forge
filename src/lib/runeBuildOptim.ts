@@ -532,7 +532,7 @@ export interface NearMiss {
 // temps est testé avant la collecte, le plafond après), jamais transmis.
 export type MotifTroncature = 'maxMs' | 'maxCollected';
 
-export interface SearchResult {
+export interface SearchResult<C = BuildCandidate[]> {
   // ⚠️ **L'ORDRE N'EST PAS CELUI DE L'OBJECTIF.** Les candidats sortent dans
   // l'ordre où l'appariement les a collectés, pas classés par ce qu'on a
   // demandé de maximiser. `candidates[0]` n'est donc **pas** le meilleur
@@ -543,7 +543,7 @@ export interface SearchResult {
   // tort « le moteur manque un build meilleur » (le build cherché peut être
   // au rang 6), et en afficher 20 sans tri présente 20 candidats arbitraires
   // comme des résultats.
-  candidates: BuildCandidate[];
+  candidates: C;
   explored: number;
   truncated: boolean;
   /**
@@ -3810,9 +3810,9 @@ export interface BuildingProgress {
   scanned: number;
   total: number;
 }
-export interface PairingProgress {
+export interface PairingProgress<C = BuildCandidate[]> {
   phase: 'pairing';
-  candidates: BuildCandidate[];
+  candidates: C;
   explored: number;
   // Snapshot du near-miss ACCUMULÉ jusqu'à ce point — voir `SearchResult`
   // pour la sémantique exacte. Porté ici, pas seulement sur le résultat

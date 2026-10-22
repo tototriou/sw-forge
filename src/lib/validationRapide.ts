@@ -29,7 +29,7 @@
 //    du build —, auras RES/PRE propres (activations Tolerance/Accuracy du
 //    point 1) : `actual` recalculé par la MÊME suite d'opérations que
 //    `totalCondition(total + décalage)`, dans le même ordre.
-// 4. Les `StatRow` ne se construisent qu'à la collecte ou quand le
+// 4. Les `StatRow` ne se construisent qu'à l'adaptation objet ou quand le
 //    quasi-succès s'améliore (`lignes`), avec les libellés, suffixes et
 //    l'ordre des lignes LUS sur `computeStats` lui-même (sonde sans rune) ;
 //    `effTotal` est la même somme gauche-droite que `runes.reduce` (préfixe
@@ -39,6 +39,7 @@ import { RuneDetail } from '../types';
 import { ARTIFACT_MAIN, INTANGIBLE_SET, RELIC_MAIN, RUNE_EFFECT, SET_STAT_BONUS, StatKey, runeEfficiency, runeScore, setPieces } from './effects';
 import { StatRow, computeStats } from './stats';
 import { PreparedSearch, StatShortfall } from './runeBuildOptim';
+import { ColonnesCandidats, GabaritCandidat, ajouterValeursCandidat } from './candidatsCompacts';
 
 /** Les huit stats, dans l'ordre des voies plates ; voies 8 à 10 : les % de PV, ATQ, DEF. */
 const CLES: readonly StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'];
@@ -138,6 +139,8 @@ export class ValidationTypee {
 
   private ga = -1;
   private gb = -1;
+  private readonly totauxCollectes = new Float64Array(8);
+  private gabaritsCollectes: GabaritCandidat[] | null = null;
 
   /**
    * `runesA[3·g + r]` : la rune `r` du demi-build A d'indice global `g` (ordre
@@ -471,10 +474,24 @@ export class ValidationTypee {
    * `setsEtStats` vrai) : les huit lignes, `bonus` compris.
    */
   lignes(): StatRow[] {
+    const totaux = this.totauxDeLaPaire();
+    return this.gabarit.map(({ key, label, suffix, i }, j) => {
+      const base = this.base[i], total = totaux[j];
+      return { key, label, base, bonus: total - base, total, suffix };
+    });
+  }
+
+  /** La collecte lit l'expression même de `lignes`, sans StatRow temporaire. */
+  ecrireCandidat(sortie: ColonnesCandidats): void {
+    this.gabaritsCollectes ??= this.gabarit.map(({ key, label, suffix, i }) => ({ key, label, suffix, base: this.base[i] }));
+    ajouterValeursCandidat(sortie, this.runeIds(), this.totauxDeLaPaire(), this.effTotal(), this.gabaritsCollectes);
+  }
+
+  private totauxDeLaPaire(): Float64Array {
     const oa = this.ga * NV;
     const ob = this.gb * NV;
     const v = this.voiesSet;
-    return this.gabarit.map(({ key, label, suffix, i }) => {
+    this.gabarit.forEach(({ i }, j) => {
       const b = this.base[i];
       const plat = this.sommeA[oa + i] + this.sommeB[ob + i] + this.fixe[i] + v[i];
       let total: number;
@@ -485,7 +502,8 @@ export class ValidationTypee {
       } else {
         total = b + plat;
       }
-      return { key, label, base: b, bonus: total - b, total, suffix };
+      this.totauxCollectes[j] = total;
     });
+    return this.totauxCollectes;
   }
 }

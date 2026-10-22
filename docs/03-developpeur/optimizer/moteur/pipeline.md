@@ -44,8 +44,8 @@ lancée (`relicContext`), puis crée un Worker neuf sur
 
 Chaque `run` incrémente un numéro de recherche (`runIdRef`) : un message
 d'un Worker déjà remplacé est ignoré, même s'il arrive après le lancement
-suivant. Le Worker répond par quatre sortes de messages (`WorkerResponse`) :
-progression, résultat, refus, erreur. Le statut (`BuildOptimStatus`) passe à
+suivant. Le Worker répond par cinq sortes de messages (`WorkerResponse`) :
+bloc de candidats, progression, résultat, refus, erreur. Le statut (`BuildOptimStatus`) passe à
 `running`, puis à `done`, `refused` ou `error` ; `reset` revient à `idle`
 sans relancer. `stop` poste `{ stop: true }` au Worker : l'arrêt coopératif,
 décrit dans
@@ -239,16 +239,38 @@ Détail du régime parallèle et de la règle du nombre de Workers :
 
 ## Appariement séquentiel
 
+La collecte du Worker écrit directement les six identifiants, huit totaux et
+l'efficience en colonnes Float64, selon le schéma de `candidatsCompacts.ts`.
+La validation typée partage son expression des totaux avec `lignes` ; le
+repli objet n'en garde qu'un candidat temporaire. Les quasi-succès restent
+des objets. L'adaptateur objet explicite sert au CLI et au différentiel.
+
+Les blocs scellés portent des ordinaux contigus et sont transférés une seule
+fois. Leurs quinze colonnes sont ajustées à la longueur écrite avant de
+quitter le collecteur : exactement `15 × 8 × longueur` octets de tampons,
+même pour un bloc d'une ligne ou coupé à la fusion. Une sous-vue d'un tampon
+plus grand ne respecte pas ce contrat et le récepteur la refuse. Le bilan
+final scelle leur nombre sans réémettre l'aperçu. La page
+matérialise les 3 000 premières lignes pour l'aperçu, puis les suivantes à la
+fin, en réutilisant les objets déjà publiés. Les autres blocs attendent en
+colonnes et sont libérés à leur adaptation ; aucun écran ne change de contrat.
+Une projection objet qui consomme les blocs les libère directement, sans
+ajuster des colonnes qui ne seront pas transférées.
+
 `drivePairing` (`src/workers/pairingDriver.ts`) pilote pas à pas le
-générateur `apparier(prepared, bucketsA, bucketsB)`
-(`src/lib/rechercheRunes.ts`). Il poste la progression au plus une fois par
-`PROGRESS_THROTTLE_MS`, avec les seuls candidats nouveaux depuis le message
-précédent ; il rend la main à la boucle d'événements (`cederLaMain` : message de
+générateur `apparierRapide` avec sa sortie en colonnes. `EmetteurCandidats`
+transfère les blocs dans l'ordre, avec une fenêtre de seize blocs non
+acquittés au plus. Il attend la page seulement à saturation de cette
+fenêtre ; le scellement attend tous les acquittements avant le bilan final.
+Le pilote vide aussi les blocs dès que deux sont prêts, sans attendre le
+palier de progression. Il rend la main à la boucle d'événements (`cederLaMain` : message de
 canal, non bridé) au plus une fois par `YIELD_THROTTLE_MS`, ce qui laisse arriver le message d'arrêt ; à l'arrêt
 (`isStopped`), il rend un résultat tronqué fait des candidats et du
-quasi-succès déjà accumulés. Le Worker ajoute à chaque message `found`,
-`totalPairs` et un pourcentage (`estimatePct`) ; le hook accumule les
-candidats reçus pour l'aperçu, dans la limite de `PREVIEW_CANDIDATES_CAP`.
+quasi-succès déjà accumulés. Les messages de progression portent `found`,
+`totalPairs` et un pourcentage (`estimatePct`), espacés au plus par
+`PROGRESS_THROTTLE_MS` sauf vidage des blocs. `RecepteurCandidats` garde les
+blocs reçus, les contrôle et matérialise l'aperçu dans la limite de
+`PREVIEW_CANDIDATES_CAP`, dont le tableau reste stable une fois plein.
 Barre et pourcentage : [02-app/optimizer/feat-interruption.md § Barre de progression](../../../02-app/optimizer/feat-interruption.md#barre-de-progression).
 
 `apparier` confie l'appariement au noyau sur tableaux typés,
@@ -324,8 +346,12 @@ journalisée, et ce qui a été fusionné avant elle rendu, tronqué. Détail : 
 
 ## Fin de l'appariement
 
-Le Worker poste le résultat (`type: 'result'`) ; le hook l'enregistre
-(`result`), efface la progression et passe en `done`.
+Le Worker transfère les derniers blocs, attend leur acquittement, puis poste
+le bilan (`type: 'result'`, nombre, comptes, quasi-succès, troncature), sans
+candidats. Le hook scelle le nombre reçu, adapte les lignes restantes en
+objets, libère les colonnes, enregistre le résultat, efface la progression
+et passe en `done`. Les objets d'aperçu gardent leur identité. Une plage
+manquante, répétée ou hors schéma est refusée par le récepteur.
 
 Le même enchaînement existe hors Worker : `searchBuildsSteps`
 (`src/lib/rechercheRunes.ts`, à part de `runeBuildOptim.ts` pour qu'aucun

@@ -172,7 +172,7 @@ préparé du Worker, pour la validation et son repli de référence.
    construction des moitiés au lieu du lancement de la recherche.
 3. `parcourirMorceau` apparie les lignes du morceau par le noyau
    ([pipeline.md § Appariement séquentiel](pipeline.md)), et rend ses
-   candidats avec leur position globale, les améliorations successives de
+   candidats en colonnes avec leur position globale, les améliorations successives de
    son quasi-succès, ses paires traitées et visitées (et, pour chaque
    candidat, les visitées jusqu'à lui), et son issue (`IssueMorceau`) :
    `complet`, `temps`, `plafond`, `limite` (l'arrêt déterministe des tests
@@ -202,6 +202,14 @@ préparé du Worker, pour la validation et son repli de référence.
 Un morceau n'a aucune borne propre au parallèle : il s'arrête sur le filet
 de temps global, sur le plafond de candidats, sur l'arrêt manuel ou à sa
 fin. Aucun plafond de paires.
+
+La sortie objet est une adaptation explicite pour les outils. En colonnes,
+le générateur rend aussi un état `suite` à chaque bloc plein, sans changer
+le point où il lit l'arrêt manuel. `servirAppariement` attend un message
+`credit` après chaque envoi, terminal compris ; les coquilles transfèrent
+les tampons des candidats, des positions et des visites. Les messages sont
+lus pendant cette attente aussi ; après acquittement, le même filet global
+et les mêmes points de passage restent applicables.
 
 ## Coquilles et lanceurs
 
@@ -286,13 +294,18 @@ L'adaptation objet est explicite pour les consommateurs d'outillage
 2. vérifie le contrat numérique sur les colonnes de construction (ou les
    objets d'un outil), projette les contraintes, planifie les
    morceaux, lance `min(travailleurs, morceaux)` Workers, puis distribue ;
-3. à chaque morceau reçu, fusionne ce qui suit le préfixe déjà fusionné
+3. à chaque bloc reçu, le met en file dans son morceau et rend le crédit
+   dès réception tant que la fenêtre du producteur a une place libre ;
+   une pompe unique fusionne ce qui suit le préfixe déjà fusionné
    (§ Fusion des résultats) et rappelle `surProgression(traitees,
-   candidats)` : les paires traitées et la liste des candidats des morceaux
+   candidats)` : les paires traitées et les colonnes des candidats
    FUSIONNÉS, dans l'ordre séquentiel — les comptes du résultat, dont la
-   dernière progression est l'état final. Le Worker principal en
-   espace les messages (au plus un par `PROGRESS_THROTTLE_MS`), n'en
-   transmet que les candidats nouveaux, et y ajoute `totalPairs` et le
+   dernière progression est l'état final. Le Worker principal transmet ces
+   blocs puis les retire ; le crédit du producteur est indépendant de cette
+   publication. La transmission admet jusqu'à seize
+   blocs sans attendre la page ; seul le remplissage de cette fenêtre
+   impose une contre-pression. Les messages de progression sont espacés
+   (au plus un par `PROGRESS_THROTTLE_MS`), avec `totalPairs` et le
    pourcentage (`estimatePct`) :
    [02-app/optimizer/feat-interruption.md § Barre de progression](../../../02-app/optimizer/feat-interruption.md#barre-de-progression).
    L'aperçu est ainsi toujours un préfixe du résultat final ;
@@ -301,6 +314,51 @@ L'adaptation objet est explicite pour les consommateurs d'outillage
    traitées, aucun compteur propre au noyau).
 
 ## Fusion des résultats
+
+Sur le chemin compact, chaque morceau rend des blocs intermédiaires puis
+un bilan terminal. Un bloc contient au plus 4 096 candidats, les positions
+globales de coupe et les visites cumulées ; les améliorations du quasi-succès
+voyagent avec le même préfixe. La fusion conserve le même morceau courant
+jusqu'à son bilan, et coupe avant toute émission au candidat du plafond.
+
+Un Worker attend l'acquittement de son bloc avant de produire le suivant.
+Le coordinateur réserve `BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR` (4) places par
+Worker, bilans vides compris. Il acquitte dès la réception, avant toute
+fusion, tant que moins de quatre messages attendent pour ce producteur.
+Le quatrième reste sans crédit jusqu'à la libération d'une place : seule
+la saturation de cette fenêtre impose une contre-pression. Les places
+d'un autre producteur ne peuvent pas la consommer ; le morceau de tête
+peut donc toujours avancer. Les files sont des FIFO par morceau et la
+fusion ne passe au suivant qu'après le bilan terminal, même lorsque
+plusieurs blocs `suite` sont déjà reçus.
+
+La pompe de fusion est unique et les réveils sont regroupés : pas de
+promesse conservant chaque réponse après son adoption. Une publication
+adopte au plus W blocs, où W est le nombre de Workers ; la pompe recommence
+si le préfixe reçu permet encore d'avancer. En compact, la distribution
+garde deux morceaux en vol par Worker, sans attendre la fusion des morceaux
+terminés ; les quatre places de réception bornent aussi leurs bilans en
+attente. Au plus 6W morceaux distribués ne sont pas encore fusionnés
+(4W bilans reçus, 2W morceaux en vol). Le chemin objet des outils garde sa
+fenêtre globale de 2W morceaux. L'attente cède la main aux messages et
+compte dans le filet global. L'arrêt coopératif draine les blocs et bilans
+des morceaux déjà partis, puis la fusion ou le rejet rend toute place.
+
+Les crédits de la page sont distincts de ceux des producteurs.
+`EmetteurCandidats` transfère au plus `BLOCS_EN_VOL_VERS_PAGE` (16) blocs
+sans acquittement : 7,5 Mio de colonnes au maximum, ajustées aux lignes
+réelles. Il attend seulement à saturation de cette fenêtre, puis au
+scellement pour que tous les blocs soient reçus. Une page complètement
+arrêtée impose donc encore une contre-pression ; aucune file illimitée ne
+la masque. Avec W Workers, la collecte compacte en transit occupe au plus
+16 + 5W blocs de colonnes : seize vers la page, W dans la publication
+courante et 4W chez les producteurs ou reçus en attente de fusion. Les
+colonnes transférées restent ajustées aux lignes ; les positions et visites
+reçues occupent au plus `4W × 4096 × 16` octets, hors publication courante.
+Les quatre places limitent l'anticipation sans allouer un morceau entier.
+Cette borne décrit le chemin de production, qui retire chaque publication ;
+elle exclut les candidats déjà reçus par la page, qui constituent le
+résultat, les positions de coupe et les métadonnées des morceaux.
 
 - Dans l'ORDRE DES MORCEAUX, donc dans l'ordre séquentiel : chaque morceau
   rendu attend que ses prédécesseurs le soient, puis ses candidats se
@@ -338,6 +396,11 @@ L'adaptation objet est explicite pour les consommateurs d'outillage
   `pairBuckets`).
 
 ## Arrêt, erreur et nettoyage
+
+Si une panne arrive pendant une publication asynchrone vers le propriétaire,
+le coordinateur attend son achèvement avant de rendre le bilan de panne.
+Les messages suivants sont ignorés : le préfixe déjà publié reste celui du
+bilan, et son scellement ne précède jamais un transfert en cours.
 
 - Arrêt manuel : le Worker principal reçoit `{ stop: true }` et appelle
   l'arrêt inscrit (`arreterAppariement`). Le coordinateur ne distribue plus

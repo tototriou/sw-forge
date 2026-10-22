@@ -10,6 +10,45 @@
 
 import { cederLaMain } from '../lib/cession';
 import { PairingProgress, SearchResult, BuildCandidate } from '../lib/runeBuildOptim';
+import { BlocCandidats, ColonnesCandidats, SortieCandidats, extraireBlocs, tamponsCandidats } from '../lib/candidatsCompacts';
+
+/** Fenêtre de transport : 16 × 4096 × 120 octets au plus, sans file illimitée. */
+export const BLOCS_EN_VOL_VERS_PAGE = 16;
+
+/** Crédits de la page, distincts de ceux des Workers producteurs. */
+export class EmetteurCandidats {
+  private rendreCredit: (() => void) | null = null;
+  private enVol = 0;
+  private nombre = 0;
+  private scelle = false;
+  constructor(private readonly poster: (bloc: BlocCandidats, transfert: ArrayBuffer[]) => void) {}
+  acquitter(): void {
+    if (this.enVol === 0) return;
+    this.enVol--;
+    const rendre = this.rendreCredit; this.rendreCredit = null; rendre?.();
+  }
+  private attendreCredit(): Promise<void> {
+    return new Promise<void>((resolve) => { this.rendreCredit = resolve; });
+  }
+  async transmettre(sortie: ColonnesCandidats): Promise<void> {
+    if (this.scelle) throw new Error('Flux de candidats déjà scellé');
+    for (const bloc of extraireBlocs(sortie)) {
+      while (this.enVol >= BLOCS_EN_VOL_VERS_PAGE) await this.attendreCredit();
+      if (bloc.debut !== this.nombre) throw new Error('Ordre du flux de candidats incohérent');
+      // Installer le crédit avant l'envoi : une réception de test peut être synchrone.
+      this.enVol++;
+      this.nombre += bloc.longueur;
+      this.poster(bloc, tamponsCandidats([bloc]));
+    }
+  }
+  async sceller(sortie: ColonnesCandidats): Promise<number> {
+    await this.transmettre(sortie);
+    while (this.enVol > 0) await this.attendreCredit();
+    if (sortie.length !== this.nombre) throw new Error('Candidats manquants au scellement');
+    this.scelle = true;
+    return this.nombre;
+  }
+}
 
 // ⚠️ Un message de progression par point de passage flooderait le fil
 // principal (des centaines de `postMessage` par seconde quand l'élagage est
@@ -37,11 +76,11 @@ export const YIELD_THROTTLE_MS = 50;
 // `foundTotal` (3ᵉ argument d'`onProgress`) = `candidates.length` CUMULÉ à
 // ce point de passage — pas seulement `newCandidates.length` (le delta) —
 // nécessaire à `WorkerPairingMessage.found` (runeBuildOptim.worker.ts).
-export async function drivePairing(
-  gen: Generator<PairingProgress, SearchResult, void>,
+export async function drivePairing<C extends SortieCandidats = BuildCandidate[]>(
+  gen: Generator<PairingProgress<C>, SearchResult<C>, void>,
   isStopped: () => boolean,
-  onProgress: (explored: number, newCandidates: BuildCandidate[], foundTotal: number) => void
-): Promise<SearchResult> {
+  onProgress: (explored: number, newCandidates: C, foundTotal: number) => void | Promise<void>
+): Promise<SearchResult<C>> {
   let candidatesSent = 0;
   let lastProgressPost = 0;
   let lastYield = Date.now();
@@ -64,11 +103,11 @@ export async function drivePairing(
     }
     const now = Date.now();
     const progress = step.value;
-    if (now - lastProgressPost > PROGRESS_THROTTLE_MS) {
+    if (now - lastProgressPost > PROGRESS_THROTTLE_MS || (!Array.isArray(progress.candidates) && progress.candidates.blocs.length > 1)) {
       lastProgressPost = now;
-      const newCandidates = progress.candidates.slice(candidatesSent);
+      const newCandidates = (Array.isArray(progress.candidates) ? progress.candidates.slice(candidatesSent) : progress.candidates) as C;
       candidatesSent = progress.candidates.length;
-      onProgress(progress.explored, newCandidates, candidatesSent);
+      await onProgress(progress.explored, newCandidates, candidatesSent);
     }
     if (now - lastYield > YIELD_THROTTLE_MS) {
       lastYield = now;

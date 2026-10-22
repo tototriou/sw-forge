@@ -128,7 +128,7 @@ export function presentationSwex(etat: EtatSwex | null): PresentationSwex {
 // Le choix de l'invocateur se fait AUSSI depuis la carte du compte, en tête de
 // la barre latérale (SidebarCompte) : un seul réglage, deux accès.
 function ReglageSwex() {
-  const { etat, agir } = useEtatSwex();
+  const { etat, agir, choisirInvocateur, choisirDossier } = useEtatSwex();
   const p = presentationSwex(etat);
   return (
     // `data-reglage-swex` : repère du mode preuve (bureau/preuve.ts).
@@ -148,7 +148,7 @@ function ReglageSwex() {
               disabled={!etat?.dossier}
               onClick={() => void agir((s) => s.oublier())}
             />
-            <Bouton taille="sm" libelle="Choisir…" onClick={() => void agir((s) => s.choisirDossier())} />
+            <Bouton taille="sm" libelle="Choisir…" onClick={choisirDossier} />
           </div>
         </div>
         <p className="mt-1 break-all text-micro leading-snug text-ink-dim">{p.dossier}</p>
@@ -164,7 +164,7 @@ function ReglageSwex() {
             disabled={p.options.length === 0}
             onChange={(e) => {
               const fichier = e.target.value;
-              if (fichier) void agir((s) => s.choisirInvocateur(fichier));
+              if (fichier) choisirInvocateur(fichier);
             }}
             className="min-w-[10rem]"
           >

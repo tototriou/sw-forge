@@ -67,13 +67,16 @@ export interface EtatSwex {
   dernierLu: number | null;
   introuvable: boolean;
 }
-// Un export donné à la page : son texte, sa date, et s'il est NOUVEAU (à
-// annoncer) ou seulement relu (page sans compte, au lancement).
+// Un export donné à la page : son texte, sa date, s'il est NOUVEAU (à
+// annoncer) ou seulement relu (page sans compte, au lancement), et s'il suit
+// le CHOIX d'un invocateur (`complet` : tout s'importe, prépa RTA et siège
+// compris — sinon « Mon compte » seulement).
 export interface ExportSwex {
   texte: string;
   modifie: number;
   nouveau: boolean;
   fichier: string;
+  complet: boolean;
 }
 
 // Le pont du dossier SW Exporter, ou `null` sur le site.

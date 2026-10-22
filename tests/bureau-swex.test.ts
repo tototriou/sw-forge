@@ -5,8 +5,10 @@
 // mal reconnu suivrait le mauvais compte, un réglage mal relu inventerait un
 // chemin, une décision « donner » trop large réannoncerait sans cesse.
 
+import { readFileSync } from 'fs';
 import { aDonner, exportsDuDossier, lireNomExport, lireReglage } from '../bureau/swexPur';
 import { presentationSwex } from '../src/components/BlocApplication';
+import { messageExportSwex } from '../src/components/SuiviSwex';
 import { egal, ok, titre } from './outils';
 
 export default function testBureauSwex() {
@@ -59,4 +61,19 @@ export default function testBureauSwex() {
   egal(presentationSwex({ ...etat, fichier: null }).invocateur, 'Choisis l’invocateur à suivre.', 'dossier choisi, invocateur non');
   egal(presentationSwex({ ...etat, exports: [] }).invocateur, 'Aucun export de compte à la racine de ce dossier.', 'dossier sans export');
   ok(presentationSwex({ ...etat, introuvable: true }).invocateur.startsWith('Dossier introuvable'), 'dossier disparu : dit');
+
+  titre('bureau · SW Exporter — l’annonce d’un export appliqué');
+  egal(messageExportSwex('Sam', true), 'Compte de Sam chargé depuis SW Exporter', 'après un choix : chargé');
+  egal(messageExportSwex('Sam', false), 'Compte de Sam mis à jour depuis SW Exporter', 'export suivant : mis à jour');
+  egal(messageExportSwex(null, false), 'Compte mis à jour depuis SW Exporter', 'sans nom de joueur');
+
+  // ⚠️ Le marquage `complet` vit dans le processus principal, qu'aucun test
+  // unitaire n'atteint sans Electron : un contrôle de source ici. La garde
+  // et l'import complet, côté page, se prouvent dans l'app
+  // (`npm run bureau:preuve -- --swex`).
+  titre('bureau · SW Exporter — l’export qui suit un choix part complet');
+  const principal = readFileSync('bureau/swex.ts', 'utf8');
+  ok(/fichier, dernierLu: null \};\s*complet = true;/.test(principal), 'bureau/swex.ts : choisir un invocateur rend l’export suivant complet');
+  ok(/dernierLu: modifie \};\s*complet = false;/.test(principal), 'bureau/swex.ts : appliqué par la page, l’export suivant redevient « Mon compte »');
+  ok(principal.includes("envoyer('bureau:swex-export', { texte, modifie, nouveau, fichier, complet });"), 'bureau/swex.ts : `complet` part avec l’export');
 }

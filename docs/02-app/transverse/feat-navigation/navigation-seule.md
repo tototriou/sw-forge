@@ -49,7 +49,9 @@ MON COMPTE · OUTILS · RESSOURCES …
 **Dans l'app de bureau, avec un dossier SW Exporter choisi**
 ([bureau/](../../bureau/)), la carte du compte ouvre un **menu** (`Menu`, axe `declencheur`) au lieu du
 sélecteur de fichier : les invocateurs du dossier (celui suivi, coché), puis
-« Importer un fichier… ». Choisir un invocateur ne change que « Mon compte ».
+« Importer un fichier… ». Choisir un autre invocateur change de compte : tout
+s'importe, après la proposition de sauvegarder la session (voir
+[bouton-import.md](../feat-import-compte/bouton-import.md), § « Le dossier SW Exporter »).
 Sans dossier, et sur le site : la carte importe, comme ci-dessus.
 
 ### Le gabarit d'une entrée

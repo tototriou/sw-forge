@@ -27,11 +27,13 @@ import {
   composerSession,
   decoder,
   ecrireSession,
+  empreinteTravail,
   encoder,
   FORMAT_SESSION,
   lireSession,
   nomFichierSession,
   SourcesSession,
+  travailNonSauvegarde,
 } from '../src/lib/session';
 import { egal, exportReel, exportSynthetique, ignore, ok, titre } from './outils';
 
@@ -191,6 +193,25 @@ export default function testSession(avecCompteReel = true) {
   const photoPrise = photoOptimizer(etat as unknown as OptimizerState);
   egal(Object.keys(photoPrise).sort(), [...CHAMPS_OPTIMIZER_SESSION].sort(), 'la photo : les champs de la session, et eux seuls');
   ok(CHAMPS_OPTIMIZER_SESSION.every((c) => photoPrise[c] === valeurs.get(c)), 'chaque valeur telle quelle (même objet)');
+
+  titre('session · changements non enregistrés, avant un changement de compte');
+  const empreinte = empreinteTravail(composerSession(src));
+  egal(
+    empreinteTravail(composerSession({ ...src, maintenant: new Date('2026-10-07T08:00:00Z'), versionApp: '2.1.0', compte: null })),
+    empreinte,
+    'l’empreinte ignore la date, la version de l’app et le compte'
+  );
+  const autreRta = { ...src, stockage: { ...src.stockage, 'swblacksmith-rta-v1': JSON.stringify({ entries: {} }) } };
+  ok(empreinteTravail(composerSession(autreRta)) !== empreinte, 'la prépa RTA a changé : autre empreinte');
+  const autreOutil = { ...src, memoire: { ...src.memoire, 'speedTune.ordre': ['b', 'a'] } };
+  ok(empreinteTravail(composerSession(autreOutil)) !== empreinte, 'un outil a changé : autre empreinte');
+  const autreOptimizer = { ...src, optimizer: { ...photo(), sortBy: 'vitesse' } };
+  ok(empreinteTravail(composerSession(autreOptimizer)) !== empreinte, 'l’Optimizer a changé : autre empreinte');
+  egal(travailNonSauvegarde(empreinte, empreinte, true), false, 'rien changé depuis la sauvegarde : pas de question');
+  egal(travailNonSauvegarde('après', empreinte, true), true, 'changé depuis la sauvegarde : question');
+  egal(travailNonSauvegarde('après', empreinte, false), true, 'changé depuis la sauvegarde, même sans prépa ni siège : question');
+  egal(travailNonSauvegarde(empreinte, null, true), true, 'aucune sauvegarde depuis le lancement, prépa ou siège : question');
+  egal(travailNonSauvegarde(empreinte, null, false), false, 'aucune sauvegarde, rien que le changement remplacerait : pas de question');
 
   titre('session · le nom du fichier');
   egal(nomFichierSession(new Date(2026, 9, 6, 15, 42)), 'swblacksmith-session-2026-10-06-15h42.json', 'daté à l’heure locale');

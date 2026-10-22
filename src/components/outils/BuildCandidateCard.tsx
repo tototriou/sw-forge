@@ -128,8 +128,8 @@ interface Props {
 // ⚠️ Calibrée pour que DEUX cartes tiennent par ligne dans le conteneur
 // `max-w-3xl` (768px) de OptimizerSection.tsx — voir le `minmax` du grid.
 /**
- * Un écart avec le build de référence, sous la valeur qu'il qualifie (au
- * bureau, à sa gauche, sur sa ligne : `EmplacementEcart`).
+ * Un écart avec le build de référence, à gauche de la valeur qu'il qualifie,
+ * sur sa ligne (`EmplacementEcart`).
  *
  * ⚠️ Un seul composant pour les trois (dégâts, PV effectifs, efficience) :
  * trois rendus séparés auraient divergé de couleur ou de format au premier
@@ -153,7 +153,7 @@ function Delta({ valeur, suffixe = '' }: { valeur: number; suffixe?: string }) {
 }
 
 /**
- * La place d'un écart À GAUCHE de sa valeur (bureau) : réservée même vide, à
+ * La place d'un écart À GAUCHE de sa valeur : réservée même vide, à
  * la largeur d'un écart courant (« −12,3 % », 44 px), pour que son apparition
  * au clic sur « Comparer » ne déplace ni la valeur ni ce qui l'entoure.
  * ⚠️ Taille et interligne de l'écart (`text-nano`) sur la place elle-même :
@@ -308,29 +308,19 @@ export default function BuildCandidateCard({
     </span>
   );
   const ecartMoyen = metricDelta != null && <Delta valeur={metricDelta / 6} suffixe={metric === 'eff' ? ' %' : ''} />;
-  const valeurMoyenne = bureau ? (
-    // ⚠️ **Au bureau, l'écart va À GAUCHE de la valeur, sur sa ligne**
-    // (décision de l'utilisateur) : sous elle, il faisait grandir l'en-tête au
-    // clic sur « Comparer », et le bouton descendait sous le pointeur. Sa
-    // place est réservée (`EmplacementEcart`) : la valeur reste calée à droite
-    // et la ligne garde sa hauteur, avec ou sans écart.
+  // ⚠️ **L'écart va À GAUCHE de la valeur, sur sa ligne, aux deux formats**
+  // (décision de l'utilisateur) : sous elle, il faisait grandir la carte au
+  // clic sur « Comparer », et le bouton descendait sous le pointeur. Sa place
+  // est réservée (`EmplacementEcart`) : la valeur reste calée à droite et la
+  // ligne garde sa hauteur, avec ou sans écart. Même forme pour la valeur de
+  // l'objectif (PV effectifs, dégâts) : `groupeValeur`.
+  const valeurMoyenne = (
     <span className="flex flex-none items-baseline gap-x-1.5">
       <EmplacementEcart>{ecartMoyen}</EmplacementEcart>
       {texteMoyen}
     </span>
-  ) : (
-    <span className="flex flex-col items-end">
-      {texteMoyen}
-      {/* L'écart avec la référence, SOUS la valeur qu'il qualifie
-          (demande explicite) — jamais à côté, où il se lirait comme une
-          seconde mesure. */}
-      {ecartMoyen}
-    </span>
   );
-  // La valeur de l'objectif (PV effectifs, dégâts) et son écart : au bureau,
-  // l'écart à gauche sur la même ligne, place réservée (voir `valeurMoyenne`) ;
-  // au téléphone, sous la valeur.
-  const groupeValeur = bureau ? 'flex flex-none items-baseline gap-x-1.5' : 'flex flex-col items-end';
+  const groupeValeur = 'flex flex-none items-baseline gap-x-1.5';
   const lesSets = sets.map((key, i) => (
     <span key={`${key}-${i}`} className="text-micro text-ink-dim">
       {RUNE_SETS.find((s) => s.key === key)?.label ?? key}
@@ -448,11 +438,10 @@ export default function BuildCandidateCard({
         <p className={`mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg ${contourRangee} bg-panel2 px-2 py-1`}>
           <span className="text-micro text-ink-dim">PV effectifs</span>
           <span className={groupeValeur}>
-            {bureau && <EmplacementEcart>{pvEffectifs.delta != null && <Delta valeur={pvEffectifs.delta} />}</EmplacementEcart>}
+            <EmplacementEcart>{pvEffectifs.delta != null && <Delta valeur={pvEffectifs.delta} />}</EmplacementEcart>
             <span className="font-mono text-sm font-bold text-star">
               {Math.round(pvEffectifs.total).toLocaleString('fr-FR')}
             </span>
-            {!bureau && pvEffectifs.delta != null && <Delta valeur={pvEffectifs.delta} />}
           </span>
         </p>
       )}
@@ -466,7 +455,7 @@ export default function BuildCandidateCard({
         <p className={`mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg ${contourRangee} bg-panel2 px-2 py-1`}>
           <span className="text-micro text-ink-dim">Dégâts</span>
           <span className={groupeValeur}>
-            {bureau && <EmplacementEcart>{degatsReels.delta != null && <Delta valeur={degatsReels.delta} />}</EmplacementEcart>}
+            <EmplacementEcart>{degatsReels.delta != null && <Delta valeur={degatsReels.delta} />}</EmplacementEcart>
             {/* La mono sur le chiffre seul : « tue la cible » / « N % des PV »
                 est une phrase, en police du texte. */}
             <span className="text-sm font-bold text-star">
@@ -475,7 +464,6 @@ export default function BuildCandidateCard({
                 {degatsReels.partPvCible >= 100 ? 'tue la cible' : `${Math.round(degatsReels.partPvCible)} % des PV`}
               </span>
             </span>
-            {!bureau && degatsReels.delta != null && <Delta valeur={degatsReels.delta} />}
           </span>
           {/* ⚠️ **Il y avait ici une rangée réservée « artéfacts pas encore
               optimisés »**, toujours présente pour que la hauteur de la carte

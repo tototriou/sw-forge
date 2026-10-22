@@ -154,6 +154,41 @@ function Delta({ valeur, suffixe = '' }: { valeur: number; suffixe?: string }) {
 const WHEEL_SCALE = 0.45;
 const ARTIFACT_SCALE = 0.45;
 
+// L'en-tête d'une carte du bureau (rang, valeur moyenne, sets, boutons), selon
+// les boutons présents. Avec les deux, il repasse sur deux lignes sous 460 px
+// de carte (« Comparer » ≈ 92 + 8 + « Valider » 160 + 12 + rang et valeur
+// ≈ 180) ; avec un seul, il tient sur une ligne jusqu'à la carte la plus
+// étroite (356). Classes écrites en entier : Tailwind n'émet que celles qu'il
+// lit dans le source.
+type DispositionEntete = 'aucun' | 'un' | 'deux';
+const ENTETE_BUREAU: Record<DispositionEntete, string> = {
+  aucun: 'items-start',
+  un: 'items-start justify-between',
+  deux: 'flex-col @[460px]/carte:flex-row @[460px]/carte:items-start @[460px]/carte:justify-between',
+};
+// Sur une ligne, le texte descend de 4 px pour se centrer sur les boutons.
+const TEXTE_ENTETE_BUREAU: Record<DispositionEntete, string> = {
+  aucun: '',
+  un: 'pt-1',
+  deux: '@[460px]/carte:pt-1',
+};
+const BOUTONS_BUREAU: Record<DispositionEntete, string> = {
+  aucun: '',
+  un: 'flex flex-none gap-2',
+  deux: 'flex items-stretch gap-2 @[460px]/carte:flex-none',
+};
+const COMPARER_BUREAU: Record<DispositionEntete, string> = {
+  aucun: '',
+  un: 'flex-none',
+  deux: 'flex-1 @[460px]/carte:flex-none',
+};
+// « Valider » sur une ligne : 160 px, la largeur de « Valider les artéfacts ».
+const VALIDER_BUREAU: Record<DispositionEntete, string> = {
+  aucun: '',
+  un: 'w-40 flex-none',
+  deux: 'flex-1 @[460px]/carte:w-40 @[460px]/carte:flex-none',
+};
+
 // Une combinaison trouvée : les artéfacts (fixes) et les 6 runes (sur la
 // roue, façon jeu), les sets obtenus, le panneau de stats (base+bonus ↔
 // total, comme la fiche pleine page) et la valeur totale dans la mesure
@@ -281,6 +316,93 @@ export default function BuildCandidateCard({
     />
   );
 
+  const rang = <span className="font-mono text-xs font-bold text-star">#{rank}</span>;
+  const valeurMoyenne = (
+    <span className={`flex flex-col ${bureau ? 'items-start' : 'items-end'}`}>
+      {/* Une phrase : police du texte (la mono ne sert qu'aux chiffres
+          seuls) ; `tabular-nums` aligne la valeur d'une carte à l'autre. */}
+      <span className="text-xs tabular-nums text-ink-dim">
+        {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(liveTotal / 6, metric)}
+      </span>
+      {/* L'écart avec la référence, SOUS la valeur qu'il qualifie
+          (demande explicite) — jamais à côté, où il se lirait comme une
+          seconde mesure. */}
+      {metricDelta != null && <Delta valeur={metricDelta / 6} suffixe={metric === 'eff' ? ' %' : ''} />}
+    </span>
+  );
+  const lesSets = sets.map((key, i) => (
+    <span key={`${key}-${i}`} className="text-micro text-ink-dim">
+      {RUNE_SETS.find((s) => s.key === key)?.label ?? key}
+    </span>
+  ));
+  // La disposition de l'en-tête du bureau : sans bouton, avec un seul, ou
+  // avec les deux (seul cas qui repasse sur deux lignes, sous 460 px).
+  const dispositionEntete: DispositionEntete = onValidate && onCompare ? 'deux' : onValidate || onCompare ? 'un' : 'aucun';
+
+  // « Valider » — réserve les 6 runes de CE build (bloquées pour les
+  // recherches des AUTRES monstres de « Monstres déjà runés », voir
+  // OptimizerSection.tsx). Absent (`onValidate` non fourni) pour un monstre
+  // non réellement possédé — rien à réserver sur un exemplaire qui n'existe
+  // pas dans le compte.
+  // ⚠️ Au téléphone (et au bureau sur deux lignes), les deux boutons SE
+  // PARTAGENT la largeur (demande explicite) : `flex` + `flex-1` sur chacun,
+  // plutôt que deux `pleineLargeur` empilés. La carte garde ainsi la même
+  // hauteur qu'avec un seul bouton — une rangée de plus par carte se paie sur
+  // toute la grille de résultats.
+  const boutons = (onValidate || onCompare) && (
+    <div className={bureau ? BOUTONS_BUREAU[dispositionEntete] : 'mt-2.5 flex items-stretch gap-2'}>
+      {onCompare && (
+        <Bouton
+          onClick={onCompare}
+          ton={comparaison ? 'accent' : 'neutre'}
+          fond={comparaison ? 'doux' : 'vide'}
+          taille="sm"
+          icone={<ArrowLeftRight size={14} />}
+          libelle="Comparer"
+          className={bureau ? COMPARER_BUREAU[dispositionEntete] : 'flex-1'}
+        />
+      )}
+      {onValidate && (
+        <Bouton
+          onClick={onValidate}
+          // ⚠️ Seul `'oui'` désactive. `'artefacts'` reste ACTIF : c'est
+          // précisément l'état où il reste quelque chose à valider.
+          disabled={validated === 'oui' || !!conflit}
+          title={conflit ?? undefined}
+          // Le ton « déjà réservé » ne vaut que pour l'identité complète —
+          // sinon la carte se lirait comme terminée alors qu'elle attend
+          // une action.
+          //
+          // ⚠️ **`alerte` pour « Valider les artéfacts », et c'est son sens
+          // exact** : ce ton « ne dit rien de l'ACTION, il signale l'état
+          // des DONNÉES » (voir Bouton.tsx). Ici la donnée signalée est
+          // « ce que cette carte montre n'est pas ce qui est réservé ».
+          // Sans lui, la carte se confondait avec toutes les autres cartes
+          // non validées, alors que c'est la seule où il reste un écart à
+          // combler.
+          //
+          // ⚠️ Un SEUL contour : `trait` vaut `plein` par défaut, donc le
+          // bouton en porte déjà un — le ton en change la couleur, il n'en
+          // superpose pas un second.
+          ton={validated === 'oui' ? 'accent' : validated === 'artefacts' ? 'alerte' : 'neutre'}
+          fond={validated === 'oui' || validated === 'artefacts' ? 'doux' : 'plein'}
+          taille="sm"
+          icone={validated === 'oui' ? <CheckCircle2 size={14} /> : undefined}
+          libelle={
+            validated === 'oui'
+              ? 'Validé'
+              : conflit
+                ? 'Rune déjà réservée'
+                : validated === 'artefacts'
+                  ? 'Valider les artéfacts'
+                  : 'Valider ce build'
+          }
+          className={bureau ? VALIDER_BUREAU[dispositionEntete] : 'flex-1'}
+        />
+      )}
+    </div>
+  );
+
   return (
     <div
       // ⚠️ `relative` + `z-10` UNIQUEMENT quand cette carte a un popover
@@ -289,27 +411,40 @@ export default function BuildCandidateCard({
       // de résultats, plus tard dans l'ordre du DOM — même sans chevauchement
       // apparent, l'empilement par défaut suit l'ordre du DOM, pas la
       // position à l'écran.
-      className={`${bureau ? 'border-t border-border-soft pt-2.5' : 'rounded-xl border border-border bg-panel p-2.5'} ${
+      // Au bureau, la carte est le conteneur `carte` que lit son en-tête.
+      className={`${bureau ? '@container/carte border-t border-border-soft pt-2.5' : 'rounded-xl border border-border bg-panel p-2.5'} ${
         detailOuvertIci ? 'relative z-10' : ''
       }`}
       // Lu par `useHauteurDesCartes` : les places « Vérification… » prennent
       // la hauteur d'une carte réelle.
       data-carte-resultat=""
     >
-      <div className="flex items-start justify-between mb-2">
-        <span className="font-mono text-xs font-bold text-star">#{rank}</span>
-        <span className="flex flex-col items-end">
-          {/* Une phrase : police du texte (la mono ne sert qu'aux chiffres
-              seuls) ; `tabular-nums` aligne la valeur d'une carte à l'autre. */}
-          <span className="text-xs tabular-nums text-ink-dim">
-            {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(liveTotal / 6, metric)}
-          </span>
-          {/* L'écart avec la référence, SOUS la valeur qu'il qualifie
-              (demande explicite) — jamais à côté, où il se lirait comme une
-              seconde mesure. */}
-          {metricDelta != null && <Delta valeur={metricDelta / 6} suffixe={metric === 'eff' ? ' %' : ''} />}
-        </span>
-      </div>
+      {bureau ? (
+        // ⚠️ **Au bureau, l'en-tête tient sur une ligne** (décision de
+        // l'utilisateur : la carte raccourcit) : rang, valeur moyenne, sets,
+        // puis « Comparer » et « Valider ce build » à droite. Avec les deux
+        // boutons, une carte de moins de 460 px repasse sur deux lignes
+        // (boutons dessous, à parts égales, comme au téléphone) : le passage
+        // ne dépend que de la largeur de la carte (requête sur le conteneur
+        // `carte`), jamais d'un clic. Sur une ligne, « Valider » a une
+        // largeur fixe, celle de son plus long libellé : passer de « Valider
+        // ce build » à « Validé » ne déplace ni lui ni « Comparer ». Le haut
+        // aligné (`items-start`) : l'écart qui apparaît sous la valeur quand
+        // on compare ne déplace pas les boutons.
+        <div className={`mb-2 flex gap-x-3 gap-y-1.5 ${ENTETE_BUREAU[dispositionEntete]}`}>
+          <div className={`flex min-w-0 flex-wrap items-baseline gap-x-2 ${TEXTE_ENTETE_BUREAU[dispositionEntete]}`}>
+            {rang}
+            {valeurMoyenne}
+            {lesSets}
+          </div>
+          {boutons}
+        </div>
+      ) : (
+        <div className="flex items-start justify-between mb-2">
+          {rang}
+          {valeurMoyenne}
+        </div>
+      )}
 
       {/* ⚠️ Même traitement que les dégâts, et pour la même raison : c'est le
           chiffre qui a CLASSÉ ce candidat quand on optimise la survie. Sans
@@ -371,13 +506,7 @@ export default function BuildCandidateCard({
         </p>
       )}
 
-      {sets.length > 0 && (
-        <p className="mb-2 flex flex-wrap items-center gap-1 text-micro text-ink-dim">
-          {sets.map((key, i) => (
-            <span key={`${key}-${i}`}>{RUNE_SETS.find((s) => s.key === key)?.label ?? key}</span>
-          ))}
-        </p>
-      )}
+      {!bureau && sets.length > 0 && <p className="mb-2 flex flex-wrap items-center gap-1 text-micro text-ink-dim">{lesSets}</p>}
 
       {/* ⚠️ Panneau de stats à GAUCHE, artéfacts + roue à DROITE — carte
           compacte, en ligne plutôt qu'empilée verticalement (demande
@@ -473,69 +602,9 @@ export default function BuildCandidateCard({
         </div>
       )}
 
-      {/* « Valider » — réserve les 6 runes de CE build (bloquées
-          pour les recherches des AUTRES monstres de « Monstres déjà runés »,
-          voir OptimizerSection.tsx). Absent (`onValidate` non fourni) pour
-          un monstre non réellement possédé — rien à réserver sur un
-          exemplaire qui n'existe pas dans le compte. */}
-      {(onValidate || onCompare) && (
-        // ⚠️ Les deux boutons SE PARTAGENT la largeur (demande explicite) :
-        // `flex` + `flex-1` sur chacun, plutôt que deux `pleineLargeur`
-        // empilés. La carte garde ainsi la même hauteur qu'avec un seul
-        // bouton — une rangée de plus par carte se paie sur toute la grille
-        // de résultats.
-        <div className="mt-2.5 flex items-stretch gap-2">
-          {onCompare && (
-            <Bouton
-              onClick={onCompare}
-              ton={comparaison ? 'accent' : 'neutre'}
-              fond={comparaison ? 'doux' : 'vide'}
-              taille="sm"
-              icone={<ArrowLeftRight size={14} />}
-              libelle="Comparer"
-              className="flex-1"
-            />
-          )}
-          {onValidate && (
-            <Bouton
-              onClick={onValidate}
-              // ⚠️ Seul `'oui'` désactive. `'artefacts'` reste ACTIF : c'est
-              // précisément l'état où il reste quelque chose à valider.
-              disabled={validated === 'oui' || !!conflit}
-              title={conflit ?? undefined}
-              // Le ton « déjà réservé » ne vaut que pour l'identité complète —
-              // sinon la carte se lirait comme terminée alors qu'elle attend
-              // une action.
-              //
-              // ⚠️ **`alerte` pour « Valider les artéfacts », et c'est son sens
-              // exact** : ce ton « ne dit rien de l'ACTION, il signale l'état
-              // des DONNÉES » (voir Bouton.tsx). Ici la donnée signalée est
-              // « ce que cette carte montre n'est pas ce qui est réservé ».
-              // Sans lui, la carte se confondait avec toutes les autres cartes
-              // non validées, alors que c'est la seule où il reste un écart à
-              // combler.
-              //
-              // ⚠️ Un SEUL contour : `trait` vaut `plein` par défaut, donc le
-              // bouton en porte déjà un — le ton en change la couleur, il n'en
-              // superpose pas un second.
-              ton={validated === 'oui' ? 'accent' : validated === 'artefacts' ? 'alerte' : 'neutre'}
-              fond={validated === 'oui' || validated === 'artefacts' ? 'doux' : 'plein'}
-              taille="sm"
-              icone={validated === 'oui' ? <CheckCircle2 size={14} /> : undefined}
-              libelle={
-                validated === 'oui'
-                  ? 'Validé'
-                  : conflit
-                    ? 'Rune déjà réservée'
-                    : validated === 'artefacts'
-                      ? 'Valider les artéfacts'
-                      : 'Valider ce build'
-              }
-              className="flex-1"
-            />
-          )}
-        </div>
-      )}
+      {/* Au téléphone, les boutons en bas de la carte ; au bureau, dans
+          l'en-tête (plus haut). */}
+      {!bureau && boutons}
 
       {/* ⚠️ L'écart contre le build de RÉFÉRENCE — la fiche affichée, donc le
           build validé quand il en existe un. S'affiche SOUS les boutons : au

@@ -16,6 +16,20 @@ ils suivent la progression, sur toute la largeur.
     pour ouvrir le détail complet de la pièce. Puis la valeur **moyenne par
     rune** dans la mesure choisie — « Efficience moyenne : X » ou « Score
     moyen : X » selon le réglage global (Efficience/Score SW).
+    ⚠️ **Au bureau, l'en-tête d'une carte tient sur une ligne** (décision
+    de l'utilisateur : la carte raccourcit) : rang, valeur moyenne, sets,
+    puis « Comparer » et « Valider ce build » à droite, au lieu d'une ligne
+    de sets à part et des boutons en bas de la carte. Avec les deux boutons,
+    une carte de moins de 460 px repasse sur deux lignes, boutons dessous à
+    parts égales (comme au téléphone) ; avec un seul, la ligne tient jusqu'à
+    la carte la plus étroite (356 px). Le passage ne dépend que de la
+    largeur de la carte (requête sur son conteneur), jamais d'un clic. Sur
+    une ligne, « Valider » a la largeur fixe de son plus long libellé
+    (« Valider les artéfacts ») : passer à « Validé » ne déplace ni lui ni
+    « Comparer » ; le haut de l'en-tête est aligné, et l'écart qui apparaît
+    sous la valeur quand on compare ne déplace pas les boutons. Mesuré
+    (« Comparer » seul) : une carte passe de 340 à 288 px. Le téléphone
+    garde son en-tête, ses sets et ses boutons en bas.
     ⚠️ **Recalculée à l'affichage** (`candidateMetricTotal` dans
     [runeBuildOptim.ts](src/lib/runeBuildOptim.ts), à partir des VRAIES
     runes) plutôt que lue depuis `BuildCandidate.effTotal` : ce champ est

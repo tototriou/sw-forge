@@ -25,7 +25,8 @@ import { ArtifactDetail, BaseStats, RelicDetail, RuneDetail } from '../src/types
 import { BuildRequirement, PreparedSearch, SearchParams, SearchResult, buildBuckets, pairBuckets, prepareSearch, totalPairCount } from '../src/lib/runeBuildOptim';
 import { resoudreContexteRelique } from '../src/lib/relicOptim';
 import { Collecteur, InitTravailleur, Morceau, ResultatMorceau, apparierRapide, initialiserTravailleur, runesAPlat, traiterMorceau, validationDe } from '../src/lib/appariementRapide';
-import { LancerTravailleur, apparierRapideEnParallele } from '../src/lib/appariementRapideParallele';
+import { LancerTravailleur } from '../src/lib/appariementRapideParallele';
+import { apparierObjetPourTest as apparierRapideEnParallele } from './flux-candidats.test';
 import { ValidationTypee } from '../src/lib/validationRapide';
 import { bilanVide, comparerPaire, strictementEgal } from '../scripts/lib/controleValidationRapide';
 import { mulberry32, randomPool } from '../scripts/lib/randomPool';

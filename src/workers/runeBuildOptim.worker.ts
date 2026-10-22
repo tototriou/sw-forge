@@ -24,15 +24,15 @@ import { PreparedSearch, SearchParams, SearchResult } from '../lib/runeBuildOpti
 import { BlocCandidats, ColonnesCandidats, creerColonnesCandidats } from '../lib/candidatsCompacts';
 import { CompartimentType } from '../lib/demiBuildsTypes';
 import { RelicVide } from '../lib/relicOptim';
-import { apparierRapide, compterPaires, verifierContrat } from '../lib/appariementRapide';
+import { compterPaires, verifierContrat } from '../lib/appariementRapide';
 import {
-  PoigneeTravailleur, apparierRapideEnParallele, enResultatDeRecherche, erreurDeWorkerEnfant, resultatApresErreur, type LancerTravailleur,
+  ErreurAppariementParallele, PoigneeTravailleur, erreurDeWorkerEnfant, resultatApresErreur, type LancerTravailleur,
 } from '../lib/appariementRapideParallele';
 import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
 import { construireMoitiesEmboiteesTypees } from '../lib/constructionEmboitee';
 import { MessageVersAppariement } from './appariementRapide.worker';
 import { nombreDeTravailleurs, regimeAppariement } from './parallelPairing';
-import { drivePairing, EmetteurCandidats, PROGRESS_THROTTLE_MS } from './pairingDriver';
+import { EmetteurCandidats, lancerAppariement, PROGRESS_THROTTLE_MS } from './pairingDriver';
 import { prepareOrRefuse } from './prepareForSearch';
 
 // La demande d'une recherche : ses paramètres, et ce que la page sait de la
@@ -202,7 +202,7 @@ function buildHalfInWorker(request: BuildHalfRequest, onProgress: (scanned: numb
   });
 }
 
-self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
+async function traiterMessage(e: MessageEvent<WorkerRequest>) {
   if ('credit' in e.data) { emetteur?.acquitter(); return; }
   if ('stop' in e.data) {
     stopped = true;
@@ -313,12 +313,13 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   // en dessous ET hors contrat numérique du noyau, où `apparier` parcourt
   // les colonnes sans saut — le coordinateur parallèle, lui, n'a
   // pas de repli.
-  if (regimeAppariement(totalPairs, verifierContrat(prepared, bucketsA, bucketsB)) === 'parallele') {
+  {
+    const regime = regimeAppariement(totalPairs, verifierContrat(prepared, bucketsA, bucketsB));
     let dernierMessage = 0;
     const postProgress = async (explored: number, candidats: ColonnesCandidats) => {
-      await flux.transmettre(candidats);
       const now = Date.now();
-      if (now - dernierMessage <= PROGRESS_THROTTLE_MS) return;
+      // drivePairing espace déjà le séquentiel, vidages de blocs compris.
+      if (regime === 'parallele' && now - dernierMessage <= PROGRESS_THROTTLE_MS) return;
       dernierMessage = now;
       const message: WorkerPairingMessage = {
         type: 'progress',
@@ -338,9 +339,12 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     // `error` ne serait posté, l'UI resterait bloquée en `'running'`. Le rejet
     // porte ce qui a été fusionné avant l'erreur (`resultatApresErreur`) :
     // l'écran garde les candidats déjà montrés, et l'erreur est journalisée.
+    let resultatFinal: SearchResult<ColonnesCandidats>;
     try {
-      const resultat = await apparierRapideEnParallele({
+      const { resultat } = await lancerAppariement({
         collecte: creerColonnesCandidats(),
+        regime, flux,
+        estArrete: () => stopped,
         params, prepared, bucketsA, bucketsB, totalPaires: totalPairs,
         travailleurs: nombreDeTravailleurs(self.navigator?.hardwareConcurrency, coeursPhysiques),
         lancer: lancerTravailleurNavigateur, startedAt,
@@ -349,33 +353,30 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         },
         surProgression: postProgress,
       });
-      await posterResultat(enResultatDeRecherche(resultat));
+      resultatFinal = resultat;
     } catch (erreur) {
+      if (!(erreur instanceof ErreurAppariementParallele)) throw erreur;
       console.error('Appariement parallèle interrompu par une erreur ; résultat rendu tronqué, avec ce qui a été fusionné :', erreur);
-      await posterResultat(resultatApresErreur(erreur, creerColonnesCandidats()));
+      resultatFinal = resultatApresErreur(erreur, creerColonnesCandidats());
     } finally {
       arreterAppariement = null;
     }
+    await posterResultat(resultatFinal);
     return;
   }
 
-  // ── Appariement séquentiel ──
-  // ⚠️ **Aucun budget de paires à piloter ici** (voir
-  // `totalPairCount` dans runeBuildOptim.ts) : l'appariement va au bout de
-  // `totalPairs`, sauf arrêt par `maxMs`, par `maxCollected` ou par le bouton
-  // « Arrêter » (`stopped`).
-  const gen = apparierRapide(prepared, bucketsA, bucketsB, { collecte: creerColonnesCandidats() });
-  const result = await drivePairing(gen, () => stopped, async (explored, nouveaux, foundTotal) => {
-    await flux.transmettre(nouveaux);
-    const message: WorkerPairingMessage = {
-      type: 'progress',
-      phase: 'pairing',
-      explored,
-      found: foundTotal,
-      pct: estimatePct(prepared, totalPairs, explored, foundTotal, Date.now() - startedAt),
-      totalPairs,
-    };
+}
+
+// Une promesse rejetée par onmessage ne déclenche pas onerror chez le parent.
+// Cette garde couvre aussi posterResultat, y compris depuis un rattrapage de panne.
+self.onmessage = (e: MessageEvent<WorkerRequest>) => {
+  void traiterMessage(e).catch((erreur: unknown) => {
+    stopped = true;
+    terminerMoitiesEnCours();
+    stopBuildReject?.();
+    arreterAppariement?.();
+    console.error('Recherche de runes interrompue :', erreur);
+    const message: WorkerErrorMessage = { type: 'error', message: erreur instanceof Error ? erreur.message : String(erreur) };
     (self as unknown as Worker).postMessage(message);
   });
-  await posterResultat(result);
 };

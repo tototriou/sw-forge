@@ -275,7 +275,7 @@ deux sont indépendants (`DecouverteBuildCible`, `scripts/lib/diagnosticTypes.ts
 `tests/diagnostic-decouverte.test.ts:46-60`). Trois marques partent avec la
 valeur (`rendreDecouverte`, `scripts/lib/diagnosticHarness.ts:770-810`) :
 c'est un MAJORANT, à `CHECKPOINT_EVERY` paires près en séquentiel
-(`granularitePaires`) ; en parallèle, relevé à chaque bloc reçu sur les
+(`granularitePaires`) ; en parallèle, relevé à chaque publication sur les
 paires des blocs fusionnés dans l'ordre des morceaux (un préfixe du plan,
 qui avance par bonds selon leur arrivée), deux runs identiques peuvent rendre deux instants
 (`reproductible: false`, `tests/diagnostic-decouverte.test.ts:79-100`), d'où
@@ -286,9 +286,10 @@ n'est un résultat que sur un run complet. Un jalon jamais atteint porte
 dessinerait une collecte saturée ; le jalon 100 % et une cible apparue entre
 deux points de passage se rattrapent sur le résultat final, dont l'`explored`
 fait foi (`scripts/lib/diagnosticHarness.ts:901-927`). A-passif : sans
-`yield` ajouté, l'observateur lit les points de passage que l'appariement
-émet déjà, et sans cible le chemin repasse par `drain` inchangé
-(`scripts/lib/diagnosticHarness.ts:1008-1022`, `scripts/lib/diagnosticHarness.ts:1074-1096`).
+`yield` ajouté, l'observateur lit les colonnes d'identifiants des points de
+passage séquentiels ou des publications parallèles du lanceur commun.
+Sans cible, aucun observateur n'est installé ; le lanceur et ses crédits
+restent identiques.
 Un seul prédicat reconnaît la cible, partagé avec le rang (`estLeBuildCible`,
 `scripts/lib/diagnosticHarness.ts:812-827`).
 

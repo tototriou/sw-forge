@@ -163,7 +163,7 @@ function classementEcran(recipe: OptimizerRecipe, candidats: BuildCandidate[], r
   return { affichees: classementResolu(fullSortedCandidates, parBuild, recipe.objective, options), options, parBuild, fullSortedCandidates };
 }
 
-export function testCliClassementParMode() {
+export async function testCliClassementParMode() {
   titre('CLI — résolution par build et classement de l’écran, trois modes de relique');
 
   const cas: { mode: 'off' | 'equipped' | 'recherche'; atk: number; def: number }[] = [
@@ -175,7 +175,7 @@ export function testCliClassementParMode() {
     const recipe = recette(mode, atk, def);
     const params = recipeToSearchParams(recipe, LOADED);
     egal(params.relicContext?.mode, mode, `${mode} : précondition, mode de relique du vrai producteur`);
-    const res = runSearchToCompletion(params);
+    const res = await runSearchToCompletion(params);
     ok(res.candidates.length > 0 && !res.truncated, `${mode} : ${res.candidates.length} candidat(s) collecté(s), recherche complète (tronqué : ${res.truncated})`);
     // En relique `recherche`, la recherche n'émet plus les faux positifs de
     // la borne par stat (relique en « OU ») : le corpus les ajoute après ses

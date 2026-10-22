@@ -107,7 +107,7 @@ La séquence est celle de `src/workers/runeBuildOptim.worker.ts`
 |---|---|---|
 | **A — Préparation** | `prepareSearch` : principale → `pruneDominated` → `eliminateInfeasible` → `filterSlot` | 4 étages via `onStage`, puis le `PreparedSearch` |
 | **B — Demi-builds** | `construireMoitieTypee` pour A et pour B, en parallèle | compartiments en colonnes, demi-builds, `compterPaires` |
-| **C — Appariement** | `apparier` en séquentiel, ou `apparierRapideEnParallele` | `SearchResult`, complétude |
+| **C — Appariement** | `apparierNode` → `lancerAppariement`, le lanceur compact de l'écran, dans les deux régimes | `SearchResult` après scellement, complétude |
 | **D — Classement** | `sortCandidates` | candidats classés |
 
 `--arret` désigne une phase, ou un étage de la phase A. S'arrêter à un étage
@@ -396,8 +396,8 @@ l'ordre que le navigateur) reçoit le lanceur Node (`lancerTravailleurNode`,
 `scripts/lib/appariementRapideNode.ts`), dont les fils exécutent
 `scripts/lib/appariement-rapide-worker.ts`, coquille Node du même serveur
 (`servirAppariement`, morceaux par tranches) que
-`src/workers/appariementRapide.worker.ts` (`apparierEnParallele`,
-`scripts/lib/diagnosticHarness.ts`). Des implémentations Node de
+`src/workers/appariementRapide.worker.ts` (`apparierNode`,
+`scripts/lib/appariementRapideNode.ts`). Des implémentations Node de
 l'appariement parallèle, seule celle-là est le code de production :
 `scripts/lib/pairing-worker.ts` est un prototype de débit brut sur
 `pairBuckets`.
@@ -420,20 +420,18 @@ un chiffre qui ne décrit la production dans aucun cas.
 
 ## Pilotage : le harnais orchestre étage par étage
 
-Le harnais n'appelle pas `runSearchToCompletion` (`scripts/lib/runSearch.ts`),
-qui enchaîne les phases d'un bloc et TOUJOURS en séquentiel — il ne modélise
-que ce régime et peut trouver moins de candidats que l'écran sur une grande
-recherche tronquée (`scripts/lib/runSearch.ts:13-20`) —, alors que le régime
-dépend de `compterPaires`, connu après la construction ; piloter étage par
-étage sert aussi aux points d'arrêt et aux temps. Chaque appel est celui de la
-production (`scripts/lib/diagnosticHarness.ts:10-17`). Il n'utilise pas
-`drivePairing`, boucle autour du générateur d'appariement dont la progression
-par message, la main rendue et l'arrêt coopératif servent le navigateur
-(`src/workers/pairingDriver.ts:40-80`) : en séquentiel, il vide
-`apparier(prepared, bucketsA, bucketsB)` — le noyau, le parcours sans sauts
-hors contrat numérique, ou `pairBuckets` avec le traceur —, et en parallèle il appelle `apparierRapideEnParallele` avec le
-lanceur Node (`scripts/lib/diagnosticHarness.ts:1013-1018`), appels nus qui
-explorent ce que la production explore.
+Le harnais pilote étage par étage pour ses points d'arrêt et ses
+observations. Le CLI `runSearchToCompletion` enchaîne les mêmes phases
+jusqu'au bout. Tous deux appellent `apparierNode`, qui injecte le lanceur
+Node dans `lancerAppariement` (`src/workers/pairingDriver.ts`), le lanceur
+de l'écran : `drivePairing` en séquentiel, coordinateur compact en parallèle,
+mêmes publications et mêmes crédits. Le régime dépend de `compterPaires`,
+connu après la construction. Les objets ne sont matérialisés qu'après le
+scellement du flux ; le suivi de découverte ne lit en route que les colonnes
+d'identifiants et les comptes. Avec un traceur séquentiel, le noyau appelle
+sa référence `pairBuckets` pour remplir le diagnostic, puis revient au même
+transport compact. Un test instrumente le lanceur réel et échoue si le CLI
+ou le harnais le contournent (`testFluxCandidatsLanceurCommun`).
 
 Passer un vrai `prepared` à `buildBuckets` ou `pairBuckets` n'est pas une
 reconstruction : la production fait de même. La reconstruction, c'est rebâtir

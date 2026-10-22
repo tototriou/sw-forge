@@ -1,5 +1,5 @@
 // Banc de l'appariement de production (noyau sur tableaux typés,
-// src/lib/appariementRapide.ts) : le chemin de production — `apparier` en
+// src/lib/appariementRapide.ts) : le chemin de production — le lanceur compact en
 // séquentiel, `apparierRapideEnParallele` en parallèle, moitiés construites
 // par les fils de production (`construireMoitie`) — et `pairBuckets`, la
 // référence, sur les MÊMES compartiments, avec leur différentiel : candidats
@@ -57,15 +57,14 @@ import { apparierRapide, runesAPlat, verifierContrat } from '../src/lib/appariem
 import { ValidationTypee } from '../src/lib/validationRapide';
 import { bilanVide, comparerPaire } from './lib/controleValidationRapide';
 import { drain } from './lib/drain';
-import { ResultatParallele, apparierRapideEnParallele } from '../src/lib/appariementRapideParallele';
-import { apparier } from '../src/lib/rechercheRunes';
+import { ResultatParallele } from '../src/lib/appariementRapideParallele';
 import { nombreDeTravailleurs } from '../src/workers/parallelPairing';
 import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { chargerRecette } from './lib/chargerRecette';
 import { resoudreCas, resoudreSelectionCas, verifierComptesDisponibles } from './lib/diagnosticLot';
 import { CASES } from './lib/perfShared';
 import { construireMoitiesObjetsEnParallele, ensureBuildHalfBundle } from './lib/buildHalvesNode';
-import { assurerBundleAppariementRapide, lancerTravailleurNode } from './lib/appariementRapideNode';
+import { apparierNode, assurerBundleAppariementRapide } from './lib/appariementRapideNode';
 import { LoadedMonster } from './lib/loadMonster';
 import { classerCommeLEcran } from './lib/classementCli';
 import { buildRealDamageContext } from './lib/realDamageCli';
@@ -251,7 +250,7 @@ async function banc(src: Source, lignes: string[], json: Record<string, unknown>
   const N = valeur('arret') != null ? Number(valeur('arret')) : arretParDefaut;
   let toutEgal = true;
   let candidatsPetit: { ref: BuildCandidate[]; proto: BuildCandidate[] } | null = null;
-  const lanceur = WORKERS.length > 0 ? lancerTravailleurNode(await assurerBundleAppariementRapide()) : null;
+  const cheminBundle = await assurerBundleAppariementRapide();
 
   // Contrôle paire par paire de la validation typée sur les survivants
   // RÉELS de `quickOk`, espace entier, contre la référence.
@@ -315,17 +314,21 @@ async function banc(src: Source, lignes: string[], json: Record<string, unknown>
     };
     modes[mode] = m;
 
-    // Production, séquentiel (`apparier`, piloté comme le Worker de l'écran).
+    // Production, séquentiel : le lanceur compact du Worker de l'écran.
     {
       const debut = performance.now();
-      const gen = apparier(prepared, bucketsA, bucketsB);
-      const { etat } = piloter(gen, maxCollected, arret);
+      let coupe = false;
+      const { resultat } = await apparierNode({ params: paramsMode, prepared, bucketsA, bucketsB, totalPaires,
+        travailleurs: 1, startedAt: prepared.startedAt, cheminBundle, regime: 'sequentiel',
+        observer: (n) => { if (arret != null && n >= arret) coupe = true; }, estArrete: () => coupe });
+      const etat = { candidates: resultat.candidates, traitees: resultat.explored, nearMissByCondition: resultat.nearMissByCondition,
+        globalNearMiss: resultat.globalNearMiss, motif: coupe ? 'arret' as const : motifDe(resultat, maxCollected) };
       const ms = performance.now() - debut;
       const proto: Etat = { ...etat, ms };
       const diff = difference(ref, proto);
       if (diff) toutEgal = false;
       dire(
-        `  production séquentielle (apparier) : ${diff ? `DIFFÈRE — ${diff}` : 'ÉGAL'} · ${proto.candidates.length.toLocaleString('fr-FR')} candidats, traitees ${proto.traitees.toLocaleString('fr-FR')}` +
+        `  production séquentielle (lanceur compact) : ${diff ? `DIFFÈRE — ${diff}` : 'ÉGAL'} · ${proto.candidates.length.toLocaleString('fr-FR')} candidats, traitees ${proto.traitees.toLocaleString('fr-FR')}` +
           ` · ${(ms / 1000).toFixed(2)} s, ${(proto.traitees / ms / 1000).toFixed(1)} M paires/s [indicatif]`
       );
       m.sequentiel = { egal: diff == null, difference: diff, candidats: proto.candidates.length, traitees: proto.traitees, empreinte: empreinteCandidats(proto.candidates), ms: Math.round(ms) };
@@ -336,10 +339,10 @@ async function banc(src: Source, lignes: string[], json: Record<string, unknown>
     for (const W of contrat ? [] : WORKERS) {
       const debut = performance.now();
       const { valeur: r, picMo } = await avecPicMemoire(() =>
-        apparierRapideEnParallele({
-          params: paramsMode, prepared, bucketsA, bucketsB, totalPaires, travailleurs: W, lancer: lanceur!,
-          startedAt: Date.now(), arretTraitees: arret,
-        })
+        apparierNode({
+          params: paramsMode, prepared, bucketsA, bucketsB, totalPaires, travailleurs: W, cheminBundle, regime: 'parallele',
+          startedAt: prepared.startedAt, arretTraitees: arret,
+        }).then((r) => r.parallele!)
       );
       const ms = performance.now() - debut;
       const proto: Etat = { candidates: r.candidates, traitees: r.traitees, nearMissByCondition: r.nearMissByCondition, globalNearMiss: r.globalNearMiss, motif: r.motif, ms };

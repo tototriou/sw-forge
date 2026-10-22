@@ -8,8 +8,8 @@
 // versions comparées).
 //
 // ⚠️ Ce fichier n'importe QUE l'API stable et déjà présente dans les DEUX
-// versions comparées (`searchBuildsSteps`/`SearchParams`, inchangées en
-// forme depuis avant le correctif) — copié TEL QUEL dans le worktree de
+// versions comparées (`searchBuildsSteps`/`SearchParams`, noms communs aux
+// versions à progression objet ou compacte) — copié TEL QUEL dans le worktree de
 // l'ancien commit, jamais réécrit pour lui. Contrairement à
 // `optimum-speed-targets.ts` (reste dans le répertoire courant, importe
 // `buildBuckets`/`prepareSearch`, absents de l'ancien commit).
@@ -21,8 +21,8 @@
 // et comparé à lui-même — une comparaison de **VERSIONS DU MOTEUR**, donc le
 // domaine de `perf-battery-compare`, jamais celui du différentiel
 // `--profil=… --differentiel=…` (qui compare deux SURCHARGES du même code).
-// Ses gardes duck-typés (`Array.isArray(progress.candidates)`, `truncated`
-// optionnel) n'existent que pour tolérer l'ANCIEN `SearchProgress` : c'est la
+// Ses gardes duck-typés (progression objet ou compacte, `truncated`
+// optionnel) tolèrent aussi l'ANCIEN `SearchProgress` : c'est la
 // signature d'un outil inter-versions. ⚠️ Il n'y a donc rien à absorber —
 // chercher à le faire passer par le différentiel serait une erreur de
 // catégorie.
@@ -118,16 +118,25 @@ for (const sc of scenarios) {
   let lastExplored = 0;
   let lastCandidates = 0;
   while (!step.done) {
-    const progress = step.value as { candidates?: unknown[]; explored?: number };
+    const progress = step.value as { candidates?: { runeIds: number[] }[] | { length: number; blocs: { longueur: number; ids: ArrayLike<number>[] }[] }; explored?: number };
     // ⚠️ Le code ACTUEL a DEUX phases (`building`/`pairing`, voir
     // `SearchProgress`) — seule `pairing` porte `candidates`/`explored`.
     // L'ancien code n'a qu'une seule phase, toujours avec les deux champs :
     // ce garde duck-typé traite les deux uniformément sans dépendre d'un
     // champ `phase` absent côté ancien.
-    if (Array.isArray(progress.candidates) && typeof progress.explored === 'number') {
+    if (progress.candidates && typeof progress.explored === 'number') {
       lastExplored = progress.explored;
       lastCandidates = progress.candidates.length;
-      if (foundExplored === null && (progress.candidates as { runeIds: number[] }[]).some((c) => sameIds(c.runeIds, sc.targetRuneIds))) {
+      // Lecture duck-typée pour rester copiable sur les versions à sortie objet.
+      const candidats = progress.candidates;
+      const ciblePresente = () => {
+        if (Array.isArray(candidats)) return candidats.some((c) => sameIds(c.runeIds, sc.targetRuneIds));
+        for (const b of candidats.blocs) for (let i = 0; i < b.longueur; i++) {
+          if (sameIds(b.ids.map((c) => c[i]), sc.targetRuneIds)) return true;
+        }
+        return false;
+      };
+      if (foundExplored === null && ciblePresente()) {
         foundExplored = progress.explored;
         foundMs = Date.now() - t0;
       }

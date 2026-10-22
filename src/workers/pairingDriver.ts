@@ -11,6 +11,45 @@
 import { cederLaMain } from '../lib/cession';
 import { PairingProgress, SearchResult, BuildCandidate } from '../lib/runeBuildOptim';
 import { BlocCandidats, ColonnesCandidats, SortieCandidats, extraireBlocs, tamponsCandidats } from '../lib/candidatsCompacts';
+import { creerColonnesCandidats } from '../lib/candidatsCompacts';
+import { apparierRapide } from '../lib/appariementRapide';
+import { OptionsParallele, ResultatParallele, apparierRapideEnParallele, enResultatDeRecherche } from '../lib/appariementRapideParallele';
+
+/** Le lanceur commun à l'écran et aux outils : mêmes publications et mêmes crédits. */
+export async function lancerAppariement(
+  options: OptionsParallele<ColonnesCandidats> & {
+    regime: 'sequentiel' | 'parallele';
+    flux: EmetteurCandidats;
+    estArrete?: () => boolean;
+    observer?: (explored: number, candidats: ColonnesCandidats) => void;
+  }
+): Promise<{ resultat: SearchResult<ColonnesCandidats>; parallele?: ResultatParallele<ColonnesCandidats> }> {
+  const collecte = options.collecte ?? creerColonnesCandidats();
+  const publier = async (explored: number, candidats: ColonnesCandidats) => {
+    options.observer?.(explored, candidats);
+    await options.flux.transmettre(candidats);
+    await options.surProgression?.(explored, candidats);
+  };
+  if (options.regime === 'parallele') {
+    const parallele = await apparierRapideEnParallele({ ...options, collecte, surProgression: publier });
+    return { resultat: enResultatDeRecherche(parallele), parallele };
+  }
+  const source = apparierRapide(options.prepared, options.bucketsA, options.bucketsB, { collecte });
+  const observer = function* () {
+    let step = source.next();
+    while (!step.done) {
+      options.observer?.(step.value.explored, step.value.candidates);
+      yield step.value;
+      step = source.next();
+    }
+    return step.value;
+  };
+  const resultat = await drivePairing(options.observer ? observer() : source, options.estArrete ?? (() => false), async (explored, candidats) => {
+    await options.flux.transmettre(candidats);
+    await options.surProgression?.(explored, candidats);
+  });
+  return { resultat };
+}
 
 /** Fenêtre de transport : 16 × 4096 × 120 octets au plus, sans file illimitée. */
 export const BLOCS_EN_VOL_VERS_PAGE = 16;

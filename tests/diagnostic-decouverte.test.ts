@@ -89,7 +89,7 @@ export default async function testDiagnosticDecouverte() {
   // candidats est séquentiel, pas l'instant où ils apparaissent. Le masquer
   // serait le mensonge que le harnais s'interdit.
   ok(!dt.reproductible, 'un run parallèle se déclare NON REPRODUCTIBLE sur cette grandeur');
-  egal(dt.granularitePaires, null, 'en parallèle la granularité est le MORCEAU reçu, donc pas un nombre fixe de paires');
+  egal(dt.granularitePaires, null, 'en parallèle la granularité est la publication fusionnée, donc pas un nombre fixe de paires');
   ok(
     dt.jalons.some((j) => !j.atteint),
     'un run tronqué très tôt laisse des jalons NON ATTEINTS'

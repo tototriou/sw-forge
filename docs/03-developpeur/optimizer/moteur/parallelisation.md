@@ -22,6 +22,7 @@ casser : [../invariants.md § Workers](../invariants.md).
 | `src/lib/cession.ts` | `cederLaMain` : la cession entre deux tranches, par message de canal (repli `setTimeout(0)`) | neutre |
 | `src/lib/appariementRapide.ts` | corps d'un morceau (`initialiserTravailleur`, `parcourirMorceau` ; `traiterMorceau`, le même d'un bloc, pour les tests), le noyau, les types du protocole | neutre |
 | `src/workers/runeBuildOptim.worker.ts` | choix du régime, lanceur `lancerTravailleurNavigateur`, arrêt et erreur | navigateur |
+| `src/workers/pairingDriver.ts` | `lancerAppariement`, commun à l'écran et aux outils : pilotage compact et crédits vers le propriétaire | neutre |
 | `src/workers/appariementRapide.worker.ts` | coquille d'un Worker d'appariement | navigateur |
 | `scripts/lib/appariementRapideNode.ts` | lanceur `lancerTravailleurNode`, paquet `assurerBundleAppariementRapide` | Node |
 | `scripts/lib/appariement-rapide-worker.ts` | coquille d'un Worker d'appariement | Node (`worker_threads`) |
@@ -116,8 +117,10 @@ combinaison A ouverte face à un compartiment B ouvert, avec les prédicats de
   l'encodage original, que le coordinateur ne lit plus après le plan.
 - Les morceaux partent ensuite à la demande, `EN_VOL_PAR_TRAVAILLEUR` (2)
   en vol par Worker : le suivant attend déjà quand l'un se termine, et un
-  Worker rapide en prend davantage. Un morceau voyage avec ses segments de
-  lignes et le verdict de `comboAFeasible` de chacune.
+  Worker rapide en prend davantage. Leur distribution ne dépend pas de
+  l'ordre de fusion ; les quatre places de réception par producteur bornent
+  les retours en attente. Un morceau voyage avec ses segments de lignes
+  et le verdict de `comboAFeasible` de chacune.
 - Le plafond de candidats est GLOBAL : aucune part par Worker. Un morceau
   s'arrête de lui-même dès qu'il a `maxCollected` candidats (la fusion
   aurait de toute façon coupé avant), et la fusion coupe au
@@ -272,9 +275,12 @@ L'adaptation objet est explicite pour les consommateurs d'outillage
   leur passe sa propre concurrence (`os.availableParallelism()`, cœurs
   physiques à `null` : la règle du site), il ne les recode jamais, sinon il
   cesse de reproduire le régime que la production choisirait.
-- Un outil Node qui veut reproduire la production apparie par ce code
-  commun, `apparierRapideEnParallele` avec `lancerTravailleurNode`, comme le
-  harnais
+- L'écran, le CLI, le harnais et les bancs passent par `lancerAppariement`
+  (`pairingDriver.ts`) : `apparierRapide` piloté par `drivePairing` en
+  séquentiel, `apparierRapideEnParallele` en parallèle, mêmes colonnes,
+  distribution et crédits. L'adaptateur Node `apparierNode` injecte
+  `lancerTravailleurNode` et un récepteur sans aperçu ; il ne matérialise
+  les objets qu'après le scellement. Le harnais suit ce même chemin
   ([../harnais/mode-d-emploi.md § Régime d'appariement : le seuil de la production](../harnais/mode-d-emploi.md)).
   Apparier par une copie du corps mesure un comportement qui n'existe pas.
   `scripts/lib/pairing-worker.ts`, un autre fil Node du dépôt, apparie par
@@ -339,8 +345,9 @@ si le préfixe reçu permet encore d'avancer. En compact, la distribution
 garde deux morceaux en vol par Worker, sans attendre la fusion des morceaux
 terminés ; les quatre places de réception bornent aussi leurs bilans en
 attente. Au plus 6W morceaux distribués ne sont pas encore fusionnés
-(4W bilans reçus, 2W morceaux en vol). Le chemin objet des outils garde sa
-fenêtre globale de 2W morceaux. L'attente cède la main aux messages et
+(4W bilans reçus, 2W morceaux en vol). Cette distribution est unique pour
+l'écran et les outils ; aucun chemin objet parallèle ne la remplace.
+L'attente cède la main aux messages et
 compte dans le filet global. L'arrêt coopératif draine les blocs et bilans
 des morceaux déjà partis, puis la fusion ou le rejet rend toute place.
 
@@ -401,6 +408,15 @@ Si une panne arrive pendant une publication asynchrone vers le propriétaire,
 le coordinateur attend son achèvement avant de rendre le bilan de panne.
 Les messages suivants sont ignorés : le préfixe déjà publié reste celui du
 bilan, et son scellement ne précède jamais un transfert en cours.
+
+Un refus de `RecepteurCandidats.recevoir` ou de `sceller` est rattrapé dans
+le hook : erreur journalisée, progression effacée, statut `error`, Worker
+de recherche terminé avec ses enfants et réponses tardives invalidées.
+Un rejet de `posterResultat` est rattrapé à la frontière de messagerie du
+Worker principal et devient un message `error` ; une promesse rejetée de
+`onmessage` ne déclenche pas à elle seule `onerror` chez son parent.
+Le hook termine également le Worker sur ce message. Une relance conserve
+le canal coopératif du bouton « Arrêter ».
 
 - Arrêt manuel : le Worker principal reçoit `{ stop: true }` et appelle
   l'arrêt inscrit (`arreterAppariement`). Le coordinateur ne distribue plus

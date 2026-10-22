@@ -25,7 +25,7 @@
 // le rejeu redonne l'état séquentiel exact.
 
 import { BuildCandidate, NearMiss, PreparedSearch, SearchParams, SearchResult } from './runeBuildOptim';
-import { SortieCandidats, fusionnerCandidats } from './candidatsCompacts';
+import { ColonnesCandidats, SortieCandidats, creerColonnesCandidats, fusionnerCandidats } from './candidatsCompacts';
 import { Compartiment, lireCombo, nouvelleVueCombo } from './demiBuildsTypes';
 import {
   CompteursNoyau,
@@ -227,9 +227,7 @@ export interface OptionsParallele<C extends SortieCandidats = BuildCandidate[]> 
  * `pairBuckets` en rendant la main), jamais ici, où un repli synchrone
  * bloquerait l'arrêt et la progression.
  */
-export function apparierRapideEnParallele<C extends SortieCandidats>(o: OptionsParallele<C>): Promise<ResultatParallele<C>>;
-export function apparierRapideEnParallele(o: OptionsParallele): Promise<ResultatParallele>;
-export async function apparierRapideEnParallele<C extends SortieCandidats = BuildCandidate[]>(o: OptionsParallele<C>): Promise<ResultatParallele<C>> {
+export async function apparierRapideEnParallele(o: OptionsParallele<ColonnesCandidats>): Promise<ResultatParallele<ColonnesCandidats>> {
   const { prepared, bucketsA, bucketsB } = o;
   let arrete = false;
   let surArret: (() => void) | null = null;
@@ -255,7 +253,7 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
   // et chacun s'arrête de lui-même au point de passage `arret`.
   const aDistribuer = arret == null ? plan : plan.filter((m) => m.offset + 1 < arret).map((m) => ({ ...m, limite: arret }));
 
-  const resultats: { r: ResultatMorceau<C>; w: number }[][] = Array.from({ length: aDistribuer.length }, () => []);
+  const resultats: { r: ResultatMorceau<ColonnesCandidats>; w: number }[][] = Array.from({ length: aDistribuer.length }, () => []);
   const parTravailleur: number[] = new Array(o.travailleurs).fill(0);
   let validationsTypees = 0;
   let validationsReference = 0;
@@ -266,8 +264,7 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
   // négative). Un compte, pas une position : un morceau tronqué par le temps
   // ou par l'arrêt manuel n'a pas traité toutes ses paires, et les suivants
   // se fusionnent quand même.
-  const candidates = o.collecte ?? [] as unknown as C;
-  const compact = !Array.isArray(candidates);
+  const candidates = o.collecte ?? creerColonnesCandidats();
   const nearMissByCondition = new Map<string, EntreeQuasiSucces>();
   let globalNearMiss: NearMiss | null = null;
   let globalDistance = Infinity;
@@ -287,7 +284,7 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
 
   let traiteesMorceau = 0, visitesMorceau = 0;
   let compteursMorceau = compteursVides();
-  const fusionner = (r: ResultatMorceau<C>, m: Morceau): void => {
+  const fusionner = (r: ResultatMorceau<ColonnesCandidats>, m: Morceau): void => {
     if (fusionTerminee()) return;
     // Coupe au plafond : le candidat qui l'atteint, sa position incluse.
     const nombre = Math.min(r.candidats.length, Math.max(1, maxCollected - candidates.length));
@@ -335,7 +332,7 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
     return { copie, transfert: tamponsDe(copie) };
   };
   const nbTravailleurs = Math.max(1, Math.min(o.travailleurs, aDistribuer.length));
-  const poignees: PoigneeTravailleur<C>[] = [];
+  const poignees: PoigneeTravailleur<ColonnesCandidats>[] = [];
   const enVolParTravailleur = new Array(nbTravailleurs).fill(0) as number[];
   const enAttenteParTravailleur = new Array(nbTravailleurs).fill(0) as number[];
   const creditDiffere = new Array(nbTravailleurs).fill(false) as boolean[];
@@ -364,9 +361,6 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
     const distributionTerminee = () => fusionTerminee() || tempsEcoule || arrete || overBudget();
     const distribuer = (w: number) => {
       if (distributionTerminee()) return;
-      // En compact, les places de réception bornent les résultats terminés
-      // sans faire dépendre la distribution de leur ordre de fusion.
-      if (!compact && prochainADistribuer - prochainAFusionner >= nbTravailleurs * EN_VOL_PAR_TRAVAILLEUR) return;
       if (enVolParTravailleur[w] >= EN_VOL_PAR_TRAVAILLEUR) return;
       if (prochainADistribuer >= aDistribuer.length) return;
       const m = aDistribuer[prochainADistribuer++];
@@ -391,10 +385,9 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
       receptions = Promise.resolve().then(async () => {
         try {
           while (!termine && (receptionsANotifier > 0 || prefixeDisponible())) {
-            const notifications = receptionsANotifier;
             receptionsANotifier = 0;
             let blocsFusionnes = 0;
-            while (!fusionTerminee() && prefixeDisponible() && (!compact || blocsFusionnes < nbTravailleurs)) {
+            while (!fusionTerminee() && prefixeDisponible() && blocsFusionnes < nbTravailleurs) {
               const entree = resultats[prochainAFusionner].shift()!;
               fusionner(entree.r, aDistribuer[prochainAFusionner]);
               libererPlace(entree.w);
@@ -411,8 +404,7 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
             }
             // La publication compacte est bornée à W blocs, indépendamment
             // des réponses reçues pendant l'attente de la page.
-            const rappels = compact ? 1 : notifications;
-            for (let n = 0; n < rappels; n++) await o.surProgression?.(traitees, candidates);
+            await o.surProgression?.(traitees, candidates);
             if (termine) return;
             for (let k = 0; k < EN_VOL_PAR_TRAVAILLEUR; k++) for (let t = 0; t < nbTravailleurs; t++) distribuer(t);
             if ((distributionTerminee() || prochainADistribuer >= aDistribuer.length) && enVol === 0 && !prefixeDisponible()) finir();
@@ -432,11 +424,11 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
     for (let w = 0; w < nbTravailleurs; w++) {
       const { copie, transfert } = tampons(w === nbTravailleurs - 1);
       const p = o.lancer(
-        { params: o.params, startedAt: o.startedAt, compartiments: copie, ...(compact ? { collecteCompacte: true } : {}), ...(o.forcerValidation ? { forcerValidation: o.forcerValidation } : {}) },
+        { params: o.params, startedAt: o.startedAt, compartiments: copie, collecteCompacte: true, ...(o.forcerValidation ? { forcerValidation: o.forcerValidation } : {}) },
         transfert
       );
       poignees.push(p);
-      if (compact && !p.acquitter) throw new Error('Lanceur compact sans acquittement');
+      if (!p.acquitter) throw new Error('Lanceur compact sans acquittement');
       p.surErreur((e) => {
         if (termine) return;
         // Fusion déjà terminée (plafond, arrêt déterministe) : le résultat est
@@ -459,11 +451,9 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
           }
           resultats[r.id].push({ r, w });
           enAttenteParTravailleur[w]++;
-          if (compact) {
-            if (enAttenteParTravailleur[w] > BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR || creditDiffere[w]) throw new Error('Bloc reçu sans place de réception');
-            if (enAttenteParTravailleur[w] < BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR) p.acquitter!();
-            else creditDiffere[w] = true;
-          }
+          if (enAttenteParTravailleur[w] > BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR || creditDiffere[w]) throw new Error('Bloc reçu sans place de réception');
+          if (enAttenteParTravailleur[w] < BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR) p.acquitter!();
+          else creditDiffere[w] = true;
           if (r.issue === 'temps') tempsEcoule = true;
           receptionsANotifier++;
           programmerFusion();
@@ -485,7 +475,7 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
     for (const p of poignees) p.terminer();
   }
 
-  const motif: ResultatParallele<C>['motif'] = enErreur
+  const motif: ResultatParallele<ColonnesCandidats>['motif'] = enErreur
     ? 'erreur'
     : plafond
       ? 'maxCollected'
@@ -498,7 +488,7 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
             : 'manuel';
 
   const truncated = motif !== 'aucun';
-  const resultat: ResultatParallele<C> = {
+  const resultat: ResultatParallele<ColonnesCandidats> = {
     candidates, explored: traitees, truncated,
     nearMissByCondition: Array.from(nearMissByCondition.values()), globalNearMiss,
     traitees, visitees, sautees: traitees - visitees, chemin: 'noyau',

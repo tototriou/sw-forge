@@ -199,7 +199,8 @@ import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testConstructionRapide from './construction-rapide.test';
 import testConstructionColonnes from './construction-colonnes.test';
-import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidatsCredits, testFluxCandidatsApercuFinal, testFluxCandidatsPageLente, testFluxCandidatsReceptionOrdre } from './flux-candidats.test';
+import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidatsCredits, testFluxCandidatsApercuFinal, testFluxCandidatsPageLente, testFluxCandidatsReceptionOrdre,
+  testFluxCandidatsRefusRecevoir, testFluxCandidatsRefusSceller, testFluxCandidatsRefusResultat, testFluxCandidatsLanceurCommun } from './flux-candidats.test';
 import testRetentionEmboitee from './retention-emboitee.test';
 import testPrioriteStatsRetiree from './priorite-stats-retiree.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
@@ -667,6 +668,10 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testFluxCandidatsApercuFinal', testFluxCandidatsApercuFinal],
   ['testFluxCandidatsPageLente', testFluxCandidatsPageLente],
   ['testFluxCandidatsReceptionOrdre', testFluxCandidatsReceptionOrdre],
+  ['testFluxCandidatsRefusRecevoir', testFluxCandidatsRefusRecevoir],
+  ['testFluxCandidatsRefusSceller', testFluxCandidatsRefusSceller],
+  ['testFluxCandidatsRefusResultat', testFluxCandidatsRefusResultat],
+  ['testFluxCandidatsLanceurCommun', testFluxCandidatsLanceurCommun],
   ['testRetentionEmboitee', async () => { await testRetentionEmboitee(); }],
   ['testPrioriteStatsRetiree', testPrioriteStatsRetiree],
   ['testOptimizerExclusion', testOptimizerExclusion],

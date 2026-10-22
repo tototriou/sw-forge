@@ -104,8 +104,8 @@ ils suivent la progression, sur toute la largeur.
 ## Diagnostic sur 0 résultat
 
 ⚠️ **Sur 0 résultat**, jusqu'à trois encadrés diagnostic apparaissent, à la
-suite (au bureau, sans encadré, chacun sous un trait fin, comme les cartes :
-voir [Panneaux et sections](README.md#panneaux-et-sections)) :
+suite (au bureau, sans encadré, chacun sous un trait fin, alors que chaque
+résultat garde sa carte : voir [Panneaux et sections](README.md#panneaux-et-sections)) :
 - **Toujours** : une liste de conditions mathématiquement hors de portée
   (avec leur borne exacte), ou un message neutre orientant vers la
   conjonction des contraintes ou un pré-filtrage plus large.

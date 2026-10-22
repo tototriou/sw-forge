@@ -112,12 +112,12 @@ interface Props {
    * comment cette résolution se fait.
    */
   comparaison?: { key: string; label: string; suffix: string; delta: number }[];
-  // ⚠️ **Au bureau, la carte sans cadre** : un trait fin au-dessus, ni
-  // contour, ni fond, ni rembourrage de côté ; ses rangées « Dégâts »,
-  // « PV effectifs » et ses écarts gardent leur fond, sans contour. Les
-  // résultats sont une section du panneau de la colonne de droite
-  // (docs/02-app/optimizer/ecran/README.md, « Panneaux et sections ») ;
-  // décision de l'utilisateur. Le téléphone garde la carte encadrée.
+  // Le rendu du bureau (en-tête, lignes de stats resserrées). ⚠️ **La carte
+  // garde son cadre aux deux formats** (contour et fond) : sans lui, au
+  // bureau, les résultats se lisaient mal d'une carte à l'autre (décision de
+  // l'utilisateur, docs/02-app/optimizer/ecran/README.md, « Panneaux et
+  // sections »). Ses rangées « Dégâts », « PV effectifs » et ses écarts n'y
+  // gardent que leur fond : la carte porte le seul contour.
   bureau?: boolean;
 }
 
@@ -207,8 +207,8 @@ export default function BuildCandidateCard({
   metricDelta,
   bureau = false,
 }: Props) {
-  // Le contour des rangées mises en avant : sans lui au bureau, où la carte
-  // n'en a plus (elles deviendraient les seuls cadres de la section).
+  // Le contour des rangées mises en avant : sans lui au bureau, où le
+  // contour de la carte est le seul.
   const contourRangee = bureau ? '' : 'border border-border-soft';
   const runes = candidate.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => !!r);
   const sets = activeSets(runes.map((r) => r.set));
@@ -406,7 +406,7 @@ export default function BuildCandidateCard({
       // apparent, l'empilement par défaut suit l'ordre du DOM, pas la
       // position à l'écran.
       // Au bureau, la carte est le conteneur `carte` que lit son en-tête.
-      className={`${bureau ? '@container/carte border-t border-border-soft pt-2.5' : 'rounded-xl border border-border bg-panel p-2.5'} ${
+      className={`rounded-xl border border-border bg-panel p-2.5 ${bureau ? '@container/carte' : ''} ${
         detailOuvertIci ? 'relative z-10' : ''
       }`}
       // Lu par `useHauteurDesCartes` : les places « Vérification… » prennent

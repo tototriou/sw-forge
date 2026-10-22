@@ -17,7 +17,7 @@ export interface GrilleResultatsProps {
   // classement, gestes (`proprietesCarte` d'OptimizerSection).
   proprietesCarte: (c: BuildCandidate) => Omit<PropsCarte, 'rank' | 'candidate' | 'runeById' | 'relicUsageById' | 'metric' | 'openDetailKey' | 'onToggleDetail'>;
   hauteurCarte: number | null;
-  // Les cartes du bureau, sans cadre (`BuildCandidateCard`, `bureau`).
+  // Le rendu des cartes au bureau (`BuildCandidateCard`, `bureau`).
   bureau?: boolean;
 }
 

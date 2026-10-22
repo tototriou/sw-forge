@@ -99,10 +99,12 @@ l'utilisateur : des cadres de même poids que le panneau empêchaient de lire
 la colonne). La liste de travail n'a plus de carte, et chaque monstre y est
 une ligne sous un trait fin ; la grille des sets, la fiche de
 l'exemplaire, les sets d'aura, le pré-filtrage et les interrupteurs
-avancés n'ont plus de boîte ; une carte de résultat et un diagnostic sans
-résultat se posent sous un trait fin, sans contour ni fond (les rangées
-« Dégâts », « PV effectifs » et les écarts d'une carte gardent leur fond,
-sans contour). Restent marqués : les objets du jeu (runes, artéfacts,
+avancés n'ont plus de boîte ; un diagnostic sans résultat se pose sous un
+trait fin, sans contour ni fond. ⚠️ **Exception : chaque résultat garde sa
+carte** (contour et fond, décision de l'utilisateur : sans elle, les
+résultats se lisaient mal d'une carte à l'autre) ; ses rangées « Dégâts »,
+« PV effectifs » et ses écarts n'y gardent que leur fond, la carte portant
+le seul contour. Restent marqués : les objets du jeu (runes, artéfacts,
 reliques), les états (set manquant, rappel des auras, place d'attente des
 résultats, « Vérification… », emplacement figé), les contrôles (champs,
 listes, boutons, segments, panneau de statistiques cliquable, résumé du

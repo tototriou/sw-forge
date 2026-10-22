@@ -25,7 +25,10 @@ ils suivent la progression, sur toute la largeur.
     123), si bien que passer à « Validé » ne déplace ni lui ni « Comparer ».
     Mesuré (carte de 356 à 716 px, compte d'exemple, sans « Dégâts ») :
     en-tête de 19 px, carte de 284 px avec un ou deux boutons. Le téléphone
-    garde son en-tête et sa ligne de sets.
+    garde son en-tête et sa ligne de sets ; ses deux boutons se partagent la
+    largeur de la carte (une enveloppe `flex-1` autour de chaque bouton
+    `pleineLargeur` : un `flex-1` posé sur le bouton lui-même perd contre le
+    `flex-none` du socle de `Bouton`).
     ⚠️ **Recalculée à l'affichage** (`candidateMetricTotal` dans
     [runeBuildOptim.ts](src/lib/runeBuildOptim.ts), à partir des VRAIES
     runes) plutôt que lue depuis `BuildCandidate.effTotal` : ce champ est

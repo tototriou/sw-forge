@@ -1,4 +1,4 @@
-import { RefObject, useLayoutEffect, useState } from 'react';
+import { ReactNode, RefObject, useLayoutEffect, useState } from 'react';
 import { ArrowLeftRight, CheckCircle2 } from 'lucide-react';
 import { ArtifactDetail, RelicDetail, RuneDetail, RUNE_SETS } from '../../types';
 import { BuildCandidate, candidateMetricTotal } from '../../lib/runeBuildOptim';
@@ -311,13 +311,16 @@ export default function BuildCandidateCard({
   // non réellement possédé — rien à réserver sur un exemplaire qui n'existe
   // pas dans le compte.
   // ⚠️ Au téléphone, les deux boutons SE PARTAGENT la largeur (demande
-  // explicite) : `flex` + `flex-1` sur chacun,
-  // plutôt que deux `pleineLargeur` empilés. La carte garde ainsi la même
+  // explicite), côte à côte plutôt qu'empilés : la carte garde la même
   // hauteur qu'avec un seul bouton — une rangée de plus par carte se paie sur
-  // toute la grille de résultats.
+  // toute la grille de résultats. Le partage passe par une ENVELOPPE `flex-1`
+  // autour d'un bouton `pleineLargeur` : un `flex-1` posé sur le bouton
+  // lui-même ne s'applique pas : le `flex-none` du socle de `Bouton`
+  // l'emporte dans la feuille de style.
+  const place = (bouton: ReactNode) => (bureau ? bouton : <div className="flex min-w-0 flex-1">{bouton}</div>);
   const boutons = (onValidate || onCompare) && (
     <div className="mt-2.5 flex items-stretch gap-2">
-      {onCompare && (
+      {onCompare && place(
         <Bouton
           onClick={onCompare}
           ton={comparaison ? 'accent' : 'neutre'}
@@ -325,10 +328,10 @@ export default function BuildCandidateCard({
           taille="sm"
           icone={<ArrowLeftRight size={14} />}
           libelle="Comparer"
-          className={bureau ? undefined : 'flex-1'}
+          pleineLargeur={!bureau}
         />
       )}
-      {onValidate && (
+      {onValidate && place(
         <Bouton
           onClick={onValidate}
           // ⚠️ Seul `'oui'` désactive. `'artefacts'` reste ACTIF : c'est
@@ -363,7 +366,8 @@ export default function BuildCandidateCard({
                   ? 'Valider les artéfacts'
                   : 'Valider ce build'
           }
-          className={bureau ? VALIDER_BUREAU : 'flex-1'}
+          pleineLargeur={!bureau}
+          className={bureau ? VALIDER_BUREAU : undefined}
         />
       )}
     </div>

@@ -304,9 +304,12 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 ## Comparer, valider sans recherche et persistance
 
 - **« Comparer », à côté de « Valider ce build »** sur chaque carte de
-  résultat : les deux boutons **se partagent la largeur**
-  de la carte, plutôt que d'être empilés — une rangée de plus par carte se
-  paierait sur toute la grille de résultats. Au clic, l'**écart statistique
+  résultat, en bas de la carte, côte à côte plutôt qu'empilés — une rangée
+  de plus par carte se paierait sur toute la grille de résultats. Au
+  téléphone, ils **se partagent la largeur** de la carte (un seul bouton la
+  prend toute) ; au bureau, « Comparer » garde sa largeur et « Valider » la
+  largeur fixe de son plus long libellé
+  ([resultats.md](ecran/resultats.md)). Au clic, l'**écart statistique
   par statistique** entre ce build et la référence apparaît **sous** les
   boutons, donc sans rien déplacer de ce qui précède.
   - ⚠️ **La référence est la fiche affichée**, ce qui couvre les deux cas

@@ -12,8 +12,7 @@ export interface ExclusionMonstrePrecisProps {
   excludedSelectors: ExclusionSelector[];
   setExcludedSelectors: Dispatch<SetStateAction<ExclusionSelector[]>>;
   // Colonne « Aura, exclusion, avancés » du bureau : monstres exclus à hauteur
-  // bornée, sources de siège sur deux lignes (`RuneExclusionPicker`,
-  // `hauteurBornee` et `sourcesSurDeuxLignes`).
+  // bornée (`RuneExclusionPicker`, `hauteurBornee`).
   bureau?: boolean;
 }
 
@@ -41,7 +40,6 @@ export default function ExclusionMonstrePrecis({ exclusionData, selectedUnitKey,
         selected={excludedSelectors}
         onChange={setExcludedSelectors}
         hauteurBornee={bureau}
-        sourcesSurDeuxLignes={bureau}
       />
     </div>
   );

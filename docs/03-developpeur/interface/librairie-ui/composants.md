@@ -291,9 +291,13 @@ cumulables, rien dans leur forme ne dit qu'en activer une désactive les
 autres — le cadre commun le dit sans un mot. L'option enfoncée est un
 **aplat de braise**, texte `accent-ink`.
 
-> ⚠️ **Il se resserre TOUT SEUL** (`dense` laissé à `undefined`, le défaut) :
-> le contrôle mesure la place qu'il reçoit **réellement** et bascule en texte/
-> rembourrage réduits uniquement quand il déborderait. Un `dense` piloté par
+> ⚠️ **Il s'adapte TOUT SEUL** (`dense` laissé à `undefined`, le défaut) :
+> le contrôle mesure la place qu'il reçoit **réellement**. Tant que tous ses
+> libellés tiennent sur une ligne, il ne change rien (même hauteur, mêmes
+> classes). Sinon, ses libellés **passent sur deux lignes** au texte normal,
+> coupés à un espace, jamais dans un mot (« Défenses / siège ») ; il ne
+> bascule en texte/rembourrage réduits que si même ainsi il déborderait (un
+> mot seul trop long, trop de crans). Un `dense` piloté par
 > un seuil de **fenêtre** (`useMediaQuery(SOUS_SM)`, 639 px) serait faux dès
 > qu'un contrôle vit dans une colonne qui partage son espace avec un voisin :
 > un sélecteur à 4 options longues déborderait sur un écran **1080p** sans que
@@ -309,6 +313,16 @@ autres — le cadre commun le dit sans un mot. L'option enfoncée est un
 > RAPPORTER — dans un conteneur `absolute` sans largeur propre, c'est une
 > dépendance circulaire dont la spec CSS ne garantit pas le résultat.
 >
+> ⚠️ **Sur deux lignes, tous les crans ont la même hauteur**, celle du plus
+> haut : un libellé resté sur une ligne y est centré. À la souris, 38 px pour
+> deux lignes (interligne serré), jamais moins que les 26 px du cran normal.
+> La forme ne dépend que de la place et des libellés, jamais du cran choisi :
+> rien ne bouge au clic. Une seconde copie de mesure, en largeur minimale
+> (`w-min`), donne la largeur de chaque cran passé sur deux lignes ; la forme
+> tient si leur somme tient dans le contenu de la racine (un cran `lg` qui ne
+> peut pas descendre sous son mot le plus long garde cette largeur, les autres
+> se partagent le reste).
+>
 > Passer `dense={true|false}` **force** le rendu, à réserver aux cas où l'on
 > sait mieux que la mesure — `AncientFilter` resserre par cohérence avec une
 > rangée voisine, pas par manque de place.
@@ -323,13 +337,6 @@ autres — le cadre commun le dit sans un mot. L'option enfoncée est un
 > d'1 px, dont chaque case reprend le fond du cadre — des traits de 1 px
 > entre les crans, verticaux et horizontaux, comme le trait de la rangée
 > `lg`. Sans eux, quatre crans en 2 × 2 se lisaient comme un seul bloc.
-
-> **`deuxLignes`** coupe chaque libellé de plusieurs mots à son premier
-> espace (« Défenses / siège »), au texte normal de `lg`, quand le texte
-> resserré de `dense` serait trop petit : les sources d'« Exclure les runes
-> d'un monstre » dans la colonne « Aura, exclusion, avancés » de l'Optimizer,
-> au bureau. ⚠️ Tous les crans prennent la hauteur du plus haut, un libellé
-> d'un mot y est centré. Aucun resserrement automatique, comme en grille.
 
 #### `Pastille`
 

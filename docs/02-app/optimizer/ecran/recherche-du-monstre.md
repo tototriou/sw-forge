@@ -16,9 +16,10 @@ Ce document décrit la carte de recherche du monstre à optimiser.
    voir ../feat-exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source),
    ne filtre pas la recherche elle-même : il choisit
    dans QUELLE source résoudre l'**exemplaire**, une fois l'espèce trouvée.
-   ⚠️ **Mode compact déclenché par la largeur RÉELLE de sa colonne, pas par
+   ⚠️ **Libellés sur deux lignes selon la largeur RÉELLE de sa colonne, pas
    celle de la fenêtre** — `Segmented` mesure lui-même la place qu'il reçoit
-   et se resserre tout seul (voir
+   et passe seul ses libellés sur deux lignes quand ils ne tiennent pas (au
+   doigt : « Défenses / siège », « Offenses / siège » ; voir
    [03-developpeur/interface/librairie-ui/README.md](../../../03-developpeur/interface/librairie-ui/README.md)), comportement commun
    à TOUS les sélecteurs de l'app. **Une puce grisée** signale que l'espèce
    choisie n'a aucun exemplaire dans cette source (`options[i].disabled` ;

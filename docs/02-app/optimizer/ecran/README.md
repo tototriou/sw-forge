@@ -116,8 +116,9 @@ la boîte qui défile s'arrête à sa barre (le panneau, 4 px, la barre de
 marge, hors de la boîte. Une barre au bord de la place se collait au
 panneau suivant. La colonne de droite, la dernière, garde aussi 4 px entre
 son panneau et sa barre, au bord de la page : ils sont pris sur les marges
-de la page (voir plus bas), et son panneau est, à fenêtre égale, 12 px plus
-large qu'avec des marges de 24.
+de la page (voir plus bas), et son panneau est, à fenêtre égale, 20 px plus
+large qu'avec des marges de 24 (calcul : les 24 px gagnés sur les marges,
+moins ces 4 px).
 
 ⚠️ **Marges de la page : 12 px à gauche et à droite**, au lieu des 24 de
 l'app, en pleine page comme dans un volet de l'écran partagé : la page de

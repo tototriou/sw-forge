@@ -16,6 +16,21 @@ export async function testRenduOptimizerGabaritsGestes() {
     const ouvert = async () => (await declencheur.getAttribute('aria-expanded')) === 'true';
     await declencheur.click();
     ok(await ouvert(), 'set : la liste s’ouvre au clic');
+    // La grille ouverte, dans son coffre en creux : Set secondaire sur 8
+    // colonnes, les deux groupes au même écart des deux bords du coffre.
+    const coffre = await page.evaluate(() => {
+      const titreSecondaire = [...document.querySelectorAll('p')].find((p) => p.textContent === 'Set secondaire')!;
+      const groupe = titreSecondaire.parentElement!, boite = groupe.parentElement!;
+      const b = boite.getBoundingClientRect(), s = getComputedStyle(boite);
+      const premier = boite.firstElementChild!.getBoundingClientRect(), dernier = groupe.getBoundingClientRect();
+      return {
+        colonnes: getComputedStyle(titreSecondaire.nextElementSibling!).gridTemplateColumns.split(' ').length,
+        gauche: Math.round(premier.left - b.left - parseFloat(s.paddingLeft)), droite: Math.round(b.right - parseFloat(s.paddingRight) - dernier.right),
+        contour: s.borderTopWidth, fond: s.backgroundColor,
+      };
+    });
+    ok(coffre.colonnes === 8 && Math.abs(coffre.gauche - coffre.droite) <= 1 && coffre.contour === '0px' && coffre.fond !== 'rgba(0, 0, 0, 0)',
+      `set : la grille ouverte dans son coffre (fond, sans contour), Set secondaire sur 8 colonnes, centrée (${JSON.stringify(coffre)})`);
     await page.getByRole('button', { name: 'Violent', exact: true }).click();
     await page.waitForTimeout(100);
     ok(await ouvert(), 'set : la liste reste ouverte après un set de 4 (Violent)');
@@ -91,5 +106,54 @@ export async function testRenduOptimizerGabaritsGestes() {
     });
     ok(rangee.memeLigne && rangee.dedans, `état : les trois buffs sur une rangée, dans la sous-colonne (${rangee.largeurs.join(' / ')} px)`);
     ok(rangee.statEntiere, 'état : la liste du lead n’est plus coupée, dans la sous-colonne');
+  } finally { await browser.close(); }
+}
+
+// Ce que la place reçue décide, mesuré au navigateur : la largeur de « Valider
+// ce build » (celle de la fiche telle qu'affichée) et la rangée de
+// « Rechercher » dans la forme large du bloc.
+export async function testRenduOptimizerGabaritsLargeurs() {
+  titre('rendu · gabarits de l’Optimizer — fiche de l’exemplaire et rangée de « Rechercher » selon la place');
+  const { browser, page } = await navigateurOptimizer(false, 'tests/rendu/optimizer-gabarits-banc.tsx');
+  const monterA = (nom: string, largeur: number) => `globalThis.bancOptimizer.monter(${JSON.stringify(nom)}, ${largeur})`;
+  try {
+    // « Valider ce build » : de la gauche des statistiques à la droite du
+    // groupe (artéfacts, roue, relique) quand la fiche la plus large tient
+    // (564) ; sa rangée la plus large, fiche repliée, en dessous.
+    const fiche = () => page.evaluate(() => {
+      const bouton = document.querySelector('[data-valider]')!.getBoundingClientRect();
+      const racine = document.querySelector('[data-valider]')!.parentElement!.querySelector('.flex-wrap')!;
+      const [stats, groupe] = [...racine.children].map((e) => e.getBoundingClientRect());
+      const r = (n: number) => Math.round(n);
+      // [gauche, droite, haut, bas]
+      return { bouton: [r(bouton.left), r(bouton.right)], stats: [r(stats.left), r(stats.right), r(stats.top), r(stats.bottom)], groupe: [r(groupe.left), r(groupe.right), r(groupe.top)] };
+    });
+    await page.evaluate(monterA('exemplaire', 598));
+    await page.waitForTimeout(100);
+    const deplie = await fiche();
+    ok(deplie.groupe[0] >= deplie.stats[1] && Math.abs(deplie.bouton[0] - deplie.stats[0]) <= 1 && Math.abs(deplie.bouton[1] - deplie.groupe[1]) <= 1,
+      `exemplaire à 598 px : fiche dépliée, « Valider ce build » des statistiques au bord droit du groupe (${JSON.stringify(deplie)})`);
+    await page.evaluate(monterA('exemplaire', 420));
+    await page.waitForTimeout(100);
+    const replie = await fiche();
+    const plusLarge = Math.max(replie.stats[1] - replie.stats[0], replie.groupe[1] - replie.groupe[0]);
+    ok(replie.groupe[2] >= replie.stats[3] && Math.abs(replie.bouton[1] - replie.bouton[0] - plusLarge) <= 1,
+      `exemplaire à 420 px : fiche repliée, « Valider ce build » à la largeur de sa rangée la plus large, ${plusLarge} px (${JSON.stringify(replie)})`);
+
+    // « Rechercher », forme large : à droite d'« Exporter » · « Importer » sur
+    // leur rangée ; dessous, pleine largeur, quand la rangée fait moins de 448 px.
+    const rangee = () => page.evaluate(() => {
+      const b = (n: string) => [...document.querySelectorAll('button')].find((e) => e.textContent?.trim() === n)!.getBoundingClientRect();
+      const rechercher = b('Rechercher'), importer = b('Importer');
+      return { rechercher: [Math.round(rechercher.left), Math.round(rechercher.top), Math.round(rechercher.width)], importer: [Math.round(importer.right), Math.round(importer.top), Math.round(importer.bottom)] };
+    });
+    await page.evaluate(monterA('objectif', 600));
+    const large = await rangee();
+    ok(large.rechercher[2] === 240 && large.rechercher[0] > large.importer[0] && large.rechercher[1] < large.importer[2],
+      `objectif à 600 px : « Rechercher », 240 px, sur la rangée, à droite d'« Importer » (${JSON.stringify(large)})`);
+    await page.evaluate(monterA('objectif', 420));
+    const etroit = await rangee();
+    ok(etroit.rechercher[1] >= etroit.importer[2] && etroit.rechercher[2] === 420,
+      `objectif à 420 px : « Rechercher » sous « Exporter » · « Importer », pleine largeur (${JSON.stringify(etroit)})`);
   } finally { await browser.close(); }
 }

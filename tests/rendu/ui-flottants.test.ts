@@ -8,7 +8,7 @@ import { egal, ok, titre } from '../outils';
 
 const BANC = 'tests/rendu/ui-flottants-banc.tsx';
 
-async function ouvrir(telephone: boolean, nom: 'selecteur' | 'boite') {
+async function ouvrir(telephone: boolean, nom: 'selecteur' | 'boite' | 'segmented') {
   const banc = await navigateurOptimizer(telephone, BANC);
   await banc.page.evaluate((n) => (globalThis as unknown as { bancOptimizer: { monter: (n: string) => void } }).bancOptimizer.monter(n), nom);
   return banc;
@@ -101,5 +101,28 @@ export async function testRenduUiFlottantBoiteQuiDefile() {
     await page.evaluate(() => { document.querySelector<HTMLElement>('[data-boite]')!.scrollTop = 0; });
     await page.waitForTimeout(100);
     ok((await lire()).ouverte, 'l\'ancre revenue : la surface réapparaît');
+  } finally { await browser.close(); }
+}
+
+// `Segmented` choisit sa forme à la mesure : sur une ligne tant que tout tient,
+// ses libellés sur deux lignes (coupés à un espace, au texte normal) sinon,
+// tous les crans à la même hauteur ; le clic ne change pas la forme.
+export async function testRenduUiSegmentedDeuxLignes() {
+  titre('rendu · src/ui — Segmented : deux lignes seulement quand une ne tient pas');
+  const { browser, page } = await ouvrir(false, 'segmented');
+  try {
+    const lire = (largeur: number) => page.evaluate((l) => [...document.querySelectorAll<HTMLButtonElement>(`[data-segmented="${l}"] button`)].map((b) => ({
+      texte: b.textContent, hauteur: Math.round(b.getBoundingClientRect().height), police: getComputedStyle(b).fontSize,
+      deborde: b.scrollWidth > b.clientWidth,
+    })), largeur);
+    const large = await lire(600);
+    ok(large.length === 4 && large.every((c) => c.hauteur === 26 && !c.deborde), `600 px : tout tient, les quatre crans sur une ligne, 26 px (${JSON.stringify(large.map((c) => c.hauteur))})`);
+    const etroit = await lire(300);
+    const hauteurs = etroit.map((c) => c.hauteur);
+    ok(hauteurs.every((h) => h === hauteurs[0]) && hauteurs[0] > 26 && etroit.every((c) => !c.deborde && c.police === large[0].police),
+      `300 px : libellés sur deux lignes, tous les crans à la même hauteur, au texte normal, sans débordement (${JSON.stringify(etroit)})`);
+    await page.getByRole('button', { name: 'Offenses siège' }).last().click();
+    egal((await lire(300)).map((c) => c.hauteur), hauteurs, 'un clic sur un cran ne change ni la forme ni la hauteur');
+    egal((await lire(600)).map((c) => c.hauteur), large.map((c) => c.hauteur), 'ni celles du contrôle où tout tient');
   } finally { await browser.close(); }
 }

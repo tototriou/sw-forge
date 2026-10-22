@@ -16,6 +16,13 @@
    (avec l'écart) restent visibles, et un toucher sur le titre déplie les
    crans et la paire. Au bureau, il n'est jamais replié.
 
+   La paire : deux pièces côte à côte dès 640 px au téléphone ; **empilées
+   au bureau**, une pièce par rangée (décision de l'utilisateur) : dans la
+   colonne, deux pièces côte à côte tronquaient les sous-propriétés longues
+   (« Dgts supp. en prop. de DEF : XX % »), et une pièce par rangée leur
+   rend la largeur de la colonne. Au bureau, les crans « Dégâts
+   supplémentaires / Dégâts réels » sont centrés dans la colonne.
+
    Il n'existe qu'avec un monstre choisi et l'optimisation d'artéfacts
    active : sans optimisation, il répondrait « la paire portée est la
    meilleure », vrai seulement parce qu'on lui interdit d'en chercher une

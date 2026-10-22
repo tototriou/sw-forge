@@ -167,7 +167,7 @@ export const GABARITS_ESSENTIELS: Gabarit[] = [
     changements: [
       'La grille d\'icônes n\'est plus toujours déployée : une liste fermée montre les sets choisis, la grille (jetons, retrait, deux groupes) s\'ouvre en flottant ; un clic de plus pour choisir.',
       'Une seule liste (et non « Set principal » · « Set secondaire ») : deux fois le même set reste possible.',
-      '« Sélectionne au moins un set… » prend la place du compte « n/6 runes », sur la ligne du titre : aucune ligne réservée sous la liste, et rien ne bouge quand il paraît.',
+      '« Sélectionne au moins un set… » se met sur la ligne du titre (le compte « n/6 runes » n\'y figure que déplié, en A3 quand la colonne tient) : aucune ligne réservée sous la liste, et rien ne bouge quand il paraît.',
       'Liste fermée sans set : « Aucun ».',
       'La liste reste ouverte pendant la composition (après un set de 4, il reste un set de 2 à choisir) ; elle se ferme d\'elle-même au choix qui remplit les six emplacements, sinon au clic ailleurs ou à Échap.',
     ],

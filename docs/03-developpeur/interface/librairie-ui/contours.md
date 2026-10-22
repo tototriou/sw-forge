@@ -53,7 +53,8 @@ l'Optimizer au bureau est une bande braise de 3 px.** Chaque panneau de
 colonne de la page de bureau (essentiels, colonnes repliables, colonne de
 droite) a pour contour du haut une bande de 3 px de braise vive, à la place
 du trait de 1 px (pas sous lui : aucun cumul), aux coins arrondis du
-panneau ; elle reste en haut de la colonne, arrondie, quand la colonne
+panneau, et qui s'efface en dégradé vers le contour de 1 px jusqu'au bas de
+l'arrondi ; elle reste en haut de la colonne, arrondie, quand la colonne
 défile seule. Décision de l'utilisateur : le seul panneau ne séparait pas
 assez des colonnes côte à côte. La bande ne cerne rien, elle marque le haut
 d'une colonne ; elle ne s'étend à aucun autre panneau, ni à une section, un

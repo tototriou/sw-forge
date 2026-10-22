@@ -291,6 +291,7 @@ import testMarque from './marque.test';
 import testSpeedTune, { testSpeedTuneDeck, testSpeedTuneChaine, testSpeedTuneKit, testSpeedTuneSequence, testSpeedTuneReference, testSpeedTunePassif, testSpeedTuneAuto, testSpeedTuneModele } from './speed-tune.test';
 import { testRenduSiegeDefense, testRenduSiegeOffense, testRenduSiegeEnTete, testRenduSiegeEdition } from './rendu/siege.test';
 import { testRenduUiBouton, testRenduUiEtats, testRenduUiMenu, testRenduUiSelecteurMultiple, testRenduUiNotification, testRenduPalette } from './rendu/ui.test';
+import { testRenduUiSelecteurTab, testRenduTelephoneUiSelecteurListe, testRenduUiFlottantBoiteQuiDefile } from './rendu/ui-flottants.test';
 import { testPalette } from './palette.test';
 import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile, testRenduAppFil, testRenduAppLiensMorts } from './rendu/app.test';
 import { testEcranPartageMediaQueryVolet, testEcranPartageMemePage, testRenduEcranPartageApp,
@@ -518,6 +519,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduUiEtats', testRenduUiEtats],
   ['testRenduUiMenu', testRenduUiMenu],
   ['testRenduUiSelecteurMultiple', testRenduUiSelecteurMultiple],
+  ['testRenduUiSelecteurTab', testRenduUiSelecteurTab],
+  ['testRenduTelephoneUiSelecteurListe', testRenduTelephoneUiSelecteurListe],
+  ['testRenduUiFlottantBoiteQuiDefile', testRenduUiFlottantBoiteQuiDefile],
   ['testRenduUiNotification', testRenduUiNotification],
   ['testRenduPalette', testRenduPalette],
   ['testPalette', testPalette],

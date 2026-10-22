@@ -51,6 +51,12 @@ interface Props {
   // `undefined` pour RTA, Siège, speed tuning, le sélecteur d'exclusion —
   // aucune ligne de compteur n'y apparaît.
   relicUsageById?: Record<number, number>;
+  // Largeurs NATURELLES de la fiche, à pleine échelle : `deplie`, panneau de
+  // statistiques et groupe sur une rangée ; `replie`, sa rangée la plus large
+  // une fois le groupe passé à la ligne. SEUL l'Optimizer au bureau la lit,
+  // pour poser « Valider ce build » à la largeur de la fiche telle
+  // qu'affichée ; les autres écrans ne la fournissent pas.
+  onLargeursNaturelles?: (l: { deplie: number; replie: number }) => void;
 }
 
 export default function MonsterGear({
@@ -60,6 +66,7 @@ export default function MonsterGear({
   selection,
   onSelectionChange,
   relicUsageById,
+  onLargeursNaturelles,
 }: Props) {
   const stats = computeStats(gear);
   const [selInterne, setSelInterne] = useState<Selected>(null);
@@ -117,6 +124,10 @@ export default function MonsterGear({
   // L'arrondi de l'échelle sert le même but : sans lui, deux mesures
   // équivalentes à 10⁻¹⁵ près relanceraient un tour.
   const [mesure, setMesure] = useState<{ w: number; h: number; s: number } | null>(null);
+  // Lu dans la mesure sans la relancer : le parent passe en général une
+  // fonction neuve à chaque rendu.
+  const largeursRef = useRef(onLargeursNaturelles);
+  largeursRef.current = onLargeursNaturelles;
 
   useLayoutEffect(() => {
     const racine = racineRef.current;
@@ -129,6 +140,14 @@ export default function MonsterGear({
       // mesure se mordrait la queue.
       const naturelW = groupe.offsetWidth;
       const naturelH = groupe.offsetHeight;
+      // Le panneau garde sa largeur fixe et le groupe sa largeur de contenu
+      // (`w-max`, `transform` hors layout) : ces deux largeurs ne dépendent
+      // pas de la place reçue, le parent peut s'en servir pour la choisir.
+      // 8 : l'écart `gap-2` du conteneur, comme plus bas.
+      const panneauW = statPanelRef.current?.offsetWidth ?? 0;
+      if (naturelW > 0 && panneauW > 0) {
+        largeursRef.current?.({ deplie: panneauW + 8 + naturelW, replie: Math.max(panneauW, naturelW) });
+      }
       // ⚠️ **Deux façons de calculer la place disponible, format par format —
       // demande explicite au doigt (« la fiche de stats, les artéfacts, les
       // runes ainsi que la relique tiennent alignés ensemble »), jamais

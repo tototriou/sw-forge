@@ -54,7 +54,17 @@ Ce document décrit la carte « Équipement actuel ».
    (stats à zéro, emplacements grisés, roue sans rune) tant qu'aucun
    monstre n'est choisi,
    plutôt que de n'apparaître qu'au clic. La fiche porte, au-dessus, le
-   bandeau du build validé et, dessous, « Valider ce build ». C'est un `GearSet` NUL construit
+   bandeau du build validé et, dessous, « Valider ce build », tous deux à la
+   largeur de la fiche TELLE QU'AFFICHÉE (décision de l'utilisateur) :
+   dépliée, du bord gauche des statistiques au bord droit de la relique ;
+   repliée (artéfacts, roue et relique sous les statistiques), d'un bord à
+   l'autre de sa rangée la plus large. ⚠️ **Au bureau, la fiche se déplie
+   dès que la plus large tient** (statistiques 200 + écart 8 + artéfacts,
+   roue et relique 356 px mesurés avec une relique ATQ ou DEF, 352 sans
+   relique ou en PV : 564), jamais sur la fiche affichée : changer
+   d'exemplaire ne la plie ni ne la déplie, et ce qui la suit ne saute pas
+   sous le clic (`ExemplaireEtFiche.tsx`, qui lit les largeurs naturelles
+   que `MonsterGear` lui rend). C'est un `GearSet` NUL construit
    en local (`EMPTY_GEAR`, [optimizer/constantes.ts](src/components/outils/optimizer/constantes.ts)),
    pas une variante de `MonsterGear` : le composant partagé n'a besoin
    d'aucune adaptation, `computeStats` sur une base à zéro renvoie déjà des

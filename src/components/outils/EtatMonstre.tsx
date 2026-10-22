@@ -299,11 +299,16 @@ export function AurasExternesSaisie({
   rappel,
   onGuiderResPre,
   annonce = true,
+  sansCadre = false,
 }: {
   setup: DamageSetup;
   maj: (patch: Partial<DamageSetup>) => void;
   rappel: boolean;
   onGuiderResPre: () => void;
+  // Hors rappel, la boîte sans contour ni fond (au bureau, section du panneau
+  // de sa colonne). Le contour reste en place, transparent, avec le
+  // rembourrage : le rappel le teinte sans rien déplacer.
+  sansCadre?: boolean;
   // La boîte annonce-t-elle le rappel (`aria-live`) ? Au bureau, non : elle
   // n'est montée que colonne « Aura, exclusion, avancés » ouverte, et la page
   // l'annonce dans une région toujours montée (PageBureau) — deux régions
@@ -329,7 +334,7 @@ export function AurasExternesSaisie({
   return (
     <div
       className={`min-w-0 flex-1 basis-full lg:basis-0 flex flex-col gap-1.5 rounded-lg border px-2 py-1.5 transition-colors duration-200 ${
-        rappel ? 'border-warn bg-warn-soft' : 'border-border-soft bg-panel2'
+        rappel ? 'border-warn bg-warn-soft' : sansCadre ? 'border-transparent' : 'border-border-soft bg-panel2'
       }`}
     >
       <div className="grid">

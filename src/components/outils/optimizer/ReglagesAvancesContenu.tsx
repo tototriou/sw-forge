@@ -4,6 +4,7 @@ import { formatBig } from '../../../lib/formatBig';
 import HelpPopover from '../../HelpPopover';
 import { Interrupteur } from '../../../ui';
 import { type Dispatch, type SetStateAction, type RefObject, type ReactNode } from 'react';
+import { SECTIONS } from './bureau/panneau';
 
 export interface ReglagesAvancesContenuProps {
   slotFilterPreset: SlotFilterPresetKey;
@@ -57,12 +58,18 @@ function LibelleEtAide({ bureau, etire = false, libelle, aide, interrupteur }: {
 }
 
 export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFilterPresetChange, dansPanneau, estimate, exhaustiveSearch, setExhaustiveSearch, diagnoseBlockingEnabled, setDiagnoseBlockingEnabled, optimiserArtefacts, verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons, interrupteurResPrePanneauRef, interrupteurResPreBureauRef, attentionResPre, compterAurasResPre, setCompterAurasResPre, bureau = false }: ReglagesAvancesContenuProps) {
+  // ⚠️ **Au bureau, deux sections sans boîte**, empilées sous un trait fin
+  // (`SECTIONS`, bureau/panneau.ts) : la colonne « Aura, exclusion, avancés »
+  // est un panneau, et une boîte de plus y ferait la mosaïque que le trait
+  // évite (docs/02-app/optimizer/ecran/README.md, « Panneaux et sections »).
+  // À 314 px, la grille tenait déjà sur une colonne : rien ne change de place.
+  const boite = bureau ? '' : 'rounded-lg border border-border-soft bg-panel2 px-2 py-1.5';
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3">
+    <div className={bureau ? SECTIONS : 'grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3'}>
     {/* ⚠️ Mêmes classes de boîte que les trois groupes d'« État de mon
         monstre » (EtatMonstre.tsx) : deux façons de cadrer un groupe
         dans cet écran se liraient comme deux natures différentes. */}
-    <div className="rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
+    <div className={boite}>
       <p className="text-[11.5px] text-ink-dim mb-1">Pré-filtrage par emplacement</p>
       <div className="flex flex-wrap items-center gap-2">
         <Segmented
@@ -92,7 +99,9 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
         trait en tête de colonne — anodin quand tout était empilé sous le
         pré-filtrage, mais lu comme une ligne perdue une fois le groupe
         posé en colonne à côté. */}
-    <div className="divide-y divide-border rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
+    {/* Au bureau, le trait entre deux interrupteurs est celui des sections
+        (`border-soft`) : plus appuyé, il dominerait le trait de section. */}
+    <div className={`divide-y ${bureau ? 'divide-border-soft' : 'divide-border'} ${boite}`}>
       {/* Désactivé par défaut, lu par `handleSearch` au clic sur
           « Rechercher », jamais un bouton qui lance sa propre recherche. */}
       <div className="flex items-center justify-between gap-2 py-3 first:pt-0">

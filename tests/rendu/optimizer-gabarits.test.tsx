@@ -16,7 +16,7 @@ import ConditionsBureau from '../../src/components/outils/optimizer/bureau/Condi
 import EtatMonstreEssentiels from '../../src/components/outils/optimizer/bureau/EtatMonstreEssentiels';
 import { ADRESSE_GABARITS, estAdresseGabarits } from '../../src/lib/optimizerGabarits';
 import { parseAccountInventory } from '../../src/lib/importAccount';
-import { DEFAULT_DAMAGE_SETUP, artifactDamageProfile } from '../../src/lib/damage';
+import { DEFAULT_DAMAGE_SETUP } from '../../src/lib/damage';
 import { MOTIF_CONTENU_NON_DEFINI } from '../../src/lib/equipesOptimizer';
 import type { Monster } from '../../src/types';
 import { egal, exportSynthetique, faussLocalStorage, monstersJson, ok, titre } from '../outils';
@@ -61,13 +61,14 @@ export function testRenduOptimizerGabaritsComposants() {
   // Le message se met sur la ligne du titre : aucune ligne réservée sous la liste.
   const ligneTitre = (html: string) => texteVisible(html.split('Set de runes recherché</p>')[1]?.split('<button')[0] ?? '');
   ok(!sansSet.includes(message) && ligneTitre(sansSet) === '',
-    'set valide, compact : rien sur la ligne du titre (le compte n\'y est que déplié), aucun message monté (ni place réservée)');
+    'set valide, compact : rien sur la ligne du titre, aucun message monté (ni place réservée)');
   const refuse = rendre(<SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid comboSets={[]} onChangeSets={rien} />);
   // (La grille de la surface garde son propre compteur, hors de la ligne du titre.)
   ok(ligneTitre(refuse) === message && (refuse.match(/Sélectionne au moins un set/g) ?? []).length === 1,
     'set refusé : le message se lit une fois, sur la ligne du titre, avant la liste');
   // Déplié (la page dit que la colonne tient) : la grille du téléphone à la
-  // place de la liste fermée, le compte sur la ligne du titre.
+  // place de la liste fermée, dans son coffre ; son compte est le seul, rien
+  // à droite du titre (un second compte y faisait doublon).
   const deplie = (invalide: boolean, sets: string[]) => rendre(
     <SetDeplieContext.Provider value={{ deplie: true, reporterEcart: rien }}>
       <SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid={invalide} comboSets={sets} onChangeSets={rien} />
@@ -77,9 +78,13 @@ export function testRenduOptimizerGabaritsComposants() {
   const aDroiteDuTitre = (html: string) => texteVisible(/Set de runes recherché<\/p>(<span[^>]*>[^<]*<\/span>)?/.exec(html)?.[1] ?? '');
   const deplieViolent = deplie(false, ['violent']);
   ok(!bouton(deplieViolent, 'Set de runes recherché : Violent') && !!bouton(deplieViolent, 'Retirer Violent') && !!bouton(deplieViolent, 'Swift')
-    && aDroiteDuTitre(deplieViolent) === '4/6 runes' && aDroiteDuTitre(rendre(<SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid={false} comboSets={['violent']} onChangeSets={rien} />)) === '',
-  'set déplié : la grille du téléphone à la place de la liste, le compte à droite du titre (compact : rien)');
-  ok(aDroiteDuTitre(deplie(true, [])) === message, 'set déplié refusé : le message à la place du compte');
+    && aDroiteDuTitre(deplieViolent) === '' && (texteVisible(deplieViolent).match(/4\/6 runes/g) ?? []).length === 1
+    && aDroiteDuTitre(rendre(<SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid={false} comboSets={['violent']} onChangeSets={rien} />)) === '',
+  'set déplié : la grille du téléphone à la place de la liste, son compte le seul, rien à droite du titre (compact : rien non plus)');
+  ok(/class="mt-2 grid gap-0 grid-cols-\[auto_auto\] justify-center rounded-lg bg-panel2 p-2"/.test(deplieViolent) && /grid grid-cols-8 gap-1/.test(deplieViolent)
+    && !/class="mt-2 grid gap-0 [^"]*border/.test(deplieViolent),
+  'set déplié : la grille dans son coffre en creux (fond panel2, sans contour), centrée, Set secondaire sur 8 colonnes');
+  ok(aDroiteDuTitre(deplie(true, [])) === message, 'set déplié refusé : le message à droite du titre');
   const repete = rendre(<SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid={false} comboSets={['blade', 'blade', 'fight']} onChangeSets={rien} />);
   ok(!!bouton(repete, 'Set de runes recherché : Blade, Blade, Fight'), 'set : un même set choisi deux fois se résume deux fois');
   ok(!!bouton(repete, 'Retirer Blade') && texteVisible(repete).includes('6/6 runes'), 'set : chaque set choisi garde sa croix de retrait');
@@ -93,12 +98,12 @@ export function testRenduOptimizerGabaritsComposants() {
 
   // État de mon monstre : buffs et lead, sans les sets d'aura.
   const etat = rendre(<EtatMonstreEssentiels setup={{ ...DEFAULT_DAMAGE_SETUP, atkBuff: true }} maj={rien} etroit={false}
-    artefacts={artifactDamageProfile([])} rappelsBuffs={[]} />);
+    rappelsBuffs={[]} />);
   ok(['Buff ATQ', 'Buff DEF', 'Buff VIT'].every((b) => !!bouton(etat, b)), 'état : les trois buffs');
   ok(/aria-label="Type de leader skill"/.test(etat), 'état : le choix du lead');
   ok(!texteVisible(etat).includes('Sets d\'aura des autres monstres'), 'état : les sets d\'aura n\'y sont plus');
   const membre = (motif: string) => texteVisible(rendre(<EtatMonstreEssentiels setup={DEFAULT_DAMAGE_SETUP} maj={rien} etroit={false} equipe motifLead={motif}
-    artefacts={artifactDamageProfile([])} rappelsBuffs={[]} />));
+    rappelsBuffs={[]} />));
   const inactive = 'Cette portée de lead est inactive pour ce contenu.';
   ok(membre(inactive).includes(inactive), 'état d\'un membre d\'équipe : le motif du lead inactif');
   ok(!membre(inactive).includes('Lead effectif de l’équipe'), 'état d\'un membre d\'équipe : aucune phrase d\'explication du lead d\'équipe');

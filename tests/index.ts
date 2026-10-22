@@ -291,7 +291,7 @@ import testMarque from './marque.test';
 import testSpeedTune, { testSpeedTuneDeck, testSpeedTuneChaine, testSpeedTuneKit, testSpeedTuneSequence, testSpeedTuneReference, testSpeedTunePassif, testSpeedTuneAuto, testSpeedTuneModele } from './speed-tune.test';
 import { testRenduSiegeDefense, testRenduSiegeOffense, testRenduSiegeEnTete, testRenduSiegeEdition } from './rendu/siege.test';
 import { testRenduUiBouton, testRenduUiEtats, testRenduUiMenu, testRenduUiSelecteurMultiple, testRenduUiNotification, testRenduPalette } from './rendu/ui.test';
-import { testRenduUiSelecteurTab, testRenduTelephoneUiSelecteurListe, testRenduUiFlottantBoiteQuiDefile } from './rendu/ui-flottants.test';
+import { testRenduUiSelecteurTab, testRenduTelephoneUiSelecteurListe, testRenduUiFlottantBoiteQuiDefile, testRenduUiSegmentedDeuxLignes } from './rendu/ui-flottants.test';
 import { testPalette } from './palette.test';
 import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile, testRenduAppFil, testRenduAppLiensMorts } from './rendu/app.test';
 import { testEcranPartageMediaQueryVolet, testEcranPartageMemePage, testRenduEcranPartageApp,
@@ -311,7 +311,7 @@ import { testRenduSpeedTuneVide, testRenduSpeedTuneCamps, testRenduSpeedTuneAnal
 import { testRenduOptimizerVide, testRenduOptimizerMonstre, testRenduOptimizerReglages, testRenduTelephoneOptimizer } from './rendu/optimizer.test';
 import { testRenduOptimizerGabaritsComposants, testRenduOptimizerGabaritsVue, testRenduOptimizerGabaritsAdresse } from './rendu/optimizer-gabarits.test';
 import { testRenduOptimizerGabaritsColonnes, testRenduOptimizerGabaritsDroite, testRenduOptimizerPageBureauDroite } from './rendu/optimizer-gabarits-droite.test';
-import { testRenduOptimizerGabaritsGestes } from './rendu/optimizer-gabarits-navigateur.test';
+import { testRenduOptimizerGabaritsGestes, testRenduOptimizerGabaritsLargeurs } from './rendu/optimizer-gabarits-navigateur.test';
 import { testRenduOptimizerReglagesAvancesContenu, testRenduOptimizerListeDeTravail, testRenduOptimizerResultatsEntete,
   testRenduOptimizerResultatsCartes, testRenduOptimizerLigneFile } from './rendu/optimizer-ecran.test';
 import { testRenduOptimizerEcranReglagesAvances, testRenduTelephoneOptimizerEcranReglagesAvances, testRenduOptimizerEcranGuidage,
@@ -481,6 +481,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduOptimizerGabaritsDroite', testRenduOptimizerGabaritsDroite],
   ['testRenduOptimizerPageBureauDroite', testRenduOptimizerPageBureauDroite],
   ['testRenduOptimizerGabaritsGestes', testRenduOptimizerGabaritsGestes],
+  ['testRenduOptimizerGabaritsLargeurs', testRenduOptimizerGabaritsLargeurs],
   ['testRenduOptimizerMonstre', testRenduOptimizerMonstre],
   ['testRenduOptimizerReglages', testRenduOptimizerReglages],
   ['testRenduTelephoneOptimizer', testRenduTelephoneOptimizer],
@@ -522,6 +523,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduUiSelecteurTab', testRenduUiSelecteurTab],
   ['testRenduTelephoneUiSelecteurListe', testRenduTelephoneUiSelecteurListe],
   ['testRenduUiFlottantBoiteQuiDefile', testRenduUiFlottantBoiteQuiDefile],
+  ['testRenduUiSegmentedDeuxLignes', testRenduUiSegmentedDeuxLignes],
   ['testRenduUiNotification', testRenduUiNotification],
   ['testRenduPalette', testRenduPalette],
   ['testPalette', testPalette],

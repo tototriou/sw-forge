@@ -125,8 +125,8 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   Une espèce non possédée, résolue par `unowned`, est ajoutée immédiatement.
   Au téléphone, le sélecteur de liste reste au-dessus des puces et les cartes
   de la zone C se déplient dessous : l’ajout ne déplace pas la puce cliquée.
-- **Zone C, « Monstres de la liste »** — au bureau, la carte de la liste de
-  travail, en tête des essentiels (voir
+- **Zone C, « Monstres de la liste »** — au bureau, la liste de travail
+  (sans carte autour, chaque monstre dans la sienne), en tête des essentiels (voir
   [ecran/recherche-du-monstre.md](ecran/recherche-du-monstre.md), section
   « Au bureau ») ;
   au téléphone, juste sous les puces de source
@@ -213,7 +213,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   il paraît ni quand il s'efface ; il vit dans le dépliement de la zone C,
   ouvert au moment du clic. **Au bureau**, il sort du flux (décision de
   l'utilisateur) : aucune place réservée sous le dernier monstre, et il
-  paraît 3 s en surimpression au bas de la carte de la liste, dans ses bords
+  paraît 3 s en surimpression au bas de la liste, dans ses bords
   (la colonne des essentiels défile seule), sur fond de panneau et contour
   `warn` de 1 px, sans rien déplacer ni intercepter de clic. La boîte
   des auras garde son surlignage ; elle seule annonce le message aux

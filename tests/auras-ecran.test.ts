@@ -324,8 +324,8 @@ export function testAurasEcranRappel() {
   const carte = lireSansCommentaires('src/components/outils/EtatMonstre.tsx');
   ok(/<AurasExternesSaisie setup=\{setup\} maj=\{maj\} rappel=\{rappelAuras\}[^>]*\/>/.test(carte), 'rendu : la carte transmet le rappel à la saisie des auras');
   const saisie = carte.slice(Math.max(0, carte.indexOf('function AurasExternesSaisie(')));
-  ok(saisie.includes("rappel ? 'border-warn bg-warn-soft' : 'border-border-soft bg-panel2'"),
-    'rendu : la boîte passe au token d’attention (warn / warn-soft) à la place de ses couleurs — un seul contour de 1 px');
+  ok(saisie.includes("rappel ? 'border-warn bg-warn-soft' : sansCadre ? 'border-transparent' : 'border-border-soft bg-panel2'"),
+    'rendu : la boîte passe au token d’attention (warn / warn-soft) à la place de ses couleurs — un seul contour de 1 px ; sans cadre (bureau), le contour reste en place, transparent : le rappel le teinte sans rien déplacer');
   ok(/className=\{`col-start-1 row-start-1 flex items-center justify-between gap-2 \$\{rappel \? 'invisible' : ''\}`\}/.test(saisie),
     'rendu : l’en-tête occupe la case 1/1 de sa grille, effacé pendant le rappel');
   // `aria-live` sous condition d'`annonce` (vrai par défaut) : au bureau, la

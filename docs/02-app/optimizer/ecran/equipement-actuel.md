@@ -47,8 +47,8 @@ Ce document décrit la carte « Équipement actuel ».
    ↔ total au clic**, comportement propre à `MonsterGear`, partagé avec RTA
    et Siège (voir [rta/feat-sections-runes.md](../../rta/feat-sections-runes.md)).
    ⚠️ **Affiché SOUS les puces d'exemplaire, TOUJOURS** — au bureau dans
-   la section « Exemplaire » (598 px au plus, 560 au moins, la largeur de
-   la fiche ; environ 370 px de haut ; en tête de la
+   la section « Exemplaire » (598 px au plus, 356 au moins, la largeur de
+   la fiche repliée ; environ 370 px de haut ; en tête de la
    colonne de droite en A3, sous les réglages en A1 et A2), au téléphone
    dans la carte « Monstre & équipement » — vide
    (stats à zéro, emplacements grisés, roue sans rune) tant qu'aucun
@@ -64,7 +64,9 @@ Ce document décrit la carte « Équipement actuel ».
    relique ou en PV : 564), jamais sur la fiche affichée : changer
    d'exemplaire ne la plie ni ne la déplie, et ce qui la suit ne saute pas
    sous le clic (`ExemplaireEtFiche.tsx`, qui lit les largeurs naturelles
-   que `MonsterGear` lui rend). C'est un `GearSet` NUL construit
+   que `MonsterGear` lui rend, arrondies au pixel supérieur : une boîte
+   arrondie au plus proche, plus étroite que le groupe d'une fraction de
+   pixel, le ferait passer à la ligne). C'est un `GearSet` NUL construit
    en local (`EMPTY_GEAR`, [optimizer/constantes.ts](src/components/outils/optimizer/constantes.ts)),
    pas une variante de `MonsterGear` : le composant partagé n'a besoin
    d'aucune adaptation, `computeStats` sur une base à zéro renvoie déjà des

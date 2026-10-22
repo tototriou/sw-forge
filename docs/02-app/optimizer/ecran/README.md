@@ -96,10 +96,12 @@ d'autre d'un trait), **larges entre deux** : 24 px. Classes communes :
 
 ⚠️ **Aucun cadre de premier niveau dans un panneau de colonne** (décision de
 l'utilisateur : des cadres de même poids que le panneau empêchaient de lire
-la colonne). La liste de travail n'a plus de carte, et chaque monstre y est
-une ligne sous un trait fin ; la grille des sets, la fiche de
-l'exemplaire, les sets d'aura, le pré-filtrage et les interrupteurs
-avancés n'ont plus de boîte ; une carte de résultat et un diagnostic sans
+la colonne). La liste de travail n'a plus de carte autour d'elle, mais
+chaque monstre y garde la sienne (décision de l'utilisateur : plus lisible
+que des lignes sous un trait) ; la grille des sets est dans un « coffre » en
+creux (fond `panel2`, sans contour), centré, dépliée comme dans sa liste
+ouverte ; la fiche de l'exemplaire, les sets d'aura, le pré-filtrage et les
+interrupteurs avancés n'ont plus de boîte ; une carte de résultat et un diagnostic sans
 résultat se posent sous un trait fin, sans contour ni fond (les rangées
 « Dégâts », « PV effectifs » et les écarts d'une carte gardent leur fond,
 sans contour). Restent marqués : les objets du jeu (runes, artéfacts,
@@ -108,8 +110,8 @@ résultats, « Vérification… », emplacement figé), les contrôles (champs,
 listes, boutons, segments, panneau de statistiques cliquable, résumé du
 combat). Le rappel des auras teinte un contour transparent déjà en place :
 il paraît sans rien déplacer. Chaque composant partagé avec le téléphone
-prend un axe de bureau (`enTete` de `MonstresDeLaListe`, `sansCadre` de
-`SetComboPicker` et d'`AurasExternesSaisie`, `bureau` de
+prend un axe de bureau (`enTete` de `MonstresDeLaListe`, `coffre` de
+`SetComboPicker`, `sansCadre` d'`AurasExternesSaisie`, `bureau` de
 `ReglagesAvancesContenu`, `GrilleResultats`, `BuildCandidateCard` et des
 diagnostics) : le téléphone garde ses cartes et ses boîtes.
 

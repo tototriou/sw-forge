@@ -24,15 +24,16 @@
    combat. Les sets d'aura des autres monstres ont leur propre carte, en
    tête de la colonne « Aura, exclusion, avancés »
    ([Sets d'aura des autres monstres](#sets-daura-des-autres-monstres)).
-   Si un buff actif est amplifié par une ligne d'artéfact, le pourcentage
-   apparaît sous ces contrôles, auprès du buff correspondant (ATQ, DEF ou
-   VIT), jamais sous la VIT de l'adversaire.
+   ⚠️ **Aucune phrase sur l'amplification d'un buff par un artéfact**
+   (« l'artéfact … amplifie ce buff de N % »), aux deux formats (décision de
+   l'utilisateur) : elle portait sur la paire d'artéfacts représentative de
+   la recherche, que le joueur ne connaît pas, et non sur ses artéfacts. Le
+   calcul en tient toujours compte.
 
    **Rappel des buffs posés par un passif** (rappel à l'écran, réglage manuel
    conservé) — quand le
    monstre choisi porte un passif qui se pose un buff standard, une ligne
-   s'affiche sous la rangée des deux groupes, avant les lignes
-   d'amplification et dans la même grammaire (texte `xs` atténué) : le
+   s'affiche sous la rangée des deux groupes (texte `xs` atténué) : le
    passif nommé comme dans « Stats acquises en combat » (`Jeton` en lecture
    seule, icône et nom du jeu sans « (Passive) »), puis « pose Buff ATQ —
    « when you attack on your turn » ». La condition est un **extrait

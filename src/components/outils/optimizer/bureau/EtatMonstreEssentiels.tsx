@@ -2,7 +2,7 @@ import EffetVignette from '../../EffetVignette';
 import { LeaderSkillPicker, RappelsEtatMonstre, TitreEtatMonstre } from '../../EtatMonstre';
 import { type ComponentProps } from 'react';
 import { motifLeadAffiche } from '../../../../lib/equipesOptimizer';
-import { ATK_BUFF_ICON, DEF_BUFF_ICON, SPD_BUFF_ICON, type ArtifactDamageProfile, type DamageSetup } from '../../../../lib/damage';
+import { ATK_BUFF_ICON, DEF_BUFF_ICON, SPD_BUFF_ICON, type DamageSetup } from '../../../../lib/damage';
 
 // Le type des rappels vient de la carte : seuls l'écran et la carte importent
 // la table des buffs de passif (tests/buffs-de-passif.test.ts).
@@ -14,7 +14,6 @@ export interface EtatMonstreEssentielsProps {
   equipe?: boolean;
   motifLead?: string | null;
   etroit: boolean;
-  artefacts: ArtifactDamageProfile;
   rappelsBuffs: RappelsBuffs;
 }
 
@@ -22,7 +21,7 @@ export interface EtatMonstreEssentielsProps {
 // du bureau, sous les principales. Les sets d'aura des autres monstres vont en
 // tête de la colonne « Aura, exclusion, avancés ». Les morceaux sont ceux
 // d'`EtatMonstre` (partagé avec le téléphone, inchangé) : titre et aide,
-// vignettes, choix du lead, rappels des passifs et amplifications.
+// vignettes, choix du lead, rappels des passifs.
 //
 // ⚠️ **Les trois buffs sur UNE rangée** (schéma de l'utilisateur, arrêt 4) :
 // vignettes de 56 px, qui tiennent à trois dans la sous-colonne de ≈ 175 px.
@@ -31,7 +30,7 @@ export interface EtatMonstreEssentielsProps {
 // bureau) ; sans boîte autour, la liste de la stat a la largeur de son plus
 // long libellé. L'aide du titre est celle du bureau : sans les sets d'aura ni
 // le paragraphe sur le combat.
-export default function EtatMonstreEssentiels({ setup, maj, equipe = false, motifLead, etroit, artefacts, rappelsBuffs }: EtatMonstreEssentielsProps) {
+export default function EtatMonstreEssentiels({ setup, maj, equipe = false, motifLead, etroit, rappelsBuffs }: EtatMonstreEssentielsProps) {
   return (
     <section aria-label="État de mon monstre" className="flex flex-col gap-1.5">
       <TitreEtatMonstre bureau />
@@ -50,7 +49,7 @@ export default function EtatMonstreEssentiels({ setup, maj, equipe = false, moti
       {equipe && motifLeadAffiche(motifLead) && (
         <p className="text-xs text-warn">{motifLeadAffiche(motifLead)}</p>
       )}
-      <RappelsEtatMonstre setup={setup} artefacts={artefacts} rappelsBuffs={rappelsBuffs} />
+      <RappelsEtatMonstre rappelsBuffs={rappelsBuffs} />
     </section>
   );
 }

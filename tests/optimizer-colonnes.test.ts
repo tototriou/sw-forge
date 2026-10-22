@@ -9,7 +9,7 @@ import { LARGEUR_OBJECTIF_ETROIT } from '../src/components/outils/optimizer/bure
 import { LARGEUR_ESSENTIELS } from '../src/components/outils/optimizer/bureau/ListeDeTravailBureau';
 import { LARGEUR_ARTEFACTS } from '../src/components/outils/optimizer/bureau/ArtefactsEtReliqueBureau';
 import { LARGEUR_COMPLEMENTS } from '../src/components/outils/optimizer/bureau/SetsAuraBureau';
-import { LARGEUR_EXEMPLAIRE } from '../src/components/outils/optimizer/bureau/ExemplaireBureau';
+import { LARGEUR_EXEMPLAIRE, LARGEUR_EXEMPLAIRE_MIN } from '../src/components/outils/optimizer/bureau/ExemplaireBureau';
 import { egal, titre } from './outils';
 
 const affichees = (e: ColonnesOuvertes, deux: boolean) => colonnesAffichees(e, deux);
@@ -44,20 +44,20 @@ export function testOptimizerColonnes() {
 // largeurs déclarées des boîtes, que les composants de bureau déclarent aussi.
 export function testOptimizerAgencementsBureau() {
   titre('Optimizer · agencements du bureau, seuils et état de départ des colonnes');
-  egal({ ...SEUILS_BUREAU }, { a2: 904, a3: 1180, artefactsInseree: 1516, complementsInseree: 1536, deuxInserees: 1872 },
-    'seuils : 548 + 16 + 340 ; 548 + 16 + 616 ; avec « Artéfacts » 320 + 16 ; avec « Aura… » 340 + 16 ; les deux');
-  egal([LARGEUR_ESSENTIELS, LARGEUR_ARTEFACTS, LARGEUR_COMPLEMENTS, LARGEUR_EXEMPLAIRE],
-    [LARGEURS_BUREAU.essentiels, LARGEURS_BUREAU.artefacts, LARGEURS_BUREAU.complements, LARGEURS_BUREAU.exemplaire],
+  egal({ ...SEUILS_BUREAU }, { a2: 904, a3: 952, artefactsInseree: 1496, complementsInseree: 1496, deuxInserees: 1832 },
+    'seuils : 548 + 16 + 340 ; 548 + 16 + 388 (fiche repliée) ; une colonne de 320 + 16 insérée, fiche dépliée (596) ; les deux');
+  egal([LARGEUR_ESSENTIELS, LARGEUR_ARTEFACTS, LARGEUR_COMPLEMENTS, LARGEUR_EXEMPLAIRE, LARGEUR_EXEMPLAIRE_MIN],
+    [LARGEURS_BUREAU.essentiels, LARGEURS_BUREAU.artefacts, LARGEURS_BUREAU.complements, LARGEURS_BUREAU.exemplaire, LARGEURS_BUREAU.exemplaireMin],
     'les composants de bureau déclarent les largeurs d\'où viennent les seuils');
-  egal([728, 903, 904, 1179, 1180, 2254].map(agencementBureau), ['A1', 'A1', 'A2', 'A2', 'A3', 'A3'], 'A1 [728, 904[, A2 [904, 1180[, A3 dès 1180');
-  egal([1871, 1872, null].map(deuxColonnesTiennent), [false, true, false], 'les deux colonnes ensemble dès 1872 seulement');
+  egal([728, 903, 904, 951, 952, 2254].map(agencementBureau), ['A1', 'A1', 'A2', 'A2', 'A3', 'A3'], 'A1 [728, 904[, A2 [904, 952[, A3 dès 952');
+  egal([1831, 1832, null].map(deuxColonnesTiennent), [false, true, false], 'les deux colonnes ensemble dès 1832 seulement');
 
   const ouverte = { artefacts: true, complements: false, derniere: 'artefacts' };
   egal(colonnesParDefaut(758), ouverte, 'défaut en A1 (758) : « Artéfacts et relique » ouverte');
-  egal(colonnesParDefaut(1078), ouverte, 'défaut en A2 (1078) : ouverte');
-  egal(colonnesParDefaut(1230), AUCUNE_COLONNE, 'défaut en A3 sous 1516 (1230) : aucune, pas de panneau superposé ouvert d\'office');
-  egal(colonnesParDefaut(1515), AUCUNE_COLONNE, 'défaut à 1515 : aucune');
-  egal(colonnesParDefaut(1516), ouverte, 'défaut dès 1516 : ouverte, insérée');
+  egal(colonnesParDefaut(930), ouverte, 'défaut en A2 (930) : ouverte');
+  egal(colonnesParDefaut(1078), AUCUNE_COLONNE, 'défaut en A3 sous 1496 (1078) : aucune, pas de panneau superposé ouvert d\'office');
+  egal(colonnesParDefaut(1495), AUCUNE_COLONNE, 'défaut à 1495 : aucune');
+  egal(colonnesParDefaut(1496), ouverte, 'défaut dès 1496 : ouverte, insérée');
   egal(colonnesParDefaut(null), ouverte, 'défaut sans largeur (rendu serveur) : ouverte');
 
   // Le guidage vers l'interrupteur des auras RES/PRE ouvre sans refermer.
@@ -68,7 +68,7 @@ export function testOptimizerAgencementsBureau() {
 }
 
 // La forme du bloc « Objectif et Rechercher » : étroite à côté d'« Exemplaire »
-// quand la colonne de droite fait au moins 616 + 16 + 340, large dessous sinon,
+// quand la colonne de droite fait au moins 596 + 16 + 340, large dessous sinon,
 // étroite en A2, large en A1. Seules la largeur et les colonnes affichées la
 // décident (rien de la recherche n'y entre : elle ne change pas au lancement).
 export function testOptimizerFormeObjectifBureau() {
@@ -77,22 +77,24 @@ export function testOptimizerFormeObjectifBureau() {
   const art = { artefacts: true, complements: false };
   const aux = { artefacts: false, complements: true };
   const deux = { artefacts: true, complements: true };
-  egal(COLONNE_DROITE_OBJECTIF_A_COTE, 972, 'à côté d\'« Exemplaire » : 616 + 16 + 340');
+  egal(COLONNE_DROITE_OBJECTIF_A_COTE, 952, 'à côté d\'« Exemplaire » : 596 (fiche dépliée) + 16 + 340');
   egal(LARGEUR_OBJECTIF_ETROIT, LARGEURS_BUREAU.objectifEtroit, 'le bloc déclare la largeur d\'où vient le seuil');
   egal([758, 903].map((l) => formeObjectifBureau(l, art)), ['large', 'large'], 'A1 : large');
-  egal([904, 1078, 1179].map((l) => formeObjectifBureau(l, art)), ['etroite', 'etroite', 'etroite'], 'A2 : étroite, à droite des essentiels');
+  egal([904, 930, 951].map((l) => formeObjectifBureau(l, art)), ['etroite', 'etroite', 'etroite'], 'A2 : étroite, à droite des essentiels');
   egal(formeObjectifBureau(null, art), 'large', 'largeur inconnue : large');
 
   // A3 : la colonne de droite décide, et seules les colonnes INSÉRÉES comptent.
+  egal(largeurColonneDroite(952, aucune), 388, 'au seuil de A3, la colonne de droite a sa largeur minimale (fiche repliée)');
+  egal(formeObjectifBureau(952, aucune), 'large', '952 : colonne de droite de 388, large');
   egal(largeurColonneDroite(1230, art), 666, '1230, « Artéfacts » superposée : elle ne prend aucune place');
   egal(formeObjectifBureau(1230, art), 'large', '1230 : colonne de droite de 666, large');
-  egal([1535, 1536].map((l) => formeObjectifBureau(l, aucune)), ['large', 'etroite'], 'sans colonne insérée : étroite dès 1536 (972 de colonne)');
+  egal([1515, 1516].map((l) => formeObjectifBureau(l, aucune)), ['large', 'etroite'], 'sans colonne insérée : étroite dès 1516 (952 de colonne)');
   egal(largeurColonneDroite(1614, art), 714, '1614, « Artéfacts » insérée : 1614 − 564 − 336');
   egal([formeObjectifBureau(1614, art), formeObjectifBureau(1614, aucune)], ['large', 'etroite'], '1614 : large avec « Artéfacts » insérée, étroite sans');
-  egal(formeObjectifBureau(1614, aux), 'large', '1614 : « Aura… » insérée (356), large');
-  egal([1871, 1872].map((l) => formeObjectifBureau(l, art)), ['large', 'etroite'], '« Artéfacts » insérée : étroite dès 1872');
-  egal([1891, 1892].map((l) => formeObjectifBureau(l, aux)), ['large', 'etroite'], '« Aura… » insérée : étroite dès 1892');
-  egal(largeurColonneDroite(2254, deux), 998, '2254, les deux insérées : 2254 − 564 − 336 − 356');
+  egal(formeObjectifBureau(1614, aux), 'large', '1614 : « Aura… » insérée (336), large');
+  egal([1851, 1852].map((l) => formeObjectifBureau(l, art)), ['large', 'etroite'], '« Artéfacts » insérée : étroite dès 1852');
+  egal([1851, 1852].map((l) => formeObjectifBureau(l, aux)), ['large', 'etroite'], '« Aura… » insérée : étroite dès 1852 (même largeur)');
+  egal(largeurColonneDroite(2254, deux), 1018, '2254, les deux insérées : 2254 − 564 − 336 − 336');
   egal(formeObjectifBureau(2254, deux), 'etroite', '2254 : étroite, les deux colonnes insérées');
 }
 

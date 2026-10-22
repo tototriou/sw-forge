@@ -14,7 +14,7 @@ export const LARGEUR_OBJECTIF_ETROIT = 340;
 // 388, moins 32 de barre, d'écart et de cadre).
 export const LARGEUR_OBJECTIF_LARGE_MIN = 356;
 // « Arrêter » reste inactif ce temps après le lancement : le double clic qui a
-// lancé la recherche ne l'arrête pas (A.2.2-8 de la refonte).
+// lancé la recherche ne l'arrête pas.
 export const DELAI_ARRET_MS = 300;
 // « Rechercher » dans la forme large : à DROITE de sa rangée, à cette largeur,
 // jamais réduit ; l'écart avec « Importer » prend ce qui manque.

@@ -28,8 +28,7 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    bg-bad/15`), avec le message « Sélectionne au moins un set avant de lancer
    la recherche. » — au lieu de silencieusement ne rien faire :
    on montre OÙ agir. Repasse normale dès qu'un set est ajouté. Au bureau,
-   le message se met à droite du libellé (à la place du compteur
-   `N/6 runes` quand la grille est dépliée) :
+   le message se met à droite du libellé :
    aucune ligne réservée sous la liste, et rien ne bouge quand il paraît.
    ⚠️ **Densité** :
    **Set principal (4 pièces) sur DEUX LIGNES en permanence**
@@ -66,8 +65,9 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
      d'un jeton, et le premier set choisi ne fait pas descendre la grille
      sous le pointeur.
    - ⚠️ **Dépliée quand la place le permet** (A3 seulement) : la grille du
-     téléphone remplace la liste, compteur `N/6 runes` à droite du libellé,
-     tant que la colonne des essentiels tient sans défiler une fois
+     téléphone remplace la liste, dans son coffre, centrée ; son compteur
+     `N/6 runes` est celui de la grille, aucun second compte à droite du
+     libellé (décision de l'utilisateur : il faisait doublon), tant que la colonne des essentiels tient sans défiler une fois
      dépliée ; compacte sinon, et toujours compacte en A1 et A2, où la page
      défile d'un bloc (`useSetDeplie`, `PageBureau.tsx` ; contexte
      `setDeplie.ts`). Décision de l'utilisateur. La page décide sur la

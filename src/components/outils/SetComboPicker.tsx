@@ -11,14 +11,10 @@ interface Props {
   // du bureau, où la grille est dans une liste ouverte). Absent : la rangée
   // suit son contenu, comme avant.
   reserverJetons?: boolean;
-  // La grille d'ajout sans sa boîte (contour, fond, rembourrage) : au bureau,
-  // elle est une section du panneau de sa colonne, ou la surface d'une liste
-  // ouverte que son flottant encadre déjà. Absent : la boîte du téléphone.
-  sansCadre?: boolean;
   // La grille dans un « coffre » en creux (fond `panel2`, sans contour) : la
   // grille au bureau, dépliée ou dans sa liste ouverte, qui garde l'idée d'un
   // bac contenant les runes sans un cadre de même poids que le panneau de la
-  // colonne (décision de l'utilisateur).
+  // colonne (décision de l'utilisateur). Absent : la boîte du téléphone.
   coffre?: boolean;
 }
 
@@ -57,7 +53,7 @@ const TWO_PIECE = CHOISISSABLES.filter((s) => !FOUR_PIECE_SETS.has(s.key));
 // c'est le tout premier réglage à remplir avant de pouvoir lancer une
 // recherche — le garder replié par défaut ajoutait un clic systématique
 // sans jamais rien cacher d'utile.
-export default function SetComboPicker({ sets, onChange, reserverJetons = false, sansCadre = false, coffre = false }: Props) {
+export default function SetComboPicker({ sets, onChange, reserverJetons = false, coffre = false }: Props) {
   const used = setsCost(sets);
   // ⚠️ « Plein » se juge sur ce qu'on peut CHOISIR : compter l'intangible ici
   // laisserait le picker se dire non plein alors qu'aucun set proposé ne
@@ -106,7 +102,7 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false,
       </div>
 
       {!full && (
-        <div className={`mt-2 grid gap-0 ${coffre ? 'grid-cols-[auto_auto] justify-center rounded-lg bg-panel2 p-2' : sansCadre ? 'grid-cols-[auto_1fr]' : 'grid-cols-[auto_1fr] rounded-lg border border-border bg-panel p-2'}`}>
+        <div className={`mt-2 grid gap-0 ${coffre ? 'grid-cols-[auto_auto] justify-center rounded-lg bg-panel2 p-2' : 'grid-cols-[auto_1fr] rounded-lg border border-border bg-panel p-2'}`}>
           {/* ⚠️ Toujours 2 colonnes, jamais empilé sous un seuil de largeur :
               chaque groupe passe déjà à la ligne en interne (`flex-wrap`), la
               séparation verticale gagne de la place sur le plan VERTICAL —

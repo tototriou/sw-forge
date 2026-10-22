@@ -32,10 +32,6 @@ interface Props {
   // exclus défilent dans une hauteur bornée (≈ 3 rangées de jetons), sans
   // allonger la colonne. Le téléphone ne la passe pas.
   hauteurBornee?: boolean;
-  // Même colonne : les sources « Défenses siège » et « Offenses siège » sur
-  // deux lignes (`Segmented`, `deuxLignes`), au texte normal, dans une
-  // section de 294 px où le texte resserré serait trop petit.
-  sourcesSurDeuxLignes?: boolean;
 }
 
 // Même étiquette que le comptage « Défense N »/« Offense N » déjà utilisé
@@ -60,7 +56,7 @@ function sourceLabel(sel: ExclusionSelector, data: ExclusionSourceData): string 
 // défense/offense), une entrée précise par choix (pas juste un monstre :
 // voir optimizerExclusion.ts). Même grammaire de navigation clavier que
 // MonsterGearPicker (choix du monstre à optimiser).
-export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOwnCom2usId, selected, onChange, hauteurBornee = false, sourcesSurDeuxLignes = false }: Props) {
+export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOwnCom2usId, selected, onChange, hauteurBornee = false }: Props) {
   const [activeSource, setActiveSource] = useState<ExclusionSource>('box');
   const [query, setQuery] = useState('');
   const idBase = useId();
@@ -101,7 +97,6 @@ export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOw
         onChange={setActiveSource}
         className="mb-2"
         size="lg"
-        deuxLignes={sourcesSurDeuxLignes}
       />
 
       <div className="relative">

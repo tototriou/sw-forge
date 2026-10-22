@@ -322,7 +322,9 @@ sources « Défenses siège » et « Offenses siège » d'« Exclure les runes d
 monstre » passent sur deux lignes** (« Défenses / siège »), au texte normal
 des puces (décision de l'utilisateur : c'est ce qui fait tenir la colonne à
 la largeur d'« Artéfacts et relique ») ; les quatre puces gardent la même
-hauteur, « Box » et « RTA » centrés (`Segmented`, `deuxLignes`). Au bureau, les
+hauteur, « Box » et « RTA » centrés. Ce passage à la ligne est celui de
+`Segmented` quand ses libellés ne tiennent pas sur une ligne : « Exclure les
+runes déjà utilisées », à la même largeur, tient sur une ligne. Au bureau, les
 monstres exclus s'affichent sur une hauteur bornée (96 px) qui défile, et les
 six puces des runes imposées sont de même taille, en deux colonnes égales
 (slots 1 · 2, 3 · 4, 5 · 6) ; le téléphone garde sa rangée qui passe à la

@@ -76,12 +76,12 @@ Ordre relatif à « Exclure les runes déjà utilisées » : **au-dessus**, aux
 deux formats (c'est le réglage le plus utilisé sur cet écran) : le panneau
 « Options » et la colonne du bureau empilent le même contenu.
 
-⚠️ **Les quatre onglets de source restent sur UNE seule ligne au doigt**,
-texte/rembourrage réduits — à 4 options aussi longues que « Défenses
-siège », même resserré, le libellé passe sur DEUX lignes DANS le bouton
-plutôt que déborder (le cran resserré ne force pas `whitespace-nowrap`,
-contrairement aux autres). `Segmented` (`src/ui/`) mesure lui-même la place
-qu'il reçoit et bascule seul entre les deux rendus (voir
+⚠️ **Les quatre onglets de source restent dans UNE seule rangée**, aux deux
+formats : quand « Défenses siège » et « Offenses siège » ne tiennent pas sur
+une ligne (dans la colonne de 294 px du bureau, par exemple), leur libellé
+passe sur deux lignes au texte normal (« Défenses / siège »), les quatre
+onglets à la même hauteur. `Segmented` (`src/ui/`) mesure lui-même la place
+qu'il reçoit et choisit seul son rendu (voir
 [03-developpeur/interface/librairie-ui/README.md](../../03-developpeur/interface/librairie-ui/README.md)) — aucun réglage à
 poser depuis cet écran.
 

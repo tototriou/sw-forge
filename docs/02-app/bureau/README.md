@@ -143,7 +143,9 @@ testée dans `bureau/coeursPur.ts`), aucune API de Node ne le donnant
 
 - **Windows** : `powershell.exe -NoProfile -NonInteractive -Command
   "(Get-CimInstance -ClassName Win32_Processor).NumberOfCores"`, une ligne
-  par processeur, sommées ;
+  par processeur, sommées. L'exécutable est pris par son chemin absolu sous
+  `SystemRoot`, lu à l'exécution : `System32\WindowsPowerShell\v1.0\powershell.exe`.
+  Sans dossier système absolu, la lecture échoue sans recherche dans le PATH ;
 - **Linux** : `/proc/cpuinfo` (paires `physical id` / `core id`
   distinctes), puis `lscpu --parse=CORE,SOCKET` si le fichier ne les porte
   pas (processeurs ARM, certaines machines virtuelles).

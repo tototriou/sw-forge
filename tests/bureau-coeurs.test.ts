@@ -30,9 +30,11 @@ function cpuinfo(blocs: { physique?: string; coeur?: string }[]): string {
 }
 const deuxSockets = [0, 0, 0, 0, 1, 1, 1, 1].map((p, i) => ({ physique: String(p), coeur: String(i % 2) }));
 
-function lectures(sorties: { commandes?: Record<string, string | Error>; fichiers?: Record<string, string | Error> }) {
+const POWERSHELL = 'D:\\Systeme Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
+function lectures(sorties: { commandes?: Record<string, string | Error>; fichiers?: Record<string, string | Error> }, dossierWindows: string | undefined = 'D:\\Systeme Windows') {
   const appels: string[] = [];
   const l: LecturesSysteme = {
+    dossierWindows: () => dossierWindows,
     executer: async (commande, args) => {
       appels.push(`${commande} ${args.join(' ')}`);
       const s = sorties.commandes?.[commande];
@@ -57,7 +59,7 @@ export default async function testBureauCoeurs() {
   for (const illisible of ['', '\r\n', 'huit', '8\r\nx', '-4', '4.5', '0'])
     egal(coeursDeWindows(illisible), null, `sortie illisible : ${JSON.stringify(illisible)} → null`);
   egal(coeursDeWindows(`${COEURS_PHYSIQUES_MAX + 1}`), null, `au-delà de ${COEURS_PHYSIQUES_MAX} cœurs : lecture jugée fausse`);
-  ok(COMMANDE_WINDOWS.commande === 'powershell.exe' && COMMANDE_WINDOWS.args.includes('-NoProfile')
+  ok(COMMANDE_WINDOWS.args.includes('-NoProfile')
     && COMMANDE_WINDOWS.args.some((a) => /Get-CimInstance\s+-ClassName\s+Win32_Processor\)\.NumberOfCores/.test(a)),
     'la commande : PowerShell sans profil, CIM Win32_Processor.NumberOfCores');
 
@@ -78,17 +80,28 @@ export default async function testBureauCoeurs() {
 
   titre('bureau · cœurs physiques — la lecture par plateforme, et ses replis');
   {
-    const { l, appels } = lectures({ commandes: { 'powershell.exe': '8\r\n' } });
+    const { l, appels } = lectures({ commandes: { [POWERSHELL]: '8\r\n' } });
     egal(await lireCoeursPhysiques('win32', l), 8, 'Windows : la sortie de la commande, lue');
-    egal(appels, [`powershell.exe ${COMMANDE_WINDOWS.args.join(' ')}`], 'Windows : une seule commande, aucun fichier');
+    egal(appels, [`${POWERSHELL} ${COMMANDE_WINDOWS.args.join(' ')}`], 'Windows : chemin absolu sous le dossier système fourni, espaces conservés');
   }
   {
-    const { l } = lectures({ commandes: { 'powershell.exe': new Error('Accès refusé') } });
+    const { l } = lectures({ commandes: { [POWERSHELL]: new Error('Accès refusé') } });
     egal(await lireCoeursPhysiques('win32', l), null, 'Windows : commande en échec → null (la règle du site)');
   }
   {
-    const { l } = lectures({ commandes: { 'powershell.exe': 'Get-CimInstance : la classe est introuvable\r\n' } });
+    const { l } = lectures({ commandes: { [POWERSHELL]: 'Get-CimInstance : la classe est introuvable\r\n' } });
     egal(await lireCoeursPhysiques('win32', l), null, 'Windows : sortie qui n’est pas un nombre → null');
+  }
+  for (const dossier of ['', 'Windows', 'C:Windows']) {
+    const { l, appels } = lectures({}, dossier);
+    egal(await lireCoeursPhysiques('win32', l), null, 'Windows : dossier système absent ou relatif → null');
+    egal(appels, [], 'Windows : aucun lancement sans chemin absolu');
+  }
+  {
+    const { l, appels } = lectures({ commandes: { [POWERSHELL]: '8' } });
+    l.dossierWindows = () => undefined;
+    egal(await lireCoeursPhysiques('win32', l), null, 'Windows : SystemRoot absent → null');
+    egal(appels, [], 'Windows : aucun repli sur le PATH');
   }
   {
     const { l, appels } = lectures({ fichiers: { [CPUINFO]: cpuinfo(deuxSockets) } });
@@ -148,6 +161,8 @@ export default async function testBureauCoeurs() {
     'processus principal : lu une fois, à la première demande, puis gardé');
   ok(/execFile\(commande, \[\.\.\.args\], \{ windowsHide: true, timeout: DELAI_COMMANDE_MS/.test(coeurs),
     'processus principal : la commande, sans fenêtre et bornée dans le temps');
+  ok(/dossierWindows: \(\) => process\.env\.SystemRoot/.test(coeurs),
+    'processus principal : dossier système lu à l’exécution dans SystemRoot');
   const main = sansCommentaires(readFileSync('bureau/main.ts', 'utf8'));
   ok(/brancherCoeurs\(fenetre\);/.test(main), 'processus principal : le canal est branché sur la fenêtre');
   // La suite — le hook qui pose les cœurs dans la demande au Worker — se

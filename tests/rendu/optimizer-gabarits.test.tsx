@@ -11,6 +11,7 @@ import { GABARITS } from '../../src/components/outils/optimizer/gabarits/registr
 import OngletsColonnes from '../../src/components/outils/optimizer/bureau/OngletsColonnes';
 import PrincipalesImposeesBureau from '../../src/components/outils/optimizer/bureau/PrincipalesImposeesBureau';
 import SetDeRunesCompact from '../../src/components/outils/optimizer/bureau/SetDeRunesCompact';
+import { SetDeplieContext } from '../../src/components/outils/optimizer/bureau/setDeplie';
 import ConditionsBureau from '../../src/components/outils/optimizer/bureau/ConditionsBureau';
 import EtatMonstreEssentiels from '../../src/components/outils/optimizer/bureau/EtatMonstreEssentiels';
 import { ADRESSE_GABARITS, estAdresseGabarits } from '../../src/lib/optimizerGabarits';
@@ -55,15 +56,30 @@ export function testRenduOptimizerGabaritsComposants() {
   const sansSet = rendre(<SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid={false} comboSets={[]} onChangeSets={rien} />);
   ok(!!bouton(sansSet, 'Set de runes recherché : Aucun'), 'set : sans choix, la liste dit « Aucun »');
   ok(!!bouton(sansSet, 'Swift') && !!bouton(sansSet, 'Fight'), 'set : la grille d\'ajout d\'aujourd\'hui est dans la surface (Set principal, Set secondaire)');
-  ok(texteVisible(sansSet).includes('Critères de recherche') && texteVisible(sansSet).includes('0/6 runes'), 'set : titre de la carte et compte des runes');
+  ok(!texteVisible(sansSet).includes('Critères de recherche'), 'set : au bureau, sans le titre « Critères de recherche » du téléphone (la colonne situe la section)');
   const message = 'Sélectionne au moins un set avant de lancer la recherche.';
-  // Le message prend la place du compte, sur la ligne du titre : aucune ligne réservée sous la liste.
+  // Le message se met sur la ligne du titre : aucune ligne réservée sous la liste.
   const ligneTitre = (html: string) => texteVisible(html.split('Set de runes recherché</p>')[1]?.split('<button')[0] ?? '');
-  ok(!sansSet.includes(message) && ligneTitre(sansSet) === '0/6 runes', 'set valide : le compte sur la ligne du titre, aucun message monté (ni place réservée)');
+  ok(!sansSet.includes(message) && ligneTitre(sansSet) === '',
+    'set valide, compact : rien sur la ligne du titre (le compte n\'y est que déplié), aucun message monté (ni place réservée)');
   const refuse = rendre(<SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid comboSets={[]} onChangeSets={rien} />);
   // (La grille de la surface garde son propre compteur, hors de la ligne du titre.)
   ok(ligneTitre(refuse) === message && (refuse.match(/Sélectionne au moins un set/g) ?? []).length === 1,
-    'set refusé : le message se lit une fois, à la place du compte, avant la liste');
+    'set refusé : le message se lit une fois, sur la ligne du titre, avant la liste');
+  // Déplié (la page dit que la colonne tient) : la grille du téléphone à la
+  // place de la liste fermée, le compte sur la ligne du titre.
+  const deplie = (invalide: boolean, sets: string[]) => rendre(
+    <SetDeplieContext.Provider value={{ deplie: true, reporterEcart: rien }}>
+      <SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid={invalide} comboSets={sets} onChangeSets={rien} />
+    </SetDeplieContext.Provider>);
+  // (La grille dépliée suit aussitôt la ligne du titre : seul compte ce qui
+  // est posé à droite du titre, sur sa ligne.)
+  const aDroiteDuTitre = (html: string) => texteVisible(/Set de runes recherché<\/p>(<span[^>]*>[^<]*<\/span>)?/.exec(html)?.[1] ?? '');
+  const deplieViolent = deplie(false, ['violent']);
+  ok(!bouton(deplieViolent, 'Set de runes recherché : Violent') && !!bouton(deplieViolent, 'Retirer Violent') && !!bouton(deplieViolent, 'Swift')
+    && aDroiteDuTitre(deplieViolent) === '4/6 runes' && aDroiteDuTitre(rendre(<SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid={false} comboSets={['violent']} onChangeSets={rien} />)) === '',
+  'set déplié : la grille du téléphone à la place de la liste, le compte à droite du titre (compact : rien)');
+  ok(aDroiteDuTitre(deplie(true, [])) === message, 'set déplié refusé : le message à la place du compte');
   const repete = rendre(<SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid={false} comboSets={['blade', 'blade', 'fight']} onChangeSets={rien} />);
   ok(!!bouton(repete, 'Set de runes recherché : Blade, Blade, Fight'), 'set : un même set choisi deux fois se résume deux fois');
   ok(!!bouton(repete, 'Retirer Blade') && texteVisible(repete).includes('6/6 runes'), 'set : chaque set choisi garde sa croix de retrait');
@@ -143,8 +159,9 @@ export function testRenduOptimizerGabaritsAdresse() {
   // page de l'Optimizer s'affiche, quelle que soit l'adresse.
   const page = texteVisible(rendre(pageOptimizer()));
   // La page de bureau (rendu serveur : format bureau) : son contrôle à onglets
-  // la signe, « Monstre & équipement » n'y est plus.
-  ok(page.includes('Critères de recherche') && page.includes('Aura, exclusion, avancés') && !page.includes('Gabarits de l\'Optimizer'),
+  // la signe, « Monstre & équipement » n'y est plus, ni le titre « Critères de
+  // recherche » du téléphone.
+  ok(page.includes('Set de runes recherché') && !page.includes('Critères de recherche') && page.includes('Aura, exclusion, avancés') && !page.includes('Gabarits de l\'Optimizer'),
     'hors développement : la page de l\'Optimizer, jamais la vue');
 }
 

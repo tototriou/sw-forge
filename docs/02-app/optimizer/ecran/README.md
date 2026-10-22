@@ -92,14 +92,19 @@ la règle du contour de 1 px
 ([contours.md](../../../03-developpeur/interface/librairie-ui/contours.md)) :
 une section, un bloc posé dans une colonne ou une carte n'en porte pas. Le
 rembourrage du haut du panneau perd les 2 px que le contour gagne : rien ne
-bouge dedans. En A1 et A2, où la page défile, la bande est le contour du
-panneau (`BANDE`). En A3, où chaque colonne défile seule, elle **reste en
-haut de sa colonne, arrondie**, quand son contenu défile : c'est le
-pseudo-élément `::before` du panneau, collé (`sticky`) au pixel 0 de la
-boîte qui défile (`BANDE_FIXE`), le même dessin que le haut du panneau
-(bande, contours de côté, coins), au-dessus du contenu, sans prendre de
-place ni recevoir de clic. Le panneau, lui, ne la dessine plus en A3
-(contour du haut transparent). Une colonne qui défile est rognée aux coins
+bouge dedans. ⚠️ **La bande descend en dégradé jusqu'au bas de l'arrondi**
+(décision de l'utilisateur) : 3 px de braise pleine en haut, puis la braise
+s'efface vers le contour de 1 px sur la hauteur du rayon du panneau, le
+long des deux coins. Un contour CSS n'ayant qu'une couleur par côté, la
+bande est le contour d'un pseudo-élément `::before` de la hauteur du rayon
+(3 px en haut, 1 px de côté), dont le fond en dégradé est rogné à l'anneau
+par un masque ; le contour du haut du panneau, lui, est transparent. En A1
+et A2, où la page défile, ce pseudo-élément est posé sur le haut du panneau
+(`BANDE`). En A3, où chaque colonne défile seule, elle **reste en
+haut de sa colonne, arrondie**, quand son contenu défile : le même
+pseudo-élément, collé (`sticky`) au pixel 0 de la boîte qui défile
+(`BANDE_FIXE`), le même dessin (bande en dégradé, contours de côté, coins),
+au-dessus du contenu, sans prendre de place ni recevoir de clic. Une colonne qui défile est rognée aux coins
 du haut de son panneau (`coinsDuPanneau`, un `clip-path` fixe au
 défilement) : le contenu qui passe sous la bande ne se voit pas dans les
 coins, où l'on voit ce qui est derrière la colonne, comme au repos. Une
@@ -111,8 +116,9 @@ la boîte qui défile s'arrête à sa barre (le panneau, 4 px, la barre de
 marge, hors de la boîte. Une barre au bord de la place se collait au
 panneau suivant. La colonne de droite, la dernière, garde aussi 4 px entre
 son panneau et sa barre, au bord de la page : ils sont pris sur les marges
-de la page (voir plus bas), et son panneau est, à fenêtre égale, 12 px plus
-large qu'avec des marges de 24.
+de la page (voir plus bas), et son panneau est, à fenêtre égale, 20 px plus
+large qu'avec des marges de 24 (calcul : les 24 px gagnés sur les marges,
+moins ces 4 px).
 
 ⚠️ **Marges de la page : 12 px à gauche et à droite**, au lieu des 24 de
 l'app, en pleine page comme dans un volet de l'écran partagé : la page de
@@ -153,7 +159,8 @@ exclusion, avancés », commande les deux colonnes repliables. Cliquer un
 onglet ouvre sa colonne et ferme l'autre ; recliquer l'onglet actif la
 referme ; là où les deux colonnes tiennent ensemble, la seconde s'ajoute à
 la première. Le contrôle ne bouge jamais au clic : la colonne s'ouvre
-dessous.
+dessous. En A3, 8 px le séparent des panneaux sous lui (valeur retenue
+avec l'utilisateur, au lieu de 16).
 
 ⚠️ **La liste de travail a une place stable**, en tête des essentiels dans
 tous les agencements : passer au monstre suivant reste un clic.
@@ -245,11 +252,11 @@ les constantes de [volets.ts](src/lib/volets.ts) : barre latérale dépliée
 248 px, marges de page 2 × 24 ; en écran partagé, zone des volets 2 × 12,
 séparateur 12 au milieu, volet 50 ; puis la barre de défilement de 10 px
 que dessinent Chromium et Electron sous Windows. La page de bureau reprend
-8 px de chaque côté sur les marges de page (marges de 16, voir
-[Panneaux et sections](#panneaux-et-sections)) : son conteneur fait 16 px
-de plus que la valeur du tableau (774, 1 094, 1 246, 1 630, 2 270), sans
+12 px de chaque côté sur les marges de page (marges de 12, voir
+[Panneaux et sections](#panneaux-et-sections)) : son conteneur fait 24 px
+de plus que la valeur du tableau (782, 1 102, 1 254, 1 638, 2 278), sans
 changer l'agencement d'aucun repère. Au format bureau, le conteneur fait
-donc au moins 744 px (728 de contenu, plus 16).
+donc au moins 752 px (728 de contenu, plus 24).
 
 | Repère | Contenu de l'Optimizer | Agencement |
 | --- | --- | --- |
@@ -280,6 +287,16 @@ monstres exclus s'affichent sur une hauteur bornée (96 px) qui défile, et les
 six puces des runes imposées sont de même taille, en deux colonnes égales
 (slots 1 · 2, 3 · 4, 5 · 6) ; le téléphone garde sa rangée qui passe à la
 ligne.
+
+⚠️ **Au bureau, les interrupteurs de la colonne sont alignés à droite**
+(décision de l'utilisateur) : celui d'« Exclure les runes déjà utilisées »
+au même bord que ceux des « Réglages avancés » (leur carte les écarte de
+9 px du bord : 8 de rembourrage, 1 de contour), et chaque « ? » d'aide
+collé à son interrupteur, au même écart de 12 px dans toutes les rangées.
+Les puces « Bas, Moyen, Haut, Extrême » du pré-filtrage par emplacement
+sont centrées dans leur carte, comme la puce « Dégâts supplémentaires /
+Dégâts réels » des meilleurs artéfacts dans la colonne « Artéfacts et
+relique ». Le téléphone garde ses rangées.
 
 ⚠️ **« Réglages avancés » se pose sur DEUX colonnes dès que la place le
 permet** : le **pré-filtrage** avec ses puces et son
@@ -395,7 +412,7 @@ d'adresse retranchés : ≈ 1 920 × 940 sur un écran de 1 920 × 1 080,
   la barre : 333 px à son seuil (colonne de droite de 972 px), pour 340
   déclarés, sans débordement mesuré. En contrepartie, la fenêtre n'a plus
   de barre en A2 et A3 : le conteneur gagne 10 px à fenêtre égale, plus les
-  16 px des marges (1 640 px à 1 920 de large au lieu des 1 614 du tableau
+  24 px des marges (1 648 px à 1 920 de large au lieu des 1 614 du tableau
   des repères).
 - ⚠️ **Les autres colonnes ne défilent que si leur contenu dépasse** leur
   hauteur. Les menus, les listes et les aides (`HelpPopover`) posés dedans

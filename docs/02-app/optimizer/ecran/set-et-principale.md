@@ -28,7 +28,8 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    bg-bad/15`), avec le message « Sélectionne au moins un set avant de lancer
    la recherche. » — au lieu de silencieusement ne rien faire :
    on montre OÙ agir. Repasse normale dès qu'un set est ajouté. Au bureau,
-   le message prend la place du compteur `N/6 runes`, à droite du libellé :
+   le message se met à droite du libellé (à la place du compteur
+   `N/6 runes` quand la grille est dépliée) :
    aucune ligne réservée sous la liste, et rien ne bouge quand il paraît.
    ⚠️ **Densité** :
    **Set principal (4 pièces) sur DEUX LIGNES en permanence**
@@ -43,10 +44,12 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    **Au bureau**, le set de runes recherché est une section du panneau des
    essentiels, sous la liste de travail, **sans le titre « Critères de
    recherche »** du téléphone (le panneau et ses traits situent déjà la
-   section), en **forme compacte** (`SetDeRunesCompact`) : le compteur `N/6 runes` à droite du libellé (le
-   message d'une recherche refusée sans set à sa place), puis
+   section), en **forme compacte** (`SetDeRunesCompact`) : le libellé seul
+   (le message d'une recherche refusée sans set à sa droite), puis
    une seule liste fermée (`SelecteurMultiple`, axe `surface`) qui montre les
-   sets choisis, icône et nom, ou « Aucun ». Ouverte, elle porte la grille
+   sets choisis, icône et nom, ou « Aucun » ; le compteur `N/6 runes` n'y
+   figure pas (la liste fermée suffit, la grille ouverte porte le sien).
+   Ouverte, elle porte la grille
    du téléphone telle quelle (jetons, retrait, deux groupes, « Plus de
    place ») en flottant : rien ne bouge dessous. ⚠️ **Une liste, pas deux**
    (principal · secondaire) : le choix est un multiensemble (deux fois le
@@ -58,6 +61,18 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    - ⚠️ **La rangée des jetons est réservée** : vide, elle a déjà la hauteur
      d'un jeton, et le premier set choisi ne fait pas descendre la grille
      sous le pointeur.
+   - ⚠️ **Dépliée quand la place le permet** (A3 seulement) : la grille du
+     téléphone remplace la liste, compteur `N/6 runes` à droite du libellé,
+     tant que la colonne des essentiels tient sans défiler une fois
+     dépliée ; compacte sinon, et toujours compacte en A1 et A2, où la page
+     défile d'un bloc (`useSetDeplie`, `PageBureau.tsx` ; contexte
+     `setDeplie.ts`). Décision de l'utilisateur. La page décide sur la
+     hauteur de la boîte de la colonne et sur ce que le dépli ajoute
+     (mesuré sur deux copies invisibles, liste fermée et grille vide,
+     indépendant des sets choisis) : jamais sur un clic, et elle ne
+     redécide que si cette hauteur, cet écart ou l'agencement changent —
+     un clic qui allonge la colonne ne replie pas le set sous le pointeur.
+     Aucune bascule à la main.
 5. **Statistique principale imposée (slots pairs)** — pour chacun des slots
    **2, 4 et 6** (les seuls dont la statistique principale n'est **pas**
    fixée par les règles du jeu — 1/3/5 sont toujours ATQ/DEF/PV plats), un

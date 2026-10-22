@@ -101,28 +101,27 @@ export function testRenduOptimizerListeDeTravail() {
   ok(deja?.desactive === true, 'exemplaire déjà membre (seul exemplaire Box) : « Déjà dans « Alpha » », désactivé');
 
   const valide = { listId: 'a', selector: membre, runeIds: [1, 2, 3, 4, 5, 6], artifactIds: [], com2usId: BOX[0].monster.com2usId };
-  const html = rendreOptimizer(AVEC_MONSTRE, false, stockage([membre], [valide]));
-  // La zone C rendue (bureau) : du bouton « Liste active » qui nomme la liste
+  // La zone C rendue : du bouton « Liste active » qui nomme la liste
   // (« Alpha - … » ; le titre de la carte, lui, ne la nomme plus) à la fin de
   // son bouton de libération.
   const ACTIVE = 'Alpha - ';
-  const zones: string[] = [];
-  for (let i = html.indexOf(ACTIVE); i >= 0; i = html.indexOf(ACTIVE, i + 1)) zones.push(html.slice(i));
-  ok(zones.length > 0, 'la zone C de la liste active est rendue');
-  for (const zone of zones) {
-    const fin = zone.indexOf('Libérer toutes les runes de « Alpha »');
-    const corps = fin >= 0 ? zone.slice(0, fin) : '';
-    const message = corps.lastIndexOf(RAPPEL.replace("'", '&#x27;'));
-    const nomMembre = corps.lastIndexOf(BOX[0].monster.name);
-    ok(fin >= 0 && message > nomMembre && nomMembre >= 0,
-      'le rappel des auras est rendu SOUS la liste, avant « Libérer toutes les runes »');
-    const p = corps.slice(corps.lastIndexOf('<p', message), message);
-    const c = classes(p);
-    ok(c.includes('invisible'), 'hors rappel : invisible, jamais démonté (place réservée)');
-    ok(['border', 'border-warn', 'bg-warn-soft', 'text-warn'].every((x) => c.includes(x))
-      && c.filter((x) => /^border(-|$)/.test(x)).join(' ') === 'border border-warn' && !c.some((x) => /^(ring|outline)/.test(x)),
-    `même token que la boîte des auras (contour warn de 1 px, fond warn-soft, texte warn), un seul contour (${c.join(' ')})`);
-  }
+  const zonesC = (h: string) => {
+    const zones: string[] = [];
+    for (let i = h.indexOf(ACTIVE); i >= 0; i = h.indexOf(ACTIVE, i + 1)) zones.push(h.slice(i));
+    return zones.map((zone) => {
+      const fin = zone.indexOf('Libérer toutes les runes de « Alpha »');
+      return fin >= 0 ? zone.slice(0, fin) : '';
+    }).filter((corps) => corps.includes(BOX[0].monster.name));
+  };
+  // Au bureau, le rappel sort du flux : hors rappel, rien n'est monté sous la
+  // liste (aucune place réservée) ; il paraît en surimpression au bas de la
+  // carte (le geste : optimizer-ecran-navigateur.test.ts).
+  const bureau = zonesC(rendreOptimizer(AVEC_MONSTRE, false, stockage([membre], [valide])));
+  ok(bureau.length > 0 && bureau.every((corps) => !corps.includes(RAPPEL.replace("'", '&#x27;'))),
+    'au bureau, hors rappel : aucun rappel monté sous la liste (il sort du flux, aucune place réservée)');
+  // Au téléphone, la zone C est repliée sous « Gérer mes listes » au rendu
+  // serveur : sa place réservée, son dessin et son apparition se vérifient au
+  // navigateur, dans les deux formats (`preuvesRappelDeuxRendus`).
   const vide = rendreOptimizer(AVEC_MONSTRE, false, stockage([]));
   const zoneVide = vide.slice(vide.indexOf(ACTIVE));
   ok(vide.includes(ACTIVE) && !zoneVide.slice(0, zoneVide.indexOf('Aucun monstre dans cette liste')).includes(RAPPEL.replace("'", '&#x27;'))

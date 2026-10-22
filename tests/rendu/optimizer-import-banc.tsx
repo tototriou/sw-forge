@@ -318,7 +318,12 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
       verifier(!!rapport && rapport.textContent!.includes('créée') && rapport.textContent!.includes(nom === 'defenses' ? '7 monstre(s), 2 équipe(s)' : nom === 'rta' ? '1 monstre(s), 0 équipe(s)' : '3 monstre(s), 1 équipe(s)'), 'rapport de création lu à l’écran');
       if (nom === 'defenses') verifier(rapport.textContent!.includes('inconnu : Monstre inconnu.')
         && rapport.textContent!.includes('Défense 3 — lead de la source') && rapport.textContent!.includes('appliqué'), 'rapport lu à l’écran : membre inconnu ignoré, équipe à un membre et lead non appliqué dits');
-      verifier(getComputedStyle(rapport.parentElement!).position === 'absolute' && getComputedStyle(rapport.parentElement!).borderTopWidth === '1px', 'rapport hors du flux dans la surface au contour de 1 px');
+      // La surface est un `Flottant` : couche supérieure du navigateur
+      // (`popover` ouvert), position calculée en `fixed`, jamais rognée par la
+      // colonne qui défile.
+      const surface = rapport.parentElement!;
+      verifier(getComputedStyle(surface).position === 'fixed' && surface.getAttribute('popover') === 'manual' && surface.matches(':popover-open')
+        && getComputedStyle(surface).borderTopWidth === '1px', 'rapport hors du flux, en couche supérieure, dans la surface au contour de 1 px');
       await geste(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
       verifier(ancre.getAttribute('aria-expanded') === 'false', 'Échap ferme les sources sans import supplémentaire');
       // Au téléphone, l'import déplie « Gérer mes listes » de lui-même.

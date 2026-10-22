@@ -44,11 +44,12 @@ function classesBouton(html: string, nom: string): string {
 export function testRenduOptimizerGabaritsColonnes() {
   titre('rendu · Optimizer — gabarits de bureau des colonnes repliables');
 
-  // Artéfacts et reliques : la carte d'aujourd'hui, sans l'encart des meilleurs artéfacts.
+  // Artéfacts et relique : la carte d'aujourd'hui, sans l'encart des meilleurs artéfacts.
   const artefacts = texteVisible(rendre(<ArtefactsEtReliqueBureau optimiserArtefacts setOptimiserArtefacts={rien} artifactMainByKind={{}}
     setArtifactMainByKind={rien} lignesVerrouillees={[]} setLignesVerrouillees={rien} diagnosticVerrous={null} sortesFigees={[]}
     relicMainChoice="libre" setRelicMainChoice={rien} relicUniqueChoice="libre" setRelicUniqueChoice={rien} relicMinUpgrade={0} setRelicMinUpgrade={rien} />));
-  ok(['Artéfacts et reliques', 'Attribut', 'Type', 'Relique', 'Propriété unique'].every((t) => artefacts.includes(t)), 'artéfacts : les libellés de la carte d\'aujourd\'hui, relique comprise');
+  ok(['Artéfacts et relique', 'Attribut', 'Type', 'Relique', 'Propriété unique'].every((t) => artefacts.includes(t))
+    && !artefacts.includes('Artéfacts et reliques'), 'artéfacts : les libellés de la carte d\'aujourd\'hui, relique comprise, titre « Artéfacts et relique » comme l\'onglet');
   ok(!artefacts.includes('Meilleurs artéfacts offensifs'), 'artéfacts : les meilleurs artéfacts n\'y sont plus');
 
   // Meilleurs artéfacts : une carte à part, avec son geste de validation.
@@ -69,7 +70,10 @@ export function testRenduOptimizerGabaritsColonnes() {
   // Exclusion de runes : en ligne, les deux réglages empilés (monstre d'abord).
   const exclusion = rendre(<ExclusionRunesBureau monstrePrecisBlock={<p>Bloc monstre</p>} dejaUtiliseesBlock={<p>Bloc déjà utilisées</p>} runesImposeesBlock={<p>Bloc imposées</p>} />);
   const tex = texteVisible(exclusion);
-  ok(tex.includes('Exclusion de runes') && !/aria-expanded/.test(exclusion), 'exclusion : en ligne, aucun en-tête qui déplie un flottant');
+  // Au bureau, ni titre, ni icône, ni phrase d'accroche : la colonne situe la
+  // section, nommée pour les lecteurs d'écran ; le téléphone garde les siens.
+  ok(!tex.includes('Exclusion de runes') && !tex.includes('Deux réglages indépendants') && /<section aria-label="Exclusion de runes">/.test(exclusion)
+    && !/aria-expanded|<svg/.test(exclusion), 'exclusion : en ligne, section nommée sans titre, icône ni accroche, aucun en-tête qui déplie un flottant');
   ok(tex.indexOf('Bloc monstre') < tex.indexOf('Bloc déjà utilisées') && tex.indexOf('Bloc déjà utilisées') < tex.indexOf('Bloc imposées'),
     'exclusion : « Exclure les runes d\'un monstre », puis « déjà utilisées », puis les runes imposées');
   // Variantes bureau : monstres exclus à hauteur bornée, slots en deux colonnes également espacées.
@@ -95,8 +99,9 @@ export function testRenduOptimizerGabaritsColonnes() {
 
   // Réglages avancés : en ligne, sans dépliement.
   const avances = rendre(<ReglagesAvancesBureau><p>Contenu des réglages</p></ReglagesAvancesBureau>);
-  ok(texteVisible(avances).includes('Réglages avancés') && texteVisible(avances).includes('Contenu des réglages') && !/aria-expanded/.test(avances),
-    'avancés : en ligne, contenu visible, aucun dépliement');
+  ok(!texteVisible(avances).includes('Réglages avancés') && /<section aria-label="Réglages avancés">/.test(avances)
+    && texteVisible(avances).includes('Contenu des réglages') && !/aria-expanded|<svg/.test(avances),
+    'avancés : en ligne, section nommée sans titre ni icône au bureau, contenu visible, aucun dépliement');
   ok(!/\bmin-h-|\bmax-h-|\bh-|height/.test(avances.match(/<section[^>]*>/)?.[0] ?? 'h-'),'avancés : une enveloppe sans hauteur fixe ni place réservée (un réglage retiré passe sans retouche)');
 }
 
@@ -216,10 +221,13 @@ export function testRenduOptimizerPageBureauDroite() {
     'largeur inconnue (rendu serveur) : la page n\'est pas à hauteur de fenêtre, comme en A1');
   ok(!/(?<!before:)sticky/.test(html.replace(/data-zone="barre" class="sticky/, '')),
     'aucune colonne collée : seule la barre fine de A1 l\'est (la bande d\'une colonne, son `::before` collé en A3, n\'en est pas une)');
-  // La bande braise : le contour du haut du panneau (3 px de braise vive, à la
-  // place du trait de 1 px, rembourrage du haut réduit d'autant), recopiée en
-  // A3 par le `::before` collé au pixel 0 de la boîte qui défile (`BANDE_FIXE`),
-  // le panneau ne la dessinant plus lui-même.
+  // La bande braise : le contour du haut du panneau (3 px, à la place du trait
+  // de 1 px, rembourrage du haut réduit d'autant), dessinée par le `::before`
+  // du panneau : un anneau de la hauteur du rayon (3 px en haut, 1 px de côté)
+  // dont le fond, braise vive pleine sur 3 px puis effacée en dégradé jusqu'au
+  // bas de l'arrondi, est rogné par un masque ; le contour du haut du panneau
+  // est transparent. Posé sur le haut du panneau hors de l'A3, collé au pixel 0
+  // de la boîte qui défile en A3 (`BANDE_FIXE`).
   const panneauDe = (zone: string) => {
     const i = html.indexOf(`data-zone="${zone}"`);
     const m = /<div class="([^"]*)"/.exec(html.slice(i));
@@ -227,17 +235,20 @@ export function testRenduOptimizerPageBureauDroite() {
   };
   const classes = (c: string) => c.split(/\s+/);
   const essentiels = classes(panneauDe('essentiels')), droite = classes(panneauDe('droite'));
-  const bandeFixe = ['@[1180px]:border-t-transparent', '@[1180px]:before:sticky', '@[1180px]:before:top-0', '@[1180px]:before:rounded-t-xl',
-    '@[1180px]:before:border-t-[3px]', '@[1180px]:before:border-t-[rgb(var(--accent))]', '@[1180px]:before:border-x'];
-  ok(['border-t-[3px]', 'border-t-[rgb(var(--accent))]', 'pt-[6px]', 'rounded-xl', ...bandeFixe].every((c) => essentiels.includes(c))
-    && !essentiels.some((c) => c.includes('inset')),
-    'essentiels : la bande est le contour du haut du panneau, recopiée en A3 en haut de la boîte qui défile, sans ombre intérieure');
-  ok(['@[1180px]:border-t-[3px]', '@[1180px]:border-t-[rgb(var(--accent))]', '@[1180px]:pt-[6px]', ...bandeFixe, '@[1180px]:before:row-[1/span_3]'].every((c) => droite.includes(c))
-    && !droite.some((c) => c.includes('inset')),
-    'colonne de droite : même bande en A3, recopiée sur toutes les rangées de la grille du panneau');
+  const DEGRADE = 'before:[background:linear-gradient(to_bottom,rgb(var(--accent))_3px,rgb(var(--accent)/0)_100%)_border-box,linear-gradient(rgb(var(--border)),rgb(var(--border)))_border-box]';
+  const anneau = (p: string) => [`${p}before:h-[var(--radius-xl)]`, `${p}before:rounded-t-xl`, `${p}before:border-t-[3px]`, `${p}before:border-x`,
+    `${p}before:border-transparent`, `${p}${DEGRADE}`, `${p}before:[mask-composite:exclude]`];
+  const bandeFixe = ['@[1180px]:border-t-transparent', '@[1180px]:before:sticky', '@[1180px]:before:top-0', ...anneau('@[1180px]:')];
+  const sansOmbreNiTrait = (c: string[]) => !c.some((x) => x.includes('shadow-[inset') || x.includes('border-t-[rgb(var(--accent))]'));
+  ok(['border-t-[3px]', 'border-t-transparent', 'pt-[6px]', 'rounded-xl', 'before:absolute', 'before:-top-[3px]', ...anneau(''), ...bandeFixe]
+    .every((c) => essentiels.includes(c)) && sansOmbreNiTrait(essentiels),
+    'essentiels : la bande est le haut du panneau, braise pleine sur 3 px puis en dégradé jusqu\'au bas de l\'arrondi, recopiée en A3 en haut de la boîte qui défile, sans ombre intérieure');
+  ok(['@[1180px]:border-t-[3px]', '@[1180px]:border-t-transparent', '@[1180px]:pt-[6px]', ...bandeFixe, '@[1180px]:before:row-[1/span_3]'].every((c) => droite.includes(c))
+    && sansOmbreNiTrait(droite),
+    'colonne de droite : même bande en dégradé en A3, recopiée sur toutes les rangées de la grille du panneau');
   ok(droite.includes('@[1180px]:mr-1'), 'colonne de droite : en A3, son panneau s\'arrête à 4 px de sa barre de défilement');
-  ok(/^<div class="-mx-2 @container"/.test(html),
-    'page de bureau : marges de 16 px, 8 px repris de chaque côté sur les 24 de la page ou du volet, la racine restant le conteneur');
+  ok(/^<div class="-mx-3 @container"/.test(html),
+    'page de bureau : marges de 12 px, 12 px repris de chaque côté sur les 24 de la page ou du volet (au premier rendu, avant la mesure), la racine restant le conteneur');
   // Les coins d'une colonne qui défile : la boîte est rognée aux coins du haut
   // du panneau, la barre et l'écart à sa droite gardés.
   egal(coinsDuPanneau(540, 14), "path('M 0 14 A 14 14 0 0 1 14 0 H 526 A 14 14 0 0 1 540 14 V 0 H 100000 V 100000 H 0 Z')",

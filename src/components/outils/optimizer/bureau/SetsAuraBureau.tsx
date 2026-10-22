@@ -11,10 +11,12 @@ export const LARGEUR_COMPLEMENTS = 340;
 // téléphone, inchangée) : même bouton d'ajout fixe en tête, même rappel.
 // ⚠️ Rappel affiché, pas annoncé (`annonce={false}`) : la section n'est montée
 // que colonne ouverte ; l'annonce vit dans la page (`AnnonceRappelAuras`).
-export default function SetsAuraBureau(props: Omit<ComponentProps<typeof AurasExternesSaisie>, 'annonce'>) {
+// Sans cadre hors rappel (`sansCadre`) : le panneau de la colonne situe la
+// section ; le rappel, un état, garde son contour et son fond.
+export default function SetsAuraBureau(props: Omit<ComponentProps<typeof AurasExternesSaisie>, 'annonce' | 'sansCadre'>) {
   return (
     <section aria-label="Sets d'aura des autres monstres" className="flex">
-      <AurasExternesSaisie {...props} annonce={false} />
+      <AurasExternesSaisie {...props} annonce={false} sansCadre />
     </section>
   );
 }

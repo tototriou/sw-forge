@@ -17,9 +17,11 @@ export interface GrilleResultatsProps {
   // classement, gestes (`proprietesCarte` d'OptimizerSection).
   proprietesCarte: (c: BuildCandidate) => Omit<PropsCarte, 'rank' | 'candidate' | 'runeById' | 'relicUsageById' | 'metric' | 'openDetailKey' | 'onToggleDetail'>;
   hauteurCarte: number | null;
+  // Les cartes du bureau, sans cadre (`BuildCandidateCard`, `bureau`).
+  bureau?: boolean;
 }
 
-export default function GrilleResultats({ grilleResultatsRef, composition, runeById, relicUsageById, metric, openDetailKey, onToggleDetail, proprietesCarte, hauteurCarte }: GrilleResultatsProps) {
+export default function GrilleResultats({ grilleResultatsRef, composition, runeById, relicUsageById, metric, openDetailKey, onToggleDetail, proprietesCarte, hauteurCarte, bureau = false }: GrilleResultatsProps) {
   return (
     <div ref={grilleResultatsRef} className="grid grid-cols-[repeat(auto-fill,minmax(min(360px,100%),1fr))] gap-3">
       {composition.cartes.map((c, i) => (
@@ -36,6 +38,7 @@ export default function GrilleResultats({ grilleResultatsRef, composition, runeB
           openDetailKey={openDetailKey}
           onToggleDetail={onToggleDetail}
           {...proprietesCarte(c)}
+          bureau={bureau}
         />
       ))}
       {Array.from({ length: composition.placesEnAttente }, (_, j) => (

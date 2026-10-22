@@ -55,7 +55,11 @@ export default function ExemplaireEtFiche({ zoneDRef, sourceOptions, matchesVali
           </Flottant>
         )}
       </div>
-      <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
+      {/* La fiche sans encadré : « Exemplaire » est une section du panneau de
+          la colonne de droite (docs/02-app/optimizer/ecran/README.md,
+          « Panneaux et sections »). Le panneau de statistiques, cliquable,
+          et l'emplacement de relique, objet du jeu, gardent leur contour. */}
+      <div>
         {validatedBadge}
         <MonsterGear
           gear={selected?.gear ?? EMPTY_GEAR}

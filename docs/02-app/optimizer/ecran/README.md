@@ -54,7 +54,7 @@ droite. Au-dessus d'elles, ni bandeau ni phrase d'introduction.
 
 1. **Les essentiels**, toujours à l'écran, place de 548 px (panneau de
    540) : la liste de travail (« Liste active », « Importer une équipe »,
-   puis la carte de la liste, dont l'en-tête porte « Ajouter un monstre / à
+   puis la liste, sans carte (voir « Panneaux et sections »), dont l'en-tête porte « Ajouter un monstre / à
    la liste » sur deux lignes, sans nom de liste, « Rechercher un monstre… »
    et le monstre actif) ; « Critères de
    recherche » avec le « Set de runes recherché » ; les « Conditions », et à
@@ -83,6 +83,25 @@ refonte : des cartes côte à côte se lisaient comme une mosaïque aérée.
 d'autre d'un trait), **larges entre deux** : 24 px. Classes communes :
 `src/components/outils/optimizer/bureau/panneau.ts` (`PANNEAU`, `SECTIONS`,
 `BANDE`, `BANDE_FIXE`).
+
+⚠️ **Aucun cadre de premier niveau dans un panneau de colonne** (décision de
+l'utilisateur : des cadres de même poids que le panneau empêchaient de lire
+la colonne). La liste de travail n'a plus de carte, et chaque monstre y est
+une ligne sous un trait fin ; la grille des sets, la fiche de
+l'exemplaire, les sets d'aura, le pré-filtrage et les interrupteurs
+avancés n'ont plus de boîte ; une carte de résultat et un diagnostic sans
+résultat se posent sous un trait fin, sans contour ni fond (les rangées
+« Dégâts », « PV effectifs » et les écarts d'une carte gardent leur fond,
+sans contour). Restent marqués : les objets du jeu (runes, artéfacts,
+reliques), les états (set manquant, rappel des auras, place d'attente des
+résultats, « Vérification… », emplacement figé), les contrôles (champs,
+listes, boutons, segments, panneau de statistiques cliquable, résumé du
+combat). Le rappel des auras teinte un contour transparent déjà en place :
+il paraît sans rien déplacer. Chaque composant partagé avec le téléphone
+prend un axe de bureau (`enTete` de `MonstresDeLaListe`, `sansCadre` de
+`SetComboPicker` et d'`AurasExternesSaisie`, `bureau` de
+`ReglagesAvancesContenu`, `GrilleResultats`, `BuildCandidateCard` et des
+diagnostics) : le téléphone garde ses cartes et ses boîtes.
 
 ⚠️ **Le contour du haut d'un panneau de colonne est une bande braise de
 3 px**, à la place du trait de 1 px (braise vive, `--accent`), aux coins

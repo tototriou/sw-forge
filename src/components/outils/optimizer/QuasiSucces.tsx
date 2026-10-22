@@ -11,9 +11,11 @@ export interface QuasiSuccesProps {
   objective: Objective;
   aurasPropresDe: (c: { runeIds: number[] }) => Readonly<Record<SetAura, number>>;
   damageSetup: DamageSetup;
+  // Au bureau, sans encadré, sous un trait fin (voir `DiagnosticsSansResultat`).
+  bureau?: boolean;
 }
 
-export default function QuasiSucces({ result, runeById, metric, objective, aurasPropresDe, damageSetup }: QuasiSuccesProps) {
+export default function QuasiSucces({ result, runeById, metric, objective, aurasPropresDe, damageSetup, bureau = false }: QuasiSuccesProps) {
   // ⚠️ Même vocabulaire que le palier 2 (`DiagnosticApprofondi`, « −15 suffit ») :
   // un seul réflexe de lecture
   // pour tout l'écran diagnostic, plutôt que deux formulations
@@ -45,7 +47,7 @@ export default function QuasiSucces({ result, runeById, metric, objective, auras
     );
   };
   return (
-    <div className="mb-3 rounded-lg border border-border bg-panel p-3">
+    <div className={bureau ? 'mb-3 border-t border-border-soft pt-3' : 'mb-3 rounded-lg border border-border bg-panel p-3'}>
       <p className="mb-1.5 text-xs font-semibold text-ink">Quoi ajuster pour trouver des builds</p>
       {result.globalNearMiss && (
         <p className="mb-1.5 text-xs text-ink-dim">

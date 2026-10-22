@@ -3,11 +3,14 @@ import { type StatFeasibility } from '../../../lib/runeBuildOptim';
 
 export interface DiagnosticFaisabiliteProps {
   impossibleFeasibility: StatFeasibility[];
+  // Au bureau, sans encadré, sous un trait fin : une section du panneau de la
+  // colonne de droite (voir `DiagnosticsSansResultat`).
+  bureau?: boolean;
 }
 
-export default function DiagnosticFaisabilite({ impossibleFeasibility }: DiagnosticFaisabiliteProps) {
+export default function DiagnosticFaisabilite({ impossibleFeasibility, bureau = false }: DiagnosticFaisabiliteProps) {
   return (
-    <div className="mb-3 rounded-lg border border-border bg-panel p-3">
+    <div className={bureau ? 'mb-3 border-t border-border-soft pt-3' : 'mb-3 rounded-lg border border-border bg-panel p-3'}>
       {impossibleFeasibility.length > 0 ? (
         <>
           <p className="mb-1.5 text-xs font-semibold text-bad">

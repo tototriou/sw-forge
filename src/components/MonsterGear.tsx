@@ -143,10 +143,16 @@ export default function MonsterGear({
       // Le panneau garde sa largeur fixe et le groupe sa largeur de contenu
       // (`w-max`, `transform` hors layout) : ces deux largeurs ne dépendent
       // pas de la place reçue, le parent peut s'en servir pour la choisir.
-      // 8 : l'écart `gap-2` du conteneur, comme plus bas.
+      // 8 : l'écart `gap-2` du conteneur, comme plus bas. ⚠️ **Largeur du
+      // groupe arrondie au pixel SUPÉRIEUR** (largeur calculée, fractionnaire,
+      // insensible au `transform` comme `offsetWidth`) : `offsetWidth`
+      // arrondit au plus proche, et une boîte posée à 352 pour un groupe de
+      // 352,4 px fait passer le groupe à la ligne — la fiche se replie alors
+      // que la place de la fiche dépliée lui est donnée.
       const panneauW = statPanelRef.current?.offsetWidth ?? 0;
-      if (naturelW > 0 && panneauW > 0) {
-        largeursRef.current?.({ deplie: panneauW + 8 + naturelW, replie: Math.max(panneauW, naturelW) });
+      const groupeW = Math.ceil(parseFloat(getComputedStyle(groupe).width) || naturelW);
+      if (groupeW > 0 && panneauW > 0) {
+        largeursRef.current?.({ deplie: panneauW + 8 + groupeW, replie: Math.max(panneauW, groupeW) });
       }
       // ⚠️ **Deux façons de calculer la place disponible, format par format —
       // demande explicite au doigt (« la fiche de stats, les artéfacts, les

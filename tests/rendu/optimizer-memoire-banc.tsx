@@ -354,7 +354,12 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     const marqueNouvelle = ligne.querySelector('[aria-label="Critères mémorisés"]');
     const fin = ligne.getBoundingClientRect();
     verifier(!marqueNouvelle && fin.x === avant.x && fin.y === avant.y && fin.width === avant.width, 'première saisie : aucune marque et ligne toujours à la même place');
-    verifier(getComputedStyle(groupe).borderTopWidth === '1px' && getComputedStyle(ligne.parentElement!).borderTopWidth === '1px', 'contours de la zone et des lignes : 1 px');
+    // Au bureau (la liste porte la place du monstre actif), la liste est une
+    // section du panneau de sa colonne, sans carte autour ; chaque monstre garde
+    // la sienne. Au téléphone, la liste garde aussi sa carte.
+    const auBureau = !!groupe.querySelector('[data-monstre-actif]');
+    verifier(getComputedStyle(groupe).borderTopWidth === (auBureau ? '0px' : '1px') && getComputedStyle(ligne.parentElement!).borderTopWidth === '1px',
+      auBureau ? 'bureau : la liste sans carte autour, chaque monstre dans sa carte de 1 px' : 'contours de la zone et des lignes : 1 px');
   }
   return preuves;
 }

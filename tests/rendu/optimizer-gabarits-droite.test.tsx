@@ -165,9 +165,14 @@ export function testRenduOptimizerGabaritsDroite() {
   const barre = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large', partie: 'barre', status: 'running' })} />);
   ok(!!bouton(barre, 'Arrêter') && !texteVisible(barre).includes('Objectif de recherche') && /aria-hidden="true" class="invisible col-start-1 row-start-1"/.test(barre),
     'A1, barre fine : « Arrêter » à la place de « Rechercher », sans les objectifs, progression dans la place de la plus haute');
-  // Forme large : « Rechercher » à droite de « Exporter » · « Importer » (hors d'une colonne superposée, à 1230).
+  // Forme large : « Rechercher » à droite de « Exporter » · « Importer » (hors d'une colonne superposée, à 1230),
+  // ou dessous, pleine largeur, sous 448 px de rangée (requête sur la rangée elle-même ; au navigateur :
+  // testRenduOptimizerGabaritsLargeurs).
   const large = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large' })} />);
-  ok(/flex-row-reverse/.test(large) && /flex-none w-60/.test(large), 'forme large : « Rechercher », 240 px, à droite de sa rangée');
+  ok(/class="@container\/rangee"><div class="flex flex-col-reverse gap-2 @\[448px\]\/rangee:flex-row-reverse/.test(large)
+    && /class="grid w-full @\[448px\]\/rangee:w-60 @\[448px\]\/rangee:flex-none"/.test(large),
+    'forme large : « Rechercher », 240 px, à droite de sa rangée, dessous et pleine largeur sous 448 px de rangée');
+  ok(/class="grid flex-none w-60"/.test(barre), 'barre fine de A1 : « Rechercher » (ou « Arrêter ») toujours à 240 px');
 
   // Pendant une recherche : « Arrêter » à la place de « Rechercher », inactif au premier rendu (300 ms).
   const enCours = rendre(<ObjectifEtRechercherBureau {...props({ status: 'running' })} />);
@@ -215,7 +220,7 @@ export function testRenduOptimizerPageBureauDroite() {
     'ordre du DOM : essentiels, bloc « Objectif et Rechercher » (l\'objectif se choisit tôt) et sa barre fine, onglets, colonnes, colonne de droite (Exemplaire, résultats)');
   ok(/data-zone="objectif" data-forme="large"/.test(html) && texteVisible(html).includes('Bloc large reglages panneau') && texteVisible(html).includes('Bloc large barre panneau'),
     'largeur inconnue (rendu serveur) : comme en A1, le bloc large dans son panneau, ses réglages à leur place et sa barre fine à part');
-  ok(/data-zone="droite" class="contents /.test(html) && /<div class="contents @\[1180px\]:grid/.test(html),
+  ok(/data-zone="droite" class="contents /.test(html) && /<div class="contents @\[952px\]:grid/.test(html),
     'hors A3, la colonne de droite s\'efface (`display: contents`) : Exemplaire et résultats sont des cases de la grille de la page');
   ok(!/data-page-fenetre/.test(html) && !/style="[^"]*height/.test(html.slice(0, html.indexOf('>'))),
     'largeur inconnue (rendu serveur) : la page n\'est pas à hauteur de fenêtre, comme en A1');
@@ -238,15 +243,15 @@ export function testRenduOptimizerPageBureauDroite() {
   const DEGRADE = 'before:[background:linear-gradient(to_bottom,rgb(var(--accent))_3px,rgb(var(--accent)/0)_100%)_border-box,linear-gradient(rgb(var(--border)),rgb(var(--border)))_border-box]';
   const anneau = (p: string) => [`${p}before:h-[var(--radius-xl)]`, `${p}before:rounded-t-xl`, `${p}before:border-t-[3px]`, `${p}before:border-x`,
     `${p}before:border-transparent`, `${p}${DEGRADE}`, `${p}before:[mask-composite:exclude]`];
-  const bandeFixe = ['@[1180px]:border-t-transparent', '@[1180px]:before:sticky', '@[1180px]:before:top-0', ...anneau('@[1180px]:')];
+  const bandeFixe = ['@[952px]:border-t-transparent', '@[952px]:before:sticky', '@[952px]:before:top-0', ...anneau('@[952px]:')];
   const sansOmbreNiTrait = (c: string[]) => !c.some((x) => x.includes('shadow-[inset') || x.includes('border-t-[rgb(var(--accent))]'));
   ok(['border-t-[3px]', 'border-t-transparent', 'pt-[6px]', 'rounded-xl', 'before:absolute', 'before:-top-[3px]', ...anneau(''), ...bandeFixe]
     .every((c) => essentiels.includes(c)) && sansOmbreNiTrait(essentiels),
     'essentiels : la bande est le haut du panneau, braise pleine sur 3 px puis en dégradé jusqu\'au bas de l\'arrondi, recopiée en A3 en haut de la boîte qui défile, sans ombre intérieure');
-  ok(['@[1180px]:border-t-[3px]', '@[1180px]:border-t-transparent', '@[1180px]:pt-[6px]', ...bandeFixe, '@[1180px]:before:row-[1/span_3]'].every((c) => droite.includes(c))
+  ok(['@[952px]:border-t-[3px]', '@[952px]:border-t-transparent', '@[952px]:pt-[6px]', ...bandeFixe, '@[952px]:before:row-[1/span_3]'].every((c) => droite.includes(c))
     && sansOmbreNiTrait(droite),
     'colonne de droite : même bande en dégradé en A3, recopiée sur toutes les rangées de la grille du panneau');
-  ok(droite.includes('@[1180px]:mr-1'), 'colonne de droite : en A3, son panneau s\'arrête à 4 px de sa barre de défilement');
+  ok(droite.includes('@[952px]:mr-1'), 'colonne de droite : en A3, son panneau s\'arrête à 4 px de sa barre de défilement');
   ok(/^<div class="-mx-3 @container"/.test(html),
     'page de bureau : marges de 12 px, 12 px repris de chaque côté sur les 24 de la page ou du volet (au premier rendu, avant la mesure), la racine restant le conteneur');
   // Les coins d'une colonne qui défile : la boîte est rognée aux coins du haut

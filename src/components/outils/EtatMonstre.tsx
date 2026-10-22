@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { ArtifactDamageProfile, DamageSetup, LEADER_SKILL_STATS, LEADER_SKILL_VALEURS, LeaderSkillStat, type SetAura } from '../../lib/damage';
+import { DamageSetup, LEADER_SKILL_STATS, LEADER_SKILL_VALEURS, LeaderSkillStat, type SetAura } from '../../lib/damage';
 import { leadIconUrl, STAT_LABEL } from '../siege/LeadPill';
 import { Bouton, BoutonIcone, Jeton, NumberField, Selecteur } from '../../ui';
 import type { RappelBuffDePassif } from '../../lib/buffsDePassif';
@@ -65,7 +65,6 @@ export default function EtatMonstre({
   setup,
   maj,
   etroit,
-  artefacts,
   rappelAuras,
   onGuiderResPre,
   rappelsBuffs,
@@ -77,7 +76,6 @@ export default function EtatMonstre({
   equipe?: boolean;
   motifLead?: string | null;
   etroit: boolean;
-  artefacts: ArtifactDamageProfile;
   // Passifs du monstre choisi qui posent un buff standard (`rappelsBuffsDePassif`, buffsDePassif.ts) : un rappel, jamais un
   // réglage — le buff reste à allumer à la main dans la boîte ci-dessous.
   rappelsBuffs: RappelBuffDePassif[];
@@ -160,8 +158,7 @@ export default function EtatMonstre({
         {motifLeadAffiche(motifLead) && <span className="block text-warn">{motifLeadAffiche(motifLead)}</span>}
       </p>}
       {/* ⚠️ **Rappel des buffs posés par un passif** :
-          même grammaire que les lignes d'amplification juste dessous (texte
-          `xs` atténué sous la rangée des buffs) ; le passif est nommé comme
+          texte `xs` atténué sous la rangée des buffs ; le passif est nommé comme
           dans « Stats acquises en combat » — `Jeton` en lecture
           seule, icône et nom du jeu. La condition est un extrait LITTÉRAL de
           la prose, entre guillemets, jamais reformulé.
@@ -172,7 +169,7 @@ export default function EtatMonstre({
           suivent la forme `EtatMonstreEssentiels`) — rien de ce qu'on vient
           de cliquer ne bouge. Les vignettes au-dessus ne bougent pas non
           plus : il vit sous elles. */}
-      <RappelsEtatMonstre setup={setup} artefacts={artefacts} rappelsBuffs={rappelsBuffs} />
+      <RappelsEtatMonstre rappelsBuffs={rappelsBuffs} />
 
 
     </div>
@@ -213,11 +210,7 @@ export function TitreEtatMonstre({ bureau = false }: { bureau?: boolean }) {
 // l'amplification d'un buff par les artéfacts (décision de l'utilisateur) :
 // elle portait sur la paire représentative de la recherche, que le joueur ne
 // connaît pas, et non sur ses artéfacts. Le calcul, lui, en tient compte.
-export function RappelsEtatMonstre({ setup, artefacts, rappelsBuffs }: {
-  setup: DamageSetup;
-  artefacts: ArtifactDamageProfile;
-  rappelsBuffs: RappelBuffDePassif[];
-}) {
+export function RappelsEtatMonstre({ rappelsBuffs }: { rappelsBuffs: RappelBuffDePassif[] }) {
   return (
     <>
       {rappelsBuffs.length > 0 && (

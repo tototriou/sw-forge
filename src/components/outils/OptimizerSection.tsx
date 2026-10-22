@@ -8,7 +8,7 @@ import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importer
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
 import { computeStats } from '../../lib/stats';
 import { cibleDeLaFile, classementResolu, cleBuild, compositionDePage, compteAffichable, compteConfirme, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
-import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
+import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild, etatReliqueDuBuild } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
 import { useArtifactOptimQueue, type ResolutionHorsFil } from '../../hooks/useArtifactOptimQueue';
@@ -20,13 +20,11 @@ import {
   type ArtifactSearchParams,
   nombreDePairesRetenues,
   paireRepresentative,
-  respecteMinimums,
 } from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
 import { regimeArtefacts, regimeEquipementDe, type RegimeArtefacts } from '../../lib/artifactEvaluation';
 import { evaluateursArtefactsFiche, parametresArtefactsFiche, piecesFigeesDe, sortesFigeesDe, statsLignesArtefactsEquipables } from '../../lib/artifactFiche';
 import {
-  RELIC_MAIN,
   StatKey,
   runeEfficiency,
   runeScore,
@@ -38,8 +36,6 @@ import {
   StatFeasibility,
   rankBlockingConditions,
   BlockingConditionsDiagnosis,
-  statTotal,
-  objectiveScore,
   avecAurasConditions,
   sortCandidates,
   scoreDuCandidat,
@@ -89,14 +85,12 @@ import {
   artifactDamageProfile,
 } from '../../lib/damage';
 import {
-  AutoExclusionScope,
   ExclusionCandidate,
   ExclusionSelector,
   ExclusionSource,
   ExclusionSourceData,
   type OptimizerListMember,
   SOURCE_OPTIONS,
-  ValidatedBuild,
   autoExcludedRuneIds,
   etatAjoutListe,
   exclusionCandidatesFor,
@@ -116,7 +110,6 @@ import { DUREE_ATTENTION_MS, doitRappeler, echoAurasExternes, guideVersResPre } 
 import { jourLocal, telechargerTexte } from '../../lib/telechargement';
 import {
   OptimizerState,
-  RelicUniqueChoice,
   DEFAULT_RELIC_MIN_UPGRADE,
   defaultRelicMainChoice,
   criteresApresChangementEspece,
@@ -3433,7 +3426,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             equipe={combatMembre.equipe !== null}
             motifLead={combatMembre.motif}
             etroit={etroit}
-            artefacts={artefactsDegats}
             rappelsBuffs={rappelsBuffs}
           />
         }
@@ -3655,7 +3647,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         equipe={combatMembre.equipe !== null}
         motifLead={combatMembre.motif}
         etroit={etroit}
-        artefacts={artefactsDegats}
         rappelAuras={rappelAuras !== null}
         onGuiderResPre={guiderVersResPre}
         rappelsBuffs={rappelsBuffs}

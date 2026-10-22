@@ -4,7 +4,7 @@ import { flushSync } from 'react-dom';
 import SetDeRunesCompact from '../../src/components/outils/optimizer/bureau/SetDeRunesCompact';
 import PrincipalesImposeesBureau, { LARGEUR_COLONNE_ETROITE } from '../../src/components/outils/optimizer/bureau/PrincipalesImposeesBureau';
 import EtatMonstreEssentiels from '../../src/components/outils/optimizer/bureau/EtatMonstreEssentiels';
-import { DEFAULT_DAMAGE_SETUP, artifactDamageProfile, type DamageSetup } from '../../src/lib/damage';
+import { DEFAULT_DAMAGE_SETUP, type DamageSetup } from '../../src/lib/damage';
 
 // Banc de navigateur des boîtes de bureau dont le sens tient à un geste (liste
 // ouverte, choix en surbrillance) : les composants réels, avec un état local,
@@ -26,8 +26,7 @@ function PrincipalesBanc() {
 
 function EtatBanc() {
   const [setup, setSetup] = useState<DamageSetup>(DEFAULT_DAMAGE_SETUP);
-  return <EtatMonstreEssentiels setup={setup} maj={(p) => setSetup((s) => ({ ...s, ...p }))} etroit={false}
-    artefacts={artifactDamageProfile([])} rappelsBuffs={[]} />;
+  return <EtatMonstreEssentiels setup={setup} maj={(p) => setSetup((s) => ({ ...s, ...p }))} etroit={false} rappelsBuffs={[]} />;
 }
 
 let root: Root | null = null;

@@ -13,7 +13,7 @@ import type { ContexteGabarits, Gabarit } from './types';
 import { etatAjoutListe, exclusionSelectorKey, resolveExclusionEntry, type OptimizerListMember } from '../../../../lib/optimizerExclusion';
 import { leadEffectifMembreOptimizer } from '../../../../lib/equipesOptimizer';
 import { artifactConditionFloor, relicConditionFloor } from '../../../../lib/artifactConditionFloor';
-import { artifactDamageProfile, type DamageSetup } from '../../../../lib/damage';
+import { type DamageSetup } from '../../../../lib/damage';
 import { AUCUNE_COLONNE, basculerColonne, colonnesAffichees, type ColonnesOuvertes } from '../../../../lib/optimizerColonnes';
 import type { EquipeOptimizer } from '../../../../lib/optimizerMemberStorage';
 import type { StatKey } from '../../../../lib/effects';
@@ -134,7 +134,7 @@ function EtatGabarit({ ctx, patch = {}, equipe = false }: { ctx: ContexteGabarit
     listContents: new Map([['l', 'donjon']]),
   }, 'l', selecteur, 'fire');
   return <EtatMonstreEssentiels setup={setup} maj={(p) => setSetup((s) => ({ ...s, ...p }))} equipe={equipe}
-    motifLead={equipe && lead.type === 'aucun' ? lead.motif : null} etroit={false} artefacts={artifactDamageProfile([])} rappelsBuffs={[]} />;
+    motifLead={equipe && lead.type === 'aucun' ? lead.motif : null} etroit={false} rappelsBuffs={[]} />;
 }
 
 function OngletsGabarit({ initial, deuxTiennent }: { initial: ColonnesOuvertes; deuxTiennent: boolean }) {

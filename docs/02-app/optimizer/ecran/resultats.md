@@ -25,6 +25,12 @@ ils suivent la progression, sur toute la largeur.
     l'utilisateur) : « Comparer » à sa largeur, « Valider » à la largeur fixe
     de son plus long libellé (160 px ; « Valider les artéfacts » en mesure
     123), si bien que passer à « Validé » ne déplace ni lui ni « Comparer ».
+    ⚠️ **Au bureau, l'écart de « Comparer » s'affiche À GAUCHE de la valeur
+    qu'il qualifie**, sur sa ligne (valeur moyenne, PV effectifs, dégâts ;
+    décision de l'utilisateur) : sous elle, il faisait grandir la carte au
+    clic, et « Comparer » descendait sous le pointeur. Sa place (44 px) est
+    réservée même vide : la valeur reste calée à droite et la ligne garde sa
+    hauteur. Le téléphone garde l'écart sous la valeur.
     Mesuré (carte de 356 à 716 px, compte d'exemple, sans « Dégâts ») :
     en-tête de 19 px, carte de 284 px avec un ou deux boutons. Le téléphone
     garde son en-tête et sa ligne de sets ; ses deux boutons se partagent la

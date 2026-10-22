@@ -3244,6 +3244,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             realDamage={realDamage}
             fileArtefacts={fileArtefacts}
             compteAffiche={compteAffiche}
+            bureau={!sousLg}
           />
   
           <DiagnosticsSansResultat

@@ -203,11 +203,23 @@ vérifié dépend de tous ceux du dessus. Ni l'ordre de base, ni K, ni la
 résolution ne changent. Une seule fonction pure, `compositionDePage`
 (artifactQueue.ts), donne les cartes, les places et les builds à
 vérifier, à partir du classement affiché et du cache publié de la file.
-Les comptes gardent leur règle (ci-dessus) ; une ligne sous l'en-tête dit
+Les comptes gardent leur règle (ci-dessus) ; une ligne dit
 combien la file doit encore vérifier (« N combinaison(s) en
 vérification… » : le reste de la file, places en attente puis avance de
-fond), sa place réservée tant que la file tourne. Sans optimisation
+fond), sa place réservée tant que la file tourne : sous l'en-tête au
+téléphone, sous le compte des confirmées au bureau. Sans optimisation
 d'artéfacts, pas de file : la page est la tranche du classement.
+⚠️ **Au bureau, l'en-tête des résultats tient sur une rangée**
+(`EnteteResultats`, `bureau`, décision de l'utilisateur : la première
+carte remonte) : à gauche le compte des confirmées et, sous lui, la ligne
+« en vérification », l'aide à leur droite ; à droite « Adapter les
+artéfacts et reliques au tri » et le tri ; 4 px avant la première carte.
+Rien n'est retiré ni reformulé. Quand la colonne est étroite, la rangée
+passe à la ligne d'elle-même (le tri, puis « Adapter… », sous le compte),
+sans déborder à la largeur minimale de la colonne : le passage ne dépend
+que de la largeur. Mesuré (compte d'exemple, 20 résultats), la première
+carte remonte de 26 px à 1920 × 940 et 2560 × 1300, de 34 px à la largeur
+minimale de la colonne.
 
 ## Tri des résultats
 

@@ -176,7 +176,7 @@ function ResultatsGabarit({ ctx, mode }: { ctx: ContexteGabarits; mode: AttenteR
       <EnteteResultats result={result} compteConfirmes={{ confirmees, nonVerifies: 0, pages: 3, aucune: confirmees === 0 }} resoudreEquipement={null}
         optimiserArtefacts={ctx.optimizer.optimiserArtefacts} adapterArtefactsAuTri={adapter} setAdapterArtefactsAuTri={setAdapter}
         sortBy={tri} setSortBy={setTri} setResultsPage={setPage} realDamage={null} fileArtefacts={{ enAttente: 0 } as UseArtifactOptimQueue}
-        compteAffiche={{ compte: confirmees, ecartes: 0, raison: null }} />
+        compteAffiche={{ compte: confirmees, ecartes: 0, raison: null }} bureau />
       <DiagnosticsSansResultat bureau result={result}
         feasibilityDiagnosis={mode === 'zero' ? [{ key: 'spd', kind: 'min', requested: 0, bound: 0, satisfiable: true }] : []}
         impossibleFeasibility={[]} blockingDiagnosis={null} diagnoseBlockingEnabled={false} runeById={runeById} metric={metric}

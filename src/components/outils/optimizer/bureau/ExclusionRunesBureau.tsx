@@ -6,7 +6,7 @@ import ExclusionRunesContenu, { type ExclusionRunesContenuProps } from '../Exclu
 // traits entre sections situent déjà la section (le téléphone garde son titre
 // dans le panneau « Options »). Le contenu est
 // celui du panneau « Options » du téléphone (`ExclusionRunesContenu`), dans
-// son ordre empilé : à 314 px de contenu, deux réglages côte à côte ne
+// son ordre empilé : à 294 px de contenu, deux réglages côte à côte ne
 // tiendraient pas.
 export default function ExclusionRunesBureau(props: Omit<ExclusionRunesContenuProps, 'sansAccroche'>) {
   return (

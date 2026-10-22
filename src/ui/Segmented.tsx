@@ -31,6 +31,15 @@ const CRAN_DENSE = 'px-1 py-1 text-nano leading-tight';
 const CRAN_LG = 'lg:h-[26px] lg:py-0 lg:px-2.5 lg:text-xs';
 const CRAN_LARGE = `px-3 py-1.5 text-xs whitespace-nowrap ${CRAN_LG}`;
 const CRAN_PETIT = `px-2 py-1 text-micro whitespace-nowrap ${CRAN_LG}`;
+// Les libellés sur deux lignes (`deuxLignes`) : le texte de `lg`, sans hauteur
+// fixe, le saut de ligne écrit dans le libellé (`whitespace-pre-line`).
+const CRAN_DEUX_LIGNES = 'px-2.5 py-1 text-xs leading-tight whitespace-pre-line';
+
+// Le libellé coupé à son premier espace : « Défenses siège » → « Défenses »
+// puis « siège ». Un mot seul reste sur une ligne.
+function surDeuxLignes(libelle: string): string {
+  return libelle.replace(' ', '\n');
+}
 
 export default function Segmented<T extends string>({
   options,
@@ -41,6 +50,7 @@ export default function Segmented<T extends string>({
   disabled = false,
   dense,
   colonnes,
+  deuxLignes = false,
 }: {
   // `disabled` par option : voir le `disabled` du contrôle entier plus bas
   // pour la distinction entre les deux axes.
@@ -92,6 +102,13 @@ export default function Segmented<T extends string>({
   // choix reste exclusif à l'œil. ⚠️ Pas de resserrement automatique : la
   // grille EST la réponse au manque de place, `dense` reste forçable.
   colonnes?: number;
+  // **Les libellés de plusieurs mots sur deux lignes**, coupés à leur premier
+  // espace (« Défenses / siège »), au texte de `lg` : la réponse au manque
+  // de place quand le texte resserré de `dense` serait trop petit (la
+  // colonne « Aura, exclusion, avancés » de l'Optimizer, au bureau). ⚠️ Les
+  // crans gardent TOUS la même hauteur, celle du plus haut : un libellé d'un
+  // mot y est centré. Pas de resserrement automatique, comme en grille.
+  deuxLignes?: boolean;
 }) {
   const large = size === 'lg' || size === 'md' || colonnes != null;
   const enGrille = colonnes != null;
@@ -105,7 +122,7 @@ export default function Segmented<T extends string>({
   const racineRef = useRef<HTMLDivElement>(null);
   const mesureRef = useRef<HTMLDivElement>(null);
   const [serre, setSerre] = useState(false);
-  const auto = dense === undefined && !enGrille;
+  const auto = dense === undefined && !enGrille && !deuxLignes;
 
   // ⚠️ `useLayoutEffect` et non `useEffect` : mesurer AVANT que le navigateur
   // peigne évite d'afficher un instant le rendu non resserré (donc débordant)
@@ -178,7 +195,7 @@ export default function Segmented<T extends string>({
       ref={racineRef}
       // `relative` : contexte de positionnement de la copie de mesure
       // ci-dessous, qui doit sortir du flux sans peser sur la mise en page.
-      className={`relative flex items-center ${size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'
+      className={`relative flex ${deuxLignes ? 'items-stretch' : 'items-center'} ${size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'
       } bg-panel2 border border-border rounded-lg p-0.5 ${disabled ? 'opacity-40' : ''} ${className}`}
     >
       {/* ⚠️ **Copie de MESURE, jamais affichée** — sert uniquement à connaître
@@ -233,7 +250,7 @@ export default function Segmented<T extends string>({
               aria-pressed={active}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-semibold text-center
                           transition disabled:cursor-not-allowed ${
-                            compact ? CRAN_DENSE : large ? CRAN_LARGE : CRAN_PETIT
+                            deuxLignes ? CRAN_DEUX_LIGNES : compact ? CRAN_DENSE : large ? CRAN_LARGE : CRAN_PETIT
                           } ${
                             // ⚠️ `o.disabled` (grisage PAR OPTION) s'applique
                             // même si le contrôle entier ne l'est pas — le
@@ -257,7 +274,7 @@ export default function Segmented<T extends string>({
                           }`}
             >
               {o.icon}
-              {o.label}
+              {deuxLignes ? surDeuxLignes(o.label) : o.label}
               {/* Après le libellé : un effectif se lit APRÈS ce qu'il compte
                   (« Importées 3 »), là où une icône se lit avant. */}
               {o.suffix}

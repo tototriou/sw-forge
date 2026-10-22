@@ -64,8 +64,9 @@ droite. Au-dessus d'elles, ni bandeau ni phrase d'introduction.
    312) : « Artéfacts et relique », relique comprise, puis « Meilleurs
    artéfacts offensifs pour ce build » dans sa propre section, présente dès
    qu'un monstre est choisi avec l'optimisation d'artéfacts active.
-3. **« Aura, exclusion, avancés »**, repliable, place de 340 px (panneau de
-   332) : « Sets d'aura des autres monstres », « Exclusion de runes » et
+3. **« Aura, exclusion, avancés »**, repliable, place de 320 px (panneau de
+   312), celle d'« Artéfacts et relique » (décision de l'utilisateur) :
+   « Sets d'aura des autres monstres », « Exclusion de runes » et
    « Réglages avancés », en ligne dans la colonne.
 4. **La colonne de droite**, jamais repliée, qui prend le reste de la
    largeur : « Exemplaire » (puces Box / RTA / Défenses siège / Offenses
@@ -160,7 +161,7 @@ src/lib/optimizerColonnes.ts), d'où se calculent les seuils : un panneau
 prend sa place moins 8 px (`RETRAIT_PANNEAU`) quand une autre colonne le
 suit, et l'écart visible vaut la gouttière de 16 px plus ce retrait. Aucun
 seuil n'a bougé ; une section garde la largeur de contenu de la carte qu'elle
-remplace (294 px dans « Artéfacts et relique », 314 dans « Aura, exclusion,
+remplace (294 px dans « Artéfacts et relique » comme dans « Aura, exclusion,
 avancés », 598 au plus pour « Exemplaire »). La colonne de droite n'est une
 boîte qu'en A3 (`data-zone="droite"`) : un panneau qui défile seul, où
 « Exemplaire » tient la première piste (598 px au plus) et le bloc étroit la
@@ -307,7 +308,7 @@ eux : au bureau, ils sont en ligne dans la colonne repliable « Aura,
 exclusion, avancés » ([Mise en page d'ensemble](#mise-en-page-densemble)) ;
 au téléphone, dans le panneau « Options ». Un même contenu sert les deux
 formats (`ExclusionRunesContenu`, `ReglagesAvancesContenu`), jamais écrit
-deux fois. Au bureau, chacun est une section de 314 px du panneau de la colonne, sans
+deux fois. Au bureau, chacun est une section de 294 px du panneau de la colonne, sans
 en-tête (ni titre, ni icône, ni phrase d'accroche : le téléphone garde les
 siens dans le panneau « Options »), à la suite de « Sets d'aura des autres monstres » :
 empilés en A2 et A3 ; en A1, deux à deux, « Exclusion de runes » à droite
@@ -316,7 +317,12 @@ des deux autres.
 « Exclusion de runes » garde au bureau l'ordre empilé du panneau : « Exclure
 les runes d'un monstre », puis « Exclure les runes déjà utilisées », puis,
 après un trait, « Conserver ces slots dans l'optimisation ». Deux réglages
-côte à côte ne tiendraient pas dans 314 px de contenu. Au bureau, les
+côte à côte ne tiendraient pas dans 294 px de contenu. ⚠️ **Au bureau, les
+sources « Défenses siège » et « Offenses siège » d'« Exclure les runes d'un
+monstre » passent sur deux lignes** (« Défenses / siège »), au texte normal
+des puces (décision de l'utilisateur : c'est ce qui fait tenir la colonne à
+la largeur d'« Artéfacts et relique ») ; les quatre puces gardent la même
+hauteur, « Box » et « RTA » centrés (`Segmented`, `deuxLignes`). Au bureau, les
 monstres exclus s'affichent sur une hauteur bornée (96 px) qui défile, et les
 six puces des runes imposées sont de même taille, en deux colonnes égales
 (slots 1 · 2, 3 · 4, 5 · 6) ; le téléphone garde sa rangée qui passe à la
@@ -335,7 +341,7 @@ relique ». Le téléphone garde ses rangées.
 ⚠️ **« Réglages avancés » se pose sur DEUX colonnes dès que la place le
 permet** : le **pré-filtrage** avec ses puces et son
 avertissement d'un côté, les **interrupteurs** de l'autre. Dans la colonne
-du bureau (340 px), la place ne le permet jamais : une colonne, le
+du bureau (320 px), la place ne le permet jamais : une colonne, le
 pré-filtrage au-dessus.
 
 - ⚠️ `grid-cols-[repeat(auto-fit,minmax(260px,1fr))]` et **non** un point de
@@ -384,23 +390,22 @@ Le format téléphone est décrit dans
 
 ### Colonnes repliables selon la largeur
 
-- **A3** : « Artéfacts et relique » s'insère dès 1 492 px (548 + 16 + 320 +
-  16 + 592), « Aura, exclusion, avancés » dès 1 512 (même calcul avec 340),
-  les deux ensemble dès 1 848. Sous son seuil, une colonne ouverte se pose
+- **A3** : « Artéfacts et relique » et « Aura, exclusion, avancés », de même
+  largeur, s'insèrent dès 1 492 px (548 + 16 + 320 + 16 + 592), les deux
+  ensemble dès 1 828 (548 + 16 + 320 + 16 + 320 + 16 + 592). Sous son seuil, une colonne ouverte se pose
   en **panneau superposé** à la colonne de droite, à 24 px des essentiels,
   avec une ombre : elle ne prend aucune place dans la grille, rien ne bouge
   dessous, et les résultats ne descendent jamais sous la largeur d'une carte.
-  Elle couvre le bord gauche de la colonne de droite (312 ou 332 px de
-  panneau, 326 ou 346 avec sa barre), loin de « Rechercher », posé à droite
-  dans la forme large du bloc (voir
-  [Bloc « Objectif et Rechercher »](#bloc--objectif-et-rechercher-)), sauf
-  à la largeur minimale de la colonne, où ses 17 px de gauche au plus
-  passent sous « Aura, exclusion, avancés ».
+  Elle couvre le bord gauche de la colonne de droite (312 px de panneau,
+  326 avec sa barre), loin de « Rechercher », posé à droite dans la forme
+  large du bloc (voir
+  [Bloc « Objectif et Rechercher »](#bloc--objectif-et-rechercher-)) : à la
+  largeur minimale de la colonne, 3 px les séparent encore (mesuré).
 - **A2** : la colonne ouverte se place à droite des essentiels, sous le bloc
   « Objectif et Rechercher » et le contrôle à onglets. **A1** : dans la
   page, entre le contrôle et « Exemplaire ».
-- **Une à la fois sous 1 848 px** : ouvrir l'une ferme l'autre. Revenue
-  sous 1 848 avec les deux ouvertes, la page garde la dernière ouverte.
+- **Une à la fois sous 1 828 px** : ouvrir l'une ferme l'autre. Revenue
+  sous 1 828 avec les deux ouvertes, la page garde la dernière ouverte.
 - **Par défaut**, « Artéfacts et relique » est ouverte en A1, en A2 et dès
   1 492 px ; fermée en A3 sous 1 492 (aucun panneau superposé ouvert
   d'office). « Aura, exclusion, avancés » est fermée. Tant que l'utilisateur
@@ -497,8 +502,8 @@ Deux formes, selon la place :
   dans son propre panneau ; en A3, section du panneau de droite, à côté
   d'« Exemplaire », quand la colonne de droite fait au moins 948 px
   (592 + 16 + 340), soit un conteneur d'au moins 1 512 px sans colonne
-  repliable insérée, 1 848 avec « Artéfacts et relique » insérée, 1 868 avec
-  « Aura, exclusion, avancés » insérée ;
+  repliable insérée, 1 848 avec l'une des deux colonnes repliables
+  insérée ;
 - **large**, ≈ 138 px de haut au repos (estimation sur une ligne, mesuré en
   A3), à la largeur de sa colonne : objectifs sur une ligne, « Exporter » ·
   « Importer » à gauche, « Rechercher » à droite, 240 px de large, jamais
@@ -506,12 +511,10 @@ Deux formes, selon la place :
   quand la colonne se resserre, les marges du panneau restent : partout
   ailleurs (A1, et A3 quand la colonne de droite fait moins de 948 px), sous
   « Exemplaire ». ⚠️ **À droite, parce qu'en A3 une colonne repliable
-  superposée couvre le bord gauche de la colonne de droite** (346 px au
-  plus, barre comprise) : « Rechercher » commence à 329 px de ce bord à la
-  largeur minimale de la colonne (592), à 346 dès 609 ; entre les deux,
-  ses 17 px de gauche au plus passent sous « Aura, exclusion, avancés »
-  superposée, le reste du bouton (223 px au moins) restant atteignable
-  (mesuré).
+  superposée couvre le bord gauche de la colonne de droite** (326 px,
+  barre comprise) : « Rechercher » commence à 329 px de ce bord à la
+  largeur minimale de la colonne (592), plus loin au-delà ; aucune colonne
+  superposée ne le couvre (mesuré : 3 px d'écart à 1 156 px de conteneur).
 
 ⚠️ Le bloc ne change de forme qu'au clic d'un onglet, qui ouvre ou ferme
 une colonne insérée, jamais au lancement d'une recherche.

@@ -55,7 +55,9 @@ export function ouvrirColonne(etat: ColonnesOuvertes, colonne: ColonneRepliable)
 // son panneau et sa barre de défilement réservée et la barre (10) : 592. Tout
 // le reste de la colonne (puces, objectif, « Rechercher », résultats) s'adapte
 // au-dessus de ce minimum.
-export const LARGEURS_BUREAU = { essentiels: 548, gouttiere: 16, artefacts: 320, complements: 340, exemplaire: 592, objectifEtroit: 340 } as const;
+// « Aura, exclusion, avancés » a la place d'« Artéfacts et relique »
+// (décision de l'utilisateur), ses sources de siège sur deux lignes.
+export const LARGEURS_BUREAU = { essentiels: 548, gouttiere: 16, artefacts: 320, complements: 320, exemplaire: 592, objectifEtroit: 340 } as const;
 
 // ⚠️ **Ces largeurs sont des PLACES.** Chaque colonne se dessine en panneau
 // (src/components/outils/optimizer/bureau/panneau.ts), 8 px plus étroit que
@@ -71,9 +73,9 @@ const L = LARGEURS_BUREAU;
 const DROITE_DES_ESSENTIELS = L.essentiels + L.gouttiere;
 
 export const SEUILS_BUREAU = {
-  // A2 : une colonne repliable (la plus large) ou le bloc étroit de 340 tient
-  // à droite des essentiels.
-  a2: DROITE_DES_ESSENTIELS + Math.max(L.artefacts, L.complements),
+  // A2 : une colonne repliable et le bloc étroit tiennent à droite des
+  // essentiels, l'un sous l'autre : le plus large des trois.
+  a2: DROITE_DES_ESSENTIELS + Math.max(L.artefacts, L.complements, L.objectifEtroit),
   // A3 : « Exemplaire » tient à droite des essentiels.
   a3: DROITE_DES_ESSENTIELS + L.exemplaire,
   // Une colonne insérée entre les essentiels et « Exemplaire ».

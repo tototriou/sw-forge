@@ -324,6 +324,13 @@ autres — le cadre commun le dit sans un mot. L'option enfoncée est un
 > entre les crans, verticaux et horizontaux, comme le trait de la rangée
 > `lg`. Sans eux, quatre crans en 2 × 2 se lisaient comme un seul bloc.
 
+> **`deuxLignes`** coupe chaque libellé de plusieurs mots à son premier
+> espace (« Défenses / siège »), au texte normal de `lg`, quand le texte
+> resserré de `dense` serait trop petit : les sources d'« Exclure les runes
+> d'un monstre » dans la colonne « Aura, exclusion, avancés » de l'Optimizer,
+> au bureau. ⚠️ Tous les crans prennent la hauteur du plus haut, un libellé
+> d'un mot y est centré. Aucun resserrement automatique, comme en grille.
+
 #### `Pastille`
 
 **`Pastille`** — pilule de filtre à deux états, posée en RANGÉE de critères :

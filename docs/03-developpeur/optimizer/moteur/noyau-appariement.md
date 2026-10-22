@@ -45,6 +45,18 @@ L'appariement séquentiel et chaque Worker du parallèle décident de la même
 façon, sur le même pool ; le résultat dit lequel a servi
 (`cheminValidation`, `motifValidation`).
 
+Pour une paire, `ValidationTypee.ecarts` partage un état de condition entre
+les tentatives qui lisent la même fiche sur cette stat et le même décalage
+d'artéfacts. Une fiche dont la relique change une autre stat lit le total
+sans cette relique sur la stat jugée ; les principales distinctes sur la
+stat jugée gardent des états distincts. Les décalages sont distingués par
+`Object.is`, zéro signé et NaN compris. Les états sont préparés une fois,
+calculés à leur premier usage puis invalidés à chaque paire dans des tampons
+réutilisables. Chaque `actual` garde l'expression flottante et l'ordre des
+additions de la validation directe, aura comprise. L'assemblage des manques
+reste dans l'ordre des conditions ; l'énumération reste apport puis fiche,
+avec arrêt au premier succès. Aucune tentative ne porte plusieurs reliques.
+
 Les demi-builds arrivent de la construction en colonnes
 (`CompartimentType`, `src/lib/demiBuildsTypes.ts`), préréglages emboîtés
 compris. `encoderCompartiments` en projette les seules colonnes utiles au
@@ -230,8 +242,10 @@ validation typée à `activeSets`, `computeStats` et au test conjoint de
 `pairBuckets` : sur des cas écrits, paire par paire sur des demi-builds
 tirés, collecteur contre collecteur, puis l'appariement entier (séquentiel
 et parallèle simulé) contre `pairBuckets`, contrat tenu ou non.
-Le corps direct de `considererTypee` est figé uniquement dans ce test ;
-chaque tentative du collecteur lui est comparée. Les profils `fumee` et `complet-sensible` passent aussi
+Les corps directs de `ecarts` et `considererTypee` sont figés uniquement
+dans ce test : toutes les tentatives des scènes tirées sont comparées au
+premier, tous les `actual` compris ; chaque tentative du collecteur est
+comparée au second. Les profils `fumee` et `complet-sensible` passent aussi
 par le vrai harnais compact : candidats entiers dans l'ordre, comptes,
 quasi-succès et complétude comparés à `pairBuckets`, puis petit plafond,
 arrêt au même palier logique et fusion ordonnée de morceaux. Les frontières

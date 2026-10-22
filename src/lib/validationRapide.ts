@@ -108,6 +108,15 @@ export class ValidationTypee {
   private readonly base = new Float64Array(8);
   /** `(apport[k] ?? 0) − (artFlatFige[k] ?? 0)`, par apport et condition. */
   private readonly decalage: Float64Array;
+  /** Une condition ne dépend que de son décalage et de la fiche qui change SA stat. */
+  private readonly etats: { condition: ConditionTypee; fiche: number; decalage: number }[] = [];
+  private readonly etatParApport: Int32Array;
+  private readonly etatParFiche: Int32Array;
+  /** Tampons réutilisés, invalidés à chaque paire ; seuls les états demandés sont calculés. */
+  private readonly etatPret: Uint8Array;
+  private readonly etatRefuse: Uint8Array;
+  private readonly etatActuel: Float64Array;
+  private readonly etatManque: Float64Array;
   /**
    * Par fiche (`fichesDuTestConjoint`) : la voie plate de la stat de sa
    * relique (0 à 2 ; −1 sans relique ou principale inconnue) et la valeur de
@@ -248,6 +257,38 @@ export class ValidationTypee {
     }) : Int8Array.of(-1);
     this.ficheValeur = reps ? Float64Array.from(reps, (r) => r.main.value) : Float64Array.of(0);
     this.ficheTotal = new Float64Array(this.nFiches);
+    this.etatParApport = new Int32Array(this.nApports * E);
+    this.etatParFiche = new Int32Array(this.nFiches * E);
+    for (let e = 0; e < E; e++) {
+      const c = this.conditions[e];
+      // Les fiches qui changent une autre stat partagent la fiche de base.
+      const fiches: number[] = [];
+      for (let f = 0; f < this.nFiches; f++) {
+        const source = this.ficheVoie[f] === c.stat ? f : -1;
+        let groupe = fiches.findIndex((g) => source === -1 ? g === -1 : g !== -1 && Object.is(this.ficheValeur[g], this.ficheValeur[source]));
+        if (groupe === -1) {
+          groupe = fiches.length;
+          fiches.push(source);
+        }
+        this.etatParFiche[f * E + e] = groupe;
+      }
+      const decalages: number[] = [];
+      const debut = this.etats.length;
+      for (let a = 0; a < this.nApports; a++) {
+        const d = this.decalage[a * E + e];
+        let groupe = decalages.findIndex((v) => Object.is(v, d));
+        if (groupe === -1) {
+          groupe = decalages.length;
+          decalages.push(d);
+          for (const fiche of fiches) this.etats.push({ condition: c, fiche, decalage: d });
+        }
+        this.etatParApport[a * E + e] = debut + groupe * fiches.length;
+      }
+    }
+    this.etatPret = new Uint8Array(this.etats.length);
+    this.etatRefuse = new Uint8Array(this.etats.length);
+    this.etatActuel = new Float64Array(this.etats.length);
+    this.etatManque = new Float64Array(this.etats.length);
     this.statsUtiles = Int32Array.from(new Set(this.conditions.map((c) => c.stat)));
     this.echecs = new Int32Array(E);
     this.actuels = new Float64Array(E);
@@ -340,6 +381,7 @@ export class ValidationTypee {
    * activations d'aura propres. Rend faux si un set demandé manque.
    */
   setsEtStats(ga: number, gb: number): boolean {
+    this.etatPret.fill(0);
     this.ga = ga;
     this.gb = gb;
     const { compte, activations, touches, pieces } = this;
@@ -430,16 +472,25 @@ export class ValidationTypee {
    */
   ecarts(a: number, f: number): number {
     const E = this.conditions.length;
-    const voie = this.ficheVoie[f];
     let n = 0;
     for (let e = 0; e < E; e++) {
-      const c = this.conditions[e];
-      let actual = (c.stat === voie ? this.ficheTotal[f] : this.total[c.stat]) + this.decalage[a * E + e];
-      if (c.aura) actual = actual + c.auraExterne + 8 * (c.key === 'res' ? this.auraRes : this.auraAcc);
-      if (c.kind === 'min' ? actual < c.seuil : actual > c.seuil) {
+      const s = this.etatParApport[a * E + e] + this.etatParFiche[f * E + e];
+      if (!this.etatPret[s]) {
+        const { condition: c, fiche, decalage } = this.etats[s];
+        // Même expression et même ordre d'opérations : aucun regroupement
+        // flottant, même pour un état partagé par plusieurs tentatives.
+        let actual = (fiche >= 0 ? this.ficheTotal[fiche] : this.total[c.stat]) + decalage;
+        if (c.aura) actual = actual + c.auraExterne + 8 * (c.key === 'res' ? this.auraRes : this.auraAcc);
+        this.etatActuel[s] = actual;
+        const refuse = c.kind === 'min' ? actual < c.seuil : actual > c.seuil;
+        this.etatRefuse[s] = refuse ? 1 : 0;
+        if (refuse) this.etatManque[s] = c.kind === 'min' ? c.seuil - actual : actual - c.seuil;
+        this.etatPret[s] = 1;
+      }
+      if (this.etatRefuse[s]) {
         this.echecs[n] = e;
-        this.actuels[n] = actual;
-        this.manques[n] = c.kind === 'min' ? c.seuil - actual : actual - c.seuil;
+        this.actuels[n] = this.etatActuel[s];
+        this.manques[n] = this.etatManque[s];
         n++;
       }
     }

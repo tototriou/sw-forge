@@ -313,9 +313,11 @@ Une paire visitée passe ensuite :
    Une tentative qui échoue alimente le quasi-succès
    (`nearMissByCondition`, `globalNearMiss`).
 
-Le calcul de distance se coupe seulement quand ni le quasi-succès par
-condition ni le global ne peuvent s'améliorer ;
-[noyau-appariement.md](noyau-appariement.md) précise cette règle.
+La validation typée partage les états de condition identiques entre
+tentatives de la paire, sans changer leurs opérations ni l'ordre des
+manques. Le calcul de distance se coupe seulement quand ni le quasi-succès
+par condition ni le global ne peuvent s'améliorer ;
+[noyau-appariement.md](noyau-appariement.md) précise ces deux règles.
 
 La collecte s'arrête au plafond `maxCollected`. Trois arrêts seulement : le
 temps, le plafond de candidats, l'épuisement de l'espace ; aucun plafond de

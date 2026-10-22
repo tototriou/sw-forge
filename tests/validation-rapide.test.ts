@@ -69,6 +69,92 @@ function considererTypeeOracle(this: any, v: ValidationTypee, n: number): void {
   }
 }
 
+// Oracle figé : ecarts avant la factorisation, mêmes opérations flottantes.
+function ecartsOracle(this: any, a: number, f: number): number {
+  const E = this.conditions.length;
+  const voie = this.ficheVoie[f];
+  let n = 0;
+  for (let e = 0; e < E; e++) {
+    const c = this.conditions[e];
+    let actual = (c.stat === voie ? this.ficheTotal[f] : this.total[c.stat]) + this.decalage[a * E + e];
+    if (c.aura) actual = actual + c.auraExterne + 8 * (c.key === 'res' ? this.auraRes : this.auraAcc);
+    if (c.kind === 'min' ? actual < c.seuil : actual > c.seuil) {
+      this.echecs[n] = e;
+      this.actuels[n] = actual;
+      this.manques[n] = c.kind === 'min' ? c.seuil - actual : actual - c.seuil;
+      n++;
+    }
+  }
+  return n;
+}
+
+function testEtatsFactorises(sc: Scene[]): void {
+  titre('Validation rapide · états factorisés contre ecarts figé, toutes les tentatives');
+  let tentatives = 0;
+  let etatsPartages = 0;
+  for (const s of sc) {
+    const v = new ValidationTypee(s.prepared, s.runesA, s.runesB);
+    const oracle = new ValidationTypee(s.prepared, s.runesA, s.runesB);
+    const p = v as any;
+    for (let ga = 0; ga < s.runesA.length / 3; ga++) {
+      for (let gb = 0; gb < s.runesB.length / 3; gb++) {
+        if (!v.setsEtStats(ga, gb)) continue;
+        oracle.setsEtStats(ga, gb);
+        // L'ordre alterne : le cache ne dépend ni du préfixe déjà visité,
+        // ni de l'arrêt au premier succès du collecteur.
+        for (let a = v.nApports - 1; a >= 0; a--) {
+          for (let f = v.nFiches - 1; f >= 0; f--) {
+            const contexte = `${s.nom}, paire (${ga}, ${gb}), apport ${a}, fiche ${f}`;
+            const n = v.ecarts(a, f);
+            const attendu = ecartsOracle.call(oracle, a, f);
+            exigerIdentique(v.manquesDe(n), oracle.manquesDe(attendu), contexte);
+            // Même actual pour TOUTE condition, même quand elle passe.
+            for (let e = 0; e < v.conditions.length; e++) {
+              const c = v.conditions[e];
+              let actual = (c.stat === p.ficheVoie[f] ? p.ficheTotal[f] : v.total[c.stat]) + p.decalage[a * v.conditions.length + e];
+              if (c.aura) actual = actual + c.auraExterne + 8 * (c.key === 'res' ? p.auraRes : p.auraAcc);
+              const etat = p.etatParApport[a * v.conditions.length + e] + p.etatParFiche[f * v.conditions.length + e];
+              exigerIdentique(p.etatActuel[etat], actual, `${contexte}, condition ${e}, actual`);
+            }
+            tentatives++;
+          }
+        }
+      }
+    }
+    etatsPartages += v.nApports * v.nFiches * v.conditions.length - p.etats.length;
+  }
+  ok(tentatives > 0 && etatsPartages > 0, `${tentatives} tentatives comparées, ${etatsPartages} états de condition redondants factorisés`);
+}
+
+function scenesFrontieres(): Scene[] {
+  const runes = ['tolerance', 'tolerance', 'accuracy', 'accuracy', 'accuracy', 'intangible'].map((set, i) => rune(i + 1, i + 1, set, { subs: [{ code: 12, value: 2 }, { code: 2, value: 7 }] }));
+  const relics: RelicDetail[] = [
+    ...[7, 12, 19].map((value, i) => ({ id: i + 1, upgrade: 9, main: { code: 100, value } })),
+    { id: 4, upgrade: 9, main: { code: 101, value: 12 } },
+    { id: 5, upgrade: 9, main: { code: 102, value: 8 } },
+    { id: 6, upgrade: 9, main: { code: 999, value: 0 } },
+  ];
+  return [true, false].map((compter) => {
+    const prepared = prepareSearch({
+      base: { ...BASE, hp: 8073.25 }, artifacts: [artefact(1, 100, 1500)], pool: runes,
+      relicContext: resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 0 }, undefined, relics),
+      requirement: {
+        sets: [], minStats: { hp: 5000, atk: 500, def: 400, spd: 1, res: 1, acc: 1 },
+        maxStats: { hp: 60000, atk: 2000, def: 2000, spd: 1000, res: 100, acc: 100 },
+        auraResPre: { compter, res: 0.1, acc: 0.2 },
+      }, metric: 'eff', maxMs: Infinity, maxCollected: Infinity,
+    })!;
+    // Les entrées arithmétiques exceptionnelles restent des tentatives,
+    // sans prétendre qu'elles satisfont le contrat entier du noyau de saut.
+    if (!prepared) throw new Error(`scène frontière non préparée, aura ${compter}`);
+    const p: PreparedSearch = { ...prepared, artPossibles: [
+      { hp: 1500 }, { hp: 1500 }, { atk: 100 }, { def: 100 },
+      { hp: 0.1, res: 0.1 }, { hp: NaN }, { hp: Infinity }, { hp: -Infinity }, { hp: -0 }, { hp: 0 },
+    ] };
+    return { nom: `frontières flottantes, aura ${compter}`, prepared: p, runesA: runes.slice(0, 3), runesB: runes.slice(3) };
+  });
+}
+
 const etatCollecteur = (c: Collecteur) => ({
   candidates: c.candidates, positions: c.positions, nearMissByCondition: c.snapshot(), globalNearMiss: c.globalNearMiss, ameliorations: c.ameliorations,
 });
@@ -553,6 +639,7 @@ export default async function testValidationRapide(): Promise<void> {
   const sc = scenes();
   ok(sc.length >= 20, `${sc.length} scènes construites`);
   testPaireParPaire(sc);
+  testEtatsFactorises([...sc, ...scenesFrontieres()]);
   await avecOracleDistance(async () => {
     testCollecteur(sc);
     await testBoutEnBout();

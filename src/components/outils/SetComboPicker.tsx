@@ -15,6 +15,11 @@ interface Props {
   // elle est une section du panneau de sa colonne, ou la surface d'une liste
   // ouverte que son flottant encadre déjà. Absent : la boîte du téléphone.
   sansCadre?: boolean;
+  // La grille dans un « coffre » en creux (fond `panel2`, sans contour) : la
+  // grille au bureau, dépliée ou dans sa liste ouverte, qui garde l'idée d'un
+  // bac contenant les runes sans un cadre de même poids que le panneau de la
+  // colonne (décision de l'utilisateur).
+  coffre?: boolean;
 }
 
 /**
@@ -52,7 +57,7 @@ const TWO_PIECE = CHOISISSABLES.filter((s) => !FOUR_PIECE_SETS.has(s.key));
 // c'est le tout premier réglage à remplir avant de pouvoir lancer une
 // recherche — le garder replié par défaut ajoutait un clic systématique
 // sans jamais rien cacher d'utile.
-export default function SetComboPicker({ sets, onChange, reserverJetons = false, sansCadre = false }: Props) {
+export default function SetComboPicker({ sets, onChange, reserverJetons = false, sansCadre = false, coffre = false }: Props) {
   const used = setsCost(sets);
   // ⚠️ « Plein » se juge sur ce qu'on peut CHOISIR : compter l'intangible ici
   // laisserait le picker se dire non plein alors qu'aucun set proposé ne
@@ -101,7 +106,7 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false,
       </div>
 
       {!full && (
-        <div className={`mt-2 grid grid-cols-[auto_1fr] gap-0 ${sansCadre ? '' : 'rounded-lg border border-border bg-panel p-2'}`}>
+        <div className={`mt-2 grid grid-cols-[auto_1fr] gap-0 ${coffre ? 'rounded-lg bg-panel2 p-2' : sansCadre ? '' : 'rounded-lg border border-border bg-panel p-2'}`}>
           {/* ⚠️ Toujours 2 colonnes, jamais empilé sous un seuil de largeur :
               chaque groupe passe déjà à la ligne en interne (`flex-wrap`), la
               séparation verticale gagne de la place sur le plan VERTICAL —

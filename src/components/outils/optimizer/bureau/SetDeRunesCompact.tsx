@@ -18,9 +18,9 @@ export interface SetDeRunesCompactProps {
 // section), section des essentiels sans cadre (le panneau de la colonne le
 // porte) : une liste fermée sur les sets choisis ; ouverte, la grille d'ajout
 // du téléphone (`SetComboPicker` : jetons, retrait, deux groupes, « Plus de
-// place »), sans sa boîte (`sansCadre`), en flottant — rien ne bouge dessous.
-// Sans boîte aussi dépliée dans la section, et dans la copie de mesure, qui
-// doit rester la même grille.
+// place »), dans son coffre en creux (`coffre`), en flottant — rien ne bouge
+// dessous. Le même coffre, centré, quand elle est dépliée dans la section, et
+// dans la copie de mesure, qui doit rester la même grille.
 //
 // ⚠️ **Une liste, pas deux** (principal · secondaire) : le choix est un
 // multiensemble (deux fois le même set), que la grille sait dire et une case
@@ -29,8 +29,8 @@ export interface SetDeRunesCompactProps {
 // ⚠️ **Le message « Sélectionne au moins un set… » se met à droite du titre**,
 // sur sa ligne : pas de ligne réservée sous la liste (décision de
 // l'utilisateur), et rien ne bouge quand il paraît. Le compte « n/6 runes »
-// n'y figure que déplié ; replié, la liste fermée suffit et la grille ouverte
-// porte son propre compte.
+// n'y figure jamais : la grille, dépliée ou ouverte, porte le sien, et un
+// second compte en face du titre faisait doublon (décision de l'utilisateur).
 //
 // ⚠️ **La rangée des jetons est réservée** (`reserverJetons`) : vide, elle a
 // déjà la hauteur d'un jeton, et le premier set choisi ne fait plus descendre
@@ -79,12 +79,10 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
           <p className="label flex-none">Set de runes recherché</p>
           {setPickerInvalid ? (
             <span className="min-w-0 text-right text-micro font-semibold text-bad">Sélectionne au moins un set avant de lancer la recherche.</span>
-          ) : deplie ? (
-            <span className="text-micro tabular-nums text-ink-dim">{setsCost(comboSets)}/6 runes</span>
           ) : null}
         </div>
         {deplie ? (
-          <div className="max-w-md"><SetComboPicker sets={comboSets} onChange={onChangeSets} reserverJetons sansCadre /></div>
+          <div className="mx-auto max-w-md"><SetComboPicker sets={comboSets} onChange={onChangeSets} reserverJetons coffre /></div>
         ) : (
         <SelecteurMultiple
           libelle="Set de runes recherché"
@@ -104,7 +102,7 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
           }
           ouvert={ouvert}
           onOuvertChange={setOuvert}
-          surface={<SetComboPicker sets={comboSets} onChange={changer} reserverJetons sansCadre />}
+          surface={<SetComboPicker sets={comboSets} onChange={changer} reserverJetons coffre />}
         />
         )}
       </div>
@@ -114,7 +112,7 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
       {page && (
         <div aria-hidden className="pointer-events-none h-0 overflow-hidden">
           <div className="invisible">
-            <div ref={copieGrille} className="max-w-md"><SetComboPicker sets={[]} onChange={() => {}} reserverJetons sansCadre /></div>
+            <div ref={copieGrille} className="mx-auto max-w-md"><SetComboPicker sets={[]} onChange={() => {}} reserverJetons coffre /></div>
             <div ref={copieListe}>
               <SelecteurMultiple libelle="Set de runes recherché" vide="Aucun" surface={null} />
             </div>

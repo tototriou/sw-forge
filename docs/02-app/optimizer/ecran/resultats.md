@@ -29,9 +29,12 @@ ils suivent la progression, sur toute la largeur.
     faux). Le tri « Trier par efficience » recalcule de même.
     ⚠️ **Une carte tient dans 360 px**, calibré exprès (`scale=0,45` sur la
     roue et les artéfacts, grille `repeat(auto-fill, minmax(min(360px,100%),
-    1fr))`, creux `gap-3`) : c'est le PLANCHER d'une carte ; `auto-fill` en
-    fait tenir deux dès que la grille dépasse deux fois 360 px plus le
-    creux, davantage sur un écran large. La bascule base+bonus ↔ total ne
+    1fr))`, creux `gap-3`) : c'est la largeur d'une carte par rangée ;
+    `auto-fill` en fait tenir deux dès que la grille dépasse deux fois 360 px
+    plus le creux, davantage sur un écran large. Plus étroite, la grille
+    garde une carte, à toute sa largeur : au bureau, la colonne de droite
+    descend jusqu'à 356 px de contenu (fiche d'« Exemplaire » repliée), où
+    la carte tient sans déborder (mesuré, relique comprise). La bascule base+bonus ↔ total ne
     déplace jamais les artéfacts, la roue ou la relique voisins : `StatPanel` a une **largeur
     fixe** (`w-[200px]`, voir [rta/feat-sections-runes.md](../../rta/feat-sections-runes.md)).
     ⚠️ **À la souris, la relique est toujours SOUS LA ROUE** (carte de

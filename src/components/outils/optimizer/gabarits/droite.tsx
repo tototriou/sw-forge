@@ -227,8 +227,8 @@ export const GABARITS_DROITE: Gabarit[] = [
     composant: 'ObjectifEtRechercherBureau forme="large" (bureau/ObjectifEtRechercherBureau.tsx), composant à part',
     telephone: 'Comme la forme étroite.',
     changements: [
-      'Les changements de la forme étroite, sauf la disposition : objectifs sur une ligne, « Rechercher » · « Exporter » · « Importer » sur une rangée.',
-      'À la largeur de sa colonne (élastique) : A1, et A3 quand la colonne de droite fait moins de 948 px.',
+      'Les changements de la forme étroite, sauf la disposition : objectifs sur une ligne, « Rechercher » · « Exporter » · « Importer » sur une rangée, « Rechercher » dessous, pleine largeur, sous 448 px de rangée.',
+      'À la largeur de sa colonne (élastique) : A1, et A3 quand la colonne de droite fait moins de 952 px.',
     ],
     etats: [
       ...etatsObjectif('large'),

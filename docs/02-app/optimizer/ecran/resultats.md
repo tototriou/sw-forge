@@ -16,6 +16,21 @@ ils suivent la progression, sur toute la largeur.
     pour ouvrir le détail complet de la pièce. Puis la valeur **moyenne par
     rune** dans la mesure choisie — « Efficience moyenne : X » ou « Score
     moyen : X » selon le réglage global (Efficience/Score SW).
+    ⚠️ **Au bureau, l'en-tête d'une carte tient sur une ligne** (décision
+    de l'utilisateur : la carte raccourcit) : rang, valeur moyenne, sets,
+    puis « Comparer » et « Valider ce build » à droite, au lieu d'une ligne
+    de sets à part et des boutons en bas de la carte. Avec les deux boutons,
+    une carte de moins de 460 px repasse sur deux lignes, boutons dessous, à
+    gauche ; avec un seul, la ligne tient jusqu'à la carte la plus étroite
+    (356 px). Le passage ne dépend que de la largeur de la carte (requête
+    sur son conteneur), jamais d'un clic. « Valider » a la largeur fixe de
+    son plus long libellé (160 px ; « Valider les artéfacts » en mesure
+    123) : passer à « Validé » ne déplace ni lui ni « Comparer » ; le haut
+    de l'en-tête est aligné, et l'écart qui apparaît sous la valeur quand
+    on compare ne déplace pas les boutons. Mesuré : une carte passe de 340
+    à 288 px avec « Comparer » seul ; avec les deux boutons, son en-tête
+    fait 28 px sur une ligne, 53 sur deux. Le téléphone garde son en-tête,
+    ses sets et ses boutons en bas.
     ⚠️ **Recalculée à l'affichage** (`candidateMetricTotal` dans
     [runeBuildOptim.ts](src/lib/runeBuildOptim.ts), à partir des VRAIES
     runes) plutôt que lue depuis `BuildCandidate.effTotal` : ce champ est
@@ -37,6 +52,11 @@ ils suivent la progression, sur toute la largeur.
     la carte tient sans déborder (mesuré, relique comprise). La bascule base+bonus ↔ total ne
     déplace jamais les artéfacts, la roue ou la relique voisins : `StatPanel` a une **largeur
     fixe** (`w-[200px]`, voir [rta/feat-sections-runes.md](../../rta/feat-sections-runes.md)).
+    ⚠️ **Au bureau, ses lignes sont resserrées** (`StatPanel`, `serre`,
+    décision de l'utilisateur) : un pas de 22 px au lieu de 27, taille du
+    texte inchangée (interligne `snug`, 2 px de rembourrage au lieu de 4).
+    Mesuré : le panneau passe de 241 à 197 px, la carte de 288 à 244 px. La
+    fiche d'« Exemplaire » et le téléphone gardent le pas de 27 px.
     ⚠️ **À la souris, la relique est toujours SOUS LA ROUE** (carte de
     résultat seulement —
     `MonsterGear` garde la sienne à droite) : fiche, artéfacts et roue font
@@ -203,11 +223,23 @@ vérifié dépend de tous ceux du dessus. Ni l'ordre de base, ni K, ni la
 résolution ne changent. Une seule fonction pure, `compositionDePage`
 (artifactQueue.ts), donne les cartes, les places et les builds à
 vérifier, à partir du classement affiché et du cache publié de la file.
-Les comptes gardent leur règle (ci-dessus) ; une ligne sous l'en-tête dit
+Les comptes gardent leur règle (ci-dessus) ; une ligne dit
 combien la file doit encore vérifier (« N combinaison(s) en
 vérification… » : le reste de la file, places en attente puis avance de
-fond), sa place réservée tant que la file tourne. Sans optimisation
+fond), sa place réservée tant que la file tourne : sous l'en-tête au
+téléphone, sous le compte des confirmées au bureau. Sans optimisation
 d'artéfacts, pas de file : la page est la tranche du classement.
+⚠️ **Au bureau, l'en-tête des résultats tient sur une rangée**
+(`EnteteResultats`, `bureau`, décision de l'utilisateur : la première
+carte remonte) : à gauche le compte des confirmées et, sous lui, la ligne
+« en vérification », l'aide à leur droite ; à droite « Adapter les
+artéfacts et reliques au tri » et le tri ; 4 px avant la première carte.
+Rien n'est retiré ni reformulé. Quand la colonne est étroite, la rangée
+passe à la ligne d'elle-même (le tri, puis « Adapter… », sous le compte),
+sans déborder à la largeur minimale de la colonne : le passage ne dépend
+que de la largeur. Mesuré (compte d'exemple, 20 résultats), la première
+carte remonte de 26 px à 1920 × 940 et 2560 × 1300, de 34 px à la largeur
+minimale de la colonne.
 
 ## Tri des résultats
 

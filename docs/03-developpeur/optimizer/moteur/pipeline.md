@@ -313,8 +313,8 @@ Une paire visitée passe ensuite :
    Une tentative qui échoue alimente le quasi-succès
    (`nearMissByCondition`, `globalNearMiss`).
 
-Le calcul de distance se coupe seulement quand ni le quasi-succès par
-condition ni le global ne peuvent s'améliorer ;
+Le calcul des écarts et de leur distance se coupe seulement quand ni le
+quasi-succès par condition ni le global ne peuvent s'améliorer ;
 [noyau-appariement.md](noyau-appariement.md) précise cette règle.
 
 La collecte s'arrête au plafond `maxCollected`. Trois arrêts seulement : le

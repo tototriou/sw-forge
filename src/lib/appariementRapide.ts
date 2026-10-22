@@ -36,7 +36,7 @@ import { computeStats, StatRow } from './stats';
 import { missingSets } from './recoMatch';
 import { AurasPropres, aurasPropresDesSetsActifs, pointsAuraResPrePropres } from './damage';
 import { OptimMetric } from './runeOptim';
-import { ValidationTypee } from './validationRapide';
+import { LimitesEcarts, ValidationTypee } from './validationRapide';
 import { SortieCandidats, ColonnesCandidats, LIGNES_PAR_BLOC, ajouterObjetCandidat, extraireBlocs } from './candidatsCompacts';
 import { Compartiment, VueCombo, idCombo, lireCombo, nouvelleVueCombo, objetsDesCompartiments } from './demiBuildsTypes';
 import {
@@ -628,6 +628,7 @@ export class Collecteur<C extends SortieCandidats = BuildCandidate[]> {
   private readonly slotDe: Int32Array;
   private readonly existe: Uint8Array;
   private readonly meilleur: Float64Array;
+  private readonly limitesEcarts: LimitesEcarts;
   /** Ce que la paire courante a déjà matérialisé (ids, lignes, effTotal), partagé entre ses apports. */
   private materielCourant: { runeIds: number[]; stats: StatRow[]; effTotal: number } | null = null;
 
@@ -646,6 +647,10 @@ export class Collecteur<C extends SortieCandidats = BuildCandidate[]> {
     });
     this.existe = new Uint8Array(conditions.length);
     this.meilleur = new Float64Array(conditions.length);
+    this.limitesEcarts = {
+      slotDe: this.slotDe, existe: this.existe, meilleur: this.meilleur,
+      distanceGlobale: () => this.globalNearMissDistance,
+    };
   }
 
   // Copie de `nearMissSnapshot` ; même contenu, recalculé seulement quand il change.
@@ -735,7 +740,7 @@ export class Collecteur<C extends SortieCandidats = BuildCandidate[]> {
     let ok = false;
     tentatives: for (let a = 0; a < v.nApports; a++) {
       for (let f = 0; f < v.nFiches; f++) {
-        const n = v.ecarts(a, f);
+        const n = v.ecarts(a, f, this.limitesEcarts);
         if (n === 0) {
           ok = true;
           break tentatives;

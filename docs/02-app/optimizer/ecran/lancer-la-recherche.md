@@ -29,7 +29,9 @@ et la progression.
     Au bureau, « Arrêter » prend la place exacte de « Rechercher », dans la
     même case, et reste inactif 300 ms après le lancement : le double clic
     qui a lancé la recherche ne l'arrête pas ; « Rechercher » y est en
-    braise pleine dès qu'un set est choisi (voir README.md § Bloc
+    braise pleine dès qu'un set est choisi ; dans la forme large du bloc, il
+    est à droite d'« Exporter » · « Importer », ou dessous, pleine largeur,
+    quand leur rangée fait moins de 448 px (voir README.md § Bloc
     « Objectif et Rechercher »). Au téléphone, « Rechercher »
     devient « Recherche… », inactif, et « Arrêter » s'ajoute au bout de la
     rangée. Sans set choisi, « Rechercher » reste cliquable sous son aspect

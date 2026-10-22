@@ -512,9 +512,14 @@ Deux formes, selon la place :
   réduit : l'écart entre « Importer » et « Rechercher » prend ce qui manque
   quand la colonne se resserre, les marges du panneau restent : partout
   ailleurs (A1, et A3 quand la colonne de droite fait moins de 948 px), sous
-  « Exemplaire ». ⚠️ **À droite, parce qu'en A3 une colonne repliable
-  superposée couvre le bord gauche de la colonne de droite** (326 px,
-  barre comprise) : « Rechercher » commence à 329 px de ce bord à la
+  « Exemplaire ». ⚠️ **Sous 448 px de rangée (« Exporter »
+  96 + 8 + « Importer » 96 + 8 + « Rechercher » 240, mesurés), soit une
+  colonne de moins de 480 px, « Rechercher » passe sous « Exporter » ·
+  « Importer », pleine largeur** (décision de l'utilisateur) : rien n'est
+  rogné, et le passage ne dépend que de la largeur de la rangée (requête sur
+  un conteneur nommé, `rangee`), jamais d'un clic. ⚠️ **À droite, parce
+  qu'en A3 une colonne repliable superposée couvre le bord gauche de la
+  colonne de droite** (326 px, barre comprise) : « Rechercher » commence à 329 px de ce bord à la
   largeur minimale de la colonne (592), plus loin au-delà ; aucune colonne
   superposée ne le couvre (mesuré : 3 px d'écart à 1 156 px de conteneur).
 

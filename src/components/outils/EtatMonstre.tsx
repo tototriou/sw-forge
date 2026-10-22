@@ -208,8 +208,11 @@ export function TitreEtatMonstre({ bureau = false }: { bureau?: boolean }) {
   );
 }
 
-// Les buffs posés par un passif et les amplifications d'artéfact, sous les
-// réglages. Exporté pour la forme de bureau des essentiels, comme le titre.
+// Les buffs posés par un passif, sous les réglages. Exporté pour la forme de
+// bureau des essentiels, comme le titre. ⚠️ Plus de phrase sur
+// l'amplification d'un buff par les artéfacts (décision de l'utilisateur) :
+// elle portait sur la paire représentative de la recherche, que le joueur ne
+// connaît pas, et non sur ses artéfacts. Le calcul, lui, en tient compte.
 export function RappelsEtatMonstre({ setup, artefacts, rappelsBuffs }: {
   setup: DamageSetup;
   artefacts: ArtifactDamageProfile;
@@ -232,21 +235,6 @@ export function RappelsEtatMonstre({ setup, artefacts, rappelsBuffs }: {
           ))}
         </div>
       )}
-      {(setup.atkBuff && artefacts.ampliAtkPct > 0) ||
-      (setup.defBuff && artefacts.ampliDefPct > 0) ||
-      (setup.spdBuff && artefacts.ampliVitPct > 0) ? (
-        <div className="space-y-0.5 text-xs text-ink-dim">
-          {setup.atkBuff && artefacts.ampliAtkPct > 0 && (
-            <p>Buff ATQ actif : l'artéfact « Effet renforcement ATQ » amplifie ce buff de {artefacts.ampliAtkPct} %.</p>
-          )}
-          {setup.defBuff && artefacts.ampliDefPct > 0 && (
-            <p>Buff DEF actif : l'artéfact « Effet renforcement DEF » amplifie ce buff de {artefacts.ampliDefPct} %.</p>
-          )}
-          {setup.spdBuff && artefacts.ampliVitPct > 0 && (
-            <p>Buff VIT actif : l'artéfact « Effet aug. VIT » amplifie ce buff de {artefacts.ampliVitPct} %.</p>
-          )}
-        </div>
-      ) : null}
     </>
   );
 }

@@ -37,6 +37,7 @@ import { missingSets } from './recoMatch';
 import { AurasPropres, aurasPropresDesSetsActifs, pointsAuraResPrePropres } from './damage';
 import { OptimMetric } from './runeOptim';
 import { ValidationTypee } from './validationRapide';
+import { SortieCandidats, ColonnesCandidats, LIGNES_PAR_BLOC, ajouterObjetCandidat, extraireBlocs } from './candidatsCompacts';
 import { Compartiment, VueCombo, idCombo, lireCombo, nouvelleVueCombo, objetsDesCompartiments } from './demiBuildsTypes';
 import {
   BuildCandidate,
@@ -610,8 +611,7 @@ export type Amelioration =
   | { pos: number; type: 'condition'; cle: string; entree: EntreeQuasiSucces }
   | { pos: number; type: 'global'; distance: number; miss: NearMiss };
 
-export class Collecteur {
-  readonly candidates: BuildCandidate[] = [];
+export class Collecteur<C extends SortieCandidats = BuildCandidate[]> {
   readonly positions: number[] = [];
   readonly nearMissByCondition = new Map<string, EntreeQuasiSucces>();
   globalNearMiss: NearMiss | null = null;
@@ -635,7 +635,8 @@ export class Collecteur {
     private readonly prepared: PreparedSearch,
     enregistrerAmeliorations: boolean,
     private readonly avecPositions: boolean,
-    private readonly validation: ValidationTypee | null = null
+    private readonly validation: ValidationTypee | null = null,
+    readonly candidates: C = [] as unknown as C
   ) {
     this.ameliorations = enregistrerAmeliorations ? [] : null;
     const conditions = validation?.conditions ?? [];
@@ -714,7 +715,7 @@ export class Collecteur {
       }
     }
     if (!ok) return false;
-    this.candidates.push({ runeIds, stats, effTotal });
+    ajouterObjetCandidat(this.candidates, { runeIds, stats, effTotal });
     if (this.avecPositions) this.positions.push(pos);
     return true;
   }
@@ -743,8 +744,10 @@ export class Collecteur {
       }
     }
     if (!ok) return false;
-    const { runeIds, stats, effTotal } = this.materiel(v);
-    this.candidates.push({ runeIds, stats, effTotal });
+    if (Array.isArray(this.candidates)) {
+      const { runeIds, stats, effTotal } = this.materiel(v);
+      this.candidates.push({ runeIds, stats, effTotal });
+    } else v.ecrireCandidat(this.candidates);
     if (this.avecPositions) this.positions.push(pos);
     return true;
   }
@@ -824,7 +827,7 @@ export function runesAPlat(buckets: Compartiment[], pools: readonly RuneDetail[]
  * L'appariement séquentiel
  * ----------------------------------------------------------------------- */
 
-export interface ResultatAppariementRapide extends SearchResult {
+export interface ResultatAppariementRapide<C = BuildCandidate[]> extends SearchResult<C> {
   /** Paires traitées (= `explored`) : visitées + sautées. */
   traitees: number;
   /** Paires jugées par la garde de référence. */
@@ -840,7 +843,8 @@ export interface ResultatAppariementRapide extends SearchResult {
   compteurs: CompteursNoyau;
 }
 
-export interface OptionsAppariementRapide {
+export interface OptionsAppariementRapide<C extends SortieCandidats = BuildCandidate[]> {
+  collecte?: C;
   /** Tests seulement : impose le chemin de chaque ligne non sautée. */
   forcerChemin?: 'dichotomie' | 'lineaire';
   /** Tests seulement : impose la validation de référence (copie de `pairBuckets`). */
@@ -852,8 +856,8 @@ export interface OptionsAppariementRapide {
 }
 
 /** Hors contrat entier : mêmes expressions et points de passage que pairBuckets, sans saut ni HalfCombo. */
-function* apparierSansSauts(prepared: PreparedSearch, A: Compartiment[], B: Compartiment[]): Generator<PairingProgress, SearchResult, void> {
-  const collecteur = new Collecteur(prepared, false, false);
+function* apparierSansSauts<C extends SortieCandidats>(prepared: PreparedSearch, A: Compartiment[], B: Compartiment[], collecte: C): Generator<PairingProgress<C>, SearchResult<C>, void> {
+  const collecteur = new Collecteur(prepared, false, false, null, collecte);
   const a = nouvelleVueCombo();
   const b = nouvelleVueCombo();
   const runesA = runesAPlat(A, prepared.filtered);
@@ -907,17 +911,28 @@ function* apparierSansSauts(prepared: PreparedSearch, A: Compartiment[], B: Comp
  * `explored` = `traitees`), le noyau en plus. Contrat non tenu → parcours
  * sans saut ; traceur → `pairBuckets` lui-même (`chemin: 'actuel'`).
  */
-export function* apparierRapide(
+export function* apparierRapide<C extends SortieCandidats = BuildCandidate[]>(
   prepared: PreparedSearch,
   bucketsA: Compartiment[],
   bucketsB: Compartiment[],
-  options: OptionsAppariementRapide = {}
-): Generator<PairingProgress, ResultatAppariementRapide, void> {
+  options: OptionsAppariementRapide<C> = {}
+): Generator<PairingProgress<C>, ResultatAppariementRapide<C>, void> {
+  const collecte = options.collecte ?? [] as unknown as C;
   const motif = verifierContrat(prepared, bucketsA, bucketsB);
   if (motif) {
-    const r = prepared.traceur
-      ? yield* pairBuckets(prepared, objetsDesCompartiments(bucketsA, prepared.filtered), objetsDesCompartiments(bucketsB, prepared.filtered))
-      : yield* apparierSansSauts(prepared, bucketsA, bucketsB);
+    // Le traceur reste une API objet explicite ; il ne vient pas de l'écran.
+    let r: SearchResult<C>;
+    if (prepared.traceur) {
+      const gen = pairBuckets(prepared, objetsDesCompartiments(bucketsA, prepared.filtered), objetsDesCompartiments(bucketsB, prepared.filtered));
+      let n = 0, step = gen.next();
+      while (!step.done) {
+        for (; n < step.value.candidates.length; n++) ajouterObjetCandidat(collecte, step.value.candidates[n]);
+        yield { ...step.value, candidates: collecte };
+        step = gen.next();
+      }
+      for (; n < step.value.candidates.length; n++) ajouterObjetCandidat(collecte, step.value.candidates[n]);
+      r = { ...step.value, candidates: collecte };
+    } else r = yield* apparierSansSauts(prepared, bucketsA, bucketsB, collecte);
     return {
       ...r, traitees: r.explored, visitees: r.explored, sautees: 0, chemin: 'actuel', motifChemin: motif,
       cheminValidation: 'reference', motifValidation: 'chemin actuel (pairBuckets)', compteurs: compteursVides(),
@@ -937,9 +952,9 @@ export function* apparierRapide(
   const runesB = runesAPlat(bucketsB, prepared.filtered);
   const { validation, motif: motifValidation } = validationDe(prepared, runesA, runesB, options.forcerValidation);
   const runesDePaire = (ga: number, gb: number) => [runesA[3 * ga], runesA[3 * ga + 1], runesA[3 * ga + 2], runesB[3 * gb], runesB[3 * gb + 1], runesB[3 * gb + 2]];
-  const collecteur = new Collecteur(prepared, false, false, validation);
+  const collecteur = new Collecteur(prepared, false, false, validation, collecte);
   const candidates = collecteur.candidates;
-  const progression = (traitees: number): PairingProgress => ({
+  const progression = (traitees: number): PairingProgress<C> => ({
     phase: 'pairing', candidates, explored: traitees, nearMissByCondition: collecteur.snapshot(), globalNearMiss: collecteur.globalNearMiss,
   });
 
@@ -1020,6 +1035,7 @@ export function* apparierRapide(
 
 /** Ce que reçoit un Worker, une fois. ⚠️ Neutre : ni `worker_threads`, ni `self`. */
 export interface InitTravailleur {
+  collecteCompacte?: boolean;
   params: SearchParams;
   /** L'instant de départ GLOBAL du lancement (construction comprise), que le Worker pose sur sa préparation. */
   startedAt: number;
@@ -1053,18 +1069,18 @@ export interface Morceau {
  * depuis le `startedAt` global), plafond de candidats atteint DANS le
  * morceau, arrêt déterministe à `Morceau.limite`, arrêt manuel.
  */
-export type IssueMorceau = 'complet' | 'temps' | 'plafond' | 'limite' | 'arret';
+export type IssueMorceau = 'complet' | 'temps' | 'plafond' | 'limite' | 'arret' | 'suite';
 
-export interface ResultatMorceau {
+export interface ResultatMorceau<C = BuildCandidate[]> {
   type: 'resultat';
   id: number;
   /** Paires traitées dans le morceau (`taille` s'il est achevé). */
   traitees: number;
   visitees: number;
-  candidats: BuildCandidate[];
-  positions: number[];
+  candidats: C;
+  positions: number[] | Float64Array;
   /** Pour chaque candidat, les paires visitées du morceau jusqu'à lui compris : la fusion coupe les comptes au même endroit que les candidats. */
-  visitesAuCandidat: number[];
+  visitesAuCandidat: number[] | Float64Array;
   ameliorations: Amelioration[];
   issue: IssueMorceau;
   /** Le Worker a validé sur tableaux typés (sinon : copie de `pairBuckets`). */
@@ -1129,12 +1145,12 @@ export function traiterMorceau(ctx: ContexteTravailleur, morceau: Morceau): Resu
  * Les points de passage franchis par un saut le sont au même instant ; un
  * seul test les couvre, et la troncature tombe sur le premier d'entre eux.
  */
-export function* parcourirMorceau(ctx: ContexteTravailleur, morceau: Morceau): Generator<void, ResultatMorceau, boolean | undefined> {
+export function* parcourirMorceau<C extends SortieCandidats = BuildCandidate[]>(ctx: ContexteTravailleur, morceau: Morceau, collecte: C = [] as unknown as C): Generator<ResultatMorceau<C> | void, ResultatMorceau<C>, boolean | undefined> {
   const { prepared, ct, c, runeParId, L, H, sortie, validation } = ctx;
   const { maxCollected, maxMs, startedAt } = prepared;
   const overBudget = () => Date.now() - startedAt > maxMs;
   const compteurs = compteursVides();
-  const collecteur = new Collecteur(prepared, true, true, validation);
+  const collecteur = new Collecteur(prepared, true, true, validation, collecte);
   const visitesAuCandidat: number[] = [];
   const rune = (id: number) => {
     const r = runeParId.get(id);
@@ -1145,6 +1161,23 @@ export function* parcourirMorceau(ctx: ContexteTravailleur, morceau: Morceau): G
   let pos = morceau.offset;
   let visitees = 0;
   let issue: IssueMorceau = 'complet';
+  const compact = !Array.isArray(collecte);
+  const resultat = (issue: IssueMorceau): ResultatMorceau<C> => {
+    const candidats = compact
+      ? { length: collecteur.positions.length, blocs: extraireBlocs(collecte as ColonnesCandidats) } as C
+      : collecte;
+    const r: ResultatMorceau<C> = {
+      type: 'resultat', id: morceau.id,
+      traitees: (issue === 'complet' ? morceau.offset + morceau.taille : pos) - morceau.offset,
+      visitees, candidats,
+      positions: compact ? Float64Array.from(collecteur.positions) : collecteur.positions,
+      visitesAuCandidat: compact ? Float64Array.from(visitesAuCandidat) : visitesAuCandidat,
+      ameliorations: compact ? collecteur.ameliorations!.splice(0) : collecteur.ameliorations ?? [],
+      issue, validationTypee: validation != null, compteurs: { ...compteurs },
+    };
+    if (compact) { collecteur.positions.length = 0; visitesAuCandidat.length = 0; }
+    return r;
+  };
   let prochainPoint = (Math.floor(morceau.offset / CHECKPOINT_EVERY) + 1) * CHECKPOINT_EVERY;
   // Les points de passage jusqu'à la position `jusqua` : un test du temps
   // pour tous ceux que l'on franchit. Vrai si le filet a expiré (`pos` posé
@@ -1214,6 +1247,8 @@ export function* parcourirMorceau(ctx: ContexteTravailleur, morceau: Morceau): G
             issue = 'plafond';
             break boucle;
           }
+          // Pause de transport seulement : l'arrêt manuel se lit toujours à la fin de ligne.
+          if (compact && collecteur.positions.length === LIGNES_PAR_BLOC) yield resultat('suite');
         }
       }
       const fin = debutLigne + nB;
@@ -1233,10 +1268,5 @@ export function* parcourirMorceau(ctx: ContexteTravailleur, morceau: Morceau): G
       }
     }
   }
-  return {
-    type: 'resultat', id: morceau.id,
-    traitees: (issue === 'complet' ? morceau.offset + morceau.taille : pos) - morceau.offset,
-    visitees, candidats: collecteur.candidates, positions: collecteur.positions, visitesAuCandidat,
-    ameliorations: collecteur.ameliorations ?? [], issue, validationTypee: validation != null, compteurs,
-  };
+  return resultat(issue);
 }

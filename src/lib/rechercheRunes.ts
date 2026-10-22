@@ -11,6 +11,7 @@
 
 import {
   Bucket,
+  BuildCandidate,
   BuildBucketsContext,
   BuildingProgress,
   CranEmboite,
@@ -29,6 +30,7 @@ import { OrdreCombos, construireMoitieRapide, construireMoitieRapideTypee } from
 import { apparierRapide } from './appariementRapide';
 import { UnionDesRetentions, UnionDesRetentionsTypees } from './retentionEmboitee';
 import { Compartiment, CompartimentType, typerCompartiments } from './demiBuildsTypes';
+import { creerColonnesCandidats, objetsDesCandidats, extraireBlocs } from './candidatsCompacts';
 
 /**
  * L'appariement séquentiel par le chemin de production : le noyau sur
@@ -42,9 +44,24 @@ import { Compartiment, CompartimentType, typerCompartiments } from './demiBuilds
  * les compteurs propres au noyau (`visitees`, `chemin`…) ne voyagent pas.
  */
 export function* apparier(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[]): Generator<PairingProgress, SearchResult, void> {
-  const r = yield* apparierRapide(prepared, bucketsA, bucketsB);
+  // Adaptation explicite pour le CLI et l'API objet ; les Workers utilisent directement les colonnes.
+  const collecte = creerColonnesCandidats();
+  const candidates: BuildCandidate[] = [];
+  const adapter = () => {
+    for (const c of objetsDesCandidats(collecte)) candidates.push(c);
+    extraireBlocs(collecte);
+  };
+  const gen = apparierRapide(prepared, bucketsA, bucketsB, { collecte });
+  let step = gen.next();
+  while (!step.done) {
+    adapter();
+    yield { ...step.value, candidates };
+    step = gen.next();
+  }
+  adapter();
+  const r = step.value;
   return {
-    candidates: r.candidates,
+    candidates,
     explored: r.explored,
     truncated: r.truncated,
     nearMissByCondition: r.nearMissByCondition,

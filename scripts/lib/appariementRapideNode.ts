@@ -11,6 +11,8 @@ import { join } from 'path';
 import { build } from 'esbuild';
 import { ResultatMorceau } from '../../src/lib/appariementRapide';
 import { LancerTravailleur } from '../../src/lib/appariementRapideParallele';
+import { SortieCandidats } from '../../src/lib/candidatsCompacts';
+import { BuildCandidate } from '../../src/lib/runeBuildOptim';
 
 let bundlePath: string | null = null;
 
@@ -30,12 +32,13 @@ export async function assurerBundleAppariementRapide(): Promise<string> {
   return bundlePath;
 }
 
-export function lancerTravailleurNode(chemin: string): LancerTravailleur {
+export function lancerTravailleurNode<C extends SortieCandidats = BuildCandidate[]>(chemin: string): LancerTravailleur<C> {
   return (init, transfert) => {
     const worker = new Worker(chemin, { workerData: init, transferList: transfert });
     return {
       envoyer: (message, t) => worker.postMessage(message, t),
-      surMessage: (rappel) => worker.on('message', (m: ResultatMorceau) => rappel(m)),
+      surMessage: (rappel) => worker.on('message', (m: ResultatMorceau<C>) => rappel(m)),
+      acquitter: () => worker.postMessage({ type: 'credit' }),
       surErreur: (rappel) => {
         worker.on('error', rappel);
         worker.on('exit', (code) => {

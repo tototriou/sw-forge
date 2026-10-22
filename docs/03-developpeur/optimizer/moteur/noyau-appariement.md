@@ -35,8 +35,8 @@ résultat :
   tentative, relique en « OU » du mode `recherche` comprise (`ecarts(a, f)`
   : la principale de la relique représentative `f` ajoutée à la somme
   entière des pourcentages avant le `ceil`, valeur entière exigée par le
-  contrat) ; les `StatRow` ne se
-  construisent que pour une paire gardée ou un quasi-succès amélioré ;
+  contrat) ; la sortie compacte écrit directement les totaux, les `StatRow`
+  ne se construisent que pour l'adaptation objet ou un quasi-succès amélioré ;
 - la **référence** (`Collecteur.valider`), copie conforme du bloc de
   `pairBuckets`, quand le contrat de la validation typée ne tient pas
   (une valeur sommée non entière ou non bornée : `ValidationTypee.motif`).
@@ -109,6 +109,13 @@ Tous fondés sur la même équivalence (`survivantsLigne`) :
    `min(W) > H`), chaque combinaison restante est jugée par `L < W ≤ H`.
 
 ## Ordre, garde et comptes
+
+La sortie de collecte est injectée : objets pour la référence et les outils,
+colonnes Float64 pour les Workers. La validation typée écrit les totaux par
+la même fonction que `lignes`, sans construire de `StatRow` par candidat.
+Le chemin de repli adapte un seul objet temporaire. Les blocs, positions et
+visites se coupent ensemble ; les pauses de transport n'ajoutent aucun
+jugement ni saut. Les quasi-succès utilisent les mêmes objets et règles.
 
 - **Ordre de visite** : celui de `pairBuckets`. Le quasi-succès « le premier
   vu » et les candidats gardés sous `maxCollected` sont donc les mêmes.

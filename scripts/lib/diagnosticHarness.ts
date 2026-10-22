@@ -62,6 +62,7 @@ import { availableParallelism } from 'os';
 import { PARALLEL_PAIRING_THRESHOLD, nombreDeTravailleurs, regimeAppariement } from '../../src/workers/parallelPairing';
 import { apparier } from '../../src/lib/rechercheRunes';
 import { compterPaires, verifierContrat } from '../../src/lib/appariementRapide';
+import { ColonnesCandidats, creerColonnesCandidats, objetsDesCandidats, extraireBlocs } from '../../src/lib/candidatsCompacts';
 import { CompartimentType, objetsDesCompartiments } from '../../src/lib/demiBuildsTypes';
 import { apparierRapideEnParallele, enResultatDeRecherche } from '../../src/lib/appariementRapideParallele';
 import { RuneDetail } from '../../src/types';
@@ -906,7 +907,7 @@ class ObservateurDecouverte {
   cloturer(resultat: SearchResult): void {
     // ⚠️ L'`explored` FINAL vient du résultat, jamais du dernier relevé vu :
     // en séquentiel les relevés tombent aux points de passage, et la fin du
-    // parcours peut suivre le dernier ; en parallèle, un relevé par morceau
+    // parcours peut suivre le dernier ; en parallèle, un relevé par bloc
     // reçu, dont le dernier vaut le résultat — le prendre au résultat vaut
     // pour les deux régimes.
     this.dernierExplored = Math.max(this.dernierExplored, resultat.explored);
@@ -1051,13 +1052,14 @@ async function apparierEnParallele(
   cheminBundle: string,
   observateur: ObservateurDecouverte | null
 ): Promise<SearchResult> {
-  // ⚠️ La progression arrive à chaque morceau REÇU : `explored` et les
-  // candidats y sont ceux des morceaux déjà FUSIONNÉS, dans l'ordre
+  // ⚠️ La progression arrive à chaque bloc REÇU : `explored` et les
+  // candidats y sont ceux des blocs déjà FUSIONNÉS, dans l'ordre
   // séquentiel, un préfixe du plan qui avance par bonds selon l'ordre où les
   // fils rendent les morceaux. L'ordre de collecte est donc reproductible,
   // mais pas l'instant de découverte, qui dépend de l'arrivée des morceaux.
-  let vus = 0;
+  const objets: BuildCandidate[] = [];
   const resultat = await apparierRapideEnParallele({
+    collecte: creerColonnesCandidats(),
     params: { ...params, traceur: undefined },
     prepared: { ...prepared, traceur: undefined },
     bucketsA,
@@ -1066,15 +1068,17 @@ async function apparierEnParallele(
     // morceaux le vérifie.
     totalPaires: totalPairs,
     travailleurs,
-    lancer: lancerTravailleurNode(cheminBundle),
+    lancer: lancerTravailleurNode<ColonnesCandidats>(cheminBundle),
     startedAt: prepared.startedAt,
     surProgression: (explored, candidats) => {
-      if (!observateur) return;
-      observateur.observer(explored, candidats.slice(vus), candidats.length);
-      vus = candidats.length;
+      // Adaptateur objet explicite du CLI : les blocs sont libérés au fil de leur projection.
+      const nouveaux = objetsDesCandidats(candidats);
+      extraireBlocs(candidats);
+      for (const c of nouveaux) objets.push(c);
+      observateur?.observer(explored, nouveaux, candidats.length);
     },
   });
-  return enResultatDeRecherche(resultat);
+  return { ...enResultatDeRecherche(resultat), candidates: objets };
 }
 
 /**

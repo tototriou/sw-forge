@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BuildCandidate, SearchParams, SearchResult } from '../lib/runeBuildOptim';
 import { RelicContext, RelicVide } from '../lib/relicOptim';
 import { coeursPhysiques } from '../lib/bureau';
+import { RecepteurCandidats } from '../lib/candidatsCompacts';
 import type { DemandeDeRecherche, WorkerResponse } from '../workers/runeBuildOptim.worker';
 
 // Plafond de sécurité sur la liste APERÇU accumulée pendant une recherche en
@@ -58,8 +59,7 @@ export type BuildOptimProgress =
       pct: number;
       totalPairs: number;
       // Aperçu EN DIRECT, accumulé message après message à partir des
-      // deltas envoyés par le Worker (voir `WorkerPairingMessage.
-      // newCandidates`) — plafonné à `PREVIEW_CANDIDATES_CAP`, PAS égal à
+      // blocs transférés par le Worker — plafonné à `PREVIEW_CANDIDATES_CAP`, PAS égal à
       // `found` au-delà de ce plafond (voir son commentaire). Permet
       // d'afficher des cartes de résultat PENDANT la recherche, sans
       // attendre `result` (voir OptimizerSection.tsx).
@@ -149,9 +149,15 @@ export function useBuildOptimSearch() {
         type: 'module',
       });
       workerRef.current = worker;
+      const candidatsRecus = new RecepteurCandidats(PREVIEW_CANDIDATES_CAP);
       worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
         if (runIdRef.current !== myRunId) return; // message périmé d'une recherche déjà remplacée — voir commentaire ci-dessus
         const data = e.data;
+        if (data.type === 'candidats') {
+          candidatsRecus.recevoir([data.bloc]);
+          worker.postMessage({ credit: true });
+          return;
+        }
         if (data.type === 'progress') {
           if (data.phase === 'building') {
             setProgress((prev) => {
@@ -159,12 +165,8 @@ export function useBuildOptimSearch() {
               return { phase: 'building', halves: { ...halves, [data.half]: { scanned: data.scanned, total: data.total, pct: data.pct } } };
             });
           } else {
-            setProgress((prev) => {
-              const prevCandidates = prev && prev.phase === 'pairing' ? prev.candidates : [];
-              const candidates =
-                prevCandidates.length >= PREVIEW_CANDIDATES_CAP
-                  ? prevCandidates
-                  : prevCandidates.concat(data.newCandidates).slice(0, PREVIEW_CANDIDATES_CAP);
+            const candidates = candidatsRecus.apercuCourant();
+            setProgress(() => {
               return {
                 phase: 'pairing',
                 explored: data.explored,
@@ -188,8 +190,8 @@ export function useBuildOptimSearch() {
           setStatus('error');
           return;
         }
-        const { type: _type, ...res } = data;
-        setResult(res);
+        const { type: _type, nombre, ...res } = data;
+        setResult({ ...res, candidates: candidatsRecus.sceller(nombre) });
         setProgress(null);
         setStatus('done');
       };

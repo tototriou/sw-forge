@@ -172,7 +172,7 @@ préparé du Worker, pour la validation et son repli de référence.
    construction des moitiés au lieu du lancement de la recherche.
 3. `parcourirMorceau` apparie les lignes du morceau par le noyau
    ([pipeline.md § Appariement séquentiel](pipeline.md)), et rend ses
-   candidats avec leur position globale, les améliorations successives de
+   candidats en colonnes avec leur position globale, les améliorations successives de
    son quasi-succès, ses paires traitées et visitées (et, pour chaque
    candidat, les visitées jusqu'à lui), et son issue (`IssueMorceau`) :
    `complet`, `temps`, `plafond`, `limite` (l'arrêt déterministe des tests
@@ -202,6 +202,14 @@ préparé du Worker, pour la validation et son repli de référence.
 Un morceau n'a aucune borne propre au parallèle : il s'arrête sur le filet
 de temps global, sur le plafond de candidats, sur l'arrêt manuel ou à sa
 fin. Aucun plafond de paires.
+
+La sortie objet est une adaptation explicite pour les outils. En colonnes,
+le générateur rend aussi un état `suite` à chaque bloc plein, sans changer
+le point où il lit l'arrêt manuel. `servirAppariement` attend un message
+`credit` après chaque envoi, terminal compris ; les coquilles transfèrent
+les tampons des candidats, des positions et des visites. Les messages sont
+lus pendant cette attente aussi ; après acquittement, le même filet global
+et les mêmes points de passage restent applicables.
 
 ## Coquilles et lanceurs
 
@@ -288,11 +296,12 @@ L'adaptation objet est explicite pour les consommateurs d'outillage
    morceaux, lance `min(travailleurs, morceaux)` Workers, puis distribue ;
 3. à chaque morceau reçu, fusionne ce qui suit le préfixe déjà fusionné
    (§ Fusion des résultats) et rappelle `surProgression(traitees,
-   candidats)` : les paires traitées et la liste des candidats des morceaux
+   candidats)` : les paires traitées et les colonnes des candidats
    FUSIONNÉS, dans l'ordre séquentiel — les comptes du résultat, dont la
-   dernière progression est l'état final. Le Worker principal en
-   espace les messages (au plus un par `PROGRESS_THROTTLE_MS`), n'en
-   transmet que les candidats nouveaux, et y ajoute `totalPairs` et le
+   dernière progression est l'état final. Le Worker principal transmet ces
+   blocs puis les retire ; le crédit du producteur revient après cette
+   transmission. Les messages de progression sont espacés (au plus un par
+   `PROGRESS_THROTTLE_MS`), avec `totalPairs` et le
    pourcentage (`estimatePct`) :
    [02-app/optimizer/feat-interruption.md § Barre de progression](../../../02-app/optimizer/feat-interruption.md#barre-de-progression).
    L'aperçu est ainsi toujours un préfixe du résultat final ;
@@ -301,6 +310,21 @@ L'adaptation objet est explicite pour les consommateurs d'outillage
    traitées, aucun compteur propre au noyau).
 
 ## Fusion des résultats
+
+Sur le chemin compact, chaque morceau rend des blocs intermédiaires puis
+un bilan terminal. Un bloc contient au plus 4 096 candidats, les positions
+globales de coupe et les visites cumulées ; les améliorations du quasi-succès
+voyagent avec le même préfixe. La fusion conserve le même morceau courant
+jusqu'à son bilan, et coupe avant toute émission au candidat du plafond.
+
+Un Worker attend l'acquittement de son bloc avant de produire le suivant.
+Les crédits sont rendus à la fusion, y compris pour les blocs jetés après
+une coupe ; chaque Worker a une place réservée, donc le premier morceau
+attendu peut toujours avancer. Avec huit Workers au plus, les colonnes et
+positions non acquittées restent sous 8 Mio. La distribution a aussi une
+fenêtre bornée par les morceaux non fusionnés, indépendante de leur vitesse.
+L'attente cède la main aux messages et compte dans le filet global. L'arrêt
+coopératif draine ces blocs et les bilans des morceaux déjà partis.
 
 - Dans l'ORDRE DES MORCEAUX, donc dans l'ordre séquentiel : chaque morceau
   rendu attend que ses prédécesseurs le soient, puis ses candidats se
@@ -338,6 +362,11 @@ L'adaptation objet est explicite pour les consommateurs d'outillage
   `pairBuckets`).
 
 ## Arrêt, erreur et nettoyage
+
+Si une panne arrive pendant une publication asynchrone vers le propriétaire,
+le coordinateur attend son achèvement avant de rendre le bilan de panne.
+Les messages suivants sont ignorés : le préfixe déjà publié reste celui du
+bilan, et son scellement ne précède jamais un transfert en cours.
 
 - Arrêt manuel : le Worker principal reçoit `{ stop: true }` et appelle
   l'arrêt inscrit (`arreterAppariement`). Le coordinateur ne distribue plus

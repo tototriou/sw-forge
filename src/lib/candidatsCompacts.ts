@@ -12,6 +12,145 @@ function exiger(condition: boolean, raison: string): asserts condition {
 
 const CHAMPS_LIGNE = ['key', 'label', 'base', 'bonus', 'total', 'suffix'];
 
+export const LIGNES_PAR_BLOC = 4096;
+export type GabaritCandidat = Omit<StatRow, 'total' | 'bonus'>;
+/** Même schéma numérique que le magasin de classement, sans ses index d'équipement. */
+export interface BlocCandidats {
+  schema: 1;
+  debut: number;
+  longueur: number;
+  gabarits: GabaritCandidat[];
+  ids: Float64Array[];
+  totaux: Float64Array[];
+  efficience: Float64Array;
+}
+/** `length` est cumulatif ; les blocs déjà transférés sont retirés. */
+export interface ColonnesCandidats { length: number; blocs: BlocCandidats[] }
+export type SortieCandidats = BuildCandidate[] | ColonnesCandidats;
+export const creerColonnesCandidats = (): ColonnesCandidats => ({ length: 0, blocs: [] });
+
+export function ajouterValeursCandidat(sortie: ColonnesCandidats, ids: ArrayLike<number>, totaux: ArrayLike<number>, eff: number, gabarits: GabaritCandidat[]): void {
+  let bloc = sortie.blocs[sortie.blocs.length - 1];
+  if (!bloc || bloc.longueur === LIGNES_PAR_BLOC) {
+    bloc = { schema: 1, debut: sortie.length, longueur: 0, gabarits,
+      ids: Array.from({ length: 6 }, () => new Float64Array(LIGNES_PAR_BLOC)),
+      totaux: Array.from({ length: 8 }, () => new Float64Array(LIGNES_PAR_BLOC)),
+      efficience: new Float64Array(LIGNES_PAR_BLOC) };
+    sortie.blocs.push(bloc);
+  }
+  const i = bloc.longueur++;
+  for (let j = 0; j < 6; j++) bloc.ids[j][i] = ids[j];
+  for (let j = 0; j < 8; j++) bloc.totaux[j][i] = totaux[j];
+  bloc.efficience[i] = eff;
+  sortie.length++;
+}
+
+export function ajouterObjetCandidat(sortie: SortieCandidats, c: BuildCandidate): void {
+  if (Array.isArray(sortie)) { sortie.push(c); return; }
+  exiger(c.runeIds.length === 6 && c.stats.length === 8, 'Schéma du candidat collecté');
+  const gabarits = c.stats.map(({ key, label, base, suffix }) => ({ key, label, base, suffix }));
+  const connu = sortie.blocs[0]?.gabarits;
+  c.stats.forEach((s, j) => {
+    exiger(Object.keys(s).length === CHAMPS_LIGNE.length && CHAMPS_LIGNE.every((k) => Object.prototype.hasOwnProperty.call(s, k)), 'Schéma StatRow collecté');
+    exiger(Object.is(s.bonus, s.total - s.base), 'Bonus collecté non reconstructible');
+    if (connu) exiger(memeGabarit(connu[j], gabarits[j]), 'Base collectée incohérente');
+  });
+  ajouterValeursCandidat(sortie, c.runeIds, c.stats.map((s) => s.total), c.effTotal, connu ?? gabarits);
+}
+
+function memeGabarit(a: GabaritCandidat, b: GabaritCandidat): boolean {
+  return a.key === b.key && a.label === b.label && a.suffix === b.suffix && Object.is(a.base, b.base);
+}
+
+export function candidatDuBloc(bloc: BlocCandidats, i: number): BuildCandidate {
+  return {
+    runeIds: bloc.ids.map((c) => c[i]),
+    stats: bloc.gabarits.map(({ key, label, base, suffix }, j) => {
+      const total = bloc.totaux[j][i];
+      return { key, label, base, bonus: total - base, total, suffix };
+    }),
+    effTotal: bloc.efficience[i],
+  };
+}
+
+export function objetsDesCandidats(sortie: SortieCandidats): BuildCandidate[] {
+  if (Array.isArray(sortie)) return sortie;
+  const out: BuildCandidate[] = [];
+  for (const b of sortie.blocs) for (let i = 0; i < b.longueur; i++) out.push(candidatDuBloc(b, i));
+  return out;
+}
+
+/** Adoption des tampons, coupe au même ordinal que les comptes ; aucune reconstruction d'objet. */
+export function fusionnerCandidats(dest: SortieCandidats, source: SortieCandidats, nombre: number): void {
+  if (Array.isArray(dest)) {
+    const objets = objetsDesCandidats(source);
+    for (let i = 0; i < nombre; i++) dest.push(objets[i]);
+  } else {
+    exiger(!Array.isArray(source), 'Fusion compacte reçue en objets');
+    let reste = nombre;
+    for (const bloc of source.blocs) {
+      if (!reste) break;
+      const longueur = Math.min(reste, bloc.longueur);
+      dest.blocs.push({ ...bloc, debut: dest.length, longueur });
+      dest.length += longueur;
+      reste -= longueur;
+    }
+    exiger(reste === 0, 'Bloc manquant à la fusion');
+    source.blocs = [];
+  }
+}
+
+export function extraireBlocs(sortie: ColonnesCandidats): BlocCandidats[] {
+  const blocs = sortie.blocs;
+  sortie.blocs = [];
+  return blocs;
+}
+export function tamponsCandidats(blocs: readonly BlocCandidats[]): ArrayBuffer[] {
+  return blocs.flatMap((b) => [...b.ids, ...b.totaux, b.efficience].map((c) => c.buffer as ArrayBuffer));
+}
+
+/** Adaptateur de l'écran actuel : aperçu borné, identité conservée au scellement. */
+export class RecepteurCandidats {
+  private nombre = 0;
+  private blocs: BlocCandidats[] = [];
+  private apercu: BuildCandidate[] = [];
+  private publication: BuildCandidate[] = [];
+  private gabarits: GabaritCandidat[] | null = null;
+  private scelle = false;
+  constructor(private readonly plafondApercu = 3000) {}
+
+  recevoir(blocs: BlocCandidats[]): void {
+    exiger(!this.scelle, 'Flux déjà scellé');
+    for (const b of blocs) {
+      exiger(b.schema === 1 && b.debut === this.nombre && b.longueur > 0 && b.longueur <= LIGNES_PAR_BLOC, 'Plage de candidats non contiguë');
+      exiger(b.ids.length === 6 && b.totaux.length === 8 && b.gabarits.length === 8, 'Schéma de bloc inconnu');
+      exiger([...b.ids, ...b.totaux, b.efficience].every((c) => c instanceof Float64Array && c.length >= b.longueur && c.length <= LIGNES_PAR_BLOC), 'Longueur de colonne invalide');
+      if (this.gabarits) exiger(b.gabarits.every((g, j) => memeGabarit(g, this.gabarits![j])), 'Gabarit du flux incohérent');
+      this.gabarits ??= b.gabarits;
+      for (let i = 0; i < b.longueur && this.apercu.length < this.plafondApercu; i++) this.apercu.push(candidatDuBloc(b, i));
+      this.nombre += b.longueur;
+      this.blocs.push(b);
+    }
+  }
+  apercuCourant(): BuildCandidate[] {
+    if (this.publication.length !== this.apercu.length) this.publication = this.apercu.slice();
+    return this.publication;
+  }
+  sceller(nombre: number): BuildCandidate[] {
+    exiger(!this.scelle && nombre === this.nombre, 'Scellement incomplet ou répété');
+    this.scelle = true;
+    const candidats = this.apercu;
+    this.apercu = [];
+    for (const b of this.blocs) {
+      for (let i = Math.max(0, candidats.length - b.debut); i < b.longueur; i++) candidats.push(candidatDuBloc(b, i));
+      // Libérer chaque bloc dès sa projection plutôt qu'après les N objets.
+      b.ids = []; b.totaux = []; b.efficience = new Float64Array(0);
+    }
+    this.blocs = [];
+    return candidats;
+  }
+}
+
 /** Colonnes privées ; ordinal = adresse de ligne, zéro = absence dans les liens. */
 export class CandidatsCompacts {
   readonly longueur: number;

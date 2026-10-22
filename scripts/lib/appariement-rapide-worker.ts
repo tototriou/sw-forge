@@ -7,9 +7,10 @@
 
 import { parentPort, workerData } from 'worker_threads';
 import { InitTravailleur } from '../../src/lib/appariementRapide';
-import { MessageVersTravailleur, servirAppariement } from '../../src/lib/travailleurAppariement';
+import { MessageVersTravailleur, servirAppariement, tamponsResultatMorceau } from '../../src/lib/travailleurAppariement';
+import { SortieCandidats } from '../../src/lib/candidatsCompacts';
 
-const serveur = servirAppariement((resultat) => parentPort!.postMessage(resultat));
+const serveur = servirAppariement<SortieCandidats>((resultat) => parentPort!.postMessage(resultat, tamponsResultatMorceau(resultat)));
 const relever = (erreur: unknown) => {
   // Hors de la promesse : une exception non rattrapée termine le fil et
   // devient l'événement `error` du coordinateur.

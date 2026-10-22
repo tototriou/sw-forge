@@ -25,6 +25,7 @@
 // le rejeu redonne l'état séquentiel exact.
 
 import { BuildCandidate, NearMiss, PreparedSearch, SearchParams, SearchResult } from './runeBuildOptim';
+import { SortieCandidats, fusionnerCandidats } from './candidatsCompacts';
 import { Compartiment, lireCombo, nouvelleVueCombo } from './demiBuildsTypes';
 import {
   CompteursNoyau,
@@ -44,16 +45,17 @@ import {
 } from './appariementRapide';
 
 /** Un Worker lancé, vu par le coordinateur. */
-export interface PoigneeTravailleur {
+export interface PoigneeTravailleur<C = BuildCandidate[]> {
   envoyer(message: Morceau, transfert: ArrayBuffer[]): void;
-  surMessage(rappel: (message: ResultatMorceau) => void): void;
+  surMessage(rappel: (message: ResultatMorceau<C>) => void): void;
+  acquitter?(): void;
   surErreur(rappel: (erreur: unknown) => void): void;
   /** L'arrêt manuel : le morceau en cours rend ce qu'il a trouvé, les suivants rien (`servirAppariement`). */
   arreter(): void;
   terminer(): void;
 }
 
-export type LancerTravailleur = (init: InitTravailleur, transfert: ArrayBuffer[]) => PoigneeTravailleur;
+export type LancerTravailleur<C = BuildCandidate[]> = (init: InitTravailleur, transfert: ArrayBuffer[]) => PoigneeTravailleur<C>;
 
 /** Morceaux visés par Worker (équilibrage à la demande) et plancher de taille, en paires. */
 export const MORCEAUX_PAR_TRAVAILLEUR = 64;
@@ -61,7 +63,7 @@ export const TAILLE_MIN_MORCEAU = 2_000_000;
 /** Morceaux en vol par Worker (le suivant attend déjà quand l'un se termine). */
 export const EN_VOL_PAR_TRAVAILLEUR = 2;
 
-export interface ResultatParallele extends ResultatAppariementRapide {
+export interface ResultatParallele<C = BuildCandidate[]> extends ResultatAppariementRapide<C> {
   /**
    * `arret` : l'arrêt déterministe des tests et du banc ; `manuel` :
    * « Arrêter » ; `erreur` : un Worker a échoué (le résultat ne voyage alors
@@ -99,11 +101,11 @@ export function messageDe(erreur: unknown): string {
  * qui l'ignore échoue au lieu de prendre une recherche en panne pour une
  * recherche coupée.
  */
-export class ErreurAppariementParallele extends Error {
+export class ErreurAppariementParallele<C extends SortieCandidats = BuildCandidate[]> extends Error {
   constructor(
     /** Ce que le Worker a signalé (`ErrorEvent`, `Error`, sortie de code non nul). */
     readonly erreur: unknown,
-    readonly resultat: ResultatParallele
+    readonly resultat: ResultatParallele<C>
   ) {
     super(`un Worker d’appariement a échoué (${messageDe(erreur)}) : ${resultat.candidates.length} candidat(s) fusionné(s) avant l’erreur`);
     this.name = 'ErreurAppariementParallele';
@@ -116,9 +118,9 @@ export class ErreurAppariementParallele extends Error {
  * (`ErreurAppariementParallele`), sinon (refus hors contrat, plan incohérent,
  * levés avant tout Worker) un résultat vide ; tronqué dans les deux cas.
  */
-export function resultatApresErreur(erreur: unknown): SearchResult {
-  if (erreur instanceof ErreurAppariementParallele) return enResultatDeRecherche(erreur.resultat);
-  return { candidates: [], explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null };
+export function resultatApresErreur<C extends SortieCandidats = BuildCandidate[]>(erreur: unknown, vide: C = [] as unknown as C): SearchResult<C> {
+  if (erreur instanceof ErreurAppariementParallele) return enResultatDeRecherche((erreur as ErreurAppariementParallele<C>).resultat);
+  return { candidates: vide, explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null };
 }
 
 /**
@@ -181,7 +183,8 @@ export function planifierMorceaux(prepared: PreparedSearch, bucketsA: Compartime
   return morceaux;
 }
 
-export interface OptionsParallele {
+export interface OptionsParallele<C extends SortieCandidats = BuildCandidate[]> {
+  collecte?: C;
   params: SearchParams;
   prepared: PreparedSearch;
   bucketsA: Compartiment[];
@@ -189,7 +192,7 @@ export interface OptionsParallele {
   /** `totalPairCount` déjà calculé par l'appelant, celui qui a choisi le régime. */
   totalPaires: number;
   travailleurs: number;
-  lancer: LancerTravailleur;
+  lancer: LancerTravailleur<C>;
   startedAt: number;
   /** Arrêt déterministe : l'état au point de passage `traitees = arretTraitees`. */
   arretTraitees?: number;
@@ -213,7 +216,7 @@ export interface OptionsParallele {
    * que grandir : un aperçu en est toujours un préfixe du résultat. À
    * l'appelant d'espacer ses messages et de ne transmettre que les nouveaux.
    */
-  surProgression?: (traitees: number, candidats: readonly BuildCandidate[]) => void;
+  surProgression?: (traitees: number, candidats: C) => void | Promise<void>;
 }
 
 /**
@@ -222,7 +225,9 @@ export interface OptionsParallele {
  * `pairBuckets` en rendant la main), jamais ici, où un repli synchrone
  * bloquerait l'arrêt et la progression.
  */
-export async function apparierRapideEnParallele(o: OptionsParallele): Promise<ResultatParallele> {
+export function apparierRapideEnParallele<C extends SortieCandidats>(o: OptionsParallele<C>): Promise<ResultatParallele<C>>;
+export function apparierRapideEnParallele(o: OptionsParallele): Promise<ResultatParallele>;
+export async function apparierRapideEnParallele<C extends SortieCandidats = BuildCandidate[]>(o: OptionsParallele<C>): Promise<ResultatParallele<C>> {
   const { prepared, bucketsA, bucketsB } = o;
   let arrete = false;
   let surArret: (() => void) | null = null;
@@ -248,7 +253,7 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
   // et chacun s'arrête de lui-même au point de passage `arret`.
   const aDistribuer = arret == null ? plan : plan.filter((m) => m.offset + 1 < arret).map((m) => ({ ...m, limite: arret }));
 
-  const resultats: (ResultatMorceau | undefined)[] = new Array(aDistribuer.length);
+  const resultats: ({ r: ResultatMorceau<C>; w: number } | undefined)[] = new Array(aDistribuer.length);
   const parTravailleur: number[] = new Array(o.travailleurs).fill(0);
   let validationsTypees = 0;
   let validationsReference = 0;
@@ -259,7 +264,8 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
   // négative). Un compte, pas une position : un morceau tronqué par le temps
   // ou par l'arrêt manuel n'a pas traité toutes ses paires, et les suivants
   // se fusionnent quand même.
-  const candidates: BuildCandidate[] = [];
+  const candidates = o.collecte ?? [] as unknown as C;
+  const compact = !Array.isArray(candidates);
   const nearMissByCondition = new Map<string, EntreeQuasiSucces>();
   let globalNearMiss: NearMiss | null = null;
   let globalDistance = Infinity;
@@ -277,17 +283,14 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
   let morceauxComplets = 0;
   const fusionTerminee = () => plafond || limiteAtteinte;
 
-  const fusionner = (r: ResultatMorceau, m: Morceau): void => {
+  let traiteesMorceau = 0, visitesMorceau = 0;
+  let compteursMorceau = compteursVides();
+  const fusionner = (r: ResultatMorceau<C>, m: Morceau): void => {
     if (fusionTerminee()) return;
     // Coupe au plafond : le candidat qui l'atteint, sa position incluse.
-    let coupe = -1;
-    for (let cpt = 0; cpt < r.candidats.length; cpt++) {
-      candidates.push(r.candidats[cpt]);
-      if (candidates.length >= maxCollected) {
-        coupe = cpt;
-        break;
-      }
-    }
+    const nombre = Math.min(r.candidats.length, Math.max(1, maxCollected - candidates.length));
+    fusionnerCandidats(candidates, r.candidats, nombre);
+    const coupe = nombre > 0 && candidates.length >= maxCollected ? nombre - 1 : -1;
     const limitePos = coupe >= 0 ? r.positions[coupe] : Infinity;
     for (const e of r.ameliorations) {
       if (e.pos > limitePos) break;
@@ -299,15 +302,18 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
         globalNearMiss = e.miss;
       }
     }
-    for (const k of Object.keys(compteurs) as (keyof CompteursNoyau)[]) compteurs[k] += r.compteurs[k];
+    for (const k of Object.keys(compteurs) as (keyof CompteursNoyau)[]) compteurs[k] += r.compteurs[k] - compteursMorceau[k];
+    compteursMorceau = r.compteurs;
     if (coupe >= 0) {
-      traitees += limitePos - m.offset;
-      visitees += r.visitesAuCandidat[coupe];
+      traitees += limitePos - m.offset - traiteesMorceau;
+      visitees += r.visitesAuCandidat[coupe] - visitesMorceau;
       plafond = true;
       return;
     }
-    traitees += r.traitees;
-    visitees += r.visitees;
+    traitees += r.traitees - traiteesMorceau;
+    visitees += r.visitees - visitesMorceau;
+    traiteesMorceau = r.traitees;
+    visitesMorceau = r.visitees;
     if (r.issue === 'complet') morceauxComplets++;
     if (r.issue === 'limite') {
       limiteAtteinte = true;
@@ -327,13 +333,15 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
     return { copie, transfert: tamponsDe(copie) };
   };
   const nbTravailleurs = Math.max(1, Math.min(o.travailleurs, aDistribuer.length));
-  const poignees: PoigneeTravailleur[] = [];
+  const poignees: PoigneeTravailleur<C>[] = [];
+  const enVolParTravailleur = new Array(nbTravailleurs).fill(0) as number[];
   let prochainADistribuer = 0;
   // L'erreur d'un Worker termine l'attente comme une fin : l'état fusionné
   // jusque-là est rendu, porté par `ErreurAppariementParallele`.
   let enErreur: { erreur: unknown } | null = null;
 
-  await new Promise<void>((resolve) => {
+  let receptions = Promise.resolve();
+  const attendreMorceaux = () => new Promise<void>((resolve) => {
     let enVol = 0;
     let termine = false;
     const finir = () => {
@@ -351,9 +359,13 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
     const distributionTerminee = () => fusionTerminee() || tempsEcoule || arrete || overBudget();
     const distribuer = (w: number) => {
       if (distributionTerminee()) return;
+      // Un résultat arrivé en avance ne crée pas un nouveau crédit de morceau.
+      if (prochainADistribuer - prochainAFusionner >= nbTravailleurs * EN_VOL_PAR_TRAVAILLEUR) return;
+      if (enVolParTravailleur[w] >= EN_VOL_PAR_TRAVAILLEUR) return;
       if (prochainADistribuer >= aDistribuer.length) return;
       const m = aDistribuer[prochainADistribuer++];
       enVol++;
+      enVolParTravailleur[w]++;
       poignees[w].envoyer(m, [m.segments.buffer as ArrayBuffer, m.drapeaux.buffer as ArrayBuffer]);
     };
     if (aDistribuer.length === 0 || arrete) {
@@ -363,10 +375,11 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
     for (let w = 0; w < nbTravailleurs; w++) {
       const { copie, transfert } = tampons(w === nbTravailleurs - 1);
       const p = o.lancer(
-        { params: o.params, startedAt: o.startedAt, compartiments: copie, ...(o.forcerValidation ? { forcerValidation: o.forcerValidation } : {}) },
+        { params: o.params, startedAt: o.startedAt, compartiments: copie, ...(compact ? { collecteCompacte: true } : {}), ...(o.forcerValidation ? { forcerValidation: o.forcerValidation } : {}) },
         transfert
       );
       poignees.push(p);
+      if (compact && !p.acquitter) throw new Error('Lanceur compact sans acquittement');
       p.surErreur((e) => {
         if (termine) return;
         // Fusion déjà terminée (plafond, arrêt déterministe) : le résultat est
@@ -376,37 +389,63 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
         finir();
       });
       p.surMessage((r) => {
-        // Après une erreur, plus rien ne se fusionne : l'état rendu est celui
-        // de l'instant de l'erreur, et les Workers sont terminés.
-        if (termine) return;
-        enVol--;
-        parTravailleur[w]++;
-        if (r.validationTypee) validationsTypees++;
-        else validationsReference++;
-        resultats[r.id] = r;
-        if (r.issue === 'temps') tempsEcoule = true;
-        // La fusion avance sur le préfixe contigu des morceaux reçus. Les
-        // morceaux partent dans l'ordre et l'attente ne se termine qu'une fois
-        // tous ceux partis reçus : à la fin, tout ce qui est parti est fusionné.
-        while (!fusionTerminee() && prochainAFusionner < aDistribuer.length && resultats[prochainAFusionner]) {
-          fusionner(resultats[prochainAFusionner]!, aDistribuer[prochainAFusionner]);
-          prochainAFusionner++;
-        }
-        o.surProgression?.(traitees, candidates);
-        distribuer(w);
-        if ((distributionTerminee() || prochainADistribuer >= aDistribuer.length) && enVol === 0) finir();
+        receptions = receptions.then(async () => {
+          // Après une erreur, aucun message suivant n'étend le préfixe rendu.
+          if (termine) return;
+          const terminal = r.issue !== 'suite';
+          if (terminal) {
+            enVol--;
+            enVolParTravailleur[w]--;
+            parTravailleur[w]++;
+            if (r.validationTypee) validationsTypees++;
+            else validationsReference++;
+          }
+          if (resultats[r.id]) throw new Error('Bloc de morceau reçu sans crédit');
+          resultats[r.id] = { r, w };
+          const aAcquitter: number[] = [];
+          if (r.issue === 'temps') tempsEcoule = true;
+          // La fusion avance sur le préfixe contigu des morceaux reçus. Les
+          // morceaux partent dans l'ordre et l'attente ne se termine qu'une fois
+          // tous ceux partis reçus : à la fin, tout ce qui est parti est fusionné.
+          while (!fusionTerminee() && prochainAFusionner < aDistribuer.length && resultats[prochainAFusionner]) {
+            const entree = resultats[prochainAFusionner]!;
+            resultats[prochainAFusionner] = undefined;
+            fusionner(entree.r, aDistribuer[prochainAFusionner]);
+            aAcquitter.push(entree.w);
+            if (entree.r.issue === 'suite') break;
+            prochainAFusionner++;
+            traiteesMorceau = 0; visitesMorceau = 0; compteursMorceau = compteursVides();
+          }
+          if (fusionTerminee()) {
+            for (let i = prochainAFusionner; i < resultats.length; i++) {
+              const entree = resultats[i];
+              if (entree) { resultats[i] = undefined; aAcquitter.push(entree.w); }
+            }
+          }
+          await o.surProgression?.(traitees, candidates);
+          if (termine) return;
+          for (const t of aAcquitter) poignees[t].acquitter?.();
+          for (let k = 0; k < EN_VOL_PAR_TRAVAILLEUR; k++) for (let t = 0; t < nbTravailleurs; t++) distribuer(t);
+          if ((distributionTerminee() || prochainADistribuer >= aDistribuer.length) && enVol === 0) finir();
+        }).catch((erreur: unknown) => { enErreur = { erreur }; finir(); });
       });
     }
     for (let k = 0; k < EN_VOL_PAR_TRAVAILLEUR; k++) for (let w = 0; w < nbTravailleurs; w++) distribuer(w);
     // Rien de parti (filet de temps déjà dépassé) : aucun message ne viendra
     // terminer l'attente.
     if (enVol === 0) finir();
-  }).finally(() => {
+  });
+  try {
+    await attendreMorceaux();
+    // Une erreur peut arriver pendant le transfert vers le propriétaire : finir
+    // cette publication avant le bilan, sans fusionner les messages suivants.
+    await receptions;
+  } finally {
     surArret = null;
     for (const p of poignees) p.terminer();
-  });
+  }
 
-  const motif: ResultatParallele['motif'] = enErreur
+  const motif: ResultatParallele<C>['motif'] = enErreur
     ? 'erreur'
     : plafond
       ? 'maxCollected'
@@ -419,7 +458,7 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
             : 'manuel';
 
   const truncated = motif !== 'aucun';
-  const resultat: ResultatParallele = {
+  const resultat: ResultatParallele<C> = {
     candidates, explored: traitees, truncated,
     nearMissByCondition: Array.from(nearMissByCondition.values()), globalNearMiss,
     traitees, visitees, sautees: traitees - visitees, chemin: 'noyau',
@@ -440,6 +479,6 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
  * séquentiel et le plafond global, il se déduit du plafond comme en
  * séquentiel (`evaluerCompletude`, harnais).
  */
-export function enResultatDeRecherche(r: ResultatParallele): SearchResult {
+export function enResultatDeRecherche<C>(r: ResultatParallele<C>): SearchResult<C> {
   return { candidates: r.candidates, explored: r.explored, truncated: r.truncated, nearMissByCondition: r.nearMissByCondition, globalNearMiss: r.globalNearMiss };
 }

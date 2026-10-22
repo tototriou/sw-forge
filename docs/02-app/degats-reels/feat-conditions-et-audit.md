@@ -181,9 +181,10 @@ Les autres conditions binaires affichent aussi leur gain près de
 l'interrupteur, sans imposer de relire le résumé du sort.
 
 Les lignes « Effet renforcement ATQ/DEF » et « Effet aug. VIT » des artéfacts
-amplifient les buffs du monstre optimisé, pas la VIT de l'adversaire. Leur
-rappel apparaît auprès des buffs dans « État de mon monstre », seulement
-quand le buff correspondant est actif ; rien de tel ne figure sous « VIT
+amplifient les buffs du monstre optimisé, pas la VIT de l'adversaire. Le
+calcul en tient compte ; aucune phrase ne l'annonce, ni dans « État de mon
+monstre » (elle portait sur la paire d'artéfacts représentative de la
+recherche, inconnue du joueur : décision de l'utilisateur), ni sous « VIT
 adversaire ».
 
 Ghost Slash (S1 des Onimusha, deux coups) peut poser Brise DEF sur chacun

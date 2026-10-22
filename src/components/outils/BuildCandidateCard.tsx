@@ -116,8 +116,8 @@ interface Props {
   // garde son cadre aux deux formats** (contour et fond) : sans lui, au
   // bureau, les résultats se lisaient mal d'une carte à l'autre (décision de
   // l'utilisateur, docs/02-app/optimizer/ecran/README.md, « Panneaux et
-  // sections »). Ses rangées « Dégâts », « PV effectifs » et ses écarts n'y
-  // gardent que leur fond : la carte porte le seul contour.
+  // sections »). Ses rangées « Dégâts », « PV effectifs » et ses écarts
+  // gardent leur contour fin aux deux formats (décision de l'utilisateur).
   bureau?: boolean;
 }
 
@@ -196,9 +196,6 @@ export default function BuildCandidateCard({
   metricDelta,
   bureau = false,
 }: Props) {
-  // Le contour des rangées mises en avant : sans lui au bureau, où le
-  // contour de la carte est le seul.
-  const contourRangee = bureau ? '' : 'border border-border-soft';
   const runes = candidate.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => !!r);
   const sets = activeSets(runes.map((r) => r.set));
   // ⚠️ Une même rune peut apparaître dans PLUSIEURS candidats affichés (une
@@ -435,7 +432,7 @@ export default function BuildCandidateCard({
           lui, on triait par PV effectifs sans jamais voir la valeur triée —
           signalé à l'usage. */}
       {pvEffectifs && (
-        <p className={`mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg ${contourRangee} bg-panel2 px-2 py-1`}>
+        <p className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
           <span className="text-micro text-ink-dim">PV effectifs</span>
           <span className={groupeValeur}>
             <EmplacementEcart>{pvEffectifs.delta != null && <Delta valeur={pvEffectifs.delta} />}</EmplacementEcart>
@@ -452,7 +449,7 @@ export default function BuildCandidateCard({
           lisible sans calcul mental (« ça tue ou pas »), le seul rôle des PV
           adverses saisis — ils n'entrent jamais dans le classement. */}
       {degatsReels && (
-        <p className={`mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg ${contourRangee} bg-panel2 px-2 py-1`}>
+        <p className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
           <span className="text-micro text-ink-dim">Dégâts</span>
           <span className={groupeValeur}>
             <EmplacementEcart>{degatsReels.delta != null && <Delta valeur={degatsReels.delta} />}</EmplacementEcart>
@@ -598,7 +595,7 @@ export default function BuildCandidateCard({
           carte à l'autre, et laisserait croire qu'une stat absente n'a pas été
           comparée. */}
       {comparaison && (
-        <div className={`mt-2 grid grid-cols-[repeat(auto-fit,minmax(72px,1fr))] gap-x-2 gap-y-0.5 rounded ${contourRangee} bg-panel2 px-2 py-1.5`}>
+        <div className="mt-2 grid grid-cols-[repeat(auto-fit,minmax(72px,1fr))] gap-x-2 gap-y-0.5 rounded border border-border-soft bg-panel2 px-2 py-1.5">
           {comparaison.map((s) => (
             <div key={s.key} className="flex items-baseline justify-between gap-1">
               <span className="text-nano text-ink-dim">{s.label}</span>

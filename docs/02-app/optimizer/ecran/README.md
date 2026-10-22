@@ -105,8 +105,9 @@ interrupteurs avancés n'ont plus de boîte ; un diagnostic sans résultat se
 pose sous un trait fin, sans contour ni fond. ⚠️ **Exception : chaque
 résultat garde sa carte** (contour et fond, décision de l'utilisateur :
 sans elle, les résultats se lisaient mal d'une carte à l'autre) ; ses
-rangées « Dégâts », « PV effectifs » et ses écarts n'y gardent que leur
-fond, la carte portant le seul contour. Restent marqués : les objets du jeu (runes, artéfacts,
+rangées « Dégâts », « PV effectifs » et ses écarts y gardent leur contour
+fin (`border-soft`) et leur fond, comme au téléphone (décision de
+l'utilisateur). Restent marqués : les objets du jeu (runes, artéfacts,
 reliques), les états (set manquant, rappel des auras, place d'attente des
 résultats, « Vérification… », emplacement figé), les contrôles (champs,
 listes, boutons, segments, panneau de statistiques cliquable, résumé du

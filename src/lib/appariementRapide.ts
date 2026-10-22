@@ -768,7 +768,12 @@ export class Collecteur<C extends SortieCandidats = BuildCandidate[]> {
     }
     // `Math.max(...shortfalls.map(…))`, replié de gauche à droite (même valeur, NaN compris).
     let distance = -Infinity;
-    for (let i = 0; i < n; i++) distance = Math.max(distance, v.manques[i] / v.conditions[v.echecs[i]].seuil);
+    for (let i = 0; i < n; i++) {
+      distance = Math.max(distance, v.manques[i] / v.conditions[v.echecs[i]].seuil);
+      // Le maximum ne redescend pas ; un NaN ultérieur ne rendrait pas
+      // non plus le test strict vrai. Garder le premier vu à égalité.
+      if (!parCondition && distance >= this.globalNearMissDistance) return;
+    }
     const global = distance < this.globalNearMissDistance;
     if (!parCondition && !global) return;
     const { runeIds, stats, effTotal } = this.materiel(v);

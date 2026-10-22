@@ -117,6 +117,14 @@ Le chemin de repli adapte un seul objet temporaire. Les blocs, positions et
 visites se coupent ensemble ; les pauses de transport n'ajoutent aucun
 jugement ni saut. Les quasi-succès utilisent les mêmes objets et règles.
 
+`Collecteur.considererTypee` coupe le calcul de distance dès que son maximum
+de préfixe atteint la distance globale retenue, seulement si le quasi-succès
+par condition ne peut pas s'améliorer. Le maximum ne redescend pas ; un NaN
+ultérieur ne rendrait pas non plus la comparaison stricte vraie. L'égalité
+garde donc le premier vu, y compris à zéro ou à l'infini. Chaque morceau
+applique cette règle à son état local ; ses améliorations restent rejouées
+dans l'ordre à la fusion.
+
 - **Ordre de visite** : celui de `pairBuckets`. Le quasi-succès « le premier
   vu » et les candidats gardés sous `maxCollected` sont donc les mêmes.
 - **Garde de référence** : une paire qui franchit les seuils repasse par
@@ -222,6 +230,13 @@ validation typée à `activeSets`, `computeStats` et au test conjoint de
 `pairBuckets` : sur des cas écrits, paire par paire sur des demi-builds
 tirés, collecteur contre collecteur, puis l'appariement entier (séquentiel
 et parallèle simulé) contre `pairBuckets`, contrat tenu ou non.
+Le corps direct de `considererTypee` est figé uniquement dans ce test ;
+chaque tentative du collecteur lui est comparée. Les profils `fumee` et `complet-sensible` passent aussi
+par le vrai harnais compact : candidats entiers dans l'ordre, comptes,
+quasi-succès et complétude comparés à `pairBuckets`, puis petit plafond,
+arrêt au même palier logique et fusion ordonnée de morceaux. Les frontières
+incluent égalités, zéro, NaN, infinis, min+max sur la même stat, reliques
+intermédiaires et auras actives ou non ; aucun temps n'est comparé.
 
 `testAppariementHorloge`, dans `tests/appariement-rapide.test.ts`, simule
 `Date.now()` : budget court, borne de 499 paires atteinte, nombre de lectures

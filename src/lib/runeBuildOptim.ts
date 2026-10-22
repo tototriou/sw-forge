@@ -45,6 +45,7 @@
 import { ArtifactDetail, BaseStats, ElementKey, GearSet, RelicDetail, RuneDetail } from '../types';
 import { INTANGIBLE_SET, MAX_SET_PIECES, RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeEfficiency, runeScore, setPieces, setsCost } from './effects';
 import { computeStats, StatRow } from './stats';
+import { CandidatNonCompactable } from './candidatsCompacts';
 import { missingSets } from './recoMatch';
 import { OptimMetric } from './runeOptim';
 // Le canal exclusive — `relicExclusive.ts` ne dépend que de
@@ -1138,10 +1139,68 @@ export function scoreDuCandidat(
  * puis `filter(Boolean)`), pour que les deux lisent les mêmes runes.
  */
 export function aurasPropresParRunes(runeById: Map<number, { set: string }>): (c: { runeIds: number[] }) => AurasPropres {
-  return (c) => aurasPropresDesRunes(c.runeIds.map((id) => runeById.get(id)).filter((r): r is { set: string } => r != null));
+  const lire = (c: { runeIds: number[] }) => aurasPropresDesRunes(c.runeIds.map((id) => runeById.get(id)).filter((r): r is { set: string } => r != null));
+  INVENTAIRES_AURAS.set(lire, runeById);
+  return lire;
 }
 
 export type OptionsDeClassement = Parameters<typeof sortCandidates>[2];
+const INVENTAIRES_AURAS = new WeakMap<OptionsDeClassement['aurasPropresDe'], object>();
+const SOURCES_OPTIONS_COMPACTES = new WeakMap<OptionsDeClassement, {
+  source: Parameters<typeof optionsDeClassement>[0]; exclusive: OptionsDeClassement['exclusiveDuBuild'];
+}>();
+const IDENTITES_INVENTAIRES = new WeakMap<object, number>();
+let prochaineIdentiteInventaire = 0;
+
+/** Contrôle à la frontière de version ; aucune fonction de données n'est mémorisable. */
+export function verifierDonneesCompactes(v: unknown, vues = new WeakSet<object>()): void {
+  if (typeof v === 'function') throw new CandidatNonCompactable('Fonction dans les données de classement');
+  if (v === null || typeof v !== 'object' || vues.has(v)) return;
+  vues.add(v);
+  for (const valeur of Object.values(v)) verifierDonneesCompactes(valeur, vues);
+}
+
+/** Adaptateur du score commun ; les accesseurs ne sont lus que pour une version nouvelle. */
+export function preparerNotationCompacte(critere: StatKey | Objective, options: OptionsDeClassement): {
+  contexte: string; noter: (c: BuildCandidate) => number | null;
+} | undefined {
+  const provenance = SOURCES_OPTIONS_COMPACTES.get(options);
+  const source = provenance?.source;
+  const inventaireAuras = INVENTAIRES_AURAS.get(options.aurasPropresDe);
+  if (!source || !inventaireAuras) return undefined;
+  // Les options publiques restent utilisables par les outils génériques :
+  // remplacer un champ après construction retire leur provenance compacte.
+  if (options.realDamage !== source.realDamage || options.damageSetup !== source.damageSetup
+    || options.metric !== source.metric || options.runeById !== source.runeById
+    || options.aurasPropresDe !== source.aurasPropresDe || options.artefactsDuBuild !== source.artefactsDuBuild
+    || options.exclusiveDuBuild !== provenance.exclusive) return undefined;
+  const identite = (objet: object) => {
+    let id = IDENTITES_INVENTAIRES.get(objet);
+    if (id === undefined) { id = ++prochaineIdentiteInventaire; IDENTITES_INVENTAIRES.set(objet, id); }
+    return id;
+  };
+  // Six ids sont obligatoires dans le magasin : cette sonde ne désigne aucun
+  // résultat. Elle lit la relique fixe, sans dépendre d'une résolution du cache.
+  let fixe: EtatRelique;
+  try { fixe = source.etatReliqueDe({ runeIds: [], stats: [], effTotal: 0 }); }
+  catch { return undefined; } // Un accesseur générique peut exiger un vrai candidat.
+  const commun = [critere, source.realDamage, source.damageSetup, source.metric,
+    source.contexteExclusive, fixe, identite(source.runeById), identite(inventaireAuras)];
+  verifierDonneesCompactes(commun);
+  const contexte = JSON.stringify(commun, (_k, v) => typeof v === 'number'
+    ? Object.is(v, -0) ? ['nombre', '-0'] : !Number.isFinite(v) ? ['nombre', String(v)] : v : v);
+  const calculable = scorerPour(critere, options) !== null;
+  return { contexte, noter: (c) => {
+    if (!calculable) return null;
+    const propres = options.aurasPropresDe(c);
+    const artefacts = options.artefactsDuBuild?.(c) ?? null;
+    const apport = options.exclusiveDuBuild?.(c) ?? null;
+    verifierDonneesCompactes([propres, artefacts, apport]);
+    const score = scorerPour(critere, { ...options, aurasPropresDe: () => propres,
+      artefactsDuBuild: () => artefacts, exclusiveDuBuild: () => apport });
+    return score ? score(c) : null;
+  } };
+}
 
 /**
  * Les options du classement AFFICHÉ — construites ICI pour l'écran (tri et
@@ -1176,7 +1235,7 @@ export function optionsDeClassement(e: {
   etatReliqueDe: (c: BuildCandidate) => EtatRelique;
   contexteExclusive: { setup: DamageSetup; element: ElementKey | null };
 }): OptionsDeClassement {
-  return {
+  const options: OptionsDeClassement = {
     realDamage: e.realDamage,
     damageSetup: e.damageSetup,
     runeById: e.runeById,
@@ -1194,6 +1253,8 @@ export function optionsDeClassement(e: {
       );
     },
   };
+  SOURCES_OPTIONS_COMPACTES.set(options, { source: e, exclusive: options.exclusiveDuBuild });
+  return options;
 }
 
 /**

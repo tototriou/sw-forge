@@ -80,6 +80,7 @@ import testArtefactFile from './artefact-file.test';
 import testArtifactEvaluation, { testArtifactPaireReelleEhp, testArtifactPaireReelleDegatsEffetUnique } from './artifact-evaluation.test';
 import { testResolutionProducteurPartage, testClassementResolu } from './resolution-partagee.test';
 import { testClassementIncremental, testClassementIncrementalEgalites, testClassementIncrementalNotes, testClassementIncrementalInvalidations, testClassementIncrementalFonctions, testClassementIncrementalAutresCriteres } from './classement-incremental.test';
+import { testCandidatsCompactsAllerRetour, testClassementCompactPublications, testClassementCompactDoublons, testClassementCompactNonFinis, testClassementCompactControleVersions, testClassementCompactJournalManquant } from './classement-compact.test';
 import { testResolutionCaches } from './resolution-caches.test';
 import { testResolutionWorker } from './resolution-worker.test';
 import { testResolutionDistante } from './resolution-distante.test';
@@ -758,6 +759,12 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testArtefactsFicheParamsDifferentiel', testArtefactsFicheParamsDifferentiel],
   ['testResolutionProducteurPartage', testResolutionProducteurPartage],
   ['testClassementResolu', testClassementResolu],
+  ['testCandidatsCompactsAllerRetour', testCandidatsCompactsAllerRetour],
+  ['testClassementCompactPublications', testClassementCompactPublications],
+  ['testClassementCompactDoublons', testClassementCompactDoublons],
+  ['testClassementCompactNonFinis', testClassementCompactNonFinis],
+  ['testClassementCompactControleVersions', testClassementCompactControleVersions],
+  ['testClassementCompactJournalManquant', testClassementCompactJournalManquant],
   ['testClassementIncremental', testClassementIncremental],
   ['testClassementIncrementalEgalites', testClassementIncrementalEgalites],
   ['testClassementIncrementalNotes', testClassementIncrementalNotes],

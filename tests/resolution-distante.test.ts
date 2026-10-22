@@ -928,6 +928,11 @@ export function testResolutionDistante() {
   /* ── 7. Le hook et l'écran, contrôlés sur la source ──────────────────── */
   titre('Résolution hors du fil — le hook et l’écran, contrôlés sur la source');
   const hook = sansCommentaires(readFileSync('src/hooks/useArtifactOptimQueue.ts', 'utf8'));
+  ok(/const cacheRef = useRef\(new CacheResolutionJournalise\(\)\);/.test(hook)
+    && /cacheRef\.current = new CacheResolutionJournalise\(\);\s*setParBuild\(cacheRef\.current\.publier\(\)\);/.test(hook),
+    'hook : cache journalisé commun aux deux voies, génération neuve à la signature');
+  egal((hook.match(/setParBuild\(cacheRef\.current\.publier\(\)\)/g) ?? []).length, 4,
+    'hook : signature, chemin direct, repli et Worker publient tous un instantané journalisé');
   egal((hook.match(/new Worker\(/g) ?? []).length, 1, 'hook : un seul `new Worker(`');
   const effetWorker = bloc(hook, 'if (!modeHorsFil) return;', '}, [modeHorsFil, signature, K, basculerEnRepli]);');
   ok(effetWorker.length > 0 && /new Worker\(new URL\('\.\.\/workers\/resolution\.worker\.ts', import\.meta\.url\), \{ type: 'module' \}\)/.test(effetWorker),
@@ -946,13 +951,13 @@ export function testResolutionDistante() {
   const repli = bloc(hook, 'const basculerEnRepli = useCallback(', '}, []);');
   ok(/console\.error\(/.test(repli) && /d\.worker\.terminate\(\);/.test(repli) && /setEnRepli\(true\);/.test(repli),
     'hook : le repli journalise (console.error), termine le Worker et rend la main au chemin direct');
-  ok(/if \(d\) \{\s*if \(d\.pilote\.renoncer\(\)\) setParBuild\(new Map\(cacheRef\.current\)\);\s*d\.worker\.terminate\(\);/.test(repli),
+  ok(/if \(d\) \{\s*if \(d\.pilote\.renoncer\(\)\) setParBuild\(cacheRef\.current\.publier\(\)\);\s*d\.worker\.terminate\(\);/.test(repli),
     'hook : au repli, une écriture retenue par la cadence (renoncer rend vrai) est publiée de force');
   ok(/courant: \(\) => \{\s*const h = horsFilRef\.current;\s*return h \? \{ entrees: h\.entrees, signature: signatureRef\.current \} : null;/.test(effetWorker),
     'hook : le contexte courant est lu dans les refs du rendu (entrées et signature), à chaque réponse');
   ok(/restants: \(\) => prochainsATraiter\(trieesRef\.current, cacheRef\.current, K, pageRef\.current\(\)\)/.test(effetWorker),
     'hook : la priorité reste `prochainsATraiter` sur le fil de l’écran, page affichée comprise, sur le cache lui-même');
-  ok(/publier: \(forcer\) => \{\s*const now = Date\.now\(\);\s*if \(!forcer && now - dernierePublication < PUBLICATION_MS\) return false;\s*dernierePublication = now;\s*setParBuild\(new Map\(cacheRef\.current\)\);\s*return true;\s*\},/.test(effetWorker),
+  ok(/publier: \(forcer\) => \{\s*const now = Date\.now\(\);\s*if \(!forcer && now - dernierePublication < PUBLICATION_MS\) return false;\s*dernierePublication = now;\s*setParBuild\(cacheRef\.current\.publier\(\)\);\s*return true;\s*\},/.test(effetWorker),
     'hook : même cadence de publication que le chemin direct ; rend faux quand la cadence retient, vrai quand l’écran reçoit le cache');
   ok(/return \(\) => \{\s*vivant = false;\s*distant\.surReponse = \(r\) => reponseAuRepos\(distant\.pilote, r\);/.test(effetWorker),
     'hook : hors effet actif, une réponse libère sa place sans rien écrire');

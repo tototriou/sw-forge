@@ -234,6 +234,20 @@ export function testClassementCompactJournalManquant() {
   cache.set(cleBuild(base[5]), resultat(base[5]));
   let p = cache.publier();
   publication(index, base, p, 'atk', options(runeById, p), 'initialisation complète');
+  // Même génération, version consécutive, tailles et contexte inchangés :
+  // seule la valeur « après » du journal contredit l'instantané publié.
+  const notationInitiale = preparerNotationCompacte('atk', options(runeById, p))!;
+  index.actualiser(p, journalResolution(p), notationInitiale.contexte, notationInitiale.noter);
+  ok(!index.travail.complet && index.travail.controlees === 0, 'précondition : contexte identique et index réutilisable');
+  cache.set(cleBuild(base[9]), resultat(base[9], 5000));
+  p = cache.publier();
+  const journalContradictoire = journalResolution(p)!;
+  index.actualiser(p, {
+    ...journalContradictoire,
+    changements: journalContradictoire.changements.map((c) => ({ ...c, apres: resultat(base[9], -5000) })),
+  }, notationInitiale.contexte, notationInitiale.noter);
+  comparer(index.page(0, base.length).map((i) => index.magasin.candidat(i)), reference(base, p, 'atk', options(runeById, p)), 'entrée du journal contraire au cache');
+  ok(index.travail.complet && index.travail.controlees === base.length, 'entrée contradictoire : classement complet, toutes les lignes recontrôlées');
   cache.set(cleBuild(base[9]), resultat(base[9], 1000));
   cache.publier(); // Publication non consommée.
   cache.set(cleBuild(base[8]), resultat(base[8], -1000, false));
@@ -265,8 +279,8 @@ export function testClassementCompactJournalManquant() {
   relance.set(cleBuild(base[0]), identique);
   const sansChangement = relance.publier();
   ok(journalResolution(sansChangement)!.version === 2 && journalResolution(sansChangement)!.changements.length === 0, 'publication sans écriture : version croissante, delta vide');
-  // Une fonction dans les données communes force la référence, y compris
-  // après un classement compact déjà amorcé.
+  // Ces appels créent leur classementResolu sans index compact amorcé :
+  // ils vérifient le repli initial, pas l'invalidation d'un index réutilisé.
   const fonctions = options(runeById, sansChangement);
   (fonctions.damageSetup as unknown as Record<string, unknown>).donneeFonction = () => 1;
   comparer(classementResolu(base, sansChangement, 'degats_reels', fonctions), reference(base, sansChangement, 'degats_reels', fonctions), 'fonction dans les données');
@@ -281,7 +295,7 @@ export function testClassementCompactJournalManquant() {
     contexteExclusive: { setup: ordinaires.damageSetup!, element: 'wind' },
   });
   comparer(classementResolu(base, sansChangement, 'degats_reels', avecFonctionPropre), reference(base, sansChangement, 'degats_reels', avecFonctionPropre), 'fonction propre au dernier candidat');
-  ok(travailDuClassementCompact(base) === undefined, 'fonction propre : abandon de tout l’index, garde objet conservée');
+  ok(travailDuClassementCompact(base) === undefined, 'fonction propre : aucun index compact créé, garde objet conservée');
 
   class CacheCompte extends CacheResolutionJournalise {
     lectures = 0;

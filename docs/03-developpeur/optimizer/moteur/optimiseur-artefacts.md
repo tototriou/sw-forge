@@ -450,8 +450,13 @@ version. Les données collectées et les inventaires sont immuables. Les
 options produites par `optionsDeClassement` identifient les données communes
 et la relique fixe ; les entrées propres dépendent de l'équipement journalisé.
 Un appel générique sans cette provenance reste sur la référence complète.
-Une fonction dans les données communes ou propres désactive le chemin
-compact avant réutilisation ; la garde du tri objet reste inchangée.
+Une fonction détectée dans les données communes ou dans les données propres
+lues à l'ingestion désactive le chemin compact ; la garde du tri objet
+reste inchangée. Les accesseurs sont supposés stables hors changement
+d'équipement journalisé : une fermeture qui change sans cette écriture
+n'est pas détectée par l'index réutilisé. L'API directe de `ClassementCompact`
+compare le contexte par identité : le muter sur place sans en changer
+l'identité n'invalide pas les notes. Ces deux usages sont hors garantie.
 `classementResoluReference` conserve l'assemblage objet servant d'oracle.
 
 #### Référence objet et mémoire des notes
@@ -495,6 +500,11 @@ constant (dont une inversion). Ils contrôlent le repli sur fonction,
 l'absence d'empreinte des autres critères et une seule sérialisation commune
 sur 20 000 candidats. `testArtefactFile` compare le départage à l'oracle sur
 6 000 entrées à graine fixe et borne `ridDe` à un appel par entrée.
-Les `testClassementCompact…` ajoutent ordinaux, comptes, pages, journal absent
-ou manqué, non-finis et travail par différence ; l'aller-retour contrôle les
-champs exacts. Ces comptes ne prouvent aucun gain de temps au navigateur.
+Les `testClassementCompact…` ajoutent ordinaux, comptes, pages, journal absent,
+manqué ou contradictoire avec le cache, non-finis et travail par différence ;
+l'aller-retour contrôle les champs exacts. Les cas de fonctions communes et
+propres de `testClassementCompactJournalManquant` appellent `classementResolu`
+sans index compact préalablement amorcé pour ce tableau de base : ils
+prouvent le repli initial, pas la détection d'une fonction ajoutée dans une
+fermeture après réutilisation. Ces comptes ne prouvent aucun gain de temps
+au navigateur.

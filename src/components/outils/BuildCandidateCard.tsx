@@ -154,33 +154,9 @@ function Delta({ valeur, suffixe = '' }: { valeur: number; suffixe?: string }) {
 const WHEEL_SCALE = 0.45;
 const ARTIFACT_SCALE = 0.45;
 
-// L'en-tête d'une carte du bureau (rang, valeur moyenne, sets, boutons), selon
-// les boutons présents. Avec les deux, il repasse sur deux lignes sous 460 px
-// de carte (« Comparer » ≈ 92 + 8 + « Valider » 160 + 12 + rang et valeur
-// ≈ 180) ; avec un seul, il tient sur une ligne jusqu'à la carte la plus
-// étroite (356). Classes écrites en entier : Tailwind n'émet que celles qu'il
-// lit dans le source.
-type DispositionEntete = 'aucun' | 'un' | 'deux';
-const ENTETE_BUREAU: Record<DispositionEntete, string> = {
-  aucun: 'items-start',
-  un: 'items-start justify-between',
-  deux: 'flex-col @[460px]/carte:flex-row @[460px]/carte:items-start @[460px]/carte:justify-between',
-};
-// Sur une ligne, le texte descend de 4 px pour se centrer sur les boutons.
-const TEXTE_ENTETE_BUREAU: Record<DispositionEntete, string> = {
-  aucun: '',
-  un: 'pt-1',
-  deux: '@[460px]/carte:pt-1',
-};
-// Les boutons gardent leur largeur (`flex-none` du socle de `Bouton`), à
-// gauche sur deux lignes, à droite sur une.
-const BOUTONS_BUREAU: Record<DispositionEntete, string> = {
-  aucun: '',
-  un: 'flex flex-none gap-2',
-  deux: 'flex gap-2 @[460px]/carte:flex-none',
-};
-// « Valider » : 160 px, la largeur de son plus long libellé (« Valider les
-// artéfacts », 123 px mesurés), sur une ligne comme sur deux.
+// « Valider », au bureau : 160 px, la largeur de son plus long libellé
+// (« Valider les artéfacts », 123 px mesurés) — passer à « Validé » ne change
+// pas sa largeur.
 const VALIDER_BUREAU = 'w-40';
 
 // Une combinaison trouvée : les artéfacts (fixes) et les 6 runes (sur la
@@ -329,10 +305,6 @@ export default function BuildCandidateCard({
       {RUNE_SETS.find((s) => s.key === key)?.label ?? key}
     </span>
   ));
-  // La disposition de l'en-tête du bureau : sans bouton, avec un seul, ou
-  // avec les deux (seul cas qui repasse sur deux lignes, sous 460 px).
-  const dispositionEntete: DispositionEntete = onValidate && onCompare ? 'deux' : onValidate || onCompare ? 'un' : 'aucun';
-
   // « Valider » — réserve les 6 runes de CE build (bloquées pour les
   // recherches des AUTRES monstres de « Monstres déjà runés », voir
   // OptimizerSection.tsx). Absent (`onValidate` non fourni) pour un monstre
@@ -344,7 +316,7 @@ export default function BuildCandidateCard({
   // hauteur qu'avec un seul bouton — une rangée de plus par carte se paie sur
   // toute la grille de résultats.
   const boutons = (onValidate || onCompare) && (
-    <div className={bureau ? BOUTONS_BUREAU[dispositionEntete] : 'mt-2.5 flex items-stretch gap-2'}>
+    <div className="mt-2.5 flex items-stretch gap-2">
       {onCompare && (
         <Bouton
           onClick={onCompare}
@@ -405,8 +377,7 @@ export default function BuildCandidateCard({
       // de résultats, plus tard dans l'ordre du DOM — même sans chevauchement
       // apparent, l'empilement par défaut suit l'ordre du DOM, pas la
       // position à l'écran.
-      // Au bureau, la carte est le conteneur `carte` que lit son en-tête.
-      className={`rounded-xl border border-border bg-panel p-2.5 ${bureau ? '@container/carte' : ''} ${
+      className={`rounded-xl border border-border bg-panel p-2.5 ${
         detailOuvertIci ? 'relative z-10' : ''
       }`}
       // Lu par `useHauteurDesCartes` : les places « Vérification… » prennent
@@ -415,23 +386,13 @@ export default function BuildCandidateCard({
     >
       {bureau ? (
         // ⚠️ **Au bureau, l'en-tête tient sur une ligne** (décision de
-        // l'utilisateur : la carte raccourcit) : rang, valeur moyenne, sets,
-        // puis « Comparer » et « Valider ce build » à droite. Avec les deux
-        // boutons, une carte de moins de 460 px repasse sur deux lignes
-        // (boutons dessous, à gauche) : le passage ne dépend que de la
-        // largeur de la carte (requête sur le conteneur `carte`), jamais d'un
-        // clic. « Valider » a une largeur fixe, celle de son plus long
-        // libellé : passer de « Valider ce build » à « Validé » ne déplace ni
-        // lui ni « Comparer ». Le haut
-        // aligné (`items-start`) : l'écart qui apparaît sous la valeur quand
-        // on compare ne déplace pas les boutons.
-        <div className={`mb-2 flex gap-x-3 gap-y-1.5 ${ENTETE_BUREAU[dispositionEntete]}`}>
-          <div className={`flex min-w-0 flex-wrap items-baseline gap-x-2 ${TEXTE_ENTETE_BUREAU[dispositionEntete]}`}>
-            {rang}
-            {valeurMoyenne}
-            {lesSets}
-          </div>
-          {boutons}
+        // l'utilisateur : la carte raccourcit) : rang, valeur moyenne et sets,
+        // au lieu d'une ligne de sets à part ; les boutons restent en bas de
+        // la carte, comme au téléphone.
+        <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-2">
+          {rang}
+          {valeurMoyenne}
+          {lesSets}
         </div>
       ) : (
         <div className="flex items-start justify-between mb-2">
@@ -596,9 +557,7 @@ export default function BuildCandidateCard({
         </div>
       )}
 
-      {/* Au téléphone, les boutons en bas de la carte ; au bureau, dans
-          l'en-tête (plus haut). */}
-      {!bureau && boutons}
+      {boutons}
 
       {/* ⚠️ L'écart contre le build de RÉFÉRENCE — la fiche affichée, donc le
           build validé quand il en existe un. S'affiche SOUS les boutons : au

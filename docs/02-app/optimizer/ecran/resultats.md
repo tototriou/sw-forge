@@ -17,20 +17,15 @@ ils suivent la progression, sur toute la largeur.
     rune** dans la mesure choisie — « Efficience moyenne : X » ou « Score
     moyen : X » selon le réglage global (Efficience/Score SW).
     ⚠️ **Au bureau, l'en-tête d'une carte tient sur une ligne** (décision
-    de l'utilisateur : la carte raccourcit) : rang, valeur moyenne, sets,
-    puis « Comparer » et « Valider ce build » à droite, au lieu d'une ligne
-    de sets à part et des boutons en bas de la carte. Avec les deux boutons,
-    une carte de moins de 460 px repasse sur deux lignes, boutons dessous, à
-    gauche ; avec un seul, la ligne tient jusqu'à la carte la plus étroite
-    (356 px). Le passage ne dépend que de la largeur de la carte (requête
-    sur son conteneur), jamais d'un clic. « Valider » a la largeur fixe de
-    son plus long libellé (160 px ; « Valider les artéfacts » en mesure
-    123) : passer à « Validé » ne déplace ni lui ni « Comparer » ; le haut
-    de l'en-tête est aligné, et l'écart qui apparaît sous la valeur quand
-    on compare ne déplace pas les boutons. Mesuré : une carte passe de 340
-    à 288 px avec « Comparer » seul ; avec les deux boutons, son en-tête
-    fait 28 px sur une ligne, 53 sur deux. Le téléphone garde son en-tête,
-    ses sets et ses boutons en bas.
+    de l'utilisateur : la carte raccourcit) : rang, valeur moyenne et sets,
+    au lieu d'une ligne de sets à part. « Comparer » et « Valider ce build »
+    restent **en bas de la carte**, comme au téléphone (décision de
+    l'utilisateur) : « Comparer » à sa largeur, « Valider » à la largeur fixe
+    de son plus long libellé (160 px ; « Valider les artéfacts » en mesure
+    123), si bien que passer à « Validé » ne déplace ni lui ni « Comparer ».
+    Mesuré (carte de 356 à 716 px, compte d'exemple, sans « Dégâts ») :
+    en-tête de 19 px, carte de 284 px avec un ou deux boutons. Le téléphone
+    garde son en-tête et sa ligne de sets.
     ⚠️ **Recalculée à l'affichage** (`candidateMetricTotal` dans
     [runeBuildOptim.ts](src/lib/runeBuildOptim.ts), à partir des VRAIES
     runes) plutôt que lue depuis `BuildCandidate.effTotal` : ce champ est
@@ -55,7 +50,7 @@ ils suivent la progression, sur toute la largeur.
     ⚠️ **Au bureau, ses lignes sont resserrées** (`StatPanel`, `serre`,
     décision de l'utilisateur) : un pas de 22 px au lieu de 27, taille du
     texte inchangée (interligne `snug`, 2 px de rembourrage au lieu de 4).
-    Mesuré : le panneau passe de 241 à 197 px, la carte de 288 à 244 px. La
+    Mesuré : le panneau passe de 241 à 197 px, la carte d'autant. La
     fiche d'« Exemplaire » et le téléphone gardent le pas de 27 px.
     ⚠️ **À la souris, la relique est toujours SOUS LA ROUE** (carte de
     résultat seulement —

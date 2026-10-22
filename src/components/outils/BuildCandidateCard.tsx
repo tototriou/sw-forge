@@ -172,22 +172,16 @@ const TEXTE_ENTETE_BUREAU: Record<DispositionEntete, string> = {
   un: 'pt-1',
   deux: '@[460px]/carte:pt-1',
 };
+// Les boutons gardent leur largeur (`flex-none` du socle de `Bouton`), à
+// gauche sur deux lignes, à droite sur une.
 const BOUTONS_BUREAU: Record<DispositionEntete, string> = {
   aucun: '',
   un: 'flex flex-none gap-2',
-  deux: 'flex items-stretch gap-2 @[460px]/carte:flex-none',
+  deux: 'flex gap-2 @[460px]/carte:flex-none',
 };
-const COMPARER_BUREAU: Record<DispositionEntete, string> = {
-  aucun: '',
-  un: 'flex-none',
-  deux: 'flex-1 @[460px]/carte:flex-none',
-};
-// « Valider » sur une ligne : 160 px, la largeur de « Valider les artéfacts ».
-const VALIDER_BUREAU: Record<DispositionEntete, string> = {
-  aucun: '',
-  un: 'w-40 flex-none',
-  deux: 'flex-1 @[460px]/carte:w-40 @[460px]/carte:flex-none',
-};
+// « Valider » : 160 px, la largeur de son plus long libellé (« Valider les
+// artéfacts », 123 px mesurés), sur une ligne comme sur deux.
+const VALIDER_BUREAU = 'w-40';
 
 // Une combinaison trouvée : les artéfacts (fixes) et les 6 runes (sur la
 // roue, façon jeu), les sets obtenus, le panneau de stats (base+bonus ↔
@@ -344,8 +338,8 @@ export default function BuildCandidateCard({
   // OptimizerSection.tsx). Absent (`onValidate` non fourni) pour un monstre
   // non réellement possédé — rien à réserver sur un exemplaire qui n'existe
   // pas dans le compte.
-  // ⚠️ Au téléphone (et au bureau sur deux lignes), les deux boutons SE
-  // PARTAGENT la largeur (demande explicite) : `flex` + `flex-1` sur chacun,
+  // ⚠️ Au téléphone, les deux boutons SE PARTAGENT la largeur (demande
+  // explicite) : `flex` + `flex-1` sur chacun,
   // plutôt que deux `pleineLargeur` empilés. La carte garde ainsi la même
   // hauteur qu'avec un seul bouton — une rangée de plus par carte se paie sur
   // toute la grille de résultats.
@@ -359,7 +353,7 @@ export default function BuildCandidateCard({
           taille="sm"
           icone={<ArrowLeftRight size={14} />}
           libelle="Comparer"
-          className={bureau ? COMPARER_BUREAU[dispositionEntete] : 'flex-1'}
+          className={bureau ? undefined : 'flex-1'}
         />
       )}
       {onValidate && (
@@ -397,7 +391,7 @@ export default function BuildCandidateCard({
                   ? 'Valider les artéfacts'
                   : 'Valider ce build'
           }
-          className={bureau ? VALIDER_BUREAU[dispositionEntete] : 'flex-1'}
+          className={bureau ? VALIDER_BUREAU : 'flex-1'}
         />
       )}
     </div>
@@ -424,11 +418,11 @@ export default function BuildCandidateCard({
         // l'utilisateur : la carte raccourcit) : rang, valeur moyenne, sets,
         // puis « Comparer » et « Valider ce build » à droite. Avec les deux
         // boutons, une carte de moins de 460 px repasse sur deux lignes
-        // (boutons dessous, à parts égales, comme au téléphone) : le passage
-        // ne dépend que de la largeur de la carte (requête sur le conteneur
-        // `carte`), jamais d'un clic. Sur une ligne, « Valider » a une
-        // largeur fixe, celle de son plus long libellé : passer de « Valider
-        // ce build » à « Validé » ne déplace ni lui ni « Comparer ». Le haut
+        // (boutons dessous, à gauche) : le passage ne dépend que de la
+        // largeur de la carte (requête sur le conteneur `carte`), jamais d'un
+        // clic. « Valider » a une largeur fixe, celle de son plus long
+        // libellé : passer de « Valider ce build » à « Validé » ne déplace ni
+        // lui ni « Comparer ». Le haut
         // aligné (`items-start`) : l'écart qui apparaît sous la valeur quand
         // on compare ne déplace pas les boutons.
         <div className={`mb-2 flex gap-x-3 gap-y-1.5 ${ENTETE_BUREAU[dispositionEntete]}`}>

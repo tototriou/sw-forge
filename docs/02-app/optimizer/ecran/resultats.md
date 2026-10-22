@@ -20,16 +20,17 @@ ils suivent la progression, sur toute la largeur.
     de l'utilisateur : la carte raccourcit) : rang, valeur moyenne, sets,
     puis « Comparer » et « Valider ce build » à droite, au lieu d'une ligne
     de sets à part et des boutons en bas de la carte. Avec les deux boutons,
-    une carte de moins de 460 px repasse sur deux lignes, boutons dessous à
-    parts égales (comme au téléphone) ; avec un seul, la ligne tient jusqu'à
-    la carte la plus étroite (356 px). Le passage ne dépend que de la
-    largeur de la carte (requête sur son conteneur), jamais d'un clic. Sur
-    une ligne, « Valider » a la largeur fixe de son plus long libellé
-    (« Valider les artéfacts ») : passer à « Validé » ne déplace ni lui ni
-    « Comparer » ; le haut de l'en-tête est aligné, et l'écart qui apparaît
-    sous la valeur quand on compare ne déplace pas les boutons. Mesuré
-    (« Comparer » seul) : une carte passe de 340 à 288 px. Le téléphone
-    garde son en-tête, ses sets et ses boutons en bas.
+    une carte de moins de 460 px repasse sur deux lignes, boutons dessous, à
+    gauche ; avec un seul, la ligne tient jusqu'à la carte la plus étroite
+    (356 px). Le passage ne dépend que de la largeur de la carte (requête
+    sur son conteneur), jamais d'un clic. « Valider » a la largeur fixe de
+    son plus long libellé (160 px ; « Valider les artéfacts » en mesure
+    123) : passer à « Validé » ne déplace ni lui ni « Comparer » ; le haut
+    de l'en-tête est aligné, et l'écart qui apparaît sous la valeur quand
+    on compare ne déplace pas les boutons. Mesuré : une carte passe de 340
+    à 288 px avec « Comparer » seul ; avec les deux boutons, son en-tête
+    fait 28 px sur une ligne, 53 sur deux. Le téléphone garde son en-tête,
+    ses sets et ses boutons en bas.
     ⚠️ **Recalculée à l'affichage** (`candidateMetricTotal` dans
     [runeBuildOptim.ts](src/lib/runeBuildOptim.ts), à partir des VRAIES
     runes) plutôt que lue depuis `BuildCandidate.effTotal` : ce champ est

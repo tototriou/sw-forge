@@ -159,6 +159,16 @@ instant réel. Une panne pendant un transfert `MessageChannel` doit encore
 permettre de sceller exactement le préfixe reçu. Les tampons de vingt blocs
 unitaires occupent exactement 2 400 octets, sans capacité cachée.
 
+`testFluxCandidatsPageLente` utilise de vrais Workers Node et une page
+simulée qui acquitte chaque bloc après huit tours de boucle. Il compte les
+crédits retenus après fusion, ainsi que les blocs contigus reçus qui
+attendraient une publication précédente : aucune attente liée à la page
+dans ce scénario, sans mesure de temps. Il compare les 77 125 candidats,
+les comptes, les quasi-succès et le motif à la référence séquentielle. Un
+contrôle sans acquittement remplit les seize places de la fenêtre, vérifie
+que le dix-septième bloc attend, puis que le scellement attend tous les
+crédits. Les tampons partiels restent ajustés aux lignes.
+
 Chaque appel parallèle explicite de ces tests a un délai de garde de
 15 secondes, qui signale une erreur et ferme les Workers encore vivants ;
 ce délai détecte un interblocage, il n'est pas un budget de performance.

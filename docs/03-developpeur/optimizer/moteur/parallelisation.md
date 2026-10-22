@@ -299,9 +299,11 @@ L'adaptation objet est explicite pour les consommateurs d'outillage
    candidats)` : les paires traitées et les colonnes des candidats
    FUSIONNÉS, dans l'ordre séquentiel — les comptes du résultat, dont la
    dernière progression est l'état final. Le Worker principal transmet ces
-   blocs puis les retire ; le crédit du producteur revient après cette
-   transmission. Les messages de progression sont espacés (au plus un par
-   `PROGRESS_THROTTLE_MS`), avec `totalPairs` et le
+   blocs puis les retire ; le crédit du producteur revient dès la fusion,
+   avant tout rappel de progression. La transmission admet jusqu'à seize
+   blocs sans attendre la page ; seul le remplissage de cette fenêtre
+   impose une contre-pression. Les messages de progression sont espacés
+   (au plus un par `PROGRESS_THROTTLE_MS`), avec `totalPairs` et le
    pourcentage (`estimatePct`) :
    [02-app/optimizer/feat-interruption.md § Barre de progression](../../../02-app/optimizer/feat-interruption.md#barre-de-progression).
    L'aperçu est ainsi toujours un préfixe du résultat final ;
@@ -318,13 +320,26 @@ voyagent avec le même préfixe. La fusion conserve le même morceau courant
 jusqu'à son bilan, et coupe avant toute émission au candidat du plafond.
 
 Un Worker attend l'acquittement de son bloc avant de produire le suivant.
-Les crédits sont rendus à la fusion, y compris pour les blocs jetés après
-une coupe ; chaque Worker a une place réservée, donc le premier morceau
-attendu peut toujours avancer. Avec huit Workers au plus, les colonnes et
+Les crédits sont rendus dès la fusion, avant le rappel asynchrone de
+progression, y compris pour les blocs jetés après une coupe ; chaque Worker
+a une place réservée, donc le premier morceau attendu peut toujours
+avancer. Avec huit Workers au plus, les colonnes et
 positions non acquittées restent sous 8 Mio. La distribution a aussi une
 fenêtre bornée par les morceaux non fusionnés, indépendante de leur vitesse.
 L'attente cède la main aux messages et compte dans le filet global. L'arrêt
 coopératif draine ces blocs et les bilans des morceaux déjà partis.
+
+Les crédits de la page sont distincts de ceux des producteurs.
+`EmetteurCandidats` transfère au plus `BLOCS_EN_VOL_VERS_PAGE` (16) blocs
+sans acquittement : 7,5 Mio de colonnes au maximum, ajustées aux lignes
+réelles. Il attend seulement à saturation de cette fenêtre, puis au
+scellement pour que tous les blocs soient reçus. Une page complètement
+arrêtée impose donc encore une contre-pression ; aucune file illimitée ne
+la masque. Avec W Workers, la collecte compacte en transit occupe au plus
+16 + 2W blocs de colonnes : seize vers la page, W dans la publication
+courante et W chez les producteurs ou reçus en attente de fusion. Cette
+borne exclut les candidats déjà reçus par la page, qui constituent le
+résultat, les positions de coupe et les métadonnées des morceaux.
 
 - Dans l'ORDRE DES MORCEAUX, donc dans l'ordre séquentiel : chaque morceau
   rendu attend que ses prédécesseurs le soient, puis ses candidats se

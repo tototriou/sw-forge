@@ -422,9 +422,11 @@ export async function apparierRapideEnParallele<C extends SortieCandidats = Buil
               if (entree) { resultats[i] = undefined; aAcquitter.push(entree.w); }
             }
           }
+          // La page possède ses propres crédits ; le producteur peut reprendre
+          // dès l'adoption de ses colonnes, avant toute publication asynchrone.
+          for (const t of aAcquitter) poignees[t].acquitter?.();
           await o.surProgression?.(traitees, candidates);
           if (termine) return;
-          for (const t of aAcquitter) poignees[t].acquitter?.();
           for (let k = 0; k < EN_VOL_PAR_TRAVAILLEUR; k++) for (let t = 0; t < nbTravailleurs; t++) distribuer(t);
           if ((distributionTerminee() || prochainADistribuer >= aDistribuer.length) && enVol === 0) finir();
         }).catch((erreur: unknown) => { enErreur = { erreur }; finir(); });

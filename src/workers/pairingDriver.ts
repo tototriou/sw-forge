@@ -12,26 +12,38 @@ import { cederLaMain } from '../lib/cession';
 import { PairingProgress, SearchResult, BuildCandidate } from '../lib/runeBuildOptim';
 import { BlocCandidats, ColonnesCandidats, SortieCandidats, extraireBlocs, tamponsCandidats } from '../lib/candidatsCompacts';
 
-/** Un bloc en vol vers son propriétaire ; l'acquittement rend des octets, jamais les tampons. */
+/** Fenêtre de transport : 16 × 4096 × 120 octets au plus, sans file illimitée. */
+export const BLOCS_EN_VOL_VERS_PAGE = 16;
+
+/** Crédits de la page, distincts de ceux des Workers producteurs. */
 export class EmetteurCandidats {
   private rendreCredit: (() => void) | null = null;
+  private enVol = 0;
   private nombre = 0;
   private scelle = false;
   constructor(private readonly poster: (bloc: BlocCandidats, transfert: ArrayBuffer[]) => void) {}
-  acquitter(): void { const rendre = this.rendreCredit; this.rendreCredit = null; rendre?.(); }
+  acquitter(): void {
+    if (this.enVol === 0) return;
+    this.enVol--;
+    const rendre = this.rendreCredit; this.rendreCredit = null; rendre?.();
+  }
+  private attendreCredit(): Promise<void> {
+    return new Promise<void>((resolve) => { this.rendreCredit = resolve; });
+  }
   async transmettre(sortie: ColonnesCandidats): Promise<void> {
     if (this.scelle) throw new Error('Flux de candidats déjà scellé');
     for (const bloc of extraireBlocs(sortie)) {
+      while (this.enVol >= BLOCS_EN_VOL_VERS_PAGE) await this.attendreCredit();
       if (bloc.debut !== this.nombre) throw new Error('Ordre du flux de candidats incohérent');
-      const longueur = bloc.longueur;
-      const credit = new Promise<void>((resolve) => { this.rendreCredit = resolve; });
+      // Installer le crédit avant l'envoi : une réception de test peut être synchrone.
+      this.enVol++;
+      this.nombre += bloc.longueur;
       this.poster(bloc, tamponsCandidats([bloc]));
-      await credit;
-      this.nombre += longueur;
     }
   }
   async sceller(sortie: ColonnesCandidats): Promise<number> {
     await this.transmettre(sortie);
+    while (this.enVol > 0) await this.attendreCredit();
     if (sortie.length !== this.nombre) throw new Error('Candidats manquants au scellement');
     this.scelle = true;
     return this.nombre;

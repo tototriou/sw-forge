@@ -6,7 +6,7 @@ import { objetsDesCompartiments } from '../src/lib/demiBuildsTypes';
 import { BlocCandidats, ColonnesCandidats, LIGNES_PAR_BLOC, RecepteurCandidats, ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs, fusionnerCandidats, objetsDesCandidats, tamponsCandidats } from '../src/lib/candidatsCompacts';
 import { ErreurAppariementParallele, LancerTravailleur, OptionsParallele, PoigneeTravailleur, apparierRapideEnParallele, enResultatDeRecherche, planifierMorceaux } from '../src/lib/appariementRapideParallele';
 import { tamponsResultatMorceau } from '../src/lib/travailleurAppariement';
-import { EmetteurCandidats, drivePairing } from '../src/workers/pairingDriver';
+import { BLOCS_EN_VOL_VERS_PAGE, EmetteurCandidats, drivePairing } from '../src/workers/pairingDriver';
 import { assurerBundleAppariementRapide, lancerTravailleurNode } from '../scripts/lib/appariementRapideNode';
 import { drain } from '../scripts/lib/drain';
 import { mulberry32, randomPool, SETS_JOKER } from '../scripts/lib/randomPool';
@@ -385,6 +385,104 @@ export async function testFluxCandidatsCredits() {
   } catch (erreur) { expiration = erreur; }
   ok(expiration instanceof Error && /fusion ne progresse plus/.test(expiration.message) && lancesMuets > 0 && terminesMuets === lancesMuets,
     'garde de délai : absence de réponse → échec borné et terminaison de tous les Workers');
+}
+
+/** Le serveur suspend chaque envoi jusqu'au crédit : la poignée permet de
+ * compter ceux déjà fusionnés que la réception de la page retient encore. */
+export async function testFluxCandidatsPageLente() {
+  titre('Flux candidats · crédits indépendants de la réception lente de la page');
+  const e = espaceDistinct();
+  const maxCollected = 77_125;
+  const reference = drain(pairBuckets({ ...e.p, maxCollected }, e.A, e.B));
+  const chemin = await assurerBundleAppariementRapide();
+  const brut = lancerTravailleurNode<ColonnesCandidats>(chemin);
+  const attendent = new Map<number, { numero: number; r: ResultatMorceau<ColonnesCandidats> }>();
+  const retenusParPage = new Set<number>();
+  let numeros = 0, credits = 0, fils = 0, tours = 0, blocs = 0, prochainMorceau = 0;
+  const compter = () => {
+    for (const { numero, r } of attendent.values()) {
+      // Le morceau contigu déjà reçu ne doit pas attendre non plus derrière
+      // une publication précédente ; les morceaux en avance attendent l'ordre.
+      if ((r.candidats.length > 0 && r.candidats.blocs.length === 0) || r.id === prochainMorceau) retenusParPage.add(numero);
+    }
+  };
+  const lancer: LancerTravailleur<ColonnesCandidats> = (init, transfert) => {
+    const w = fils++, fil = brut(init, transfert);
+    return { ...fil,
+      surMessage: (rappel) => fil.surMessage((r) => {
+        if (attendent.has(w)) throw new Error('Worker ayant envoyé deux blocs sans crédit');
+        attendent.set(w, { numero: ++numeros, r });
+        rappel(r);
+      }),
+      acquitter: () => {
+        const recu = attendent.get(w)!;
+        if (recu.r.id === prochainMorceau && recu.r.issue !== 'suite') prochainMorceau++;
+        credits++; attendent.delete(w); fil.acquitter!();
+      },
+    };
+  };
+  const reception = new RecepteurCandidats();
+  let receptionsPage = Promise.resolve();
+  const transport = new EmetteurCandidats((bloc, transfert) => {
+    blocs++;
+    const recu = structuredClone(bloc, { transfer: transfert });
+    receptionsPage = receptionsPage.then(async () => {
+      // Plusieurs tours de boucle, sans horloge ni délai mesuré.
+      for (let tour = 0; tour < 8; tour++) {
+        compter(); tours++;
+        await new Promise<void>((resolve) => setImmediate(resolve));
+      }
+      reception.recevoir([recu]);
+      transport.acquitter();
+    });
+  });
+  const r = await paralleleBorne({ params: { ...e.params, maxCollected }, prepared: { ...e.p, maxCollected }, bucketsA: e.A, bucketsB: e.B,
+    totalPaires: e.total, travailleurs: 2, lancer, startedAt: e.p.startedAt, collecte: creerColonnesCandidats(), cibleMorceau: 8192,
+    surProgression: (_, c) => transport.transmettre(c),
+  });
+  const nombre = await transport.sceller(r.candidates);
+  await receptionsPage;
+  identiques(etat(reference), etat({ ...r, candidates: reception.sceller(nombre) }), 'page lente : chaque candidat, champ, rang et quasi-succès');
+  identiques(r.traitees, reference.explored, 'page lente : mêmes paires traitées');
+  identiques(r.motif, 'maxCollected', 'page lente : même motif');
+  identiques(credits, numeros, 'page lente : exactement un crédit par résultat reçu, bilans vides compris');
+  ok(blocs > 10 && tours === blocs * 8 && credits > 10 && attendent.size === 0, `${blocs} blocs, ${credits} crédits, ${tours} tours de page lente, tous rendus`);
+  ok(retenusParPage.size === 0, `${retenusParPage.size} attente(s) de crédit après fusion dues à la page (attendu : zéro)`);
+  await fenetrePage(reference.candidates[0]);
+}
+
+async function fenetrePage(base: BuildCandidate) {
+  const sortie = creerColonnesCandidats();
+  const reception = new RecepteurCandidats(0);
+  const attendus: BuildCandidate[] = [];
+  let postes = 0, enVol = 0, pic = 0, octets = 0;
+  const transport = new EmetteurCandidats((bloc, transfert) => {
+    postes++; enVol++; pic = Math.max(pic, enVol);
+    octets += transfert.reduce((s, b) => s + b.byteLength, 0);
+    reception.recevoir([structuredClone(bloc, { transfer: transfert })]);
+  });
+  const production = (async () => {
+    for (let i = 0; i <= BLOCS_EN_VOL_VERS_PAGE; i++) {
+      const c = { ...base, effTotal: i };
+      attendus.push(c); ajouterObjetCandidat(sortie, c);
+      await transport.transmettre(sortie);
+    }
+  })();
+  // Laisser passer toutes les continuations immédiates ; aucun crédit de page.
+  for (let i = 0; i < 2 * BLOCS_EN_VOL_VERS_PAGE + 4; i++) await Promise.resolve();
+  identiques(postes, BLOCS_EN_VOL_VERS_PAGE, 'la fenêtre admet seize blocs puis retient le dix-septième');
+  enVol--; transport.acquitter();
+  await production;
+  identiques(postes, BLOCS_EN_VOL_VERS_PAGE + 1, 'un seul crédit admet exactement un nouveau bloc');
+  let scelle = false;
+  const fin = transport.sceller(sortie).then((n) => { scelle = true; return n; });
+  await Promise.resolve();
+  identiques(scelle, false, 'le scellement attend les blocs encore non acquittés');
+  while (enVol > 0) { enVol--; transport.acquitter(); }
+  identiques(attendus, reception.sceller(await fin), 'fenêtre saturée : chaque ligne reçue une fois et dans l’ordre');
+  identiques(pic, BLOCS_EN_VOL_VERS_PAGE, 'borne de seize blocs non acquittés');
+  identiques(octets, (BLOCS_EN_VOL_VERS_PAGE + 1) * 120, 'les tampons de la fenêtre sont ajustés aux lignes réelles');
+  ok(true, 'fenêtre : seize blocs admis sans crédit, saturation bornée, reprise sur un crédit et scellement après tous les crédits');
 }
 
 async function nombreuxBlocsPartiels(base: BuildCandidate) {

@@ -259,7 +259,9 @@ ajuster des colonnes qui ne seront pas transférées.
 
 `drivePairing` (`src/workers/pairingDriver.ts`) pilote pas à pas le
 générateur `apparierRapide` avec sa sortie en colonnes. `EmetteurCandidats`
-transfère les blocs, un à la fois, et attend leur acquittement par la page.
+transfère les blocs dans l'ordre, avec une fenêtre de seize blocs non
+acquittés au plus. Il attend la page seulement à saturation de cette
+fenêtre ; le scellement attend tous les acquittements avant le bilan final.
 Le pilote vide aussi les blocs dès que deux sont prêts, sans attendre le
 palier de progression. Il rend la main à la boucle d'événements (`cederLaMain` : message de
 canal, non bridé) au plus une fois par `YIELD_THROTTLE_MS`, ce qui laisse arriver le message d'arrêt ; à l'arrêt

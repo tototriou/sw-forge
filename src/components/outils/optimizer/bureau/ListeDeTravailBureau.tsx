@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import MonsterAvatar from '../../../MonsterAvatar';
 import MonstresDeLaListe, { type MonstresDeLaListeProps } from '../MonstresDeLaListe';
 import { type Monster } from '../../../../types';
@@ -26,9 +26,28 @@ export interface ListeDeTravailBureauProps {
 // ⚠️ **Le monstre actif tient sa place, vide ou non** : choisir un monstre ne
 // déplace ni le champ ni la liste (un clic ne déplace jamais ce qu'on vient de
 // cliquer).
+//
+// ⚠️ **La recherche s'arrête à la droite de la liste déroulante des listes**
+// (décision de l'utilisateur) : la place du monstre actif a la largeur de
+// l'action qui suit la liste (« Importer une équipe », `data-action-liste`),
+// lue sur la page, puisque son libellé fixe sa largeur. Avant la première
+// mesure (rendu serveur), la largeur mesurée au bureau.
+const LARGEUR_ACTION_LISTE_DEFAUT = 161;
+
 export default function ListeDeTravailBureau({ listes, recherche, monstreActif, liste }: ListeDeTravailBureauProps) {
+  const section = useRef<HTMLElement>(null);
+  const [largeurAction, setLargeurAction] = useState(LARGEUR_ACTION_LISTE_DEFAUT);
+  useLayoutEffect(() => {
+    const action = section.current?.querySelector<HTMLElement>('[data-action-liste]');
+    if (!action || typeof ResizeObserver === 'undefined') return;
+    const lire = () => setLargeurAction(action.getBoundingClientRect().width);
+    lire();
+    const obs = new ResizeObserver(lire);
+    obs.observe(action);
+    return () => obs.disconnect();
+  }, []);
   return (
-    <section aria-label="Liste de travail">
+    <section ref={section} aria-label="Liste de travail">
       {listes}
       <div className="mt-2">
         <MonstresDeLaListe
@@ -36,7 +55,7 @@ export default function ListeDeTravailBureau({ listes, recherche, monstreActif, 
           enTete={
             <>
               <div className="min-w-0 flex-1">{recherche}</div>
-              <div data-monstre-actif className="flex h-8 w-[132px] flex-none items-center gap-2">
+              <div data-monstre-actif style={{ width: largeurAction }} className="flex h-8 flex-none items-center gap-2">
                 {monstreActif && (
                   <>
                     <MonsterAvatar monster={monstreActif} size={28} />

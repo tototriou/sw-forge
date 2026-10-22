@@ -744,8 +744,8 @@ function rendreResultat(r: ResultatHarnais): string {
         const d = m.distribution;
         l.push(
           '',
-          `  moitié ${moitie} : ${nb(m.runesExterieures)} rune(s) extérieure(s)` +
-            `   prologue ${msFin(m.prologueMs)}   dernière rune + épilogue ${msFin(m.derniereEtEpilogueMs)}`,
+          `  moitié ${moitie} : ${nb(m.runesExterieures)} rune(s) extérieure(s), ${m.tranches} tranche(s)` +
+            `   somme des prologues ${msFin(m.prologueMs)}   somme des dernières runes + épilogues ${msFin(m.derniereEtEpilogueMs)}`,
           `    série homogène (${nb(d.n)} intervalles, ${msFin(d.totalMs)} au total) :` +
             `   min ${msFin(d.minMs)}   médiane ${msFin(d.medianeMs)}   p90 ${msFin(d.p90Ms)}   max ${msFin(d.maxMs)}`
         );

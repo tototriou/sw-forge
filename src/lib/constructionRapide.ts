@@ -1,7 +1,7 @@
 // Construction des moitiés sur tableaux typés : le chemin de production
 // (`construireMoitieTypee`, src/lib/rechercheRunes.ts, Workers de l'écran et
-// `searchBuilds`). Le CLI et le harnais gardent l'adaptateur objet
-// `construireMoitie`. `buildBuckets` reste la RÉFÉRENCE et le chemin du
+// `searchBuilds`). Le CLI et le harnais utilisent le même lanceur de tranches
+// que l'écran, avec adaptation objet explicite seulement à la sortie. `buildBuckets` reste la RÉFÉRENCE et le chemin du
 // traceur de diagnostic. Contrat : rendre EXACTEMENT les compartiments de
 // `buildBuckets` (mêmes clés, comptes, jokers, `combos` dans le même ordre avec
 // leurs `pct`/`flat`/`relevanceScore`, mêmes `maxPct`/`maxFlat` jusqu'à l'ordre
@@ -9,9 +9,8 @@
 // (tests/construction-rapide.test.ts). Voir
 // docs/03-developpeur/optimizer/moteur/pipeline.md § Construction des moitiés.
 //
-// Le découpage parallèle ci-dessous (`construireTranche`, `fusionnerTranches`)
-// n'est pas branché en production : seul le banc
-// (scripts/banc-construction-moities.ts) l'exerce.
+// Le lanceur commun de constructionEmboitee.ts distribue les tranches aux
+// Workers et fusionne leurs rétentions directement en colonnes.
 //
 // Ce qui change, et pourquoi le résultat ne bouge pas :
 // - Aucune allocation par combinaison. `buildBuckets` crée, pour CHAQUE triplet
@@ -82,7 +81,7 @@ export interface ResultatTranche {
   /** Les indices parcourus, rendus tels quels : la fusion vérifie que les tranches couvrent le premier emplacement une fois. */
   idx0s: number[];
   /** Codes des triplets acceptés par au moins un tas de la tranche, croissants. */
-  codes: Int32Array;
+  codes: Int32Array | Float64Array;
   /** Par compartiment rencontré : code entier, code de son premier triplet, puis bornes et premières apparitions (une case par stat contrainte). */
   compartiments: {
     code: number;
@@ -320,7 +319,7 @@ interface Etat {
   have01: Int32Array;
   counts: Int32Array;
   emettre: boolean;
-  emis: Int32Array;
+  emis: Int32Array | Float64Array;
   nEmis: number;
 }
 
@@ -337,7 +336,7 @@ function nouvelEtat(noyau: Noyau, emettre: boolean): Etat {
     have01: new Int32Array(D),
     counts: new Int32Array(D),
     emettre,
-    emis: new Int32Array(emettre ? 1024 : 0),
+    emis: noyau.codesLarges ? new Float64Array(emettre ? 1024 : 0) : new Int32Array(emettre ? 1024 : 0),
     nEmis: 0,
   };
 }
@@ -404,7 +403,7 @@ function calculerScores(etat: Etat, relevance: number): void {
 
 function emettre(etat: Etat, code: number): void {
   if (etat.nEmis === etat.emis.length) {
-    const n = new Int32Array(etat.emis.length * 2);
+    const n = etat.noyau.codesLarges ? new Float64Array(etat.emis.length * 2) : new Int32Array(etat.emis.length * 2);
     n.set(etat.emis);
     etat.emis = n;
   }
@@ -480,7 +479,10 @@ function parcourirR0(etat: Etat, idx0: number): void {
       }
       calculerScores(etat, relevance);
       let accepte = false;
-      for (let s = 0; s < sliceCount; s++) if (pousser(b.tas[s], scores[s], code)) accepte = true;
+      for (let s = 0; s < sliceCount; s++) {
+        if (etat.emettre && Number.isNaN(scores[s])) throw new Error('constructionRapide : score NaN — la fusion exige un ordre total.');
+        if (pousser(b.tas[s], scores[s], code)) accepte = true;
+      }
       if (accepte && etat.emettre) emettre(etat, code);
     }
   }
@@ -608,13 +610,23 @@ export function* construireMoitieRapide(
 
 /** Une tranche du découpage parallèle : à exécuter dans un Worker, sur une partie des runes du premier emplacement. */
 export function construireTranche(entree: EntreeTranche): ResultatTranche {
+  const gen = construireTrancheEtapes(entree);
+  let step = gen.next();
+  while (!step.done) step = gen.next();
+  return step.value;
+}
+
+/** Même parcours dans les deux coquilles ; un point de passage par rune extérieure. */
+export function* construireTrancheEtapes(entree: EntreeTranche): Generator<number, ResultatTranche, void> {
   refuserTraceur(entree.ctx);
-  const noyau = preparerNoyau(entree.ctx, entree.slotIdxs, entree.otherHalfMaxSets);
+  const noyau = preparerNoyau(entree.ctx, entree.slotIdxs, entree.otherHalfMaxSets, true);
   const etat = nouvelEtat(noyau, true);
   let prec = -1;
+  let scanned = 0;
   for (const idx0 of entree.idx0s) {
-    if (!(idx0 > prec) || idx0 >= noyau.n[0]) throw new Error('constructionRapide : `idx0s` doit être strictement croissant et dans le pool.');
+    if (!Number.isInteger(idx0) || !(idx0 > prec) || idx0 >= noyau.n[0]) throw new Error('constructionRapide : `idx0s` doit être strictement croissant et dans le pool.');
     prec = idx0;
+    yield ++scanned;
     parcourirR0(etat, idx0);
   }
   return {
@@ -622,6 +634,12 @@ export function construireTranche(entree: EntreeTranche): ResultatTranche {
     codes: etat.emis.slice(0, etat.nEmis),
     compartiments: etat.compartiments.map((c) => ({ code: c.code, premier: c.premier, maxPct: c.maxPct, maxFlat: c.maxFlat, premierPct: c.premierPct, premierFlat: c.premierFlat })),
   };
+}
+
+/** Les tampons propres d'une réponse, transférés sans mémoire partagée. */
+export function tamponsDeTranche(r: ResultatTranche): ArrayBuffer[] {
+  return [r.codes.buffer as ArrayBuffer, ...r.compartiments.flatMap((c) =>
+    [c.maxPct.buffer, c.maxFlat.buffer, c.premierPct.buffer, c.premierFlat.buffer] as ArrayBuffer[])];
 }
 
 /** Les champs de la préparation que lit la construction, en objet sérialisable (sans `totalOf`, ni traceur). */
@@ -654,11 +672,25 @@ export function fusionnerTranches(
   combosOrderMode: OrdreCombos,
   tranches: ResultatTranche[]
 ): Bucket[] {
+  return objetsDesCompartiments(fusionnerTranchesTypees(ctx, slotIdxs, otherHalfMaxSets, combosOrderMode, tranches), ctx.filtered);
+}
+
+/** Fusion de production : aucun HalfCombo entre les tas et les colonnes. */
+export function fusionnerTranchesTypees(
+  ctx: ContexteConstruction,
+  slotIdxs: readonly [number, number, number],
+  otherHalfMaxSets: number[],
+  combosOrderMode: OrdreCombos,
+  tranches: ResultatTranche[]
+): CompartimentType[] {
   refuserTraceur(ctx);
-  const noyau = preparerNoyau(ctx, slotIdxs, otherHalfMaxSets);
+  const noyau = preparerNoyau(ctx, slotIdxs, otherHalfMaxSets, true);
   const { D, T, n, cPct, cFlat, eff, joker, setIdx, constr, sliceCount } = noyau;
   const vus = new Uint8Array(n[0]);
-  for (const t of tranches) for (const i of t.idx0s) vus[i]++;
+  for (const t of tranches) for (const i of t.idx0s) {
+    if (!Number.isInteger(i) || i < 0 || i >= n[0] || vus[i]) throw new Error('constructionRapide : indices de tranche invalides ou dupliqués.');
+    vus[i] = 1;
+  }
   if (vus.some((v) => v !== 1)) throw new Error('constructionRapide : les tranches ne couvrent pas le premier emplacement une fois et une seule.');
 
   const etat = nouvelEtat(noyau, false);
@@ -672,7 +704,7 @@ export function fusionnerTranches(
 
   let total = 0;
   for (const t of tranches) total += t.codes.length;
-  const codes = new Int32Array(total);
+  const codes = noyau.codesLarges ? new Float64Array(total) : new Int32Array(total);
   let o = 0;
   for (const t of tranches) {
     codes.set(t.codes, o);
@@ -717,7 +749,7 @@ export function fusionnerTranches(
       }
     }
   }
-  return objetsDesCompartiments(materialiser(noyau, ctx, etat.compartiments, combosOrderMode), ctx.filtered);
+  return materialiser(noyau, ctx, etat.compartiments, combosOrderMode);
 }
 
 /* --------------------------------------------------------------------------

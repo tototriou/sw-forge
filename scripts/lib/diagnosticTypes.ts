@@ -382,9 +382,8 @@ export interface TempsParPhase {
    */
   perimetrePreparation: string;
   /**
-   * Le temps RÉEL de la phase de construction — les deux moitiés étant
-   * bâties EN PARALLÈLE sur deux fils, comme en production. C'est donc le
-   * plus lent des deux, pas leur somme.
+   * Le temps RÉEL de toute la construction, pool de tranches, transferts,
+   * fusion, union et fermeture des fils compris ; jamais la somme des coûts internes.
    *
    * ⚠️ **ABSENT quand la phase n'a pas tourné**, jamais une série à zéro.
    * Rendre `temps` en bloc ou pas du tout jetterait les relevés d'un arrêt
@@ -572,9 +571,10 @@ export interface RetentionMoitie {
  * et son absence est le signe que « deux hypothèses » n'était pas une
  * énumération close, mais celles auxquelles on avait pensé.
  *
- * ⚠️ La mesure est propre parce que **chaque moitié tourne dans son propre
- * `worker_threads`**, donc dans son propre tas. `arrayBuffers` comprend les
- * colonnes hors tas avant transfert ; `rss` porte sur tout le processus.
+ * Relevés de fin de tâche, maxima observés par fil et sommés par moitié.
+ * Les tas sont réutilisés entre tâches ; aucune attribution stricte à une
+ * moitié. arrayBuffers compte les codes et bornes avant transfert, hors
+ * colonnes reconstruites au coordinateur ; rss reste global (maximum).
  */
 export interface MemoireConstruction {
   A: import('./build-half-worker').MemoireMoitie;
@@ -647,6 +647,8 @@ export interface DivisionParPairesInterieures {
 }
 
 export interface ProgressionMoitieRendue {
+  /** Nombre de tranches non vides du cran de recherche. */
+  tranches: number;
   /** Annoncé par le moteur (`BuildingProgress.total`), jamais recompté. */
   runesExterieures: number;
   /** 1ᵉʳ `next()` : le prologue SEUL, aucune rune extérieure traitée. */

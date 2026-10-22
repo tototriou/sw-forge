@@ -3,15 +3,16 @@
 // matérialiseur typé. Aucun chrono : seul le résultat est comparé.
 import { Bucket, PreparedSearch, SearchParams, SearchResult, buildBuckets, pairBuckets, prepareSearch, totalPairCount } from '../src/lib/runeBuildOptim';
 import { construireMoitieTypee, searchBuilds } from '../src/lib/rechercheRunes';
-import { construireMoitiesEmboiteesTypees, requetesDeLaMoitie } from '../src/lib/constructionEmboitee';
+import { construireMoitiesEmboiteesTypees, entreeDeTranche, lancerConstruction, requetesDeLaMoitie, TravailleurConstruction } from '../src/lib/constructionEmboitee';
 import { UnionDesRetentions } from '../src/lib/retentionEmboitee';
-import { OrdreCombos, premiereDivergence } from '../src/lib/constructionRapide';
+import { construireTranche, fusionnerTranchesTypees, OrdreCombos, premiereDivergence, repartirIdx0, tamponsDeTranche } from '../src/lib/constructionRapide';
 import { CompartimentType, objetsDesCompartiments, tamponsDesDemiBuilds, typerCompartiments } from '../src/lib/demiBuildsTypes';
 import { apparierRapide, compterPaires, encoderCompartiments, tamponsDe, verifierContrat } from '../src/lib/appariementRapide';
 import { enResultatDeRecherche } from '../src/lib/appariementRapideParallele';
 import { apparierObjetPourTest as apparierRapideEnParallele } from './flux-candidats.test';
 import { assurerBundleAppariementRapide, lancerTravailleurNode } from '../scripts/lib/appariementRapideNode';
-import { construireMoitiesEnParallele, ensureBuildHalfBundle } from '../scripts/lib/buildHalvesNode';
+import { construireMoitiesEnParallele, creerConstructionNode, ensureBuildHalfBundle } from '../scripts/lib/buildHalvesNode';
+import { nombreDeTravailleurs } from '../src/workers/parallelPairing';
 import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
 import { drain } from '../scripts/lib/drain';
 import { egal, ok, titre } from './outils';
@@ -219,4 +220,146 @@ export default async function testConstructionColonnes() {
     }
     return false;
   }), 'le triplet final de grand code est réellement retenu');
+}
+
+export async function testConstructionTranches() {
+  titre('Construction en tranches · ordre exact, crans, pool partagé et frontières');
+  const params: SearchParams = { base: BASE, artifacts: [], pool: randomPool(mulberry32(23000), 45, SETS_JOKER), metric: 'eff',
+    requirement: { sets: ['violent'], minStats: { spd: 130, cr: 35, atk: 800 } }, objectiveStats: ['atk', 'cd'],
+    slotFilterCap: 300, bucketCap: 3, maxMs: Infinity, maxCollected: Infinity };
+  const verifier = (p: PreparedSearch, mode: OrdreCombos, r: { bucketsA: CompartimentType[]; bucketsB: CompartimentType[] }, nom: string) => {
+    for (const h of ['A', 'B'] as const) {
+      const slots = h === 'A' ? [0, 1, 2] as const : [3, 4, 5] as const;
+      const attendu = drain(construireMoitieTypee(h, slots, p, h === 'A' ? p.maxSetsForA : p.maxSetsForB, mode));
+      const recu = h === 'A' ? r.bucketsA : r.bucketsB;
+      identiques(attendu, recu, `${nom}, moitié ${h}, ${mode} : colonnes, ordre, bornes, potentiel`);
+      const d = premiereDivergence(reference(p, h, mode), objetsDesCompartiments(recu, p.filtered));
+      if (d) throw new Error(`Premier écart ${nom}, moitié ${h}, ${mode} : ${d}`);
+    }
+  };
+  for (const seed of [23000, 23001, 23002]) for (const mode of ORDRES) {
+    const p = prepareSearch({ ...params, pool: randomPool(mulberry32(seed), seed === 23000 ? 45 : 7, SETS_JOKER) })!;
+    let crees = 0, termines = 0, enVol = 0, maximum = 0, transferts = 0;
+    const appels = new Map<number, number>();
+    const premiers: string[] = [];
+    const points: Record<'A' | 'B', number> = { A: 0, B: 0 };
+    const r = await lancerConstruction(p, mode, { concurrence: 16, coeursPhysiques: null,
+      creer: () => {
+        const fil = crees++;
+        return { construire: async (requete, progression) => {
+          appels.set(fil, (appels.get(fil) ?? 0) + 1);
+          if (premiers.length < 6) premiers.push(`${requete.half}:${requete.rangPrereglage}`);
+          enVol++; maximum = Math.max(maximum, enVol);
+          // Réponses dans le désordre, sans budget-temps ni état partagé à corriger.
+          for (let tour = 0; tour < (6 - fil); tour++) await new Promise<void>((resolve) => setImmediate(resolve));
+          const resultat = construireTranche(entreeDeTranche(requete));
+          progression(requete.idx0s.length);
+          const tampons = tamponsDeTranche(resultat);
+          const recu = structuredClone(resultat, { transfer: tampons });
+          if (tampons.some((t) => t.byteLength)) throw new Error('Tampon de tranche non détaché.');
+          transferts++;
+          enVol--;
+          return recu;
+        }, terminer: () => { termines++; } };
+      },
+      progression: (half, scanned, total) => {
+        if (scanned < points[half] || scanned > total) throw new Error(`Progression ${half} incohérente.`);
+        points[half] = scanned;
+        const attendu = p.filtered[half === 'A' ? 0 : 3].length + p.cransEmboites.reduce((n, c) => n + c.indices[half === 'A' ? 0 : 3].length, 0);
+        if (total !== attendu) throw new Error(`totalConstruction ${half} : ${total}, attendu ${attendu}.`);
+      },
+    });
+    verifier(p, mode, r, `seed ${seed}, crans emboîtés`);
+    egal(crees, 6, 'six Workers pour seize fils, tous crans et moitiés confondus');
+    egal(termines, crees, 'pool entier terminé au succès');
+    ok(maximum <= 6 && transferts > crees && [...appels.values()].some((n) => n > 1), 'pool borné, Workers réutilisés, réponses transférées');
+    ok(premiers.some((k) => k.startsWith('A:')) && premiers.some((k) => k.startsWith('B:'))
+      && new Set(premiers.map((k) => k.split(':')[1])).size > 1, 'moitiés et crans se partagent le pool dès les premières tâches');
+    for (const h of ['A', 'B'] as const) {
+      const slots = h === 'A' ? [0, 1, 2] as const : [3, 4, 5] as const;
+      egal(points[h], p.filtered[slots[0]].length + p.cransEmboites.reduce((n, c) => n + c.indices[slots[0]].length, 0), 'progression finale garantie');
+      for (const requete of requetesDeLaMoitie(p, h, mode)) {
+        const tranches = repartirIdx0(requete.filtered[slots[0]].length, 8).map((idx0s) => construireTranche(entreeDeTranche({ ...requete, idx0s })));
+        const fusion = fusionnerTranchesTypees(requete, slots, requete.otherHalfMaxSets, mode, tranches.reverse());
+        const attendu = drain(construireMoitieTypee(h, slots, requete, requete.otherHalfMaxSets, mode));
+        identiques(attendu, fusion, `seed ${seed}, moitié ${h}, cran ${requete.rangPrereglage}, ${mode}`);
+      }
+    }
+  }
+
+  const chemin = await ensureBuildHalfBundle();
+  for (const mode of ORDRES) {
+    const p = prepareSearch({ ...params, pool: randomPool(mulberry32(23010), 20, SETS_JOKER), slotFilterCap: 80 })!;
+    let crees = 0;
+    const r = await lancerConstruction(p, mode, { concurrence: 16, coeursPhysiques: null,
+      creer: () => { crees++; return creerConstructionNode(chemin); } });
+    verifier(p, mode, r, 'vrais Workers réutilisés');
+    egal(crees, 6, 'vrais Workers : règle commune des cœurs');
+  }
+  const p = prepareSearch(params)!;
+  const vide = { ...p, cransEmboites: [], filtered: p.filtered.map(() => []) };
+  let workersVides = 0;
+  const rien = await lancerConstruction(vide, 'objective', { concurrence: 16, coeursPhysiques: null,
+    creer: () => { workersVides++; return creerConstructionNode(chemin); } });
+  verifier(vide, 'objective', rien, 'pools vides');
+  egal(workersVides, 0, 'aucune tâche non vide : aucun Worker créé');
+  for (const cap of [0, 3.5, -1, Infinity, 2 ** 31]) {
+    const q: PreparedSearch = { ...p, bucketCap: cap, cransEmboites: [], filtered: p.filtered.map((pool, s) => pool.slice(0, s === 0 || s === 3 ? 1 : 4)) };
+    let crees = 0;
+    const r = await lancerConstruction(q, 'objective', { concurrence: 64, coeursPhysiques: null,
+      creer: () => { crees++; return creerConstructionNode(chemin); } });
+    verifier(q, 'objective', r, `une rune extérieure, cap ${cap}`);
+    egal(crees, 2, 'huit fils possibles et deux tranches non vides : aucun Worker vide');
+  }
+
+  // Même contrat que les colonnes séquentielles, sans parcourir 1300³ triplets.
+  const pools = [0, 1, 2].map((slot) => Array.from({ length: 1300 }, (_, i) => ({
+    ...params.pool[slot], id: 2 ** 33 + slot * 1300 + i, slot: slot + 1, set: i === 1299 ? 'violent' : 'will',
+  })));
+  const grand: PreparedSearch = { ...p, filtered: [...pools, ...p.filtered.slice(3)], distinctKeys: ['violent'], requiredPieces: [4], jokerCredit: 0, cransEmboites: [], maxSetsForA: [1] };
+  const requete = requetesDeLaMoitie(grand, 'A', 'objective')[0];
+  const tranches = repartirIdx0(1300, 8).map((idx0s) => construireTranche(entreeDeTranche({ ...requete, idx0s })));
+  ok(tranches.every((t) => t.codes instanceof Float64Array) && tranches.some((t) => t.codes.some((c) => c > 2 ** 31)), 'grands codes réellement émis en Float64');
+  identiques(drain(construireMoitieTypee('A', [0, 1, 2], grand, grand.maxSetsForA)),
+    fusionnerTranchesTypees(requete, requete.slotIdxs, requete.otherHalfMaxSets, 'objective', tranches), 'grands codes : même ordre et mêmes bornes');
+
+  for (const [concurrence, coeurs] of [[undefined, null], [16, null], [64, 4]] as const) {
+    let crees = 0, termines = 0, lances = 0;
+    let panne: unknown;
+    try {
+      await lancerConstruction(p, 'objective', { concurrence, coeursPhysiques: coeurs,
+        creer: (): TravailleurConstruction => { crees++; return {
+          construire: async () => { lances++; throw new Error('panne de construction injectée'); },
+          terminer: () => { termines++; },
+        }; } });
+    } catch (e) { panne = e; }
+    ok(panne instanceof Error && panne.message === 'panne de construction injectée', 'panne propagée');
+    egal(crees, nombreDeTravailleurs(concurrence, coeurs), 'la fabrique suit la règle commune, cœurs physiques prioritaires');
+    egal(termines, crees, 'panne : tous les Workers terminés');
+    egal(lances, crees, 'panne : aucune nouvelle tâche distribuée après rejet');
+  }
+  let annuler!: (e: Error) => void;
+  const annulation = new Promise<never>((_, reject) => { annuler = reject; });
+  let termines = 0;
+  const arret = lancerConstruction(p, 'objective', { concurrence: 16, coeursPhysiques: null, annulation,
+    creer: () => ({ construire: () => new Promise(() => {}), terminer: () => { termines++; } }) });
+  annuler(new Error('arrêt manuel'));
+  let refuse = false;
+  try { await arret; } catch { refuse = true; }
+  ok(refuse && termines === 6, 'arrêt pendant la construction : attente rejetée, pool entier terminé');
+
+  let injectee = false, fermes = 0, erreur: unknown;
+  try {
+    await lancerConstruction(p, 'objective', { concurrence: 16, coeursPhysiques: null,
+      creer: () => {
+        const fil = creerConstructionNode(chemin);
+        return { construire: (r, progression) => {
+          const invalide = !injectee;
+          injectee = true;
+          return fil.construire(invalide ? { ...r, idx0s: [-1] } : r, progression);
+        }, terminer: async () => { await fil.terminer(); fermes++; } };
+      } });
+  } catch (e) { erreur = e; }
+  ok(erreur instanceof Error && /idx0s/.test(erreur.message), 'vrai Worker : erreur du noyau propagée au lanceur');
+  egal(fermes, 6, 'vraie panne : tous les fils sortent avant le rejet du lanceur');
 }

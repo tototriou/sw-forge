@@ -100,15 +100,15 @@ eux-mêmes : [elagages.md § Élagages sûrs](elagages.md),
 
 ## Construction des moitiés
 
-Le Worker construit les moitiés en parallèle, UN Worker enfant par moitié
-ET par préréglage construit (`construireMoitiesEmboiteesTypees`,
-`src/lib/constructionEmboitee.ts`, avec `buildHalfInWorker` sur
-`src/workers/buildHalf.worker.ts`) : le préréglage de la recherche, puis
-chaque préréglage plus étroit (`PreparedSearch.cransEmboites`, préréglages
-emboîtés), soit 2 Workers à Bas et jusqu'à 8 à Extrême, tous lancés
-ensemble. La moitié A porte sur les indices d'emplacement 0 à 2 avec
+L'écran, le CLI, le harnais et les bancs construisent par `lancerConstruction`
+(`src/lib/constructionEmboitee.ts`). Un pool commun de W Workers sert les
+tranches des deux moitiés et de tous les préréglages emboîtés. W vient de
+`nombreDeTravailleurs(concurrence, coeursPhysiques)` : cœurs physiques moins
+deux, sinon moitié des fils logiques moins deux, borné à 2–8, défaut 4.
+Sur 8 cœurs physiques ou 16 fils logiques, W = 6, quel que soit le cran.
+La moitié A porte sur les indices d'emplacement 0 à 2 avec
 `maxSetsForA`, la moitié B sur 3 à 5 avec `maxSetsForB`. Chaque requête
-(`BuildHalfRequest` = `RequeteMoitie`, produite par `requetesDeLaMoitie`,
+(`RequeteMoitie`, produite par `requetesDeLaMoitie`,
 jamais assemblée à la main) porte UN préréglage : son rang
 (`rangPrereglage` : 0 pour celui de la recherche, puis l'ordre de
 `cransEmboites`, par lequel un outil de mesure repère le fil de la
@@ -120,17 +120,25 @@ sans effet, n'y est pas relayé. Les deux moitiés sont indépendantes :
 chacune ne lit que des bornes calculées par la préparation, jamais l'autre
 moitié construite.
 
-Chaque Worker enfant pilote le générateur `construireMoitieTypee`
-(`src/lib/rechercheRunes.ts`) jusqu'au bout, poste sa progression au plus
-une fois par palier de temps, puis un dernier point de passage garanti, puis
-ses compartiments (`CompartimentType[]`), dont les tampons sont transférés.
-Le Worker de recherche fait l'union des
-rétentions de chaque moitié (`UnionDesRetentionsTypees`) dans l'ORDRE des
-préréglages, du préréglage de la recherche au plus étroit, quel que soit
-l'ordre d'arrivée des Workers : il rend exactement ce que `construireMoitieTypee`
-rend d'un bloc, préréglage après préréglage, dans un seul fil
-(`tests/retention-emboitee.test.ts`). Pourquoi des Workers séparés plutôt
-qu'une seule passe qui remplirait la liste de chaque préréglage :
+Chaque cran de chaque moitié se découpe par `repartirIdx0` sur son premier
+emplacement : W listes croissantes entrelacées, indices i ≡ w mod W. Les
+tâches vides ne démarrent aucun calcul ; le nombre de Workers est au plus W,
+et au plus le nombre de tâches non vides. Chaque Worker traite une tâche à
+la fois et se réutilise dès sa réponse. Les coquilles
+`src/workers/buildHalf.worker.ts` et `scripts/lib/build-half-worker.ts`
+drainent le même générateur `construireTrancheEtapes`.
+
+La file donne une tranche à chaque moitié et chaque cran avant leur tranche
+suivante ; les crans étroits peuvent avancer sans attendre la fin du cran
+de recherche. Les réponses restent fusionnées dans l'ordre global exact.
+
+Une tranche rend les codes des triplets acceptés par au moins un de ses tas,
+et les bornes de toutes ses combinaisons, avec leurs premières apparitions.
+Les tampons se transfèrent sans copie ni mémoire partagée. Le lanceur fusionne
+chaque cran par `fusionnerTranchesTypees`, directement en colonnes, puis fait
+l'union par `UnionDesRetentionsTypees` dans l'ORDRE des préréglages, du cran de
+recherche au plus étroit. L'ordre d'arrivée des tranches ne change rien.
+Pourquoi des parcours séparés plutôt qu'une seule passe par préréglage :
 [elagages.md § Préréglages emboîtés](elagages.md#préréglages-emboîtés).
 
 La progression d'une moitié est UN compte, `scanned` sur `total` : la somme
@@ -141,9 +149,10 @@ premier emplacement de Moyen plus celles de Bas ; à Bas, celles de Bas
 seules. Le Worker de recherche relaie chaque somme sans palier
 supplémentaire (`phase: 'building'`), et le hook garde la progression des
 deux moitiés séparément (`halves.A`, `halves.B`). Le compte ne recule jamais
-et finit à `total`. Ce n'est pas une mesure du travail : une rune d'un
-préréglage plus étroit coûte moins (ses deux autres emplacements sont plus
-petits), et ses Workers finissent avant celui du préréglage de la recherche.
+et finit à `total`. Le navigateur espace les messages de chaque tâche de
+150 ms, avec un dernier point garanti ; le lanceur garantit aussi le compte
+final. Ce n'est pas une mesure du travail : une rune d'un préréglage plus
+étroit coûte moins, ses deux autres emplacements étant plus petits.
 
 Hors Worker, `construireMoitieTypee` fait le
 même travail d'un bloc : le préréglage de la recherche, puis chaque
@@ -163,9 +172,8 @@ par potentiel décroissant ; `combosOrderMode` ordonne les combinaisons à
 l'intérieur d'un compartiment. Détail :
 [elagages.md § Pré-filtrage heuristique et compartiments](elagages.md).
 
-`construireMoitieTypee` confie la construction de chaque préréglage à un noyau
-sur tableaux typés, `construireMoitieRapideTypee` (`src/lib/constructionRapide.ts`),
-qui rend exactement les compartiments de `buildBuckets`, la référence :
+Le noyau sur tableaux typés (`src/lib/constructionRapide.ts`) rend exactement
+les compartiments de `buildBuckets`, la référence des tests :
 
 - aucune allocation par combinaison : les sommes de chaque triplet vont dans
   un tampon, son compartiment est un entier (comptes en base 4, jokers en
@@ -184,6 +192,16 @@ qui rend exactement les compartiments de `buildBuckets`, la référence :
   compartiments et celui des clés de `maxPct`/`maxFlat` ;
 - le même point de passage, une fois par rune du premier emplacement.
 
+La fusion rejoue les seuls codes acceptés localement, triés dans l'ordre
+global, dans des tas neufs. Un triplet refusé par un tas local plein a un
+score inférieur ou égal à sa racine ; le tas global a déjà vu un sur-ensemble
+des entrées locales, donc sa racine est au moins aussi élevée. Ce refus
+local ne modifie pas le tas global : le rejeu garde exactement les échanges
+et les ex æquo. Précondition : aucun score NaN, refusé dès la tranche et à
+la fusion. La partition doit couvrir chaque indice une fois et une seule.
+Bornes = maxima de toutes les tranches, ordre des clés = première apparition
+globale ; elles ne dépendent jamais des seuls triplets retenus.
+
 L'union conserve aussi des colonnes : elle copie seulement les lignes
 manquantes des crans plus étroits, puis trie les indices par
 `ordonnerCombos`, le tri stable partagé avec la référence objet. Comptes,
@@ -194,16 +212,12 @@ sont pas tronquées en entiers 32 bits. La comparaison de capacité garde
 la sémantique de `heapPush`, y compris pour un override fractionnaire,
 négatif ou infini.
 
-La référence objet reste disponible à l'outillage : `construireMoitie`
-(CLI), `construireMoitieRapide` et
-`objetsDesCompartiments` matérialisent les objets quand leur consommateur
-en a besoin. `motifRepliConstruction` garde les replis de cette API objet
-vers `buildBuckets` (traceur, codes ou capacités hors Int32). Un traceur
-de diagnostic demande cette référence, jamais le chemin de l'écran.
-`searchBuildsSteps` construit directement les deux moitiés en colonnes.
-Le harnais suit le même chemin : `construireMoitiesEnParallele` orchestre
-`construireMoitiesEmboiteesTypees` ; chaque fil Node appelle
-`construireMoitieTypee` et transfère les tampons des colonnes. Les outils
+`construireMoitieTypee` et `construireMoitieRapideTypee` restent les oracles
+séquentiels des tests différentiels et de l'API synchrone `searchBuildsSteps`.
+L'API objet (`construireMoitie`, `motifRepliConstruction`) sert aussi le
+traceur de diagnostic, qui demande `buildBuckets`. Le CLI et le harnais
+construisent par `construireMoitiesEnParallele`, adaptateur Node de
+`lancerConstruction`, avec le même pool et la même règle des cœurs. Les outils
 qui lisent encore les runes des `HalfCombo` passent explicitement par
 `construireMoitiesObjetsEnParallele`. Les diagnostics `--suivre` adaptent
 seulement les moitiés suivies, hors des chronos de phase ; le traceur séquentiel
@@ -213,7 +227,9 @@ Un arrêt pendant cette phase termine tous les Workers enfants de construction
 (`terminate()`) et rejette l'attente (`stopBuildReject`) : la recherche rend
 un résultat vide, tronqué, aucune paire n'ayant encore été examinée. Une
 erreur d'un Worker enfant suit le même chemin : résultat vide tronqué, pas le
-statut `error`.
+statut `error`. Le lanceur cesse de distribuer sur toute issue et ferme tout
+le pool dans `finally`. Sous Node, chaque fil termine sa tâche puis ferme son
+port sur le message de fin ; une sortie sans réponse rejette la tâche.
 
 ## Choix du régime
 

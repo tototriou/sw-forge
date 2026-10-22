@@ -374,17 +374,17 @@ séquentiel passe par `pairBuckets`, qui remplit la trace : mêmes résultats,
 plus lent ; en parallèle, le harnais apparie sans traceur.
 
 **La construction est toujours parallèle.** La production lance ses Web
-Workers de construction dans tous les cas, un par moitié et par préréglage
-construit ; le harnais aussi, sur autant de `worker_threads` qui appellent
-la vraie construction (`construireMoitieTypee`, `scripts/lib/build-half-worker.ts`),
-orchestrés par la même `construireMoitiesEmboiteesTypees`, jamais selon la taille
+Workers de construction dans tous les cas ; le harnais aussi, dans le pool
+du même `lancerConstruction`, avec la règle des cœurs. Les `worker_threads`
+appellent `construireTrancheEtapes` (`scripts/lib/build-half-worker.ts`),
+jamais selon la taille
 du cas. Ce
 n'est pas qu'une question d'affichage : `maxMs` courant depuis `startedAt`, une
 construction séquentielle volerait du budget à l'appariement et trouverait
 moins de candidats sur un run tronqué par le temps
 (`scripts/lib/buildHalvesNode.ts:5-12`).
-Les fils transfèrent les `ArrayBuffer` des colonnes au parent. Le harnais
-les conserve jusqu'à l'appariement, rétentions emboîtées comprises.
+Les fils transfèrent les codes et bornes au parent ; le lanceur fusionne en
+colonnes et le harnais les conserve jusqu'à l'appariement, union comprise.
 `--suivre` matérialise les objets nécessaires aux diagnostics de demi-build
 hors des chronos de phase ; le traceur séquentiel les matérialise à l'entrée de
 `pairBuckets`. Les outils qui lisent encore des `HalfCombo` demandent
@@ -422,7 +422,10 @@ un chiffre qui ne décrit la production dans aucun cas.
 
 Le harnais pilote étage par étage pour ses points d'arrêt et ses
 observations. Le CLI `runSearchToCompletion` enchaîne les mêmes phases
-jusqu'au bout. Tous deux appellent `apparierNode`, qui injecte le lanceur
+jusqu'au bout. La construction de tous les outils et des bancs passe par
+`construireMoitiesEnParallele`, adaptateur Node du `lancerConstruction` de
+l'écran : mêmes tranches, pool borné par la règle des cœurs et union typée.
+Tous deux appellent `apparierNode`, qui injecte le lanceur
 Node dans `lancerAppariement` (`src/workers/pairingDriver.ts`), le lanceur
 de l'écran : `drivePairing` en séquentiel, coordinateur compact en parallèle,
 mêmes publications et mêmes crédits. Le régime dépend de `compterPaires`,

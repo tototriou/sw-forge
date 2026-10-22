@@ -16,9 +16,9 @@ import {
   SLOT_FILTER_PRESETS,
   prepareSearch,
 } from '../../src/lib/runeBuildOptim';
-import { construireMoitie } from '../../src/lib/rechercheRunes';
+import { idCombo, CompartimentType } from '../../src/lib/demiBuildsTypes';
+import { construireMoitiesEnParallele, ensureBuildHalfBundle } from './buildHalvesNode';
 import { loadDeckMonster } from './deckMonster';
-import { drain } from './drain';
 import { GearSet, RelicDetail, RuneDetail } from '../../src/types';
 // `import type` : ce module est chargé par un `worker_threads`
 // (monotonicity-worker.ts) — ne jamais y tirer React ni `damage.ts`.
@@ -117,7 +117,7 @@ export function loadCase(c: Case): { gear: GearSet; allRunes: RuneDetail[]; allR
 
 // ── Vérification de MONOTONICITÉ (voir docs/03-developpeur/optimizer/,
 // « Pré-filtrage heuristique et compartiments ») — rapide : la construction
-// des moitiés SEULE (`construireMoitie`, celle de la production, préréglages
+// des moitiés SEULE (lanceur de production, préréglages
 // emboîtés compris), jamais `pairBuckets`,
 // pas besoin d'appariement complet pour savoir si les runes cible SURVIVENT
 // à la rétention. `maxMs` n'a ici aucun effet réel (jamais vérifié en dehors
@@ -133,8 +133,9 @@ export interface MonotonicityRow {
 
 const MONOTONICITY_MAX_MS = 10 * 60 * 1000; // jamais consulté par buildBuckets seul — juste une valeur plausible pour SearchParams.
 
-export function checkMonotonicityForCase(c: Case): MonotonicityRow[] {
+export async function checkMonotonicityForCase(c: Case): Promise<MonotonicityRow[]> {
   const { gear, allRunes, targetRuneIds, requirement } = loadCase(c);
+  const chemin = await ensureBuildHalfBundle();
   const rows: MonotonicityRow[] = [];
   for (const preset of SLOT_FILTER_PRESETS) {
     const params: SearchParams = {
@@ -149,11 +150,15 @@ export function checkMonotonicityForCase(c: Case): MonotonicityRow[] {
       continue;
     }
     const inFilteredPool = prepared.filtered.flat().some((r) => targetRuneIds.has(r.id)) && prepared.filtered.every((slotList) => slotList.some((r) => targetRuneIds.has(r.id)));
-    const bucketsA = drain(construireMoitie('A', [0, 1, 2], prepared, prepared.maxSetsForA, params.combosOrderMode));
-    const bucketsB = drain(construireMoitie('B', [3, 4, 5], prepared, prepared.maxSetsForB, params.combosOrderMode));
-    const isTargetHalf = (ids: number[]) => ids.every((id) => targetRuneIds.has(id));
-    const halfARetained = bucketsA.some((b) => b.combos.some((combo) => isTargetHalf(combo.runes.map((r) => r.id))));
-    const halfBRetained = bucketsB.some((b) => b.combos.some((combo) => isTargetHalf(combo.runes.map((r) => r.id))));
+    const { bucketsA, bucketsB } = await construireMoitiesEnParallele(prepared, params, chemin);
+    const cibleRetenue = (buckets: CompartimentType[]) => buckets.some((b) => {
+      for (let i = 0; i < b.combos.length; i++) {
+        if ([0, 1, 2].every((r) => targetRuneIds.has(idCombo(b, i, r)))) return true;
+      }
+      return false;
+    });
+    const halfARetained = cibleRetenue(bucketsA);
+    const halfBRetained = cibleRetenue(bucketsB);
     rows.push({ preset: preset.key, cap: preset.cap, bucketCap: prepared.bucketCap, inFilteredPool, halfARetained, halfBRetained });
   }
   return rows;

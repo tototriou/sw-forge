@@ -148,12 +148,12 @@ interface Passage {
   travailleurs?: number;
   resultat?: SearchResult;
   msPreparation: number;
-  /** Le temps RÉEL de la phase — le maximum des deux fils, pas leur somme. */
+  /** Durée murale du pool, transferts, fusion et union compris. */
   msDemiBuilds: number;
-  /** Coût interne à chaque fil : diagnostic du DÉSÉQUILIBRE entre moitiés. */
+  /** Somme des coûts internes des tranches du cran de recherche, hors fusion. */
   msDemiBuildA?: number;
   msDemiBuildB?: number;
-  /** Relevé mémoire de fin de fil, un tas par moitié. */
+  /** Maxima observés en fin de tâche par fil, sommés par moitié. */
   memoireA?: MemoireMoitie;
   memoireB?: MemoireMoitie;
   /** A₂ — les intervalles bruts entre `BuildingProgress`. OPT-IN. */
@@ -538,6 +538,7 @@ function moitieRendue(brut: ProgressionMoitie, interieurs: number[]): Progressio
   const distribution = distributionIntervalles(brut.intervallesMs);
   const diviseur = interieurs.reduce((p, n) => p * n, 1);
   return {
+    tranches: brut.tranches,
     runesExterieures: brut.runesExterieures,
     prologueMs: brut.prologueMs,
     derniereEtEpilogueMs: brut.derniereEtEpilogueMs,
@@ -624,8 +625,9 @@ const PERIMETRE_HORLOGE_A2 =
   'la coquille fait entre-temps. Ce n’est donc pas « le temps passé dans buildBuckets ». Trois périmètres ' +
   'sont séparés, jamais mélangés : le PROLOGUE (1ᵉʳ next(), aucune rune traitée), la série HOMOGÈNE (un ' +
   'intervalle = le corps d’UNE rune extérieure — c’est la seule sur laquelle une distribution a un sens), ' +
-  'et le DERNIER next(), qui exécute la dernière rune PLUS l’épilogue (tri des combos de chaque ' +
-  'compartiment, puis tri des compartiments).';
+  'et le DERNIER next() de CHAQUE TRANCHE, qui exécute sa dernière rune PLUS l’épilogue ' +
+  '(émission des codes et bornes). Prologues et derniers intervalles sont sommés sur les tranches ; ' +
+  'la série homogène compte runesExterieures − tranches intervalles. La fusion et ses tris sont hors de ces relevés.';
 
 /**
  * ⚠️ **A₂ est AUTO-VÉRIFIANT — le coût ne s'argumente pas, il se mesure.**
@@ -649,7 +651,8 @@ const COUT_INSTRUMENTATION_A2 =
   '`performance.now()` coûte ≈ 47 ns (mesuré à part, boucle témoin déduite), et la moitié la plus lourde ' +
   'des 7 cas compte 196 runes extérieures, soit ≈ 9 µs d’horodatage pour une phase de 4 720 ms : ' +
   '≈ 0,0002 %. C’est trois ordres de grandeur sous le plancher de bruit, ce qui explique qu’aucun ' +
-  'protocole différentiel ne puisse le voir.';
+  'protocole différentiel ne puisse le voir. Ces repères du parcours sur un seul fil ne sont PAS ' +
+  'une mesure du pool en tranches : son surcoût instrumental reste à mesurer.';
 
 /**
  * ⚠️ **Le vocabulaire est IMPOSÉ, et ce libellé est la garde.** Jamais
@@ -680,9 +683,10 @@ const REGLE_INTERPRETATION_RETENTION =
  */
 const CAVEAT_MEMOIRE =
   '⚠️ Le ramasse-miettes de Node N’EST PAS celui du navigateur : ces chiffres valent pour comparer A à B ' +
-  'DANS LE MÊME PROCESSUS, jamais comme prédiction de ce que vit l’utilisateur. ⚠️ Relevé de FIN de fil ' +
-  '(arrayBuffers comprend les colonnes hors tas avant transfert ; rss porte sur tout le processus) ' +
-  '(palier LÉGER) : il dit ce que la moitié laisse derrière elle, pas son pic instantané, et ne compte ni ' +
+  'DANS LE MÊME PROCESSUS, jamais comme prédiction de ce que vit l’utilisateur. ⚠️ Relevés de FIN de tâche : ' +
+  'maxima observés par fil, sommés pour les tâches de chaque moitié ; un tas réutilisé peut garder des allocations ' +
+  'd’une autre moitié. arrayBuffers comprend les codes et bornes avant transfert, sans les colonnes de la fusion ; ' +
+  'rss porte sur tout le processus (maximum global, sans somme). Ce relevé LÉGER ne mesure pas son pic instantané, ni ' +
   'les pauses de ramassage ni leur durée — le PerformanceObserver sur gc reste ÉCARTÉ tant que ce relevé ' +
   'ne montre pas d’écart, son propre coût s’insérant dans la phase qu’il mesurerait.';
 

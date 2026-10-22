@@ -44,8 +44,9 @@ diagnostic demande `pairBuckets`. Ces générateurs rendent la main ;
 le coordinateur parallèle, lui, n'a aucun repli et refuse un
 appariement hors contrat. Ni le mode exhaustif, ni le filet de temps, ni le
 plafond de candidats n'entrent dans le choix. La construction des moitiés,
-elle, se fait toujours dans des Workers, un par moitié et par préréglage
-construit, quelle que soit la taille du cas
+elle, se fait toujours dans le pool de `lancerConstruction`, en tranches du
+premier emplacement de chaque moitié et de chaque préréglage, avec la même
+règle des cœurs et sans seuil de taille
 ([pipeline.md § Construction des moitiés](pipeline.md)).
 
 Le nombre de Workers est DÉRIVÉ de la machine, par une seule règle pour les
@@ -254,11 +255,13 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
 
 ## Code commun aux deux plateformes
 
-La construction Node du harnais suit aussi le chemin en colonnes :
-`scripts/lib/build-half-worker.ts` appelle `construireMoitieTypee`, puis
-transfère les tampons de `tamponsDesDemiBuilds` au parent.
-`scripts/lib/buildHalvesNode.ts` réunit les rétentions par
-`construireMoitiesEmboiteesTypees`, sans `HalfCombo` intermédiaire.
+La construction de l'écran, du CLI, du harnais et des bancs passe par
+`lancerConstruction` (`constructionEmboitee.ts`), neutre, avec une fabrique de
+poignées réutilisables (`TravailleurConstruction`). Le navigateur injecte ses
+Web Workers ; `scripts/lib/buildHalvesNode.ts` injecte `creerConstructionNode`.
+Les deux coquilles exécutent `construireTrancheEtapes`, puis transfèrent les
+codes et bornes par `tamponsDeTranche`. Le coordinateur fusionne en colonnes
+et fait l'union des rétentions, sans `HalfCombo` intermédiaire.
 L'adaptation objet est explicite pour les consommateurs d'outillage
 (`construireMoitiesObjetsEnParallele`) et pour les diagnostics de suivi.
 

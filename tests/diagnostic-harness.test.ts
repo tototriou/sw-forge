@@ -282,12 +282,10 @@ export default async function testDiagnosticHarness() {
 
     for (const [moitie, m] of [['A', prog.A], ['B', prog.B]] as const) {
       const d = m.distribution;
-      // ⚠️ La série homogène compte UN intervalle de moins qu'il n'y a de
-      // runes extérieures : le prologue et le dernier `next()` (dernière
-      // rune + épilogue) sont sortis de la série, jamais versés dedans.
+      // Chaque tranche exclut son prologue et sa dernière rune + épilogue.
       egal(
         d.n,
-        Math.max(0, m.runesExterieures - 1),
+        Math.max(0, m.runesExterieures - m.tranches),
         `moitié ${moitie} : la série homogène exclut le prologue ET l’intervalle « dernière rune + épilogue »`
       );
       ok(

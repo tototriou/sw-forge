@@ -882,13 +882,20 @@ export async function testFluxCandidatsRefusResultat() {
 
 export async function testFluxCandidatsLanceurCommun() {
   titre('Flux candidats · CLI et harnais empruntent le lanceur de l’écran');
+  const workerSource = readFileSync('src/workers/runeBuildOptim.worker.ts', 'utf8');
+  ok(/await lancerConstruction\(prepared, params\.combosOrderMode,/.test(workerSource)
+    && /creer: creerTravailleurConstruction/.test(workerSource), 'écran : branchement sur le lanceur de construction instrumenté ci-dessous');
   const cliSource = readFileSync('scripts/optimizer-search.ts', 'utf8');
   ok(/import\s*\{\s*runSearchToCompletion\s*\}\s*from\s*['"]\.\/lib\/runSearch['"]/.test(cliSource)
     && /result\s*=\s*await runSearchToCompletion\(params\)/.test(cliSource), 'entrée CLI : recherche attendue par le cœur instrumenté ci-dessous');
   let appels = 0;
+  let constructions = 0;
   const paquet = await build({ stdin: { contents: "export { runSearchToCompletion } from './scripts/lib/runSearch'; export { executerHarnais } from './scripts/lib/diagnosticHarness';",
       resolveDir: process.cwd(), loader: 'ts' }, bundle: true, platform: 'node', format: 'cjs', write: false, external: ['esbuild'], logLevel: 'error',
     plugins: [{ name: 'observer-lanceur-reel', setup(b) {
+      b.onLoad({ filter: /constructionEmboitee\.ts$/ }, (args) => ({ loader: 'ts', contents:
+        readFileSync(args.path, 'utf8').replace('export async function lancerConstruction(', 'async function constructionObservee(') +
+        '\nexport async function lancerConstruction(...args: Parameters<typeof constructionObservee>) { globalThis.observerConstruction(); return constructionObservee(...args); }' }));
       b.onLoad({ filter: /pairingDriver\.ts$/ }, (args) => ({ loader: 'ts', contents:
         readFileSync(args.path, 'utf8').replace('export async function lancerAppariement(', 'async function lancerObserve(') +
         '\nexport async function lancerAppariement(...args: Parameters<typeof lancerObserve>) { globalThis.observerLanceur(); return lancerObserve(...args); }' }));
@@ -898,14 +905,16 @@ export async function testFluxCandidatsLanceurCommun() {
   const require = createRequire(resolve('package.json'));
   const contexte = { module, exports: module.exports, require, process, performance, console, setTimeout, clearTimeout, setImmediate,
     structuredClone, MessageChannel, Error, ArrayBuffer, Float64Array, Int32Array, Uint32Array, Uint8Array,
-    observerLanceur: () => { appels++; } };
+    observerLanceur: () => { appels++; }, observerConstruction: () => { constructions++; } };
   runInNewContext(paquet.outputFiles[0].text, contexte);
   const profil = configDuProfil(trouverProfil('quota-parallele'));
   const resolue = resoudreConfig(profil);
   const cli = await module.exports.runSearchToCompletion(resolue.params);
   identiques(appels, 1, 'CLI : appel du lanceur commun, instrumenté sans changer son corps');
+  identiques(constructions, 1, 'CLI : construction par le lanceur de l’écran instrumenté sans changer son corps');
   const harnais = await module.exports.executerHarnais(profil);
   identiques(appels, 2, 'harnais : appel du même lanceur, y compris en parallèle');
+  identiques(constructions, 2, 'harnais : construction par le même lanceur de tranches que le CLI');
   identiques(etat(cli), etat(harnais.brut), 'CLI et harnais : chaque candidat, rang, compte et quasi-succès');
   ok(true, 'les deux vrais consommateurs utilisent le lanceur commun et sa distribution compacte');
 }

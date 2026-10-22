@@ -18,7 +18,10 @@ export interface MonotonicityWorkerResult {
   rows: MonotonicityRow[];
 }
 
-const c = workerData as Case;
-const rows = checkMonotonicityForCase(c);
-const result: MonotonicityWorkerResult = { label: c.label, rows };
-parentPort!.postMessage(result);
+async function main() {
+  const c = workerData as Case;
+  const rows = await checkMonotonicityForCase(c);
+  const result: MonotonicityWorkerResult = { label: c.label, rows };
+  parentPort!.postMessage(result);
+}
+void main().catch((e) => { setImmediate(() => { throw e; }); });

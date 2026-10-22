@@ -7,6 +7,13 @@
   ],
   "entrees": [
     {
+      "fichier": "tests/flux-candidats.test.ts",
+      "cible": "src/workers/runeBuildOptim.worker.ts",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Garde du branchement navigateur sur le lanceur de construction instrumenté pour le CLI et le harnais ; la coquille Web Worker ne s’exécute pas dans Node."
+    },
+    {
       "fichier": "tests/artefact-file.test.ts",
       "cible": "src/App.tsx",
       "occurrences": 1,

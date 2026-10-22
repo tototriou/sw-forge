@@ -1,7 +1,7 @@
 // Le moteur de recherche de runes d'un bloc, hors Worker : `prepareSearch`,
 // les deux moitiés, puis leur appariement, dans le même fil. Cette API
 // synchrone sert aux tests ; l'écran et les outils asynchrones passent par
-// `lancerAppariement`, un Worker enfant par moitié et par préréglage construit.
+// `lancerConstruction` (pool de tranches), puis `lancerAppariement`.
 //
 // ⚠️ Module à part de `runeBuildOptim.ts` : l'orchestration appelle des
 // modules qui importent eux-mêmes `runeBuildOptim.ts`, et un import de valeur

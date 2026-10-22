@@ -89,108 +89,62 @@ diverger `maxMs`, et cette ligne dit ce qui a été contredit.
 
 ## La construction observée
 
-Trois instruments rendent, sous `demiBuilds`, ce que `buildBuckets` a fait
-dans chaque moitié (`scripts/lib/diagnosticHarness.ts:329-349`) ; le CLI
-imprime chacun avec son avertissement (`scripts/diagnostic-harness.ts:693-773`).
+Le harnais construit par `construireMoitiesEnParallele`, adaptateur Node du
+même `lancerConstruction` que l'écran, le CLI et les bancs. Les Workers du
+pool construisent des tranches de chaque préréglage, puis le coordinateur
+fusionne en colonnes et fait l'union ordonnée des rétentions.
+[Pipeline](../moteur/pipeline.md#construction-des-moitiés).
 
-**Taux de rétention de la construction** (`demiBuilds.retention`,
-`retentionConstruction`, `scripts/lib/diagnosticHarness.ts:482-494`) : par
-moitié, `parEmplacement`, `produitBrut` |f₀|×|f₁|×|f₂|, `retenus`
-(demi-builds des compartiments) et `taux` ; le CLI y ajoute le rapport A/B.
-A-passif :
-les longueurs sont celles de l'étage `filterslot` lu par `onStage`, le
-tableau même qui devient `prepared.filtered` et que reçoivent les fils du
-préréglage de la recherche, emplacements 1-3 pour A et 4-6 pour B
-(`src/lib/constructionEmboitee.ts:65`) ;
-le produit est le majorant exact des triplets énumérables de la moitié qui a
-tourné (`tests/diagnostic-harness.test.ts:209-240`). Le nom est imposé :
-rétention **de la construction** (`buildBuckets` sous `bucketCap`), pas « du
-pré-filtrage », qui serait `filterSlot` ; jamais « rendement » ni
-« efficacité », que le test interdit : le ratio ne dit rien de la qualité des
-retenus ni de la survie de l'optimum. Il peut étayer un plafonnement par
-`bucketCap` quand A a plusieurs fois le produit brut de B et retient autant
-(`scripts/lib/diagnosticHarness.ts:475-479`).
+**Taux de rétention de la construction** (`demiBuilds.retention`) : par moitié,
+`parEmplacement`, produit brut des trois tailles du pool, demi-builds retenus
+et taux. Les tailles viennent de `filterslot`, observé par `onStage`, et non
+d'un pool reconstruit. Le produit est le majorant exact des triplets du cran
+de recherche ; les retenus comprennent l'union des crans. Ce taux ne mesure
+ni la qualité des retenus ni la survie de l'optimum. Une corrélation entre
+rétention et temps ne prouve pas que la rétention explique le temps :
+l'énumération réelle dépend aussi des coupes de faisabilité et de jokers.
 
-**Mémoire de fin de construction** (`demiBuilds.memoire`) : `heapUsed`,
-`heapTotal`, `arrayBuffers`, `rss` par moitié ; le CLI y ajoute le rapport `heapUsed` A/B. Chaque moitié a
-son `worker_threads`, donc son tas (`scripts/lib/build-half-worker.ts:45-64`) ;
-`process.memoryUsage()` est lu en fin de fil, après le chronomètre et avant
-le transfert des colonnes, hors de tout temps (`scripts/lib/build-half-worker.ts`).
-`arrayBuffers` couvre leur stockage hors tas, que `heapUsed` ne compte pas,
-ainsi que les autres tampons encore alloués dans le fil ; ce n'est pas une
-taille attribuée aux seuls demi-builds. `rss` porte sur le processus entier,
-pas sur le seul fil : ne pas y ajouter `arrayBuffers`.
-C'est ce que la moitié laisse derrière elle, pas son pic, sans les pauses de
-ramassage. Le caveat imprimé (`CAVEAT_MEMOIRE`,
-`scripts/lib/diagnosticHarness.ts:684-689`, `tests/diagnostic-harness.test.ts:242-264`)
-le dit, et que le ramasse-miettes de Node n'est pas celui du navigateur : le
-chiffre compare A à B dans un même processus, il ne prédit pas ce que vit
-l'utilisateur. Ne pas brancher un `PerformanceObserver` sur `gc` tant que ce
-relevé ne montre pas d'écart : son coût s'insérerait dans la phase mesurée.
-`scripts/lib/build-half-worker.ts` exécute du code au chargement : ses types
-s'importent par `import type`, jamais par un import de valeur qui le ferait
-tourner dans le fil principal (`scripts/lib/buildHalvesNode.ts:49-52`,
-`scripts/lib/diagnosticHarness.ts:76-79`, `scripts/perf-battery.ts:113-117`) ;
-`scripts/perf-battery.ts`, qui le partage, n'en lit que `buckets` et `ms`
-(`scripts/perf-battery.ts:352-363`), puis convertit explicitement les colonnes
-pour son union et ses diagnostics objets. Le harnais, lui, garde les colonnes
-jusqu'à l'appariement ; seuls le suivi et le traceur demandent des objets.
+**Mémoire observée en fin de tâche** (`demiBuilds.memoire`) : chaque fil lit
+`process.memoryUsage()` après son chrono et avant le transfert des codes et
+bornes. Par moitié, `heapUsed`, `heapTotal` et `arrayBuffers` somment les
+maxima observés de chaque fil qui a servi cette moitié ; `rss` est le maximum
+global, jamais la somme. Un fil peut avoir servi une autre moitié ou un autre
+cran : ces relevés ne sont pas une attribution des allocations à une moitié.
+Ils ne sont pas non plus un pic instantané simultané ni une taille des seuls
+demi-builds. Les colonnes reconstruites au coordinateur sont hors de ce relevé.
+Le caveat accompagne les chiffres : ramasse-miettes Node différent de celui
+du navigateur, pauses non comptées, aucune prédiction de l'usage navigateur.
+Le palier complet par `PerformanceObserver` sur `gc` reste écarté tant que le
+relevé léger ne justifie pas son coût.
 
-**Cartographie de l'élagage** (`--progression`, `horodaterProgression`,
-`scripts/diagnostic-harness.ts:80-83`, `scripts/diagnostic-harness.ts:324-324`) :
-horodate les `BuildingProgress` que `buildBuckets` émet déjà, un par rune de
-l'emplacement extérieur, et rend `demiBuilds.progression`, titré A₂ dans la
-sortie. A-instrumenté, et OPT-IN parce que `scripts/perf-battery.ts` partage
-le worker : sans le drapeau, le générateur est drainé par `drain()`, sans
-horloge ni champ de plus (`scripts/lib/build-half-worker.ts:122-142`,
-`tests/diagnostic-harness.test.ts:266-276`) ; avec, le worker l'itère à la
-main, sans `yield` ajouté au moteur ni `drain.ts` touché, et le relevé part
-une seule fois avec le résultat, jamais un message par `yield`
-(`scripts/lib/build-half-worker.ts:27-44`, `scripts/lib/build-half-worker.ts:143-173`).
-Trois périmètres d'horloge, jamais mélangés (`ProgressionMoitie`,
-`scripts/lib/build-half-worker.ts:66-110`) :
+**Cartographie de l'élagage** (`--progression`, `horodaterProgression`) :
+opt-in, seulement sur les tranches du cran de recherche. Sans le drapeau, la
+coquille Node draine le même générateur sans horodatage par rune, sans tableau
+d'intervalles ni champ `progression` dans sa réponse. Avec lui, chaque tranche
+sépare trois périmètres :
 
-| `next()` | Ce qu'il exécute | Champ |
-|---|---|---|
-| le premier | le prologue, aucune rune | `prologueMs` |
-| les suivants | le corps d'une rune extérieure | `intervallesMs`, seule série homogène |
-| le dernier | la dernière rune **et** l'épilogue (tri des combos de chaque compartiment, puis des compartiments) | `derniereEtEpilogueMs`, qui majore l'épilogue sans l'isoler |
+| `next()` | Périmètre | Champ |
+| --- | --- | --- |
+| Premier | Prologue, sans rune traitée | `prologueMs` |
+| Intermédiaires | Corps d'une rune extérieure | `intervallesMs` |
+| Dernier | Dernière rune et émission des codes et bornes | `derniereEtEpilogueMs` |
 
-Un intervalle, pris entre deux `next()` du consommateur, couvre aussi la
-suspension et la reprise du générateur : ce n'est pas « le temps passé dans
-`buildBuckets` ». La restitution (`scripts/lib/diagnosticHarness.ts:522-601`)
-est une distribution, jamais un scalaire : `n`, min, médiane vraie (moyenne
-des deux valeurs centrales sur un effectif pair), p90, max, total et un
-histogramme en 12 classes, parce qu'une série bimodale ne se voit dans aucun
-jeu de quantiles et qu'une moyenne l'écraserait. `runesExterieures` est le
-`total` annoncé par le moteur. Le relevé ne porte que sur le fil du
-préréglage de la recherche : les préréglages plus étroits (préréglages
-emboîtés) se construisent dans leurs propres fils, jamais horodatés
-([moteur/pipeline.md § Construction des moitiés](../moteur/pipeline.md#construction-des-moitiés)) ;
-`msA`/`msB` et le relevé mémoire sont aussi ceux de ce fil. La médiane divisée par |f₁|×|f₂| (|f₄|×|f₅|
-pour la moitié B) est une
-DIVISION ARITHMÉTIQUE par le majorant des paires intérieures, jamais un
-« temps par triplet énumérable » (`scripts/lib/diagnosticHarness.ts:662-666`).
-Partent avec la mesure, chacun verrouillé par un test
-(`scripts/lib/diagnosticHarness.ts:610-655`, `tests/diagnostic-harness.test.ts:266-363`) :
-ce que l'instrument n'est pas (`avertissementPortee`), le périmètre de
-l'horloge (`perimetreHorloge`), son coût mesuré (`coutInstrumentation`). La
-distribution dit OÙ `buildBuckets` coupe, une propriété de la topologie du
-pool ; elle ne dit pas quelle moitié est plus lente, le temps par rune
-extérieure mélangeant vitesse d'exécution et taux d'élagage.
+Le coordinateur somme les prologues et derniers intervalles et réunit la
+série homogène, qui compte `runesExterieures − tranches` intervalles.
+`tranches` compte les tâches non vides du cran de recherche.
+La fusion et ses tris sont hors de ces relevés. `msA` et `msB` somment les
+coûts internes des tranches de ce cran, hors fusion ; seul `wallMs` mesure
+la phase entière, transferts, fusion, union et fermeture du pool compris.
 
-**La règle d'interprétation** (`regleInterpretation`,
-`scripts/lib/diagnosticHarness.ts:668-676`) part avec le résultat, comme
-l'avertissement de comparaison des temps : « A retient moins · A est plus
-lent · donc A est lent parce qu'il travaille plus » est permis par la
-corrélation, jamais démontré par elle. Le produit brut est le majorant de
-l'énumération, pas l'énumération — les `continue` de faisabilité et de jokers
-coupent des sous-arbres sans trace —, et d'autres explications restent
-ouvertes : distribution des pools, coût des prédicats de faisabilité,
-profondeur des branches coupées, composition en sets. Aucun instrument ne
-compte les triplets réellement énumérés : ce compteur, dans la boucle interne
-de `buildBuckets`, serait du niveau C
-(mode-d-emploi.md § Limite : la rétention interne de buildBuckets).
+Un intervalle couvre aussi la suspension et la reprise du générateur.
+La restitution garde n, min, médiane vraie, p90, max, total et histogramme en
+12 classes. La médiane divisée par le produit des tailles des deux
+emplacements intérieurs est une division arithmétique par un majorant,
+jamais un temps par triplet énumérable. La distribution décrit la topologie
+du pool ; elle ne départage pas l'asymétrie A/B, car le temps par rune mêle
+vitesse d'exécution et taux d'élagage. Le périmètre et cet avertissement
+voyagent avec les chiffres ; le coût instrumental du pool en tranches reste
+à mesurer, les repères du parcours sur un seul fil ne le prouvent pas.
 
 ## Le suivi d'un build cible
 

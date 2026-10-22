@@ -12,8 +12,9 @@ préréglage de la recherche, plus, compartiment par compartiment, ce que
 retient chaque préréglage plus étroit, construit avec ses propres
 paramètres (son pool par emplacement, son `bucketCap`, ses bornes de sets).
 Aucun `bucketCap` n'est agrandi. La chaîne part de Bas : Moyen, le défaut,
-contient Bas. Chaque préréglage d'une moitié se construit **dans son propre
-Worker, en même temps que les autres** ; l'union se fait ensuite.
+contient Bas. Chaque préréglage d'une moitié garde son propre parcours,
+découpé en tranches dans un pool commun de Workers borné par la règle des
+cœurs ; chaque cran est fusionné avant l'union des rétentions.
 
 ## Raisons
 
@@ -74,13 +75,11 @@ Worker, en même temps que les autres** ; l'union se fait ensuite.
   ajoutés prennent leur place dans l'ordre d'exploration : une recherche
   arrêtée par le filet de temps ou le plafond de candidats peut rendre
   d'autres builds que le préréglage plus étroit arrêté au même point.
-- **Un Worker de construction de plus par préréglage plus étroit et par
-  moitié** (de 2 à Bas jusqu'à 8 à Extrême) : la construction dure à peu
-  près celle du préréglage de la recherche, le plus coûteux, et les
-  compartiments de chaque préréglage passent par le Worker de recherche
-  avant l'union. L'appariement voit les paires des demi-builds ajoutés ; la
-  progression de la construction compte les runes de tous les préréglages
-  construits.
+- **Un parcours distinct par préréglage et par moitié**, distribué en
+  tranches dans un pool commun : le nombre de Workers ne croît pas avec les
+  crans. La fusion des codes et des bornes précède l'union en colonnes.
+  L'appariement voit les paires des demi-builds ajoutés ; la progression de
+  construction compte les runes de tous les préréglages construits.
 - La rétention et son union :
   [elagages.md § Préréglages emboîtés](../../03-developpeur/optimizer/moteur/elagages.md#préréglages-emboîtés) ;
   la construction des moitiés et sa progression :

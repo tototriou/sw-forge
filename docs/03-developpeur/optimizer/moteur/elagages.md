@@ -340,8 +340,8 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   moins. Pourquoi :
   [prereglages-emboites.md](../../../04-decisions/adr/prereglages-emboites.md).
 - **La rétention d'une moitié est une union** (`construireMoitieTypee`,
-  `UnionDesRetentionsTypees`, `src/lib/retentionEmboitee.ts` ; adaptateurs
-  objets `construireMoitie` et `UnionDesRetentions` pour les outils) : celle du
+  `UnionDesRetentionsTypees`, `src/lib/retentionEmboitee.ts` ; références
+  objets `construireMoitie` et `UnionDesRetentions` pour les oracles et le traceur) : celle du
   préréglage de la recherche, puis, compartiment par compartiment, les
   demi-builds que retient chaque préréglage plus étroit et qui lui
   manquent. Chaque préréglage plus étroit se construit avec SES paramètres,
@@ -374,16 +374,13 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
     leur ordre suivis des ajouts : les premiers gardent leur ordre relatif,
     les ajouts prennent leur place selon `combosOrderMode`, et un
     compartiment sans ajout est rendu tel quel.
-- **Un Worker par préréglage** (`construireMoitiesEmboiteesTypees`,
-  `src/lib/constructionEmboitee.ts`) : à l'écran, chaque moitié construit
-  ses 1 + n préréglages en même temps, chacun dans son Worker, et l'union se
-  fait ensuite, dans l'ordre des préréglages ; le résultat est exactement
-  celui de `construireMoitieTypee` d'un bloc, qui les construit l'un après
-  l'autre dans un seul fil (CLI, tests). Le temps de construction est donc
-  celui du préréglage de la recherche, le plus coûteux (un préréglage plus
-  étroit coûte bien moins : ses triplets croissent comme le cube de son
-  pool), au prix de Workers de plus. L'appariement voit les paires des
-  demi-builds ajoutés en plus.
+- **Un parcours par préréglage, découpé en tranches** (`lancerConstruction`,
+  `src/lib/constructionEmboitee.ts`) : chaque cran garde son ordre de pool
+  et ses paramètres. Ses tranches du premier emplacement se construisent
+  dans un pool commun aux deux moitiés et à tous les crans, borné par la règle
+  des cœurs ; leur fusion précède l'union des crans dans leur ordre. Le résultat
+  est exactement celui de `construireMoitieTypee` d'un bloc, l'oracle
+  séquentiel. L'appariement voit les paires des demi-builds ajoutés en plus.
 - ⚠️ **Pas d'une seule passe** sur le pool de la recherche qui remplirait
   en même temps la liste de chaque préréglage : elle ne retient pas les mêmes
   demi-builds. L'ordre du pool d'un préréglage plus étroit n'est pas une
@@ -401,8 +398,8 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   par la position de leurs trois runes dans le pool de la recherche ; dans
   un seul fil, elle ne garde d'un préréglage plus étroit que ces ajouts,
   jamais ses compartiments entiers. En parallèle, les compartiments de
-  chaque préréglage arrivent entiers, tampons transférés, au Worker de
-  recherche avant l'union. Le tri de leurs indices passe par
+  chaque préréglage sont reconstruits au coordinateur à partir des codes et
+  bornes transférés par les tranches, avant l'union. Le tri de leurs indices passe par
   `ordonnerCombos`, avec une vue de stats réutilisée, comme le tri objet.
 - ⚠️ **Sous troncature, l'inclusion ne vaut plus.** Les ajouts s'intercalent
   dans leurs compartiments : l'ordre de visite change, et une recherche que
@@ -499,9 +496,9 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   lui, pilote ces étapes pas à pas et poste sa progression par paliers de
   temps :
   [02-app/optimizer/feat-interruption.md § Barre de progression](../../../02-app/optimizer/feat-interruption.md#barre-de-progression).
-- **Parallélisme, invisible à l'écran** : les deux moitiés se construisent
-  en même temps dans des Web Workers dédiés, un par moitié et par préréglage
-  construit (`src/workers/buildHalf.worker.ts`), et l'appariement se répartit sur
+- **Parallélisme, invisible à l'écran** : les deux moitiés et tous leurs crans
+  se construisent en tranches dans le pool de `lancerConstruction`
+  (`src/workers/buildHalf.worker.ts`), et l'appariement se répartit sur
   plusieurs Workers dès que l'espace compte au moins
   `PARALLEL_PAIRING_THRESHOLD` paires (`totalPairCount`), en recherche
   normale comme en mode « Rechercher jusqu'à épuisement complet ». Mêmes

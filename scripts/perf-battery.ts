@@ -106,7 +106,7 @@ import {
   SearchParams,
   prepareSearch,
 } from '../src/lib/runeBuildOptim';
-import { construireMoitiesEmboiteesTypees } from '../src/lib/constructionEmboitee';
+import { construireMoitiesEnParallele } from './lib/buildHalvesNode';
 import { compterPaires, verifierContrat } from '../src/lib/appariementRapide';
 import { identifiantsDesCandidats } from '../src/lib/candidatsCompacts';
 import { nombreDeTravailleurs, regimeAppariement } from '../src/workers/parallelPairing';
@@ -118,7 +118,6 @@ import { caseAvecRelique, jetonsRelique, parseOptionsRelique } from './lib/perfR
 // exécutent du code au chargement du module (ils LISENT `workerData`, absent
 // dans ce processus parent) — un import normal, même pour les seuls types,
 // les chargerait et planterait en dehors d'un vrai worker_threads.
-import type { BuildHalfWorkerData, BuildHalfWorkerResult } from './lib/build-half-worker';
 import type { MonotonicityWorkerResult } from './lib/monotonicity-worker';
 
 export type { Case };
@@ -342,30 +341,16 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
   };
   const prepMs = tPrepared - t0;
 
-  // ⚠️ Reproduit EXACTEMENT la topologie réelle (runeBuildOptim.worker.ts) :
-  // un `Worker` par moitié ET par préréglage construit (2 à 8), tous lancés
-  // avant la première attente (`construireMoitiesEmboitees` crée chaque fil
-  // avant tout `await`), donc vraiment concurrents — pas l'un après l'autre.
+  // Le cache de bundle reste propre au processus ; l'exécution passe par
+  // le même lanceur de tranches que l'écran, le CLI et le harnais.
   const workerScript = await ensureBuildHalfWorkerBundle();
-  // Préréglages emboîtés : un fil par moitié ET par préréglage construit
-  // (`construireMoitiesEmboitees`, l'orchestrateur de la production), puis
-  // l'union ici. ⚠️ `combosOrderMode` relayé depuis params — voir
-  // build-half-worker.ts : sans lui, le worker retombe toujours sur le défaut
-  // interne de buildBuckets.
-  const propres: Partial<Record<'A' | 'B', BuildHalfWorkerResult>> = {};
   const tBuildStart = performance.now();
-  const { bucketsA, bucketsB } = await construireMoitiesEmboiteesTypees(prepared, params.combosOrderMode, async (requete) => {
-    const r = await runWorker<BuildHalfWorkerData, BuildHalfWorkerResult>(workerScript, requete);
-    // Le fil du préréglage de la recherche (rang 0), celui qui porte le pool entier.
-    if (requete.rangPrereglage === 0) propres[requete.half] = r;
-    return r.buckets;
-  });
+  const moities = await construireMoitiesEnParallele(prepared, params, workerScript);
+  const { bucketsA, bucketsB } = moities;
   const tBuildB = performance.now();
-  // Coût interne au fil du préréglage de la recherche de CHAQUE moitié
-  // (diagnostic), vs le temps RÉEL écoulé pour la phase dans son ensemble
-  // (`buildWallMs`, ce qui compte pour l'utilisateur).
-  const buildAMs = propres.A!.ms;
-  const buildBMs = propres.B!.ms;
+  // Somme des coûts des tranches du cran de recherche, hors fusion.
+  const buildAMs = moities.msA;
+  const buildBMs = moities.msB;
   const buildWallMs = tBuildB - tBuildStart;
 
   let foundMs: number | null = null;

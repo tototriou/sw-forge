@@ -198,7 +198,7 @@ import testRuneOptimNearMiss from './rune-optim-near-miss.test';
 import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testConstructionRapide from './construction-rapide.test';
-import testConstructionColonnes from './construction-colonnes.test';
+import testConstructionColonnes, { testConstructionTranches } from './construction-colonnes.test';
 import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidatsCredits, testFluxCandidatsApercuFinal, testFluxCandidatsPageLente, testFluxCandidatsReceptionOrdre,
   testFluxCandidatsRefusRecevoir, testFluxCandidatsRefusSceller, testFluxCandidatsRefusResultat, testFluxCandidatsLanceurCommun } from './flux-candidats.test';
 import testRetentionEmboitee from './retention-emboitee.test';
@@ -662,6 +662,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testFilterSlotTopK', testFilterSlotTopK],
   ['testConstructionRapide', testConstructionRapide],
   ['testConstructionColonnes', async () => { await testConstructionColonnes(); }],
+  ['testConstructionTranches', testConstructionTranches],
   ['testFluxCandidatsCompactOrdre', testFluxCandidatsCompactOrdre],
   ['testFluxCandidatsCoupe', testFluxCandidatsCoupe],
   ['testFluxCandidatsCredits', testFluxCandidatsCredits],

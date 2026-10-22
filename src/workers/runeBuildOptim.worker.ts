@@ -3,15 +3,10 @@
 // lib/runeBuildOptim.ts et reste réutilisable dans les tests sans passer par
 // un Worker. Voir docs/02-app/compte/ §6 (Perf).
 //
-// ⚠️ Orchestre `prepareSearch` → `construireMoitieTypee` (une par moitié ET par
-// préréglage construit, EN PARALLÈLE, chacune dans son propre Worker enfant —
-// buildHalf.worker.ts, `construireMoitiesEmboiteesTypees`) → l'appariement par le
-// noyau sur tableaux typés, plutôt que de piloter `searchBuildsSteps` d'un
-// bloc : les deux moitiés A et B sont indépendantes (aucune ne dépend du
-// résultat construit de l'autre, seulement de bornes calculées d'avance par
-// `prepareSearch`), tout comme les préréglages d'une même moitié, donc les
-// construire sur plusieurs cœurs (2 à 8 Workers) plutôt qu'un seul accélère
-// cette phase — voir docs/03-developpeur/optimizer/moteur/pipeline.md
+// ⚠️ Orchestre prepareSearch → lancerConstruction (pool commun de tranches,
+// buildHalf.worker.ts) → l'appariement sur colonnes. Le nombre de Workers
+// suit la règle des cœurs pour toutes les moitiés et tous les crans, sans
+// se multiplier par le nombre de préréglages. Voir docs/03-developpeur/optimizer/moteur/pipeline.md
 // § Construction des moitiés. L'appariement séquentiel (`apparier`) est piloté
 // PAS À PAS dans CE Worker : c'est ce qui permet de rendre la main à la
 // boucle d'évènements entre deux points de passage, condition nécessaire pour
@@ -29,7 +24,7 @@ import {
   ErreurAppariementParallele, PoigneeTravailleur, erreurDeWorkerEnfant, resultatApresErreur, type LancerTravailleur,
 } from '../lib/appariementRapideParallele';
 import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
-import { construireMoitiesEmboiteesTypees } from '../lib/constructionEmboitee';
+import { lancerConstruction, TravailleurConstruction } from '../lib/constructionEmboitee';
 import { MessageVersAppariement } from './appariementRapide.worker';
 import { nombreDeTravailleurs, regimeAppariement } from './parallelPairing';
 import { EmetteurCandidats, lancerAppariement, PROGRESS_THROTTLE_MS } from './pairingDriver';
@@ -177,29 +172,24 @@ const lancerTravailleurNavigateur: LancerTravailleur<ColonnesCandidats> = (init,
   };
 };
 
-function buildHalfInWorker(request: BuildHalfRequest, onProgress: (scanned: number, total: number) => void): Promise<CompartimentType[]> {
-  return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('./buildHalf.worker.ts', import.meta.url), { type: 'module' });
-    activeHalfWorkers.push(worker);
-    const cleanup = () => {
+function creerTravailleurConstruction(): TravailleurConstruction {
+  const worker = new Worker(new URL('./buildHalf.worker.ts', import.meta.url), { type: 'module' });
+  activeHalfWorkers.push(worker);
+  return {
+    construire: (request: BuildHalfRequest, onProgress) => new Promise((resolve, reject) => {
+      worker.onmessage = (e: MessageEvent<BuildHalfResponse>) => {
+        if (e.data.type === 'progress') onProgress(e.data.scanned);
+        else resolve(e.data.resultat);
+      };
+      worker.onerror = (err) => { err.preventDefault(); reject(err); };
+      worker.onmessageerror = () => reject(new Error('Réponse de construction illisible.'));
+      worker.postMessage(request);
+    }),
+    terminer: () => {
       worker.terminate();
       activeHalfWorkers = activeHalfWorkers.filter((w) => w !== worker);
-    };
-    worker.onmessage = (e: MessageEvent<BuildHalfResponse>) => {
-      const msg = e.data;
-      if (msg.type === 'progress') {
-        onProgress(msg.scanned, msg.total);
-        return;
-      }
-      cleanup();
-      resolve(msg.buckets);
-    };
-    worker.onerror = (err) => {
-      cleanup();
-      reject(err);
-    };
-    worker.postMessage(request);
-  });
+    },
+  };
 }
 
 async function traiterMessage(e: MessageEvent<WorkerRequest>) {
@@ -251,11 +241,8 @@ async function traiterMessage(e: MessageEvent<WorkerRequest>) {
   }
   const prepared = outcome.prepared;
 
-  // ⚠️ Deux moitiés INDÉPENDANTES (aucune ne dépend du résultat CONSTRUIT de
-  // l'autre — seulement de `maxSetsForA`/`maxSetsForB`, déjà calculés par
-  // `prepareSearch`) : construites en parallèle, un Worker par moitié ET par
-  // préréglage construit (2 à 8), pour utiliser plusieurs cœurs plutôt qu'un
-  // seul pendant cette phase.
+  // Moitiés indépendantes : seules les bornes de la préparation sont lues.
+  // Le pool commun construit leurs tranches avant toute paire examinée.
   let bucketsA: CompartimentType[];
   let bucketsB: CompartimentType[];
   try {
@@ -267,9 +254,8 @@ async function traiterMessage(e: MessageEvent<WorkerRequest>) {
     // et vice-versa), aggravant le risque qu'aucun des deux ne semble jamais
     // atteindre 100 % — voir le point de passage final garanti dans
     // buildHalf.worker.ts. Relayer sans throttle supplémentaire reste sûr :
-    // le débit combiné des Workers enfants (2 à 8 selon les préréglages
-    // emboîtés, chacun ≤ ~1 message/150ms) ne peut pas flooder le fil
-    // principal. Le compte d'une moitié somme ceux de ses Workers.
+    // le débit combiné du pool (2 à 8 Workers, chacun ≤ ~1 message/150ms
+    // hors changements de tâche) reste borné. Le compte somme les tranches.
     const postBuildProgress = (half: 'A' | 'B', scanned: number, total: number) => {
       const message: WorkerBuildingMessage = { type: 'progress', phase: 'building', half, scanned, total, pct: total > 0 ? scanned / total : 0 };
       (self as unknown as Worker).postMessage(message);
@@ -277,13 +263,11 @@ async function traiterMessage(e: MessageEvent<WorkerRequest>) {
     const abortPromise = new Promise<never>((_, reject) => {
       stopBuildReject = () => reject(new Error('stopped'));
     });
-    // Un Worker enfant par moitié ET par préréglage construit (préréglages
-    // emboîtés), tous lancés ensemble ; l'union des rétentions se fait ici,
-    // par moitié, dans l'ordre des préréglages (`construireMoitiesEmboitees`).
-    ({ bucketsA, bucketsB } = await Promise.race([
-      construireMoitiesEmboiteesTypees(prepared, params.combosOrderMode, buildHalfInWorker, postBuildProgress),
-      abortPromise,
-    ]));
+    // Même lanceur que les outils : tranches, fusion typée, union ordonnée.
+    ({ bucketsA, bucketsB } = await lancerConstruction(prepared, params.combosOrderMode, {
+      concurrence: navigator.hardwareConcurrency, coeursPhysiques,
+      creer: creerTravailleurConstruction, progression: postBuildProgress, annulation: abortPromise,
+    }));
   } catch {
     // Arrêt manuel pendant la construction, ou erreur d'un Worker de moitié :
     // rien n'existe encore à ressortir (aucune paire n'a pu être évaluée) — un
@@ -293,8 +277,7 @@ async function traiterMessage(e: MessageEvent<WorkerRequest>) {
     return;
   } finally {
     stopBuildReject = null;
-    // La construction rejette dès la PREMIÈRE moitié en erreur
-    // (`construireMoitiesEmboitees`) : les autres sont encore en vol ici.
+    // L'arrêt externe peut avoir terminé les enfants avant le finally du lanceur.
     terminerMoitiesEnCours();
   }
   if (stopped) {

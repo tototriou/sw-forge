@@ -1,17 +1,11 @@
-// La construction des moitiés en parallèle, préréglages emboîtés compris : UN
-// fil par moitié ET par préréglage construit (le préréglage de la recherche,
-// puis chaque préréglage plus étroit, `PreparedSearch.cransEmboites`), chacun
-// construisant UN seul préréglage, tous lancés ensemble ; puis, par moitié,
-// l'union des rétentions (`UnionDesRetentions`) dans l'ordre des préréglages.
-// `construireMoitiesEmboiteesTypees` garde les colonnes de l'écran ; l'API
-// objet `construireMoitiesEmboitees` sert les outils. Chacune rend exactement
-// sa construction d'un bloc (même construction et union, dans le même ordre :
-// tests/retention-emboitee.test.ts).
+// Lanceur commun de construction : pool de tranches borné par les cœurs,
+// fusion en colonnes, puis union des rétentions dans l'ordre des crans.
+// Les orchestrateurs par cran en fin de module servent les oracles des tests.
 //
 // ⚠️ Module neutre (ni `self`, ni `worker_threads`) : la plateforme arrive par
-// le lanceur injecté (`LancerConstruction`) — Web Workers de moitié dans
+// la fabrique injectée (`TravailleurConstruction`) — Web Workers dans
 // `runeBuildOptim.worker.ts`, `worker_threads` dans la coquille Node
-// (`scripts/lib/buildHalvesNode.ts`, `perf-battery`).
+// (`scripts/lib/buildHalvesNode.ts`, partagé par tous les outils).
 //
 // Pourquoi des fils séparés, et pas une seule passe qui remplirait la liste de
 // chaque préréglage : l'ordre du pool d'un préréglage plus étroit n'est pas
@@ -27,6 +21,8 @@ import { StatKey } from './effects';
 import { Bucket, CranEmboite, PreparedSearch } from './runeBuildOptim';
 import { UnionDesRetentions, UnionDesRetentionsTypees } from './retentionEmboitee';
 import { CompartimentType } from './demiBuildsTypes';
+import { EntreeTranche, ResultatTranche, contexteDe, fusionnerTranchesTypees, repartirIdx0 } from './constructionRapide';
+import { nombreDeTravailleurs } from '../workers/parallelPairing';
 
 type OrdreCombos = 'potential' | 'relevance' | 'combined' | 'objective';
 
@@ -61,6 +57,100 @@ export interface RequeteMoitie {
   // retomberait sur le défaut interne de la construction, quoi que demande
   // l'appelant.
   combosOrderMode?: OrdreCombos;
+}
+
+export interface RequeteTranche extends RequeteMoitie {
+  idx0s: number[];
+}
+
+/** Une tâche à la fois par poignée ; le même Worker sert plusieurs crans. */
+export interface TravailleurConstruction {
+  construire(requete: RequeteTranche, progression: (scanned: number) => void): Promise<ResultatTranche>;
+  terminer(): void | Promise<void>;
+}
+
+export function entreeDeTranche(r: RequeteTranche): EntreeTranche {
+  return { ctx: contexteDe(r), slotIdxs: r.slotIdxs, otherHalfMaxSets: r.otherHalfMaxSets, idx0s: r.idx0s };
+}
+
+/**
+ * Lanceur commun à l'écran et aux outils : un pool borné par la règle des
+ * cœurs pour TOUTES les moitiés et tous les crans. Chaque cran garde son
+ * ordre de pool et ses tas ; la fusion précède l'union ordonnée des crans.
+ */
+export async function lancerConstruction(
+  prepared: PreparedSearch,
+  mode: OrdreCombos | undefined,
+  options: {
+    concurrence: number | undefined;
+    coeursPhysiques: number | null;
+    creer: () => TravailleurConstruction;
+    progression?: (half: 'A' | 'B', scanned: number, total: number) => void;
+    annulation?: Promise<never>;
+  }
+): Promise<{ bucketsA: CompartimentType[]; bucketsB: CompartimentType[] }> {
+  const nombre = nombreDeTravailleurs(options.concurrence, options.coeursPhysiques);
+  const moities = (['A', 'B'] as const).map((half) => {
+    const crans = requetesDeLaMoitie(prepared, half, mode).map((requete) => ({
+      requete, tranches: [] as ResultatTranche[], vus: 0,
+    }));
+    return { half, crans, total: crans.reduce((n, c) => n + c.requete.filtered[c.requete.slotIdxs[0]].length, 0) };
+  });
+  const taches: { rangTranche: number; requete: RequeteTranche; recevoir: (r: ResultatTranche) => void; progression: (n: number) => void }[] = [];
+  for (let rang = 0; rang < moities[0].crans.length; rang++) for (const m of moities) {
+    const c = m.crans[rang];
+    for (const [rangTranche, idx0s] of repartirIdx0(c.requete.filtered[c.requete.slotIdxs[0]].length, nombre).entries()) {
+      if (!idx0s.length) continue;
+      let vu = 0;
+      taches.push({ rangTranche, requete: { ...c.requete, idx0s }, recevoir: (r) => c.tranches.push(r), progression: (n) => {
+        if (!Number.isInteger(n) || n < vu || n > idx0s.length) throw new Error('Construction : progression de tranche invalide.');
+        c.vus += n - vu;
+        vu = n;
+        options.progression?.(m.half, m.crans.reduce((s, cran) => s + cran.vus, 0), m.total);
+      } });
+    }
+  }
+  // Une tranche de chaque moitié et de chaque cran avant leur tranche
+  // suivante : les petits crans peuvent finir sans attendre le pool large.
+  taches.sort((a, b) => a.rangTranche - b.rangTranche);
+  const travailleurs: TravailleurConstruction[] = [];
+  let prochain = 0;
+  let fini = false;
+  const servir = async () => {
+    const fil = options.creer();
+    travailleurs.push(fil);
+    while (!fini && prochain < taches.length) {
+      const t = taches[prochain++];
+      const r = await fil.construire(t.requete, (n) => { if (!fini) t.progression(n); });
+      if (fini) return;
+      t.progression(t.requete.idx0s.length);
+      t.recevoir(r);
+    }
+  };
+  try {
+    const travail = Promise.all(Array.from({ length: Math.min(nombre, taches.length) }, servir));
+    if (options.annulation) await Promise.race([travail, options.annulation]);
+    else await travail;
+    const resultats = moities.map((m) => {
+      const construits = m.crans.map((c) => {
+        const resultat = fusionnerTranchesTypees(c.requete, c.requete.slotIdxs,
+          c.requete.otherHalfMaxSets, mode ?? 'objective', c.tranches);
+        c.tranches.length = 0;
+        return resultat;
+      });
+      const r = m.crans[0].requete;
+      const union = new UnionDesRetentionsTypees(construits[0], r.slotIdxs.map((s) => r.filtered[s]) as [RuneDetail[], RuneDetail[], RuneDetail[]]);
+      for (const cran of construits.slice(1)) union.ajouter(cran);
+      // Sans ajout, le matérialiseur conserve aussi les compartiments vides.
+      const resultat = construits.length === 1 ? construits[0] : union.resultat(prepared, mode ?? 'objective');
+      options.progression?.(m.half, m.total, m.total);
+      return resultat;
+    });
+    return { bucketsA: resultats[0], bucketsB: resultats[1] };
+  } finally {
+    fini = true;
+    await Promise.all(travailleurs.map((fil) => fil.terminer()));
+  }
 }
 
 /**

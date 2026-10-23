@@ -1,13 +1,17 @@
 # Équipement actuel
 
-Ce document décrit la carte « Équipement actuel ».
+Ce document décrit la fiche d'équipement : « Exemplaire » au bureau,
+dans « Monstre & équipement » au téléphone.
 
 2. **Équipement actuel** — **le composant `MonsterGear`, réutilisé tel quel**
    (pas réimplémenté), le même qu'en RTA/Siège quand on clique un monstre :
-   stats base/bonus, artéfacts, roue de runes et relique **tels
-   qu'ACTUELLEMENT équipés** sur l'exemplaire choisi dans la recherche du
-   monstre (voir recherche-du-monstre.md § Recherche du monstre à optimiser) — **c'est
+   stats base/bonus, artéfacts, roue de runes et relique de l'exemplaire
+   choisi (voir recherche-du-monstre.md § Recherche du monstre à optimiser) — **c'est
    CET exemplaire que la recherche optimise**, pas systématiquement la box.
+   La fiche montre son build validé dans la liste active s'il en a un,
+   sinon son équipement réellement porté. Un bandeau explicite distingue
+   le build validé et permet de voir le runage réellement porté (voir
+   [../feat-listes-et-reservation.md](../feat-listes-et-reservation.md#monstre-non-possédé-et-auto-exemption)).
    L'exemplaire choisi (`gearSource`, la puce de source ; `sourceSelector`,
    l'entrée précise) vit dans `useOptimizerState` : il **reste choisi quand
    on change de page**, et entre dans la sauvegarde de session
@@ -31,8 +35,8 @@ Ce document décrit la carte « Équipement actuel ».
    dispositif que les cartes de résultat (`BuildCandidateCard`,
    voir resultats.md § Résultats), pas un bloc qui pousserait le reste de la fiche vers le bas. Ce que
    l'outil part optimiser, visible d'un coup d'œil avant de lancer quoi que
-   ce soit — y compris les artéfacts et la relique, qui ne sont eux jamais
-   modifiés par la recherche
+   ce soit. Les résultats proposent leurs propres artéfacts et leur relique
+   quand leur optimisation est active, sans modifier l'équipement du compte
    (voir ../../../03-developpeur/optimizer/moteur/elagages.md § Algorithme (résumé fonctionnel)). ⚠️ **Artéfacts : toujours
    2 emplacements affichés** (Attribut puis Type), même si le monstre choisi
    n'en porte qu'un seul ou aucun — un emplacement vide est montré grisé

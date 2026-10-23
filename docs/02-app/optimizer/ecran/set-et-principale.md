@@ -4,8 +4,8 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
 
 4. **Set de runes recherché** — **un seul combo** (contrairement aux
    recommandations de siège, qui proposent plusieurs possibilités au choix) :
-   grille d'icônes de sets, jamais un menu déroulant (`SetComboPicker.tsx`,
-   même comportement que le picker de `RecoCard.tsx` réécrit en plus simple).
+   grille d'icônes de sets (`SetComboPicker.tsx`), en ligne au téléphone,
+   dépliée ou dans un flottant au bureau selon la place disponible.
    Compteur `N/6 runes`, sets qui ne rentrent plus grisés. Y choisir
    **Accuracy** ou **Tolerance** guide vers l'interrupteur des auras RES/PRE
    des réglages avancés, sans toucher aux auras externes (voir
@@ -43,7 +43,7 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    **Au bureau**, le set de runes recherché est une section du panneau des
    essentiels, sous la liste de travail, **sans le titre « Critères de
    recherche »** du téléphone (le panneau et ses traits situent déjà la
-   section), en **forme compacte** (`SetDeRunesCompact`) : le libellé seul
+   section). **En forme compacte** (`SetDeRunesCompact`) : le libellé seul
    (le message d'une recherche refusée sans set à sa droite), puis
    une seule liste fermée (`SelecteurMultiple`, axe `surface`) qui montre les
    sets choisis, icône et nom, ou « Aucun » ; le compteur `N/6 runes` n'y
@@ -100,7 +100,7 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    177 px à droite des Conditions, au-dessus d'« État de mon monstre »
    (`PrincipalesImposeesBureau`) : une **rangée compacte par slot**, « Slot
    n » puis sa liste à choix multiples (`SelecteurMultiple`, forme
-   « surbrillance » ; schéma de l'utilisateur, arrêt 4). Fermée, la liste dit
+   « surbrillance »). Fermée, la liste dit
    « Libre » sans choix, sinon **toutes** les valeurs choisies, à la ligne
    entre deux valeurs : une ligne pour « Libre » ou deux ou trois valeurs,
    deux pour les cinq d'un slot ; rien n'est tronqué. Sans hauteur réservée :

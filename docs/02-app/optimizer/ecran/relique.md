@@ -43,8 +43,8 @@
      donne la phrase complète de la fiche d'objet (`formatRelicUnique`,
      `RelicSlot.tsx`), trop longue pour un sélecteur (voir
      resultats.md § Validation d'un build et relique).
-   - **Niveau minimum** (`NumberField`, +0 à +15, +6 par défaut,
-     `relicMinUpgrade`) : filtre d'ENTRÉE sur le pool cherché, jamais un
+   - **Niveau minimum** (« Niveau min. » au bureau ; `NumberField`, +0 à +15,
+     +6 par défaut, `relicMinUpgrade`) : filtre d'ENTRÉE sur le pool cherché, jamais un
      critère de classement.
    - `libre` et le type n'ont d'effet qu'avec la recherche (bornes,
      résolution exacte) ; les sélecteurs ne se conditionnent

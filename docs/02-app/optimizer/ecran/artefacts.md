@@ -1,6 +1,6 @@
 # Artéfacts
 
-Ce document décrit la carte « Artéfacts » de l'écran.
+Ce document décrit les réglages d'artéfacts de la carte « Artéfacts et relique ».
 
 6. **Artéfacts** — carte « Artéfacts et relique », interrupteur
    **« Activer l'optimisation d'artéfacts et reliques »**,
@@ -77,15 +77,10 @@ Ce document décrit la carte « Artéfacts » de l'écran.
      rejouer un cas signalé avec l'export de celui qui l'a signalé. Basculer
      rendrait la reproduction moins fidèle.
 
-   ⚠️ **« Comme équipé »**, choisi par l'utilisateur (2026-10) à la place de
-   « Garder l'artéfact équipé », trop long pour une liste étroite. Le risque
-   reste nommé : posé au milieu de trois statistiques principales, « Comme
-   équipé » peut se lire « la principale, comme équipé » — une liste se lit
-   comme homogène. Les entrées qui filtrent par stat principale ont porté
-   « Principale … » pour l'éviter ; l'utilisateur les a raccourcies
-   (2026-10, « ATQ +100 ») pour qu'Attribut et Type tiennent dans une carte
-   étroite. Reste l'aide de la carte, qui dit que ce choix garde la pièce
-   entière.
+   ⚠️ **« Comme équipé » garde la pièce entière**, comme le précise l'aide
+   de la carte. Les libellés courts des principales (« ATQ +100 »,
+   « DEF +100 », « PV +1500 ») permettent aux listes de tenir côte à côte
+   au bureau ; ils ne décrivent que le filtre sur la principale.
 
 ## Place de la carte à l'écran
 
@@ -103,7 +98,7 @@ Ce document décrit la carte « Artéfacts » de l'écran.
      Elle n'est pas repliée au lancement d'une recherche : seul l'onglet
      ferme sa colonne ([README.md](README.md#colonnes-repliables-selon-la-largeur)).
      ⚠️ **Attribut et Type sur une ligne**, chaque liste à la largeur de son
-     contenu (décision de l'utilisateur, arrêt 4) : libellés, listes de
+     contenu : libellés, listes de
      107 px (« Comme équipé » entier), 4 px entre libellé et liste, 8 px
      entre les deux, 293 px pour 294 utiles. Le rembourrage droit de ces
      deux listes passe de 24 à 20 px (le chevron garde 2 px de marge) ; la
@@ -123,11 +118,12 @@ Ce document décrit la carte « Artéfacts » de l'écran.
    L'interrupteur ci-dessus masque d'un seul geste les deux listes
    d'artéfacts ET le bloc Relique.
 
-   ⚠️ **Largeur fixe et commune** aux quatre listes déroulantes de la carte
-   (Attribut, Type, Principale relique, Propriété unique relique) : sans elle, un `<select>` natif
-   prend la largeur de sa plus longue option — « Soins et boucliers
-   accordés en fonction des PV » imposerait une case énorme pour « Propriété
-   unique », y compris quand « Libre » y est affiché. La valeur
-   **fermée** se tronque par « … » (`truncate`) ; la liste **ouverte**
-   garde le texte complet, comportement natif du `<select>`.
+   Les listes **Attribut et Type** ont la largeur de leur contenu au bureau
+   et la largeur commune `LARGEUR_SELECTEUR_LISTE` au téléphone. Les deux
+   listes de **relique** gardent cette largeur commune aux deux formats :
+   une propriété unique longue ne doit pas élargir la carte.
+   `Selecteur` conserve le `<select>` natif comme champ fermé ; la liste
+   ouverte est un `Flottant` de la charte, utilisable à la souris, au doigt
+   et au clavier (Tab parcourt les options). La liste native sert de repli
+   sans l'API `popover`.
 

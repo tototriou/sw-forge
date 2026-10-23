@@ -13,7 +13,8 @@
    - les sous-propriétés **exclusives** à une sorte figée disparaissent du
      menu (une ligne portable par les deux reste proposée tant qu'un
      emplacement cherche) ;
-   - les **deux** emplacements figés — ce qui est le **défaut** — rendent la
+   - les **deux** emplacements figés (chacun sur « Comme équipé », alors
+     que le défaut est « Libre ») rendent la
      section entièrement inerte, et elle **dit pourquoi** plutôt que de
      présenter un menu vide ;
    - une ligne déjà posée qui devient sans effet est **barrée et grisée**,

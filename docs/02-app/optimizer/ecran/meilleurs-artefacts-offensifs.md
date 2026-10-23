@@ -175,9 +175,10 @@ une seule ligne séparée par des « · » se replie n'importe où et ne
 ressemble pas au jeu.
 
 ⚠️ **Jamais à la place des artéfacts de la fiche** : celle-ci montre
-l'équipement RÉEL, et y substituer une proposition ferait croire à un
-équipement qu'on ne porte pas. La fiche (« Exemplaire ») dit ce qu'on
-PORTE, le bloc ce qu'on DEVRAIT porter. Le bloc est avec les réglages
+l'équipement de référence, réellement porté ou validé dans la liste
+active (voir [equipement-actuel.md](equipement-actuel.md)). Y substituer
+une proposition confondrait la référence et le résultat du calcul.
+Le bloc est avec les réglages
 d'artéfacts qui le pilotent, au lieu d'en être séparé par une carte
 entière.
 

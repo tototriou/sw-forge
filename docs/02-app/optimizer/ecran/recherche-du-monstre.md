@@ -206,8 +206,7 @@ commune :
    droite du champ s'aligne sur celle de la liste déroulante des listes
    (décision de l'utilisateur).
    Les membres prennent leur hauteur jusqu'à 308 px, comme au téléphone,
-   puis défilent (décision de l'utilisateur à l'arrêt 4 : plus haute que
-   les quatre lignes d'avant) ;
+   puis défilent pour garder les critères accessibles ;
 2. **« Exemplaire »**, en tête de la colonne de droite en A3, sous les
    réglages en A1 et A2, section de 598 px au plus du panneau de droite
    (`ExemplaireBureau`) : les puces de source,

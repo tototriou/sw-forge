@@ -15,11 +15,10 @@
    ce contenu, sets d'aura compris. **Au bureau**, elle est réduite aux
    buffs et au lead, section des essentiels dans la sous-colonne de 177 px,
    sous la statistique principale imposée (`EtatMonstreEssentiels`) : les
-   trois vignettes de buff **sur une rangée** (56 px chacune), puis le lead
-   comme le schéma de l'utilisateur — « Lead », l'icône, la liste de la stat
+   trois vignettes de buff **sur une rangée** (56 px chacune), puis le lead :
+   « Lead », l'icône, la liste de la stat
    et, sous elle, celle du pourcentage, sans boîte autour, la liste de la
-   stat entière (elle était coupée, « Aucu », dans l'ancienne carte de
-   170 px) —, le motif d'un lead inactif (seulement s'il existe) et les
+   stat entière ; le motif d'un lead inactif (seulement s'il existe) et les
    rappels. Son aide ne nomme ni les sets d'aura ni ce qui décrit le
    combat. Les sets d'aura des autres monstres ont leur propre carte, en
    tête de la colonne « Aura, exclusion, avancés »
@@ -70,7 +69,7 @@
    la recette lisent ce même mode effectif ; une valeur mémorisée ou importée
    différente reste conservée, mais le contenu décide de son application.
 
-   Chacun porte son **contour**. ⚠️ **Des boîtes et non des barres**, alors
+   **Au téléphone, chaque groupe porte son contour.** ⚠️ **Des boîtes et non des barres**, alors
    qu'une barre serait
    plus légère et que c'est le patron des deux colonnes de « Critères de
    recherche » : ces groupes-ci peuvent passer à la ligne, et une barre
@@ -79,7 +78,9 @@
    superposés ([03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md)) — ces boîtes vivent à
    l'intérieur de la carte, elles ne longent pas son bord. `items-stretch` les
    met à la hauteur de la plus haute, sinon une boîte d'une rangée flotterait
-   au milieu d'une boîte de deux et l'œil lirait un décalage.
+   au milieu d'une boîte de deux et l'œil lirait un décalage. Au bureau,
+   buffs et lead sont sans cadre dans les essentiels, et les auras forment
+   une section sans cadre de leur colonne.
 
    Dans le groupe **Lead**, au bureau, les deux menus (type et valeur) ont la
    **même largeur** : la valeur se pose sous le type, dans la même colonne de
@@ -192,13 +193,13 @@
    l'écriture des auras externes (`ecrire`, point de passage de tous les
    contrôles de leur boîte) et le choix d'un set recherché. Deux formes,
    une par format, choisies par `SOUS_LG` comme le panneau lui-même :
-   - **À la souris** — la colonne repliable « Aura, exclusion, avancés »
+   - **Au format bureau, quel que soit le pointeur** — la colonne repliable « Aura, exclusion, avancés »
      s'ouvre (jeton `guideComplements`, que `PageBureau` applique à l'état
      des onglets par `ouvrirColonne`), **puis** l'interrupteur, rendu dès
      que la colonne est ouverte, est amené à l'écran du strict nécessaire
      (`nearest`) ; l'effet se rejoue quand l'état des onglets change. En
      A3, c'est la colonne repliable qui défile, seule.
-   - **Au doigt** — le panneau « Options de recherche » s'ouvre par-dessus
+   - **Au format téléphone** — le panneau « Options de recherche » s'ouvre par-dessus
      la carte ; il reste piloté par la barre de navigation, l'écran le
      demande par la prop `onOuvrirMenu` (`App.tsx`, relayée par
      `OutilsPage.tsx`). Son contenu défile jusqu'à l'interrupteur, dernier

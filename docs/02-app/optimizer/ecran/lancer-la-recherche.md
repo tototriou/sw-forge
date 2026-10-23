@@ -8,19 +8,23 @@ grille des réglages, la carte du bouton Rechercher, puis le message d'import
 et la progression.
 
 10. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
-    une ligne affiche le nombre **exact** de runes gardées après
-    pré-filtrage, détaillé par emplacement (une **somme**, pas un produit),
+    une ligne affiche le nombre de runes retenues par le pré-filtrage
+    **de l'estimation**, détaillé par emplacement (une **somme**, pas un produit),
     recalculée en direct à chaque changement de critère : « N runes gardées
     après pré-filtrage (pool par emplacement : a + b + … ) ». Au bureau, en
-    tête du bloc, sans place réservée (arrêt 4) : elle paraît au choix du
+    tête du bloc, sans place réservée : elle paraît au choix du
     set, qui se fait plus haut ou dans un flottant, et ne pousse que ce qui
     la suit. Au téléphone, la dernière
     rangée de la grille des réglages. ⚠️ **Le pool, pas
     l'espace de recherche** : le nombre de combinaisons brutes (produit des
     tailles de pool par emplacement) est un ordre de grandeur bien trop
     éloigné du nombre réel de demi-builds construits ou de paires visitées
-    par le meet-in-the-middle pour servir de repère — seul le pool retenu,
-    lui, est un nombre exact et directement lisible.
+    par le meet-in-the-middle pour servir de repère. L'estimation appelle
+    le même pré-filtrage que la recherche (`estimateSearchSpace`), mais
+    sans les élagages sûrs de dominance et de faisabilité : elle compte
+    exactement ce pré-filtrage, pas le pool réellement exploré par la
+    recherche. Le total est abrégé à l'affichage (`formatBig`) ; les
+    comptes par emplacement restent entiers.
 11. **« Rechercher »** — lance le calcul. Changer un des critères de
     recherche ne relance rien automatiquement : il faut recliquer. Un bouton
     **« Arrêter »** paraît pendant le calcul — il interrompt la recherche
@@ -93,7 +97,9 @@ et la progression.
     être sûr de trouver votre build optimal. ». Au bureau, la progression
     est **compacte** : les deux mêmes lignes, sans barre, sous « Rechercher »
     (en A1, à sa droite, dans la barre fine collée au bas de la fenêtre),
-    sans place réservée : elle paraît sous le bouton qu'on vient de
-    cliquer, jamais au-dessus. Pendant la
+    sans place réservée dans le bloc ordinaire : elle paraît sous le bouton
+    qu'on vient de cliquer, jamais au-dessus. La barre fine de A1 réserve
+    en revanche la hauteur de sa progression la plus haute pour que
+    « Rechercher » ne monte pas sous le clic. Pendant la
     préparation, une ligne par moitié (« Préparation — moitié A : x / y
     runes »), avec sa barre au téléphone, sans barre au bureau.

@@ -30,8 +30,8 @@ const RANGEE_LARGE = 'flex flex-col-reverse gap-2 @[448px]/rangee:flex-row-rever
 const RECHERCHER_DANS_LA_RANGEE = 'w-full @[448px]/rangee:w-60 @[448px]/rangee:flex-none';
 
 // La progression la plus haute que la recherche affiche (phase d'appariement,
-// grands nombres ; préparation, erreur et refus tiennent dans sa place,
-// mesuré au lot 6d) : sa copie invisible fixe la hauteur de la barre fine de A1.
+// grands nombres ; préparation, erreur et refus tiennent dans sa place) :
+// sa copie invisible fixe la hauteur de la barre fine de A1.
 const PROGRESSION_LA_PLUS_HAUTE: Omit<ProgressionRechercheProps, 'status'> = {
   progress: { phase: 'pairing', explored: 999_999_999_999, found: 999_999, pct: 1, totalPairs: 999_999_999_999, candidates: [] },
   refusal: null,
@@ -69,7 +69,7 @@ export interface ObjectifEtRechercherBureauProps extends ObjectifEtActionsProps 
 // La forme est choisie par la mise en page (un clic d'onglet), jamais par le bloc.
 //
 // ⚠️ **Une seule place réservée : celle de « Rechercher » / « Arrêter »**
-// (décision de l'utilisateur à l'arrêt 4). « Arrêter » prend la place EXACTE
+// (décision de l'utilisateur). « Arrêter » prend la place EXACTE
 // de « Rechercher » (les deux dans la même case de grille, l'absent
 // invisible) et reste inactif 300 ms. Estimation, résumé « Dégâts réels » et
 // progression prennent leur hauteur quand ils paraissent : ils ne paraissent

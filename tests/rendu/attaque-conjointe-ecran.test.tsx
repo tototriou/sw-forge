@@ -97,7 +97,8 @@ function verifier(etroit: boolean) {
   ok(vignette(carte(SABRINA, TRIPLE_STRIKE, etroit, { attaqueConjointe: false }), 'inactif'), `${format} : … éteinte quand attaqueConjointe vaut false`);
   ok(vignette(carte(SABRINA, TRIPLE_STRIKE, etroit, { attaqueConjointe: true }), 'actif'), `${format} : … allumée quand attaqueConjointe vaut true`);
 
-  // D21 : aucun numéro d'artéfact dans les descriptions ; D20 : l'icône de Team Up.
+  // Les descriptions nomment les effets, sans numéro d'artéfact ; l'icône
+  // de Team Up identifie l'attaque conjointe.
   for (const [nom, html] of [['S1 ordinaire', s1], ['famille', famille]] as const) {
     ok(survol(html) !== '' && !/209|224|225/.test(survol(html)), `${format} : ${nom} — aucun numéro d’artéfact dans la description`);
     ok(html.includes('skill_icon_0001_6_3.png'), `${format} : ${nom} — l’icône de Team Up de Raoq éveillé`);
@@ -134,7 +135,7 @@ function verifier(etroit: boolean) {
     ok(!html.includes('Pendant le tour d’un allié'), `${format} : ${nom} — « Pendant le tour d’un allié » absente`);
   }
 
-  // D17 : le ratio curé s'affiche dans la ligne du sort.
+  // Le ratio curé s'affiche dans la ligne du sort pour rendre le calcul lisible.
   ok(texteVisible(carte(NEZUKO, PURIFICATION, etroit)).includes('4.5 × ATQ'), `${format} : Nezuko, Purification, Cooperation! — le ratio 4.5 × ATQ est dans la ligne du sort`);
   ok(texteVisible(carte(VERMILION, RITE_OF_ASHES, etroit)).includes('4.5 × ATQ'), `${format} : Vermilion Bird Dancer, Rite of Ashes — le ratio 4.5 × ATQ est dans la ligne du sort`);
 }

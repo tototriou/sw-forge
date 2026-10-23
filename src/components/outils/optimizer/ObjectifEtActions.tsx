@@ -39,8 +39,8 @@ export function TitreObjectifRecherche() {
 
 // Le résumé de « Dégâts réels », porte de réouverture de la description du
 // combat, rendu seulement sous cet objectif, aux deux formats. Au bureau, sa
-// place n'est plus réservée (décision de l'utilisateur à l'arrêt 4 de la
-// refonte) : il paraît sous les objectifs, jamais au-dessus du clic.
+// place n'est pas réservée (décision de l'utilisateur) : il paraît sous les
+// objectifs, jamais au-dessus du clic.
 export function ResumeCombat({ resumeCombat, setSetupOuvert }: { resumeCombat: string; setSetupOuvert: Dispatch<SetStateAction<boolean>> }) {
   return (
     <ZoneCliquable

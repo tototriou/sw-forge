@@ -147,7 +147,7 @@
 //   l'élément, sans un pixel de dessin) ne compte ni dans la mesure de son
 //   élément ni dans celle de ses ancêtres hors `html`. La règle « page », elle,
 //   le COMPTE : un `::after` qui élargit la page laisse un défilement latéral
-//   au téléphone (décision D9 de l'utilisateur ; relevé
+//   au téléphone (décision de l'utilisateur ; relevé
 //   tests/banc/cas/zone-tactile-page.html : `isMobile` élargit la fenêtre de
 //   mise en page à 373 px pour 360). Au second passage, sa règle « contenu »
 //   et celle de ses ancêtres se relisent ce pseudo-élément retiré ; la page,
@@ -185,7 +185,7 @@
 //   nombre d'exemplaires) : son contact avec SON portrait est permis, jamais
 //   avec le reste — ni un ancêtre au-delà du portrait, ni une autre pastille,
 //   ni la couronne, ni rien d'autre que ce qui est dessiné dans le cadre du
-//   portrait. Décisions D11 et D15 de l'utilisateur ; aucune généralisation à
+//   portrait. Aucune généralisation à
 //   un autre élément absolu à décalage négatif (halo, superposition
 //   `-inset-px`, bouton en coin hors de sa liste — exception suivante), qui
 //   se mesure comme les autres.
@@ -193,7 +193,7 @@
 //     par `src/` (MonsterAvatar.tsx, ElementIcon.tsx, siege/LeadPill.tsx),
 //     sur l'élément positionné lui-même, avec une valeur de la liste
 //     explicite PASTILLES_RECONNUES : `element`, `lead`, `exemplaires`. PAS
-//     `couronne` (D15 : la couronne n'est pas posée sur le portrait) : elle
+//     `couronne` (la couronne n'est pas posée sur le portrait) : elle
 //     se mesure comme tout élément, son dépassement compte, et elle est « le
 //     reste » pour les pastilles. Rien n'est reconnu par son image ni par sa
 //     forme : une icône d'élément sans repère se mesure comme les autres (son
@@ -244,7 +244,7 @@
 //     coupe celle d'aucun élément visible (au sens plus haut, `visibility`
 //     visible) DU MÊME PLAN qui n'est ni un de ses ancêtres, ni un de ses
 //     descendants, ni le contenu de son portrait — coupe : intersection de
-//     plus de 1 px de large ET de haut. Contenu du portrait (D14 : ce qui est
+//     plus de 1 px de large ET de haut. Contenu du portrait (ce qui est
 //     dessiné dans le cadre du portrait en fait partie) : le CADRE — premier
 //     élément enfant du portrait, en flux (ni `absolute` ni `fixed`), sans
 //     `data-pastille` : la structure fixe de MonsterAvatar, dont les deux
@@ -254,7 +254,7 @@
 //     portrait d'un jumeau collab (`absolute inset-0` dans le cadre,
 //     `CollabPortrait.tsx`) en fait donc partie. Tout autre descendant du
 //     portrait est « le reste » et se compare : une autre pastille (deux
-//     pastilles d'un même portrait ne se touchent pas, D15), la couronne,
+//     pastilles d'un même portrait ne se touchent pas), la couronne,
 //     un élément sans repère, enveloppé ou non dans un cadre positionné
 //     (relectures Codex n° 5 et 17, tests/banc/cas/coin-pastille.html,
 //     pastille-*.html). Sans cadre reconnu, le portrait n'a pas de contenu :
@@ -633,7 +633,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
   };
 
   // Pastille du portrait (tête) : la liste explicite des repères reconnus —
-  // pas `couronne` (D15).
+  // pas `couronne`, qui n'est pas posée sur le portrait.
   const PASTILLES_RECONNUES = new Set(['element', 'lead', 'exemplaires']);
   // Bouton en coin (tête) : la liste explicite de ses membres.
   const BOUTONS_EN_COIN = new Set(['retirer-rta', 'modifier-defense']);
@@ -1226,7 +1226,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
     const retirables = decoratifsVus.filter(retirable);
     decoratifsEnPlace = decoratifsVus.length - retirables.length;
     try {
-      // (1) La page : marges négatives seules (D9 ne vaut pas pour elle, un
+      // (1) La page : marges négatives seules (la zone tactile y compte, un
       // décoratif est coupé avant `html`, une pastille s'arrête à son portrait).
       for (const { el, marge, gauche } of margesNegatives) {
         poses.push(poser(el, { 'margin-left': `${gauche - marge}px`, 'margin-right': '0px' }));

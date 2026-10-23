@@ -264,9 +264,8 @@ valeurs (chacune insécable : « Taux Crit » ne se coupe pas), rien de tronqué
   champ à l'ouverture (mesurée au seul changement d'ouverture) et y reste.
   Un choix qui fait passer le champ à deux lignes l'allonge sous elle ;
   fermée, la liste montre tout. Ce qui suit le champ descend : la règle
-  protège la cible du clic, pas ce qui est dessous. Il réservait avant la
-  hauteur du résumé de toutes les options ; l'utilisateur a voulu des
-  rangées compactes (arrêt 4 de la refonte de l'Optimizer).
+  protège la cible du clic, pas ce qui est dessous. Les rangées restent
+  compactes : aucune hauteur réservée pour les options non choisies.
 
 #### `Interrupteur`
 

@@ -23,7 +23,7 @@ export interface EtatMonstreEssentielsProps {
 // d'`EtatMonstre` (partagé avec le téléphone, inchangé) : titre et aide,
 // vignettes, choix du lead, rappels des passifs.
 //
-// ⚠️ **Les trois buffs sur UNE rangée** (schéma de l'utilisateur, arrêt 4) :
+// ⚠️ **Les trois buffs sur UNE rangée** (décision de l'utilisateur) :
 // vignettes de 56 px, qui tiennent à trois dans la sous-colonne de ≈ 175 px.
 // Le lead dessous, comme le schéma : « Lead », l'icône, la liste de la stat,
 // et la liste du pourcentage sous elle (`LeaderSkillPicker`, grille du

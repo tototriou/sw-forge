@@ -1466,9 +1466,8 @@ function DeckBlock({
           verdict sous le tout ; à droite, sur la hauteur de la rangée et des
           sets, la COLONNE d'actions (Supprimer, Éditer, Exporter). Sur une
           seule ligne, à 360 px, les trois icônes prenaient la place des
-          portraits, qui se chevauchaient (chantier `defauts-affichage`,
-          lot 4). À la souris, `lg:contents` : rien ne change, ses enfants se
-          posent dans la grille de la ligne. */}
+          portraits, qui se chevaucheraient. À la souris, `lg:contents` :
+          ses enfants se posent dans la grille de la ligne. */}
       <div className="mb-2 max-lg:grid max-lg:grid-cols-[minmax(0,1fr)_auto] max-lg:gap-x-2 lg:contents">
         {/* ⚠️ **Rangée à part, jamais mêlée au verdict/copies en dessous** :
             le crayon doit rester en HAUT À DROITE quel que soit l'état du
@@ -1626,7 +1625,7 @@ function DeckBlock({
             colonne de la grille de l'en-tête, sur la hauteur de la rangée et
             des sets (`row-span-2`). Supprimer garde la place qu'il avait au
             bout de la rangée.
-            ⚠️ **Toute cette hauteur, à espacements égaux** (lot 6) :
+            ⚠️ **Toute cette hauteur, à espacements égaux** :
             `max-lg:self-stretch max-lg:justify-between`, la colonne s'étend
             sur la rangée et les sets (65 px) et ses icônes s'y répartissent.
             `max-lg:gap-[2.5px]`, l'espacement que donnent trois icônes de

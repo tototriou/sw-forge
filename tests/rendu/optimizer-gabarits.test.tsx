@@ -47,7 +47,7 @@ export function testRenduOptimizerGabaritsComposants() {
   egal(boutons(choisies).filter((b) => b.presse).map((b) => b.texte), ['Taux Crit', 'Dmg Crit'], 'principales choisies : en surbrillance dans la liste');
   ok(texteVisible(libres).includes('Statistique principale imposée (slots pairs)'), 'principales : le titre de l\'app');
   egal((libres.match(/data-resume-entier/g) ?? []).length, 3, 'principales : chaque champ fermé montre tout son résumé (resumeEntier)');
-  egal((libres.match(/data-reserve-resume/g) ?? []).length, 0, 'principales : plus de hauteur réservée pour toutes les options (arrêt 4)');
+  egal((libres.match(/data-reserve-resume/g) ?? []).length, 0, 'principales : aucune hauteur réservée pour toutes les options');
   egal((libres.match(/class="flex items-center gap-1.5"><span class="w-9 flex-none text-micro text-ink-dim">Slot/g) ?? []).length, 3,
     'principales : trois rangées compactes, « Slot n » à gauche de sa liste');
   ok(/^<section[^>]*class="flex flex-col"/.test(libres), 'principales : une section sans cadre (le panneau de la colonne le porte)');

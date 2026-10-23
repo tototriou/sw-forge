@@ -185,7 +185,8 @@ export async function testSelectionFichiersCasReels(): Promise<void> {
   s = sel(['bureau/fichier-inconnu.ts']);
   ok(s.complet && s.fichiers[0]?.detail === 'aucun lien spécifique', 'bureau/ est une racine : un fichier sans lien → non couvert, suite complète');
 
-  // Non couvert → complet, même quand une transversale est déjà retenue (D8).
+  // Non couvert → complet, même quand une transversale est déjà retenue :
+  // celle-ci ne garantit pas la couverture du fichier inconnu.
   s = sel(['tests/fichier-inconnu.txt']);
   ok(s.complet && statut(s, 'tests/fichier-inconnu.txt') === 'non couvert', 'fichier de tests/ sans lien spécifique → suite complète');
   s = sel(['src/components/outils/OptimizerSection.tsx', 'tests/fichier-inconnu.txt']);

@@ -142,7 +142,7 @@ export function testRenduOptimizerGabaritsDroite() {
   ok(gabarit(pleinRepos) !== '' && gabarit(pleinRepos) === gabarit(sansSetBouton),
     `« Rechercher » : mêmes classes de taille et de contour avec ou sans set, le bouton ne bouge pas (${gabarit(pleinRepos)})`);
   ok(cache(repos, 'Arrêter') === true && !!bouton(repos, 'Arrêter')?.desactive, 'au repos : « Arrêter » garde la place, invisible et inactif');
-  ok(!texteVisible(repos).includes('S3 · vs Feu') && !repos.includes('S3 · vs Feu'), 'hors « Dégâts réels » : aucun résumé du combat, ni place gardée (arrêt 4)');
+  ok(!texteVisible(repos).includes('S3 · vs Feu') && !repos.includes('S3 · vs Feu'), 'hors « Dégâts réels » : aucun résumé du combat, ni place gardée');
   egal(bouton(repos, 'Exporter')?.ariaLabel, 'Exporter les paramètres de recherche', '« Exporter » en libellé court, le long reste le nom');
   ok(!!bouton(repos, 'Importer'), '« Importer » présent');
 
@@ -150,7 +150,7 @@ export function testRenduOptimizerGabaritsDroite() {
   ok(cache(degats, 'S3 · vs Feu') === false && bouton(degats, 'Modifier la description du combat') != null,
     '« Dégâts réels » : le résumé du combat se lit et rouvre la description');
   // Plus de places réservées dans le bloc, hors « Rechercher » / « Arrêter »
-  // (arrêt 4) : ni lignes du résumé, ni estimation, ni progression en double.
+  // Ni lignes du résumé, ni estimation, ni progression en double.
   ok(!/min-h-\[2lh\]/.test(degats) && !/min-h-\[2lh\]/.test(rendre(<ResumeCombat resumeCombat="S3 · vs Feu" setSetupOuvert={rien} />)),
     'le résumé du combat prend la hauteur de son texte, au bureau comme au téléphone');
   ok(!/aria-hidden="true" class="invisible col-start-1 row-start-1"/.test(repos), 'aucune copie invisible qui réserve une place (estimation, progression)');

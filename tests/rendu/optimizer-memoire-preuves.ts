@@ -6,6 +6,7 @@ import { exclusionSelectorKey, type ExclusionSelector } from '../../src/lib/opti
 import { buildOptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import type { DemandeDeRecherche } from '../../src/workers/runeBuildOptim.worker';
 import { searchBuilds } from '../../src/lib/rechercheRunes';
+import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs } from '../../src/lib/candidatsCompacts';
 
 interface BancMemoire {
   etat: () => OptimizerState;
@@ -118,13 +119,21 @@ export async function preparerClicInclusion(genre: string, b: BancMemoire): Prom
   autresMemoiresAvantClic = memoires(b);
   if (genre === 'carte') {
     // Le transport seul est remplacé : le vrai moteur calcule ce minuscule
-    // inventaire et le vrai hook reçoit son résultat avant le clic de carte.
+    // inventaire et le vrai hook reçoit son résultat avant le clic de carte,
+    // dans le protocole du Worker (blocs compacts, puis le bilan et leur nombre).
     globalThis.Worker = class {
       onmessage: ((e: MessageEvent) => void) | null = null;
       onerror = null;
-      postMessage(demande: DemandeDeRecherche) {
-        const resultat = searchBuilds(demande.params);
-        queueMicrotask(() => this.onmessage?.(new MessageEvent('message', { data: { type: 'result', ...resultat } })));
+      postMessage(demande: DemandeDeRecherche | { credit: true }) {
+        if (!('params' in demande)) return;
+        const { candidates, ...bilan } = searchBuilds(demande.params);
+        const colonnes = creerColonnesCandidats();
+        for (const c of candidates) ajouterObjetCandidat(colonnes, c);
+        const nombre = colonnes.length;
+        queueMicrotask(() => {
+          for (const bloc of extraireBlocs(colonnes)) this.onmessage?.(new MessageEvent('message', { data: { type: 'candidats', bloc } }));
+          this.onmessage?.(new MessageEvent('message', { data: { type: 'result', nombre, ...bilan } }));
+        });
       }
       terminate() { this.onmessage = null; }
     } as unknown as typeof Worker;

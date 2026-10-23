@@ -37,7 +37,6 @@ export const CHAMPS_OPTIMIZER_SESSION = [
   'excludeUsedRunes',
   'excludeUsedScope',
   'excludedSelectors',
-  'adaptiveTrancheWeighting',
   'exhaustiveSearch',
   'verifierToutesLesCombinaisons',
   'slotFilterPreset',

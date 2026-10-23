@@ -1852,7 +1852,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // ⚠️ Toujours `false` : l'interrupteur « Prioriser les stats les plus
       // difficiles » est retiré de l'écran (sans gain mesuré). Ni une
       // session reprise ni une recette importée ne le réactivent.
-      adaptiveTrancheWeighting: false,
     });
   }
 
@@ -1882,7 +1881,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       metric,
       slotFilterPreset,
       // Toujours `false`, comme la recherche (`handleSearch`).
-      adaptiveTrancheWeighting: false,
       exhaustiveSearch,
       verifierToutesLesCombinaisons,
       excludeUsedRunes,
@@ -2064,8 +2062,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       optimizer.poserCriteresAutomatiques({ damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
         compterAurasResPre: recipe.compterAurasResPre ?? true });
       setSlotFilterPreset(recipe.slotFilterPreset);
-      // `adaptiveTrancheWeighting` n'est pas relu : une recette qui le porte
-      // à vrai s'importe sans erreur et n'active rien (réglage retiré).
       // ⚠️ `?? false` : une recette exportée AVANT ce réglage ne porte pas ce
       // champ (`undefined`) — repli sur le défaut plutôt que de propager une
       // valeur non booléenne à l'état.

@@ -20,7 +20,7 @@ export const CLASSEMENT_CHAMPS_OPTIMIZER = {
   compterAurasResPre: 'personnel', critereArtefacts: 'personnel',
   selectedId: 'global', gearSource: 'global', sourceSelector: 'global',
   relicMinUpgrade: 'global', excludeUsedRunes: 'global', excludeUsedScope: 'global',
-  excludedSelectors: 'global', adaptiveTrancheWeighting: 'global', exhaustiveSearch: 'global',
+  excludedSelectors: 'global', exhaustiveSearch: 'global',
   verifierToutesLesCombinaisons: 'global', slotFilterPreset: 'global',
   setPickerInvalid: 'global', resultsPage: 'global', openDetailKey: 'global',
   diagnoseBlockingEnabled: 'global', stoppedManually: 'global', importDuCompte: 'global',

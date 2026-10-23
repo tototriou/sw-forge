@@ -54,7 +54,7 @@ function recette(setup: DamageSetup, monsterName = 'Cassie', monsterCom2usId = C
     monsterCom2usId, monsterName,
     requirement: { sets: [], minStats: {} }, objective: 'degats_reels',
     damageSetup: setup, metric: 'eff', slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    exhaustiveSearch: false,
     excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
     ignoreArtifacts: true, artifactMainByKind: {},
   });

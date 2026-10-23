@@ -139,7 +139,7 @@ export async function preuvesCompetencesListeOptimizer(b: Banc): Promise<[boolea
   await editerContenuListe(b, 'arene'); await constater('normal', 'Arène');
   const recette = buildOptimizerRecipe({ monsterCom2usId: 10101, monsterName: 'Premier', damageSetup: { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'guilde' },
     requirement: { sets: ['swift'], minStats: { spd: 240 } }, objective: 'vitesse', metric: 'eff', slotFilterPreset: 'moyen',
-    adaptiveTrancheWeighting: false, exhaustiveSearch: false, excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [], ignoreArtifacts: false, artifactMainByKind: {} });
+    exhaustiveSearch: false, excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [], ignoreArtifacts: false, artifactMainByKind: {} });
   const lire = File.prototype.text;
   try {
     File.prototype.text = async () => JSON.stringify(recette);

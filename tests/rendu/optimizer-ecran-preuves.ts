@@ -115,8 +115,8 @@ export async function preuvesReglagesAvances(b: BancEcran, ouvrirMenu: () => voi
     const p = bouton(palier);
     if (!p) { preuves.push([false, `palier « ${palier} » visible`]); continue; }
     await b.geste(() => p.click());
-    preuves.push([b.etat().slotFilterPreset === cle && b.etat().exhaustiveSearch && !b.etat().adaptiveTrancheWeighting,
-      `« ${palier} » : épuisement complet activé, adaptiveTrancheWeighting reste faux (${b.etat().adaptiveTrancheWeighting})`]);
+    preuves.push([b.etat().slotFilterPreset === cle && b.etat().exhaustiveSearch,
+      `« ${palier} » : préréglage choisi et épuisement complet activé`]);
   }
   await b.geste(() => { b.etat().setSlotFilterPreset(presetAvant); b.etat().setExhaustiveSearch(epuisementAvant); });
 
@@ -389,7 +389,7 @@ export async function preuvesMessageImport(b: BancEcran): Promise<Preuves> {
   const recette = (critMode: string) => {
     const r = buildOptimizerRecipe({ monsterCom2usId: 10101, monsterName: 'Premier', damageSetup: DEFAULT_DAMAGE_SETUP,
       requirement: { sets: [], minStats: {} }, objective: 'efficience', metric: 'eff', slotFilterPreset: 'moyen',
-      adaptiveTrancheWeighting: false, exhaustiveSearch: false, excludeUsedRunes: false, excludeUsedScope: 'box',
+      exhaustiveSearch: false, excludeUsedRunes: false, excludeUsedScope: 'box',
       excludedSelectors: [], ignoreArtifacts: false, artifactMainByKind: {} });
     return JSON.stringify({ ...r, damageSetup: { ...r.damageSetup, critMode } });
   };
@@ -410,15 +410,13 @@ export async function preuvesMessageImport(b: BancEcran): Promise<Preuves> {
   // Une recette qui porte l'ancien réglage à vrai s'importe comme une autre
   // et n'active rien.
   const priorite = await importer(JSON.stringify({ ...JSON.parse(recette('crit')), adaptiveTrancheWeighting: true }));
-  preuves.push([!!priorite && priorite.classList.contains('text-good') && !b.etat().adaptiveTrancheWeighting,
-    `import d’une recette qui porte adaptiveTrancheWeighting à vrai : succès, l’état reste faux (${priorite?.className} · ${b.etat().adaptiveTrancheWeighting})`]);
+  preuves.push([!!priorite && priorite.classList.contains('text-good') && !('adaptiveTrancheWeighting' in b.etat()),
+    `import d’une recette ancienne : succès sans réintroduire le champ retiré (${priorite?.className})`]);
   const refus = await importer('{');
   preuves.push([!!refus && refus.classList.contains('text-bad'), `import refusé : message au token d’erreur (${refus?.className})`]);
 
-  // Ce que l'écran ENVOIE, quoi que porte l'état (une session reprise peut
-  // encore le poser à vrai, le champ restant dans `OptimizerState`) : la
-  // recherche (message au Worker, intercepté) et la recette exportée (fichier
-  // intercepté) portent `adaptiveTrancheWeighting: false`.
+  // Après import historique, ni la recherche ni la recette exportée ne
+  // transmettent le champ retiré (message Worker et fichier interceptés).
   const envois: Record<string, unknown>[] = [];
   let fichier: Blob | null = null;
   const vraiWorker = globalThis.Worker, vraiCreer = URL.createObjectURL, vraiClic = HTMLAnchorElement.prototype.click;
@@ -431,23 +429,22 @@ export async function preuvesMessageImport(b: BancEcran): Promise<Preuves> {
     (globalThis as unknown as { Worker: unknown }).Worker = FauxWorker;
     URL.createObjectURL = (b: Blob | MediaSource) => { fichier = b as Blob; return 'blob:recette'; };
     HTMLAnchorElement.prototype.click = () => {};
-    await b.geste(() => { b.etat().setComboSets(['violent']); b.etat().setAdaptiveTrancheWeighting(true); });
+    await b.geste(() => b.etat().setComboSets(['violent']));
     const rechercher = bouton('Rechercher');
     if (rechercher) await b.geste(() => rechercher.click());
     // La demande du Worker porte les paramètres sous `params` (DemandeDeRecherche).
     const recherche = envois.map((d) => (d.params ?? d) as Record<string, unknown>).find((d) => 'pool' in d);
-    preuves.push([!!recherche && recherche.adaptiveTrancheWeighting === false,
-      `état à vrai : la recherche part avec adaptiveTrancheWeighting faux (${recherche ? String(recherche.adaptiveTrancheWeighting) : 'aucun envoi'})`]);
+    preuves.push([!!recherche && !('adaptiveTrancheWeighting' in recherche),
+      'après import ancien : la recherche part sans le champ retiré']);
     const exporter = bouton('Exporter les paramètres de recherche');
     if (exporter) await b.geste(() => exporter.click());
     const recetteExportee = fichier ? JSON.parse(await (fichier as Blob).text()) as Record<string, unknown> : null;
-    preuves.push([recetteExportee?.adaptiveTrancheWeighting === false,
-      `état à vrai : la recette exportée porte adaptiveTrancheWeighting faux (${recetteExportee ? String(recetteExportee.adaptiveTrancheWeighting) : 'aucun fichier'})`]);
+    preuves.push([!!recetteExportee && !('adaptiveTrancheWeighting' in recetteExportee),
+      'après import ancien : la recette exportée ne porte plus le champ retiré']);
   } finally {
     (globalThis as unknown as { Worker: unknown }).Worker = vraiWorker;
     URL.createObjectURL = vraiCreer;
     HTMLAnchorElement.prototype.click = vraiClic;
-    await b.geste(() => b.etat().setAdaptiveTrancheWeighting(false));
   }
   return preuves;
 }

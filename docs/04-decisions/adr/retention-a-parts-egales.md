@@ -40,7 +40,9 @@ moteur, un préréglage de pré-filtrage ne change que `slotFilterCap` (et
   préréglage plus large (`slotFilterCap`, `bucketCap` dérivé) en donne
   davantage, à toutes les tranches à la fois.
 - **Une recette qui porte `adaptiveTrancheWeighting` s'importe sans
-  erreur** : le champ est accepté et sans effet, à l'écran comme au CLI.
+  erreur ni avertissement** : le champ retiré est ignoré par
+  `parseOptimizerRecipe`, à l'écran comme au CLI.
+- Le champ quitte les types, l'état, les critères et les exports ; le lecteur de session l'ignore aussi par sa liste de champs connus.
 - La rétention par tranches :
   [elagages.md § Pré-filtrage heuristique et compartiments](../../03-developpeur/optimizer/moteur/elagages.md#pré-filtrage-heuristique-et-compartiments) ;
   la construction des moitiés :

@@ -451,7 +451,7 @@ export function testMecanismesIgnoreDefDepuisUnCoup() {
     const base = buildOptimizerRecipe({
       monsterCom2usId: 24913, monsterName: 'Cordelia',
       requirement: { sets: [], minStats: {} }, objective: 'degats_reels', damageSetup: { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: ID_C },
-      metric: 'eff', slotFilterPreset: 'bas', adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+      metric: 'eff', slotFilterPreset: 'bas', exhaustiveSearch: false,
       excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
       ignoreArtifacts: true, artifactMainByKind: {},
     });

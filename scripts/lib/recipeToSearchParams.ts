@@ -525,7 +525,5 @@ export function recipeToSearchParams(
     // ce champ — même repli que `importRecipe` (OptimizerSection.tsx).
     maxMs: (recipe.exhaustiveSearch ?? false) ? Number.POSITIVE_INFINITY : HARD_TIMEOUT_MS,
     slotFilterCap: resolveSlotFilterCap(recipe.slotFilterPreset),
-    // `recipe.adaptiveTrancheWeighting` n'est pas relayé : le moteur n'a plus
-    // de répartition adaptative des tranches (voir `OptimizerRecipe`).
   };
 }

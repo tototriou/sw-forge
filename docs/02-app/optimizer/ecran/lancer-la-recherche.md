@@ -60,6 +60,9 @@ et la progression.
     propriétaire des critères et sans écraser les mémoires ou équipes
     existantes. Voir ../feat-listes-equipes-et-sauvegarde.md
     § Lead effectif d’un membre.
+    Le champ retiré `adaptiveTrancheWeighting` est ignoré à la lecture par
+    `parseOptimizerRecipe`, qu'il soit vrai ou faux, sans erreur ni
+    avertissement ; les recettes exportées ne le portent plus.
     L'import remplit tous les réglages et sélectionne
     automatiquement le monstre par son `com2usId` — **résolu dans TOUT le
     bestiaire**, pas seulement parmi les monstres possédés : importer la recette

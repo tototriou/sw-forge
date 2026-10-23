@@ -39,7 +39,7 @@ function resultat(c: BuildCandidate, gain = 200, conforme = true, rid?: number):
 function options(runeById: Map<number, RuneDetail>, cache: ReadonlyMap<string, ResultatArtefacts>, degats = false) {
   const setup = structuredClone(DEFAULT_DAMAGE_SETUP);
   const recette = buildOptimizerRecipe({ monsterCom2usId: 13413, monsterName: 'Test', requirement: { sets: [], minStats: {} }, objective: 'degats_reels', damageSetup: setup,
-    metric: 'eff', slotFilterPreset: 'bas', adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    metric: 'eff', slotFilterPreset: 'bas', exhaustiveSearch: false,
     excludeUsedRunes: false, excludeUsedScope: 'rta', excludedSelectors: [], ignoreArtifacts: false, artifactMainByKind: {} });
   const realDamage = degats ? buildRealDamageContext(recette, 13413, []) : null;
   if (degats && !realDamage) throw new Error('Contexte de dégâts absent');

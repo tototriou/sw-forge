@@ -1009,7 +1009,7 @@ export function testDiagnosticHarnessClassementDegatsReels() {
     monsterCom2usId: 13413, monsterName: 'Lushen',
     requirement: { sets: [], minStats: {} }, objective: 'degats_reels', damageSetup: DEFAULT_DAMAGE_SETUP,
     compterAurasResPre: true, metric: 'eff', slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    exhaustiveSearch: false,
     excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
     ignoreArtifacts: true, artifactMainByKind: {},
   });

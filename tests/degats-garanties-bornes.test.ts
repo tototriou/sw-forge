@@ -75,7 +75,6 @@ function contexte(forme: number, setup: DamageSetup) {
     damageSetup: setup,
     metric: 'eff',
     slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false,
     exhaustiveSearch: false,
     excludeUsedRunes: false,
     excludeUsedScope: 'rta',

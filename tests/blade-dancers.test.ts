@@ -274,7 +274,7 @@ function recetteCordelia(premierCoupIgnoreDefParSort?: Record<number, number | n
   return buildOptimizerRecipe({
     monsterCom2usId: CORDELIA, monsterName: 'Cordelia',
     requirement: { sets: [], minStats: {} }, objective: 'degats_reels', damageSetup,
-    metric: 'eff', slotFilterPreset: 'bas', adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    metric: 'eff', slotFilterPreset: 'bas', exhaustiveSearch: false,
     excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
     ignoreArtifacts: true, artifactMainByKind: {},
   });

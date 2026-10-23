@@ -273,17 +273,6 @@ export interface SearchParams {
   // `damageRelevantStats` (damage.ts) et les transmet ici. Absent =
   // comportement inchangé.
   objectiveStats?: StatKey[];
-  // ⚠️ SANS EFFET : le moteur ne lit pas ce champ. Chaque tranche de
-  // rétention par stat a `bucketCap` places, sans répartition selon la
-  // dispersion (docs/04-decisions/adr/retention-a-parts-egales.md).
-  // Accepté seulement parce que l'écran le transmet encore
-  // (`handleSearch`, interrupteur « Prioriser les stats les plus
-  // difficiles ») ; il part avec cet interrupteur. Seul autre appelant qui
-  // le pose : `tests/priorite-stats-retiree.test.ts`, vrai et faux, pour
-  // montrer qu'il est sans effet. Le CLI ne le relaie pas
-  // (`scripts/lib/recipeToSearchParams.ts`) ; les autres scripts et tests
-  // qui l'écrivent le posent dans la recette (`OptimizerRecipe`), pas ici.
-  adaptiveTrancheWeighting?: boolean;
   // Voir `buildBuckets`, paramètre `combosOrderMode` : l'ordre des demi-builds
   // au sein d'un compartiment. `undefined` : le défaut de `buildBuckets`,
   // `'objective'` (celui de tous les appels de production). `'relevance'` :
@@ -1501,7 +1490,7 @@ const BUCKET_CAP = 3000;
 // 80`, en supposant que « les 7 cas de perf-battery passent à
 // bucketCap=3000/cap=80 » prouve que ce point est sûr, est FAUX : sur le cas
 // Sonia objectif Vitesse + répartition adaptative des tranches (retirée du
-// moteur depuis, voir `SearchParams.adaptiveTrancheWeighting`), `slotFilterCap=40` (Bas) trouve
+// moteur, voir docs/04-decisions/adr/retention-a-parts-egales.md), `slotFilterCap=40` (Bas) trouve
 // RÉELLEMENT 5 builds valides, mais `slotFilterCap=80` (Moyen) — MÊME
 // `bucketCap=3000`, valeur INCHANGÉE entre les deux — n'en retient que 3 :
 // 2 des 5 demi-builds (moitié A, slots 1-3) trouvés à Bas ne survivaient déjà

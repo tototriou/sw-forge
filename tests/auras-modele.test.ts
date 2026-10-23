@@ -71,7 +71,7 @@ function recette() {
     monsterCom2usId: 14104, monsterName: 'Monstre du test',
     requirement: { sets: [], minStats: {} }, objective: 'ehp', damageSetup: SETUP,
     compterAurasResPre: true, metric: 'eff', slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    exhaustiveSearch: false,
     excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
     ignoreArtifacts: false, artifactMainByKind: {},
   });
@@ -915,7 +915,7 @@ export async function testAurasPariteRegimes() {
     monsterCom2usId: 13413, monsterName: 'Lushen',
     requirement: { sets: [], minStats: {} }, objective: 'degats_reels', damageSetup: setup,
     compterAurasResPre: true, metric: 'eff', slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false, exhaustiveSearch: true,
+    exhaustiveSearch: true,
     excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
     ignoreArtifacts: true, artifactMainByKind: {},
   });

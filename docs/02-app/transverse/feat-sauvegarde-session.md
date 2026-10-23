@@ -207,6 +207,11 @@ lecteur actuel ; réécrite, elle porte la version 2.
 `lireSession(texte)` lit et valide le fichier entier, et rend une session
 avec ses avertissements, ou une erreur.
 
+Le champ retiré `adaptiveTrancheWeighting` d'une session historique est
+ignoré sans erreur ni avertissement, vrai ou faux : `garderChampsOptimizer`
+ne conserve que `CHAMPS_OPTIMIZER_SESSION`. Il ne repart pas dans une
+sauvegarde suivante.
+
 - **Refusé** : un texte qui n'est pas du JSON ou pas un objet ; un autre
   format ; une version qui n'est pas un entier ≥ 1, ou plus récente que
   `VERSION_SESSION` (« mets-la à jour pour la charger ») ; un `stockage`

@@ -91,7 +91,7 @@ const RELIQUE: RelicDetail = { id: 50, upgrade: 9, main: { code: 101, value: 12 
 function recette(r: Partial<OptimizerRecipe>): OptimizerRecipe {
   return buildOptimizerRecipe({
     monsterCom2usId: LUSHEN, monsterName: 'Lushen (test)', requirement: { sets: [], minStats: {} }, objective: 'degats_reels',
-    damageSetup: DEFAULT_DAMAGE_SETUP, metric: 'eff', slotFilterPreset: 'bas', adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    damageSetup: DEFAULT_DAMAGE_SETUP, metric: 'eff', slotFilterPreset: 'bas', exhaustiveSearch: false,
     excludeUsedRunes: false, excludeUsedScope: 'rta', excludedSelectors: [], ignoreArtifacts: false,
     artifactMainByKind: { element: 'libre', archetype: 'libre' }, relicMainChoice: 'equipped',
     ...r,

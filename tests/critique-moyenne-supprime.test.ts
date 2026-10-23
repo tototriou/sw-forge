@@ -31,7 +31,6 @@ function recetteBrute(critMode: unknown, monsterCom2usId = 14104, monsterName = 
     damageSetup: DEFAULT_DAMAGE_SETUP,
     metric: 'eff',
     slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false,
     exhaustiveSearch: false,
     excludeUsedRunes: false,
     excludeUsedScope: 'rta',

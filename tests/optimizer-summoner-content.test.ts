@@ -17,7 +17,7 @@ export function testOptimizerCompetencesContenu() {
       egal(JSON.stringify(personnel), initial, 'critères enregistrés intacts');
       const recette = buildOptimizerRecipe({ monsterCom2usId: 14104, monsterName: 'Lushen', damageSetup: combat,
         requirement: { sets: ['swift'], minStats: {} }, objective: 'degats_reels', metric: 'eff', slotFilterPreset: 'moyen',
-        adaptiveTrancheWeighting: false, exhaustiveSearch: false, excludeUsedRunes: false, excludeUsedScope: 'box',
+        exhaustiveSearch: false, excludeUsedRunes: false, excludeUsedScope: 'box',
         excludedSelectors: [], ignoreArtifacts: false, artifactMainByKind: {} });
       const relue = parseOptimizerRecipe(JSON.stringify(recette)).recipe!;
       egal(relue.damageSetup.summonerSkills, combat.summonerSkills, 'recette : valeur effectuelle relue');

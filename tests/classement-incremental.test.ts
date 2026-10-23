@@ -59,7 +59,7 @@ function corpus(seed = 1414, monstre = 13413) {
   const setup = structuredClone(DEFAULT_DAMAGE_SETUP);
   const recipe = buildOptimizerRecipe({
     monsterCom2usId: monstre, monsterName: 'Monstre du test', requirement: { sets: [], minStats: {} }, objective: 'degats_reels', damageSetup: setup,
-    metric: 'eff', slotFilterPreset: 'bas', adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    metric: 'eff', slotFilterPreset: 'bas', exhaustiveSearch: false,
     excludeUsedRunes: false, excludeUsedScope: 'rta', excludedSelectors: [], ignoreArtifacts: false, artifactMainByKind: {},
   });
   const realDamage = buildRealDamageContext(recipe, monstre, []);

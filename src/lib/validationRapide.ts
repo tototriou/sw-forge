@@ -73,6 +73,14 @@ export interface ConditionTypee {
   cle: string;
 }
 
+/** État local du collecteur, relu à chaque tentative ; les tampons restent partagés en lecture. */
+export interface LimitesEcarts {
+  readonly slotDe: Int32Array;
+  readonly existe: Uint8Array;
+  readonly meilleur: Float64Array;
+  readonly distanceGlobale: () => number;
+}
+
 export class ValidationTypee {
   /** `null` si le contrat tient ; sinon pourquoi le chemin de référence est pris. */
   readonly motif: string | null;
@@ -424,13 +432,16 @@ export class ValidationTypee {
   /**
    * Les conditions en échec de la paire courante pour la tentative (apport
    * `a`, fiche `f`), dans l'ordre de `pairBuckets` (`echecs`, `actuels`,
-   * `manques`). Rend leur nombre ; 0 = le build tient toutes ses conditions
-   * avec cet apport et cette fiche. La stat de la relique de la fiche lit
+   * `manques`). Rend leur nombre (un préfixe suffit si les limites du
+   * collecteur prouvent que le quasi-succès ne changera pas) ; 0 = le build
+   * tient toutes ses conditions avec cet apport et cette fiche. La stat de la relique lit
    * `ficheTotal`, les autres `total`.
    */
-  ecarts(a: number, f: number): number {
+  ecarts(a: number, f: number, limites?: LimitesEcarts): number {
     const E = this.conditions.length;
     const voie = this.ficheVoie[f];
+    const distanceGlobale = limites ? limites.distanceGlobale() : Infinity;
+    let distance = -Infinity;
     let n = 0;
     for (let e = 0; e < E; e++) {
       const c = this.conditions[e];
@@ -441,6 +452,18 @@ export class ValidationTypee {
         this.actuels[n] = actual;
         this.manques[n] = c.kind === 'min' ? c.seuil - actual : actual - c.seuil;
         n++;
+        if (limites) {
+          distance = Math.max(distance, this.manques[n - 1] / c.seuil);
+          let parCondition = false;
+          if (n === 1) {
+            const slot = limites.slotDe[this.echecs[0]];
+            parCondition = !limites.existe[slot] || this.manques[0] < limites.meilleur[slot];
+          }
+          // Sur ce préfixe, considererTypee rend sans écriture : aucune
+          // amélioration par condition et maximum déjà atteint. Même repli
+          // gauche-droite ; NaN interdit >=, même si une suite aurait un NaN.
+          if (!parCondition && distance >= distanceGlobale) return n;
+        }
       }
     }
     return n;

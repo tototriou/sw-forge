@@ -27,7 +27,7 @@ import { resoudreContexteRelique } from '../src/lib/relicOptim';
 import { Collecteur, InitTravailleur, Morceau, ResultatMorceau, apparierRapide, initialiserTravailleur, runesAPlat, traiterMorceau, validationDe } from '../src/lib/appariementRapide';
 import { LancerTravailleur } from '../src/lib/appariementRapideParallele';
 import { apparierObjetPourTest as apparierRapideEnParallele } from './flux-candidats.test';
-import { ValidationTypee } from '../src/lib/validationRapide';
+import { LimitesEcarts, ValidationTypee } from '../src/lib/validationRapide';
 import { bilanVide, comparerPaire, strictementEgal } from '../scripts/lib/controleValidationRapide';
 import { mulberry32, randomPool } from '../scripts/lib/randomPool';
 import { drain } from '../scripts/lib/drain';
@@ -36,6 +36,46 @@ import { configDuProfil, trouverProfil } from '../scripts/lib/diagnosticProfils'
 import { executerHarnais, evaluerCompletude, resoudreConfig } from '../scripts/lib/diagnosticHarness';
 import { construireMoitieTypee } from '../src/lib/rechercheRunes';
 import { objetsDesCompartiments } from '../src/lib/demiBuildsTypes';
+
+// Oracle figé : écarts complets avant toute coupure, indépendant de l'état du collecteur.
+function ecartsOracle(this: any, a: number, f: number): number {
+  const E = this.conditions.length;
+  const voie = this.ficheVoie[f];
+  let n = 0;
+  for (let e = 0; e < E; e++) {
+    const c = this.conditions[e];
+    let actual = (c.stat === voie ? this.ficheTotal[f] : this.total[c.stat]) + this.decalage[a * E + e];
+    if (c.aura) actual = actual + c.auraExterne + 8 * (c.key === 'res' ? this.auraRes : this.auraAcc);
+    if (c.kind === 'min' ? actual < c.seuil : actual > c.seuil) {
+      this.echecs[n] = e;
+      this.actuels[n] = actual;
+      this.manques[n] = c.kind === 'min' ? c.seuil - actual : actual - c.seuil;
+      n++;
+    }
+  }
+  return n;
+}
+
+const ecartsDe = (v: ValidationTypee, n: number) => ({
+  n, echecs: v.echecs.slice(0, n), actuels: v.actuels.slice(0, n), manques: v.manques.slice(0, n),
+});
+type Ecarts = ReturnType<typeof ecartsDe>;
+
+function remettreEcarts(v: ValidationTypee, e: Ecarts): void {
+  v.echecs.set(e.echecs);
+  v.actuels.set(e.actuels);
+  v.manques.set(e.manques);
+}
+
+function exigerPrefixe(v: ValidationTypee, n: number, oracle: Ecarts, contexte: string): void {
+  exigerIdentique(n === 0, oracle.n === 0, `${contexte}, verdict`);
+  if (n < 0 || n > oracle.n) throw new Error(`${contexte}, nombre d'échecs ${n} > ${oracle.n}`);
+  // Si le nombre est complet, les trois tampons le sont aussi ; sinon
+  // chaque valeur du préfixe doit quand même être celle de l'oracle.
+  exigerIdentique(ecartsDe(v, n), {
+    n, echecs: oracle.echecs.slice(0, n), actuels: oracle.actuels.slice(0, n), manques: oracle.manques.slice(0, n),
+  }, contexte);
+}
 
 // Oracle figé : corps de Collecteur.considererTypee avant la coupe du
 // calcul de distance. L'accès aux champs privés reste limité au test.
@@ -87,8 +127,21 @@ function exigerIdentique(a: unknown, b: unknown, contexte: string): void {
 async function avecOracleDistance(action: () => Promise<void>): Promise<void> {
   const prototype = Collecteur.prototype as any;
   const originale = prototype.considererTypee;
+  const ecartsOriginal = ValidationTypee.prototype.ecarts;
+  const complets = new WeakMap<ValidationTypee, Ecarts>();
   const miroirs = new WeakMap<Collecteur, Collecteur>();
   let tentatives = 0;
+  let coupees = 0;
+  ValidationTypee.prototype.ecarts = function (a, f, limites) {
+    const complet = ecartsDe(this, ecartsOracle.call(this, a, f));
+    const n = ecartsOriginal.call(this, a, f, limites);
+    exigerPrefixe(this, n, complet, `paire [${this.runeIds()}], apport ${a}, fiche ${f}, tentative ${tentatives}`);
+    if (limites) {
+      complets.set(this, complet);
+      if (n < complet.n) coupees++;
+    }
+    return n;
+  };
   prototype.considererTypee = function (this: any, v: ValidationTypee, n: number) {
     let oracle = miroirs.get(this);
     if (!oracle) {
@@ -97,16 +150,25 @@ async function avecOracleDistance(action: () => Promise<void>): Promise<void> {
     }
     (oracle as any).materielCourant = null;
     (oracle as any).pos = this.pos;
-    originale.call(this, v, n);
-    considererTypeeOracle.call(oracle, v, n);
+    const prefixe = ecartsDe(v, n);
+    const complet = complets.get(v)!;
     const etat = (c: Collecteur) => ({ conditions: c.snapshot(), global: c.globalNearMiss, ameliorations: c.ameliorations });
+    const avant = n < complet.n ? structuredClone(etat(this)) : null;
+    originale.call(this, v, n);
+    if (n < complet.n) exigerIdentique(etat(this), avant, `tentative coupée ${tentatives}, aucune écriture`);
+    remettreEcarts(v, complet);
+    considererTypeeOracle.call(oracle, v, complet.n);
+    remettreEcarts(v, prefixe);
     exigerIdentique(etat(this), etat(oracle), `paire [${v.runeIds()}], tentative ${tentatives}, échecs ${v.manquesDe(n).map((s) => `${s.key}-${s.kind}`).join(',')}`);
     tentatives++;
   };
   try {
     await action();
-    ok(tentatives > 0, `${tentatives} tentatives du collecteur réel comparées au corps figé de distance`);
-  } finally { prototype.considererTypee = originale; }
+    ok(tentatives > 0 && coupees > 0, `${tentatives} tentatives comparées aux écarts complets et au corps figé de distance, ${coupees} préfixes raccourcis`);
+  } finally {
+    prototype.considererTypee = originale;
+    ValidationTypee.prototype.ecarts = ecartsOriginal;
+  }
 }
 
 function testDistanceCoupee(): void {
@@ -155,6 +217,81 @@ function testDistanceCoupee(): void {
     }
   }
   ok(true, '65 tentatives aux frontières : mêmes quasi-succès et améliorations que le corps figé');
+}
+
+function testEcartsCoupes(): void {
+  titre('Validation rapide · écarts coupés : préfixes, frontières et absence d’écriture');
+  const runes = Array.from({ length: 6 }, (_, i) => rune(i + 1, i + 1, 'energy'));
+  const initial = prepareSearch({ base: BASE, artifacts: [], pool: runes, requirement: { sets: [], minStats: {} }, metric: 'eff', maxMs: Infinity })!;
+  const cles = ['hp', 'atk', 'def', 'spd'] as const;
+  const prepared: PreparedSearch = { ...initial, minEntries: cles.map((k) => ({ k, min: 1 })) };
+  type Essai = {
+    nom: string; seuils?: number[]; actuels?: number[]; distance: number;
+    meilleur?: number; n: number; lectures: number;
+  };
+  const essais: Essai[] = [
+    { nom: 'première tentative : tous les échecs sont requis', distance: Infinity, n: 4, lectures: 4 },
+    { nom: 'deux échecs suffisent, troisième plus éloigné', distance: 1, seuils: [1, 1, 1, 1], actuels: [0, 0, -8, -9], n: 2, lectures: 2 },
+    { nom: 'première condition encore améliorable', distance: 0, actuels: [0, 2, 2, 2], n: 1, lectures: 4 },
+    { nom: 'égalité par condition et globale', distance: 1, meilleur: 1, actuels: [0, 2, 2, 2], n: 1, lectures: 1 },
+    { nom: 'meilleur manque NaN : le test strict reste faux', distance: 1, meilleur: NaN, actuels: [0, 2, 2, 2], n: 1, lectures: 1 },
+    { nom: 'manque plus grand que le meilleur', distance: 1, meilleur: 0, actuels: [0, 2, 2, 2], n: 1, lectures: 1 },
+    { nom: 'un seul échec améliore sa condition', distance: 1, meilleur: 2, actuels: [0, 2, 2, 2], n: 1, lectures: 4 },
+    { nom: 'un seul échec améliore le global', distance: 2, meilleur: 1, actuels: [0, 2, 2, 2], n: 1, lectures: 4 },
+    { nom: 'NaN en tête interdit la coupure', distance: 1, seuils: [Infinity, 1, 1, 1], n: 4, lectures: 4 },
+    { nom: 'NaN après le préfixe coupé', distance: 1, seuils: [1, 1, Infinity, 1], n: 2, lectures: 2 },
+    { nom: 'NaN au milieu interdit la coupure', distance: 1, seuils: [1, Infinity, 1, 1], n: 4, lectures: 4 },
+    { nom: 'distance globale NaN', distance: NaN, n: 4, lectures: 4 },
+    { nom: 'seuil zéro, égalité à l’infini', distance: Infinity, seuils: [0, 1, 1, 1], actuels: [-1, 0, 0, 0], n: 2, lectures: 2 },
+    { nom: 'distance globale nulle', distance: 0, n: 2, lectures: 2 },
+    { nom: 'distance globale moins l’infini', distance: -Infinity, n: 2, lectures: 2 },
+    { nom: 'distance négative encore améliorable', distance: 0, seuils: [-1, -1, 1, 1], actuels: [-2, -2, 2, 2], n: 2, lectures: 4 },
+  ];
+  for (const essai of essais) {
+    const v = new ValidationTypee(prepared, runes.slice(0, 3), runes.slice(3));
+    v.setsEtStats(0, 0);
+    v.conditions.forEach((c, i) => { c.seuil = essai.seuils?.[i] ?? 1; v.total[c.stat] = essai.actuels?.[i] ?? 0; });
+    const courant = new Collecteur(prepared, true, false, v);
+    const oracle = new Collecteur(prepared, true, false, v);
+    for (const c of [courant, oracle]) {
+      (c as any).globalNearMissDistance = essai.distance;
+      if (essai.meilleur !== undefined) {
+        (c as any).existe[0] = 1;
+        (c as any).meilleur[0] = essai.meilleur;
+      }
+    }
+    const complet = ecartsDe(v, ecartsOracle.call(v, 0, 0));
+    let lectures = 0;
+    (v as any).conditions = new Proxy(v.conditions, {
+      get(cible, cle, recepteur) {
+        if (typeof cle === 'string' && /^\d+$/.test(cle)) lectures++;
+        return Reflect.get(cible, cle, recepteur);
+      },
+    });
+    const limites: LimitesEcarts = (courant as any).limitesEcarts;
+    const n = v.ecarts(0, 0, limites);
+    const lues = lectures;
+    exigerPrefixe(v, n, complet, essai.nom);
+    exigerIdentique([n, lues], [essai.n, essai.lectures], essai.nom);
+    const prefixe = ecartsDe(v, n);
+    const etatPrive = (c: any) => ({
+      ...etatCollecteur(c), distance: c.globalNearMissDistance,
+      existe: c.existe.slice(), meilleur: c.meilleur.slice(), instantane: c.instantane,
+      materielCourant: c.materielCourant,
+    });
+    const avant = structuredClone(etatPrive(courant));
+    (courant as any).considererTypee(v, n);
+    if (lues < v.conditions.length) exigerIdentique(etatPrive(courant), avant, `${essai.nom}, aucune écriture`);
+    remettreEcarts(v, complet);
+    considererTypeeOracle.call(oracle, v, complet.n);
+    exigerIdentique(etatPrive(courant), etatPrive(oracle), `${essai.nom}, quasi-succès et améliorations`);
+    remettreEcarts(v, prefixe);
+    if (essai === essais[0]) {
+      exigerIdentique(courant.globalNearMiss!.shortfalls.length, 4, 'un arrêt au premier échec fausserait le quasi-succès');
+      exigerIdentique(courant.snapshot().length, 0, 'plusieurs échecs ne créent pas de quasi-succès par condition');
+    }
+  }
+  ok(true, `${essais.length} frontières : mêmes verdicts, tampons complets ou préfixes exacts, aucune écriture après coupure`);
 }
 
 // VIT de base 103 : Swift vaut ceil(103 × 25 / 100) = 26, un vrai arrondi.
@@ -324,7 +461,9 @@ function testCollecteur(sc: Scene[]): void {
   for (const s of sc) {
     const v = new ValidationTypee(s.prepared, s.runesA, s.runesB);
     const typee = new Collecteur(s.prepared, true, true, v);
-    const oracle = new Collecteur(s.prepared, true, true, new ValidationTypee(s.prepared, s.runesA, s.runesB));
+    const validationOracle = new ValidationTypee(s.prepared, s.runesA, s.runesB);
+    validationOracle.ecarts = ecartsOracle;
+    const oracle = new Collecteur(s.prepared, true, true, validationOracle);
     (oracle as any).considererTypee = considererTypeeOracle;
     const reference = new Collecteur(s.prepared, true, true);
     let pos = 0;
@@ -412,10 +551,11 @@ async function testIntervallesEtAuras(): Promise<void> {
     { id: 4, upgrade: 9, main: { code: 101, value: 12 } },
     { id: 5, upgrade: 9, main: { code: 102, value: 8 } },
   ];
-  for (const compter of [true, false]) for (const fractionnaire of [false, true]) {
+  for (const compter of [true, false]) for (const valeurAtq of [517, 517.25, NaN]) {
+    const repliNumerique = !Number.isInteger(valeurAtq);
     const pool = randomPool(mulberry32(20260), 5, ['tolerance', 'accuracy', 'energy', 'intangible', 'violent']);
     const params: SearchParams = {
-      base: { ...BASE, atk: fractionnaire ? 517.25 : 517 }, pool, artifacts: [artefact(1, 100, 1500)],
+      base: { ...BASE, atk: valeurAtq }, pool, artifacts: [artefact(1, 100, 1500)],
       requirement: {
         sets: [], minStats: { hp: 12000, atk: 500, spd: 130, res: 40, acc: 20 },
         maxStats: { hp: 25000, atk: 2000, spd: 250, res: 70, acc: 60 },
@@ -431,13 +571,13 @@ async function testIntervallesEtAuras(): Promise<void> {
     const B = drain(construireMoitieTypee('B', [3, 4, 5], p, p.maxSetsForB));
     const objetsA = objetsDesCompartiments(A, p.filtered), objetsB = objetsDesCompartiments(B, p.filtered);
     const total = totalPairCount(p, objetsA, objetsB);
-    const nom = `intervalles, aura ${compter}, base fractionnaire ${fractionnaire}`;
+    const nom = `intervalles, aura ${compter}, base ATQ ${valeurAtq}`;
     const ref = drain(pairBuckets(p, objetsA, objetsB));
     const r = drain(apparierRapide(p, A, B));
     exigerIdentique(etatDe(r), etatDe(ref), nom);
     exigerIdentique([r.traitees, r.visitees + r.sautees], [total, total], `${nom}, comptes`);
     exigerIdentique(evaluerCompletude(r, total, params), evaluerCompletude(ref, total, params), `${nom}, motif`);
-    exigerIdentique(r.chemin, fractionnaire ? 'actuel' : 'noyau', `${nom}, chemin numérique`);
+    exigerIdentique(r.chemin, repliNumerique ? 'actuel' : 'noyau', `${nom}, chemin numérique`);
     ok(ref.candidates.length > 3 && (ref.nearMissByCondition.length > 0 || ref.globalNearMiss !== null), `${nom} : conformes et quasi-succès exercés`);
     ok(p.filtered.flat().some((r) => r.set === 'intangible'), `${nom} : Intangible dans le pool préparé`);
     for (const plafond of [3, Infinity]) {
@@ -448,7 +588,7 @@ async function testIntervallesEtAuras(): Promise<void> {
       exigerIdentique(evaluerCompletude(rr, total, { ...params, maxCollected: plafond }), evaluerCompletude(attendu, total, { ...params, maxCollected: plafond }), `${nom}, motif plafond ${plafond}`);
     }
     exigerIdentique(etatDe(arreterAuPalier(apparierRapide(p, A, B), 500)), etatDe(arreterAuPalier(pairBuckets(p, objetsA, objetsB), 500)), `${nom}, arrêt logique`);
-    if (!fractionnaire) {
+    if (!repliNumerique) {
       const par = await apparierRapideEnParallele({
         params, prepared: p, bucketsA: A, bucketsB: B, totalPaires: total, travailleurs: 3,
         lancer: lancerSimule(mulberry32(992)), startedAt: p.startedAt, cibleMorceau: Math.max(1, Math.ceil(total / 17)),
@@ -549,6 +689,7 @@ async function testBoutEnBout(): Promise<void> {
 
 export default async function testValidationRapide(): Promise<void> {
   testDistanceCoupee();
+  testEcartsCoupes();
   testCasEcrits();
   const sc = scenes();
   ok(sc.length >= 20, `${sc.length} scènes construites`);

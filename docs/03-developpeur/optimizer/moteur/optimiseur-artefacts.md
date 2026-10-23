@@ -303,7 +303,7 @@ Côté moteur :
   meilleure de `meilleuresPairesArtefacts` pour l'équipement affiché, sous
   les mêmes principales et les mêmes verrous. De vrais artéfacts avec leurs
   lignes, jamais une pièce sans sous-propriété, qui ferait calculer les
-  dégâts sans aucune ligne d'effet quand « Garder l'artéfact équipé » les
+  dégâts sans aucune ligne d'effet quand « Comme équipé » les
   compte. Vide si aucune paire ne tient les verrous ; l'écran affiche alors
   le diagnostic de `meilleurCumulParLigne`.
 - La paire finale, qui peut porter une autre principale que la paire
@@ -387,7 +387,7 @@ Une seule primitive, `chercherPaires`, sert deux entrées.
   notation de la paire :
   [artefacts.md § Quand ce choix a lieu](artefacts.md).
 - Le même sélecteur de principale sert les deux : sans optimisation
-  d'artéfacts, l'écran impose « Garder l'artéfact équipé » des deux côtés ;
+  d'artéfacts, l'écran impose « Comme équipé » des deux côtés ;
   avec, `'libre'` et les principales deviennent des filtres de candidats.
 - Ce qui garde la file légère pour le fil de l'écran : `sortCandidates`
   calcule le score de chaque candidat une fois par tri, jamais dans le

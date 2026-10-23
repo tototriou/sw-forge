@@ -20,6 +20,7 @@ import { testRenduOptimizerBandesEquipesClair, testRenduOptimizerBandesEquipesSo
 import testImport from './import.test';
 import { verificationsImportEquipes } from './import-equipes.test';
 import { testOptimizerImportNavigation } from './optimizer-import-navigation.test';
+import { testOptimizerColonnes, testOptimizerAgencementsBureau, testOptimizerFormeObjectifBureau, testOptimizerAttenteResultats } from './optimizer-colonnes.test';
 import { testRenduRtaExportOptimizer, testRenduTelephoneRtaExportOptimizer, testRenduRecoExportOptimizer,
   testRenduTelephoneRecoExportOptimizer, testRenduOptimizerImportRecommandation, testRenduTelephoneOptimizerImportRecommandation,
   testOptimizerImportRtaRecoBranchement } from './rendu/rta-reco-export.test';
@@ -90,6 +91,7 @@ import { testResolutionDistante } from './resolution-distante.test';
 import { testCliClassementParMode } from './cli-classement.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
+import { testOptimizerFormatBig } from './format-big.test';
 import { testVoieDeLaFile } from './file-voie.test';
 import { testCompositionDePage } from './composition-page.test';
 import { testFileConfirmees } from './file-confirmees.test';
@@ -293,7 +295,8 @@ import testSiegePartage from './siege-partage.test';
 import testMarque from './marque.test';
 import testSpeedTune, { testSpeedTuneDeck, testSpeedTuneChaine, testSpeedTuneKit, testSpeedTuneSequence, testSpeedTuneReference, testSpeedTunePassif, testSpeedTuneAuto, testSpeedTuneModele } from './speed-tune.test';
 import { testRenduSiegeDefense, testRenduSiegeOffense, testRenduSiegeEnTete, testRenduSiegeEdition } from './rendu/siege.test';
-import { testRenduUiBouton, testRenduUiEtats, testRenduUiMenu, testRenduUiNotification, testRenduPalette } from './rendu/ui.test';
+import { testRenduUiBouton, testRenduUiEtats, testRenduUiMenu, testRenduUiSelecteurMultiple, testRenduUiNotification, testRenduPalette } from './rendu/ui.test';
+import { testRenduUiSelecteurTab, testRenduTelephoneUiSelecteurListe, testRenduUiFlottantBoiteQuiDefile, testRenduUiSegmentedDeuxLignes } from './rendu/ui-flottants.test';
 import { testPalette } from './palette.test';
 import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile, testRenduAppFil, testRenduAppLiensMorts } from './rendu/app.test';
 import { testEcranPartageMediaQueryVolet, testEcranPartageMemePage, testRenduEcranPartageApp,
@@ -312,6 +315,16 @@ import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testR
 import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompteArtefactsListe, testRenduCompteSouris, testRenduCompteEffacerFiltres } from './rendu/compte.test';
 import { testRenduSpeedTuneVide, testRenduSpeedTuneCamps, testRenduSpeedTuneAnalyse } from './rendu/speed-tune.test';
 import { testRenduOptimizerVide, testRenduOptimizerMonstre, testRenduOptimizerReglages, testRenduTelephoneOptimizer } from './rendu/optimizer.test';
+import { testRenduOptimizerGabaritsComposants, testRenduOptimizerGabaritsVue, testRenduOptimizerGabaritsAdresse } from './rendu/optimizer-gabarits.test';
+import { testRenduOptimizerGabaritsColonnes, testRenduOptimizerGabaritsDroite, testRenduOptimizerPageBureauDroite } from './rendu/optimizer-gabarits-droite.test';
+import { testRenduOptimizerGabaritsGestes, testRenduOptimizerGabaritsLargeurs } from './rendu/optimizer-gabarits-navigateur.test';
+import { testRenduOptimizerCarteResultatBureau, testRenduOptimizerCarteResultatTelephone } from './rendu/optimizer-carte-resultat-navigateur.test';
+import { testRenduOptimizerReglagesAvancesContenu, testRenduOptimizerListeDeTravail, testRenduOptimizerResultatsEntete,
+  testRenduOptimizerResultatsCartes, testRenduOptimizerLigneFile } from './rendu/optimizer-ecran.test';
+import { testRenduOptimizerEcranReglagesAvances, testRenduTelephoneOptimizerEcranReglagesAvances, testRenduOptimizerEcranGuidage,
+  testRenduTelephoneOptimizerEcranGuidage, testRenduOptimizerEcranRappel, testRenduTelephoneOptimizerEcranRappel,
+  testRenduOptimizerEcranListes, testRenduTelephoneOptimizerEcranListes, testRenduOptimizerEcranMessageImport,
+  testRenduOptimizerEcranResultats } from './rendu/optimizer-ecran-navigateur.test';
 import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerIdentiteEnregistree, testRenduMemoireOptimizerSansMemoire, testRenduMemoireOptimizerListes,
   testRenduMemoireOptimizerRetrait, testRenduMemoireOptimizerInclusion, testRenduMemoireOptimizerHorsListe,
   testRenduMemoireOptimizerIdentite, testRenduMemoireOptimizerRecette, testRenduMemoireOptimizerNavigation, testRenduTelephoneMemoireOptimizer,
@@ -468,9 +481,34 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduSpeedTuneCamps', testRenduSpeedTuneCamps],
   ['testRenduSpeedTuneAnalyse', testRenduSpeedTuneAnalyse],
   ['testRenduOptimizerVide', testRenduOptimizerVide],
+  ['testRenduOptimizerGabaritsComposants', testRenduOptimizerGabaritsComposants],
+  ['testRenduOptimizerGabaritsVue', testRenduOptimizerGabaritsVue],
+  ['testRenduOptimizerGabaritsAdresse', testRenduOptimizerGabaritsAdresse],
+  ['testRenduOptimizerGabaritsColonnes', testRenduOptimizerGabaritsColonnes],
+  ['testRenduOptimizerGabaritsDroite', testRenduOptimizerGabaritsDroite],
+  ['testRenduOptimizerPageBureauDroite', testRenduOptimizerPageBureauDroite],
+  ['testRenduOptimizerGabaritsGestes', testRenduOptimizerGabaritsGestes],
+  ['testRenduOptimizerGabaritsLargeurs', testRenduOptimizerGabaritsLargeurs],
+  ['testRenduOptimizerCarteResultatBureau', testRenduOptimizerCarteResultatBureau],
+  ['testRenduOptimizerCarteResultatTelephone', testRenduOptimizerCarteResultatTelephone],
   ['testRenduOptimizerMonstre', testRenduOptimizerMonstre],
   ['testRenduOptimizerReglages', testRenduOptimizerReglages],
   ['testRenduTelephoneOptimizer', testRenduTelephoneOptimizer],
+  ['testRenduOptimizerReglagesAvancesContenu', testRenduOptimizerReglagesAvancesContenu],
+  ['testRenduOptimizerListeDeTravail', testRenduOptimizerListeDeTravail],
+  ['testRenduOptimizerResultatsEntete', testRenduOptimizerResultatsEntete],
+  ['testRenduOptimizerResultatsCartes', testRenduOptimizerResultatsCartes],
+  ['testRenduOptimizerLigneFile', testRenduOptimizerLigneFile],
+  ['testRenduOptimizerEcranReglagesAvances', testRenduOptimizerEcranReglagesAvances],
+  ['testRenduTelephoneOptimizerEcranReglagesAvances', testRenduTelephoneOptimizerEcranReglagesAvances],
+  ['testRenduOptimizerEcranGuidage', testRenduOptimizerEcranGuidage],
+  ['testRenduTelephoneOptimizerEcranGuidage', testRenduTelephoneOptimizerEcranGuidage],
+  ['testRenduOptimizerEcranRappel', testRenduOptimizerEcranRappel],
+  ['testRenduTelephoneOptimizerEcranRappel', testRenduTelephoneOptimizerEcranRappel],
+  ['testRenduOptimizerEcranListes', testRenduOptimizerEcranListes],
+  ['testRenduTelephoneOptimizerEcranListes', testRenduTelephoneOptimizerEcranListes],
+  ['testRenduOptimizerEcranMessageImport', testRenduOptimizerEcranMessageImport],
+  ['testRenduOptimizerEcranResultats', testRenduOptimizerEcranResultats],
   ['testRenduBestiaire', testRenduBestiaire],
   ['testRenduMecaniques', testRenduMecaniques],
   ['testRenduNouveautes', testRenduNouveautes],
@@ -490,6 +528,11 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduUiBouton', testRenduUiBouton],
   ['testRenduUiEtats', testRenduUiEtats],
   ['testRenduUiMenu', testRenduUiMenu],
+  ['testRenduUiSelecteurMultiple', testRenduUiSelecteurMultiple],
+  ['testRenduUiSelecteurTab', testRenduUiSelecteurTab],
+  ['testRenduTelephoneUiSelecteurListe', testRenduTelephoneUiSelecteurListe],
+  ['testRenduUiFlottantBoiteQuiDefile', testRenduUiFlottantBoiteQuiDefile],
+  ['testRenduUiSegmentedDeuxLignes', testRenduUiSegmentedDeuxLignes],
   ['testRenduUiNotification', testRenduUiNotification],
   ['testRenduPalette', testRenduPalette],
   ['testPalette', testPalette],
@@ -644,6 +687,10 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRuneOptimDeadHalfPruning', testRuneOptimDeadHalfPruning],
   ['testFilterSlotTopK', testFilterSlotTopK],
   ['testOptimizerExclusion', testOptimizerExclusion],
+  ['testOptimizerColonnes', testOptimizerColonnes],
+  ['testOptimizerAgencementsBureau', testOptimizerAgencementsBureau],
+  ['testOptimizerFormeObjectifBureau', testOptimizerFormeObjectifBureau],
+  ['testOptimizerAttenteResultats', testOptimizerAttenteResultats],
   ['testListeExemplaires', testListeExemplaires],
   ['testOptimizerExemplaireMontage', testOptimizerExemplaireMontage],
   ['testOptimizerRecipeImportSelection', testOptimizerRecipeImportSelection],
@@ -741,6 +788,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testCliClassementParMode', testCliClassementParMode],
   ['testKDeLaFile', testKDeLaFile],
   ['testCompteAffichable', testCompteAffichable],
+  ['testOptimizerFormatBig', testOptimizerFormatBig],
   ['testVoieDeLaFile', testVoieDeLaFile],
   ['testCompositionDePage', testCompositionDePage],
   ['testFileConfirmees', testFileConfirmees],

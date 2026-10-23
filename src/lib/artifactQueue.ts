@@ -383,7 +383,7 @@ export function signatureReglages(parts: {
    */
   artefactsReserves: Iterable<number>;
   /**
-   * Les pièces des emplacements figés sur « Garder l'artéfact équipé »
+   * Les pièces des emplacements figés sur « Comme équipé »
    * (`piecesFigeesDe`, artifactFiche.ts) : pour un tel emplacement, la pièce
    * portée par la fiche EST le seul candidat (`candidatsParSorte`). Valider
    * un build de ce monstre, « Voir le runage réellement porté » ou changer

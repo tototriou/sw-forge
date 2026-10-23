@@ -338,7 +338,8 @@ Voir ecran/lancer-la-recherche.md § Lancer la recherche.
 
 Le contenu est lu dans `listContents` pour la liste du membre, commun à toutes
 ses équipes. Une liste sans contenu défini n’applique aucun lead d’équipe,
-avec le motif « contenu de combat de la liste non défini » ; le lead
+avec le motif « contenu de combat de la liste non défini » (jamais affiché
+dans « État de mon monstre », voir ecran/etat-de-mon-monstre.md) ; le lead
 personnel de ses membres devient « Aucun ». Une modification du contenu
 change l’effet dérivé et, par lui, le lead personnel des membres ; le lead
 stocké de l’équipe ne change pas.

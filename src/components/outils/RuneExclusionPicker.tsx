@@ -28,6 +28,10 @@ interface Props {
   excludeOwnCom2usId: number | null;
   selected: ExclusionSelector[];
   onChange: (next: ExclusionSelector[]) => void;
+  // Forme de la colonne « Aura, exclusion, avancés » du bureau : les monstres
+  // exclus défilent dans une hauteur bornée (≈ 3 rangées de jetons), sans
+  // allonger la colonne. Le téléphone ne la passe pas.
+  hauteurBornee?: boolean;
 }
 
 // Même étiquette que le comptage « Défense N »/« Offense N » déjà utilisé
@@ -52,7 +56,7 @@ function sourceLabel(sel: ExclusionSelector, data: ExclusionSourceData): string 
 // défense/offense), une entrée précise par choix (pas juste un monstre :
 // voir optimizerExclusion.ts). Même grammaire de navigation clavier que
 // MonsterGearPicker (choix du monstre à optimiser).
-export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOwnCom2usId, selected, onChange }: Props) {
+export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOwnCom2usId, selected, onChange, hauteurBornee = false }: Props) {
   const [activeSource, setActiveSource] = useState<ExclusionSource>('box');
   const [query, setQuery] = useState('');
   const idBase = useId();
@@ -149,7 +153,9 @@ export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOw
       </div>
 
       {selected.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
+        // ⚠️ `overscroll-contain` : arrivé au bout, le défilement des jetons
+        // ne passe pas à la colonne ni à la page.
+        <div className={`mt-2.5 flex flex-wrap gap-1.5 ${hauteurBornee ? 'max-h-24 overflow-y-auto overscroll-contain' : ''}`}>
           {selected.map((sel) => {
             const resolved = resolveExclusionEntry(sel, data);
             const key = exclusionSelectorKey(sel);

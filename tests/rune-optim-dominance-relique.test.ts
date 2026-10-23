@@ -108,7 +108,7 @@ interface Cas {
   minStats?: Partial<Record<StatKey, number>>;
   maxStats?: Partial<Record<StatKey, number>>;
   compter?: boolean;
-  // La paire FIXE (« Garder l'artéfact équipé » ×2) : `SearchParams.artifacts`,
+  // La paire FIXE (« Comme équipé » ×2) : `SearchParams.artifacts`,
   // lue par la note (principales, lignes 218–221). Absente : aucun artéfact.
   paire?: ArtifactDetail[];
   // Le mode critique de « Dégâts réels » ; absent : le défaut de l'écran.
@@ -283,7 +283,7 @@ function lancer(cas: Cas, extra: Partial<SearchParams> = {}, traceMax = 40): Ver
     let rel = cas.relique;
     let noteProduction: number;
     if (p.relicContext?.mode === 'recherche') {
-      // La paire figée côté résolution (`paireFixe` → « Garder l'artéfact
+      // La paire figée côté résolution (`paireFixe` → « Comme
       // équipé » ×2) : sans elle, la résolution noterait sur une paire vide.
       const r = resoudreCandidat(p, c, p.relicContext, {
         critere: cas.objective,

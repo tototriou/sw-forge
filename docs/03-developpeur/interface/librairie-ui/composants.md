@@ -140,9 +140,132 @@ vide ou se corrige pendant qu'on tape.
 
 **`Selecteur`** — liste déroulante ([ton du sélecteur](../selecteur.md)). ⚠️ `appearance-none` + notre propre chevron :
 le contrôle natif dessine sa flèche avec les couleurs du **système**, qui ne
-suivent aucun des deux thèmes — sur fond sombre, une flèche noire disparaît. La
-**liste ouverte** reste celle du système : c'est le seul morceau de l'app qu'on
-ne dessine pas, et le remplacer coûterait un menu flottant complet à claviériser.
+suivent aucun des deux thèmes — sur fond sombre, une flèche noire disparaît.
+
+**Fermé, c'est le `<select>` natif ; ouverte, la liste est celle de la charte.**
+La liste du système (fond blanc, survol bleu) ignorait les deux thèmes.
+
+- ⚠️ **Le champ fermé ne change pas** : on garde le `<select>`, avec sa boîte, sa
+  valeur, son `onChange`, son étiquette, ce qu'en lisent les tests de rendu, et
+  les classes que les appelants posent sur lui. Seule l'ouverture est
+  remplacée : un clic (souris, stylet) ou une touche d'ouverture empêche la
+  liste du système et montre la nôtre. La taille d'aucun sélecteur ne bouge
+  (« Trier par » des runes 178 × 32, « LEAD » du speed tuning 125 × 28 au
+  bureau, 125 × 40 au téléphone, avant comme après).
+- **Le dessin des principales imposées** (`SelecteurMultiple`,
+  `forme="surbrillance"`) : surface `Flottant`, entrées de 32 px, survol gris
+  (`panel2`), valeur retenue en braise légère (contour et fond d'accent),
+  entrée atteinte au clavier cerclée de braise, en-tête discret par
+  `<optgroup>`, option désactivée atténuée.
+- **Les options se lisent dans le DOM du `<select>`** à l'ouverture
+  (`<option>`, `<optgroup>`, `disabled`, `hidden`, `title`) : aucun appelant ne
+  change. Choisir pose la valeur et émet l'événement `change` du `<select>` ;
+  une liste contrôlée qui revient à son invite (« Ajouter… ») le fait encore.
+- **Clavier** : Tab atteint le `<select>` (bordure d'accent au focus) ; Flèche
+  bas ou haut, Entrée, Espace, F4 ou une lettre ouvrent la liste — une flèche
+  ne change plus la valeur à l'aveugle, ce qui comptait pour les listes qui
+  agissent à chaque `change`. Dans la liste : flèches, Début / Fin, Page
+  préc. / suiv., recherche par lettres, Entrée ou Espace choisit, Échap ferme
+  sans fermer le dialogue ou le panneau qui la porte. Un clic dehors ferme
+  aussi.
+- **Tab parcourt la liste ouverte**, comme les boutons des principales
+  imposées : ouverte à la souris, le premier Tab cercle la valeur retenue ;
+  ensuite Tab passe à l'entrée suivante, Maj+Tab à la précédente (les entrées
+  désactivées sont sautées). Après la dernière, Tab ferme sans choisir et
+  continue au contrôle qui suit le `<select>` ; avant la première, Maj+Tab
+  revient au `<select>`, liste ouverte — Tab ou une flèche y rentre, Échap,
+  Entrée ou Espace la ferme, Maj+Tab la ferme et continue avant lui. C'est le
+  parcours du `SelecteurMultiple`, dont le déclencheur précède les options.
+  L'entrée atteinte porte l'anneau de focus des boutons (1 px de braise
+  lisible, détaché de 1 px, collé à la bordure de la valeur retenue).
+- **Lecteurs d'écran** : la liste ouverte prend le focus, `role="listbox"`,
+  l'entrée active par `aria-activedescendant`, chaque entrée `role="option"`
+  et `aria-selected` ; le `<select>` porte `aria-expanded` et
+  `aria-controls` tant qu'elle est ouverte.
+- ⚠️ **Au doigt aussi, la liste est celle de la charte** : la roue ou la
+  feuille du système ignorait les deux thèmes comme la liste du bureau. Ses
+  entrées montent à 40 px sous `(pointer: coarse)` (`compact:h-10`, la cible
+  tactile de [deux-formats.md](../deux-formats.md)) ; le champ fermé ne change
+  pas (« LEAD » du speed tuning 125 × 40 au téléphone). Seul un navigateur
+  sans l'API `popover` garde la liste native.
+- ⚠️ **La liste est un `Flottant` ancré sur le `<select>`** (`ancre`), en
+  couche supérieure, et la seule couche ouverte : ni un `overflow` d'ancêtre
+  (les colonnes qui défilent de l'Optimizer) ni un dialogue en `z-70` ne la
+  coupent. `Flottant` la place à 6 px du `<select>`, la recale quand la page
+  défile, la borne à l'écran et la masque quand le `<select>` sort de sa
+  boîte. Elle reste dans le DOM juste après le `<select>` : un clic dedans
+  reste un clic dans le dialogue qui la porte, et ne remonte pas à une carte
+  cliquable ou déplaçable. Le `Selecteur` choisit le côté — vers le haut
+  quand la place manque dessous, alignée à droite du `<select>` quand elle
+  sortirait de l'écran — et la hauteur de la liste, qui défile seule.
+
+#### `SelecteurMultiple`
+
+**`SelecteurMultiple`** — liste à CHOIX MULTIPLES : fermée, elle a le dessin
+d'un `Selecteur` (cadre, fond, chevron) et résume ce qui est choisi (« PV%,
+ATQ% »), ou son texte `vide` (« Libre ») ; ouverte, une `Case` par option,
+dans un `Flottant`. Un choix ou plusieurs, et un choix se retire en
+décochant.
+
+> ⚠️ **L'axe que `Selecteur` ne couvre pas.** Un `<select multiple>` natif
+> est une boîte à défilement toujours ouverte, qui ne se ferme pas sur un
+> résumé et demande Ctrl pour cocher deux options. Une rangée de `Pastille`
+> dit bien un choix multiple, mais prend une ligne par réglage. Fermée, la
+> liste tient la hauteur d'un `Selecteur` et montre ses choix : elle ne cache
+> pas ce qu'elle filtre (voir `Menu`, « Pas de `Deroulant` »).
+
+- ⚠️ **Les cases sont des `Case`** : le clavier natif (Tab, Espace), le nom
+  accessible et la coche viennent de la librairie, rien n'est redessiné.
+- ⚠️ **La surface reste dans le DOM, fermée** (`hidden`), comme les entrées
+  du `Menu` : les tests de rendu lisent chaque option et son état.
+- **Elle sort du flux** : ouverte, elle flotte sous son déclencheur, rien ne
+  bouge dessous. Échap la referme et rend le focus au déclencheur ; un clic
+  dehors, ou un focus qui sort, la referme aussi.
+- Le nom accessible du déclencheur est `libelle : résumé` (« Slot 2 :
+  Libre »), son infobulle le résumé complet, tronqué à l'écran (sauf
+  `resumeEntier`, plus bas).
+- `onChange` reçoit les valeurs cochées dans l'ordre des options.
+
+Deux axes de STRUCTURE, nés de son second usage, le set de runes recherché :
+son choix est un **multiensemble** (deux fois le même set), qu'une case par
+option ne sait pas dire.
+
+- `resume` — ce que montre la liste fermée à la place des libellés choisis
+  (les icônes des sets), avec le texte qui nomme le déclencheur.
+- `surface` — ce que porte la surface ouverte à la place des cases (la
+  grille d'ajout des sets, inchangée). La surface prend alors un
+  rembourrage : son contenu n'est pas une liste dont les entrées touchent le
+  bord.
+
+Un axe de FORME, né des principales imposées du bureau : **`forme`
+`'surbrillance'`** fait de la surface une liste classique — chaque valeur est
+un bouton (`aria-pressed`), la valeur choisie en surbrillance (contour et fond
+d'accent, le marqueur des filtres), sans case. Le champ fermé ne change pas :
+celui d'un `Selecteur` (`sm` pour les principales), qui résume les choix ou dit
+« Libre ». Cliquer une valeur la choisit ou la retire, la liste reste ouverte.
+
+Un axe d'OUVERTURE : **`ouvert`** et **`onOuvertChange`** la rendent
+contrôlée par l'appelant — le set compact se ferme de lui-même au choix qui
+remplit les six emplacements. Sans eux, la liste gère seule son ouverture.
+
+- ⚠️ **Un focus perdu vers rien ne ferme pas la liste.** Un choix qui
+  désactive ou retire le bouton cliqué (un set de 4 rend les autres sets de 4
+  indisponibles) fait tomber le focus sur le document : ce n'est pas un
+  départ. La liste reste ouverte et le focus revient au déclencheur ; seuls
+  un focus parti ailleurs, un clic dehors et Échap la ferment.
+
+Un axe de RÉSUMÉ, né des principales du bureau : **`resumeEntier`** fait
+montrer au champ fermé toutes les valeurs choisies, à la ligne entre deux
+valeurs (chacune insécable : « Taux Crit » ne se coupe pas), rien de tronqué.
+
+- ⚠️ **Le champ prend la hauteur de ce qu'il montre** (une ligne pour
+  « Libre », deux quand les choix l'exigent), **et la surface ne descend
+  jamais sous le doigt** : ouverte, elle se pose à la hauteur qu'avait le
+  champ à l'ouverture (mesurée au seul changement d'ouverture) et y reste.
+  Un choix qui fait passer le champ à deux lignes l'allonge sous elle ;
+  fermée, la liste montre tout. Ce qui suit le champ descend : la règle
+  protège la cible du clic, pas ce qui est dessous. Les rangées restent
+  compactes : aucune hauteur réservée pour les options non choisies.
 
 #### `Interrupteur`
 
@@ -167,9 +290,13 @@ cumulables, rien dans leur forme ne dit qu'en activer une désactive les
 autres — le cadre commun le dit sans un mot. L'option enfoncée est un
 **aplat de braise**, texte `accent-ink`.
 
-> ⚠️ **Il se resserre TOUT SEUL** (`dense` laissé à `undefined`, le défaut) :
-> le contrôle mesure la place qu'il reçoit **réellement** et bascule en texte/
-> rembourrage réduits uniquement quand il déborderait. Un `dense` piloté par
+> ⚠️ **Il s'adapte TOUT SEUL** (`dense` laissé à `undefined`, le défaut) :
+> le contrôle mesure la place qu'il reçoit **réellement**. Tant que tous ses
+> libellés tiennent sur une ligne, il ne change rien (même hauteur, mêmes
+> classes). Sinon, ses libellés **passent sur deux lignes** au texte normal,
+> coupés à un espace, jamais dans un mot (« Défenses / siège ») ; il ne
+> bascule en texte/rembourrage réduits que si même ainsi il déborderait (un
+> mot seul trop long, trop de crans). Un `dense` piloté par
 > un seuil de **fenêtre** (`useMediaQuery(SOUS_SM)`, 639 px) serait faux dès
 > qu'un contrôle vit dans une colonne qui partage son espace avec un voisin :
 > un sélecteur à 4 options longues déborderait sur un écran **1080p** sans que
@@ -185,9 +312,30 @@ autres — le cadre commun le dit sans un mot. L'option enfoncée est un
 > RAPPORTER — dans un conteneur `absolute` sans largeur propre, c'est une
 > dépendance circulaire dont la spec CSS ne garantit pas le résultat.
 >
+> ⚠️ **Sur deux lignes, tous les crans ont la même hauteur**, celle du plus
+> haut : un libellé resté sur une ligne y est centré. À la souris, 38 px pour
+> deux lignes (interligne serré), jamais moins que les 26 px du cran normal.
+> La forme ne dépend que de la place et des libellés, jamais du cran choisi :
+> rien ne bouge au clic. Une seconde copie de mesure, en largeur minimale
+> (`w-min`), donne la largeur de chaque cran passé sur deux lignes ; la forme
+> tient si leur somme tient dans le contenu de la racine (un cran `lg` qui ne
+> peut pas descendre sous son mot le plus long garde cette largeur, les autres
+> se partagent le reste).
+>
 > Passer `dense={true|false}` **force** le rendu, à réserver aux cas où l'on
 > sait mieux que la mesure — `AncientFilter` resserre par cohérence avec une
 > rangée voisine, pas par manque de place.
+
+> **`colonnes`** pose les crans **en grille**, `colonnes` par rangée, à
+> largeur égale, dans le même cadre : quatre crans en 2 × 2 dans une colonne
+> étroite (l'objectif de recherche du bloc « Objectif et Rechercher » de
+> l'Optimizer, au bureau). Le choix reste exclusif à l'œil — un seul cadre,
+> un seul aplat. ⚠️ Aucun resserrement automatique en grille : passer à la
+> rangée suivante EST la réponse au manque de place. ⚠️ **Les bords
+> intérieurs se dessinent** : une grille interne au fond `border`, écartée
+> d'1 px, dont chaque case reprend le fond du cadre — des traits de 1 px
+> entre les crans, verticaux et horizontaux, comme le trait de la rangée
+> `lg`. Sans eux, quatre crans en 2 × 2 se lisaient comme un seul bloc.
 
 #### `Pastille`
 
@@ -277,16 +425,51 @@ popup d'édition, formulaire ancré, liste de résultats d'une recherche.
 > « je suis au-dessus, et je vais repartir » — ce qui est faux d'un bouton actif
 > ou d'une carte sélectionnée, qui appartiennent à la page.
 
-> ⚠️ **Le `z-index` est un ORDRE, pas un nombre libre.** L'échelle de l'app —
-> contenu → barre du haut (20) → **flottants (30)** → onglets mobiles (40) →
-> panneau montant (50) → panneau de second niveau (60) → dialogues (70) — se
-> règle ici pour tout ce qui flotte. Un `z-40` écrit à la main « pour que ça
-> passe devant » se retrouve un jour derrière la barre d'onglets.
+> ⚠️ **Toujours au premier plan : la surface passe dans la couche supérieure
+> du navigateur** (`popover="manual"`, `showPopover()`). Posée en `absolute`
+> dans la page, elle était rognée par tout ancêtre qui défile seul — les
+> colonnes de l'Optimizer au bureau, la carte d'un deck du Siège — et passait
+> sous sa barre de défilement, voire sous la colonne voisine. La couche
+> supérieure échappe aux `overflow`, `clip-path`, `transform` et contextes
+> d'empilement de tous les ancêtres, ce que ni un `z-index` ni un
+> `position: fixed` en place ne garantissent.
 
-> ⚠️ Il ne s'occupe **pas du placement** : le recalage à l'écran reste au hook
-> `useRecalageEcran`, qui a besoin de mesurer. Mais il pose `left-0`, sans quoi
-> une valeur négative de recalage ne décale pas — elle repositionne depuis un
-> bord que le navigateur choisit seul.
+> ⚠️ **Pas un portail** : la surface reste à sa place dans le DOM. Les
+> fermetures au clic extérieur (`racine.contains(cible)`), le focus et la
+> navigation au clavier continuent de marcher sans qu'aucun écran le sache ; un
+> portail les aurait tous cassés.
+
+> ⚠️ **Il s'occupe donc du placement.** La position est calculée en
+> coordonnées de l'écran sur l'**ancre** — le premier ancêtre positionné, le
+> parent `relative` où l'écran pose le flottant, ou l'élément passé en `ancre`
+> (sa boîte de bordure) quand on ne peut pas l'envelopper sans changer sa
+> taille : le `<select>` du `Selecteur` — avant de peindre, puis à
+> chaque défilement de n'importe quelle boîte et à chaque redimensionnement :
+> - à 6 px sous l'ancre (ou au-dessus, ou à côté), alignée sur le bord
+>   demandé ; les décalages `left` / `top` de `style` se lisent comme avant
+>   dans le repère de l'ancre ;
+> - **bornée à l'écran** horizontalement, barre de défilement de la page
+>   exclue : une ancre au bout d'une rangée ne la fait plus sortir ;
+> - **basculée de l'autre côté** de l'ancre quand elle ne tient pas du sien et
+>   qu'il y a plus de place en face, et **bornée en hauteur** (avec
+>   défilement) quand elle ne tient d'aucun : ce qui sortirait de l'écran ne
+>   se rattraperait plus en faisant défiler la page ;
+> - **masquée** quand l'ancre sort de ce qui la montre (une colonne qui
+>   défile), plutôt que de flotter sur autre chose.
+
+> ⚠️ **Les largeurs en pourcentage se lisent sur l'ancre** : `w-full` (le
+> défaut) et `min-w-full` dans `largeur`, un `width` en `%` dans `style`, sont
+> convertis en pixels de la largeur de l'ancre. Hors de ces trois formes, une
+> classe en pourcentage vaudrait l'écran entier.
+
+> ⚠️ La feuille du navigateur centre un `popover` et lui impose cadre,
+> rembourrage et couleur : `:where([popover])` (`index.css`), de spécificité
+> nulle, rend la main aux classes. Le `z-30` reste, repli d'un navigateur sans
+> couche supérieure et rang dans l'échelle de l'app — contenu → barre du haut
+> (20) → **flottants (30)** → onglets mobiles (40) → panneau montant (50) →
+> panneau de second niveau (60) → dialogues (70). En couche supérieure, la
+> dernière surface ouverte passe devant les autres, y compris devant une
+> `Modale` ouverte après elle s'il en reste une ouverte.
 
 > ⚠️ `rembourrage="aucun"` pour une **liste** : ses entrées doivent toucher les
 > bords, sinon le survol laisse une bande morte et l'entrée surlignée paraît
@@ -320,6 +503,11 @@ gardant la surface ancrée à ce qui l'a ouverte.
 > le bas. `HelpPopover` pose les deux, et détache son titre (13 px, filet
 > dessous) du corps (12 px).
 
+> ⚠️ **Dans une boîte qui défile seule, la surface n'est pas rognée** : elle
+> est un `Flottant`, en couche supérieure, masqué quand son ancre sort de ce
+> qui la montre. Les aides de `HelpPopover` dans les colonnes de la page de
+> bureau de l'Optimizer n'ont donc ni portail ni ancre à part.
+
 > ⚠️ Pour ce qui est ancré à un élément **dont la position varie** : une tuile
 > dans une grille, une carte de monstre, un badge au bout d'une ligne. Ces ancres
 > vont jusqu'aux bords de la page, et un flottant posé toujours du même côté s'y
@@ -335,11 +523,10 @@ gardant la surface ancrée à ce qui l'a ouverte.
 > bureau — la position calculée est **celle** d'un `left-0`/`right-0` :
 > le bornage n'agit que quand la surface sortirait, il ne change rien ailleurs.
 
-> ⚠️ **Distinct de `useRecalageEcran`**, qui *tire* une surface débordante vers
-> l'intérieur après coup. Ici on choisit le bon côté **avant** de peindre : pas
-> de saut visible, et la surface reste alignée sur son ancre au lieu de flotter à
-> une position corrigée. Le recalage reste utile quand la surface doit garder son
-> côté (le formulaire de catégorie, ancré à sa pilule).
+> ⚠️ **Ce qu'il ajoute à `Flottant`**, qui borne déjà toute surface à l'écran :
+> le bon **côté** d'ouverture, choisi **avant** de peindre. La surface s'ouvre
+> vers l'intérieur, alignée sur son ancre, et son animation part du bon coin,
+> au lieu d'être tirée vers l'intérieur depuis le mauvais côté.
 
 > ⚠️ `useLayoutEffect` et non `useEffect` : la mesure doit précéder la peinture.
 > Avec `useEffect`, la surface apparaîtrait un instant du mauvais côté puis

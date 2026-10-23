@@ -811,7 +811,7 @@ export default function testArtefactOptim() {
   }
 }
 
-// « Garder l'artéfact équipé » ne se partage pas — une recette importée depuis
+// « Comme équipé » ne se partage pas — une recette importée depuis
 // un AUTRE compte doit basculer ce choix sur « Libre ».
 //
 // ⚠️ Testé ici parce que la règle est une fonction pure (`mainsPourCeCompte`),
@@ -823,7 +823,7 @@ export function testRecettePartagee() {
   {
     const r = { artifactMainByKind: mains, wizardName: 'Alice' };
     const { mains: sortie, bascules } = mainsPourCeCompte(r, 'Bob');
-    egal(sortie.element, 'libre', 'compte différent : « Garder l’artéfact équipé » passe sur « Libre »');
+    egal(sortie.element, 'libre', 'compte différent : « Comme équipé » passe sur « Libre »');
     egal(sortie.archetype, 101, '… et une principale explicite n’est PAS touchée');
     egal(bascules, true, '… et la bascule est signalée, pour que le message d’import le dise');
   }
@@ -1035,7 +1035,7 @@ export function testAmpliMaxAtteignable() {
   egal(
     ampliVitMaxAtteignable({ ...base, equipes: [att(1, 12)], principaleParSorte: { element: 'equipped' } }),
     37,
-    '« Garder l’artéfact équipé » borne cette sorte à la pièce portée (12 + 25)'
+    '« Comme équipé » borne cette sorte à la pièce portée (12 + 25)'
   );
 
   // ⚠️ L'évaluateur rend 0 partout : tous les candidats sont donc « inutiles »

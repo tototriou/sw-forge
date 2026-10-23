@@ -1,4 +1,15 @@
-import { forwardRef, ReactNode } from 'react';
+import {
+  forwardRef,
+  KeyboardEvent as ReactKeyboardEvent,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
+import Flottant from './Flottant';
 
 // Liste déroulante.
 //
@@ -6,9 +17,43 @@ import { forwardRef, ReactNode } from 'react';
 // flèche avec les couleurs du SYSTÈME, qui ne suivent ni le thème Forge ni le
 // thème Atelier : sur fond sombre, une flèche noire disparaissait. Le chevron
 // vient de `--chevron-select` (index.css), donc il suit les tokens comme le
-// reste. La LISTE ouverte, elle, reste celle du système — c'est le seul morceau
-// de l'app qu'on ne dessine pas, et le remplacer coûterait un menu flottant
-// complet à claviériser.
+// reste.
+//
+// ⚠️ **Fermé, c'est le `<select>` natif ; ouverte, la liste est la nôtre.** La
+// liste du système (fond blanc, survol bleu) ignorait la charte. On garde le
+// `<select>` comme champ fermé — sa boîte, sa valeur, son `onChange`, son
+// étiquette et ce qu'en lisent les tests ne changent pas, ni la taille d'aucun
+// appelant (31 usages, dont les classes visent le `<select>` lui-même) — et on
+// remplace seulement ce qu'il ouvre : à la souris, au doigt et au clavier, une liste
+// dessinée comme celle des principales imposées (`SelecteurMultiple`,
+// `forme="surbrillance"`) : survol gris, valeur retenue en braise légère, entrée
+// atteinte au clavier cerclée de braise. Les options se lisent dans le DOM du
+// `<select>` à l'ouverture (`<option>`, `<optgroup>`, `disabled`, `hidden`,
+// `title`) : les appelants ne changent pas. Choisir pose la valeur sur le
+// `<select>` et émet son événement `change` : l'`onChange` de l'appelant le
+// reçoit comme d'un choix natif.
+//
+// ⚠️ **Au doigt aussi, la liste est la nôtre**, aux entrées de 40 px (la cible
+// tactile de la doc d'interface, sous `(pointer: coarse)`) au lieu de 32 : la
+// roue ou la feuille du système ignorait la charte comme la liste du bureau.
+// Seul un navigateur sans l'API `popover` garde la liste native.
+//
+// ⚠️ **Tab parcourt la liste ouverte**, comme les boutons des principales
+// imposées : Tab va à l'entrée suivante, Maj+Tab à la précédente. Après la
+// dernière, Tab ferme sans choisir et continue après le `<select>` ; avant la
+// première, Maj+Tab revient au `<select>`, liste ouverte (Tab y rentre) — le
+// parcours du `SelecteurMultiple`, dont le déclencheur précède les options.
+//
+// ⚠️ **La liste est un `Flottant` ancré sur le `<select>`** (`ancre`) : la
+// couche supérieure qu'il porte la met au-dessus de tout — ni un `overflow`
+// d'ancêtre (les colonnes qui défilent de l'Optimizer) ni un `z-index` (un
+// dialogue en 70) ne la coupent — et il la place, la recale au défilement, la
+// borne à l'écran et la masque quand le `<select>` sort de sa boîte. Une seule
+// couche : aucune boîte intermédiaire posée sur le `<select>`. La surface reste
+// DANS le DOM juste après le `<select>` : un clic dedans reste un clic dans le
+// dialogue ou le panneau qui la porte, et le Tab repart du `<select>`. Ici, on
+// ne choisit que le côté (dessous ou dessus, gauche ou droite) et la hauteur
+// de la liste, qui défile seule.
 //
 // ⚠️ **`dense` n'est pas « plus petit », c'est une EXEMPTION tactile.** Il
 // descend à 32 px là où la règle générale impose 40 px, et ne s'emploie que dans
@@ -36,32 +81,509 @@ const TAILLES = {
   dense: 'rounded px-1.5 py-0.5 text-micro',
 } as const;
 
+interface OptionLue {
+  valeur: string;
+  libelle: string;
+  disabled: boolean;
+  title?: string;
+}
+
+interface GroupeLu {
+  libelle?: string;
+  options: OptionLue[];
+}
+
+// La liste telle que le `<select>` la porte : ses options hors groupe, puis
+// chaque `<optgroup>` dans l'ordre. Une option `hidden` ne s'affiche pas, comme
+// dans la liste native.
+function lireOptions(select: HTMLSelectElement): GroupeLu[] {
+  const groupes: GroupeLu[] = [];
+  const lire = (o: HTMLOptionElement, groupeDesactive: boolean): OptionLue => ({
+    valeur: o.value,
+    libelle: o.label || o.text,
+    disabled: o.disabled || groupeDesactive,
+    title: o.title || undefined,
+  });
+  let libres: GroupeLu | null = null;
+  for (const enfant of Array.from(select.children)) {
+    if (enfant instanceof HTMLOptGroupElement) {
+      libres = null;
+      groupes.push({
+        libelle: enfant.label,
+        options: Array.from(enfant.children)
+          .filter((o): o is HTMLOptionElement => o instanceof HTMLOptionElement && !o.hidden)
+          .map((o) => lire(o, enfant.disabled)),
+      });
+    } else if (enfant instanceof HTMLOptionElement && !enfant.hidden) {
+      if (!libres) {
+        libres = { options: [] };
+        groupes.push(libres);
+      }
+      libres.options.push(lire(enfant, false));
+    }
+  }
+  return groupes;
+}
+
+const sansAccents = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+
+const POPOVER_DISPONIBLE = typeof HTMLElement !== 'undefined' && 'showPopover' in HTMLElement.prototype;
+
+// Hauteur d'une entrée (`h-8`, `compact:h-10` au doigt) et plafond de la liste
+// avant défilement.
+const HAUTEUR_ENTREE = 32;
+const HAUTEUR_ENTREE_DOIGT = 40;
+const HAUTEUR_MAX = 320;
+const AU_DOIGT = '(pointer: coarse)';
+// Écart de `Flottant` à son ancre (6), sa marge au bord de l'écran (8) et les
+// deux traits du contour de la surface (2).
+const RESERVE = 16;
+
+interface Ouverture {
+  parClavier: boolean;
+  // Première frappe d'une recherche par lettre, quand c'est elle qui ouvre.
+  lettre?: string;
+}
+
+interface ListeProps {
+  select: HTMLSelectElement;
+  id: string;
+  ouverture: Ouverture;
+  onChoisir: (valeur: string) => void;
+  // `rendreFocus` : Échap, Tab et le choix rendent le focus au `<select>` ; un
+  // clic ailleurs le laisse où il va.
+  onFermer: (rendreFocus: boolean) => void;
+}
+
+function ListeSelecteur({ select, id, ouverture, onChoisir, onFermer }: ListeProps) {
+  // Lu une fois, à l'ouverture : la liste ne change pas sous le pointeur.
+  const [groupes] = useState(() => lireOptions(select));
+  const [courante] = useState(() => select.value);
+  const options = groupes.flatMap((g) => g.options);
+  const [actif, setActif] = useState(() => {
+    const i = options.findIndex((o) => o.valeur === courante && !o.disabled);
+    return i >= 0 ? i : options.findIndex((o) => !o.disabled);
+  });
+  // L'entrée active ne se cercle qu'au clavier : à la souris, le survol suffit.
+  const [parClavier, setParClavier] = useState(ouverture.parClavier);
+  const surface = useRef<HTMLDivElement>(null);
+  const liste = useRef<HTMLDivElement>(null);
+  const recherche = useRef({ texte: '', minuterie: 0 });
+  const [boite, setBoite] = useState(() => select.getBoundingClientRect());
+  const [cote, setCote] = useState<'gauche' | 'droite'>('gauche');
+
+  const [hauteurEntree] = useState(() =>
+    window.matchMedia?.(AU_DOIGT).matches ? HAUTEUR_ENTREE_DOIGT : HAUTEUR_ENTREE,
+  );
+  const nbGroupesNommes = groupes.filter((g) => g.libelle).length;
+  const hauteurVoulue = Math.min(HAUTEUR_MAX, options.length * hauteurEntree + nbGroupesNommes * 24 + 8);
+  // La place que `Flottant` laisse de chaque côté du `<select>` (son écart, sa
+  // marge à l'écran et le contour de la surface) : la LISTE défile dans cette
+  // hauteur, la surface n'a jamais à se borner elle-même — sans quoi deux
+  // barres de défilement s'empilent.
+  const espaceDessous = window.innerHeight - boite.bottom - RESERVE;
+  const espaceDessus = boite.top - RESERVE;
+  const dessus = espaceDessous < hauteurVoulue && espaceDessus > espaceDessous;
+  const hauteurMax = Math.max(hauteurEntree + 8, Math.min(HAUTEUR_MAX, dessus ? espaceDessus : espaceDessous));
+
+  // La surface est montrée par `Flottant` (couche supérieure) avant cet effet :
+  // la liste peut prendre le focus avant la première peinture.
+  useLayoutEffect(() => {
+    liste.current?.focus({ preventScroll: true });
+  }, []);
+
+  // Côté horizontal : aligné à droite du `<select>` si, alignée à gauche, la
+  // surface sortirait de l'écran (`Flottant` la bornerait au bord, décollée
+  // du `<select>`).
+  useLayoutEffect(() => {
+    const largeur = surface.current?.offsetWidth ?? 0;
+    if (cote === 'gauche' && boite.left + largeur > document.documentElement.clientWidth - 8) setCote('droite');
+  }, [cote, boite]);
+
+  // La place au-dessus et au-dessous du `<select>` suit la page qui défile ou
+  // change de taille (`Flottant`, lui, suit la position) ; un défilement DANS
+  // la liste n'y change rien.
+  useEffect(() => {
+    let cadre = 0;
+    const suivre = (e: Event) => {
+      if (e.target instanceof Node && surface.current?.contains(e.target)) return;
+      cancelAnimationFrame(cadre);
+      cadre = requestAnimationFrame(() => setBoite(select.getBoundingClientRect()));
+    };
+    window.addEventListener('scroll', suivre, { capture: true, passive: true });
+    window.addEventListener('resize', suivre);
+    return () => {
+      cancelAnimationFrame(cadre);
+      window.removeEventListener('scroll', suivre, { capture: true });
+      window.removeEventListener('resize', suivre);
+    };
+  }, [select]);
+
+  // Un appui hors de la liste et du `<select>` la ferme (le `<select>` gère le
+  // sien : il bascule).
+  useEffect(() => {
+    const dehors = (e: PointerEvent) => {
+      const cible = e.target as Node;
+      if (surface.current?.contains(cible) || select.contains(cible)) return;
+      onFermer(false);
+    };
+    document.addEventListener('pointerdown', dehors);
+    return () => document.removeEventListener('pointerdown', dehors);
+  }, [select, onFermer]);
+
+  useEffect(() => {
+    liste.current?.querySelector(`[data-index="${actif}"]`)?.scrollIntoView({ block: 'nearest' });
+  }, [actif]);
+
+  useEffect(() => () => window.clearTimeout(recherche.current.minuterie), []);
+
+  // L'entrée activable suivante dans le sens `pas`, ou l'entrée active au bout.
+  const deplacer = (depart: number, pas: number) => {
+    let i = depart;
+    for (let n = 0; n < options.length; n += 1) {
+      i += pas;
+      if (i < 0 || i >= options.length) break;
+      if (!options[i].disabled) return i;
+    }
+    return actif;
+  };
+
+  const chercher = (lettre: string, depuis: number) => {
+    const r = recherche.current;
+    window.clearTimeout(r.minuterie);
+    r.texte += sansAccents(lettre);
+    r.minuterie = window.setTimeout(() => {
+      r.texte = '';
+    }, 600);
+    // Une seule lettre passe à l'entrée suivante qui commence par elle ; un mot
+    // tapé d'affilée reste sur l'entrée qui le commence.
+    const debut = r.texte.length === 1 ? depuis + 1 : depuis;
+    for (let n = 0; n < options.length; n += 1) {
+      const i = (((debut + n) % options.length) + options.length) % options.length;
+      if (!options[i].disabled && sansAccents(options[i].libelle).startsWith(r.texte)) return i;
+    }
+    return depuis;
+  };
+
+  // La première lettre, quand c'est elle qui a ouvert la liste.
+  useEffect(() => {
+    if (ouverture.lettre) setActif(chercher(ouverture.lettre, actif));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const auClavier = (e: ReactKeyboardEvent) => {
+    const page = Math.max(1, Math.floor(hauteurMax / hauteurEntree) - 1);
+    let suivant: number | null = null;
+    switch (e.key) {
+      case 'ArrowDown':
+        if (e.altKey) break;
+        suivant = deplacer(actif, 1);
+        break;
+      case 'ArrowUp':
+        if (e.altKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (options[actif]) onChoisir(options[actif].valeur);
+          return;
+        }
+        suivant = deplacer(actif, -1);
+        break;
+      case 'Home':
+        suivant = deplacer(-1, 1);
+        break;
+      case 'End':
+        suivant = deplacer(options.length, -1);
+        break;
+      case 'PageDown':
+        suivant = Math.min(options.length - 1, actif + page);
+        suivant = options[suivant]?.disabled ? deplacer(suivant, -1) : suivant;
+        break;
+      case 'PageUp':
+        suivant = Math.max(0, actif - page);
+        suivant = options[suivant]?.disabled ? deplacer(suivant, 1) : suivant;
+        break;
+      case 'Enter':
+      case ' ':
+        // L'espace au milieu d'un mot tapé appartient à la recherche.
+        if (e.key === ' ' && recherche.current.texte) {
+          suivant = chercher(' ', actif);
+          break;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        if (options[actif] && !options[actif].disabled) onChoisir(options[actif].valeur);
+        return;
+      case 'Escape':
+        e.preventDefault();
+        // Un dialogue ou un panneau écoute aussi Échap : celui-ci ne ferme que la liste.
+        e.stopPropagation();
+        onFermer(true);
+        return;
+      case 'Tab': {
+        // Ouverte à la souris, rien n'est encore cerclé : le premier Tab cercle
+        // l'entrée active (la valeur retenue), comme il atteint la première
+        // option d'une liste à boutons.
+        if (!parClavier && actif >= 0) {
+          suivant = actif;
+          break;
+        }
+        const voisin = deplacer(actif, e.shiftKey ? -1 : 1);
+        if (voisin !== actif) {
+          suivant = voisin;
+          break;
+        }
+        if (e.shiftKey) {
+          // Avant la première entrée : retour au `<select>`, la liste reste
+          // ouverte (Tab y rentre, voir le `<select>`).
+          e.preventDefault();
+          e.stopPropagation();
+          select.focus({ preventScroll: true });
+          return;
+        }
+        // Après la dernière : ferme sans choisir ; le focus revient au `<select>`
+        // AVANT l'action par défaut, qui repart donc de lui (et la boucle de Tab
+        // d'un dialogue aussi).
+        onFermer(true);
+        return;
+      }
+      default:
+        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) suivant = chercher(e.key, actif);
+    }
+    if (suivant === null) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setParClavier(true);
+    if (suivant >= 0) setActif(suivant);
+  };
+
+  let index = -1;
+  return (
+    <Flottant
+      ref={surface}
+      ancre={select}
+      rembourrage="aucun"
+      largeur="w-max min-w-full max-w-[90vw]"
+      ancrage={dessus ? 'dessus' : 'dessous'}
+      cote={cote}
+      // ⚠️ La surface est la sœur du `<select>` dans le DOM : une règle du
+      // parent qui écarte ses enfants (`space-x-*`, `[&>*+*]:ml-*`) lui
+      // donnerait une marge, qui la décalerait de sa position calculée.
+      style={{ margin: 0 }}
+    >
+      <div
+        ref={liste}
+        id={id}
+        role="listbox"
+        tabIndex={-1}
+        aria-label={select.getAttribute('aria-label') ?? (select.title || undefined)}
+        aria-activedescendant={actif >= 0 ? `${id}-${actif}` : undefined}
+        onKeyDown={auClavier}
+        onBlur={(e) => {
+          const vers = e.relatedTarget as Node | null;
+          if (vers && (surface.current?.contains(vers) || vers === select)) return;
+          if (vers) onFermer(false);
+        }}
+        // Un clic, un appui ou un glisser dans la liste ne remonte pas à ce qui
+        // porte le `<select>` (une carte cliquable ou déplaçable) : la liste du
+        // système ne le faisait pas non plus.
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onDragStart={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        // ⚠️ Le focus est porté par l'ENTRÉE active (cerclée), pas par le
+        // cadre de la liste : un anneau autour de toute la surface doublerait
+        // celui de l'entrée.
+        className="overflow-y-auto overscroll-contain p-1 focus:outline-none"
+        style={{ maxHeight: hauteurMax }}
+      >
+        {groupes.map((g, gi) => (
+          <div key={gi} role={g.libelle ? 'group' : 'presentation'} aria-label={g.libelle || undefined}>
+            {g.libelle && (
+              <div aria-hidden className="px-2 pb-0.5 pt-1.5 text-micro font-medium text-ink-dim">
+                {g.libelle}
+              </div>
+            )}
+            {g.options.map((o) => {
+              index += 1;
+              const i = index;
+              const choisie = o.valeur === courante;
+              return (
+                // ⚠️ Le marqueur des filtres (contour et fond d'accent) sur la
+                // valeur retenue, un contour transparent sur les autres : la
+                // valeur garde sa place, retenue ou non — le dessin des
+                // principales imposées.
+                <div
+                  key={`${o.valeur}-${i}`}
+                  id={`${id}-${i}`}
+                  data-index={i}
+                  role="option"
+                  aria-selected={choisie}
+                  aria-disabled={o.disabled || undefined}
+                  title={o.title}
+                  onPointerMove={() => setParClavier(false)}
+                  onClick={() => {
+                    if (!o.disabled) onChoisir(o.valeur);
+                  }}
+                  // ⚠️ L'entrée atteinte au clavier porte l'anneau de focus
+                  // des boutons de l'app (`:focus-visible` d'index.css) :
+                  // 1 px de braise lisible, détaché de 1 px, collé à la
+                  // bordure d'accent de la valeur retenue.
+                  className={`flex h-8 w-full cursor-pointer items-center whitespace-nowrap rounded-md border px-2
+                    text-left text-sm text-ink transition compact:h-10 ${
+                      o.disabled ? 'cursor-not-allowed opacity-40' : ''
+                    } ${choisie ? 'border-accent bg-accent-soft' : 'border-transparent hoverable:bg-panel2'} ${
+                      parClavier && i === actif
+                        ? `outline outline-1 outline-accent ${choisie ? 'outline-offset-0' : 'outline-offset-1'}`
+                        : ''
+                    }`}
+                >
+                  {o.libelle || ' '}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </Flottant>
+  );
+}
+
 const Selecteur = forwardRef<HTMLSelectElement, SelecteurProps>(function Selecteur(
-  { taille = 'md', pleineLargeur = true, surface = 'panel2', ton = 'neutre', className = '', children, ...reste },
+  {
+    taille = 'md',
+    pleineLargeur = true,
+    surface = 'panel2',
+    ton = 'neutre',
+    className = '',
+    children,
+    onMouseDown,
+    onKeyDown,
+    onBlur,
+    ...reste
+  },
   ref,
 ) {
+  const element = useRef<HTMLSelectElement | null>(null);
+  const poserRef = useCallback(
+    (el: HTMLSelectElement | null) => {
+      element.current = el;
+      if (typeof ref === 'function') ref(el);
+      else if (ref) ref.current = el;
+    },
+    [ref],
+  );
+  const [ouverture, setOuverture] = useState<Ouverture | null>(null);
+  const id = useId();
+
+  const fermer = useCallback((rendreFocus: boolean) => {
+    setOuverture(null);
+    if (rendreFocus) element.current?.focus({ preventScroll: true });
+  }, []);
+
+  const choisir = useCallback(
+    (valeur: string) => {
+      const el = element.current;
+      fermer(true);
+      if (!el || el.value === valeur) return;
+      // Comme un choix natif : la valeur posée, puis l'événement `change`, que
+      // l'`onChange` de React reçoit pour un `<select>`. Un `<select>` contrôlé
+      // reprend ensuite la valeur de ses props si l'appelant ne la change pas
+      // (les listes « Ajouter… » qui reviennent à leur invite).
+      el.value = valeur;
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    },
+    [fermer],
+  );
+
+  const prendLaMain = () => POPOVER_DISPONIBLE && !reste.disabled;
+  // La surface de la liste ouverte (le `Flottant`, en couche supérieure, qui
+  // porte la listbox).
+  const coucheListe = () => document.getElementById(id)?.closest('[popover]') ?? null;
+
   return (
-    <select
-      ref={ref}
-      // ⚠️ Le chevron est peint en fond, d'où le rembourrage droit réservé
-      // (`pr-6`) : sans lui, le texte de l'option passait dessous.
-      // ⚠️ L'ENCRE suit la surface, et ce n'est pas un raccourci : un sélecteur
-      // posé dans un formulaire (`panel2`) montre une VALEUR qu'on vient de
-      // choisir — encre pleine. Posé sur une carte (`panel`), il montre un
-      // classement au milieu d'autres informations — encre atténuée, sans quoi
-      // il pèse plus lourd que le monstre qu'il classe.
-      className={`appearance-none border ${ton === 'accent' ? 'border-accent' : 'border-border'} ${
-        surface === 'panel' ? 'bg-panel text-ink-dim' : 'bg-panel2 text-ink'
-      } bg-[image:var(--chevron-select)]
+    <>
+      <select
+        ref={poserRef}
+        // ⚠️ Le chevron est peint en fond, d'où le rembourrage droit réservé
+        // (`pr-6`) : sans lui, le texte de l'option passait dessous.
+        // ⚠️ L'ENCRE suit la surface, et ce n'est pas un raccourci : un sélecteur
+        // posé dans un formulaire (`panel2`) montre une VALEUR qu'on vient de
+        // choisir — encre pleine. Posé sur une carte (`panel`), il montre un
+        // classement au milieu d'autres informations — encre atténuée, sans quoi
+        // il pèse plus lourd que le monstre qu'il classe.
+        // ⚠️ Ouverte, la liste a le focus : la bordure d'accent du `<select>`
+        // dit alors de qui elle sort, comme celle du `SelecteurMultiple`.
+        className={`appearance-none border ${ton === 'accent' || ouverture ? 'border-accent' : 'border-border'} ${
+          surface === 'panel' ? 'bg-panel text-ink-dim' : 'bg-panel2 text-ink'
+        } bg-[image:var(--chevron-select)]
         bg-[length:12px] bg-[right_0.4rem_center] bg-no-repeat pr-6 outline-none
         transition focus:border-accent ${TAILLES[taille]} ${
           pleineLargeur ? 'w-full' : ''
         } ${className}`}
-      {...(taille === 'dense' ? { 'data-cible-fine': true } : {})}
-      {...reste}
-    >
-      {children}
-    </select>
+        {...(taille === 'dense' ? { 'data-cible-fine': true } : {})}
+        {...(ouverture ? { 'aria-expanded': true, 'aria-controls': id } : {})}
+        onBlur={(e) => {
+          onBlur?.(e);
+          // Revenu au `<select>` par Maj+Tab, liste ouverte : un focus parti
+          // ailleurs que dans la liste la ferme (vers rien, ce n'est pas un départ).
+          const vers = e.relatedTarget as Node | null;
+          if (ouverture && vers && !coucheListe()?.contains(vers)) fermer(false);
+        }}
+        onMouseDown={(e) => {
+          onMouseDown?.(e);
+          if (e.defaultPrevented || e.button !== 0 || !prendLaMain()) return;
+          // Empêche la liste du système (et la mise au point par défaut).
+          e.preventDefault();
+          if (ouverture) {
+            fermer(true);
+            return;
+          }
+          e.currentTarget.focus({ preventScroll: true });
+          setOuverture({ parClavier: false });
+        }}
+        onKeyDown={(e) => {
+          onKeyDown?.(e);
+          if (e.defaultPrevented || !POPOVER_DISPONIBLE || reste.disabled) return;
+          if (ouverture) {
+            // Le focus est revenu au `<select>` (Maj+Tab depuis la première
+            // entrée) : Tab et les flèches rentrent dans la liste, Échap, Entrée
+            // et Espace la ferment, Maj+Tab la ferme et continue avant lui.
+            if ((e.key === 'Tab' && !e.shiftKey) || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+              e.preventDefault();
+              (document.getElementById(id) as HTMLElement | null)?.focus({ preventScroll: true });
+            } else if (['Escape', 'Enter', ' '].includes(e.key)) {
+              e.preventDefault();
+              e.stopPropagation();
+              fermer(true);
+            } else if (e.key === 'Tab') {
+              fermer(false);
+            }
+            return;
+          }
+          const lettre = e.key.length === 1 && e.key !== ' ' && !e.ctrlKey && !e.metaKey && !e.altKey;
+          // Les touches qui ouvrent (ou, sous Windows, changeaient la valeur sans
+          // rien montrer) ouvrent la liste : une flèche ne choisit jamais à
+          // l'aveugle — certaines listes AGISSENT à chaque `change` (« Ajouter… »).
+          if (['ArrowDown', 'ArrowUp', 'Enter', ' ', 'F4'].includes(e.key) || lettre) {
+            e.preventDefault();
+            setOuverture({ parClavier: true, lettre: lettre ? e.key : undefined });
+          }
+        }}
+        {...reste}
+      >
+        {children}
+      </select>
+      {ouverture && element.current && (
+        <ListeSelecteur select={element.current} id={id} ouverture={ouverture} onChoisir={choisir} onFermer={fermer} />
+      )}
+    </>
   );
 });
 

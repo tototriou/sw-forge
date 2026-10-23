@@ -182,20 +182,12 @@ export function testCompteConfirme() {
   ok(/const totalResultsPages = compteConfirmes\.pages;/.test(src), 'pagination : le nombre de pages vient des confirmées');
   ok(/setResultsPage\(\(p\) => Math\.min\(Math\.max\(p, 1\), totalResultsPages\)\);\s*\}, \[totalResultsPages, setResultsPage\]\);/.test(src),
     'pagination : la page courante revient sur la dernière quand le nombre de pages diminue');
-  const entete = src.match(/<p className="label">\s*\{result\s*\?[\s\S]*?<\/p>/)?.[0] ?? '';
-  ok(/compteConfirmes\.aucune\s*\?\s*'Aucune combinaison ne répond à ces critères'/.test(entete),
-    'en-tête : « Aucune combinaison ne répond à ces critères » seulement sous `compteConfirmes.aucune`');
-  ok(/`\$\{compteConfirmes\.confirmees\.toLocaleString\('fr-FR'\)\} combinaison\(s\) confirmée\(s\)`/.test(entete),
-    'en-tête, recherche finie : « XX combinaison(s) confirmée(s) »');
-  ok(/`\$\{compteConfirmes\.confirmees\.toLocaleString\('fr-FR'\)\} combinaison\(s\) confirmée\(s\) pour l'instant — recherche en cours…`/.test(entete),
-    'en-tête, recherche en cours : « XX combinaison(s) confirmée(s) pour l’instant — recherche en cours… »');
-  ok(!/compteAffiche|trouvée\(s\)|result\.candidates\.length|progress\.found|fullSortedCandidates/.test(entete), 'en-tête : plus jamais les trouvées ni un compte brut');
-  const apresEntete = src.slice(src.indexOf(entete) + entete.length, src.indexOf(entete) + entete.length + 2000);
-  const bulle = apresEntete.match(/<HelpPopover title="Combinaisons confirmées">([\s\S]*?)<\/HelpPopover>/);
-  ok(bulle != null && /\{resoudreEquipement != null && !compteConfirmes\.aucune && \(\s*<HelpPopover title="Combinaisons confirmées">/.test(apresEntete),
-    'infobulle « Combinaisons confirmées » à côté de l’en-tête, quand une file vérifie');
-  ok(bulle != null && /confirmée/.test(bulle[1]!) && /trouvée\(s\)/.test(bulle[1]!) && /optimiste/.test(bulle[1]!) && /écartée/.test(bulle[1]!),
-    'infobulle : dit la différence avec les trouvées (borne optimiste, une partie écartée à la vérification)');
-  ok(/\{optimiserArtefacts && !compteConfirmes\.aucune && \(/.test(src), '« Adapter les artéfacts et reliques au tri » masqué seulement sous « Aucune combinaison… »');
-  ok(/\{!compteConfirmes\.aucune && \(\s*<Selecteur/.test(src), '« Trier par » masqué seulement sous « Aucune combinaison… »');
+  // L'en-tête à l'écran — « Aucune combinaison… » seulement sous
+  // `compteConfirmes.aucune`, « N confirmée(s) » (finie) ou « … pour
+  // l'instant — recherche en cours… », jamais les trouvées ; l'infobulle
+  // « Combinaisons confirmées » quand une file vérifie ; « Adapter… » et
+  // « Trier par » masqués seulement sous « Aucune… » :
+  // `testRenduOptimizerResultatsEntete` (états posés) et
+  // `testRenduOptimizerEcranResultats` (file réelle : une confirmée, puis
+  // écartée ; le texte de l'infobulle).
 }

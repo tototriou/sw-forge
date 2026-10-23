@@ -20,16 +20,37 @@ function fmt(n: number): string {
 // changeait de taille au clic et poussait les artéfacts/la roue/la relique
 // voisins d'un côté à l'autre. Une largeur fixe garantit que basculer
 // base+bonus ↔ total ne déplace RIEN autour de lui.
-const PANEL_WIDTH = 'w-[200px]';
+//
+// ⚠️ **Plus étroite en lignes resserrées, à la souris** (cartes de résultat
+// de l'Optimizer au bureau, décision de l'utilisateur : une carte de plus par
+// rangée) : 174 px et 6 px de rembourrage latéral au lieu de 12. La place
+// retirée est l'écart entre la colonne des libellés et celle des stats de
+// base, que la table répartit : la table garde 160 px, pour 157 px de contenu
+// au pire cas mesuré (base à six chiffres comme les 19 755 PV, la plus haute
+// des données, et bonus « +40 000 ») : rien n'est tronqué ni replié. Toujours
+// FIXE : la bascule ne déplace rien. Au doigt, la largeur et le rembourrage
+// habituels.
+const PANEL_WIDTH = 'w-[200px] p-3';
+const PANEL_WIDTH_SERRE = 'w-[174px] px-1.5 py-3 compact:w-[200px]';
 
 interface Props {
   stats: StatRow[];
   // Vitesse de runes VISÉE (RTA), affichée en rouge sur la ligne VIT quand
   // elle ne correspond plus à l'équipement. `null`/absent = pas de cible.
   spdCible?: number | null;
+  // ⚠️ **Lignes resserrées** (cartes de résultat de l'Optimizer au bureau,
+  // décision de l'utilisateur) : pas de 27 à 22 px, taille du texte
+  // inchangée — interligne `snug` et 2 px de rembourrage au lieu de 4.
+  serre?: boolean;
 }
 
-export default function StatPanel({ stats, spdCible = null }: Props) {
+// Le rembourrage vertical d'une cellule : 4 px (2 px au doigt), ou 2 px et
+// l'interligne `snug` en lignes resserrées.
+const PAS_NORMAL = 'py-1 compact:py-0.5';
+const PAS_SERRE = 'py-0.5 leading-snug';
+
+export default function StatPanel({ stats, spdCible = null, serre = false }: Props) {
+  const pasLigne = serre ? PAS_SERRE : PAS_NORMAL;
   // ⚠️ État LOCAL à l'instance : chaque panneau (fiche pleine page, ou
   // chacune des cartes de résultat de l'Optimizer) bascule indépendamment
   // des autres.
@@ -48,7 +69,7 @@ export default function StatPanel({ stats, spdCible = null }: Props) {
       aria-pressed={showTotal}
       // ⚠️ Rembourrage réduit au doigt : le panneau porte HUIT lignes, et
       // chaque pixel de marge s'y multiplie par huit.
-      className={`rounded-lg border border-border bg-panel/50 p-3 self-start ${PANEL_WIDTH} cursor-pointer
+      className={`rounded-lg border border-border bg-panel/50 self-start ${serre ? PANEL_WIDTH_SERRE : PANEL_WIDTH} cursor-pointer
                  transition hoverable:border-accent compact:p-2`}
     >
       {/* ⚠️ **Resserré d'un cran au doigt.** Huit lignes à 12 px plus 8 px
@@ -67,22 +88,22 @@ export default function StatPanel({ stats, spdCible = null }: Props) {
             const greenOrRed = atCap ? 'text-red-500' : 'text-good';
             return (
               <tr key={row.key} className="border-b border-border/40 last:border-0">
-                <td className="py-1 pr-2 text-ink-dim compact:py-0.5">{row.label}</td>
+                <td className={`${pasLigne} pr-2 text-ink-dim`}>{row.label}</td>
                 {showTotal ? (
                   <td
                     colSpan={2}
-                    className={`py-1 text-right font-mono font-semibold tabular-nums compact:py-0.5 ${greenOrRed}`}
+                    className={`${pasLigne} text-right font-mono font-semibold tabular-nums ${greenOrRed}`}
                   >
                     {fmt(displayedTotal(row.key, row.total, showOvercap))}
                     {row.suffix}
                   </td>
                 ) : (
                   <>
-                    <td className="py-1 pr-3 text-right font-mono font-semibold text-ink tabular-nums compact:py-0.5">
+                    <td className={`${pasLigne} pr-3 text-right font-mono font-semibold text-ink tabular-nums`}>
                       {fmt(row.base)}
                       {row.suffix}
                     </td>
-                    <td className="py-1 text-left font-mono font-semibold text-good tabular-nums compact:py-0.5">
+                    <td className={`${pasLigne} text-left font-mono font-semibold text-good tabular-nums`}>
                       {row.bonus > 0 ? `+${fmt(row.bonus)}${row.suffix}` : '—'}
                       {/* Objectif de vitesse : ce que les runes doivent donner
                           pour coller à la valeur saisie dans l'ordre de tour. */}

@@ -150,11 +150,12 @@ export function testBuffsDePassifEcran() {
   const carte = source('src/components/outils/EtatMonstre.tsx');
   const vignettes = carte.indexOf('libelle="Buff VIT"');
   const rappel = carte.indexOf('{rappelsBuffs.length > 0 && (');
-  const amplification = carte.indexOf('(setup.atkBuff && artefacts.ampliAtkPct > 0) ||');
-  ok(vignettes > 0 && rappel > vignettes && amplification > rappel,
-    'le rappel est rendu sous les vignettes des buffs, avant les lignes d’amplification');
+  // Plus de phrase sur l'amplification d'un buff par un artéfact : elle
+  // portait sur la paire représentative de la recherche, inconnue du joueur.
+  ok(vignettes > 0 && rappel > vignettes && !/ampli(Atk|Def|Vit)Pct|amplifie ce buff/.test(carte),
+    'le rappel est rendu sous les vignettes des buffs, sans ligne d’amplification');
   ok(/\{rappelsBuffs\.length > 0 && \(\s*<div className="space-y-0\.5 text-xs text-ink-dim">\s*\{rappelsBuffs\.map\(\(r\) => \(/.test(carte),
-    'même grammaire que les lignes d’amplification : texte xs atténué, une ligne par passif');
+    'texte xs atténué, une ligne par passif');
   ok(/<Jeton\s+icone=\{r\.icone \? <img src=\{r\.icone\} alt="" className="h-4 w-4 rounded" loading="lazy" \/> : undefined\}\s+libelle=\{r\.nom\}\s+\/>/.test(carte),
     'le passif est nommé par un Jeton en lecture seule (icône, nom du jeu)');
   ok(carte.includes('pose {r.buffs} — « {r.condition} »'), 'le texte : buffs posés, puis la condition citée');
@@ -166,7 +167,10 @@ export function testBuffsDePassifEcran() {
   const ecran = source('src/components/outils/OptimizerSection.tsx');
   ok(/skillDetail\?\.com2usId === selectedCom2usId \? rappelsBuffsDePassif\(skillDetail\) : \[\]/.test(ecran),
     'l’écran calcule les rappels sur la fiche du monstre CHOISI (garde d’identité pendant le chargement)');
-  egal((ecran.match(/rappelsBuffs=\{rappelsBuffs\}/g) ?? []).length, 1, 'la carte « État de mon monstre » reçoit les rappels, une fois');
+  // Une fois par format : « État de mon monstre » au téléphone, sa forme
+  // réduite des essentiels au bureau (`EtatMonstreEssentiels`).
+  egal((ecran.match(/rappelsBuffs=\{rappelsBuffs\}/g) ?? []).length, 2, 'la carte « État de mon monstre » reçoit les rappels, une fois par format');
+  ok(/<EtatMonstreEssentiels[^>]*rappelsBuffs=\{rappelsBuffs\}/.test(ecran), '… au bureau, dans les essentiels');
 
   const lecteurs = [...fichiersTs('src'), ...fichiersTs('scripts')].filter((f) =>
     /from '[^']*buffsDePassif'/.test(readFileSync(resolve(racine, f), 'utf8'))

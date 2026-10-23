@@ -274,7 +274,7 @@ export default function testArtefactFile() {
     );
     egal(signatureReglages({ ...base, artefactsReserves: new Set() }), s, '… qu’on passe un tableau vide ou un ensemble vide');
 
-    // ⚠️ **La pièce d'un emplacement FIGÉ** sur « Garder l'artéfact
+    // ⚠️ **La pièce d'un emplacement FIGÉ** sur « Comme
     // équipé » est le seul candidat de cet emplacement (`candidatsParSorte`) :
     // même nature que les réservations (l'inventaire de la paire). Valider un
     // build de CE monstre, « Voir le runage réellement porté » ou changer

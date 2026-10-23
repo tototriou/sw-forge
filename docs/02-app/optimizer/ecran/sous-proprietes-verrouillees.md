@@ -6,14 +6,15 @@
    garantissant une propriété qui n'y contribue pas.
 
    ⚠️ **Un verrou n'a de sens que sur un emplacement CHERCHÉ.** Sur une sorte
-   laissée sur « Garder l'artéfact équipé », la pièce est déjà décidée :
+   laissée sur « Comme équipé », la pièce est déjà décidée :
    exiger une sous-propriété n'en fait pas apparaître une meilleure — soit
    celle qui est portée la porte déjà, soit plus aucune paire ne passe et la
    recherche refuse de partir. Donc :
    - les sous-propriétés **exclusives** à une sorte figée disparaissent du
      menu (une ligne portable par les deux reste proposée tant qu'un
      emplacement cherche) ;
-   - les **deux** emplacements figés — ce qui est le **défaut** — rendent la
+   - les **deux** emplacements figés (chacun sur « Comme équipé », alors
+     que le défaut est « Libre ») rendent la
      section entièrement inerte, et elle **dit pourquoi** plutôt que de
      présenter un menu vide ;
    - une ligne déjà posée qui devient sans effet est **barrée et grisée**,

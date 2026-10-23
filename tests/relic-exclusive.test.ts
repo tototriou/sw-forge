@@ -470,7 +470,9 @@ export function testRelicClassementParMode() {
     const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
     ok(/const optionsDuTriAffiche = useMemo\(\s*\(\) =>\s*optionsDeClassement\(\{[\s\S]{0,900}?etatReliqueDe,/.test(ecran),
       'écran : les options du tri affiché viennent d’optionsDeClassement, avec etatReliqueDe');
-    ok(/etatRelique=\{etatReliqueDe\(c\)\}/.test(ecran), 'écran : la relique affichée par la carte est celle que le score compte');
+    // La valeur passée à la carte, qu'elle soit écrite en prop JSX ou dans
+    // les propriétés calculées par l'écran pour chaque carte.
+    ok(/etatRelique(=\{|: )etatReliqueDe\(c\)/.test(ecran), 'écran : la relique affichée par la carte est celle que le score compte');
     // L'ordre de BASE (`fullSortedCandidates`) est affiché TEL QUEL tant que
     // la file n'a rien résolu — toujours, quand l'optimisation d'artéfacts
     // est coupée (mode `off`). Il doit compter la relique fixe, sans lire le

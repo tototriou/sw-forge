@@ -4,7 +4,6 @@ import { Monster } from '../../types';
 import MonsterAvatar from '../MonsterAvatar';
 import { RtaCategory, UseRtaCategories, MAX_CATEGORIES_PER_MONSTER } from '../../hooks/useRtaCategories';
 import { ConfirmDialog, Modale } from '../../ui/Dialogs';
-import { useRecalageEcran } from '../../hooks/useRecalageEcran';
 import { useMediaQuery, SOUS_LG } from '../../hooks/useMediaQuery';
 import { Bouton, BoutonGroupe, BoutonIcone, Champ, Flottant, Vignette } from '../../ui';
 
@@ -497,9 +496,6 @@ function CategoryPopover({
   // Sur la surface FLOTTANTE, pas sur le formulaire : voir plus bas.
   const ref = useRef<HTMLDivElement>(null);
   const surMobile = useMediaQuery(SOUS_LG);
-  // Popup ancrée seulement : le panneau montant occupe une largeur connue et
-  // n'a rien à recaler.
-  const { style: recalage } = useRecalageEcran(ref, !surMobile);
 
   // Fermeture au clic extérieur et à Échap, comme les autres menus de l'app.
   // ⚠️ Le clic extérieur ne vaut QUE pour la popup : le panneau montant a son
@@ -652,16 +648,14 @@ function CategoryPopover({
   }
 
   // ⚠️ La popup est ancrée à gauche d'un bouton dont la position dépend du
-  // nombre de catégories et de la largeur de leurs noms : elle sortait de
-  // l'écran dès que ce bouton se trouvait sur la droite, d'où le recalage. Le
-  // panneau montant, lui, n'a pas de position à corriger.
+  // nombre de catégories et de la largeur de leurs noms : `Flottant` la
+  // borne à l'écran quand ce bouton se trouve sur la droite.
   // ⚠️ `ref` sur le FLOTTANT et non sur le formulaire : c'est la surface
-  // visible qu'on mesure pour le recalage, et c'est elle dont on teste si le
-  // clic est tombé dedans. Posée sur le formulaire, la bordure et le
-  // rembourrage échappaient aux deux — un clic sur le bord de la popup la
-  // refermait.
+  // visible dont on teste si le clic est tombé dedans. Posée sur le
+  // formulaire, la bordure et le rembourrage y échappaient — un clic sur le
+  // bord de la popup la refermait.
   return (
-    <Flottant ref={ref} largeur="w-[220px]" rembourrage="sm" style={recalage}>
+    <Flottant ref={ref} largeur="w-[220px]" rembourrage="sm">
       {formulaire}
     </Flottant>
   );

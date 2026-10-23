@@ -15,6 +15,7 @@ export default function EffetVignette({
   onClick,
   etroit,
   deuxLignes = false,
+  largeur,
 }: {
   icone: string;
   libelle: string;
@@ -25,13 +26,17 @@ export default function EffetVignette({
   // Libellé rendu sur deux lignes (le mot le plus long tient en une) au lieu
   // d'être tronqué. Les autres vignettes, au libellé court, restent à une.
   deuxLignes?: boolean;
+  // Largeur imposée par l'appelant (classe entière) : les trois buffs sur une
+  // rangée dans la sous-colonne de ≈ 175 px des essentiels du bureau, sans le
+  // reste du format étroit (fond renforcé, coche masquée), qui est celui du doigt.
+  largeur?: string;
 }) {
   return (
     <Vignette
       choisi={actif}
       onClick={onClick}
       // Au format étroit, vignettes plus serrées : plus d'effets par rangée.
-      largeur={etroit ? 'w-14' : 'w-16'}
+      largeur={largeur ?? (etroit ? 'w-14' : 'w-16')}
       aria-label={`${libelle} — ${actif ? 'actif' : 'inactif'}`}
       // ⚠️ `libelle` est tronqué (`truncate`, `Vignette.tsx`) à cette largeur
       // fixe — « Ce sort pose le def break » devient « Ce sort... », illisible

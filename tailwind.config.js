@@ -1,4 +1,5 @@
 import plugin from 'tailwindcss/plugin';
+import conteneurs from '@tailwindcss/container-queries';
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -219,5 +220,9 @@ export default {
       // `compact:` traite la DENSITÉ — deux conséquences du même fait.
       addVariant('compact', '@media (pointer: coarse)');
     }),
+    // Requêtes de conteneur (`@container`, `@md:`) : seuils sur la largeur
+    // d'un conteneur, pas de l'écran. ⚠️ `container-type: inline-size` annule
+    // la largeur intrinsèque de l'élément qui porte `@container`.
+    conteneurs,
   ],
 };

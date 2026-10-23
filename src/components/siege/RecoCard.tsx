@@ -17,7 +17,6 @@ import {
 // « Importer un deck d'offense », « Fort contre ».
 import { IconeOffense } from '../IconesAtelier';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRecalageEcran } from '../../hooks/useRecalageEcran';
 import {
   ARTIFACT_KINDS,
   ArtifactKind,
@@ -2199,10 +2198,6 @@ function CounterRow({
   noteOuverte: boolean;
   onToggleNote: () => void;
 }) {
-  // La note dépliée est ancrée à gauche d'une vignette qui peut être la dernière
-  // de sa rangée : sans recalage, elle sortait de l'écran par la droite.
-  const noteRef = useRef<HTMLDivElement>(null);
-  const { style: recalageNote } = useRecalageEcran(noteRef, noteOuverte);
 
   // Un même monstre ne peut pas occuper deux emplacements de LA MÊME défense —
   // même règle que les slots d'un deck. Il peut revenir dans une autre défense.
@@ -2323,11 +2318,9 @@ function CounterRow({
             et aux marges à elle. */}
         {noteOuverte && (
           <Flottant
-            ref={noteRef}
             // ⚠️ Ancrée à gauche d'une vignette qui peut être la DERNIÈRE de sa
-            // rangée : la note sortait alors de l'écran par la droite. Le
-            // `max-w` borne sa largeur, pas sa position. Voir le hook.
-            style={recalageNote}
+            // rangée : le `max-w` borne sa largeur, et `Flottant` borne sa
+            // position à l'écran.
             largeur="w-max min-w-full max-w-[280px]"
             rembourrage="sm"
           >

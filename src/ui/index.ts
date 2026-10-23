@@ -73,6 +73,12 @@ export { default as NumberField } from './NumberField';
 export { default as Selecteur } from './Selecteur';
 export type { SelecteurProps } from './Selecteur';
 
+// Liste À CHOIX MULTIPLES : fermée, le résumé de ce qui est choisi ; ouverte, une
+// `Case` par option dans un flottant. ⚠️ L'axe que `Selecteur` (choix unique) ne
+// couvre pas, sans la ligne entière que prend une rangée de `Pastille`.
+export { default as SelecteurMultiple } from './SelecteurMultiple';
+export type { SelecteurMultipleProps, OptionChoixMultiple } from './SelecteurMultiple';
+
 export { default as Option } from './Option';
 export type { OptionProps } from './Option';
 

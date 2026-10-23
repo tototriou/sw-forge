@@ -21,7 +21,7 @@ export const CLASSEMENT_CHAMPS_OPTIMIZER = {
   selectedId: 'global', gearSource: 'global', sourceSelector: 'global',
   relicMinUpgrade: 'global', excludeUsedRunes: 'global', excludeUsedScope: 'global',
   excludedSelectors: 'global', adaptiveTrancheWeighting: 'global', exhaustiveSearch: 'global',
-  verifierToutesLesCombinaisons: 'global', slotFilterPreset: 'global', showAdvanced: 'global',
+  verifierToutesLesCombinaisons: 'global', slotFilterPreset: 'global',
   setPickerInvalid: 'global', resultsPage: 'global', openDetailKey: 'global',
   diagnoseBlockingEnabled: 'global', stoppedManually: 'global', importDuCompte: 'global',
   importReliqueTraite: 'global', search: 'global',
@@ -120,7 +120,7 @@ export function defaultRelicMainChoice(relic: RelicDetail | undefined): RelicMai
  *   défaut se recalcule contre la relique du nouvel exemplaire, comme dans
  *   `pickSpecies`.
  * - Même espèce : les critères sont conservés, sauf l'incohérence
- *   « Garder la relique équipée » sur un exemplaire qui n'en porte pas :
+ *   « Comme équipée » sur un exemplaire qui n'en porte pas :
  *   le mode `equipped` ne refuse pas la recherche, il la ferait tourner SANS
  *   relique, sans rien en dire — elle redevient « Libre ».
  */

@@ -66,7 +66,7 @@ recherche : [pipeline.md § Pipeline de la recherche de runes](pipeline.md).
   règles : `relicIntentDepuisEtat` (écran) et `recipeToRelicIntent`
   (`scripts/lib/recipeToSearchParams.ts`). Mode `off` quand l'optimisation
   d'artéfacts et reliques est coupée ; `equipped` quand la principale vaut
-  « Garder la relique équipée » ; `recherche` sinon. Sans principale dans la
+  « Comme équipée » ; `recherche` sinon. Sans principale dans la
   recette, le CLI calcule le défaut contre la relique portée
   (`defaultRelicMainChoice`), comme l'écran.
 - **`resoudreContexteRelique(intention, reliqueEquipee, inventaire)`**

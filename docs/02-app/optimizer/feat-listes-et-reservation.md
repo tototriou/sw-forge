@@ -125,7 +125,11 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   Une espèce non possédée, résolue par `unowned`, est ajoutée immédiatement.
   Au téléphone, le sélecteur de liste reste au-dessus des puces et les cartes
   de la zone C se déplient dessous : l’ajout ne déplace pas la puce cliquée.
-- **Zone C, « Monstres de la liste »** — juste sous les puces de source
+- **Zone C, « Monstres de la liste »** — au bureau, la liste de travail
+  (sans carte autour, chaque monstre dans la sienne), en tête des essentiels (voir
+  [ecran/recherche-du-monstre.md](ecran/recherche-du-monstre.md), section
+  « Au bureau ») ;
+  au téléphone, juste sous les puces de source
   dans « Monstre & équipement » : chaque monstre de la liste active, son
   statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable
   pour rappeler son exemplaire et ses critères personnels mémorisés dans la
@@ -204,10 +208,14 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   `warn-soft`, texte `warn`), même durée (`DUREE_ATTENTION_MS`, 3 s), même
   déclencheur : **un seul état du rappel pour les deux rendus**, celui que
   pose `doitRappeler` dans le `onClick` d'un membre — jamais un second
-  minuteur ni une seconde condition. Sa place est réservée sous la liste :
-  rendu avec elle, invisible hors rappel, rien ne bouge quand il paraît ni
-  quand il s'efface. Le même rendu sert les deux formats ; au téléphone, il
-  vit dans le dépliement de la zone C, ouvert au moment du clic. La boîte
+  minuteur ni une seconde condition. **Au téléphone**, sa place est réservée
+  sous la liste : rendu avec elle, invisible hors rappel, rien ne bouge quand
+  il paraît ni quand il s'efface ; il vit dans le dépliement de la zone C,
+  ouvert au moment du clic. **Au bureau**, il sort du flux (décision de
+  l'utilisateur) : aucune place réservée sous le dernier monstre, et il
+  paraît 3 s en surimpression au bas de la liste, dans ses bords
+  (la colonne des essentiels défile seule), sur fond de panneau et contour
+  `warn` de 1 px, sans rien déplacer ni intercepter de clic. La boîte
   des auras garde son surlignage ; elle seule annonce le message aux
   lecteurs d'écran (`aria-live`), pour qu'il ne soit pas lu deux fois.
 
@@ -296,9 +304,12 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 ## Comparer, valider sans recherche et persistance
 
 - **« Comparer », à côté de « Valider ce build »** sur chaque carte de
-  résultat : les deux boutons **se partagent la largeur**
-  de la carte, plutôt que d'être empilés — une rangée de plus par carte se
-  paierait sur toute la grille de résultats. Au clic, l'**écart statistique
+  résultat, en bas de la carte, côte à côte plutôt qu'empilés — une rangée
+  de plus par carte se paierait sur toute la grille de résultats. Au
+  téléphone, ils **se partagent la largeur** de la carte (un seul bouton la
+  prend toute) ; au bureau, « Comparer » garde sa largeur et « Valider » la
+  largeur fixe de son plus long libellé
+  ([resultats.md](ecran/resultats.md)). Au clic, l'**écart statistique
   par statistique** entre ce build et la référence apparaît **sous** les
   boutons, donc sans rien déplacer de ce qui précède.
   - ⚠️ **La référence est la fiche affichée**, ce qui couvre les deux cas

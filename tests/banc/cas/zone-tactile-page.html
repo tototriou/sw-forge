@@ -22,8 +22,8 @@
 </style>
 </head>
 <body>
-<!-- La zone de toucher sort de 12 px à droite de la fenêtre. Le bouton n'est pas signalé (D9 vaut pour l'élément) ;
-     la page l'est : D9 ne vaut pas pour elle, un `::after` qui l'élargit laisse un défilement latéral au téléphone. -->
+<!-- La zone de toucher sort de 12 px à droite de la fenêtre. Le bouton n'est pas signalé (sa zone de toucher ne compte pas) ;
+     la page l'est : un `::after` qui l'élargit laisse un défilement latéral au téléphone. -->
 <div style="display: flex; justify-content: flex-end">
   <button id="bouton-bord" class="cible-tactile" data-attendu=""></button>
 </div>

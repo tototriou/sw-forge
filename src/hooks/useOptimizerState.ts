@@ -288,15 +288,16 @@ export interface OptimizerState {
   // remplace pas) — voir lib/optimizerExclusion.ts. Vide par défaut.
   excludedSelectors: ExclusionSelector[];
   setExcludedSelectors: Dispatch<SetStateAction<ExclusionSelector[]>>;
-  // Toggle « Prioriser les stats les plus difficiles » (voir
-  // docs/03-developpeur/optimizer/ § Pré-filtrage heuristique et
-  // compartiments) — désactivé par défaut, lu par `handleSearch` au moment du
-  // clic sur « Rechercher », pas un bouton séparé qui lance sa propre
-  // recherche.
+  // Ancien interrupteur « Prioriser les stats les plus difficiles », retiré
+  // de l'écran : aucun contrôle ne l'écrit plus, et l'écran envoie toujours
+  // `false` (`handleSearch`, `exportRecipe`), quoi que porte une session
+  // reprise. Gardé ici le temps que le champ quitte `SearchParams` et
+  // `OptimizerRecipe`.
   adaptiveTrancheWeighting: boolean;
   setAdaptiveTrancheWeighting: Dispatch<SetStateAction<boolean>>;
   // Toggle « Rechercher jusqu'à épuisement complet » — désactivé par défaut,
-  // lu par `handleSearch` comme `adaptiveTrancheWeighting` ci-dessus. Retire
+  // lu par `handleSearch` au moment du clic sur « Rechercher », pas un bouton
+  // séparé qui lance sa propre recherche. Retire
   // la limite de temps de 10 minutes (`maxMs: Infinity`, déjà supporté par le
   // moteur — voir OptimizerSection.tsx) ; ne touche PAS au plafond de 100 000
   // candidats collectés, qui reste une limite indépendante.
@@ -320,8 +321,6 @@ export interface OptimizerState {
   // changement de tri — voir OptimizerSection.tsx.
   resultsPage: number;
   setResultsPage: Dispatch<SetStateAction<number>>;
-  showAdvanced: boolean;
-  setShowAdvanced: Dispatch<SetStateAction<boolean>>;
   slotFilterPreset: SlotFilterPresetKey;
   setSlotFilterPreset: Dispatch<SetStateAction<SlotFilterPresetKey>>;
   // Palier 2 du diagnostic « 0 résultat » (voir `rankBlockingConditions` dans
@@ -466,7 +465,6 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   const [verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons] = useState(false);
   const [sortBy, setSortBy] = useState<OptimizerSortKey>(base.sortBy);
   const [resultsPage, setResultsPage] = useState(1);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [slotFilterPreset, setSlotFilterPreset] = useState<SlotFilterPresetKey>('moyen');
   const [diagnoseBlockingEnabled, setDiagnoseBlockingEnabled] = useState(false);
   const [stoppedManually, setStoppedManually] = useState(false);
@@ -881,8 +879,6 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     setSortBy: saisie('sortBy', setSortBy),
     resultsPage,
     setResultsPage,
-    showAdvanced,
-    setShowAdvanced,
     slotFilterPreset,
     setSlotFilterPreset,
     diagnoseBlockingEnabled,

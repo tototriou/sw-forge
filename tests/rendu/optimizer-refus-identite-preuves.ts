@@ -12,6 +12,10 @@ export async function preuvesRefusIdentitePerime(c: {
 }): Promise<[boolean, string][]> {
   const preuves: [boolean, string][] = [], verifier = (oui: boolean, texte: string) => preuves.push([oui, texte]);
   const refus = () => c.etat().rapportCriteres.some(m => m.includes('identité enregistrée'));
+  // Au téléphone, la liste de travail, qui porte ces messages, vit sous
+  // « Gérer mes listes », replié par défaut : l'écran ne les montre qu'ouvert.
+  const pli = [...document.querySelectorAll('button')].find(e => e.textContent?.trim() === 'Gérer mes listes');
+  if (pli) await c.geste(() => pli.click());
   const cle = cleMemoireMembre('a', c.premier);
   const identities = new Map(c.listes().identities);
   identities.set(cle, { listId: 'a', selector: c.premier, com2usId: 99999 });

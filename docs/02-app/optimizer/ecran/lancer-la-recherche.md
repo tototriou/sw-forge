@@ -1,21 +1,46 @@
 # Lancer la recherche
 
-Ce document décrit la barre d'actions et l'estimation qui précèdent le lancement.
+Ce document décrit la barre d'actions, l'estimation qui précède le lancement
+et la progression. Au bureau, tout vit dans le bloc « Objectif et
+Rechercher », dont la forme, la place réservée et les hauteurs sont dans
+[README.md](README.md#bloc--objectif-et-rechercher-) ; au téléphone, sous la
+grille des réglages, la carte du bouton Rechercher, puis le message d'import
+et la progression.
 
 10. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
-    une ligne affiche le nombre **exact** de runes gardées après
-    pré-filtrage, détaillé par emplacement (une **somme**, pas un produit),
-    recalculée en direct à chaque changement de critère. ⚠️ **Le pool, pas
+    une ligne affiche le nombre de runes retenues par le pré-filtrage
+    **de l'estimation**, détaillé par emplacement (une **somme**, pas un produit),
+    recalculée en direct à chaque changement de critère : « N runes gardées
+    après pré-filtrage (pool par emplacement : a + b + … ) ». Au bureau, en
+    tête du bloc, sans place réservée : elle paraît au choix du
+    set, qui se fait plus haut ou dans un flottant, et ne pousse que ce qui
+    la suit. Au téléphone, la dernière
+    rangée de la grille des réglages. ⚠️ **Le pool, pas
     l'espace de recherche** : le nombre de combinaisons brutes (produit des
     tailles de pool par emplacement) est un ordre de grandeur bien trop
     éloigné du nombre réel de demi-builds construits ou de paires visitées
-    par le meet-in-the-middle pour servir de repère — seul le pool retenu,
-    lui, est un nombre exact et directement lisible.
+    par le meet-in-the-middle pour servir de repère. L'estimation appelle
+    le même pré-filtrage que la recherche (`estimateSearchSpace`), mais
+    sans les élagages sûrs de dominance et de faisabilité : elle compte
+    exactement ce pré-filtrage, pas le pool réellement exploré par la
+    recherche. Le total est abrégé à l'affichage (`formatBig`) ; les
+    comptes par emplacement restent entiers.
 11. **« Rechercher »** — lance le calcul. Changer un des critères de
     recherche ne relance rien automatiquement : il faut recliquer. Un bouton
-    **« Arrêter »** apparaît pendant le calcul — il interrompt la recherche
+    **« Arrêter »** paraît pendant le calcul — il interrompt la recherche
     et garde le **meilleur trouvé jusque-là**, plutôt que de tout perdre
     (voir ../feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel).
+    Au bureau, « Arrêter » prend la place exacte de « Rechercher », dans la
+    même case, et reste inactif 300 ms après le lancement : le double clic
+    qui a lancé la recherche ne l'arrête pas ; « Rechercher » y est en
+    braise pleine dès qu'un set est choisi ; dans la forme large du bloc, il
+    est à droite d'« Exporter » · « Importer », ou dessous, pleine largeur,
+    quand leur rangée fait moins de 448 px (voir README.md § Bloc
+    « Objectif et Rechercher »). Au téléphone, « Rechercher »
+    devient « Recherche… », inactif, et « Arrêter » s'ajoute au bout de la
+    rangée. Sans set choisi, « Rechercher » reste cliquable sous son aspect
+    grisé : le clic ramène au « Set de runes recherché » (voir
+    set-et-principale.md § Set de runes recherché et statistique principale imposée).
     ⚠️ **« Exporter les paramètres de recherche » / « Importer
     les paramètres de recherche »** (« Exporter » / « Importer » quand la
     place manque), juste à côté : télécharge/relit un fichier `.json`
@@ -63,9 +88,18 @@ Ce document décrit la barre d'actions et l'estimation qui précèdent le lancem
     message ordinaire (succès sans avertissement) s'efface après 5 s, le
     refus après 9 s (`messageImport.ts`). Le message vit dans le flux, sous
     la barre Rechercher / Exporter / Importer : le bouton cliqué, au-dessus,
-    ne bouge pas.
-12. **Barre de progression** — se remplit progressivement (pas une roue qui
-    tourne), avec le nombre de combinaisons déjà examinées et déjà trouvées,
-    suivi d'un message **en gras, couleur dorée** (même que le rang `#X`
-    d'un résultat) : « Attendez la fin de la recherche pour être sûr de
-    trouver votre build optimal ».
+    ne bouge pas. Au bureau, il s'affiche en bas du bloc, au-dessus de la
+    progression.
+12. **Barre de progression** — au téléphone, se remplit progressivement
+    (pas une roue qui tourne), avec le nombre de combinaisons déjà examinées
+    et déjà trouvées, suivi d'un message **en gras, couleur dorée** (même
+    que le rang `#X` d'un résultat) : « Attendez la fin de la recherche pour
+    être sûr de trouver votre build optimal. ». Au bureau, la progression
+    est **compacte** : les deux mêmes lignes, sans barre, sous « Rechercher »
+    (en A1, à sa droite, dans la barre fine collée au bas de la fenêtre),
+    sans place réservée dans le bloc ordinaire : elle paraît sous le bouton
+    qu'on vient de cliquer, jamais au-dessus. La barre fine de A1 réserve
+    en revanche la hauteur de sa progression la plus haute pour que
+    « Rechercher » ne monte pas sous le clic. Pendant la
+    préparation, une ligne par moitié (« Préparation — moitié A : x / y
+    runes »), avec sa barre au téléphone, sans barre au bureau.

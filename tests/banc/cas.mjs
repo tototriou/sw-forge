@@ -33,6 +33,16 @@ import { mesurer } from './mesure.ts';
 const ICI = dirname(fileURLToPath(import.meta.url));
 const DOSSIER = join(ICI, 'cas');
 
+// Ces attentes sont obligatoires : un attribut retiré de ces cas ne doit
+// pas transformer la vérification de l'exception en page sans contrôle.
+const ATTENDUS_ROUE = {
+  'roue-cadre-pivote.html': { roue: [], case: [], cible: [], cadre: [], icone: [] },
+  'roue-transformation-sortante.html': {
+    'roue-sortante': ['contenu'], 'case-sortante': ['contenu'], 'cible-sortante': ['contenu'],
+    'roue-mixte': [], 'case-mixte': ['contenu'], 'cible-mixte': ['contenu'],
+  },
+};
+
 // Exécutée dans la page : les attentes déclarées.
 function lireAttentes() {
   const html = globalThis.document.documentElement;
@@ -62,16 +72,24 @@ function lireEtat() {
 let code = 0;
 let navigateur;
 try {
+  const fichiers = readdirSync(DOSSIER).filter((f) => f.endsWith('.html')).sort();
+  for (const fichier of Object.keys(ATTENDUS_ROUE)) {
+    if (!fichiers.includes(fichier)) throw new Error(`cas obligatoire absent : ${fichier}`);
+  }
   navigateur = await lancerNavigateur();
   const contexte = await navigateur.newContext(optionsFormat('telephone'));
   const page = await contexte.newPage();
-  for (const fichier of readdirSync(DOSSIER).filter((f) => f.endsWith('.html')).sort()) {
+  for (const fichier of fichiers) {
     await page.goto(pathToFileURL(join(DOSSIER, fichier)).href);
     const attentes = await page.evaluate(lireAttentes);
     const avant = await page.evaluate(lireEtat);
     const mesure = await page.evaluate(mesurer, { detail: true });
     const apres = await page.evaluate(lireEtat);
     const ecarts = [];
+    for (const [id, regles] of Object.entries(ATTENDUS_ROUE[fichier] ?? {})) {
+      const declare = attentes.elements.find((e) => e.id === id);
+      if (!declare || declare.regles.join(',') !== regles.join(',')) ecarts.push(`attente obligatoire absente ou modifiée : #${id}`);
+    }
     if (avant.styles.length !== apres.styles.length) ecarts.push(`état rendu : ${avant.styles.length} éléments avant, ${apres.styles.length} après`);
     avant.styles.forEach(([qui, s], i) => {
       const t = apres.styles[i]?.[1];

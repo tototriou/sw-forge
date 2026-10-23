@@ -1,8 +1,8 @@
 # Artéfacts
 
-Ce document décrit la carte « Artéfacts » de l'écran.
+Ce document décrit les réglages d'artéfacts de la carte « Artéfacts et relique ».
 
-6. **Artéfacts** — carte « Artéfacts et reliques », interrupteur
+6. **Artéfacts** — carte « Artéfacts et relique », interrupteur
    **« Activer l'optimisation d'artéfacts et reliques »**,
    **ACTIVÉ par défaut**.
 
@@ -15,9 +15,9 @@ Ce document décrit la carte « Artéfacts » de l'écran.
 
    Activé, deux listes déroulantes (Attribut, Type) proposent :
    **« Libre »** (**défaut** — cherche le meilleur artéfact parmi TOUS les
-   artéfacts équipables), **« Garder l'artéfact équipé »**, **Principale
-   ATQ +100**, **Principale DEF +100**, **Principale PV +1500** (les trois
-   statistiques principales d'artéfact du jeu).
+   artéfacts équipables), **« Comme équipé »**, **ATQ +100**,
+   **DEF +100**, **PV +1500** (les trois statistiques principales
+   d'artéfact du jeu).
 
    ⚠️ **Ces cinq choix ne dépendent pas des artéfacts portés** : les deux
    listes s'affichent dès que l'optimisation est active, toujours avec les
@@ -30,12 +30,12 @@ Ce document décrit la carte « Artéfacts » de l'écran.
    reste vide — on ne peut pas équiper ce qu'on n'a pas. Ne pas fabriquer de
    pièce fictive (« et si j'avais un artéfact PV+1500 ? ») : sans aucune
    sous-propriété, elle ferait calculer les « Dégâts réels » sans aucune
-   ligne d'effet, quand « Garder l'artéfact équipé » les compte — deux
+   ligne d'effet, quand « Comme équipé » les compte — deux
    réglages voisins, deux modèles de dégâts, sans que rien ne le signale.
 
    ⚠️ **Sans choix, la liste affiche « Libre »**, parce que le moteur traite
    une absence de choix comme « Libre » (`candidatsParSorte`,
-   artifactOptim.ts). Afficher « Garder l'artéfact équipé » annoncerait le
+   artifactOptim.ts). Afficher « Comme équipé » annoncerait le
    contraire de ce qui se passe, et
    tout ce qui se fie à cet affichage (les emplacements considérés comme
    figés, donc l'éditeur de sous-propriétés verrouillées) raisonnerait sur un
@@ -51,13 +51,13 @@ Ce document décrit la carte « Artéfacts » de l'écran.
    encore « Aucun » le voit ramené sur **« Libre »** à l'import
    (`mainsPourCeCompte`, optimizerRecipe.ts).
 
-   ⚠️ **« Garder l'artéfact équipé » conserve la PIÈCE ENTIÈRE**, ses quatre
+   ⚠️ **« Comme équipé » conserve la PIÈCE ENTIÈRE**, ses quatre
    sous-propriétés comprises : le pool de cet emplacement tombe à **un seul
    candidat**, l'exemplaire réellement porté (ou rien, s'il n'est pas
    éligible pour ce monstre). Rien n'est cherché.
 
    ⚠️ **Ce choix ne se PARTAGE pas.** Importer une recette exportée par
-   **quelqu'un d'autre** bascule automatiquement « Garder l'artéfact équipé »
+   **quelqu'un d'autre** bascule automatiquement « Comme équipé »
    sur **« Libre »**, et le dit dans le message d'import. Raison : ce réglage
    garde l'artéfact porté par **celui qui lit**, pas par l'auteur — chez un
    autre joueur il ne transporte aucune intention, il impose une pièce
@@ -77,38 +77,53 @@ Ce document décrit la carte « Artéfacts » de l'écran.
      rejouer un cas signalé avec l'export de celui qui l'a signalé. Basculer
      rendrait la reproduction moins fidèle.
 
-   ⚠️ **« Garder l'artéfact équipé », jamais « Comme équipé »** : posé au
-   milieu de trois statistiques principales, « Comme équipé » se lirait « la
-   principale, comme équipé » — une liste se lit comme homogène. D'où
-   « Principale » sur les entrées qui filtrent **réellement** par stat
-   principale, et un choix qui garde la pièce et le dit.
+   ⚠️ **« Comme équipé » garde la pièce entière**, comme le précise l'aide
+   de la carte. Les libellés courts des principales (« ATQ +100 »,
+   « DEF +100 », « PV +1500 ») permettent aux listes de tenir côte à côte
+   au bureau ; ils ne décrivent que le filtre sur la principale.
 
 ## Place de la carte à l'écran
 
-   ⚠️ **Carte à part**, colonne 2 rangée 2 — sous « Exemplaire », pas dans
-   la colonne droite de « Critères de recherche ». L'interrupteur
-   masque d'un coup les deux listes ET les
-   lignes verrouillées : en tête de cette colonne,
-   ce clic ferait REMONTER « Conditions », soit un clic qui déplace ce qui
-   le suit ([03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md)).
+   ⚠️ **Carte à part**, jamais un bloc de « Critères de recherche ».
+   L'interrupteur masque d'un coup les deux listes ET les lignes
+   verrouillées : dans « Critères de recherche », ce clic ferait REMONTER
+   « Conditions », soit un clic qui déplace ce qui le suit
+   ([03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md)).
+   Isolée, la carte ne déplace que ce qui la suit.
+   - **Au bureau**, première section du panneau de la colonne repliable
+     « Artéfacts et relique », 294 px (`ArtefactsEtReliqueBureau`, autour du
+     composant partagé dans sa forme `bureau`, sans cadre), suivie de la
+     section « Meilleurs artéfacts offensifs pour ce build » (voir
+     meilleurs-artefacts-offensifs.md § Affichage et emplacement de la proposition).
+     Elle n'est pas repliée au lancement d'une recherche : seul l'onglet
+     ferme sa colonne ([README.md](README.md#colonnes-repliables-selon-la-largeur)).
+     ⚠️ **Attribut et Type sur une ligne**, chaque liste à la largeur de son
+     contenu : libellés, listes de
+     107 px (« Comme équipé » entier), 4 px entre libellé et liste, 8 px
+     entre les deux, 293 px pour 294 utiles. Le rembourrage droit de ces
+     deux listes passe de 24 à 20 px (le chevron garde 2 px de marge) ; la
+     rangée peut encore passer à la ligne si une police plus large
+     l'exigeait, plutôt que de déborder du panneau.
+   - **Au téléphone**, après « Critères de recherche », sur toute la
+     largeur de la colonne.
 
-   ⚠️ **Pas en pleine largeur** : la pleine
+   ⚠️ **Jamais en pleine largeur d'un écran large** : la pleine
    largeur projette la puce de sorte, le champ de minimum et la croix à
    ~1 400 px de leur libellé — une saccade d'un bout à l'autre de l'écran
    pour lire UNE ligne verrouillée, pire que le repli de texte qu'elle
    corrigerait.
 
    La **relique** vit dans un **bloc séparé de cette même carte**, le bloc
-   qui **ferme la carte**, sous « Meilleurs artéfacts offensifs pour ce
-   build » (voir relique.md § Relique).
+   qui **ferme la carte** (voir relique.md § Relique).
    L'interrupteur ci-dessus masque d'un seul geste les deux listes
    d'artéfacts ET le bloc Relique.
 
-   ⚠️ **Largeur fixe et commune** aux quatre listes déroulantes de la carte
-   (Attribut, Type, Principale relique, Propriété unique relique) : sans elle, un `<select>` natif
-   prend la largeur de sa plus longue option — « Soins et boucliers
-   accordés en fonction des PV » imposerait une case énorme pour « Propriété
-   unique », y compris quand « Libre » y est affiché. La valeur
-   **fermée** se tronque par « … » (`truncate`) ; la liste **ouverte**
-   garde le texte complet, comportement natif du `<select>`.
+   Les listes **Attribut et Type** ont la largeur de leur contenu au bureau
+   et la largeur commune `LARGEUR_SELECTEUR_LISTE` au téléphone. Les deux
+   listes de **relique** gardent cette largeur commune aux deux formats :
+   une propriété unique longue ne doit pas élargir la carte.
+   `Selecteur` conserve le `<select>` natif comme champ fermé ; la liste
+   ouverte est un `Flottant` de la charte, utilisable à la souris, au doigt
+   et au clavier (Tab parcourt les options). La liste native sert de repli
+   sans l'API `popover`.
 

@@ -15,6 +15,15 @@ const bouton = (texte: string, racine: ParentNode = document) => [...racine.quer
 export function boutonListeActive() {
   return [...document.querySelectorAll('p')].find(e => visible(e) && e.textContent === 'Liste active')!.parentElement!.querySelector<HTMLButtonElement>('button')!;
 }
+// La liste active lue à l'écran. Au bureau, sur le bouton « Liste active »
+// (« nom - contenu ») : le titre de la carte de la liste ne la nomme pas. Au
+// téléphone, comme avant, au titre « Monstres de « nom » » de sa carte, dont
+// `carte` donne le texte.
+export function listeActiveLue(nom: string, carte: () => string) {
+  if (innerWidth < 1024) return carte().includes(`Monstres de « ${nom} »`);
+  const libelle = [...document.querySelectorAll('p')].find(e => visible(e) && e.textContent === 'Liste active');
+  return libelle?.parentElement?.querySelector('button')?.textContent?.trim().startsWith(`${nom} - `) === true;
+}
 export async function ouvrirEditionListe(b: Banc) {
   const pli = bouton('Gérer mes listes');
   if (pli && pli.getAttribute('aria-expanded') === 'false') await b.geste(() => pli.click());

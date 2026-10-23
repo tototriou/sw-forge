@@ -26,11 +26,10 @@ et celles des tests, du harnais et des scripts de mesure :
   `dominatesHalfCombo`) n'est passé par aucun appel de `src/`, `scripts/`
   ni `tests/` : seuls ses deux auxiliaires sont testés
   (`tests/rune-optim.test.ts`), et le script de mesure que cite son
-  commentaire n'existe plus. `adaptiveTrancheWeighting`, lui, est en
-  production : l'interrupteur « Prioriser les stats les plus difficiles »
-  le transmet (`src/components/outils/OptimizerSection.tsx`,
-  `src/workers/runeBuildOptim.worker.ts`), alors que son commentaire le dit
-  faux dans tous les appels de production.
+  commentaire n'existe plus. `adaptiveTrancheWeighting` n'a plus
+  d'interrupteur : l'écran l'envoie toujours à faux
+  (`src/components/outils/OptimizerSection.tsx`), seul le CLI le transmet
+  d'une recette qui le porte (`scripts/lib/recipeToSearchParams.ts`).
 - **Idée** : retirer `skylineKeys`, `Bucket.skyline` et leurs auxiliaires,
   ou les garder comme instrument appelé par un script de mesure ; récrire
   le commentaire d'`adaptiveTrancheWeighting` d'après le code.

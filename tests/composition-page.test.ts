@@ -301,14 +301,13 @@ export function testCompositionDePage() {
   egal((src.match(/compositionDePage\(/g) ?? []).length, 1, 'écran : un seul appel à `compositionDePage`');
   ok(/pageAfficheeRef\.current = composition\.aVerifier;/.test(src), 'file : la « page affichée » qu’elle sert en priorité est `composition.aVerifier`');
   egal((src.match(/pageAfficheeRef\.current = /g) ?? []).length, 1, 'file : une seule écriture de la page qu’elle sert');
-  ok(/\{composition\.cartes\.map\(\(c, i\) => \(\s*<BuildCandidateCard\s+key=\{c\.runeIds\.join\('-'\)\}\s+rank=\{composition\.premierRang \+ i\}/.test(src),
-    'grille : les cartes sont `composition.cartes`, rang compté depuis `premierRang`');
-  ok(/Array\.from\(\{ length: composition\.placesEnAttente \}, \(_, j\) => \(\s*<PlaceEnVerification/.test(src),
-    'grille : autant de places « Vérification… » que `composition.placesEnAttente`');
+  // La grille à l'écran — une carte par build de la page, rang compté depuis
+  // le premier de la page, une place « Vérification… » par build en attente :
+  // `testRenduOptimizerResultatsCartes`.
   ok(!/pageCandidates|affichees\.slice\(/.test(src), 'écran : plus aucune page découpée à la main dans le classement');
   ok(!/paireProvisoire/.test(src), 'écran : plus de carte « artéfacts pas encore optimisés » — une carte affichée est vérifiée');
-  ok(/fileArtefacts\.enAttente > 0\s*\?\s*`\$\{fileArtefacts\.enAttente\.toLocaleString\('fr-FR'\)\} combinaison\(s\) en vérification…`\s*:\s*'( |\\u00a0)'/.test(src),
-    'compte : une ligne dit combien sont en vérification (le reste de la file), sa place réservée');
+  // La ligne « N combinaison(s) en vérification… », place réservée quand la
+  // file est vide : `testRenduOptimizerLigneFile`.
 
   const carte = readFileSync('src/components/outils/BuildCandidateCard.tsx', 'utf8').replace(/\r\n/g, '\n');
   const place = carte.slice(carte.indexOf('export function PlaceEnVerification'), carte.indexOf('export function useHauteurDesCartes'));

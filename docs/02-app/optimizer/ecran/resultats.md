@@ -1,14 +1,45 @@
 # Résultats
 
-Ce document décrit la liste des résultats et leurs cartes.
+Ce document décrit la liste des résultats et leurs cartes. Au bureau, ils
+vivent dans la section « Résultats » (`ResultatsBureau`), dernière du panneau
+de la colonne de droite, présente dès le départ avec sa place d'attente,
+sous « Exemplaire » et le bloc « Objectif et
+Rechercher » : sa largeur, ses messages d'attente et la hauteur qu'elle
+garde à la relance sont dans
+[README.md](README.md#zone-des-résultats-et-place-en-plus). Au téléphone,
+ils suivent la progression, sur toute la largeur.
 
-13. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les
+13. **Résultats** — jusqu'à 20 combinaisons affichées par page, chacune : rang, les
     sets obtenus, le **panneau de stats** (`StatPanel.tsx`, le même composant
     que dans « Équipement actuel ») et les artéfacts + les 6 runes sur une
     roue à échelle réduite (`BuildCandidateCard.tsx`), tous deux cliquables
     pour ouvrir le détail complet de la pièce. Puis la valeur **moyenne par
     rune** dans la mesure choisie — « Efficience moyenne : X » ou « Score
     moyen : X » selon le réglage global (Efficience/Score SW).
+    ⚠️ **Au bureau, l'en-tête d'une carte tient sur une ligne** (décision
+    de l'utilisateur : la carte raccourcit) : le rang et ses sets à gauche,
+    la valeur moyenne calée à droite (décision de l'utilisateur), au lieu
+    d'une ligne de sets à part ; des sets trop longs se replient sous le
+    rang, jamais la valeur. « Comparer » et « Valider ce build »
+    restent **en bas de la carte**, comme au téléphone (décision de
+    l'utilisateur) : « Comparer » à sa largeur, « Valider » à la largeur fixe
+    de son plus long libellé (160 px ; « Valider les artéfacts » en mesure
+    123), si bien que passer à « Validé » ne déplace ni lui ni « Comparer ».
+    ⚠️ **Aux deux formats, l'écart de « Comparer » s'affiche À GAUCHE de la
+    valeur qu'il qualifie**, sur sa ligne (valeur moyenne, PV effectifs,
+    dégâts ; décision de l'utilisateur) : sous elle, il faisait grandir la
+    carte au clic, et « Comparer » descendait sous le pointeur. Sa place
+    (44 px) est réservée même vide : la valeur reste calée à droite et la
+    ligne garde sa hauteur. Vérifié au navigateur aux deux formats, avec
+    l'en-tête du bureau, les boutons à parts égales du téléphone et la
+    fiche resserrée au pire cas
+    ([optimizer-carte-resultat-navigateur.test.ts](tests/rendu/optimizer-carte-resultat-navigateur.test.ts)).
+    Mesuré (carte de 356 à 716 px, compte d'exemple, sans « Dégâts ») :
+    en-tête de 19 px, carte de 284 px avec un ou deux boutons. Le téléphone
+    garde son en-tête et sa ligne de sets ; ses deux boutons se partagent la
+    largeur de la carte (une enveloppe `flex-1` autour de chaque bouton
+    `pleineLargeur` : un `flex-1` posé sur le bouton lui-même perd contre le
+    `flex-none` du socle de `Bouton`).
     ⚠️ **Recalculée à l'affichage** (`candidateMetricTotal` dans
     [runeBuildOptim.ts](src/lib/runeBuildOptim.ts), à partir des VRAIES
     runes) plutôt que lue depuis `BuildCandidate.effTotal` : ce champ est
@@ -20,33 +51,55 @@ Ce document décrit la liste des résultats et leurs cartes.
     ([tests/rune-optim.test.ts](tests/rune-optim.test.ts) : la fonction ne
     doit JAMAIS lire `effTotal`, vérifié avec un `effTotal` délibérément
     faux). Le tri « Trier par efficience » recalcule de même.
-    ⚠️ **Une carte tient dans 360 px**, calibré exprès (`scale=0,45` sur la
+    ⚠️ **Au téléphone et au doigt, une carte tient dans 360 px** (`scale=0,45` sur la
     roue et les artéfacts, grille `repeat(auto-fill, minmax(min(360px,100%),
-    1fr))`, creux `gap-3`) : c'est le PLANCHER d'une carte ; `auto-fill` en
-    fait tenir deux dès que la grille dépasse deux fois 360 px plus le
-    creux, davantage sur un écran large. La bascule base+bonus ↔ total ne
+    1fr))`, creux `gap-3`) : c'est la largeur d'une carte par rangée ;
+    `auto-fill` en fait tenir deux dès que la grille dépasse deux fois 360 px
+    plus le creux, davantage sur un écran large. Plus étroite, la grille
+    garde une carte, à toute sa largeur : au bureau, la colonne de droite
+    descend jusqu'à 356 px de contenu (fiche d'« Exemplaire » repliée), où
+    la carte tient sans déborder (mesuré, relique comprise). La bascule base+bonus ↔ total ne
     déplace jamais les artéfacts, la roue ou la relique voisins : `StatPanel` a une **largeur
     fixe** (`w-[200px]`, voir [rta/feat-sections-runes.md](../../rta/feat-sections-runes.md)).
+    ⚠️ **Au bureau, à la souris, une carte tient dans 328 px** (décision
+    de l'utilisateur : une carte de plus par rangée) : la grille passe à
+    `minmax(min(328px,100%),1fr)`, et la fiche de stats se resserre à
+    174 px, fixe elle aussi, avec 6 px de rembourrage latéral au lieu de 12 :
+    la place retirée est l'écart entre la colonne des libellés et celle des
+    stats de base. La table garde 160 px pour 157 au pire cas mesuré (base à
+    six chiffres comme les 19 755 PV, la plus haute des données, bonus
+    « +40 000 ») : rien n'est tronqué ni replié. Rembourrage de la carte et
+    creux entre cartes inchangés. Mesuré (compte d'exemple, A3) : 3 cartes
+    par rangée au lieu de 2 à 1920 × 940, 2 au lieu de 1 avec « Artéfacts et
+    relique » ; 5 au lieu de 4 à 2560 × 1300, 4 au lieu de 3 avec la
+    colonne. Au doigt et au téléphone, 360 px et la fiche de 200 px.
+    ⚠️ **Au bureau, ses lignes sont resserrées** (`StatPanel`, `serre`,
+    décision de l'utilisateur) : un pas de 22 px au lieu de 27, taille du
+    texte inchangée (interligne `snug`, 2 px de rembourrage au lieu de 4).
+    Mesuré : le panneau passe de 241 à 197 px, la carte d'autant. La
+    fiche d'« Exemplaire » et le téléphone gardent le pas de 27 px.
     ⚠️ **À la souris, la relique est toujours SOUS LA ROUE** (carte de
     résultat seulement —
     `MonsterGear` garde la sienne à droite) : fiche, artéfacts et roue font
-    332 px à l'échelle 0,45, ce que la carte au plancher contient tout
-    juste ; à droite de la roue, la relique déborderait des deux côtés. Le
+    332 px à l'échelle 0,45 (306 au bureau, fiche de 174 px, dans une carte
+    de 328), ce que la carte au plancher contient tout juste ; à droite de la roue, la relique déborderait des deux côtés. Le
     groupe artéfacts / roue est une grille à deux colonnes : la relique
     occupe la case sous la roue, centrée, et les artéfacts restent centrés
     sur la roue. La colonne vaut la largeur de la roue (`min-content`) : la
     relique et ses marques s'y replient en entier, sans l'élargir — aucun
     libellé raccourci — et la relique ne change jamais de place quand la
-    file la résout. Au doigt (`COMPACT`, pointeur seul), rendu inchangé : la
-    relique reste à droite de la roue — passe responsive.
+    file la résout. Au doigt (`COMPACT`, pointeur seul), la relique reste à
+    droite de la roue : la disposition du téléphone, gardée telle quelle
+    ([README.md § Au format téléphone](README.md#au-format-téléphone)).
     ⚠️ **Détail à la souris vs au doigt — même bascule que « Équipement
     actuel »/RTA/Siège** (voir `MonsterGear.tsx`) : à la souris, un flottant
     ancré à la pièce ; au doigt, le détail s'affiche **en ligne sous la
     carte**, sur sa propre ligne. Un flottant à taille fixe déborderait de
     l'écran sur une carte de résultat déjà compacte en mobile.
-    ⚠️ **Cliquer sur une rune** d'un résultat ouvre le **même popover** que
-    dans Mon compte → Runes (`DetailPopover` + `RuneDetailBox`, ancré sur la
-    rune cliquée) — les runes d'un candidat sont de vraies runes du compte.
+    ⚠️ **Cliquer sur une rune** d'un résultat ouvre son détail complet
+    (`RuneDetailBox`, partagé avec Mon compte → Runes) : dans un
+    `FlottantAuto` ancré sur la rune à la souris, en ligne sous la carte
+    au doigt. Les runes d'un candidat sont de vraies runes du compte.
     La rune ouverte porte le **même halo orange** que la sélection dans
     `MonsterGear` (`brightness` + `drop-shadow`, voir `RuneWheel.tsx`) — la
     roue de résultat se comporte comme n'importe quelle roue de l'app. Une
@@ -55,25 +108,18 @@ Ce document décrit la liste des résultats et leurs cartes.
     halo) combine le candidat ET le slot (`BuildCandidateCard.tsx`), pas
     seulement l'id de la rune : la même rune peut apparaître dans plusieurs
     candidats affichés à la fois, et ne doit ouvrir qu'UNE instance.
-    ⚠️ **Le popover passe toujours au premier plan, quel que soit son
-    voisinage** : sans z-index, deux éléments `position:absolute` frères
-    s'empilent par simple **ordre du DOM**, pas par position à l'écran — le
-    popover d'une rune serait recouvert par le cadre d'une autre
-    rune de la même roue rendue plus tard, ou par une carte/fiche voisine
-    plus loin dans le DOM (grille de résultats, ligne suivante d'un
-    `AccordionGrid` en RTA/Siège). Sont donc promus, UNIQUEMENT tant
-    qu'un popover y est ouvert, le wrapper de la pièce concernée (`z-10`,
-    dans `RuneWheel.tsx`/`ArtifactSlots.tsx`/`RelicSlot.tsx`) **et** la
-    carte entière qui le contient (`relative z-10`,
-    `BuildCandidateCard.tsx`) — deux niveaux, parce qu'un popover doit
-    gagner à la fois contre ses voisins immédiats et contre les autres
-    cartes de la grille. La fiche d'équipement (`MonsterGear.tsx`) n'a pas
-    ce second niveau.
+    ⚠️ **Le flottant passe dans la couche supérieure** (`FlottantAuto`,
+    fondé sur `Flottant`) : les cartes voisines et les panneaux qui
+    défilent ne peuvent ni le recouvrir ni le rogner. Il suit son ancre
+    et reste borné à la fenêtre. Les marques `z-10` de la pièce ouverte
+    et de sa carte restent présentes ; elles ne portent pas cette
+    garantie, assurée par l'API `popover`.
 
 ## Diagnostic sur 0 résultat
 
 ⚠️ **Sur 0 résultat**, jusqu'à trois encadrés diagnostic apparaissent, à la
-suite :
+suite (au bureau, sans encadré, chacun sous un trait fin, alors que chaque
+résultat garde sa carte : voir [Panneaux et sections](README.md#panneaux-et-sections)) :
 - **Toujours** : une liste de conditions mathématiquement hors de portée
   (avec leur borne exacte), ou un message neutre orientant vers la
   conjonction des contraintes ou un pré-filtrage plus large.
@@ -191,11 +237,23 @@ vérifié dépend de tous ceux du dessus. Ni l'ordre de base, ni K, ni la
 résolution ne changent. Une seule fonction pure, `compositionDePage`
 (artifactQueue.ts), donne les cartes, les places et les builds à
 vérifier, à partir du classement affiché et du cache publié de la file.
-Les comptes gardent leur règle (ci-dessus) ; une ligne sous l'en-tête dit
+Les comptes gardent leur règle (ci-dessus) ; une ligne dit
 combien la file doit encore vérifier (« N combinaison(s) en
 vérification… » : le reste de la file, places en attente puis avance de
-fond), sa place réservée tant que la file tourne. Sans optimisation
+fond), sa place réservée tant que la file tourne : sous l'en-tête au
+téléphone, sous le compte des confirmées au bureau. Sans optimisation
 d'artéfacts, pas de file : la page est la tranche du classement.
+⚠️ **Au bureau, l'en-tête des résultats tient sur une rangée**
+(`EnteteResultats`, `bureau`, décision de l'utilisateur : la première
+carte remonte) : à gauche le compte des confirmées et, sous lui, la ligne
+« en vérification », l'aide à leur droite ; à droite « Adapter les
+artéfacts et reliques au tri » et le tri ; 4 px avant la première carte.
+Rien n'est retiré ni reformulé. Quand la colonne est étroite, la rangée
+passe à la ligne d'elle-même (le tri, puis « Adapter… », sous le compte),
+sans déborder à la largeur minimale de la colonne : le passage ne dépend
+que de la largeur. Mesuré (compte d'exemple, 20 résultats), la première
+carte remonte de 26 px à 1920 × 940 et 2560 × 1300, de 34 px à la largeur
+minimale de la colonne.
 
 ## Tri des résultats
 
@@ -270,7 +328,7 @@ statistiques et son chiffre comptent déjà la paire retenue, affichée à côt�
 ⚠️ **L'effet unique compte dans les trois modes de relique** — la
 relique est celle que la carte affiche
 (`etatReliqueDuBuild`, une seule expression pour la case et le score) :
-interrupteur coupé ou « Garder la relique équipée », **la relique de la
+interrupteur coupé ou « Comme équipée », **la relique de la
 fiche**, dès la collecte, sans attendre la file — ordre de BASE compris,
 celui que la file lit et qui s'affiche tel quel tant qu'elle n'a rien
 résolu, donc toujours quand l'optimisation d'artéfacts est coupée
@@ -343,8 +401,8 @@ même liste de travail), jusqu'à libération explicite : voir
 sous la roue à la souris, à sa droite au doigt (voir plus haut), même
 modèle que celui de la fiche d'équipement
 (`MonsterGear.tsx`) : composant partagé `RelicSlot`, jamais une copie.
-Hors mode `recherche` (interrupteur coupé, « Garder la relique
-équipée »), la relique portée ; sans relique, la case grisée « Relique »
+Hors mode `recherche` (interrupteur coupé, « Comme équipée »), la relique
+portée ; sans relique, la case grisée « Relique »
 barrée d'une icône, infobulle « Aucune relique équipée ». En mode `recherche`,
 `etatReliqueDuBuild` (seule source) pilote la case :
 - **en attente** — la file n'a pas encore traité ce build : **la même

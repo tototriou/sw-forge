@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Contenu transformé qui sort de la roue</title>
+<style>
+  body { margin: 16px; }
+  .roue { position: relative; width: 160px; height: 180px; margin-bottom: 16px; background: url('../../../public/rune-wheel.png') center / contain no-repeat; }
+  .case { position: absolute; top: 75px; width: 24px; height: 30px; }
+  button { position: absolute; inset: 0; padding: 0; border: 0; background: transparent; }
+  .cadre { position: absolute; inset: 0; background: #985; transform: rotate(60deg); transition: transform 300ms; }
+  .sans-transformation { position: absolute; left: 0; top: 8px; width: 40px; height: 10px; background: #c33; }
+</style>
+</head>
+<body>
+<!-- La case non transformée tient dans la roue. Le cadre pivoté en sort à
+     droite : ni le bouton, ni la case, ni la roue ne bénéficient de l'exception.
+     Le body plus large ne sert jamais de contenant de remplacement. -->
+<div id="roue-sortante" class="roue" data-attendu="contenu">
+  <div id="case-sortante" class="case" style="left: 132px" data-attendu="contenu">
+    <button id="cible-sortante" aria-label="Rune hors de la roue" data-attendu="contenu">
+      <span class="cadre"></span>
+    </button>
+  </div>
+</div>
+<!-- Contrôle de l'exclusivité : tout reste dans la roue, mais la case
+     contient aussi un excédent NON transformé. La neutralisation de la
+     rotation ne le retire pas ; les deux signalements doivent subsister. -->
+<div id="roue-mixte" class="roue" data-attendu="">
+  <div id="case-mixte" class="case" style="left: 68px" data-attendu="contenu">
+    <button id="cible-mixte" aria-label="Contenu mixte" data-attendu="contenu">
+      <span class="cadre"></span>
+      <span class="sans-transformation"></span>
+    </button>
+  </div>
+</div>
+</body>
+</html>

@@ -2141,8 +2141,14 @@ function Application() {
         {/* ⚠️ Pas de pied de page en écran partagé : la zone tient dans la
             fenêtre, il n'aurait sa place que dans l'un des deux volets. Une
             seule page le retrouve. */}
+        {/* ⚠️ Pas de pied de page non plus sur l'Optimizer au format bureau
+            dès qu'il a des colonnes : la page tient dans la fenêtre, chaque
+            colonne défile seule. Sa page le dit (`data-page-fenetre`), et
+            index.css retire alors ce pied (`data-pied-de-page`) ; en une
+            colonne, l'Optimizer défile comme les autres pages et le garde. */}
         {!voletsVisibles && (
         <footer
+          data-pied-de-page=""
           className="mt-16 grid grid-cols-1 justify-items-center gap-y-3 border-t border-border-soft pt-5
                      text-xs text-ink-dim lg:grid-cols-[auto_1fr_auto] lg:items-center lg:justify-items-stretch lg:gap-x-6"
         >

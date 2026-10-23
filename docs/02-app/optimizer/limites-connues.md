@@ -90,14 +90,14 @@ ici.
 
 ## Réglages exposés, estimation et progression
 
-- **Quatre réglages de l'écran agissent sur la recherche**, sous
+- **Trois réglages de l'écran agissent sur la recherche**, sous
   « Réglages avancés » : le préréglage de pré-filtrage (`slotFilterCap`,
   dont dérive `bucketCap` par `bucketCapFor`), « Rechercher jusqu'à
-  épuisement complet » (filet de temps de 10 minutes retiré), « Prioriser
-  les stats les plus difficiles » (`adaptiveTrancheWeighting`) et
+  épuisement complet » (filet de temps de 10 minutes retiré) et
   « Compter les effets d'auras Tolerance et Précision dans les
   conditions » (`compterAurasResPre`). Ne sont pas exposés :
-  `MAX_COLLECTED`, `BUCKET_CAP`, `combosOrderMode` ;
+  `MAX_COLLECTED`, `BUCKET_CAP`, `combosOrderMode`, et
+  `adaptiveTrancheWeighting`, que l'écran envoie toujours à faux ;
   `SearchParams.bucketCap` sert à la mesure, jamais à l'écran. Détail :
   [ecran/conditions-et-reglages.md § Réglages avancés](ecran/conditions-et-reglages.md).
 - **L'estimation affichée avant de lancer est un ordre de grandeur**

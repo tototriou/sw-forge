@@ -1,4 +1,5 @@
-import { CandidatsCompacts, RecepteurCandidats, terminerEtapes, trierIndicesEtapes, type BlocCandidats } from './candidatsCompacts';
+import { CandidatsCompacts, RecepteurCandidats, ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs, terminerEtapes, trierIndicesEtapes, type BlocCandidats } from './candidatsCompacts';
+import { AdaptateurClassement } from './adaptateurClassement';
 import { cibleDeLaFile, type JournalResolution, type ResultatArtefacts } from './artifactQueue';
 import { scoreDuCandidat, type BuildCandidate, type Objective, type OptionsDeClassement } from './runeBuildOptim';
 import type { StatKey } from './effects';
@@ -300,6 +301,8 @@ export class ClassementCompact {
 }
 
 export interface VueClassement {
+  /** Le CLI imprime aussi les non vérifiés ; l'écran compose ses cartes vérifiées. */
+  pageImprimee?: boolean;
   tri: StatKey | Objective;
   metric: OptimMetric;
   page: number;
@@ -361,6 +364,7 @@ export class CorpsClassement {
   private vue: VueClassement | null = null;
   private versions: VersionsClassement = { versionSchema: 1, idRecherche: 0, idInventaire: 0, idContexteResolution: 0, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande: 0 };
   private bilan: Omit<SearchResult, 'candidates'> | null = null;
+  private collecteScellee = false;
   private entrees: EntreesResolutionSerialisables | null = null;
   private pilote = new ResolutionDistante();
   private direct = new CorpsResolution();
@@ -368,6 +372,7 @@ export class CorpsClassement {
   private repli = false;
   private dernierePublication = -Infinity;
   private sale = true;
+  private publicationForcee = false;
   private visites = new Uint32Array();
   private passage = 0;
   private versionLue = -1;
@@ -378,7 +383,9 @@ export class CorpsClassement {
     publier: (p: PublicationTransport) => void;
     resoudre: (m: MessageVersResolution) => void;
     incident: (raison: string, detail: unknown) => void;
-  }, private readonly differe = false) {}
+  }, private readonly differe = false, modeResolution: 'distante' | 'directe' = 'distante') {
+    this.repli = modeResolution === 'directe';
+  }
 
   get travailEnCours() { return this.tache !== null; }
   avancer(): void {
@@ -397,7 +404,7 @@ export class CorpsClassement {
     this.signature = signature;
     this.tache = null; this.nombreCible = 0; this.plages = []; this.reponsesEnAttente = [];
     this.contexte = contexte; this.vue = null; this.flux = new RecepteurCandidats(0); this.lots = [];
-    this.index = null; this.base = new Uint32Array(); this.bilan = null;
+    this.index = null; this.base = new Uint32Array(); this.bilan = null; this.collecteScellee = false;
     this.candidatsAcquittes = -1;
     this.versions = { versionSchema: 1, idRecherche, idInventaire: contexte.idInventaire,
       idContexteResolution: this.versions.idContexteResolution, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande };
@@ -406,14 +413,14 @@ export class CorpsClassement {
       if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m));
       else this.sorties.resoudre(m);
     }
-    this.sale = true; this.dernierePublication = -Infinity;
+    this.sale = true; this.publicationForcee = false; this.dernierePublication = -Infinity;
     this.changerVue(vue, 1, idDemande);
   }
   private courant(idRecherche: number) { return this.contexte !== null && idRecherche === this.versions.idRecherche; }
   ajouter(idRecherche: number, sequence: number, bloc: BlocCandidats): void {
     if (!this.courant(idRecherche)) return;
     if (!Number.isSafeInteger(sequence) || sequence < 0) throw new Error('Séquence de candidats invalide');
-    if (this.bilan && !this.lots.length) {
+    if (this.collecteScellee && !this.lots.length) {
       const plage = this.plages[sequence];
       if (!plage || plage.debut !== bloc.debut || plage.longueur !== bloc.longueur || bloc.schema !== 1
         || bloc.ids.length !== 6 || bloc.totaux.length !== 8 || bloc.gabarits.length !== 8
@@ -437,28 +444,28 @@ export class CorpsClassement {
         || colonnes(bloc).some((c, j) => c.length !== colonnes(connu)[j].length || c.some((v, i) => !Object.is(v, colonnes(connu)[j][i])))) throw new Error('Lot retransmis avec un contenu différent');
       return;
     }
-    if (this.bilan || sequence !== this.lots.length) throw new Error('Séquence de candidats manquante ou flux scellé');
+    if (this.collecteScellee || sequence !== this.lots.length) throw new Error('Séquence de candidats manquante ou flux scellé');
     this.flux.recevoir([bloc]); this.lots.push(bloc); this.plages.push({ debut: bloc.debut, longueur: bloc.longueur }); this.versions.revisionDonnees = compteurSuivant(this.versions.revisionDonnees);
   }
   activer(idRecherche: number): void {
     if (!this.courant(idRecherche)) return;
-    const nombre = this.bilan ? this.flux.longueur : Math.min(3000, this.flux.longueur);
+    const nombre = this.collecteScellee ? this.flux.longueur : Math.min(3000, this.flux.longueur);
     if (this.nombreCible !== nombre) { this.nombreCible = nombre; this.trierBase(); this.sale = true; }
     this.libererSourceScellee();
   }
-  sceller(idRecherche: number, nombre: number, derniereSequence: number, bilan: Omit<SearchResult, 'candidates'>): void {
+  sceller(idRecherche: number, nombre: number, derniereSequence: number, bilan: Omit<SearchResult, 'candidates'> | null): void {
     if (!this.courant(idRecherche)) return;
     if (derniereSequence !== this.plages.length - 1) throw new Error('Scellement de séquence incomplet');
-    if (this.bilan) {
+    if (this.collecteScellee) {
       if (nombre !== this.nombreCible || JSON.stringify(bilan) !== JSON.stringify(this.bilan)) throw new Error('Scellement retransmis incohérent');
       return;
     }
-    this.flux.scellerColonnes(nombre); this.bilan = bilan;
+    this.flux.scellerColonnes(nombre); this.bilan = bilan; this.collecteScellee = true;
     this.activer(idRecherche); this.sale = true;
   }
   private libererSourceScellee(): void {
     // Le magasin n'adopte la source qu'une fois sa construction terminée.
-    if (this.bilan && this.index?.magasin.longueur === this.nombreCible && !this.tache) { this.flux.liberer(); this.lots = []; }
+    if (this.collecteScellee && this.index?.magasin.longueur === this.nombreCible && !this.tache) { this.flux.liberer(); this.lots = []; }
   }
   changerVue(vue: VueClassement, idVue: number, idDemande: number): void {
     if (!this.contexte || idVue <= this.versions.idVue) return;
@@ -512,6 +519,8 @@ export class CorpsClassement {
   }
   private pageIndices(): number[] {
     if (!this.index || !this.entrees) return [];
+    if (this.vue?.pageImprimee) return this.index.page((this.vue.page - 1) * 20, 20)
+      .filter((i) => this.index!.magasin.etat(i) === 0);
     const { total, confirmes } = this.index.comptes();
     const debut = ((this.vue?.page ?? 1) - 1) * 20;
     const attendues = Math.min(20, Math.max(0, total - debut));
@@ -581,6 +590,8 @@ export class CorpsClassement {
   }
   get travailEnRepli() { return this.reponsesEnAttente.length > 0 || (this.repli && this.restants().length > 0); }
   liberer(): void {
+    this.publicationForcee = false;
+    this.collecteScellee = false;
     this.tache = null; this.nombreCible = 0; this.plages = []; this.reponsesEnAttente = [];
     this.contexte = null; this.vue = null; this.index = null; this.flux.liberer(); this.lots = [];
     this.cache.clear(); this.generationCache = compteurSuivant(this.generationCache); this.entrees = null; this.sale = false;
@@ -595,10 +606,11 @@ export class CorpsClassement {
     if (nombre === (this.index?.magasin.longueur ?? 0)) this.candidatsAcquittes = nombre;
   }
   publier(maintenant: number, forcer = false): boolean {
+    this.publicationForcee ||= forcer;
     if (this.tache) return false;
     if (!this.contexte || !this.vue || !this.sale) return true;
-    if (!forcer && maintenant - this.dernierePublication < 400) return false;
-    this.dernierePublication = maintenant; this.sale = false;
+    if (!this.publicationForcee && maintenant - this.dernierePublication < 400) return false;
+    this.dernierePublication = maintenant; this.sale = false; this.publicationForcee = false;
     this.versions.revisionPubliee = compteurSuivant(this.versions.revisionPubliee);
     const nombre = this.index?.magasin.longueur ?? 0;
     const candidats = nombre !== this.candidatsAcquittes
@@ -609,4 +621,30 @@ export class CorpsClassement {
       enAttente: this.restants().length, bilan: this.bilan });
     return true;
   }
+}
+
+/** Consommateur synchrone du propriétaire de production, sans protocole de plateforme. */
+export function classerEnLocal(contexte: ContexteResultat, candidats: readonly BuildCandidate[], vue: VueClassement): PublicationClassement {
+  let derniere!: PublicationTransport;
+  let source: BuildCandidate[] = [];
+  const corps = new CorpsClassement({
+    publier: (p) => {
+      derniere = p;
+      if (p.candidats) source = p.candidats;
+      // Les différences restent dues jusqu'à la projection finale ; la source, elle, est adoptée.
+      corps.acquitter(p.generationCache, 0, source.length);
+    },
+    resoudre: () => { throw new Error('Résolution distante sur le consommateur local'); },
+    incident: (raison) => { throw new Error(raison); },
+  }, false, 'directe');
+  corps.ouvrir(contexte, 1, vue, 1);
+  const colonnes = creerColonnesCandidats();
+  for (const c of candidats) ajouterObjetCandidat(colonnes, c);
+  const lots = extraireBlocs(colonnes);
+  lots.forEach((b, i) => corps.ajouter(1, i, b));
+  // Le classement d'une collection ne fabrique pas de bilan de recherche.
+  corps.sceller(1, candidats.length, lots.length - 1, null);
+  do { corps.pomper(0); } while (corps.travailEnRepli);
+  if (!derniere) throw new Error('Classement local sans publication finale');
+  return new AdaptateurClassement().appliquer({ ...derniere, candidats: source });
 }

@@ -12,8 +12,9 @@
 import { AVEC_MONSTRE, BOX, CHOISI, rendreOptimizer } from './optimizer.test';
 import { auTelephone, bouton, boutons, rendre, texteVisible } from './outils-rendu';
 import { egal, ok, titre } from '../outils';
-import type { BuildCandidate, SearchResult } from '../../src/lib/runeBuildOptim';
+import type { BuildCandidate, BuildRequirement, SearchResult } from '../../src/lib/runeBuildOptim';
 import EnteteResultats, { type EnteteResultatsProps } from '../../src/components/outils/optimizer/EnteteResultats';
+import { rechercheClasseeTest } from './optimizer-classement-banc';
 
 const EPUISEMENT = "Rechercher jusqu'à épuisement complet";
 const DIAGNOSTIC = 'Diagnostic approfondi sur 0 résultat';
@@ -137,7 +138,11 @@ const candidat = (i: number): BuildCandidate => ({ runeIds: [i, i + 100, i + 200
 const resultat = (n: number) => ({ candidates: Array.from({ length: n }, (_, i) => candidat(i + 1)), explored: 10, truncated: false, nearMissByCondition: [], globalNearMiss: null });
 type Reel = Parameters<Extract<Parameters<typeof rendreOptimizer>[0], (...a: never[]) => unknown>>[0];
 const recherche = (search: Record<string, unknown>, autres: Record<string, unknown> = {}) =>
-  rendreOptimizer((r: Reel) => ({ ...AVEC_MONSTRE, ...autres, search: { ...r.search, ...search } }));
+  rendreOptimizer((r: Reel) => ({ ...AVEC_MONSTRE, ...autres, search: { ...r.search, ...rechercheClasseeTest(search, {
+    fiche: BOX[0].gear!, pool: BOX[0].gear!.runes, optimiser: autres.optimiserArtefacts !== false,
+    requirement: { sets: r.comboSets, minStats: (autres.minStats ?? r.minStats) as BuildRequirement['minStats'] },
+    vue: { tri: r.sortBy, metric: 'eff', page: Number(autres.resultsPage ?? 1), adapterArtefactsAuTri: true, toutVerifier: false },
+  }) } }));
 const selecteurTri = (html: string) => /<select\b[\s\S]*?Trier par /.test(html);
 
 export function testRenduOptimizerResultatsEntete() {

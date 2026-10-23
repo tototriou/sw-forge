@@ -789,12 +789,13 @@ export async function testFluxCandidatsApercuFinal() {
 export function monterRecherche() {
   const internes = (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
   const cellules: unknown[] = [];
+  const ecritures: unknown[] = [];
   let index = 0;
   const dispatcher = {
     useState(initial: unknown) {
       const i = index++;
       if (!(i in cellules)) cellules[i] = initial;
-      return [cellules[i], (v: any) => { cellules[i] = typeof v === 'function' ? v(cellules[i]) : v; }];
+      return [cellules[i], (v: any) => { ecritures.push(v); cellules[i] = typeof v === 'function' ? v(cellules[i]) : v; }];
     },
     useRef(initial: unknown) {
       const i = index++;
@@ -817,7 +818,7 @@ export function monterRecherche() {
     postMessage(m: unknown) { if (this.termine) throw new Error('envoi après terminaison'); this.envoyes.push(m); }
     terminate() { this.termine = true; for (const m of this.envoyes as any[]) { m.port?.close(); m.classement?.port.close(); } }
   }
-  return { rendre, fils, Fil };
+  return { rendre, fils, Fil, ecritures };
 }
 
 function refusDuHook(type: 'recevoir' | 'sceller') {

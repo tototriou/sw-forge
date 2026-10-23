@@ -578,13 +578,14 @@ export function testRelicReferenceComparer() {
 
   /* ── L'écran : les deux écarts lisent CE producteur ──────────────────── */
   const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
-  ok(/scoreDeReference\('degats_reels', selected\.gear, contexteReferenceResultat\)/.test(ecran) && /total - refDegatsResultat/.test(ecran),
+  ok(/scoreDeReference\('degats_reels', ficheDeReference, contexteReferenceResultat\)/.test(ecran) && /total - refDegatsResultat/.test(ecran),
     'écran : l’écart « Dégâts réels » se calcule contre scoreDeReference');
-  ok(/scoreDeReference\('ehp', selected\.gear, contexteReferenceResultat\)/.test(ecran) && /total - refEhpResultat/.test(ecran),
+  ok(/scoreDeReference\('ehp', ficheDeReference, contexteReferenceResultat\)/.test(ecran) && /total - refEhpResultat/.test(ecran),
     'écran : l’écart « PV effectifs » se calcule contre scoreDeReference');
   ok(!/computeTotalDamage\(/.test(ecran), 'écran : plus aucun computeTotalDamage recopié (ni candidat, ni référence)');
   ok(/const contexteReference = useMemo\([\s\S]{0,200}?\[contexteDegatsArtefacts, damageSetup, contexteExclusive\]/.test(ecran)
-    && /const refDegatsResultat = useMemo\([\s\S]{0,200}?\[selected, contexteReferenceResultat\]/.test(ecran),
+    && ecran.includes('const ficheDeReference = contexteResultatAffiche?.fiche ?? selected?.gear;')
+    && /const refDegatsResultat = useMemo\([\s\S]{0,200}?\[ficheDeReference, contexteReferenceResultat\]/.test(ecran),
     'écran : les références dépendent de la fiche entière et du contexte de combat, jamais du cache des résultats');
 }
 

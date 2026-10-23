@@ -4,6 +4,7 @@ import type { ExclusionSelector } from '../../src/lib/optimizerExclusion';
 import type { DemandeDeRecherche } from '../../src/workers/runeBuildOptim.worker';
 import { cleMemoireMembre } from '../../src/lib/optimizerMemberStorage';
 import { editerContenuListe } from './optimizer-listes-preuves';
+import { attendreDemandeTest, observerRechercheTest } from './optimizer-classement-banc';
 
 interface Banc {
   etat: () => OptimizerState;
@@ -62,13 +63,7 @@ export async function preuvesCombatAfficheOptimizer(b: Banc): Promise<[boolean, 
     await b.geste(() => bouton('Modifier l’équipe', groupe).click());
     return document.querySelector<HTMLElement>('[role="dialog"]')!;
   }
-  const messages: DemandeDeRecherche[] = [], vraiWorker = globalThis.Worker;
-  // Observer la frontière réelle du hook sans exécuter le moteur de runes.
-  class WorkerObserve {
-    postMessage(demande: DemandeDeRecherche) { messages.push(demande); }
-    terminate() {}
-  }
-  globalThis.Worker = WorkerObserve as unknown as typeof Worker;
+  const messages: DemandeDeRecherche[] = [], restaurerWorker = observerRechercheTest(messages);
   async function constater(etape: string, type: string, libelle: string, valeur: string | null, inactif = false) {
     const affiche = lireAffichage();
     verifier(menuType.isConnected && visible(menuType) && affiche.type === type && affiche.libelle === libelle
@@ -87,6 +82,7 @@ export async function preuvesCombatAfficheOptimizer(b: Banc): Promise<[boolean, 
     await b.geste(() => bouton('Fermer', dialogue).click());
     const avant = messages.length;
     await b.geste(() => bouton('Rechercher').click());
+    await attendreDemandeTest(messages, avant + 1);
     const params = messages[avant]?.params;
     // Sur le site, aucun pont de bureau : la demande ne porte pas de cœurs physiques.
     verifier(messages[avant]?.type === 'recherche' && messages[avant]?.coeursPhysiques === null,
@@ -116,7 +112,7 @@ export async function preuvesCombatAfficheOptimizer(b: Banc): Promise<[boolean, 
     await constater('Membre retiré de l’équipe', 'Attack Speed', 'VIT', '33');
   } finally {
     await b.geste(() => b.etat().effacerResultats());
-    globalThis.Worker = vraiWorker;
+    restaurerWorker();
   }
   return preuves;
 }

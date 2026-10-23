@@ -90,8 +90,9 @@ import { testCandidatsCompactsAllerRetour, testClassementCompactPublications, te
 import { testResolutionCaches } from './resolution-caches.test';
 import { testResolutionWorker } from './resolution-worker.test';
 import { testResolutionDistante } from './resolution-distante.test';
-import { testClassementDistantVersions, testClassementDistantPanne, testContexteResultatFige, testClassementBranchementApp } from './classement-distant.test';
-import { testCliClassementParMode } from './cli-classement.test';
+import { testClassementDistantVersions, testClassementDistantPanne, testContexteResultatFige, testClassementBranchementApp,
+  testClassementArretAvantOuverture, testClassementPublicationForceeDifferee, testClassementIncidentInactif, testClassementBilanStable, testClassementDifferentielCombat, testClassementBancResultats } from './classement-distant.test';
+import { testCliClassementParMode, testCliClassementDifferentiel } from './cli-classement.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
 import { testOptimizerFormatBig } from './format-big.test';
@@ -846,8 +847,15 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testClassementDistantVersions', testClassementDistantVersions],
   ['testClassementDistantPanne', testClassementDistantPanne],
   ['testContexteResultatFige', testContexteResultatFige],
+  ['testClassementArretAvantOuverture', testClassementArretAvantOuverture],
+  ['testClassementPublicationForceeDifferee', testClassementPublicationForceeDifferee],
+  ['testClassementIncidentInactif', testClassementIncidentInactif],
+  ['testClassementBilanStable', testClassementBilanStable],
+  ['testClassementDifferentielCombat', testClassementDifferentielCombat],
+  ['testClassementBancResultats', testClassementBancResultats],
   ['testClassementBranchementApp', testClassementBranchementApp],
   ['testCliClassementParMode', testCliClassementParMode],
+  ['testCliClassementDifferentiel', testCliClassementDifferentiel],
   ['testKDeLaFile', testKDeLaFile],
   ['testCompteAffichable', testCompteAffichable],
   ['testOptimizerFormatBig', testOptimizerFormatBig],

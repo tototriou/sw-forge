@@ -66,6 +66,8 @@ export class ClassementDistant {
   }
   recevoir(r: ReponseClassement): void {
     if (!r || r.versionSchema !== 1) { this.panne(new Error('Schéma de réponse de classement inconnu')); return; }
+    // L'incident concerne le résolveur du propriétaire vivant, même après libération de sa recherche.
+    if (r.type === 'incidentResolution') { this.ports.incident(r.raison, r.detail); return; }
     if (!this.actif) return;
     if (r.type === 'publication') {
       const v = r.publication.versions;
@@ -79,7 +81,6 @@ export class ClassementDistant {
     }
     if (r.idRecherche !== this.generation) return;
     if (r.type === 'erreur') { this.panne(new Error(r.message)); return; }
-    if (r.type === 'incidentResolution') { this.ports.incident(r.raison, r.detail); return; }
     if (r.type === 'ouverte' && r.idDemande === this.ouverture) { this.ouverture = null; this.ports.ouverte(this.generation); }
   }
   panne(erreur: unknown): void {

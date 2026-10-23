@@ -27,8 +27,8 @@ avant terme rend. Les contraintes à ne pas casser sont dans
 | Fin de l'appariement | `src/workers/runeBuildOptim.worker.ts`, `src/hooks/useBuildOptimSearch.ts` | `useBuildOptimSearch` | — |
 | Résolution de l'équipement d'un build | `src/lib/relicQueue.ts`, `src/lib/resolutionRapide.ts`, `src/lib/resolutionExhaustive.ts` | `entreeResolutionDuBuild`, `resoudreEquipementDuBuild`, `resoudreEquipementDuBuildRapide`, `resoudreEquipementDuBuildExhaustif` | [artefacts.md](artefacts.md), [reliques.md](reliques.md) |
 | Worker de résolution | `src/workers/resolution.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | `CorpsResolution`, `ResolutionDistante` | [parallelisation.md](parallelisation.md) |
-| File de résolution | `src/hooks/useArtifactOptimQueue.ts`, `src/lib/artifactQueue.ts` | `useArtifactOptimQueue`, `prochainsATraiter`, `voieDeLaFile` | [artefacts.md](artefacts.md) |
-| Résultat affiché | `src/lib/artifactQueue.ts`, `src/components/outils/OptimizerSection.tsx` | `classementResolu`, `compositionDePage`, `compteConfirme` | [02-app/optimizer/ecran/resultats.md](../../../02-app/optimizer/ecran/resultats.md) |
+| File de résolution | `src/lib/classementCompact.ts`, `src/workers/resolutionDistante.ts` | `CorpsClassement`, `ResolutionDistante` | [artefacts.md](artefacts.md) |
+| Résultat affiché | `src/lib/adaptateurClassement.ts`, `src/lib/artifactQueue.ts`, `src/components/outils/OptimizerSection.tsx` | `AdaptateurClassement`, `compositionDePage`, `compteConfirme` | [02-app/optimizer/ecran/resultats.md](../../../02-app/optimizer/ecran/resultats.md) |
 | Interruption | `src/hooks/useBuildOptimSearch.ts`, `src/workers/runeBuildOptim.worker.ts`, `src/workers/pairingDriver.ts` | `stop`, `drivePairing` | [02-app/optimizer/feat-interruption.md](../../../02-app/optimizer/feat-interruption.md) |
 
 ## Lancement
@@ -466,6 +466,12 @@ ancienne libère sa place sans écriture. Une publication regroupe les données
 d'une seule recherche et d'une seule vue ; la dernière est forcée à la fin
 de la file et au dernier build attendu de la page.
 
+Une publication forcée demandée pendant une étape de classement reste due
+jusqu'à la fin de cette étape, même si le fond continue. Un arrêt demandé
+avant l'acquittement d'ouverture est retenu et transmis dès le lancement
+du Worker de recherche. Un incident du résolveur termine ce Worker même
+si la recherche vient d'être libérée.
+
 Le résolveur reste séparé. Sa panne termine son canal et fait reprendre la
 résolution par les mêmes producteurs dans le fil du classeur. La perte ou
 l'impossibilité de créer le classeur passe par le statut `error` de la
@@ -521,12 +527,23 @@ fait perdre aucune différence. L'adaptateur garde l'identité des objets
 inchangés. Il matérialise encore N références par publication ; ce coût
 de compatibilité n'est pas celui de l'index par différences.
 
-`ClassementCompact` est le même corps d'ordre pour le Worker, le CLI et
-le harnais. `ordreCollecte` produit l'ordre de base sur les ordinaux ;
-`classementResolu` adapte l'API objet du CLI au même index. Les objets
+`CorpsClassement` est le même corps de notation, d'ordre et de choix de file
+pour le Worker, le CLI et le harnais. `classerEnLocal` le consomme sans
+Worker, avec sa résolution directe ; le harnais sans résolution désactive
+simplement cette dernière dans son contexte. `ordreCollecte` produit l'ordre
+de base sur les ordinaux. Les objets
 non compactables des appels génériques utilisent le tri stable d'indices
 sans mémoire de versions. L'oracle objet et sa mémoire de notes vivent
 dans les tests, jamais dans le chemin de production.
+
+La vue précise ce que son consommateur montre. L'écran attend les places de
+ses cartes vérifiées (`compositionDePage`) ; le CLI imprime vingt lignes du
+classement, y compris les non vérifiées (`pageImprimee: true`). Le corps
+sélectionne dans le même index les non résolus de cette tranche avant le
+fond. Il poursuit donc jusqu'à ce que toutes les lignes imprimées soient
+résolues et que le fond ait atteint K confirmées, comme le CLI de référence.
+Confondre la page imprimée avec une page de cartes complètes arrêterait trop
+tôt cette vérification. Les notes et l'ordre de base restent communs.
 
 `compositionDePage` compose une page. Ses cartes sont les seuls builds
 vérifiés, résolus et conformes, dans l'ordre du classement. Les places

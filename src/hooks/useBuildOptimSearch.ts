@@ -20,6 +20,7 @@ export function useBuildOptimSearch() {
   const classementRef = useRef<Classement | null>(null);
   const runIdRef = useRef(0);
   const demarrerRef = useRef<((idRecherche: number) => void) | null>(null);
+  const arretDemandeRef = useRef(false);
   const publicationRef = useRef<PublicationClassement | null>(null);
   const vueRef = useRef<VueClassement | null>(null);
   const [status, setStatus] = useState<BuildOptimStatus>('idle');
@@ -37,6 +38,7 @@ export function useBuildOptimSearch() {
   }, []);
   const terminerRecherche = useCallback(() => {
     runIdRef.current++; demarrerRef.current = null;
+    arretDemandeRef.current = false;
     const worker = workerRef.current;
     if (worker) { worker.onmessage = null; worker.onerror = null; worker.onmessageerror = null; worker.terminate(); }
     workerRef.current = null;
@@ -65,9 +67,14 @@ export function useBuildOptimSearch() {
         const worker = new Worker(new URL('../workers/classement.worker.ts', import.meta.url), { type: 'module' });
         const pilote = new ClassementDistant({ envoyer: (m) => worker.postMessage(m),
           publier: (p) => {
+            const precedent = publicationRef.current;
             publicationRef.current = p; setClassement(p);
             if (!p) return;
-            if (p.bilan) { setResult({ ...p.bilan, candidates: p.candidats }); setProgress(null); setStatus('done'); }
+            if (p.bilan) {
+              const premierBilan = !precedent?.bilan || precedent.versions.idRecherche !== p.versions.idRecherche;
+              if (premierBilan || precedent.candidats !== p.candidats) setResult({ ...p.bilan, candidates: p.candidats });
+              if (premierBilan) { setProgress(null); setStatus('done'); }
+            }
             else setProgress((courant) => courant?.phase === 'pairing' ? { ...courant, candidates: p.candidats } : courant);
           }, ouverte: (id) => demarrerRef.current?.(id), erreur: echouer,
           incident: (raison, detail) => {
@@ -129,6 +136,7 @@ export function useBuildOptimSearch() {
           const demande: DemandeDeRecherche = { type: 'recherche', params, coeursPhysiques: coeursPhysiquesRef.current,
             classement: { port: canal.port2, idRecherche } };
           worker.postMessage(demande, [canal.port2]);
+          if (arretDemandeRef.current) worker.postMessage({ stop: true });
         } catch (err) { echouer(err); }
       };
       d.pilote.ouvrir(photo, vue);
@@ -139,7 +147,7 @@ export function useBuildOptimSearch() {
     if (JSON.stringify(vueRef.current) === JSON.stringify(vue)) return;
     vueRef.current = vue; classementRef.current?.pilote.changerVue(vue);
   }, []);
-  const stop = useCallback(() => { workerRef.current?.postMessage({ stop: true }); }, []);
+  const stop = useCallback(() => { arretDemandeRef.current = true; workerRef.current?.postMessage({ stop: true }); }, []);
   const cancel = useCallback(() => { terminerRecherche(); classementRef.current?.pilote.liberer(); }, [terminerRecherche]);
   const reset = useCallback(() => {
     cancel(); setStatus('idle'); setResult(null); setProgress(null); setRefusal(null); setRelicContext(undefined); setContexte(null);

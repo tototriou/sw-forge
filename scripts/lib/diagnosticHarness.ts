@@ -18,8 +18,8 @@
 // par construction, et il affiche lequel s'est appliqué et pourquoi. Forcer
 // un régime reste possible — c'est un override, marqué comme tel.
 
-import { contexteResultat, optionsDuContexte } from '../../src/lib/contexteResultat';
-import { ordreCollecte } from '../../src/lib/classementCompact';
+import { contexteResultat } from '../../src/lib/contexteResultat';
+import { classerEnLocal } from '../../src/lib/classementCompact';
 import {
   ALL_STAT_KEYS,
   Bucket,
@@ -1905,8 +1905,8 @@ export function classer(
   const photo = contexteResultat({ params: { ...resolue.params, pool: resolue.poolInitial },
     fiche: resolue.monstre?.gear ?? { base: resolue.params.base, runes: [], artifacts: resolue.params.artifacts, relic: resolue.params.relic },
     realDamage, damageSetup: setup, exclusive: { setup, element }, signature: '', idInventaire: 0, idEspece: resolue.monstre?.com2usId ?? null, resolution: null });
-  const options = optionsDuContexte(photo, null, resolue.params.metric);
-  const classes = Array.from(ordreCollecte(candidats, objectif, options), (i) => candidats[i]);
+  const classes = classerEnLocal(photo, candidats, { tri: objectif, metric: resolue.params.metric,
+    page: 1, adapterArtefactsAuTri: false, toutVerifier: false }).affichees;
   // ⚠️ `candidateMetricTotal` recalcule depuis les VRAIES runes dans la
   // mesure courante — jamais `effTotal`, figé au moment de la recherche. Il
   // est appliqué à la DEMANDE, pas à toute la liste : le classement peut

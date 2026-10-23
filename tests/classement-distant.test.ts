@@ -8,19 +8,91 @@ import { ClassementDistant, type ReponseClassement, type MessageVersClassement }
 import { CorpsClassement, type PublicationClassement, type PublicationTransport, type VueClassement } from '../src/lib/classementCompact';
 import { AdaptateurClassement } from '../src/lib/adaptateurClassement';
 import { contexteResultat, optionsDuContexte, resolutionDuContexte } from '../src/lib/contexteResultat';
-import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild } from '../src/lib/relicQueue';
+import { entreeResolutionDuBuild, etatReliqueDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild } from '../src/lib/relicQueue';
 import { CorpsResolution, type ReponseResolution } from '../src/workers/resolutionBody';
-import { candidatAvecSaPaire, cleBuild, ordonnerParDepartage } from '../src/lib/artifactQueue';
+import { candidatAvecSaPaire, cleBuild, ordonnerParDepartage, type ResultatArtefacts } from '../src/lib/artifactQueue';
 import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs, tamponsCandidats } from '../src/lib/candidatsCompacts';
-import { scoreDuCandidat, sortCandidates, type BuildCandidate } from '../src/lib/runeBuildOptim';
+import { aurasPropresParRunes, optionsDeClassement, scoreDeReference, scoreDuCandidat, sortCandidates, type BuildCandidate } from '../src/lib/runeBuildOptim';
 import { computeStats } from '../src/lib/stats';
-import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
-import { demandeClassementTest } from './classement-fixture';
+import { DEFAULT_DAMAGE_SETUP, artifactDamageProfile } from '../src/lib/damage';
+import { demandeClassementTest, fixtureClassementCombat } from './classement-fixture';
 import { BASE, rune } from './relic-search.test';
 import { egal, ok, titre } from './outils';
 import { monterRecherche } from './flux-candidats.test';
+import { rechercheClasseeTest } from './rendu/optimizer-classement-banc';
 
 const BILAN = { explored: 42, truncated: false, nearMissByCondition: [], globalNearMiss: null };
+
+export function testClassementArretAvantOuverture() {
+  titre('Recherche — arrêt retenu avant ouverture du classeur');
+  const b = monterRecherche(), ancien = globalThis.Worker;
+  try {
+    globalThis.Worker = b.Fil as unknown as typeof globalThis.Worker;
+    const f = fixture(false);
+    b.rendre().run(f.params, f.photo, f.vue); b.rendre().stop();
+    const fil = b.fils[0], ouvrir = fil.envoyes.find((m: any) => m.type === 'ouvrir');
+    fil.onmessage({ data: { type: 'ouverte', versionSchema: 1, idRecherche: ouvrir.idRecherche, idDemande: ouvrir.idDemande } });
+    const recherche = b.fils.find((f: any) => f.url.pathname.includes('runeBuildOptim.worker'));
+    egal(recherche.envoyes.map((m: any) => m.type ?? (m.stop ? 'stop' : '?')), ['recherche', 'stop'], 'l’arrêt précède tout travail suivant, après la demande initiale');
+    b.rendre().run(f.params, f.photo, f.vue);
+    const ouvertures = fil.envoyes.filter((m: any) => m.type === 'ouvrir');
+    const suivante = ouvertures[ouvertures.length - 1];
+    fil.onmessage({ data: { type: 'ouverte', versionSchema: 1, idRecherche: suivante.idRecherche, idDemande: suivante.idDemande } });
+    egal(b.fils[b.fils.length - 1].envoyes.filter((m: any) => m.stop).length, 0, 'la relance ne reprend pas l’arrêt de la génération précédente');
+  } finally { for (const f of b.fils) f.terminate(); globalThis.Worker = ancien; }
+}
+
+export function testClassementIncidentInactif() {
+  titre('Classeur — incident du résolveur après libération');
+  let incidents = 0;
+  const pilote = new ClassementDistant({ envoyer: () => {}, publier: () => {}, ouverte: () => {}, erreur: () => {}, incident: () => incidents++ });
+  const f = fixture(false); pilote.ouvrir(f.photo, f.vue); pilote.liberer();
+  pilote.recevoir({ type: 'incidentResolution', versionSchema: 1, idRecherche: 1, raison: 'canal fermé', detail: null });
+  egal(incidents, 1, 'la terminaison du résolveur reste demandée quand le pilote est inactif');
+}
+
+export function testClassementBilanStable() {
+  titre('Recherche — publications de file après le bilan');
+  const b = monterRecherche(), ancien = globalThis.Worker;
+  try {
+    globalThis.Worker = b.Fil as unknown as typeof globalThis.Worker;
+    const f = fixture(false); b.rendre().run(f.params, f.photo, f.vue);
+    const fil = b.fils[0];
+    let transport!: PublicationTransport;
+    const corps = new CorpsClassement({ publier: (p) => { transport = p; }, resoudre: () => {}, incident: () => {} });
+    corps.ouvrir(f.photo, 1, f.vue, 1);
+    const bs = blocs(f.candidats); bs.forEach((b, i) => corps.ajouter(1, i, b));
+    corps.sceller(1, f.candidats.length, bs.length - 1, BILAN); corps.publier(0, true);
+    fil.onmessage({ data: { type: 'publication', versionSchema: 1, publication: transport } });
+    const resultat = b.rendre().result, avant = b.ecritures.length;
+    fil.onmessage({ data: { type: 'publication', versionSchema: 1, publication: { ...transport, candidats: undefined,
+      versions: { ...transport.versions, revisionPubliee: 2 } } } });
+    ok(b.rendre().result === resultat, 'le résultat moteur garde son identité quand seul le classement est publié');
+    egal(b.ecritures.length - avant, 1, 'seul le classement est mis à jour ; aucun setResult, setProgress ni setStatus redondant');
+  } finally { for (const f of b.fils) f.terminate(); globalThis.Worker = ancien; }
+}
+
+export function testClassementPublicationForceeDifferee() {
+  titre('Classeur — dernière attente de page pendant une notation différée');
+  const f = fixture(), resolution = new CorpsResolution(), reponses: ReponseResolution[] = [];
+  const adapter = new AdaptateurClassement();
+  let derniere!: PublicationClassement;
+  const corps = new CorpsClassement({ publier: (p) => { derniere = adapter.appliquer(p); },
+    resoudre: (m) => { reponses.push(...resolution.recevoir(m)); }, incident: () => {} }, true);
+  const drainer = () => { for (let garde = 0; corps.travailEnCours && garde < 10000; garde++) corps.avancer(); };
+  corps.ouvrir(f.photo, 1, f.vue, 1);
+  const bs = blocs(f.candidats); bs.forEach((b, i) => corps.ajouter(1, i, b));
+  corps.sceller(1, f.candidats.length, bs.length - 1, BILAN); drainer(); corps.pomper(0);
+  const resolues = new Set<string>();
+  for (let garde = 0; resolues.size < 20 && garde < 200; garde++) {
+    const r = reponses.shift() ?? resolution.etape();
+    if (!r) throw new Error('File arrêtée avant la fin de la page');
+    if (r.type === 'resultat') resolues.add(r.cle);
+    corps.recevoirResolution(r, 1); drainer(); corps.pomper(1);
+  }
+  egal(resolues.size, 20, 'vingt résolutions achevées, avec travail de fond restant');
+  ok(derniere.parBuild.size >= 20 && derniere.enAttente > 0, 'dernière carte publiée à 1 ms virtuel, sans attendre 400 ms ni vider le fond');
+}
 function fixture(optimiser = true) {
   const candidats: BuildCandidate[] = [];
   const pool = [];
@@ -40,14 +112,74 @@ function blocs(candidats: BuildCandidate[]) {
   for (const c of candidats) ajouterObjetCandidat(sortie, c);
   return extraireBlocs(sortie);
 }
+function optionsOracle(photo: ReturnType<typeof fixture>['photo'], cache: ReadonlyMap<string, ResultatArtefacts> | null, metric: VueClassement['metric']) {
+  // Assemblage de 411765e3:OptimizerSection : aucun appel à optionsDuContexte.
+  const runeById = new Map(photo.recherche.pool.map((r) => [r.id, r]));
+  return optionsDeClassement({ realDamage: photo.realDamage, damageSetup: photo.damageSetup, runeById, metric,
+    aurasPropresDe: aurasPropresParRunes(runeById), contexteExclusive: { setup: photo.damageSetup, element: photo.exclusive.element },
+    artefactsDuBuild: (c) => { const r = cache?.get(cleBuild(c)); return r ? artifactDamageProfile(r.artefacts) : null; },
+    etatReliqueDe: (c) => etatReliqueDuBuild(cache?.get(cleBuild(c)), photo.recherche.relicContext, photo.fiche.relic) });
+}
 function verifierOracle(p: PublicationClassement, photo: ReturnType<typeof fixture>['photo']) {
-  const base = sortCandidates(p.candidats, p.vue.tri, optionsDuContexte(photo, null, p.vue.metric));
-  const options = optionsDuContexte(photo, p.parBuild, p.vue.metric);
+  const base = sortCandidates(p.candidats, p.vue.tri, optionsOracle(photo, null, p.vue.metric));
+  const options = optionsOracle(photo, p.parBuild, p.vue.metric);
+  const optionsProduction = optionsDuContexte(photo, p.parBuild, p.vue.metric);
   const attendu = p.parBuild.size ? sortCandidates(ordonnerParDepartage(base.filter((c) => p.parBuild.get(cleBuild(c))?.conforme !== false),
     (c) => p.parBuild.get(cleBuild(c))?.relique?.id).map((c) => candidatAvecSaPaire(c, p.parBuild)), p.vue.tri, options) : base;
   if (!isDeepStrictEqual(p.base, base) || !isDeepStrictEqual(p.affichees, attendu)) throw new Error(`ARRÊT oracle du classeur : recherche ${p.versions.idRecherche}, publication ${p.versions.revisionPubliee}`);
-  for (let i = 0; i < attendu.length; i++) if (!Object.is(scoreDuCandidat(p.affichees[i], p.vue.tri, options), scoreDuCandidat(attendu[i], p.vue.tri, options))) throw new Error(`ARRÊT note du classeur au rang ${i + 1}`);
+  for (let i = 0; i < attendu.length; i++) if (!Object.is(scoreDuCandidat(p.affichees[i], p.vue.tri, optionsProduction), scoreDuCandidat(attendu[i], p.vue.tri, options))) throw new Error(`ARRÊT note du classeur au rang ${i + 1}`);
   ok(true, `publication ${p.versions.revisionPubliee} : ordre complet, lignes, doublons et notes identiques à l'oracle objet`);
+}
+
+export function testClassementDifferentielCombat() {
+  titre('Classeur — oracle indépendant Dégâts réels et PV effectifs, paire et exclusive');
+  for (const objectif of ['degats_reels', 'ehp'] as const) {
+    const f = fixtureClassementCombat(objectif), adaptateur = new AdaptateurClassement();
+    let derniere!: PublicationClassement;
+    const corps = new CorpsClassement({ publier: (p) => { derniere = adaptateur.appliquer(p); verifierOracle(derniere, f.photo); }, resoudre: () => {}, incident: () => {} }, false, 'directe');
+    corps.ouvrir(f.photo, 1, f.vue, 1);
+    const bs = blocs(f.candidats); bs.forEach((b, i) => corps.ajouter(1, i, b));
+    corps.sceller(1, f.candidats.length, bs.length - 1, BILAN);
+    for (let garde = 0; garde < 200; garde++) {
+      corps.pomper(garde * 400); corps.publier(garde * 400, true);
+      if (!corps.travailEnRepli) break;
+    }
+    egal(derniere.affichees.length, f.candidats.length, `${objectif} : nombre et doublon conservés`);
+    const options = optionsDuContexte(f.photo, derniere.parBuild, f.vue.metric);
+    let effetsArtefacts = 0, effetsExclusifs = 0;
+    for (const c of derniere.affichees) {
+      const r = derniere.parBuild.get(cleBuild(c))!;
+      const fiche = { ...f.photo.fiche, runes: runesDuBuild(c, new Map(f.params.pool.map((r) => [r.id, r]))), artifacts: r.artefacts, relic: r.relique };
+      const reference = { degats: f.photo.realDamage, damageSetup: f.photo.damageSetup, exclusive: f.photo.exclusive };
+      const score = scoreDeReference(objectif, fiche, reference);
+      egal(scoreDuCandidat(c, objectif, options), score, `${objectif} : note de l'équipement entier, ${cleBuild(c)}`);
+      if (score !== scoreDeReference(objectif, { ...fiche, relic: fiche.relic && { ...fiche.relic, unique: undefined } }, reference)) effetsExclusifs++;
+      if (score !== scoreDeReference(objectif, { ...fiche, artifacts: [] }, reference)) effetsArtefacts++;
+    }
+    ok(effetsArtefacts > 0 && effetsExclusifs > 0, `${objectif} : les artéfacts et la propriété exclusive ont un effet chiffré, aucun canal neutre`);
+    // La fiche affichée peut changer après lancement ; la référence du résultat reste photographiée.
+    const reference = { degats: f.photo.realDamage, damageSetup: f.photo.damageSetup, exclusive: f.photo.exclusive };
+    const avant = scoreDeReference(objectif, f.photo.fiche, reference);
+    const ficheVivante = { ...f.photo.fiche, base: { ...f.photo.fiche.base, hp: 1, atk: 1 } };
+    ok(avant !== scoreDeReference(objectif, ficheVivante, reference) && avant === scoreDeReference(objectif, f.photo.fiche, reference), `${objectif} : changer la fiche vivante ne change pas la référence figée`);
+  }
+}
+
+export function testClassementBancResultats() {
+  titre('Banc de rendu — publication confirmée, rejet et aperçu par le vrai corps');
+  const f = fixture(false), fiche = { ...f.photo.fiche, runes: f.params.pool.slice(0, 6) };
+  const result = { ...BILAN, candidates: f.candidats.slice(0, 1) };
+  const entree = { fiche, pool: f.params.pool, optimiser: true, vue: f.vue };
+  const confirme = rechercheClasseeTest({ status: 'done', result }, entree, true);
+  ok(confirme.contexte?.resolution !== null && confirme.classement?.parBuild.get(cleBuild(result.candidates[0]))?.conforme === true,
+    'le résultat injecté est réellement résolu, file active et cache publié');
+  const rejete = rechercheClasseeTest({ status: 'done', result }, { ...entree, requirement: { sets: [], minStats: { spd: 999 } } }, true);
+  ok(rejete.classement?.parBuild.get(cleBuild(result.candidates[0]))?.conforme === false && rejete.classement.affichees.length === 0,
+    'condition impossible : vrai rejet de résolution, retiré du classement');
+  const apercu = rechercheClasseeTest({ status: 'running', progress: { phase: 'pairing', explored: 10, found: 5, pct: 0.1, totalPairs: 100, candidates: result.candidates } },
+    { ...entree, requirement: { sets: [], minStats: { spd: 999 } } }, true);
+  ok(apercu.progress?.phase === 'pairing' && apercu.progress.found === 5 && apercu.classement?.parBuild.size === 1 && apercu.classement.affichees.length === 0,
+    'aperçu : cinq trouvées et un rejet réellement publié, sans fabriquer de bilan final');
 }
 
 export function testContexteResultatFige() {

@@ -2335,8 +2335,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const contexteReferenceResultat = useMemo(() => contexteResultatAffiche
     ? { degats: contexteResultatAffiche.realDamage, damageSetup: contexteResultatAffiche.damageSetup, exclusive: contexteResultatAffiche.exclusive }
     : contexteReference, [contexteResultatAffiche, contexteReference]);
-  const refEhpResultat = useMemo(() => selected ? scoreDeReference('ehp', selected.gear, contexteReferenceResultat) : null, [selected, contexteReferenceResultat]);
-  const refDegatsResultat = useMemo(() => selected ? scoreDeReference('degats_reels', selected.gear, contexteReferenceResultat) : null, [selected, contexteReferenceResultat]);
+  const ficheDeReference = contexteResultatAffiche?.fiche ?? selected?.gear;
+  const refEhpResultat = useMemo(() => ficheDeReference ? scoreDeReference('ehp', ficheDeReference, contexteReferenceResultat) : null, [ficheDeReference, contexteReferenceResultat]);
+  const refDegatsResultat = useMemo(() => ficheDeReference ? scoreDeReference('degats_reels', ficheDeReference, contexteReferenceResultat) : null, [ficheDeReference, contexteReferenceResultat]);
 
   // Le compte du MOTEUR : les candidats du résultat à la fin, le compte de la
   // progression pendant l'appariement (non plafonné, contrairement à l'aperçu).

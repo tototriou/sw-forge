@@ -312,11 +312,11 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
     s'écarte en un test. Les tranches sont fusionnées sans doublon et triées
     une seule fois par compartiment, à la fin.
   - Les tranches par stat ont toutes `bucketCap` places : aucune stat n'en
-    reçoit plus selon sa dispersion. `SearchParams.adaptiveTrancheWeighting`
-    est accepté et sans effet
+    reçoit plus selon sa dispersion. `adaptiveTrancheWeighting` est retiré
+    des paramètres et de l'état
     ([retention-a-parts-egales.md](../../../04-decisions/adr/retention-a-parts-egales.md)) ;
-    il n'a plus d'interrupteur à l'écran, qui l'envoie toujours à faux, et
-    le CLI ne le relaie pas d'une recette.
+    les lecteurs de recette et de session ignorent le champ historique
+    sans erreur ni avertissement, qu'il soit vrai ou faux.
   - Les bornes d'élagage d'un compartiment (`maxPct`/`maxFlat`, par stat
     contrainte) s'étendent à partir de **toute** combinaison rencontrée,
     même celles finalement jetées : rester large ici ne coûte rien et

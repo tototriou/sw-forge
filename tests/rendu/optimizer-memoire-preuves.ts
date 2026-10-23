@@ -39,7 +39,7 @@ export async function preuvesSupplementaires(nom: string, b: BancMemoire): Promi
     const valeurs = { relicMinUpgrade: 12, excludeUsedRunes: true, excludeUsedScope: 'siege-defense',
       // Une autre copie reste une exclusion légitime pour les deux membres
       // restaurés ; exclure la cible testerait sa purge d'auto-exemption.
-      excludedSelectors: [{ source: 'box', unitKey: '33' }], adaptiveTrancheWeighting: true, exhaustiveSearch: true,
+      excludedSelectors: [{ source: 'box', unitKey: '33' }], exhaustiveSearch: true,
       verifierToutesLesCombinaisons: true, slotFilterPreset: 'haut', diagnoseBlockingEnabled: true };
     for (const [champ, valeur] of Object.entries(valeurs)) {
       await b.geste(() => (b.etat() as unknown as Record<string, (v: unknown) => void>)[`set${champ[0].toUpperCase()}${champ.slice(1)}`](valeur));
@@ -78,7 +78,7 @@ export async function preuvesSupplementaires(nom: string, b: BancMemoire): Promi
     const recette = buildOptimizerRecipe({ monsterCom2usId: 99999, monsterName: 'Absent du bestiaire',
       damageSetup: baseCompleteCriteres(undefined).damageSetup,
       requirement: { sets: ['swift'], minStats: { spd: 310 } }, objective: 'vitesse', metric: 'eff',
-      slotFilterPreset: 'moyen', adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+      slotFilterPreset: 'moyen', exhaustiveSearch: false,
       excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [], ignoreArtifacts: false, artifactMainByKind: {} });
     let resoudre!: (texte: string) => void;
     const original = File.prototype.text;

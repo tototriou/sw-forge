@@ -45,7 +45,7 @@ script sur la machine du moment, en suivant le skill
 Il n'existe pas de budget de paires : la recherche n'est bornée que par le
 plafond de candidats collectés (`MAX_COLLECTED`, surchargeable par
 `SearchParams.maxCollected`), par le temps (`maxMs`) et par la taille exacte
-de l'espace (`totalPairCount`) (`src/lib/runeBuildOptim.ts:1198-1221`). Un
+de l'espace (`totalPairCount`) (`src/lib/runeBuildOptim.ts:4221-4238`). Un
 en-tête de script qui cite `DEFAULT_MAX_NODES` décrit un budget supprimé.
 Le plafond de collecte privilégie la qualité du résultat sur la vitesse ;
 au préréglage le plus large, c'est la construction des compartiments, un

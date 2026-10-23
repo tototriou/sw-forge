@@ -1,20 +1,7 @@
-// « Prioriser les stats les plus difficiles » est retiré du moteur
-// (docs/04-decisions/adr/retention-a-parts-egales.md) :
-// - le moteur rend le même résultat, champ `SearchParams.adaptiveTrancheWeighting`
-//   vrai ou faux, aux préréglages Haut et Extrême et sous un plafond de
-//   rétention minuscule (override de mesure), là où l'ancienne répartition
-//   changeait la capacité de chaque tranche par stat ;
-// - une recette qui porte le champ s'importe sans erreur, et le CLI ne le
-//   relaie plus au moteur ;
-// - en recette, Haut et Extrême ne changent que le pré-filtrage
-//   (`slotFilterCap`), rien d'autre des `SearchParams`.
-//
-// L'écran garde son interrupteur, sans effet, jusqu'à son retrait : il n'est
-// pas vérifié ici.
-
+// Le réglage de rétention retiré se lit sans perte dans les recettes et sessions historiques.
 import { BaseStats } from '../src/types';
-import { BuildRequirement, SearchParams, SearchResult, SLOT_FILTER_PRESETS } from '../src/lib/runeBuildOptim';
-import { searchBuilds } from '../src/lib/rechercheRunes';
+import { BuildRequirement, SLOT_FILTER_PRESETS } from '../src/lib/runeBuildOptim';
+import { composerSession, ecrireSession, lireSession } from '../src/lib/session';
 import { OptimizerRecipe, buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
 import { SlotFilterPresetKey } from '../src/hooks/useOptimizerState';
@@ -24,56 +11,8 @@ import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
 import { egal, ok, titre } from './outils';
 
 const BASE: BaseStats = { hp: 8000, atk: 500, def: 400, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
-// Trois minimums et deux stats d'objectif : cinq tranches par stat, que
-// l'ancienne répartition redistribuait.
 const EXIGENCE: BuildRequirement = { sets: ['violent'], minStats: { spd: 200, cr: 80, cd: 150 } };
 const POOL = randomPool(mulberry32(2101), 45, SETS_JOKER);
-
-/** Ce qu'un résultat a d'observable : candidats dans l'ordre, compte, troncature, quasi-succès. */
-function empreinte(r: SearchResult): string {
-  return JSON.stringify({
-    candidats: r.candidates.map((c) => ({ ids: c.runeIds, stats: c.stats, effTotal: c.effTotal })),
-    explored: r.explored,
-    truncated: r.truncated,
-    parCondition: r.nearMissByCondition,
-    global: r.globalNearMiss,
-  });
-}
-
-function parametres(slotFilterCap: number, bucketCap: number | undefined, champ: boolean | undefined): SearchParams {
-  return {
-    base: BASE, artifacts: [], pool: POOL, requirement: EXIGENCE, metric: 'eff',
-    objective: 'efficience', objectiveStats: ['atk', 'cd'], slotFilterCap, maxMs: Number.POSITIVE_INFINITY,
-    ...(bucketCap != null ? { bucketCap } : {}),
-    ...(champ != null ? { adaptiveTrancheWeighting: champ } : {}),
-  };
-}
-
-function moteurInsensibleAuChamp() {
-  for (const cle of ['haut', 'extreme'] as const) {
-    const preset = SLOT_FILTER_PRESETS.find((p) => p.key === cle)!;
-    // `undefined` : le bucketCap que le préréglage dérive (chemin de
-    // production) ; 7 et 50 : évictions forcées, où l'ancienne répartition
-    // gardait d'autres demi-builds.
-    // ⚠️ Les évictions forcées se font à `slotFilterCap` 40 (Bas, aucun
-    // préréglage plus étroit) : à Haut ou Extrême, la rétention de Moyen et
-    // de Bas, emboîtée à leurs `bucketCap` dérivés, garderait tout et
-    // lèverait la pression. Le champ n'est lu nulle part, quel que soit le
-    // préréglage.
-    const derive = searchBuilds(parametres(40, undefined, undefined));
-    for (const bucketCap of [undefined, 7, 50]) {
-      const cap = bucketCap == null ? preset.cap : 40;
-      const sans = searchBuilds(parametres(cap, bucketCap, undefined));
-      const faux = searchBuilds(parametres(cap, bucketCap, false));
-      const vrai = searchBuilds(parametres(cap, bucketCap, true));
-      const libelle = bucketCap == null ? `${preset.label}, bucketCap dérivé` : `slotFilterCap 40, bucketCap ${bucketCap}`;
-      ok(sans.candidates.length > 0, `${libelle} : la recherche trouve des builds (${sans.candidates.length})`);
-      if (bucketCap != null) ok(empreinte(sans) !== empreinte(derive), `${libelle} : les évictions mordent (résultat différent du bucketCap dérivé)`);
-      ok(empreinte(faux) === empreinte(sans), `${libelle} : champ à faux = champ absent`);
-      ok(empreinte(vrai) === empreinte(sans), `${libelle} : champ à vrai = champ absent (candidats, compte, quasi-succès)`);
-    }
-  }
-}
 
 const LOADED: LoadedMonster = {
   unitId: 1, com2usId: 13413, monsterName: 'Monstre (test)',
@@ -81,44 +20,71 @@ const LOADED: LoadedMonster = {
   allRunes: POOL, allArtifacts: [], allRelics: [],
 };
 
-function recette(preset: SlotFilterPresetKey, champ: boolean): OptimizerRecipe {
+function recette(preset: SlotFilterPresetKey): OptimizerRecipe {
   return buildOptimizerRecipe({
     monsterCom2usId: 13413, monsterName: 'Monstre (test)', requirement: EXIGENCE, objective: 'efficience',
-    damageSetup: DEFAULT_DAMAGE_SETUP, metric: 'eff', slotFilterPreset: preset, adaptiveTrancheWeighting: champ,
+    damageSetup: DEFAULT_DAMAGE_SETUP, metric: 'eff', slotFilterPreset: preset,
     exhaustiveSearch: false, excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
     ignoreArtifacts: true, artifactMainByKind: { element: 'libre', archetype: 'libre' },
   });
 }
 
 function recetteAncienne() {
-  // Une recette exportée avec l'interrupteur coché, telle qu'un fichier la porte.
-  const texte = JSON.stringify(recette('haut', true));
-  const lue = parseOptimizerRecipe(texte);
-  ok(lue.recipe !== null && lue.error === undefined, `recette qui porte adaptiveTrancheWeighting: true : importée sans erreur${lue.error ? ` (${lue.error})` : ''}`);
-  ok(lue.avertissements === undefined, 'recette ancienne : aucune conversion annoncée');
-  const params = recipeToSearchParams(lue.recipe!, LOADED);
-  ok(!('adaptiveTrancheWeighting' in params), 'CLI : le champ de la recette ne part pas au moteur');
+  const actuelle = recette('haut');
+  const reference = parseOptimizerRecipe(JSON.stringify(actuelle));
+  ok(reference.recipe !== null, 'recette de référence lisible');
+  ok(!('adaptiveTrancheWeighting' in actuelle), 'nouvelle recette : champ retiré absent');
+  for (const champ of [true, false]) {
+    const lue = parseOptimizerRecipe(JSON.stringify({ ...actuelle, adaptiveTrancheWeighting: champ }));
+    ok(lue.recipe !== null && lue.error === undefined, `recette ancienne (${champ}) : importée sans erreur`);
+    ok(lue.avertissements === undefined, `recette ancienne (${champ}) : aucun avertissement`);
+    egal(lue.recipe, reference.recipe, `recette ancienne (${champ}) : mêmes valeurs utiles, champ retiré absent`);
+    egal(recipeToSearchParams(lue.recipe!, LOADED), recipeToSearchParams(reference.recipe!, LOADED),
+      `recette ancienne (${champ}) : mêmes SearchParams au CLI`);
+    const { version: _version, ...entree } = lue.recipe!;
+    ok(!('adaptiveTrancheWeighting' in JSON.parse(JSON.stringify(buildOptimizerRecipe(entree)))),
+      `recette ancienne (${champ}) : réexport sans champ retiré`);
+  }
+}
+
+function sessionAncienne() {
+  const actuelle = composerSession({
+    maintenant: new Date('2026-10-01T00:00:00Z'), versionApp: 'test', stockage: {}, compte: null, memoire: {},
+    optimizer: { selectedId: '13413', comboSets: ['violent'], minStats: EXIGENCE.minStats,
+      damageSetup: DEFAULT_DAMAGE_SETUP, exhaustiveSearch: true, slotFilterPreset: 'haut', sortBy: 'efficience' },
+  });
+  const reference = lireSession(ecrireSession(actuelle));
+  ok(reference.ok, 'session de référence lisible');
+  for (const champ of [true, false]) {
+    // Ajout APRÈS composition : fichier historique avant le filtre de lecture.
+    const texte = JSON.stringify({ ...actuelle,
+      outils: { ...actuelle.outils, optimizer: { ...actuelle.outils.optimizer, adaptiveTrancheWeighting: champ } } });
+    const lue = lireSession(texte);
+    ok(lue.ok, `session ancienne (${champ}) : lue sans erreur`);
+    if (!lue.ok || !reference.ok) continue;
+    egal(lue.avertissements, [], `session ancienne (${champ}) : aucun avertissement`);
+    egal(lue.session, reference.session, `session ancienne (${champ}) : même état restauré, champ retiré absent`);
+    ok(!('adaptiveTrancheWeighting' in JSON.parse(ecrireSession(lue.session)).outils.optimizer),
+      `session ancienne (${champ}) : réexport sans champ retiré`);
+  }
 }
 
 function prefiltrageSeul() {
-  // Haut et Extrême, interrupteur coché comme l'écran le cochait, contre
-  // Moyen décoché : seuls le pré-filtrage et le filet de temps de la recette
-  // (identique ici) peuvent différer.
-  const reference = recipeToSearchParams(recette('moyen', false), LOADED);
+  const reference = recipeToSearchParams(recette('moyen'), LOADED);
   for (const cle of ['haut', 'extreme'] as const) {
     const preset = SLOT_FILTER_PRESETS.find((p) => p.key === cle)!;
-    const params = recipeToSearchParams(recette(cle, true), LOADED);
+    const params = recipeToSearchParams(recette(cle), LOADED);
     egal(params.slotFilterCap, preset.cap, `${preset.label} : slotFilterCap = ${preset.cap}`);
     const { slotFilterCap: _a, ...reste } = params;
     const { slotFilterCap: _b, ...resteReference } = reference;
     ok(JSON.stringify(reste) === JSON.stringify(resteReference),
-      `${preset.label} (interrupteur coché) : mêmes SearchParams que Moyen décoché, hors pré-filtrage`);
+      `${preset.label} : mêmes SearchParams que Moyen, hors pré-filtrage`);
   }
 }
 
 export default function testPrioriteStatsRetiree() {
   titre('Optimizer · « Prioriser les stats les plus difficiles » retiré du moteur');
-  moteurInsensibleAuChamp();
+  sessionAncienne();
   recetteAncienne();
   prefiltrageSeul();
 }

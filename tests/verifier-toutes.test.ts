@@ -27,7 +27,7 @@ const RELIQUE: RelicDetail = { id: 1, upgrade: 9, main: { code: 101, value: 12 }
 function recette(verifier?: boolean) {
   return buildOptimizerRecipe({
     monsterCom2usId: 13413, monsterName: 'Lushen (test)', requirement: { sets: [], minStats: {} }, objective: 'efficience',
-    damageSetup: DEFAULT_DAMAGE_SETUP, metric: 'eff', slotFilterPreset: 'bas', adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    damageSetup: DEFAULT_DAMAGE_SETUP, metric: 'eff', slotFilterPreset: 'bas', exhaustiveSearch: false,
     ...(verifier === undefined ? {} : { verifierToutesLesCombinaisons: verifier }),
     excludeUsedRunes: false, excludeUsedScope: 'rta', excludedSelectors: [], ignoreArtifacts: false,
     artifactMainByKind: { element: 'libre', archetype: 'libre' },

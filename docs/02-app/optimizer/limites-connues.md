@@ -103,9 +103,8 @@ ici.
   épuisement complet » (filet de temps de 10 minutes retiré) et
   « Compter les effets d'auras Tolerance et Précision dans les
   conditions » (`compterAurasResPre`). Ne sont pas exposés :
-  `MAX_COLLECTED`, `BUCKET_CAP`, `combosOrderMode`, et
-  `adaptiveTrancheWeighting`, que l'écran envoie toujours à faux et que le
-  moteur ne lit plus ;
+  `MAX_COLLECTED`, `BUCKET_CAP` et `combosOrderMode` ;
+  `adaptiveTrancheWeighting` est retiré des paramètres et de l'état ;
   `SearchParams.bucketCap` sert à la mesure, jamais à l'écran. Détail :
   [ecran/conditions-et-reglages.md § Réglages avancés](ecran/conditions-et-reglages.md).
 - **L'estimation affichée avant de lancer est un ordre de grandeur**

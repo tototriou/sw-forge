@@ -143,15 +143,6 @@ export interface OptimizerRecipe {
   compterAurasResPre?: boolean;
   metric: RuneMetric;
   slotFilterPreset: SlotFilterPresetKey;
-  /**
-   * « Prioriser les stats les plus difficiles » — ⚠️ SANS EFFET sur la
-   * recherche : le moteur n'a plus de répartition adaptative
-   * (docs/04-decisions/adr/retention-a-parts-egales.md), et le CLI
-   * ne le relaie pas (`recipeToSearchParams`). Une recette qui le porte
-   * s'importe sans erreur ; un booléen reste exigé s'il est présent. Gardé
-   * tant que l'écran l'exporte et le relit (interrupteur encore affiché).
-   */
-  adaptiveTrancheWeighting: boolean;
   exhaustiveSearch: boolean;
   /**
    * « Vérifier toutes les combinaisons trouvées » :
@@ -528,7 +519,7 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
     }
   }
 
-  for (const champ of ['adaptiveTrancheWeighting', 'exhaustiveSearch', 'excludeUsedRunes', 'ignoreArtifacts', 'compterAurasResPre', 'verifierToutesLesCombinaisons']) {
+  for (const champ of ['exhaustiveSearch', 'excludeUsedRunes', 'ignoreArtifacts', 'compterAurasResPre', 'verifierToutesLesCombinaisons']) {
     if (d[champ] !== undefined && typeof d[champ] !== 'boolean') return { recipe: null, error: erreur(champ, 'doit être un booléen') };
   }
   if (d.excludeUsedScope !== undefined && !['rta', 'siege-defense', 'box'].includes(String(d.excludeUsedScope))) {
@@ -584,7 +575,10 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
   // avertissement (voir `AVERTISSEMENT_CRIT_MOYENNE`) : même normalisation
   // centrale, pour l'écran comme pour le CLI.
   const avertissements: string[] = [];
-  let normalisee = d;
+  // Le réglage de rétention retiré ne doit survivre ni à l'import ni à un
+  // nouvel export ; ce point commun protège l'écran et tous les scripts.
+  const { adaptiveTrancheWeighting: _prioriteRetiree, ...sansPriorite } = d;
+  let normalisee = sansPriorite;
   if (estObjet(d.damageSetup)) {
     const { setsAura: _ancienTotal, ...setupLu } = d.damageSetup;
     let setup = setupLu;
@@ -593,7 +587,7 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
       avertissements.push(AVERTISSEMENT_CRIT_MOYENNE);
     }
     normalisee = {
-      ...d,
+      ...sansPriorite,
       damageSetup: normaliserCompetencesInvocateur(setup as unknown as DamageSetup),
     };
   }

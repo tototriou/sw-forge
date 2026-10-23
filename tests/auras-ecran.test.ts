@@ -60,7 +60,7 @@ function recette(setsAuraExternes: unknown, sets: string[] = []) {
     monsterCom2usId: 14104, monsterName: 'Monstre du test',
     requirement: { sets, minStats: {} }, objective: 'efficience', damageSetup: DEFAULT_DAMAGE_SETUP,
     compterAurasResPre: true, metric: 'eff', slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    exhaustiveSearch: false,
     excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
     ignoreArtifacts: false, artifactMainByKind: {},
   });

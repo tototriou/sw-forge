@@ -88,7 +88,7 @@ const proche = (a: number | null, b: number | null) => a != null && b != null &&
 function recette(mode: 'off' | 'equipped' | 'recherche', atk: number, def: number): OptimizerRecipe {
   return buildOptimizerRecipe({
     monsterCom2usId: LUSHEN, monsterName: 'Lushen (test)', requirement: { sets: [], minStats: { atk, def } }, objective: 'degats_reels',
-    damageSetup: DEFAULT_DAMAGE_SETUP, metric: 'eff', slotFilterPreset: 'bas', adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    damageSetup: DEFAULT_DAMAGE_SETUP, metric: 'eff', slotFilterPreset: 'bas', exhaustiveSearch: false,
     excludeUsedRunes: false, excludeUsedScope: 'rta', excludedSelectors: [], ignoreArtifacts: mode === 'off',
     artifactMainByKind: { element: 'libre', archetype: 'libre' }, relicMainChoice: mode === 'recherche' ? 'libre' : 'equipped',
   });

@@ -36,7 +36,7 @@ export default function testOptimizerDamageTransitions() {
     monsterCom2usId: 14104, monsterName: 'Monstre du test',
     requirement: { sets: [], minStats: {} }, objective: 'degats_reels',
     damageSetup: avant, metric: 'eff', slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    exhaustiveSearch: false,
     excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
     ignoreArtifacts: false, artifactMainByKind: {},
   });

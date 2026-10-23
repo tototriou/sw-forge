@@ -261,7 +261,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     const recette = buildOptimizerRecipe({ monsterCom2usId: 10101, monsterName: 'Premier',
       damageSetup: baseCompleteCriteres(undefined).damageSetup,
       requirement: { sets: ['swift'], minStats: { spd: 310 } }, objective: 'vitesse', metric: 'eff',
-      slotFilterPreset: 'moyen', adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+      slotFilterPreset: 'moyen', exhaustiveSearch: false,
       excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [], ignoreArtifacts: false, artifactMainByKind: {} });
     let resoudre!: (texte: string) => void;
     const textOriginal = File.prototype.text;

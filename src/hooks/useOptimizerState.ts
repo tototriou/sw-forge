@@ -288,13 +288,6 @@ export interface OptimizerState {
   // remplace pas) — voir lib/optimizerExclusion.ts. Vide par défaut.
   excludedSelectors: ExclusionSelector[];
   setExcludedSelectors: Dispatch<SetStateAction<ExclusionSelector[]>>;
-  // Ancien interrupteur « Prioriser les stats les plus difficiles », retiré
-  // de l'écran : aucun contrôle ne l'écrit plus, et l'écran envoie toujours
-  // `false` (`handleSearch`, `exportRecipe`), quoi que porte une session
-  // reprise. Gardé ici le temps que le champ quitte `SearchParams` et
-  // `OptimizerRecipe`.
-  adaptiveTrancheWeighting: boolean;
-  setAdaptiveTrancheWeighting: Dispatch<SetStateAction<boolean>>;
   // Toggle « Rechercher jusqu'à épuisement complet » — désactivé par défaut,
   // lu par `handleSearch` au moment du clic sur « Rechercher », pas un bouton
   // séparé qui lance sa propre recherche. Retire
@@ -460,7 +453,6 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   const [excludeUsedRunes, setExcludeUsedRunes] = useState(false);
   const [excludeUsedScope, setExcludeUsedScope] = useState<AutoExclusionScope>('rta');
   const [excludedSelectors, setExcludedSelectors] = useState<ExclusionSelector[]>([]);
-  const [adaptiveTrancheWeighting, setAdaptiveTrancheWeighting] = useState(false);
   const [exhaustiveSearch, setExhaustiveSearch] = useState(false);
   const [verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons] = useState(false);
   const [sortBy, setSortBy] = useState<OptimizerSortKey>(base.sortBy);
@@ -869,8 +861,6 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     setExcludeUsedScope,
     excludedSelectors,
     setExcludedSelectors,
-    adaptiveTrancheWeighting,
-    setAdaptiveTrancheWeighting,
     exhaustiveSearch,
     setExhaustiveSearch,
     verifierToutesLesCombinaisons,

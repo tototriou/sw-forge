@@ -62,7 +62,6 @@ function recetteDeBase(extra: Partial<Parameters<typeof buildOptimizerRecipe>[0]
     damageSetup: DEFAULT_DAMAGE_SETUP,
     metric: 'eff',
     slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false,
     exhaustiveSearch: false,
     excludeUsedRunes: false,
     excludeUsedScope: 'rta',

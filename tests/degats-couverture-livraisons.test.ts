@@ -316,7 +316,6 @@ function contexteSonde(forme: number, sort: number, patch: Partial<DamageSetup>)
     damageSetup: { ...baseSonde, ...patch, skillCom2usId: sort },
     metric: 'eff',
     slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false,
     exhaustiveSearch: false,
     excludeUsedRunes: false,
     excludeUsedScope: 'rta',

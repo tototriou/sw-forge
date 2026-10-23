@@ -198,11 +198,10 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    - **« Diagnostic approfondi sur 0 résultat »**, décoché par défaut (plus
      coûteux qu'un diagnostic simple, voir resultats.md § Diagnostic sur 0 résultat).
    - ⚠️ **Aucun contrôle de pondération adaptative des stats** aux deux
-     formats : l'écran envoie toujours
-     `adaptiveTrancheWeighting: false` à la recherche et l'exporte à faux
-     dans une recette. Une recette qui le porte à vrai s'importe sans erreur
-     et n'active rien ; le CLI (`recipeToSearchParams`) ne le relaie pas, et
-     le moteur ne lit plus ce réglage : chaque stat garde la même part de la
+     formats : `adaptiveTrancheWeighting` est retiré des paramètres, de
+     l'état et des recettes exportées. Une recette ou une session qui le
+     porte à vrai ou faux se lit sans erreur ni avertissement, le champ
+     ignoré par son lecteur commun. Chaque stat garde la même part de la
      rétention
      ([retention-a-parts-egales.md](../../../04-decisions/adr/retention-a-parts-egales.md)).
    - **« Vérifier toutes les combinaisons trouvées »**, décoché par défaut :

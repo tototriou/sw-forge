@@ -115,8 +115,8 @@ jamais assemblée à la main) porte UN préréglage : son rang
 recherche), son pool, son `bucketCap`,
 son crédit de joker, les bornes de sets de l'autre moitié tirées de son
 pool, les champs communs de `PreparedSearch`, `cransEmboites` vide, et
-`combosOrderMode` repris des `SearchParams` ; `adaptiveTrancheWeighting`,
-sans effet, n'y est pas relayé. Les deux moitiés sont indépendantes :
+`combosOrderMode` repris des `SearchParams`. Le champ
+`adaptiveTrancheWeighting` est retiré. Les deux moitiés sont indépendantes :
 chacune ne lit que des bornes calculées par la préparation, jamais l'autre
 moitié construite.
 

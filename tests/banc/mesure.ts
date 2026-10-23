@@ -101,6 +101,25 @@
 //   texte sur plusieurs lignes garde l'espacement de fin des autres) ; un
 //   texte suivi d'un élément, ou dans un `inline`, se mesure comme avant
 //   (tests/banc/cas/espacement-final.html).
+// - cases de roue : sous le PREMIER ancêtre dont l'image de fond est
+//   `rune-wheel.png`, un excédent ne relève pas de « contenu » s'il vient
+//   UNIQUEMENT de transformations de descendants (transform, translate,
+//   rotate ou scale). Les cadres pivotés et les icônes décalées de RuneWheel
+//   occupent volontairement plus que leur case, tout en restant dans la roue.
+//   La roue doit elle-même ne déborder sur aucun axe, et les boîtes
+//   transformées ET tous leurs descendants visibles doivent rester dans son
+//   rectangle (tolérance commune de 1 px sur les quatre côtés). On ne cherche
+//   jamais une autre roue ni un contenant plus large si ce contrôle échoue.
+//   Un essai sur la page intacte neutralise les seules transformations de ces
+//   descendants : l'excédent doit disparaître EN ENTIER et aucune boîte hors
+//   des sous-arbres transformés ne doit bouger (0,5 px). Sinon rien n'est levé.
+//   Les styles et transitions sont rendus à l'identique. Aucune autre règle,
+//   ni le contenu de la roue elle-même, n'est exclue.
+//   ⚠️ Limites : exception volontairement liée à cette image de fond, pas aux
+//   transformations en général ; elle compare des rectangles, sans lire les
+//   pixels transparents, les ombres ou les filtres. Un cadre dont seul le
+//   rectangle transparent sort de la roue reste donc signalé. Les deux cas :
+//   tests/banc/cas/roue-cadre-pivote.html et roue-transformation-sortante.html.
 //
 // Exclusions, chacune LOCALE (l'élément exclu n'est signalé par aucune règle ;
 // ses ancêtres restent mesurés, et sont signalés s'il les élargit) :
@@ -439,6 +458,9 @@
 // pastille, `right: 0` en ligne avec `!important` (voir plus haut). Le
 // signalement garde ses valeurs du premier passage ;
 // `depassement` porte celui qui reste, `page.relue` la largeur de page relue.
+// Les cases de roue ont leur essai séparé AVANT ces neutralisations :
+// transformations des descendants remises à `none`, puis restaurées ; seul
+// leur signalement « contenu » entièrement expliqué par cet essai est levé.
 // Remise en état : chaque neutralisation en ligne pose aussi `transition:
 // none !important` — une transition sur la propriété neutralisée (`transition:
 // translate 1s`) ferait lire une valeur intermédiaire. Chaque élément touché
@@ -1161,7 +1183,16 @@ export function mesurer(options: { detail: boolean }): Mesure {
   const relirePage = scrollWidth > largeur + TOLERANCE && margesNegatives.length > 0;
   const leves = new Set<Signalement>();
   let decoratifsEnPlace = 0;
-  if (aRelire.length > 0 || relirePage) {
+  const estRoue = (el: Element) => /url\(["']?[^)]*\/rune-wheel\.png["']?\)/.test(style(el).backgroundImage);
+  const roueDe = (el: Element): Element | null => {
+    if (estRoue(el)) return null;
+    for (let a = el.parentElement; a; a = a.parentElement) {
+      if (estRoue(a)) return a;
+    }
+    return null;
+  };
+  const casesDeRoue = signalements.filter((s) => s.regle === 'contenu' && roueDe(elementDe.get(s) as Element));
+  if (aRelire.length > 0 || relirePage || casesDeRoue.length > 0) {
     const restaurer: (() => void)[] = [];
     // Remise en état (tête) : une pose garde l'attribut `style` d'avant, tel
     // quel, et coupe les transitions de l'élément le temps de la relecture.
@@ -1207,6 +1238,37 @@ export function mesurer(options: { detail: boolean }): Mesure {
       Math.abs(a.top - b.top) > 0.5 ||
       Math.abs(a.width - b.width) > 0.5 ||
       Math.abs(a.height - b.height) > 0.5;
+    // Un essai par case, sur la page intacte : aucune autre exception ne
+    // peut faire passer un excédent mixte pour une simple transformation.
+    for (const signalement of casesDeRoue) {
+      const el = elementDe.get(signalement) as Element;
+      const roue = roueDe(el) as Element;
+      if (roue.scrollWidth - roue.clientWidth > TOLERANCE || roue.scrollHeight - roue.clientHeight > TOLERANCE) continue;
+      const limites = boites.get(roue);
+      if (!limites) continue;
+      const transformes = Array.from(el.querySelectorAll('*')).filter((d) => {
+        if (!boites.has(d)) return false;
+        const s = style(d);
+        return s.transform !== 'none' || s.translate !== 'none' || s.rotate !== 'none' || s.scale !== 'none';
+      });
+      if (transformes.length === 0) continue;
+      const sousArbre = (d: Element) => transformes.some((t) => t.contains(d));
+      const dansLaRoue = visibles.filter(sousArbre).every((d) => {
+        const r = boites.get(d) as DOMRect;
+        return r.left >= limites.left - TOLERANCE && r.right <= limites.right + TOLERANCE
+          && r.top >= limites.top - TOLERANCE && r.bottom <= limites.bottom + TOLERANCE;
+      });
+      if (!dansLaRoue) continue;
+      const essai: Pose[] = [];
+      try {
+        for (const d of transformes) essai.push(poser(d, { transform: 'none', translate: 'none', rotate: 'none', scale: 'none' }));
+        if (depasse(el) <= TOLERANCE && visibles.every((d) => sousArbre(d) || !bouge(boites.get(d) as DOMRect, d.getBoundingClientRect()))) {
+          leves.add(signalement);
+        }
+      } finally {
+        rendre(essai);
+      }
+    }
     const retirable = (d: Element) => {
       for (const x of Array.from(d.querySelectorAll('*'))) {
         if (x.getClientRects().length > 0 && style(x).pointerEvents !== 'none') return false;

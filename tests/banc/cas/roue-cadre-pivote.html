@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Cadre pivoté dans la roue</title>
+<style>
+  body { margin: 16px; }
+  .roue { position: relative; width: 160px; height: 180px; background: url('../../../public/rune-wheel.png') center / contain no-repeat; }
+  .case { position: absolute; left: 68px; top: 75px; width: 24px; height: 30px; }
+  button { position: absolute; inset: 0; padding: 0; border: 0; background: transparent; }
+  .cadre { position: absolute; inset: 0; background: #985; transform: rotate(60deg); translate: 2px 0; scale: 1.1; transition: transform 300ms, translate 300ms, scale 300ms; }
+  .icone { position: absolute; inset: 0; transform: translate(-3px, 2px); transition: transform 300ms; }
+  .icone::before { content: ''; display: block; width: 10px; height: 10px; margin: 8px auto; background: #fc0; }
+</style>
+</head>
+<body>
+<!-- Le cadre agrandit le défilement du bouton et de sa case, mais toutes
+     les boîtes transformées restent dans la roue. Les trois transformations
+     individuelles et la transformation de l'icône sont restaurées sans transition. -->
+<div id="roue" class="roue" data-attendu="">
+  <div id="case" class="case" data-attendu="">
+    <button id="cible" aria-label="Rune pivotée" data-attendu="">
+      <span id="cadre" class="cadre" data-attendu=""></span>
+      <span id="icone" class="icone" data-attendu=""></span>
+    </button>
+  </div>
+</div>
+</body>
+</html>

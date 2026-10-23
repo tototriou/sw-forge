@@ -70,7 +70,7 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
     if (setsCost(next) >= 6 && setsCost(next) > setsCost(comboSets)) setOuvert(false);
   };
   return (
-    <section aria-label="Critères de recherche">
+    <section aria-label="Critères de recherche" data-set-optimizer={deplie ? 'deplie' : 'compact'}>
       <div
         ref={setPickerSectionRef}
         className={setPickerInvalid ? 'rounded-lg border border-bad bg-bad/15 p-2 -m-2 transition' : 'transition'}

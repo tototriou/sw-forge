@@ -60,7 +60,8 @@ node tests/banc/cas.mjs                         # la règle sur ses pages de cas
 
 Il construit l'app (`vite build` dans un dossier temporaire), la sert
 (`vite preview`), l'ouvre dans Chromium sans fenêtre (Playwright) au
-téléphone (360 × 800, tactile) et à l'ordinateur (1400 × 1000), amène chaque
+téléphone (360 × 800, tactile) et à l'ordinateur (1400 × 1000 par défaut,
+plusieurs tailles propres à l'Optimizer), amène chaque
 écran dans chacun de ses états ([banc/ecrans.ts](banc/ecrans.ts)) et vérifie
 un **invariant** : rien ne déborde à l'horizontale, une pastille posée en
 coin d'un portrait de monstre ne recouvre rien d'autre que son portrait, et
@@ -74,6 +75,18 @@ signalé et un cas non signalé, que vérifie [banc/cas.mjs](banc/cas.mjs) (une
 paire se déclare sur le premier des deux éléments : `data-attendu-avec`, en
 tête de `cas.mjs`).
 
+La règle « contenu » excuse l'excédent d'une case sous une roue reconnue
+par son fond `rune-wheel.png` seulement si tous les descendants transformés
+restent dans cette roue, qui ne déborde elle-même sur aucun axe. Un essai
+neutralise leurs rotations, translations et échelles : l'excédent doit
+disparaître entièrement, sans déplacer les boîtes hors de leurs sous-arbres.
+Tout est ensuite restauré, styles et transitions compris. Une sortie de
+la roue, ou un excédent non transformé mêlé au dessin, reste signalé ; aucun
+contenant plus large ne remplace la roue. Les autres règles restent actives.
+Les cas [cadre pivoté](banc/cas/roue-cadre-pivote.html) et
+[transformation sortante](banc/cas/roue-transformation-sortante.html)
+vérifient ces deux issues, ainsi que le contenu mixte.
+
 Un état peut charger un fichier par le vrai chemin de l'interface (étape
 `importer` de `ecrans.ts`, bouton « Importer ») : l'écran des
 recommandations de siège se mesure ainsi rempli, avec
@@ -81,6 +94,62 @@ recommandations de siège se mesure ainsi rempli, avec
 (plusieurs listes et équipes, sets, artéfacts, contres). Un fichier refusé
 par l'app laisse l'état non atteint : code 2, cause écrite, jamais une
 mesure de l'écran vide.
+
+### Tailles et états de l'Optimizer
+
+`--ecrans optimizer` exerce le téléphone et les douze fenêtres de bureau
+ci-dessous. La navigation reste dépliée. Les seuils portent sur le
+**conteneur de l'Optimizer**, après la navigation, les marges et les barres
+de défilement. Chaque préparation de volet clique « Écran partagé » ; les
+deux volets sont à parts égales, l'Optimizer à gauche, le sélecteur de page
+à droite. Aucun stockage de disposition n'est injecté.
+
+| Taille : pleine page / volet | Fenêtre pleine page | Fenêtre partagée | Agencement attendu dans le conteneur |
+|---|---|---|---|
+| `bureau-a1` / `volet-a1` | 1120 × 800 | 1920 × 940 | A1, [728, 904[ px ; colonnes ouvertes dans la page |
+| `bureau-a2` / `volet-a2` | 1200 × 900 | 2200 × 1000 | A2, [904, 952[ px ; colonne ouverte à droite des essentiels |
+| `ordinateur` / `volet-fiche-repliee` | 1400 × 1000 | 2560 × 1300 | A3, [952, 1160[ px ; fiche repliée, colonne superposée |
+| `bureau-portable` / `volet-fiche-depliee` | 1536 × 730 | 2880 × 1300 | A3, [1160, 1496[ px ; fiche dépliée, colonne superposée |
+| `bureau-une-colonne` / `volet-une-colonne` | 1920 × 940 | 3840 × 1200 | A3, [1496, 1832[ px ; une colonne insérée |
+| `bureau-deux-colonnes` / `volet-deux-colonnes` | 2560 × 1300 | 5120 × 1440 | A3, ≥ 1832 px ; deux colonnes insérées |
+
+Les états `defaut`, `reglages-avances`, `degats-reels` et
+`degats-reels-rempli` existent aux treize tailles. La modale remplie crée
+une liste Arène, y ajoute Vanessa et Cassie par la recherche de monstres,
+puis choisit l'objectif « Dégâts réels » (dialogue et « Non critique »
+exigés). Au téléphone, « Gérer mes listes » découvre d'abord la liste.
+Le choix d'« Arène » vise l'option dans la listbox « Contenu de la liste »
+ouverte, aux deux formats : le `<select>` conservé porte aussi ses options
+natives. Le champ `dans` d'une cible exige un contenant CSS unique et visible.
+
+Les états de bureau utilisent la même liste de deux membres :
+
+| État | Préparation et postcondition |
+|---|---|
+| `liste-remplie` | Nouvelle liste, contenu Arène, choix de Vanessa puis Cassie ; les deux membres doivent être présents |
+| `resultats` | Fermer les colonnes par leurs onglets, importer [optimizer-banc-recette.json](fixtures/optimizer-banc-recette.json), cliquer « Rechercher » ; au moins deux cartes et retour de « Rechercher » exigés, défilement jusqu'à la première carte pour la capture |
+| `artefacts` / `complements` | Même recherche, puis ouvrir la colonne correspondante ; superposition ou insertion vérifiée selon la taille |
+| `deux-colonnes` | Même recherche, puis ouvrir les deux colonnes ; seulement aux deux tailles qui les tiennent ensemble |
+| `set-flottant` | Liste remplie, cliquer la liste compacte « Set de runes recherché : Aucun » ; coffre et déclencheur déplié exigés, seulement aux tailles compactes déclarées |
+
+Le set doit être compact en A1/A2 et à 1536 × 730 ; déplié à
+2560 × 1300 en pleine page et 5120 × 1440 en volet. Aux autres hauteurs,
+sa forme observée est consignée sans être imposée. La recette synthétique
+demande Rapide sans condition sur le compte du banc ; elle ne contient
+aucune donnée de compte. L'import exige son compte rendu exact.
+
+Avant toute mesure de bureau, le banc vérifie l'intervalle de largeur,
+`data-agencement`, la disposition réelle de la fiche, la forme attendue du
+set, la présence et l'égalité des volets, et la position des colonnes
+ouvertes. Les repères ajoutés dans l'app sont `data-membre-optimizer`
+(espèce du membre), `data-fiche-optimizer` (boîte de la fiche) et
+`data-set-optimizer` (`compact` ou `deplie`). Ils ne changent pas le rendu.
+Un contrôle absent ou incohérent rend l'état non atteint : code 2, cause et
+capture, aucune mesure de remplacement. Le manifeste porte la taille,
+l'attendu, les rectangles observés et le nombre de cartes. Les états
+réservés à d'autres tailles sont déclarés non exercés avec leur motif.
+
+### Sélection, compte et sortie
 
 - **Sélection par fichiers** : `--depuis` et `--plage` passent les fichiers
   modifiés (`git diff --name-only`) à [banc/selection.ts](banc/selection.ts),
@@ -105,7 +174,7 @@ mesure de l'écran vide.
   est refusée, et aucun fichier n'est écrit par-dessus un autre. Il reçoit
   les captures et `manifeste.json` (révision et empreinte de
   l'état de travail de l'arbre construit, révision du banc, formats et
-  médias du pointeur, résultats, ce qui n'a pas été exercé, empreinte du
+  tailles par écran, médias du pointeur, résultats, ce qui n'a pas été exercé, empreinte du
   compte).
 - **Compte** : `--compte <fichier>` seulement, jamais une variable
   d'environnement ; sans lui, le compte du banc,

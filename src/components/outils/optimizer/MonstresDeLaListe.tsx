@@ -105,8 +105,7 @@ export default function MonstresDeLaListe({ activeList, activeMembers, ajoutList
         </p>
       ) : (
         // Bornés à 308 px aux deux formats : la liste prend la hauteur de ses
-        // membres jusque-là, puis défile (au bureau, décision de l'utilisateur
-        // à l'arrêt 4 : ~300 px au lieu des ≈ 4 lignes d'avant).
+        // membres jusque-là, puis défile pour garder les critères accessibles.
         <div className="mt-1 max-h-[308px] space-y-1 overflow-y-auto">
           {groupesMembres.filter(g => g.members.length > 0).map((g, numero) => {
             const membres = g.members.map(m => {

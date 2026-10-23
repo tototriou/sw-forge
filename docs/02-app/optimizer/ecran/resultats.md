@@ -9,7 +9,7 @@ garde à la relance sont dans
 [README.md](README.md#zone-des-résultats-et-place-en-plus). Au téléphone,
 ils suivent la progression, sur toute la largeur.
 
-13. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les
+13. **Résultats** — jusqu'à 20 combinaisons affichées par page, chacune : rang, les
     sets obtenus, le **panneau de stats** (`StatPanel.tsx`, le même composant
     que dans « Équipement actuel ») et les artéfacts + les 6 runes sur une
     roue à échelle réduite (`BuildCandidateCard.tsx`), tous deux cliquables
@@ -51,7 +51,7 @@ ils suivent la progression, sur toute la largeur.
     ([tests/rune-optim.test.ts](tests/rune-optim.test.ts) : la fonction ne
     doit JAMAIS lire `effTotal`, vérifié avec un `effTotal` délibérément
     faux). Le tri « Trier par efficience » recalcule de même.
-    ⚠️ **Une carte tient dans 360 px**, calibré exprès (`scale=0,45` sur la
+    ⚠️ **Au téléphone et au doigt, une carte tient dans 360 px** (`scale=0,45` sur la
     roue et les artéfacts, grille `repeat(auto-fill, minmax(min(360px,100%),
     1fr))`, creux `gap-3`) : c'est la largeur d'une carte par rangée ;
     `auto-fill` en fait tenir deux dès que la grille dépasse deux fois 360 px
@@ -96,9 +96,10 @@ ils suivent la progression, sur toute la largeur.
     ancré à la pièce ; au doigt, le détail s'affiche **en ligne sous la
     carte**, sur sa propre ligne. Un flottant à taille fixe déborderait de
     l'écran sur une carte de résultat déjà compacte en mobile.
-    ⚠️ **Cliquer sur une rune** d'un résultat ouvre le **même popover** que
-    dans Mon compte → Runes (`DetailPopover` + `RuneDetailBox`, ancré sur la
-    rune cliquée) — les runes d'un candidat sont de vraies runes du compte.
+    ⚠️ **Cliquer sur une rune** d'un résultat ouvre son détail complet
+    (`RuneDetailBox`, partagé avec Mon compte → Runes) : dans un
+    `FlottantAuto` ancré sur la rune à la souris, en ligne sous la carte
+    au doigt. Les runes d'un candidat sont de vraies runes du compte.
     La rune ouverte porte le **même halo orange** que la sélection dans
     `MonsterGear` (`brightness` + `drop-shadow`, voir `RuneWheel.tsx`) — la
     roue de résultat se comporte comme n'importe quelle roue de l'app. Une
@@ -107,20 +108,12 @@ ils suivent la progression, sur toute la largeur.
     halo) combine le candidat ET le slot (`BuildCandidateCard.tsx`), pas
     seulement l'id de la rune : la même rune peut apparaître dans plusieurs
     candidats affichés à la fois, et ne doit ouvrir qu'UNE instance.
-    ⚠️ **Le popover passe toujours au premier plan, quel que soit son
-    voisinage** : sans z-index, deux éléments `position:absolute` frères
-    s'empilent par simple **ordre du DOM**, pas par position à l'écran — le
-    popover d'une rune serait recouvert par le cadre d'une autre
-    rune de la même roue rendue plus tard, ou par une carte/fiche voisine
-    plus loin dans le DOM (grille de résultats, ligne suivante d'un
-    `AccordionGrid` en RTA/Siège). Sont donc promus, UNIQUEMENT tant
-    qu'un popover y est ouvert, le wrapper de la pièce concernée (`z-10`,
-    dans `RuneWheel.tsx`/`ArtifactSlots.tsx`/`RelicSlot.tsx`) **et** la
-    carte entière qui le contient (`relative z-10`,
-    `BuildCandidateCard.tsx`) — deux niveaux, parce qu'un popover doit
-    gagner à la fois contre ses voisins immédiats et contre les autres
-    cartes de la grille. La fiche d'équipement (`MonsterGear.tsx`) n'a pas
-    ce second niveau.
+    ⚠️ **Le flottant passe dans la couche supérieure** (`FlottantAuto`,
+    fondé sur `Flottant`) : les cartes voisines et les panneaux qui
+    défilent ne peuvent ni le recouvrir ni le rogner. Il suit son ancre
+    et reste borné à la fenêtre. Les marques `z-10` de la pièce ouverte
+    et de sa carte restent présentes ; elles ne portent pas cette
+    garantie, assurée par l'API `popover`.
 
 ## Diagnostic sur 0 résultat
 

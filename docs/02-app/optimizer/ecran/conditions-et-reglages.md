@@ -188,9 +188,8 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
      lancer-la-recherche.md § Lancer la recherche).
    - **« Diagnostic approfondi sur 0 résultat »**, décoché par défaut (plus
      coûteux qu'un diagnostic simple, voir resultats.md § Diagnostic sur 0 résultat).
-   - ⚠️ **Plus d'interrupteur « Prioriser les stats les plus
-     difficiles »**, retiré aux deux formats (aucun meilleur build
-     mesuré, et moins de builds valides) : l'écran envoie toujours
+   - ⚠️ **Aucun contrôle de pondération adaptative des stats** aux deux
+     formats : l'écran envoie toujours
      `adaptiveTrancheWeighting: false` à la recherche et l'exporte à faux
      dans une recette. Une recette qui le porte à vrai s'importe sans erreur
      et n'active rien ; le CLI (`recipeToSearchParams`), lui, le transmet

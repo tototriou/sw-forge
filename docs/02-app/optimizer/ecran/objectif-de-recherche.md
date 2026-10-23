@@ -205,9 +205,9 @@ Ce que contient ce réglage :
   cette variable, ex. n'importe quel sort de Sonia). Un éventuel
   critique/bonus de dégâts garanti est, lui, **déduit et affiché**,
   jamais redemandé. L'amplification d'un artéfact « Effet aug. VIT » est
-  lue sur la paire que la recherche suppose (les pièces portées seulement
-  sans optimisation d'artéfacts), et s'affiche dans « État de mon
-  monstre » quand le buff VIT est actif.
+  comptée sur la paire évaluée quand le buff VIT est actif, sans phrase
+  d'amplification dans « État de mon monstre » (voir
+  [etat-de-mon-monstre.md](etat-de-mon-monstre.md)).
   Détail : [degats-reels/feat-passifs-offensifs.md § VIT de l'adversaire](../../degats-reels/feat-passifs-offensifs.md#vit-de-ladversaire--relative-spd-et-lignore-def-proportionnel), « VIT de l'adversaire ».
 - **Effets actifs** — effets subis par la cible (réduction de défense
   ×0,3, marque +25 %, « ce sort pose le def break » — distingue
@@ -289,11 +289,11 @@ Ce que contient ce réglage :
   Non critique est grisé et non sélectionnable. Pas de mode
   « Moyenne » (espérance sur le Taux Crit).
 
-⚠️ **On n'affiche que ce que le sort CONSOMME** : un sort qui ignore la
-défense ne montre ni la DEF ennemie ni la réduction de défense ; un
-sort qui ne dépend pas de la VIT ne montre pas le buff de vitesse. Un
-champ visible mais sans effet est pire qu'un champ absent — il fait
-croire à une action.
+⚠️ **La fenêtre n'affiche que ce que le sort CONSOMME** : un sort qui
+ignore la défense ne montre ni la DEF ennemie ni la réduction de défense.
+Les buffs ATQ/DEF/VIT restent toujours accessibles dans « État de mon
+monstre », quel que soit le sort : ils changent aussi les statistiques
+lues par les dégâts supplémentaires des artéfacts.
 
 ⚠️ Contrairement aux trois autres objectifs, ses stats pertinentes
 **dépendent du sort** (`{ATK}`, `{ATK}×({SPD}+70)/30`, `0.2×{MAX HP}`…)

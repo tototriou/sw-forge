@@ -10,9 +10,8 @@ import { type StatPrincipaleImposeeProps } from '../StatPrincipaleImposee';
 export const LARGEUR_COLONNE_ETROITE = 177;
 
 // « Statistique principale imposée (slots pairs) », au bureau : une rangée
-// compacte par slot, « Slot n » puis sa liste à choix multiples (schéma de
-// l'utilisateur, arrêt 4), « Libre » sans choix, en « forme 2 » (liste
-// classique, chaque principale choisie en surbrillance, sans case) ; une ou
+// compacte par slot, « Slot n » puis sa liste à choix multiples,
+// « Libre » sans choix, chaque principale choisie en surbrillance, sans case ; une ou
 // plusieurs principales, comme les puces du téléphone (`StatPrincipaleImposee`,
 // inchangé). Mêmes props : le geste reste `toggleMainStat`, une principale à la
 // fois. La surface ouverte a la largeur du champ, jamais plus : « Dmg Crit »

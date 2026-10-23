@@ -52,9 +52,8 @@ import Flottant from './Flottant';
 // ouverte. Un choix qui fait passer le champ à deux lignes l'allonge SOUS la
 // surface, qui ne bouge pas (un clic ne déplace jamais ce qu'on vient de
 // cliquer) ; fermée, la liste montre tout. Ce qui suit le champ, lui, descend :
-// la règle protège la cible du clic, pas ce qui est dessous (décision de
-// l'utilisateur à l'arrêt 4 de la refonte, qui a retiré la hauteur réservée
-// pour toutes les options).
+// la règle protège la cible du clic, pas ce qui est dessous. Le champ reste
+// compact : aucune hauteur réservée pour les options non choisies.
 //
 // ⚠️ **Un focus perdu vers RIEN ne ferme pas la liste.** Un choix qui
 // désactive ou retire le bouton qu'on vient de cliquer (un set de 4 rend les

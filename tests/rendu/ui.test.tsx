@@ -244,7 +244,7 @@ export function testRenduUiSelecteurMultiple() {
   egal([...declencheurEntier.matchAll(/class="whitespace-nowrap">([^<]*)</g)].map((m) => m[1]), ['PV%,', 'ATQ%'],
     'résumé entier : chaque valeur choisie insécable, la ligne ne se coupe qu\'entre deux valeurs');
   ok(/data-resume-entier/.test(declencheurEntier) && !/data-reserve-resume|invisible/.test(declencheurEntier),
-    'résumé entier : aucune copie invisible qui réserve la place de toutes les options (arrêt 4 de la refonte)');
+    'résumé entier : aucune copie invisible qui réserve la place de toutes les options');
   const entierVide = rendre(<SelecteurMultiple libelle="Slot 2" options={options} valeurs={[]} onChange={rien} vide="Libre" resumeEntier />);
   ok(!!bouton(entierVide, 'Slot 2 : Libre') && /text-ink-dim">Libre</.test(entierVide), 'résumé entier sans choix : « Libre », atténué');
   ok(!/data-resume-entier/.test(surb) && /truncate/.test(surb), 'sans résumé entier : le champ fermé tronque (inchangé)');

@@ -56,8 +56,7 @@ droite. Au-dessus d'elles, ni bandeau ni phrase d'introduction.
    540) : la liste de travail (« Liste active », « Importer une équipe »,
    puis la liste, sans carte (voir « Panneaux et sections »), dont l'en-tête porte « Ajouter un monstre / à
    la liste » sur deux lignes, sans nom de liste, « Rechercher un monstre… »
-   et le monstre actif) ; « Critères de
-   recherche » avec le « Set de runes recherché » ; les « Conditions », et à
+   et le monstre actif) ; le « Set de runes recherché » ; les « Conditions », et à
    leur droite la « Statistique principale imposée (slots pairs) » puis
    « État de mon monstre », réduit aux buffs et au lead.
 2. **« Artéfacts et relique »**, repliable, place de 320 px (panneau de
@@ -87,8 +86,8 @@ droite. Au-dessus d'elles, ni bandeau ni phrase d'introduction.
 ⚠️ **Chaque colonne est un panneau** (fond `panel`, contour de 1 px) : les
 essentiels, chaque colonne repliable, la colonne de droite. Les boîtes
 qu'elle porte y sont des **sections sans cadre ni ombre**, séparées par un
-trait fin (`border-soft`) — décision de l'utilisateur à l'arrêt 4 de la
-refonte : des cartes côte à côte se lisaient comme une mosaïque aérée.
+trait fin (`border-soft`) : la colonne rassemble les réglages d'un même
+parcours, sans cadres concurrents à l'intérieur.
 Écarts **serrés dans un panneau** (8 px de rembourrage, 8 px de part et
 d'autre d'un trait), **larges entre deux** : 24 px. Classes communes :
 `src/components/outils/optimizer/bureau/panneau.ts` (`PANNEAU`, `SECTIONS`,
@@ -170,9 +169,9 @@ Les largeurs ci-dessus sont des **places** (`LARGEURS_BUREAU`,
 src/lib/optimizerColonnes.ts), d'où se calculent les seuils : un panneau
 prend sa place moins 8 px (`RETRAIT_PANNEAU`) quand une autre colonne le
 suit, et l'écart visible vaut la gouttière de 16 px plus ce retrait. Aucun
-seuil n'a bougé ; une section garde la largeur de contenu de la carte qu'elle
-remplace (294 px dans « Artéfacts et relique » comme dans « Aura, exclusion,
-avancés », 598 au plus pour « Exemplaire »). La colonne de droite n'est une
+seuil ne dépend du retrait ; une section garde 294 px de contenu dans
+« Artéfacts et relique » comme dans « Aura, exclusion, avancés »,
+598 au plus pour « Exemplaire ». La colonne de droite n'est une
 boîte qu'en A3 (`data-zone="droite"`) : un panneau qui défile seul, où
 « Exemplaire » tient la première piste (598 px au plus) et le bloc étroit la
 seconde (340 px au moins, 9 px plus loin, derrière un trait). ⚠️ **Aucune
@@ -222,7 +221,7 @@ onglets des colonnes repliables en `Bouton`, les flèches de pagination en
 `BoutonIcone`, les champs de recherche des sélecteurs en `Champ` + `Flottant`
 (même patron combobox que RtaSearch), et les sets/exclusions choisis en
 `Jeton` (la pilule supprimable de la lib). Les statistiques principales
-imposées sont des `Pastille` au téléphone, une `SelecteurMultiple` par slot
+imposées sont des `Pastille` au téléphone, un `SelecteurMultiple` par slot
 au bureau, qui sert aussi de champ fermé au set recherché. La grille de sets
 à ajouter est en `BoutonIcone cadre`, ses symboles
 colorisés par le **filtre doré partagé** `runeSetIconFilter` (effects.ts) — le
@@ -360,19 +359,19 @@ avertissement d'un côté, les **interrupteurs** de l'autre. Dans la colonne
 du bureau (320 px), la place ne le permet jamais : une colonne, le
 pré-filtrage au-dessus.
 
-- ⚠️ `grid-cols-[repeat(auto-fit,minmax(260px,1fr))]` et **non** un point de
+- ⚠️ **Au téléphone**, `grid-cols-[repeat(auto-fit,minmax(260px,1fr))]` et **non** un point de
   rupture d'écran (`sm:`/`xl:`) : ce qui décide ici est la largeur de la
   **surface** (colonne du bureau, panneau du téléphone), pas celle de la
-  fenêtre. Sous ~520 px, une colonne ; au-delà, deux — **sans une seule
-  classe conditionnelle**.
+  fenêtre. Sous ~520 px, une colonne ; au-delà, deux. Au bureau, les deux
+  groupes sont empilés par `SECTIONS` dans leur colonne de largeur fixe.
 - ⚠️ Les séparateurs des interrupteurs sont en **`divide-y` sur leur
   conteneur**, jamais en `border-t` individuel : un trait ne se pose alors
   qu'ENTRE deux voisins, jamais au-dessus du premier — une bordure par
   interrupteur poserait un trait en tête de colonne, lu comme une ligne
   perdue une fois le groupe posé à côté du pré-filtrage.
-- Chacune des deux parties porte son **contour**, aux **mêmes classes** que
-  les trois groupes d'« État de mon monstre » : deux façons de cadrer un
-  groupe dans le même écran se liraient comme deux natures différentes.
+- **Au téléphone**, chacune des deux parties porte son contour, comme les
+  groupes d'« État de mon monstre ». **Au bureau**, ce sont des groupes
+  sans cadre : les traits du panneau suffisent à les séparer.
 
 ⚠️ L'ouverture de leur surface (colonne, panneau) n'est **jamais dans
 `useOptimizerState`** : c'est de l'ouverture/fermeture, pas un critère de
@@ -506,7 +505,7 @@ un carré plein, et reste inactif 300 ms : le double clic qui lance ne
 l'arrête pas.
 
 ⚠️ **Une seule place réservée : celle de « Rechercher » / « Arrêter »**
-(décision de l'utilisateur à l'arrêt 4). L'estimation, le résumé de
+(décision de l'utilisateur). L'estimation, le résumé de
 « Dégâts réels » et la progression prennent leur hauteur quand ils
 paraissent : toujours sous ce qu'on vient de cliquer (le set, l'objectif,
 « Rechercher »), jamais au-dessus. Ce qui suit le bloc (les onglets en A2,
@@ -549,15 +548,17 @@ Deux formes, selon la place :
   superposée ouverte peut le couvrir, ce que l'utilisateur accepte (voir
   [Colonnes repliables selon la largeur](#colonnes-repliables-selon-la-largeur)).
 
-⚠️ Le bloc ne change de forme qu'au clic d'un onglet, qui ouvre ou ferme
-une colonne insérée, jamais au lancement d'une recherche.
+⚠️ La forme du bloc dépend de la largeur du conteneur et des colonnes
+insérées : elle s'adapte au redimensionnement ou au clic d'un onglet,
+jamais au lancement d'une recherche.
 
 En A1, le bloc suit les essentiels, à sa place, dans son panneau : estimation,
 objectifs, « Exporter » · « Importer ». ⚠️ **Seule sa barre fine reste collée
 au bas de la fenêtre** tant que sa place est sous le pli : « Rechercher » (ou
 « Arrêter », à sa place exacte) et, à sa droite, la progression, 69 px
-mesurés (décision de l'utilisateur, arrêt 4 : le bloc entier collé couvrait
-264 px). Elle suit le bloc dans la page (`data-zone="barre"`), et y reprend
+mesurés : seuls le lancement, l'arrêt et leur progression restent ainsi
+accessibles sans couvrir les réglages. Elle suit le bloc dans la page
+(`data-zone="barre"`), et y reprend
 sa place une fois le bloc atteint. ⚠️ **Sa hauteur ne change jamais** : la
 progression y tient dans la place de la plus haute (copie invisible) ;
 collée par le bas, une barre qui grandirait ferait monter « Rechercher » /

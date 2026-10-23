@@ -72,7 +72,7 @@ export const LARGEURS_BUREAU = {
 // (src/components/outils/optimizer/bureau/panneau.ts), 8 px plus étroit que
 // sa place quand une autre colonne la suit : l'écart visible entre deux
 // panneaux est la gouttière plus ce retrait, 24 px (décision de
-// l'utilisateur à l'arrêt 4 : écarts larges entre les colonnes), et aucun
+// l'utilisateur : écarts larges entre les colonnes), et aucun
 // seuil ne bouge. Le panneau rend la place que les cadres de ses cartes
 // prenaient : une section y garde la largeur de contenu de la carte d'avant.
 export const RETRAIT_PANNEAU = 8;

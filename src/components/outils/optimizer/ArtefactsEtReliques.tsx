@@ -30,7 +30,7 @@ export interface ArtefactsEtReliquesProps {
   // (`bureau/ArtefactsEtReliqueBureau.tsx`), que le téléphone ne prend pas :
   // section sans cadre (le panneau de la colonne le porte), et Attribut et
   // Type sur UNE ligne, chaque liste à la largeur de son contenu (décision de
-  // l'utilisateur à l'arrêt 4).
+  // l'utilisateur).
   bureau?: boolean;
 }
 

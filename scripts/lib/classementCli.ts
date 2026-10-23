@@ -31,15 +31,27 @@ import {
   SearchParams,
   aurasPropresParRunes,
   optionsDeClassement,
-  sortCandidates,
 } from '../../src/lib/runeBuildOptim';
-import { ResultatArtefacts, cibleDeLaFile, classementResolu, cleBuild, prochainsATraiter } from '../../src/lib/artifactQueue';
-import { etatReliqueDuBuild } from '../../src/lib/relicQueue';
-import { ArtifactDamageProfile, DEFAULT_DAMAGE_SETUP, artifactDamageProfile } from '../../src/lib/damage';
+import { CacheResolutionJournalise, ResultatArtefacts, cibleDeLaFile, classementResolu, cleBuild, prochainsATraiter } from '../../src/lib/artifactQueue';
+import { contexteResultat, optionsDuContexte } from '../../src/lib/contexteResultat';
+import { ordreCollecte } from '../../src/lib/classementCompact';
+import { regimeArtefacts, regimeEquipementDe } from '../../src/lib/artifactEvaluation';
+import { DEFAULT_DAMAGE_SETUP } from '../../src/lib/damage';
 import { OptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import { LoadedMonster } from './loadMonster';
 import { loadMonstersList } from './monstersData';
-import { resoudreEquipementCli, toutVerifierDeLaRecette } from './recipeToSearchParams';
+import { artefactsDuCli, resoudreEquipementCli, toutVerifierDeLaRecette } from './recipeToSearchParams';
+
+export function contexteDeResultatCli(recipe: OptimizerRecipe, loaded: LoadedMonster, params: SearchParams, realDamage: RealDamageContext | null) {
+  const a = recipe.ignoreArtifacts ? null : artefactsDuCli(recipe, loaded);
+  const setup = recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP;
+  const exclusive = { setup, element: a?.element ?? loadMonstersList().find((m) => m.com2usId === loaded.com2usId)?.element ?? null };
+  return contexteResultat({ params, fiche: loaded.gear, realDamage, damageSetup: setup, exclusive, idInventaire: 0, idEspece: loaded.com2usId,
+    signature: JSON.stringify([params.requirement, recipe.damageSetup, recipe.artifactMainByKind, recipe.lignesVerrouillees]),
+    resolution: a ? { fiche: loaded.gear, artifactParams: a.params,
+      regime: regimeEquipementDe(regimeArtefacts(recipe.objective), a.degats !== null), degats: a.degats, exclusive,
+      requirement: params.requirement, relicContext: params.relicContext } : null });
+}
 
 // Ce que les deux jeux d'options (ordre de base, classement résolu) ont en
 // commun — tout sauf les deux accesseurs qui lisent le cache de résolution.
@@ -104,29 +116,9 @@ export function classerApresResolution(e: {
 }): ClassementResoluCli | null {
   const resoudre = resoudreEquipementCli(e.recipe, e.loaded, e.params);
   if (!resoudre) return null;
-  const parBuild = new Map<string, ResultatArtefacts>();
-  // Le profil d'artéfacts de CHAQUE build résolu, comme `profilsParBuild` à
-  // l'écran : ses stats viennent d'être recalculées avec sa vraie paire, ses
-  // lignes d'effet doivent suivre. Calculé à la première lecture : le cache
-  // grandit pendant la résolution, et un résultat n'y change jamais.
-  const profils = new Map<string, ArtifactDamageProfile>();
-  const options = optionsDeClassement({
-    ...e.entreesTri,
-    artefactsDuBuild: (c) => {
-      const cle = cleBuild(c);
-      const r = parBuild.get(cle);
-      if (!r) return null;
-      let p = profils.get(cle);
-      if (!p) {
-        p = artifactDamageProfile(r.artefacts);
-        profils.set(cle, p);
-      }
-      return p;
-    },
-    // L'expression même de l'écran (`etatReliqueDe`) : cache, contexte de la
-    // recherche lancée, relique de la fiche (`SearchParams.relic`).
-    etatReliqueDe: (c) => etatReliqueDuBuild(parBuild.get(cleBuild(c)), e.params.relicContext, e.params.relic),
-  });
+  const parBuild = new CacheResolutionJournalise();
+  const contexte = contexteDeResultatCli(e.recipe, e.loaded, e.params, e.entreesTri.realDamage);
+  const options = optionsDuContexte(contexte, parBuild, e.recipe.metric);
   // Le contexte de la recherche LANCÉE, comme `relicContextRecherche` à
   // l'écran : jamais relu dans la recette. L'interrupteur « Vérifier toutes les
   // combinaisons trouvées », lui, vient de la recette, comme l'écran le lit
@@ -141,7 +133,7 @@ export function classerApresResolution(e: {
     // Chaque lot résout au moins un build nouveau : la boucle s'arrête au
     // plus tard quand tout est résolu.
     for (;;) {
-      const page = classementResolu(e.base, parBuild, e.recipe.objective, options).slice(0, LIGNES_IMPRIMEES);
+      const page = classementResolu(e.base, parBuild.publier(), e.recipe.objective, options).slice(0, LIGNES_IMPRIMEES);
       const lot = prochainsATraiter(e.base, parBuild, K, page);
       if (lot.length === 0) break;
       for (const c of lot) parBuild.set(cleBuild(c), resoudre(c));
@@ -149,7 +141,7 @@ export function classerApresResolution(e: {
     }
   }
   const ms = performance.now() - t0;
-  const classes = classementResolu(e.base, parBuild, e.recipe.objective, options);
+  const classes = classementResolu(e.base, parBuild.publier(), e.recipe.objective, options);
   let rejetes = 0;
   for (const r of parBuild.values()) if (!r.conforme) rejetes++;
   return { mode: e.toutResoudre ? 'tout' : 'file', K, parBuild, classes, options, rejetes, lots, ms };
@@ -194,21 +186,9 @@ export function classerCommeLEcran(e: {
     aurasPropresDe: aurasPropresParRunes(runeById),
     contexteExclusive: { setup, element: loadMonstersList().find((m) => m.com2usId === loaded.com2usId)?.element ?? null },
   };
-  // ⚠️ Le MÊME producteur que l'écran (`optionsDeClassement`) : un
-  // champ ajouté d'un côté ne peut plus manquer de l'autre en silence. Ce sont
-  // les options de l'ordre de BASE (`fullSortedCandidates` à l'écran), sans
-  // cache de résolution : la paire de `params.artifacts`, déjà portée par
-  // `realDamage`, pour tous ; `etatReliqueDuBuild` sans cache rend `fixe` en
-  // `off`/`equipped` — la relique de la fiche, `params.relic`
-  // (= `loaded.gear.relic`), celle dont le moteur a posé la principale dans
-  // `c.stats` — et `en attente` en `recherche` : neutre, sans repli, comme
-  // l'écran avant résolution.
-  const optionsDuTri = optionsDeClassement({
-    ...entreesTri,
-    artefactsDuBuild: () => null,
-    etatReliqueDe: () => etatReliqueDuBuild(undefined, params.relicContext, params.relic),
-  });
-  const base = sortCandidates(e.candidates, recipe.objective, optionsDuTri);
+  const photo = contexteDeResultatCli(recipe, loaded, params, e.realDamage);
+  const optionsBase = optionsDuContexte(photo, null, recipe.metric);
+  const base = Array.from(ordreCollecte(e.candidates, recipe.objective, optionsBase), (i) => e.candidates[i]);
   const resolu = classerApresResolution({ recipe, loaded, params, base, entreesTri, toutResoudre: e.toutResoudre });
-  return { base, optionsBase: optionsDuTri, resolu, classes: resolu?.classes ?? base, options: resolu?.options ?? optionsDuTri };
+  return { base, optionsBase, resolu, classes: resolu?.classes ?? base, options: resolu?.options ?? optionsBase };
 }

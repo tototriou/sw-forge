@@ -7,12 +7,14 @@ import { flushSync } from 'react-dom';
 import { useBuildOptimSearch } from '../../src/hooks/useBuildOptimSearch';
 import type { SearchParams } from '../../src/lib/runeBuildOptim';
 import type { DemandeDeRecherche } from '../../src/workers/runeBuildOptim.worker';
+import { ClassementVideTest, demandeClassementTest } from '../classement-fixture';
 
 type Preuves = [boolean, string][];
 let lancer: ((params: SearchParams) => void) | null = null;
 
 function Banc() {
-  lancer = useBuildOptimSearch().run;
+  const recherche = useBuildOptimSearch();
+  lancer = (params) => { const d = demandeClassementTest(params); recherche.run(params, d.photo, d.vue); };
   return <p>Banc de la recherche</p>;
 }
 
@@ -30,13 +32,11 @@ async function demandeAvec(pont: Pont): Promise<{ demandes: DemandeDeRecherche[]
   const g = globalThis as unknown as { swblacksmithBureau?: Pont; Worker: unknown };
   const vraiWorker = g.Worker;
   const demandes: DemandeDeRecherche[] = [];
-  g.Worker = class {
-    onmessage = null;
-    onerror = null;
+  g.Worker = class extends ClassementVideTest {
     postMessage(demande: DemandeDeRecherche) {
-      demandes.push(demande);
+      if (demande.type === 'recherche') demandes.push(demande);
+      super.postMessage(demande);
     }
-    terminate() {}
   };
   if (pont) g.swblacksmithBureau = pont;
   else delete g.swblacksmithBureau;
@@ -47,7 +47,7 @@ async function demandeAvec(pont: Pont): Promise<{ demandes: DemandeDeRecherche[]
     await geste(() => root.render(<Banc />));
     // La réponse du pont arrive après le montage : la laisser se poser.
     await new Promise((r) => setTimeout(r, 20));
-    const params = { marque: 'paramètres de la recherche' } as unknown as SearchParams;
+    const params = demandeClassementTest({ marque: 'paramètres de la recherche' } as unknown as SearchParams).params;
     await geste(() => lancer!(params));
     return { demandes, params };
   } finally {
@@ -63,8 +63,9 @@ export async function scenario(): Promise<Preuves> {
   const constater = async (cas: string, pont: Pont, attendu: number | null) => {
     const { demandes, params } = await demandeAvec(pont);
     const d = demandes[0];
-    preuves.push([demandes.length === 1 && d?.type === 'recherche' && d.params === params,
-      `${cas} : une demande de recherche, qui porte les paramètres passés à run (${demandes.length} demande(s))`]);
+    preuves.push([demandes.length === 1 && d?.type === 'recherche' && d.params !== params
+      && JSON.stringify(d.params) === JSON.stringify(params),
+      `${cas} : une demande de recherche, qui porte la copie figée des paramètres passés à run (${demandes.length} demande(s))`]);
     preuves.push([d?.coeursPhysiques === attendu, `${cas} : cœurs physiques de la demande = ${JSON.stringify(attendu)} (reçu ${JSON.stringify(d?.coeursPhysiques)})`]);
   };
   await constater('site, sans pont', undefined, null);

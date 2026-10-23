@@ -19,9 +19,9 @@
 // responsabilités séparées, dont celle-ci est la seule testable sans
 // navigateur.
 
-import { BuildCandidate, BuildRequirement, Objective, OptionsDeClassement, preparerNotationCompacte, trierCandidatsIncrementalement } from './runeBuildOptim';
+import { BuildCandidate, BuildRequirement, Objective, OptionsDeClassement, preparerNotationCompacte } from './runeBuildOptim';
 import { CandidatNonCompactable } from './candidatsCompacts';
-import { ClassementCompact, TravailClassementCompact } from './classementCompact';
+import { ClassementCompact, TravailClassementCompact, candidatsParIndice, ordreCollecte } from './classementCompact';
 import { StatKey } from './effects';
 import { StatRow } from './stats';
 import { ArtifactDetail, RelicDetail } from '../types';
@@ -609,18 +609,20 @@ export function ordonnerParDepartage<T extends BuildCandidate>(candidats: readon
  * ⚠️ **Un build optimisé peut donc passer devant, et c'est le comportement
  * voulu** — voir `candidatAvecSaPaire` pour l'argument de convergence.
  */
-export function classementResoluReference(
+function classementParIndices(
   base: BuildCandidate[],
   parBuild: ReadonlyMap<string, ResultatArtefacts>,
   sortBy: StatKey | Objective,
   options: OptionsDeClassement
 ): BuildCandidate[] {
   if (parBuild.size === 0) return base;
-  const conformes = ordonnerParDepartage(
-    base.filter((c) => parBuild.get(cleBuild(c))?.conforme !== false),
-    (c) => parBuild.get(cleBuild(c))?.relique?.id
-  );
-  return trierCandidatsIncrementalement(conformes.map((c) => candidatAvecSaPaire(c, parBuild)), sortBy, options);
+  // Les appels génériques peuvent porter des lignes non compactables ; ils
+  // utilisent le même tri d'ordinaux, sans conserver une mémoire de versions.
+  const indices = Array.from({ length: base.length }, (_, i) => i).filter((i) => parBuild.get(cleBuild(base[i]))?.conforme !== false);
+  const departages = indices.map((i) => ({ i, rid: parBuild.get(cleBuild(base[i]))?.relique?.id ?? Infinity, cle: cleBuild(base[i]) }));
+  departages.sort((a, b) => a.rid !== b.rid ? a.rid - b.rid : a.cle < b.cle ? -1 : a.cle > b.cle ? 1 : 0);
+  const source = candidatsParIndice(departages.length, (i) => candidatAvecSaPaire(base[departages[i].i], parBuild));
+  return Array.from(ordreCollecte(source, sortBy, options), (i) => source[i]);
 }
 
 const CLASSEMENTS_COMPACTS = new WeakMap<BuildCandidate[], ClassementCompact>();
@@ -636,23 +638,23 @@ export function classementResolu(
   const journal = journalResolution(parBuild);
   if (!journal || parBuild.size === 0) {
     CLASSEMENTS_COMPACTS.delete(base);
-    return classementResoluReference(base, parBuild, sortBy, options);
+    if (parBuild.size === 0) return base;
   }
   try {
     const notation = preparerNotationCompacte(sortBy, options);
     if (!notation) {
       CLASSEMENTS_COMPACTS.delete(base);
-      return classementResoluReference(base, parBuild, sortBy, options);
+      return classementParIndices(base, parBuild, sortBy, options);
     }
     let classement = CLASSEMENTS_COMPACTS.get(base);
-    if (!classement) { classement = new ClassementCompact(base); CLASSEMENTS_COMPACTS.set(base, classement); }
+    if (!classement) { classement = new ClassementCompact(base); if (journal) CLASSEMENTS_COMPACTS.set(base, classement); }
     classement.actualiser(parBuild, journal, notation.contexte, notation.noter);
     // Adaptation temporaire : références stables, jamais N décompactages.
     return classement.page(0, base.length).map((i) => candidatAvecSaPaire(base[i], parBuild));
   } catch (e) {
     if (!(e instanceof CandidatNonCompactable)) throw e;
     CLASSEMENTS_COMPACTS.delete(base);
-    return classementResoluReference(base, parBuild, sortBy, options);
+    return classementParIndices(base, parBuild, sortBy, options);
   }
 }
 

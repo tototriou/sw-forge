@@ -428,127 +428,105 @@ relique : [reliques.md § Résolution exacte par build, file, classement](reliqu
 
 ## Worker de résolution
 
-Quand il est disponible, la résolution tourne hors du fil de l'écran, dans un
-Worker dédié (`src/workers/resolution.worker.ts`). La coquille ne porte
-aucune logique : elle branche `self.onmessage` sur `CorpsResolution`
-(`src/workers/resolutionBody.ts`), un module neutre que Node importe tel
-quel. Vers le Worker, trois messages (`MessageVersResolution`) : `contexte`,
-qui porte les entrées en données (`EntreesResolutionSerialisables`, dérivées
-par `entreesSerialisables`, qui ne retire que `evaluer`) ; `resoudre`, une
-demande pour un build, avec ses runes ; `annuler`. Chaque demande reçoit une
-réponse (`ReponseResolution`) : `resultat`, `erreur` ou `annule`, marquée
-`idContexte` et `idDemande`.
-
-`recevoir` traite un message sans rien résoudre. Un nouveau contexte annule
-les demandes en attente et repart de caches neufs
-(`nouveauxCachesResolution`) ; une demande d'un autre contexte est annulée
-aussitôt ; `annuler` retire la demande visée, ou toutes sans `idDemande`.
-`etape` résout la plus ancienne demande en attente, une seule, par
-`entreeResolutionDuBuild` puis `resoudreEquipementDuBuild`, la résolution du
-fil de l'écran ; une exception devient une réponse `erreur` (nom, message,
-et motif `vide` d'une `RechercheRefusee`). La coquille appelle `etape` dans
-une tâche à part (`setTimeout`), une demande par tâche : un message arrivé
-entre deux résolutions passe avant la suivante.
-
-Côté écran, `ResolutionDistante` (`src/workers/resolutionDistante.ts`),
-module pur, décide quoi envoyer ; le hook de la file ne fait que le brancher.
-`planifier` rend, dans l'ordre :
-
-1. le contexte, s'il a changé (identité des entrées ou signature) et qu'il
-   reste du travail ; toutes les demandes en vol deviennent caduques ;
-2. les annulations des demandes sorties des premiers restants, sauf la plus
-   ancienne en vol, que le corps a sans doute commencée ;
-3. les demandes, dans l'ordre des restants, jusqu'à `DEMANDES_EN_VOL_MAX`
-   sans réponse, annulées comprises.
-
-`recevoir` libère toujours la place en vol, mais n'écrit dans le cache que le
-résultat d'une demande non annulée du contexte courant : une réponse périmée
-n'est jamais écrite. Une réponse `erreur` ou un envoi qui lève (`pomper`),
-une erreur du Worker ou une réponse illisible font renoncer (`renoncer`) :
-le Worker est terminé, l'erreur journalisée (`console.error`), et la file
-repasse sur le fil de l'écran avec le cache tel qu'il est. Un Worker
-impossible à créer bascule la file de la même façon (`basculerEnRepli`),
-l'erreur journalisée, mais sans demande à abandonner ni Worker à terminer. Détail : [parallelisation.md § Worker de résolution](parallelisation.md) et
-[artefacts.md § Résolution hors du fil de l'écran](artefacts.md).
+Le résolveur conserve son corps neutre `CorpsResolution` et les producteurs
+`entreeResolutionDuBuild` / `resoudreEquipementDuBuild`. Sa coquille accepte
+un MessagePort relié au classeur ; elle traite une demande par tâche.
+`ResolutionDistante` décide des deux places en vol, des annulations et de la
+validité des réponses dans le fil du classeur. Les identifiants ne repartent
+pas à zéro au remplacement d'une recherche : une ancienne réponse ne peut
+pas devenir une nouvelle demande. Le détail du protocole et du repli est dans
+[parallelisation.md § Worker de résolution](parallelisation.md#worker-de-résolution).
 
 ## File de résolution
 
-`useArtifactOptimQueue` (`src/hooks/useArtifactOptimQueue.ts`) dit QUAND
-résoudre ; `src/lib/artifactQueue.ts` dit QUI, dans quel ordre et par quelle
-voie. L'écran lui passe :
+### Propriétaire et contexte du résultat
 
-- l'ordre de base (`fullSortedCandidates`) : les candidats triés par
-  `sortCandidates` avec la paire supposée, ceux de l'aperçu de progression
-  pendant l'appariement, puis ceux du résultat. Jamais le classement corrigé
-  par la file elle-même ;
-- un accesseur de la page affichée ;
-- la résolution du fil de l'écran (`resoudreEquipement`), nulle quand il n'y a
-  rien à optimiser ;
-- la signature (`signatureArtefacts`), la cible `K` et les entrées hors fil
-  (`ResolutionHorsFil`).
+Le propriétaire des candidats, du cache et du classement est le Worker dédié
+`classement.worker.ts`. Son corps neutre est dans `classementCompact.ts` ;
+`classementDistant.ts` porte le protocole, sans React ni API de plateforme.
+Le contrôleur appartient à la recherche remontée dans l'état applicatif :
+démonter l'écran ne détruit ni le magasin ni la file. Une nouvelle recherche
+invalide immédiatement la génération précédente.
 
-`prochainsATraiter` rend les builds à résoudre. D'abord ceux de la page
-affichée absents du cache : `aVerifier` de `compositionDePage`, les builds
-qui rempliront ses places en attente. Puis l'avance de fond, qui parcourt
-l'ordre de base et s'arrête quand les confirmées rencontrées (résolues et
-conformes) plus les non résolues rencontrées atteignent `K` ; un build écarté
-(`conforme: false`) ne compte pas, la fenêtre s'allonge d'autant. `K` vient
-de `cibleDeLaFile` : `kDeLaFile` du contexte relique de la recherche lancée
-(`K_BUILDS_RECHERCHE_RELIQUE` en mode `recherche`, `K_BUILDS_OPTIMISES`
-sinon), ou l'infini avec « Vérifier toutes les combinaisons trouvées », lu en
-direct.
+`contexteResultat.ts` photographie les données au lancement, par un producteur
+pur partagé avec Node : paramètres de recherche, fiche, inventaires de
+résolution, combat, signature et identité de l'import. Les fonctions de
+notation et de résolution se reconstruisent depuis cette photographie.
+Modifier un critère de recherche ne modifie pas le résultat vivant.
+La vue conserve le tri, la mesure, la page, la cible de vérification et
+« Adapter les artéfacts et reliques au tri » : cet interrupteur décide encore
+du régime de résolution, à partir des données photographiées seulement.
 
-Avec le Worker, `pomper` relit la file et envoie les demandes à chaque rendu
-et après chaque réponse. Un seul Worker sert toute la vie du hook : créé au
-premier besoin, terminé au démontage. Après un repli, il n'est plus relancé.
-Sur le chemin direct, un build est résolu par tâche, sur le fil de l'écran.
-`voieDeLaFile` dit quand :
+La page relie recherche → classeur et classeur ↔ résolveur par deux
+MessageChannel. Les blocs scellés sont transférés directement au classeur,
+acquittés après ingestion, puis scellés par un bilan sans réémission des
+candidats. Le protocole distingue schéma, recherche, inventaire, contexte de
+résolution, révision des données, vue, publication et demande. Une réponse
+ancienne libère sa place sans écriture. Une publication regroupe les données
+d'une seule recherche et d'une seule vue ; la dernière est forcée à la fin
+de la file et au dernier build attendu de la page.
 
-- `page` : une tâche immédiate (`MessageChannel`), tant que la page affichée
-  porte un build non résolu ;
-- `fond` : le temps d'inactivité (`requestIdleCallback`, repli `setTimeout`) ;
-- `aucune` : rien n'est programmé.
+Le résolveur reste séparé. Sa panne termine son canal et fait reprendre la
+résolution par les mêmes producteurs dans le fil du classeur. La perte ou
+l'impossibilité de créer le classeur passe par le statut `error` de la
+recherche et son message existant : aucune relance automatique ni copie
+intégrale de secours. Le magasin perdu n'est jamais reconstitué.
 
-Une seule tâche attend, toutes voies confondues. Une tranche de fond en
-attente est annulée quand la page acquiert des builds non résolus. La voie ne
-change ni les builds traités ni leur ordre.
+L'adaptateur conserve le contrat de l'écran : candidats objets, tableau de
+base, classement complet et Map du cache publiés ensemble. Ces projections
+de compatibilité ne sont pas les données propriétaires du Worker. Le CLI et
+le harnais appellent le même corps compact directement, sans Worker ; la
+référence objet sert uniquement à l'oracle des tests.
 
-Le cache (`parBuild`, clé `cleBuild` : les identifiants des six runes, triés)
-ne fait que grandir sous une même signature. Il se vide quand
-`signatureArtefacts` change, c'est-à-dire pour tout réglage qui change le
-score d'une paire, l'inventaire ou les conditions : détail dans
-[artefacts.md § Recalcul quand la paire peut changer](artefacts.md). Une
-recherche relancée aux mêmes réglages garde donc ce que la précédente a
-résolu. L'écran ne voit le cache qu'à sa publication, au plus une par
-`PUBLICATION_MS`. Elle est forcée quand la file se vide, et quand le dernier
-build non résolu de la page vient de l'être (`publicationForcee` côté
-Worker).
+`CorpsClassement` décide de la file dans le Worker. Il conserve l'ordre
+de base indépendamment des équipements résolus, les états par groupe et
+les comptes de l'index. La page attend les premiers non résolus nécessaires
+pour compléter ses vingt cartes vérifiées ; ils passent devant le fond.
+Le fond conserve la règle de `prochainsATraiter` : K compte les confirmées
+et les lignes non résolues rencontrées dans l'ordre de base, jamais les
+rejets. Les doublons comptent comme lignes, mais ne partent pas deux fois en
+résolution. La sélection de la file travaille sur les ordinaux et les états
+typés ; seuls les deux builds envoyés sont matérialisés.
 
-Annulation : avec le Worker, `planifier` annule les demandes devenues
-inutiles (page changée, meilleurs builds arrivés) ou caduques (nouveau
-contexte). Sur le chemin direct, rien n'est en vol : la tâche en attente est
-annulée quand l'effet se démonte (résolution, signature ou `K` changés), et
-la tranche suivante relit la file à jour.
+K vient toujours de `cibleDeLaFile`, avec le contexte relique photographié
+et « Vérifier toutes les combinaisons trouvées » lu dans la vue.
+`ResolutionDistante` conserve sa limite de deux demandes sans réponse.
+Le repli exécute une demande par tâche du classeur ; il utilise les mêmes
+entrées sérialisables et le même corps de résolution.
+
+Le cache reste compatible sous la même signature, import et régime
+effectif. Un changement de régime par « Adapter les artéfacts et reliques
+au tri » le vide ; un changement des critères de recherche ne change rien
+avant le lancement suivant. Le cache résolu est en colonnes
+(`cacheResolutionCompact.ts`) : totaux Float64, index de pièces, note,
+coût et drapeaux. Aucune réponse objet ni profil de dégâts par candidat
+n'est retenu dans le propriétaire. Le journal porte les écritures seules.
 
 ## Résultat affiché
 
-Le cache de `useArtifactOptimQueue` journalise les écritures des deux voies
-de résolution. Les instantanés restent des `Map`, associés à leur journal
-par identité ; aucun changement de l'appel de l'écran n'est nécessaire.
-`classementResolu` utilise le magasin et l'index compacts pour les publications
-versionnées compatibles, et le classement complet de référence sinon.
-Le tableau affiché reste complet ; sa matérialisation parcourt les références,
-sans décompacter tous les candidats. Les contrôles et les notes suivent les
-seules versions modifiées. Contrat, ordre exact et replis :
-[optimiseur-artefacts.md](optimiseur-artefacts.md#magasin-compact-et-publications-versionnées).
+L'adaptateur `useArtifactOptimQueue` transmet uniquement la vue au
+contrôleur de recherche et expose sa publication. Il ne crée ni Worker,
+ni cache de calcul, ni résolution sur le fil de l'écran.
+`AdaptateurClassement` reconstruit les interfaces objets de l'écran :
+candidats, ordre de base, classement affiché et Map du cache, dans un
+instantané de versions unique.
 
-`classementResolu` (`src/lib/artifactQueue.ts`) produit le classement
-affiché (`affichees`), le même pour l'écran et le CLI. Il part de l'ordre de
-base et retire les builds que la résolution a écartés (`conforme: false`). Il
-départage à score égal par relique retenue puis `cleBuild` et lit chaque
-build à travers son équipement résolu (`candidatAvecSaPaire`). L'index suit
-le même ordre que `ordonnerParDepartage` puis `sortCandidates`. Un build résolu
-peut donc passer devant ; un build non résolu garde ses stats d'origine.
+Le classeur envoie les candidats à l'activation de l'aperçu, plafonné à
+3 000, puis du résultat final. Les publications suivantes transfèrent des
+copies des deux vecteurs d'ordinaux et les seules résolutions modifiées.
+Le stockage vivant n'est jamais transféré pour publier une vue.
+Les changements et le tableau de candidats restent dus jusqu'à
+l'acquittement d'une publication acceptée : ignorer une ancienne vue ne
+fait perdre aucune différence. L'adaptateur garde l'identité des objets
+inchangés. Il matérialise encore N références par publication ; ce coût
+de compatibilité n'est pas celui de l'index par différences.
+
+`ClassementCompact` est le même corps d'ordre pour le Worker, le CLI et
+le harnais. `ordreCollecte` produit l'ordre de base sur les ordinaux ;
+`classementResolu` adapte l'API objet du CLI au même index. Les objets
+non compactables des appels génériques utilisent le tri stable d'indices
+sans mémoire de versions. L'oracle objet et sa mémoire de notes vivent
+dans les tests, jamais dans le chemin de production.
 
 `compositionDePage` compose une page. Ses cartes sont les seuls builds
 vérifiés, résolus et conformes, dans l'ordre du classement. Les places

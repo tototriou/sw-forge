@@ -90,6 +90,7 @@ import { testCandidatsCompactsAllerRetour, testClassementCompactPublications, te
 import { testResolutionCaches } from './resolution-caches.test';
 import { testResolutionWorker } from './resolution-worker.test';
 import { testResolutionDistante } from './resolution-distante.test';
+import { testClassementDistantVersions, testClassementDistantPanne, testContexteResultatFige, testClassementBranchementApp } from './classement-distant.test';
 import { testCliClassementParMode } from './cli-classement.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
@@ -842,6 +843,10 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testResolutionCaches', testResolutionCaches],
   ['testResolutionWorker', testResolutionWorker],
   ['testResolutionDistante', testResolutionDistante],
+  ['testClassementDistantVersions', testClassementDistantVersions],
+  ['testClassementDistantPanne', testClassementDistantPanne],
+  ['testContexteResultatFige', testContexteResultatFige],
+  ['testClassementBranchementApp', testClassementBranchementApp],
   ['testCliClassementParMode', testCliClassementParMode],
   ['testKDeLaFile', testKDeLaFile],
   ['testCompteAffichable', testCompteAffichable],

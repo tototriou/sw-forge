@@ -9,6 +9,16 @@ garde à la relance sont dans
 [README.md](README.md#zone-des-résultats-et-place-en-plus). Au téléphone,
 ils suivent la progression, sur toute la largeur.
 
+Les résultats gardent le contexte photographié au clic « Rechercher » :
+conditions, inventaires, fiche et combat. Modifier les critères prépare la
+prochaine recherche ; le tri, la mesure, la page et les interrupteurs de
+la vue continuent à agir sur le résultat vivant. Le classement et la file
+vivent dans un Worker dédié, conservé pendant la navigation. L'écran reçoit
+encore ses tableaux et sa Map par un adaptateur, sans calcul de résolution.
+Une panne du résolveur seul est reprise dans le classeur. Perte du classeur :
+le message d'échec de recherche existant s'affiche, sans relance automatique
+ni reconstruction d'un résultat depuis l'écran.
+
 13. **Résultats** — jusqu'à 20 combinaisons affichées par page, chacune : rang, les
     sets obtenus, le **panneau de stats** (`StatPanel.tsx`, le même composant
     que dans « Équipement actuel ») et les artéfacts + les 6 runes sur une
@@ -258,7 +268,7 @@ minimale de la colonne.
 ## Tri des résultats
 
 Un sélecteur **« Trier par »** re-trie **côté
-client, instantanément**, sans relancer la recherche : le moteur a déjà
+client, dans le Worker de classement**, sans relancer la recherche : le moteur a déjà
 calculé les stats complètes de chaque combinaison retenue. Deux groupes
 d'options — les 8 stats brutes, et les mêmes objectifs que l'objectif de
 recherche (voir objectif-de-recherche.md § Les quatre objectifs disponibles ;

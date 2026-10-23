@@ -147,6 +147,15 @@ export class ResolutionDistante {
     return this.nonPubliee;
   }
 
+  /** Change de propriétaire sans réutiliser les identifiants des demandes en vol. */
+  invalider(): MessageVersResolution[] {
+    this.contexte = null;
+    return this.enVol.filter((d) => !d.annulee).map((d) => {
+      d.annulee = true;
+      return { type: 'annuler' as const, idDemande: d.idDemande };
+    });
+  }
+
   private publier(p: PortsResolutionDistante, forcer: boolean): void {
     if (p.publier(forcer)) this.nonPubliee = false;
   }
@@ -185,6 +194,7 @@ export class ResolutionDistante {
     if (this.renonce) return [];
     const sorties: MessageVersResolution[] = [];
     if (courant !== null && restants.length > 0 && !this.estCourant(courant)) {
+      if (!Number.isSafeInteger(this.idContexte + 1)) throw new Error('Compteur de contexte de résolution épuisé');
       this.idContexte++;
       this.contexte = courant;
       for (const d of this.enVol) d.annulee = true;
@@ -204,6 +214,7 @@ export class ResolutionDistante {
       if (this.enVol.length >= this.maxEnVol) break;
       const cle = cleBuild(c);
       if (enCours.has(cle)) continue;
+      if (!Number.isSafeInteger(this.prochainIdDemande + 1)) throw new Error('Compteur de demande de résolution épuisé');
       const idDemande = this.prochainIdDemande++;
       this.enVol.push({ idDemande, idContexte: this.idContexte, cle, annulee: false });
       enCours.add(cle);

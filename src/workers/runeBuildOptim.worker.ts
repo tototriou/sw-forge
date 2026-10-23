@@ -45,6 +45,7 @@ export interface DemandeDeRecherche {
   type: 'recherche';
   params: SearchParams;
   coeursPhysiques: number | null;
+  classement?: { port: MessagePort; idRecherche: number };
 }
 export type WorkerRequest = DemandeDeRecherche | { stop: true } | { credit: true };
 
@@ -212,9 +213,18 @@ async function traiterMessage(e: MessageEvent<WorkerRequest>) {
     return;
   }
   stopped = false;
-  const { params, coeursPhysiques } = e.data;
+  const { params, coeursPhysiques, classement } = e.data;
+  let sequence = 0;
+  if (classement) {
+    classement.port.onmessage = () => emetteur?.acquitter();
+    classement.port.start();
+  }
   const startedAt = Date.now();
   const flux = new EmetteurCandidats((bloc, transfert) => {
+    if (classement) {
+      classement.port.postMessage({ type: 'candidats', idRecherche: classement.idRecherche, sequence: sequence++, bloc }, transfert);
+      return;
+    }
     const message: WorkerCandidatsMessage = { type: 'candidats', bloc };
     (self as unknown as Worker).postMessage(message, transfert);
   });
@@ -223,6 +233,10 @@ async function traiterMessage(e: MessageEvent<WorkerRequest>) {
     const nombre = await flux.sceller(r.candidates);
     const message: WorkerResultMessage = { type: 'result', nombre, explored: r.explored, truncated: r.truncated,
       nearMissByCondition: r.nearMissByCondition, globalNearMiss: r.globalNearMiss };
+    if (classement) {
+      const { type: _type, nombre: _nombre, ...bilan } = message;
+      classement.port.postMessage({ type: 'sceller', idRecherche: classement.idRecherche, nombre, derniereSequence: sequence - 1, bilan });
+    }
     (self as unknown as Worker).postMessage(message);
   };
 
@@ -317,6 +331,7 @@ async function traiterMessage(e: MessageEvent<WorkerRequest>) {
     const regime = regimeAppariement(totalPairs, verifierContrat(prepared, bucketsA, bucketsB));
     let dernierMessage = 0;
     const postProgress = async (explored: number, candidats: ColonnesCandidats) => {
+      classement?.port.postMessage({ type: 'activer', idRecherche: classement.idRecherche });
       const now = Date.now();
       // drivePairing espace déjà le séquentiel, vidages de blocs compris.
       if (regime === 'parallele' && now - dernierMessage <= PROGRESS_THROTTLE_MS) return;

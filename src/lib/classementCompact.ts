@@ -1,6 +1,46 @@
-import { CandidatsCompacts } from './candidatsCompacts';
-import type { JournalResolution, ResultatArtefacts } from './artifactQueue';
-import type { BuildCandidate } from './runeBuildOptim';
+import { CandidatsCompacts, RecepteurCandidats, terminerEtapes, trierIndicesEtapes, type BlocCandidats } from './candidatsCompacts';
+import { cibleDeLaFile, type JournalResolution, type ResultatArtefacts } from './artifactQueue';
+import { scoreDuCandidat, type BuildCandidate, type Objective, type OptionsDeClassement } from './runeBuildOptim';
+import type { StatKey } from './effects';
+import type { OptimMetric } from './runeOptim';
+import { CacheResolutionCompact } from './cacheResolutionCompact';
+import { optionsDuContexte, resolutionDuContexte, runesDuContexte, type ContexteResultat } from './contexteResultat';
+import { runesDuBuild } from './relicQueue';
+import { ResolutionDistante, type PortsResolutionDistante } from '../workers/resolutionDistante';
+import { CorpsResolution, type MessageVersResolution, type ReponseResolution, type EntreesResolutionSerialisables } from '../workers/resolutionBody';
+import type { SearchResult } from './runeBuildOptim';
+
+/** Adaptation paresseuse : aucun objet par ligne n'est retenu par le propriétaire. */
+export function candidatsParIndice(nombre: number, lire: (i: number) => BuildCandidate): BuildCandidate[] {
+  return new Proxy([] as BuildCandidate[], { get(cible, cle, receveur) {
+    if (cle === 'length') return nombre;
+    if (typeof cle === 'string' && /^(0|[1-9][0-9]*)$/.test(cle)) return Number(cle) < nombre ? lire(Number(cle)) : undefined;
+    return Reflect.get(cible, cle, receveur);
+  }, has(cible, cle) {
+    if (typeof cle === 'string' && /^(0|[1-9][0-9]*)$/.test(cle)) return Number(cle) < nombre;
+    return Reflect.has(cible, cle);
+  } });
+}
+
+/** Le tri porte sur les ordinaux ; même soustraction et stabilité que sortCandidates. */
+export function ordreCollecte(candidats: ArrayLike<BuildCandidate>, critere: StatKey | Objective, options: OptionsDeClassement): Uint32Array {
+  return terminerEtapes(ordreCollecteEtapes(candidats, critere, options));
+}
+
+function* ordreCollecteEtapes(candidats: ArrayLike<BuildCandidate>, critere: StatKey | Objective, options: OptionsDeClassement): Generator<void, Uint32Array> {
+  const notes = new Float64Array(candidats.length);
+  let calculable = false, nonFini = false;
+  for (let i = 0; i < candidats.length; i++) {
+    const note = scoreDuCandidat(candidats[i], critere, options);
+    calculable ||= note !== null;
+    notes[i] = note ?? 0; nonFini ||= note !== null && !Number.isFinite(note);
+    yield;
+  }
+  const ordre = Uint32Array.from({ length: candidats.length }, (_, i) => i);
+  if (!calculable) return ordre;
+  if (nonFini) return Uint32Array.from(Array.from(ordre).sort((a, b) => notes[b] - notes[a]));
+  return yield* trierIndicesEtapes(ordre, (a, b) => notes[b] - notes[a]);
+}
 
 /** AVL par ordinal ; les liens codent ordinal + 1, jamais un objet par nœud. */
 class OrdreCompact {
@@ -90,15 +130,17 @@ class OrdreCompact {
   comptes(): { total: number; confirmes: number; potentiels: number } {
     return { total: this.totaux[this.racine], confirmes: this.confirmes[this.racine], potentiels: this.potentiels[this.racine] };
   }
-  page(debut: number, taille: number): number[] {
+  page(debut: number, taille: number, choix: 'total' | 'confirmes' | 'potentiels' = 'total'): number[] {
     const resultat: number[] = [];
     const fin = debut + taille;
+    const comptes = choix === 'confirmes' ? this.confirmes : choix === 'potentiels' ? this.potentiels : this.totaux;
     const lire = (p: number, avant: number): void => {
-      if (!p || avant >= fin || avant + this.totaux[p] <= debut) return;
-      const rang = avant + this.totaux[this.gauche[p]];
+      if (!p || avant >= fin || avant + comptes[p] <= debut) return;
+      const rang = avant + comptes[this.gauche[p]];
+      const retenu = choix === 'total' || (choix === 'confirmes' ? this.confirme(p - 1) : !this.confirme(p - 1));
       lire(this.gauche[p], avant);
-      if (rang >= debut && rang < fin) resultat.push(p - 1);
-      lire(this.droite[p], rang + 1);
+      if (retenu && rang >= debut && rang < fin) resultat.push(p - 1);
+      lire(this.droite[p], rang + Number(retenu));
     };
     lire(this.racine, 0); return resultat;
   }
@@ -130,12 +172,17 @@ export class ClassementCompact {
   private cacheVide = true;
   private ordreDeReference: number[] | undefined;
   private publicationCourante = new WeakSet<ReadonlyMap<string, ResultatArtefacts>>();
+  private ordreBase: Uint32Array;
+  private readonly rangBase: Uint32Array;
 
-  constructor(base: readonly BuildCandidate[]) {
-    this.magasin = new CandidatsCompacts(base);
+  constructor(base: ArrayLike<BuildCandidate>, ordreBase?: Uint32Array, differe = false) {
+    this.magasin = new CandidatsCompacts(base, differe);
     this.notes = new Float64Array(base.length);
     this.notesPresentes = new Uint8Array(base.length);
     this.versionsNotes = new Uint32Array(base.length);
+    this.ordreBase = ordreBase ?? (differe ? new Uint32Array(base.length) : Uint32Array.from({ length: base.length }, (_, i) => i));
+    this.rangBase = new Uint32Array(base.length);
+    if (!differe) this.ordreBase.forEach((i, rang) => { this.rangBase[i] = rang; });
     this.ordre = new OrdreCompact(base.length, (a, b) => this.comparer(a, b), (i) => this.magasin.etat(i) === 1);
   }
   private comparer(a: number, b: number): number {
@@ -144,7 +191,7 @@ export class ClassementCompact {
     if (note) return note;
     const ra = this.magasin.rid(a) ?? Infinity, rb = this.magasin.rid(b) ?? Infinity;
     if (ra !== rb) return ra - rb;
-    return this.magasin.rangCle(a) - this.magasin.rangCle(b) || a - b;
+    return this.magasin.rangCle(a) - this.magasin.rangCle(b) || this.rangBase[a] - this.rangBase[b];
   }
   private nonFini(i: number): boolean {
     const rid = this.magasin.rid(i);
@@ -161,6 +208,9 @@ export class ClassementCompact {
   }
 
   actualiser(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined, contexte: unknown, score: NoterCompact): void {
+    terminerEtapes(this.actualiserEtapes(cache, journal, contexte, score));
+  }
+  *actualiserEtapes(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined, contexte: unknown, score: NoterCompact): Generator<void> {
     Object.assign(this.travail, { controlees: 0, notes: 0, comparaisons: 0, complet: false, repliNonFini: false });
     const consecutif = journal && journal.generation === this.generation && journal.version === this.version + 1
       && journal.tailleAvant === this.tailleCache && journal.tailleApres === cache.size;
@@ -181,8 +231,8 @@ export class ClassementCompact {
     this.ordreDeReference = undefined;
     if (complet) {
       this.travail.complet = true; this.ordre.vider(); this.nonFinis = 0;
-      for (const g of this.magasin.chefs()) this.magasin.ingerer(g, cache.get(this.magasin.cle(g)));
-      for (let i = 0; i < this.magasin.longueur; i++) this.noter(i, score);
+      for (const g of this.magasin.chefs()) { this.magasin.ingerer(g, cache.get(this.magasin.cle(g))); yield; }
+      for (let i = 0; i < this.magasin.longueur; i++) { this.noter(i, score); yield; }
     } else if (consecutif) {
       // Retirer sous les anciennes clés avant toute ingestion de groupe.
       for (const c of journal.changements) {
@@ -192,15 +242,16 @@ export class ClassementCompact {
           if (this.magasin.etat(i) === 2) continue;
           if (this.nonFini(i)) this.nonFinis--;
           if (!etaitNonFini) this.ordre.retirer(i);
+          yield;
         }
         this.magasin.ingerer(g, c.apres);
-        for (const i of this.magasin.lignesDuGroupe(g)) this.noter(i, score);
+        for (const i of this.magasin.lignesDuGroupe(g)) { this.noter(i, score); yield; }
       }
     }
     this.cacheVide = cache.size === 0;
     if (this.nonFinis) {
       // Même entrée, mêmes expressions, mêmes deux tris natifs que l'oracle.
-      const indices = Array.from({ length: this.magasin.longueur }, (_, i) => i).filter((i) => this.magasin.etat(i) !== 2);
+      const indices = Array.from(this.ordreBase).filter((i) => this.magasin.etat(i) !== 2);
       indices.sort((a, b) => {
         const ra = this.magasin.rid(a) ?? Infinity, rb = this.magasin.rid(b) ?? Infinity;
         if (ra !== rb) return ra - rb;
@@ -210,19 +261,21 @@ export class ClassementCompact {
       this.ordreDeReference = indices; this.travail.repliNonFini = true;
     } else if (complet || etaitNonFini) {
       this.ordre.vider();
-      for (let i = 0; i < this.magasin.longueur; i++) if (this.magasin.etat(i) !== 2) this.ordre.inserer(i);
+      for (let i = 0; i < this.magasin.longueur; i++) { if (this.magasin.etat(i) !== 2) this.ordre.inserer(i); yield; }
     } else if (consecutif) {
       for (const c of journal.changements) {
         const g = this.magasin.groupeDeCle(c.cle);
-        if (g !== undefined) for (const i of this.magasin.lignesDuGroupe(g)) if (this.magasin.etat(i) !== 2) this.ordre.inserer(i);
+        if (g !== undefined) for (const i of this.magasin.lignesDuGroupe(g)) { if (this.magasin.etat(i) !== 2) this.ordre.inserer(i); yield; }
       }
     }
     this.generation = journal?.generation; this.version = journal?.version ?? 0;
     this.tailleCache = cache.size; this.contexte = contexte;
     this.publicationCourante = new WeakSet([cache]);
   }
+
+  invalider(): void { this.contexte = {}; }
   page(debut: number, taille: number): number[] {
-    if (this.cacheVide) return Array.from({ length: Math.max(0, Math.min(taille, this.magasin.longueur - debut)) }, (_, j) => debut + j);
+    if (this.cacheVide) return Array.from(this.ordreBase.slice(debut, debut + taille));
     return this.ordreDeReference?.slice(debut, debut + taille) ?? this.ordre.page(debut, taille);
   }
   comptes(): { total: number; confirmes: number; potentiels: number } {
@@ -231,4 +284,329 @@ export class ClassementCompact {
     return { total: this.ordreDeReference.length, confirmes, potentiels: this.ordreDeReference.length - confirmes };
   }
   note(i: number): number | null { return this.notesPresentes[i] ? this.notes[i] : null; }
+  enAttente(taille: number): number[] {
+    if (this.cacheVide) return Array.from(this.ordreBase.slice(0, taille));
+    if (this.ordreDeReference) return this.ordreDeReference.filter((i) => this.magasin.etat(i) === 0).slice(0, taille);
+    return this.ordre.page(0, taille, 'potentiels');
+  }
+  definirOrdreBase(ordre: Uint32Array): void {
+    terminerEtapes(this.definirOrdreBaseEtapes(ordre));
+  }
+  *definirOrdreBaseEtapes(ordre: Uint32Array): Generator<void> {
+    this.ordreBase = ordre;
+    for (let rang = 0; rang < ordre.length; rang++) { this.rangBase[ordre[rang]] = rang; if ((rang & 63) === 0) yield; }
+    this.contexte = Symbol('ordre de base remplacé');
+  }
+}
+
+export interface VueClassement {
+  tri: StatKey | Objective;
+  metric: OptimMetric;
+  page: number;
+  adapterArtefactsAuTri: boolean;
+  toutVerifier: boolean;
+}
+export interface VersionsClassement {
+  versionSchema: 1;
+  idRecherche: number;
+  idInventaire: number;
+  idContexteResolution: number;
+  revisionDonnees: number;
+  idVue: number;
+  revisionPubliee: number;
+  idDemande: number;
+}
+/** Projection de compatibilité de l'écran ; les données propriétaires restent en colonnes. */
+export interface PublicationClassement {
+  versions: VersionsClassement;
+  vue: VueClassement;
+  candidats: BuildCandidate[];
+  base: BuildCandidate[];
+  affichees: BuildCandidate[];
+  parBuild: Map<string, ResultatArtefacts>;
+  enAttente: number;
+  bilan: Omit<SearchResult, 'candidates'> | null;
+}
+export interface PublicationTransport {
+  versions: VersionsClassement;
+  vue: VueClassement;
+  candidats?: BuildCandidate[];
+  ordreBase: Uint32Array;
+  ordreAffiche: Uint32Array;
+  generationCache: number;
+  revisionCache: number;
+  changements: [string, ResultatArtefacts][];
+  enAttente: number;
+  bilan: Omit<SearchResult, 'candidates'> | null;
+}
+
+function compteurSuivant(n: number): number {
+  if (!Number.isSafeInteger(n) || n >= Number.MAX_SAFE_INTEGER) throw new Error('Compteur du classeur épuisé ; recréer le propriétaire');
+  return n + 1;
+}
+
+/** Corps partagé par le Worker et Node : aucune API de plateforme ni de React. */
+export class CorpsClassement {
+  private flux = new RecepteurCandidats(0);
+  private lots: BlocCandidats[] = [];
+  private plages: { debut: number; longueur: number }[] = [];
+  private nombreCible = 0;
+  private tache: Generator<void> | null = null;
+  private reponsesEnAttente: ReponseResolution[] = [];
+  private index: ClassementCompact | null = null;
+  private base: Uint32Array = new Uint32Array();
+  private cache = new CacheResolutionCompact();
+  private signature = '';
+  private contexte: ContexteResultat | null = null;
+  private vue: VueClassement | null = null;
+  private versions: VersionsClassement = { versionSchema: 1, idRecherche: 0, idInventaire: 0, idContexteResolution: 0, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande: 0 };
+  private bilan: Omit<SearchResult, 'candidates'> | null = null;
+  private entrees: EntreesResolutionSerialisables | null = null;
+  private pilote = new ResolutionDistante();
+  private direct = new CorpsResolution();
+  private reponsesDirectes: ReponseResolution[] = [];
+  private repli = false;
+  private dernierePublication = -Infinity;
+  private sale = true;
+  private visites = new Uint32Array();
+  private passage = 0;
+  private versionLue = -1;
+  private generationCache = 0;
+  private candidatsAcquittes = -1;
+
+  constructor(private readonly sorties: {
+    publier: (p: PublicationTransport) => void;
+    resoudre: (m: MessageVersResolution) => void;
+    incident: (raison: string, detail: unknown) => void;
+  }, private readonly differe = false) {}
+
+  get travailEnCours() { return this.tache !== null; }
+  avancer(): void {
+    if (this.tache?.next().done) this.tache = null;
+  }
+  private programmer(tache: Generator<void>): void {
+    this.tache = tache;
+    if (!this.differe) while (this.tache) this.avancer();
+  }
+
+  ouvrir(contexte: ContexteResultat, idRecherche: number, vue: VueClassement, idDemande: number): void {
+    if (contexte.versionSchema !== 1 || !Number.isSafeInteger(idRecherche) || idRecherche <= this.versions.idRecherche) throw new Error('Génération de classement invalide');
+    const signature = JSON.stringify([contexte.idInventaire, contexte.idEspece, contexte.signature, contexte.recherche.relicContext?.empreinte,
+      resolutionDuContexte(contexte, vue.tri, vue.adapterArtefactsAuTri)?.regime]);
+    if (signature !== this.signature) { this.cache = new CacheResolutionCompact(); this.generationCache = compteurSuivant(this.generationCache); }
+    this.signature = signature;
+    this.tache = null; this.nombreCible = 0; this.plages = []; this.reponsesEnAttente = [];
+    this.contexte = contexte; this.vue = null; this.flux = new RecepteurCandidats(0); this.lots = [];
+    this.index = null; this.base = new Uint32Array(); this.bilan = null;
+    this.candidatsAcquittes = -1;
+    this.versions = { versionSchema: 1, idRecherche, idInventaire: contexte.idInventaire,
+      idContexteResolution: this.versions.idContexteResolution, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande };
+    this.entrees = null;
+    for (const m of this.pilote.invalider()) {
+      if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m));
+      else this.sorties.resoudre(m);
+    }
+    this.sale = true; this.dernierePublication = -Infinity;
+    this.changerVue(vue, 1, idDemande);
+  }
+  private courant(idRecherche: number) { return this.contexte !== null && idRecherche === this.versions.idRecherche; }
+  ajouter(idRecherche: number, sequence: number, bloc: BlocCandidats): void {
+    if (!this.courant(idRecherche)) return;
+    if (!Number.isSafeInteger(sequence) || sequence < 0) throw new Error('Séquence de candidats invalide');
+    if (this.bilan && !this.lots.length) {
+      const plage = this.plages[sequence];
+      if (!plage || plage.debut !== bloc.debut || plage.longueur !== bloc.longueur || bloc.schema !== 1
+        || bloc.ids.length !== 6 || bloc.totaux.length !== 8 || bloc.gabarits.length !== 8
+        || [...bloc.ids, ...bloc.totaux, bloc.efficience].some((c) => c.length !== bloc.longueur)) throw new Error('Lot retransmis après scellement incohérent');
+      for (let i = 0; i < bloc.longueur; i++) {
+        const c = this.index!.magasin.candidat(bloc.debut + i, false);
+        if (!Object.is(c.effTotal, bloc.efficience[i]) || c.runeIds.some((id, j) => !Object.is(id, bloc.ids[j][i]))
+          || c.stats.some((s, j) => !Object.is(s.total, bloc.totaux[j][i]) || !Object.is(s.base, bloc.gabarits[j].base)
+            || s.key !== bloc.gabarits[j].key || s.label !== bloc.gabarits[j].label || s.suffix !== bloc.gabarits[j].suffix)) throw new Error('Lot retransmis avec un contenu différent');
+      }
+      return;
+    }
+    const connu = this.lots[sequence];
+    if (connu) {
+      const colonnes = (b: BlocCandidats) => [...b.ids, ...b.totaux, b.efficience];
+      if (bloc.debut !== connu.debut || bloc.longueur !== connu.longueur || bloc.schema !== connu.schema
+        || bloc.gabarits.length !== connu.gabarits.length || bloc.gabarits.some((g, i) => {
+          const autre = connu.gabarits[i];
+          return !Object.is(g.base, autre.base) || g.key !== autre.key || g.label !== autre.label || g.suffix !== autre.suffix;
+        })
+        || colonnes(bloc).some((c, j) => c.length !== colonnes(connu)[j].length || c.some((v, i) => !Object.is(v, colonnes(connu)[j][i])))) throw new Error('Lot retransmis avec un contenu différent');
+      return;
+    }
+    if (this.bilan || sequence !== this.lots.length) throw new Error('Séquence de candidats manquante ou flux scellé');
+    this.flux.recevoir([bloc]); this.lots.push(bloc); this.plages.push({ debut: bloc.debut, longueur: bloc.longueur }); this.versions.revisionDonnees = compteurSuivant(this.versions.revisionDonnees);
+  }
+  activer(idRecherche: number): void {
+    if (!this.courant(idRecherche)) return;
+    const nombre = this.bilan ? this.flux.longueur : Math.min(3000, this.flux.longueur);
+    if (this.nombreCible !== nombre) { this.nombreCible = nombre; this.trierBase(); this.sale = true; }
+    this.libererSourceScellee();
+  }
+  sceller(idRecherche: number, nombre: number, derniereSequence: number, bilan: Omit<SearchResult, 'candidates'>): void {
+    if (!this.courant(idRecherche)) return;
+    if (derniereSequence !== this.plages.length - 1) throw new Error('Scellement de séquence incomplet');
+    if (this.bilan) {
+      if (nombre !== this.nombreCible || JSON.stringify(bilan) !== JSON.stringify(this.bilan)) throw new Error('Scellement retransmis incohérent');
+      return;
+    }
+    this.flux.scellerColonnes(nombre); this.bilan = bilan;
+    this.activer(idRecherche); this.sale = true;
+  }
+  private libererSourceScellee(): void {
+    // Le magasin n'adopte la source qu'une fois sa construction terminée.
+    if (this.bilan && this.index?.magasin.longueur === this.nombreCible && !this.tache) { this.flux.liberer(); this.lots = []; }
+  }
+  changerVue(vue: VueClassement, idVue: number, idDemande: number): void {
+    if (!this.contexte || idVue <= this.versions.idVue) return;
+    if (!Number.isSafeInteger(idVue) || !Number.isSafeInteger(idDemande) || !Number.isSafeInteger(vue.page) || vue.page < 1) throw new Error('Vue de classement invalide');
+    const avant = this.vue;
+    const entrees = resolutionDuContexte(this.contexte, vue.tri, vue.adapterArtefactsAuTri);
+    if (entrees?.regime !== this.entrees?.regime || (!avant && entrees)) {
+      if (avant) { this.cache.clear(); this.generationCache = compteurSuivant(this.generationCache); }
+      this.entrees = entrees; this.versions.idContexteResolution = compteurSuivant(this.versions.idContexteResolution);
+      this.signature = JSON.stringify([this.contexte.idInventaire, this.contexte.idEspece, this.contexte.signature, this.contexte.recherche.relicContext?.empreinte, entrees?.regime]);
+    }
+    this.vue = { ...vue }; this.versions.idVue = idVue; this.versions.idDemande = idDemande;
+    if (!avant || avant.tri !== vue.tri || avant.metric !== vue.metric || entrees?.regime !== resolutionDuContexte(this.contexte, avant.tri, avant.adapterArtefactsAuTri)?.regime) this.trierBase();
+    this.sale = true;
+  }
+  private trierBase(): void {
+    if (!this.contexte || !this.vue) return;
+    this.index?.invalider();
+    this.programmer(this.trierBaseEtapes());
+  }
+  private *trierBaseEtapes(): Generator<void> {
+    if (!this.contexte || !this.vue) return;
+    let index = this.index;
+    if (!index || index.magasin.longueur !== this.nombreCible) {
+      const source = candidatsParIndice(this.nombreCible, (i) => this.flux.lire(i));
+      index = new ClassementCompact(source, undefined, true);
+      yield* index.magasin.initialiser(source);
+    }
+    const source = candidatsParIndice(index.magasin.longueur, (i) => index.magasin.candidat(i, false));
+    const base = yield* ordreCollecteEtapes(source, this.vue.tri, optionsDuContexte(this.contexte, null, this.vue.metric));
+    yield* index.definirOrdreBaseEtapes(base);
+    yield* this.actualiserEtapes(index);
+    this.index = index; this.base = base;
+    this.visites = new Uint32Array(index.magasin.longueur); this.passage = 0;
+    this.sale = true;
+  }
+  private cacheLecture(): ReadonlyMap<string, ResultatArtefacts> {
+    return this.cache;
+  }
+  private actualiser(): void {
+    if (this.tache || !this.index || !this.contexte || !this.vue) return;
+    if ((this.cache.journal?.version ?? -1) === this.versionLue) return;
+    this.programmer(this.actualiserEtapes(this.index));
+  }
+  private *actualiserEtapes(index: ClassementCompact): Generator<void> {
+    if (!this.contexte || !this.vue) return;
+    const options = optionsDuContexte(this.contexte, this.cache, this.vue.metric);
+    yield* index.actualiserEtapes(this.cacheLecture(), this.cache.journal, `${this.versions.idRecherche}:${this.vue.tri}:${this.vue.metric}:${this.versions.idContexteResolution}`,
+      (c) => scoreDuCandidat(c, this.vue!.tri, options));
+    this.versionLue = this.cache.journal?.version ?? -1;
+  }
+  private pageIndices(): number[] {
+    if (!this.index || !this.entrees) return [];
+    const { total, confirmes } = this.index.comptes();
+    const debut = ((this.vue?.page ?? 1) - 1) * 20;
+    const attendues = Math.min(20, Math.max(0, total - debut));
+    const cartes = Math.max(0, Math.min(20, confirmes - debut));
+    return attendues > cartes ? this.index.enAttente(Math.min(20, debut + attendues - confirmes)) : [];
+  }
+  private page(): BuildCandidate[] {
+    return this.pageIndices().map((i) => this.index!.magasin.candidat(i, false));
+  }
+  private restants(): BuildCandidate[] {
+    if (this.tache) return [];
+    if (!this.entrees || !this.index || !this.vue || !this.contexte) return [];
+    if ((this.cache.journal?.version ?? -1) !== this.versionLue) { this.actualiser(); if (this.tache) return []; }
+    if (this.passage === 0xffffffff) { this.visites.fill(0); this.passage = 0; }
+    const passage = ++this.passage, premiers: number[] = [];
+    let nombre = 0;
+    const ajouter = (i: number) => {
+      const g = this.index!.magasin.groupe(i);
+      if (this.visites[g] === passage) return;
+      this.visites[g] = passage; nombre++;
+      // Le pilote ne lit que ses deux places en vol et l'entrée suivante.
+      if (premiers.length < 3) premiers.push(i);
+    };
+    for (const i of this.pageIndices()) ajouter(i);
+    const K = cibleDeLaFile({ relicContext: this.contexte.recherche.relicContext, toutVerifier: this.vue.toutVerifier });
+    let confirmees = 0, aVerifier = 0;
+    for (let j = 0; j < this.base.length && confirmees + aVerifier < K; j++) {
+      const i = this.base[j], etat = this.index.magasin.etat(i);
+      if (etat === 0) { aVerifier++; ajouter(i); }
+      else if (etat === 1) confirmees++;
+    }
+    return candidatsParIndice(nombre, (i) => premiers[i] === undefined ? undefined as unknown as BuildCandidate : this.index!.magasin.candidat(premiers[i], false));
+  }
+  private ports(maintenant: number): PortsResolutionDistante {
+    return { courant: () => this.entrees ? { entrees: this.entrees, signature: `${this.signature}:${this.entrees.regime}` } : null,
+      runesDe: (c) => runesDuBuild(c, runesDuContexte(this.contexte!)), restants: () => this.restants(), page: () => this.page(), cache: () => this.cache,
+      envoyer: (m) => { if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m); },
+      publier: (forcer) => { this.actualiser(); this.versions.revisionDonnees = compteurSuivant(this.versions.revisionDonnees); this.sale = true; return this.publier(maintenant, forcer); },
+      enAttente: () => {}, repli: (raison, detail) => this.panneResolution(raison, detail) };
+  }
+  pomper(maintenant: number): void {
+    if (this.tache) return;
+    this.libererSourceScellee();
+    const reponse = this.reponsesEnAttente.shift();
+    if (reponse) { this.recevoirResolution(reponse, maintenant); if (this.tache) return; }
+    const p = this.ports(maintenant);
+    this.pilote.pomper(p);
+    if (this.repli) {
+      const r = this.reponsesDirectes.shift() ?? this.direct.etape();
+      if (r) {
+        if (r.type === 'erreur') throw new Error(`${r.nom}: ${r.message}`);
+        this.pilote.surReponse(r, p);
+      }
+    }
+    this.publier(maintenant, this.restants().length === 0);
+  }
+  recevoirResolution(r: ReponseResolution, maintenant: number): void {
+    if (this.tache) { this.reponsesEnAttente.push(r); return; }
+    this.pilote.surReponse(r, this.ports(maintenant));
+  }
+  panneResolution(raison: string, detail: unknown): void {
+    if (this.repli) return;
+    this.sorties.incident(raison, detail);
+    this.reponsesEnAttente = []; this.reponsesDirectes = [];
+    this.pilote.renoncer(); this.pilote = new ResolutionDistante(); this.direct = new CorpsResolution(); this.repli = true;
+    this.sale = true;
+  }
+  get travailEnRepli() { return this.reponsesEnAttente.length > 0 || (this.repli && this.restants().length > 0); }
+  liberer(): void {
+    this.tache = null; this.nombreCible = 0; this.plages = []; this.reponsesEnAttente = [];
+    this.contexte = null; this.vue = null; this.index = null; this.flux.liberer(); this.lots = [];
+    this.cache.clear(); this.generationCache = compteurSuivant(this.generationCache); this.entrees = null; this.sale = false;
+    for (const m of this.pilote.invalider()) {
+      if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m);
+    }
+  }
+  acquitter(generationCache: number, revisionCache: number, nombre: number): void {
+    if (generationCache !== this.generationCache) return;
+    if (!Number.isSafeInteger(revisionCache) || revisionCache < 0 || revisionCache > this.cache.version) throw new Error('Acquittement de cache invalide');
+    this.cache.acquitter(revisionCache);
+    if (nombre === (this.index?.magasin.longueur ?? 0)) this.candidatsAcquittes = nombre;
+  }
+  publier(maintenant: number, forcer = false): boolean {
+    if (this.tache) return false;
+    if (!this.contexte || !this.vue || !this.sale) return true;
+    if (!forcer && maintenant - this.dernierePublication < 400) return false;
+    this.dernierePublication = maintenant; this.sale = false;
+    this.versions.revisionPubliee = compteurSuivant(this.versions.revisionPubliee);
+    const nombre = this.index?.magasin.longueur ?? 0;
+    const candidats = nombre !== this.candidatsAcquittes
+      ? Array.from({ length: nombre }, (_, i) => this.index!.magasin.candidat(i, false)) : undefined;
+    this.sorties.publier({ versions: { ...this.versions }, vue: { ...this.vue }, candidats,
+      ordreBase: this.base.slice(), ordreAffiche: Uint32Array.from(this.index?.page(0, nombre) ?? []),
+      generationCache: this.generationCache, revisionCache: this.cache.version, changements: this.cache.changements(),
+      enAttente: this.restants().length, bilan: this.bilan });
+    return true;
+  }
 }

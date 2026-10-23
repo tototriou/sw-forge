@@ -76,14 +76,6 @@ function sansCommentaires(source: string): string {
   return source.replace(/\r\n/g, '\n').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 }
 
-// Un bloc de code, de sa déclaration à sa fermeture.
-function bloc(src: string, debut: string, fin: string): string {
-  const i = src.indexOf(debut);
-  if (i < 0) return '';
-  const j = src.indexOf(fin, i + debut.length);
-  return j < 0 ? '' : src.slice(i, j + fin.length);
-}
-
 /* --------------------------------------------------------------------------
  * La file simulée — exportée pour le script de preuve sur les recettes
  * ----------------------------------------------------------------------- */
@@ -925,77 +917,21 @@ export function testResolutionDistante() {
     egal(ecrit, [], 'un résultat de l’ancien contexte arrivé après le changement (avant puis après le renvoi du contexte) n’est jamais écrit ; le cache final suit le nouveau contexte');
   }
 
-  /* ── 7. Le hook et l'écran, contrôlés sur la source ──────────────────── */
-  titre('Résolution hors du fil — le hook et l’écran, contrôlés sur la source');
+  /* ── 7. L'adaptateur et l'écran ─────────────────────────────────────── */
+  titre('Résolution hors du fil — délégation au propriétaire de la recherche');
   const hook = sansCommentaires(readFileSync('src/hooks/useArtifactOptimQueue.ts', 'utf8'));
-  ok(/const cacheRef = useRef\(new CacheResolutionJournalise\(\)\);/.test(hook)
-    && /cacheRef\.current = new CacheResolutionJournalise\(\);\s*setParBuild\(cacheRef\.current\.publier\(\)\);/.test(hook),
-    'hook : cache journalisé commun aux deux voies, génération neuve à la signature');
-  egal((hook.match(/setParBuild\(cacheRef\.current\.publier\(\)\)/g) ?? []).length, 4,
-    'hook : signature, chemin direct, repli et Worker publient tous un instantané journalisé');
-  egal((hook.match(/new Worker\(/g) ?? []).length, 1, 'hook : un seul `new Worker(`');
-  const effetWorker = bloc(hook, 'if (!modeHorsFil) return;', '}, [modeHorsFil, signature, K, basculerEnRepli]);');
-  ok(effetWorker.length > 0 && /new Worker\(new URL\('\.\.\/workers\/resolution\.worker\.ts', import\.meta\.url\), \{ type: 'module' \}\)/.test(effetWorker),
-    'hook : le Worker de résolution est créé DANS l’effet (jamais au rendu), patron de useBuildOptimSearch');
-  ok(/let d = distantRef\.current;\s*if \(!d\) \{\s*try \{/.test(effetWorker), 'hook : créé une seule fois (ref), au premier besoin ; une création qui lève est rattrapée');
-  ok(/useEffect\(\s*\(\) => \(\) => \{\s*distantRef\.current\?\.worker\.terminate\(\);\s*distantRef\.current = null;\s*\},\s*\[\]\s*\);/.test(hook),
-    'hook : le Worker est terminé au démontage (effet sans dépendance) — jamais un Worker par recherche');
-  ok(/const modeHorsFil = horsFil !== null && opts\.resoudre !== null && !enRepli;/.test(hook) && /const resoudre = modeHorsFil \? null : opts\.resoudre;/.test(hook),
-    'hook : en mode Worker, le chemin direct dort (`resoudre` nul) ; le repli le réveille');
-  egal((hook.match(/cacheRef\.current\.set\(/g) ?? []).length, 1, 'hook : une seule écriture directe dans le cache — celle du chemin direct ; le mode Worker n’écrit que par le module');
-  ok(/distant\.pilote\.surReponse\(r, ports\)/.test(effetWorker) && /distant\.pilote\.pomper\(ports\)/.test(effetWorker), 'hook : les réponses et les tours de file passent par le module');
-  ok(/worker\.onerror = \(e: ErrorEvent\) => basculerEnRepli\(/.test(effetWorker) && /worker\.onmessageerror = \(e: MessageEvent\) => basculerEnRepli\(/.test(effetWorker)
-    && /basculerEnRepli\('Worker impossible à créer', err\)/.test(effetWorker), 'hook : erreur du Worker, réponse illisible et création impossible → repli');
-  ok(/const issue = pilote\.recevoir\(r, null, null\);\s*if \(issue\.issue === 'erreur'\) \{\s*const \{ raison, detail \} = repliSurErreur\(issue\);\s*basculerEnRepli\(raison, detail\);\s*\}/.test(effetWorker),
-    'hook : une réponse d’erreur hors effet actif journalise le même détail que le module (repliSurErreur, `vide` compris)');
-  const repli = bloc(hook, 'const basculerEnRepli = useCallback(', '}, []);');
-  ok(/console\.error\(/.test(repli) && /d\.worker\.terminate\(\);/.test(repli) && /setEnRepli\(true\);/.test(repli),
-    'hook : le repli journalise (console.error), termine le Worker et rend la main au chemin direct');
-  ok(/if \(d\) \{\s*if \(d\.pilote\.renoncer\(\)\) setParBuild\(cacheRef\.current\.publier\(\)\);\s*d\.worker\.terminate\(\);/.test(repli),
-    'hook : au repli, une écriture retenue par la cadence (renoncer rend vrai) est publiée de force');
-  ok(/courant: \(\) => \{\s*const h = horsFilRef\.current;\s*return h \? \{ entrees: h\.entrees, signature: signatureRef\.current \} : null;/.test(effetWorker),
-    'hook : le contexte courant est lu dans les refs du rendu (entrées et signature), à chaque réponse');
-  ok(/restants: \(\) => prochainsATraiter\(trieesRef\.current, cacheRef\.current, K, pageRef\.current\(\)\)/.test(effetWorker),
-    'hook : la priorité reste `prochainsATraiter` sur le fil de l’écran, page affichée comprise, sur le cache lui-même');
-  ok(/publier: \(forcer\) => \{\s*const now = Date\.now\(\);\s*if \(!forcer && now - dernierePublication < PUBLICATION_MS\) return false;\s*dernierePublication = now;\s*setParBuild\(cacheRef\.current\.publier\(\)\);\s*return true;\s*\},/.test(effetWorker),
-    'hook : même cadence de publication que le chemin direct ; rend faux quand la cadence retient, vrai quand l’écran reçoit le cache');
-  ok(/return \(\) => \{\s*vivant = false;\s*distant\.surReponse = \(r\) => reponseAuRepos\(distant\.pilote, r\);/.test(effetWorker),
-    'hook : hors effet actif, une réponse libère sa place sans rien écrire');
-
-  /* ── 7 bis. Le branchement gardé ─────────────────────── */
-  // La revue du Worker a appliqué cinq mutations du branchement à l'écran :
-  // toutes laissaient les tests verts. Aucune de ces lignes ne s'extrait en
-  // fonction pure sans y laisser son équivalent (une ref React relue au
-  // rendu, un gestionnaire de Worker, un effet) : chacune est gardée par un
-  // contrôle de source PRÉCIS, sur la ligne entière. La mutation 1 (runes du
-  // Worker) l'est au § 8, par le producteur unique.
-  titre('Résolution hors du fil — le branchement à l’écran gardé');
-  ok(/const horsFilRef = useRef\(horsFil\);\s*const signatureRef = useRef\(signature\);\s*horsFilRef\.current = horsFil;\s*signatureRef\.current = signature;/.test(hook)
-    && /trieesRef\.current = triees;\s*pageRef\.current = pageAffichee;/.test(hook),
-    'branchement (mutation 5 de la revue) : les refs que lisent les ports — entrées, signature, candidats, page — sont remises à jour à CHAQUE rendu');
-  egal((hook.match(/signatureRef\.current = /g) ?? []).length, 1, 'branchement : la signature lue par le module n’est écrite qu’au rendu, nulle part ailleurs');
-  ok(/worker\.onmessage = \(e: MessageEvent<ReponseResolution>\) => cree\.surReponse\(e\.data\);/.test(effetWorker)
-    && (hook.match(/worker\.onmessage = /g) ?? []).length === 1,
-    'branchement (mutation 3) : le gestionnaire des messages relit `cree.surReponse` à CHAQUE message (jamais figé sur celui de la création), un seul `onmessage`');
-  ok(/distant\.surReponse = \(r\) => \{\s*if \(vivant\) distant\.pilote\.surReponse\(r, ports\);\s*else reponseAuRepos\(distant\.pilote, r\);\s*\};/.test(effetWorker),
-    'branchement (mutation 3) : chaque effet actif rebranche `surReponse` sur SES ports');
-  ok(/const pomper = \(\) => \{\s*if \(vivant\) distant\.pilote\.pomper\(ports\);\s*\};\s*pomper\(\);\s*reveillerRef\.current = pomper;/.test(effetWorker)
-    && /useEffect\(\(\) => \{\s*reveillerRef\.current\?\.\(\);\s*\}\);/.test(hook),
-    'branchement (mutation 4) : l’effet du Worker pose `reveillerRef.current = pomper`, que l’effet de réveil appelle à chaque rendu');
-  ok(/enAttente: \(n\) => setEnAttente\(n\),\s*repli: basculerEnRepli,\s*\};/.test(effetWorker),
-    'branchement (mutation 2) : le port `repli` est `basculerEnRepli` (journalise, termine le Worker, rend la main au chemin direct)');
-
   const ecran = sansCommentaires(readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8'));
-  const argsDirects = bloc(ecran, 'entreeResolutionDuBuild({', '})');
-  const argsHorsFil = bloc(ecran, 'return entreesSerialisables({', '});');
-  const champs = (t: string) => t.split('\n').map((l) => l.trim()).filter((l) => /^[a-zA-Z]+(: [^,]+)?,$/.test(l));
-  const directsSansRunes = champs(argsDirects).filter((l) => !l.startsWith('runes:') && !l.startsWith('caches:'));
-  ok(directsSansRunes.length === 7 && identiques(champs(argsHorsFil), directsSansRunes),
-    `écran : les entrées du Worker portent EXACTEMENT les arguments de la résolution directe, runes et caches exceptés (${champs(argsHorsFil).join(' ')})`);
-  ok(/horsFil: resolutionHorsFil,/.test(ecran) && /resoudre: resoudreEquipement,/.test(ecran), 'écran : la file reçoit le Worker ET le chemin direct (repli)');
-  const memoEntrees = bloc(ecran, 'const entreesResolution = useMemo(', ');\n');
-  ok(/\[artifactParams, selected, optimiserArtefacts, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche\]\);/.test(ecran)
-    && memoEntrees.length > 0, 'écran : les entrées sont mémoïsées sur les dépendances de la résolution directe, sans runeById ni caches');
+  ok(!/new Worker|CacheResolutionJournalise|resoudreEquipementDuBuild/.test(hook),
+    'adaptateur : aucun Worker, cache mutable ou repli de calcul sur le fil de l’écran');
+  ok(hook.includes('changerVue({ tri, metric, page, adapterArtefactsAuTri, toutVerifier })'),
+    'adaptateur : seuls les réglages de vue sont envoyés au propriétaire');
+  ok(ecran.includes('const photo = contexteResultat({ params, fiche: selected.gear,')
+    && ecran.includes('requirement: requirementAvecAuras, relicContext: params.relicContext')
+    && ecran.includes('run(params, photo,'),
+    'écran : les entrées de résolution sont photographiées avec les paramètres et le contexte relique du lancement');
+  ok(ecran.includes('const affichees = fileArtefacts.affichees;')
+    && ecran.includes('optionsDuContexte(contexteResultatAffiche, fileArtefacts.parBuild, fileArtefacts.vue.metric)'),
+    'écran : classement propriétaire et options de sa photographie, sans nouveau tri');
 
   /* ── 8. Un seul producteur des runes d'un build ──────── */
   titre('Résolution hors du fil — un seul producteur des runes d’un build');
@@ -1020,12 +956,5 @@ export function testResolutionDistante() {
     ok(candidats.length > 0 && ecartsRunes === 0,
       `runesDuBuild : sur ${candidats.length} candidats (G), les six runes de chacun, identiques à l’expression d’avant (relicDifferentiel.runesDe)`);
   }
-  const memoDirect = bloc(ecran, 'const resoudreEquipement = useMemo(() => {', '}, [artifactParams, selected, optimiserArtefacts, runeById,');
-  const memoHorsFil = bloc(ecran, 'const resolutionHorsFil = useMemo<ResolutionHorsFil | null>(', '[entreesResolution, runeById]');
-  ok(/resoudreEquipementDuBuild\(\s*entreeResolutionDuBuild\(\{\s*fiche: selected\.gear,\s*runes: runesDuBuild\(c, runeById\),/.test(memoDirect),
-    'écran : la résolution directe prend les runes du build par runesDuBuild(c, runeById)');
-  ok(/\? \{ entrees: entreesResolution, runesDe: \(c: BuildCandidate\) => runesDuBuild\(c, runeById\) \}\s*: null,/.test(memoHorsFil),
-    'écran : la résolution hors du fil prend les runes du build par le MÊME producteur, runesDuBuild(c, runeById)');
-  egal((ecran.match(/runesDuBuild\(/g) ?? []).length, 2, 'écran : exactement deux appels à runesDuBuild, un par résolution');
-  ok(!/runeIds\.map\(/.test(ecran), 'écran : aucune autre expression des runes d’un build (plus de runeIds.map recopié)');
+  ok(!/runesDuBuild\(|resoudreEquipementDuBuild\(/.test(ecran), 'écran : aucune résolution ni reconstruction des runes d’un candidat sur son fil');
 }

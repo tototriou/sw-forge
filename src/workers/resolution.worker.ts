@@ -19,9 +19,11 @@ import { CorpsResolution, MessageVersResolution, ReponseResolution } from './res
 
 const corps = new CorpsResolution();
 let programmee = false;
+let port: MessagePort | null = null;
 
 function poster(r: ReponseResolution) {
-  (self as unknown as Worker).postMessage(r);
+  if (port) port.postMessage(r);
+  else (self as unknown as Worker).postMessage(r);
 }
 
 // UNE demande par tâche : un message arrivé entre deux résolutions (nouveau
@@ -43,7 +45,15 @@ function programmer() {
   setTimeout(suivante, 0);
 }
 
-self.onmessage = (e: MessageEvent<MessageVersResolution>) => {
+self.onmessage = (e: MessageEvent<MessageVersResolution | { type: 'port'; port: MessagePort }>) => {
+  if (e.data.type === 'port') {
+    port?.close(); port = e.data.port;
+    port.onmessage = (m: MessageEvent<MessageVersResolution>) => {
+      for (const r of corps.recevoir(m.data)) poster(r);
+      if (corps.demandesEnAttente > 0) programmer();
+    };
+    port.start(); return;
+  }
   for (const r of corps.recevoir(e.data)) poster(r);
   if (corps.demandesEnAttente > 0) programmer();
 };

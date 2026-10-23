@@ -50,17 +50,14 @@ export function testKDeLaFile() {
   // Via `cibleDeLaFile`, qui rend `kDeLaFile` du même contexte
   // sans l'interrupteur « Vérifier toutes les combinaisons trouvées »
   // (tests/verifier-toutes.test.ts).
-  ok(/\n\s*K: cibleDeLaFile\(\{ relicContext: relicContextRecherche, toutVerifier: verifierToutesLesCombinaisons \}\),/.test(appelFile),
-    'écran : la file reçoit `K: cibleDeLaFile({ relicContext: relicContextRecherche, … })`');
-  egal((ecran.match(/cibleDeLaFile\(/g) ?? []).length, 1, 'écran : un seul appel à `cibleDeLaFile`');
-  egal((ecran.match(/kDeLaFile\(/g) ?? []).length, 0, 'écran : plus aucun appel direct à `kDeLaFile`');
-
-  // Le hook : K obligatoire, sans défaut (un appel qui l'oublierait ne compile pas).
+  ok(appelFile.includes('toutVerifier: verifierToutesLesCombinaisons'),
+    'écran : la cible de vérification voyage avec la vue, sans reconstruire le contexte relique');
+  egal((ecran.match(/kDeLaFile\(/g) ?? []).length, 0, 'écran : aucun K recopié');
   const hook = readFileSync('src/hooks/useArtifactOptimQueue.ts', 'utf8');
-  ok(/\n\s*K: number;/.test(hook) && !/K = /.test(hook) && !/K\?:/.test(hook), 'hook : `K` obligatoire, sans valeur par défaut');
-  ok(/prochainsATraiter\(trieesRef\.current, cacheRef\.current, K, pageRef\.current\(\)\)/.test(hook),
-    'hook : la file sert `prochainsATraiter` avec ce K, sur le cache lui-même (conformité lue)');
-  ok(!/new Set\(cacheRef\.current\.keys\(\)\)/.test(hook), 'hook : plus aucune copie des seules clés du cache pour la file');
+  ok(hook.includes('changerVue({ tri, metric, page, adapterArtefactsAuTri, toutVerifier })'),
+    'adaptateur : la page et la cible en direct parviennent au propriétaire');
+  ok(!/new Map|new Set/.test(hook.replace('const VIDE: ReadonlyMap<string, ResultatArtefacts> = new Map();', '')),
+    'adaptateur : aucune copie des clés ni cache de calcul');
 
   // Le CLI : le contexte de la recherche lancée (`params.relicContext`).
   const cli = readFileSync('scripts/lib/classementCli.ts', 'utf8');

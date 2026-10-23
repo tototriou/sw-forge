@@ -468,8 +468,8 @@ export function testRelicClassementParMode() {
   /* ── L'écran appelle CE producteur, et la carte lit la MÊME relique ────── */
   {
     const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
-    ok(/const optionsDuTriAffiche = useMemo\(\s*\(\) =>\s*optionsDeClassement\(\{[\s\S]{0,900}?etatReliqueDe,/.test(ecran),
-      'écran : les options du tri affiché viennent d’optionsDeClassement, avec etatReliqueDe');
+    ok(ecran.includes('optionsDuContexte(contexteResultatAffiche, fileArtefacts.parBuild, fileArtefacts.vue.metric)'),
+      'écran : les options du tri affiché viennent de la photographie et du cache publié');
     // La valeur passée à la carte, qu'elle soit écrite en prop JSX ou dans
     // les propriétés calculées par l'écran pour chaque carte.
     ok(/etatRelique(=\{|: )etatReliqueDe\(c\)/.test(ecran), 'écran : la relique affichée par la carte est celle que le score compte');
@@ -477,19 +477,18 @@ export function testRelicClassementParMode() {
     // la file n'a rien résolu — toujours, quand l'optimisation d'artéfacts
     // est coupée (mode `off`). Il doit compter la relique fixe, sans lire le
     // cache de la file (qui se nourrit de cet ordre).
-    ok(/const etatReliqueDeBase = useCallback\(\s*\(_c: BuildCandidate\) => etatReliqueDuBuild\(undefined, relicContextRecherche, selected\?\.gear\.relic\)/.test(ecran)
-      && /const fullSortedCandidates = useMemo\([\s\S]{0,700}?optionsDeClassement\(\{[\s\S]{0,600}?etatReliqueDe: etatReliqueDeBase/.test(ecran),
-      'écran : l’ordre de base compte la relique fixe (off, equipped), sans lire le cache de la file');
-    ok(/const etatReliqueDe = useCallback\([\s\S]{0,300}?\[fileArtefacts\.parBuild, relicContextRecherche, selected\?\.gear\.relic\]/.test(ecran),
-      'écran : etatReliqueDe dépend de la PIÈCE de la fiche (objet), pas de son identifiant');
+    ok(ecran.includes('const fullSortedCandidates = fileArtefacts.base;'),
+      'écran : ordre de base publié par le propriétaire, sans nouveau tri sur le fil de l’écran');
+    ok(/const etatReliqueDe = useCallback\([\s\S]{0,400}?\[fileArtefacts\.parBuild, contexteResultatAffiche\]/.test(ecran),
+      'écran : etatReliqueDe dépend des pièces photographiées et du cache de cette publication');
     // Le CLI : même producteur ; sans cache de file, `fixe` en off/equipped
     // (relique de la fiche, `SearchParams.relic`), `en attente` en recherche.
     // Ces options de l'ordre de BASE vivent dans
     // `classerCommeLEcran` (scripts/lib/classementCli.ts), que le script
     // appelle ; la résolution par build les complète ensuite.
     const cli = readFileSync('scripts/lib/classementCli.ts', 'utf8');
-    ok(/const optionsDuTri = optionsDeClassement\(\{[\s\S]{0,1500}?etatReliqueDe: \(\) => etatReliqueDuBuild\(undefined, params\.relicContext, params\.relic\)/.test(cli),
-      'CLI : les options du tri viennent d’optionsDeClassement, relique de la fiche via SearchParams.relic');
+    ok(cli.includes('const optionsBase = optionsDuContexte(photo, null, recipe.metric);'),
+      'CLI : options de base issues de la même photographie, sans cache résolu');
     ok(/classerCommeLEcran\(\{/.test(readFileSync('scripts/optimizer-search.ts', 'utf8')), 'CLI : le script classe par classerCommeLEcran');
   }
 }
@@ -559,7 +558,7 @@ export function testRelicReferenceComparer() {
   const optionsOff = (relic: RelicDetail) => optionsDeClassement({
     realDamage: degatsRecherche, damageSetup: SETUP, runeById, metric: 'eff', aurasPropresDe: aurasPropresParRunes(runeById),
     artefactsDuBuild: () => profilFiche,
-    etatReliqueDe: (c) => etatReliqueDuBuild(undefined, resoudreContexteRelique(intention('off'), relic, [relic]), relic),
+    etatReliqueDe: () => etatReliqueDuBuild(undefined, resoudreContexteRelique(intention('off'), relic, [relic]), relic),
     contexteExclusive: { setup: SETUP, element: null },
   });
   const cConq = candidat(CONQUETE);
@@ -579,13 +578,13 @@ export function testRelicReferenceComparer() {
 
   /* ── L'écran : les deux écarts lisent CE producteur ──────────────────── */
   const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
-  ok(/scoreDeReference\('degats_reels', selected\.gear, contexteReference\)/.test(ecran) && /total - refDegats/.test(ecran),
+  ok(/scoreDeReference\('degats_reels', selected\.gear, contexteReferenceResultat\)/.test(ecran) && /total - refDegatsResultat/.test(ecran),
     'écran : l’écart « Dégâts réels » se calcule contre scoreDeReference');
-  ok(/scoreDeReference\('ehp', selected\.gear, contexteReference\)/.test(ecran) && /total - refEhp/.test(ecran),
+  ok(/scoreDeReference\('ehp', selected\.gear, contexteReferenceResultat\)/.test(ecran) && /total - refEhpResultat/.test(ecran),
     'écran : l’écart « PV effectifs » se calcule contre scoreDeReference');
   ok(!/computeTotalDamage\(/.test(ecran), 'écran : plus aucun computeTotalDamage recopié (ni candidat, ni référence)');
   ok(/const contexteReference = useMemo\([\s\S]{0,200}?\[contexteDegatsArtefacts, damageSetup, contexteExclusive\]/.test(ecran)
-    && /const refDegats = useMemo\([\s\S]{0,200}?\[selected, contexteReference\]/.test(ecran),
+    && /const refDegatsResultat = useMemo\([\s\S]{0,200}?\[selected, contexteReferenceResultat\]/.test(ecran),
     'écran : les références dépendent de la fiche entière et du contexte de combat, jamais du cache des résultats');
 }
 

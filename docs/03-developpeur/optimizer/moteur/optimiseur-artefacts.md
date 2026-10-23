@@ -389,122 +389,78 @@ Une seule primitive, `chercherPaires`, sert deux entrées.
 - Le même sélecteur de principale sert les deux : sans optimisation
   d'artéfacts, l'écran impose « Comme équipé » des deux côtés ;
   avec, `'libre'` et les principales deviennent des filtres de candidats.
-- Ce qui garde la file légère pour le fil de l'écran : `classementResolu`
-  réutilise les notes de dégâts réels inchangées ([classement incrémental](#classement-incrémental)) ;
-  `sortCandidates` calcule le score de chaque candidat une fois par tri,
-  jamais dans le comparateur ; `cleBuild` est mémoïsée par identité de candidat
-  (`WeakMap`, qui laisse ramasser les candidats d'une recherche périmée) ;
-  les résultats se publient regroupés (`PUBLICATION_MS`).
-- Ne pas remettre `triees.length` dans les dépendances de l'effet de la file
-  (`useArtifactOptimQueue`) : il change à chaque message de progression,
-  l'effet se démonterait à ce rythme et son nettoyage annulerait la tâche de
-  fond avant qu'elle tourne — la file n'avancerait plus pendant la
-  recherche.
+- Le Worker de classement possède la file et son cache compact. Le hook
+  `useArtifactOptimQueue` souscrit à la vue et expose les projections de
+  l'écran ; aucune résolution n'y tourne.
 
 ### Classement incrémental
 
 #### Magasin compact et publications versionnées
 
 `candidatsCompacts.ts` porte six colonnes d'identifiants et huit colonnes de
-totaux en `Float64`, avec l'efficience reçue. Les huit gabarits et bases sont
-communs. L'ingestion vérifie chaque champ et `Object.is(bonus, total - base)` ;
-la reconstruction utilise cette même soustraction, sans nouvel arrondi.
-Une entrée hors contrat reste sur la référence objet. Les identifiants bruts
-ne passent jamais en `Int32`, les valeurs ne passent jamais en `Float32`.
-Les doublons partagent un groupe d'équipement, jamais leur identité de ligne
-ni leurs stats collectées. Le hachage vérifie les six identifiants triés en
-cas de collision ; les rangs de clés utilisent les chaînes jointes exactes,
-comparées par `<` et `>`, préparées à l'ouverture puis abandonnées.
-
-Le cache de la file journalise ses écritures, suppressions et vidages. Chaque
-publication garde la même `Map` de résultats qu'un instantané ordinaire et
-lui associe, dans une table faible, génération, version et changements depuis
-la précédente. Le journal coûte les clés touchées, indépendamment de la copie
-de Map requise par l'interface. Une génération nouvelle, un journal absent,
-une version manquée ou une incohérence impose un classement complet.
-Le journal ne retient pas une chaîne d'anciens instantanés.
+totaux en `Float64`, avec l'efficience reçue et huit gabarits communs.
+L'ingestion vérifie chaque champ et `Object.is(bonus, total - base)` ; la
+reconstruction fait cette même soustraction, sans nouvel arrondi. Les
+identifiants bruts ne passent jamais en `Int32`, les valeurs en `Float32`.
+Les doublons partagent l'équipement, jamais leur identité de ligne ni leurs
+stats collectées. Le hachage vérifie les six identifiants triés en cas de
+collision ; les rangs de clés utilisent les chaînes jointes exactes.
 
 `classementCompact.ts` conserve l'ordre dans un AVL en colonnes typées.
 Une différence retire les anciennes clés, ingère les nouveaux équipements,
-incrémente leurs versions, contrôle et renote leurs seules lignes (doublons
-compris), puis les réinsère. Un contexte ou critère différent invalide toutes
-les notes. Un rejet sort de l'index sans supprimer la ligne. Les comptes de
-sous-arbre permettent une sélection par rang et une page sans balayage total.
-Initialisation : O(N log N) ; différence : O(Δ log N), où Δ comprend les
-doublons ; page : O(log N + taille). L'adaptateur de l'écran rend encore un
-tableau complet de références aux objets existants, en O(N), sans reconstruire
-N candidats. Cette matérialisation de compatibilité est distincte du travail
-de contrôle, de notation et de mise à jour de l'index.
+renote leurs seules lignes (doublons compris), puis les réinsère. Un
+contexte ou critère différent invalide toutes les notes. Un rejet sort de
+l'index sans supprimer la ligne. Les comptes de sous-arbre permettent une
+sélection par rang sans balayage total. Initialisation : O(N log N) ;
+différence : O(Δ log N), doublons compris ; page : O(log N + taille).
 
-Cache vide, l'ordre de base est rendu tel quel. Cache non vide, même hors
-recherche, l'ordre fini est : note décroissante, relique croissante (absente
-en dernier), clé lexicographique, puis position dans l'ordre de base fourni.
-Sans note calculable, seul le départage s'applique. Les doublons restent des
-lignes distinctes. `NaN`, les infinis ou un identifiant de relique hors
-contrat prennent deux tris natifs stables sur des indices JavaScript, avec
-les expressions de la référence ; aucune normalisation de note ni
-comparaison composite ne leur impose un nouvel ordre.
+Le cache propriétaire (`cacheResolutionCompact.ts`) garde aussi les stats,
+indices de pièces et états en colonnes. Son journal identifie génération,
+version et dernière écriture ; journal manqué ou incohérent impose un
+recalcul complet. Les changements destinés à l'écran restent en attente
+jusqu'à l'acquittement de leur version, même si une vue dépassée est ignorée.
+Une écriture plus récente n'est jamais effacée par cet acquittement.
+Les inventaires sont immuables et propres à l'import photographié.
 
-Les contrôles portent sur les données à l'ingestion et sur chaque nouvelle
-version. Les données collectées et les inventaires sont immuables. Les
-options produites par `optionsDeClassement` identifient les données communes
-et la relique fixe ; les entrées propres dépendent de l'équipement journalisé.
-Un appel générique sans cette provenance reste sur la référence complète.
-Une fonction détectée dans les données communes ou dans les données propres
-lues à l'ingestion désactive le chemin compact ; la garde du tri objet
-reste inchangée. Les accesseurs sont supposés stables hors changement
-d'équipement journalisé : une fermeture qui change sans cette écriture
-n'est pas détectée par l'index réutilisé. L'API directe de `ClassementCompact`
-compare le contexte par identité : le muter sur place sans en changer
-l'identité n'invalide pas les notes. Ces deux usages sont hors garantie.
-`classementResoluReference` conserve l'assemblage objet servant d'oracle.
+`CorpsClassement` appelle le même index et les mêmes notes que le CLI et le
+harnais. Construction, notation, tri fini et insertion dans l'index offrent
+des étapes ; Node les consomme jusqu'au bout, la coquille Worker cède la main
+entre des tranches visées de 4 ms. Une vue nouvelle abandonne le travail
+précédent avant publication. Les non-finis gardent les tris natifs stables de
+la référence, qui sont synchrones ; la cible de tranche ne les préempte pas.
 
-#### Référence objet et mémoire des notes
+Cache vide : ordre de base inchangé. Cache non vide : note décroissante,
+relique croissante (absente en dernier), clé lexicographique, puis position
+dans l'ordre de base. Sans note calculable, seul le départage s'applique.
+`NaN`, infinis et identifiants de relique hors contrat prennent deux tris
+natifs stables sur indices JavaScript, avec les expressions de la référence,
+sans normalisation ni comparateur composite.
 
-`classementResoluReference` filtre les rejets, départage par relique puis
-clé, projette les stats et appelle `trierCandidatsIncrementalement`.
-`sortCandidates` est son recalcul complet de référence : même tri stable,
-même soustraction décroissante, égalités et non-finis compris. Cache vide,
-l'ordre de base est rendu tel quel. `ordonnerParDepartage` prépare une fois
-par candidat et par appel (`rid` ou `+∞`, `cleBuild`) ; le comparateur ne
-relit ni cache, ni `ridDe`, ni clé. Couple égal : ordre d'entrée conservé,
-doublons compris. Aucune note approximative, aucune priorité de file modifiée.
+L'adaptateur `adaptateurClassement.ts` matérialise encore les tableaux
+complets de l'interface actuelle. La source objet traverse à l'aperçu et au
+scellement, puis seulement les ordres copiés et les équipements modifiés.
+Cette projection de compatibilité reste O(N), distincte du travail de
+notation. Le stockage vivant n'est jamais transféré pour servir une vue.
 
-Seules les notes de Dégâts réels sont mémorisées par identité faible de
-l'objet candidat ; les autres critères passent directement par
-`sortCandidates`, sans empreinte. Candidats, stats et données propres sont
-immuables ; la réponse est remplacée dans la Map, jamais mutée.
-`candidatAvecSaPaire` garde sa projection tant que base et réponse sont
-identiques. Un objet candidat nouveau est noté à sa première apparition,
-sans rapprochement par ids ; la mémoire ne retient pas les objets morts.
+Les appels génériques de `classementResolu` hors du contrat compact utilisent
+un recalcul sur indices avec les mêmes formules. Les fonctions détectées
+dans les données communes ou propres interdisent la réutilisation compacte.
+Une fermeture mutée sans écriture journalisée et un contexte de l'API directe
+muté sans changement d'identité restent hors garantie.
 
-Le contexte de dégâts, hors profil propre, est empreint et comparé une fois
-par publication, puis identifié par objet, modification en place comprise.
-Aucune clé par candidat, aucun parcours de stats pour une clé. Les accesseurs
-sont relus pour chaque candidat, même recréés ; leurs petites données
-(auras, profil effectif, apport exclusif, relique fixe remplacée sous le même
-id comprise) sont comparées récursivement, avec raccourci par identité et
-`Object.is`. Ni ces données ni les stats ne sont sérialisées ; `NaN`, infinis
-et zéro négatif sont conservés. Les données sont sans cycle, comme le Worker.
-Une fonction dans les données communes ou propres d'un seul candidat fait
-reprendre tout le tri directement, sans lecture ni écriture de note mémorisée.
-La garde précède tout accès aux notes, même sur le dernier candidat.
-L'appartenance et le départage sont recalculés à chaque appel : un rejet ou
-un rid différent peut changer l'ordre. La mémoire objet ne garde aucun ordre.
+#### Référence objet des tests
 
-L'observateur `surNote` reçoit chaque note de dégâts réellement utilisée,
-hit compris. Les `testClassementIncremental…` comparent ordre et notes à
-chaque publication : aperçu, résultat cloné, résolutions hors ordre, rejets,
-réglages, profils, exclusives, égalités et invalidations isolées à critère
-constant (dont une inversion). Ils contrôlent le repli sur fonction,
-l'absence d'empreinte des autres critères et une seule sérialisation commune
-sur 20 000 candidats. `testArtefactFile` compare le départage à l'oracle sur
-6 000 entrées à graine fixe et borne `ridDe` à un appel par entrée.
-Les `testClassementCompact…` ajoutent ordinaux, comptes, pages, journal absent,
-manqué ou contradictoire avec le cache, non-finis et travail par différence ;
-l'aller-retour contrôle les champs exacts. Les cas de fonctions communes et
-propres de `testClassementCompactJournalManquant` appellent `classementResolu`
-sans index compact préalablement amorcé pour ce tableau de base : ils
-prouvent le repli initial, pas la détection d'une fonction ajoutée dans une
-fermeture après réutilisation. Ces comptes ne prouvent aucun gain de temps
-au navigateur.
+`tests/oracle-classement.ts` conserve l'ancienne mémoire des notes par objet
+candidat. Aucun code de production ne l'importe. `sortCandidates` et
+`ordonnerParDepartage` définissent le recalcul complet : mêmes expressions,
+même stabilité, mêmes égalités et non-finis. `candidatAvecSaPaire` garde sa
+projection tant que base et réponse restent identiques.
+
+Les `testClassementIncremental…` vérifient cette mémoire historique. Les
+`testClassementCompact…` comparent publications, doublons, pages, notes,
+non-finis, journaux manquants et travail par différence à l'oracle.
+`testContexteResultatFige`, `testClassementDistantVersions`,
+`testClassementDistantPanne` et `testClassementBranchementApp` ajoutent la
+photographie immuable, les générations et vues dépassées, les ports réels,
+le repli après perte du résolveur et la navigation pendant la recherche.
+Ces contrôles ne prouvent aucun gain de temps au navigateur.

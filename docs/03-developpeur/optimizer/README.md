@@ -16,6 +16,7 @@ selon ce qu'on touche. Avant un chantier Optimizer : [invariants.md](invariants.
 | `src/lib/retentionEmboitee.ts`, `src/lib/constructionEmboitee.ts`, les préréglages emboîtés | [moteur/elagages.md](moteur/elagages.md) |
 | `src/lib/appariementRapide.ts`, `src/lib/validationRapide.ts`, le test rapide et la validation de l'appariement | [moteur/noyau-appariement.md](moteur/noyau-appariement.md) |
 | `src/workers/parallelPairing.ts`, `src/lib/appariementRapideParallele.ts`, `src/lib/travailleurAppariement.ts`, `src/workers/appariementRapide.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | [moteur/parallelisation.md](moteur/parallelisation.md) |
+| `src/lib/contexteResultat.ts`, `src/lib/candidatsCompacts.ts`, `src/lib/classementCompact.ts`, `src/lib/cacheResolutionCompact.ts`, `src/lib/adaptateurClassement.ts`, `src/workers/classement.worker.ts`, `src/workers/classementDistant.ts` | [moteur/pipeline.md](moteur/pipeline.md), [moteur/optimiseur-artefacts.md](moteur/optimiseur-artefacts.md), [moteur/parallelisation.md](moteur/parallelisation.md) |
 | `diagnoseFeasibility`, `rankBlockingConditions`, le « 0 résultat » | [moteur/diagnostics.md](moteur/diagnostics.md) |
 | `src/lib/artifactQueue.ts`, `src/lib/artifactFiche.ts`, `src/lib/artifactEvaluation.ts`, la paire d'artéfacts d'un build | [moteur/artefacts.md](moteur/artefacts.md) |
 | `src/lib/artifactOptim.ts`, l'éligibilité ou l'effet d'une ligne d'artéfact | [moteur/optimiseur-artefacts.md](moteur/optimiseur-artefacts.md) |

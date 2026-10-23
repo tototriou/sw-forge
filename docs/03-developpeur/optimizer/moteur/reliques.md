@@ -304,7 +304,7 @@ différentiel relique pour classer une perte
 - **Le résultat** (`ResultatArtefacts`) porte la paire, ses artéfacts, les
   stats recalculées avec l'équipement retenu, `conforme`, et en mode
   `recherche` la relique retenue (`relique`, son `id` est le `rid`) et
-  `sansEffetSurLeTri`. Le classement (`affichees`, par `classementResolu`)
+  `sansEffetSurLeTri`. Le classement compact partagé (projeté en `affichees`)
   écarte un build non conforme et classe sur ces stats, qui incluent la
   relique : [pipeline.md § Résultat affiché](pipeline.md).
 - **Non-régression conditionnelle** : une principale en pourcentage ne fait

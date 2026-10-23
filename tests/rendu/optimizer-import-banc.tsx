@@ -69,8 +69,8 @@ async function preparerResultatsRefus() {
   // conserve aussi un résultat déjà reçu, sans exécuter le moteur.
   globalThis.Worker = class {
     onmessage: ((e: MessageEvent) => void) | null = null; onerror = null;
-    postMessage() { queueMicrotask(() => this.onmessage?.(new MessageEvent('message', { data: { type: 'result', candidates: [], explored: 1,
-      truncated: false, durationMs: 1, nearMissByCondition: {}, globalNearMiss: null } }))); }
+    postMessage() { queueMicrotask(() => this.onmessage?.(new MessageEvent('message', { data: { type: 'result', nombre: 0, explored: 1,
+      truncated: false, nearMissByCondition: [], globalNearMiss: null } }))); }
     terminate() { this.onmessage = null; }
   } as unknown as typeof Worker;
   await geste(() => etat.search.run({} as never));
@@ -223,8 +223,8 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     // Le transport injecte un résultat synthétique dans le vrai hook ; aucun moteur n'est lancé.
     globalThis.Worker = class {
       onmessage: ((e: MessageEvent) => void) | null = null; onerror = null;
-      postMessage() { queueMicrotask(() => this.onmessage?.(new MessageEvent('message', { data: { type: 'result', candidates: [], explored: 1,
-        truncated: false, durationMs: 1, nearMissByCondition: {}, globalNearMiss: null } }))); }
+      postMessage() { queueMicrotask(() => this.onmessage?.(new MessageEvent('message', { data: { type: 'result', nombre: 0, explored: 1,
+        truncated: false, nearMissByCondition: [], globalNearMiss: null } }))); }
       terminate() { this.onmessage = null; }
     } as unknown as typeof Worker;
     await geste(() => etat.search.run({} as never));

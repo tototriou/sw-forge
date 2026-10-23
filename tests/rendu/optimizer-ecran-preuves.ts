@@ -434,7 +434,8 @@ export async function preuvesMessageImport(b: BancEcran): Promise<Preuves> {
     await b.geste(() => { b.etat().setComboSets(['violent']); b.etat().setAdaptiveTrancheWeighting(true); });
     const rechercher = bouton('Rechercher');
     if (rechercher) await b.geste(() => rechercher.click());
-    const recherche = envois.find((d) => 'pool' in d);
+    // La demande du Worker porte les paramètres sous `params` (DemandeDeRecherche).
+    const recherche = envois.map((d) => (d.params ?? d) as Record<string, unknown>).find((d) => 'pool' in d);
     preuves.push([!!recherche && recherche.adaptiveTrancheWeighting === false,
       `état à vrai : la recherche part avec adaptiveTrancheWeighting faux (${recherche ? String(recherche.adaptiveTrancheWeighting) : 'aucun envoi'})`]);
     const exporter = bouton('Exporter les paramètres de recherche');

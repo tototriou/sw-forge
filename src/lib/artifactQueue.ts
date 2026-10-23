@@ -19,12 +19,73 @@
 // responsabilités séparées, dont celle-ci est la seule testable sans
 // navigateur.
 
-import { BuildCandidate, BuildRequirement, Objective, OptionsDeClassement, sortCandidates } from './runeBuildOptim';
+import { BuildCandidate, BuildRequirement, Objective, OptionsDeClassement, preparerNotationCompacte, trierCandidatsIncrementalement } from './runeBuildOptim';
+import { CandidatNonCompactable } from './candidatsCompacts';
+import { ClassementCompact, TravailClassementCompact } from './classementCompact';
 import { StatKey } from './effects';
 import { StatRow } from './stats';
 import { ArtifactDetail, RelicDetail } from '../types';
 import { PaireArtefacts } from './artifactOptim';
 import { RelicContext } from './relicOptim';
+
+export interface ChangementResolution {
+  readonly cle: string;
+  readonly avant: ResultatArtefacts | undefined;
+  readonly apres: ResultatArtefacts | undefined;
+}
+export interface JournalResolution {
+  readonly generation: object;
+  readonly version: number;
+  readonly tailleAvant: number;
+  readonly tailleApres: number;
+  readonly changements: readonly ChangementResolution[];
+}
+const JOURNAUX_RESOLUTION = new WeakMap<ReadonlyMap<string, ResultatArtefacts>, JournalResolution>();
+export function journalResolution(cache: ReadonlyMap<string, ResultatArtefacts>): JournalResolution | undefined {
+  return JOURNAUX_RESOLUTION.get(cache);
+}
+
+/** Les écritures des deux voies passent par Map.set, donc par le même journal. */
+export class CacheResolutionJournalise extends Map<string, ResultatArtefacts> {
+  private readonly generation = {};
+  private versionPublication = 0;
+  private taillePubliee = 0;
+  private readonly touches = new Map<string, ResultatArtefacts | undefined>();
+
+  constructor() { super(); }
+
+  override set(cle: string, resultat: ResultatArtefacts): this {
+    if (this.get(cle) === resultat) return this;
+    if (!this.touches.has(cle)) this.touches.set(cle, this.get(cle));
+    return super.set(cle, resultat);
+  }
+  override delete(cle: string): boolean {
+    if (!this.has(cle)) return false;
+    if (!this.touches.has(cle)) this.touches.set(cle, this.get(cle));
+    return super.delete(cle);
+  }
+  override clear(): void {
+    for (const [cle, resultat] of this) if (!this.touches.has(cle)) this.touches.set(cle, resultat);
+    super.clear();
+  }
+  publier(): ReadonlyMap<string, ResultatArtefacts> {
+    const changements: ChangementResolution[] = [];
+    for (const [cle, avant] of this.touches) {
+      const apres = this.get(cle);
+      if (avant !== apres) changements.push(Object.freeze({ cle, avant, apres }));
+    }
+    // La copie conserve le contrat React ; le journal ne parcourt que touches.
+    const publie = new Map(this);
+    JOURNAUX_RESOLUTION.set(publie, Object.freeze({
+      generation: this.generation, version: ++this.versionPublication,
+      tailleAvant: this.taillePubliee, tailleApres: this.size,
+      changements: Object.freeze(changements),
+    }));
+    this.taillePubliee = this.size;
+    this.touches.clear();
+    return publie;
+  }
+}
 
 /**
  * Identité d'un build, pour ne pas l'optimiser deux fois.
@@ -44,6 +105,9 @@ import { RelicContext } from './relicOptim';
 // pouvoir être ramassés. Une `Map` les retiendrait indéfiniment — 100 000
 // entrées par recherche, à vie.
 const CLES = new WeakMap<BuildCandidate, string>();
+// Les réponses sont remplacées dans la Map, jamais modifiées en place. Garder
+// la projection évite de perdre les mémos du candidat à chaque publication.
+const CANDIDATS_RESOLUS = new WeakMap<BuildCandidate, { resultat: ResultatArtefacts; candidat: BuildCandidate }>();
 
 export function cleBuild(c: BuildCandidate): string {
   const memo = CLES.get(c);
@@ -132,7 +196,12 @@ export interface ResultatArtefacts {
  */
 export function candidatAvecSaPaire(c: BuildCandidate, cache: ReadonlyMap<string, ResultatArtefacts>): BuildCandidate {
   const r = cache.get(cleBuild(c));
-  return r ? { ...c, stats: r.stats } : c;
+  if (!r) return c;
+  const connu = CANDIDATS_RESOLUS.get(c);
+  if (connu?.resultat === r) return connu.candidat;
+  const candidat = { ...c, stats: r.stats };
+  CANDIDATS_RESOLUS.set(c, { resultat: r, candidat });
+  return candidat;
 }
 
 // Combien de builds la file résout au maximum, hors page affichée. Mesuré :
@@ -506,14 +575,16 @@ export function signatureArtefacts(parts: {
  * résolus reste déterministe (par `cleBuild`), sans prétendre à un rang exact.
  */
 export function ordonnerParDepartage<T extends BuildCandidate>(candidats: readonly T[], ridDe: (c: T) => number | undefined): T[] {
-  return [...candidats].sort((a, b) => {
-    const ra = ridDe(a) ?? Number.POSITIVE_INFINITY;
-    const rb = ridDe(b) ?? Number.POSITIVE_INFINITY;
-    if (ra !== rb) return ra - rb;
-    const ca = cleBuild(a);
-    const cb = cleBuild(b);
-    return ca < cb ? -1 : ca > cb ? 1 : 0;
-  });
+  // Le couple est lu une fois par entrée ; le comparateur ne relit pas le
+  // cache de résolution. Le tri stable garde l'ordre des couples égaux.
+  return candidats.map((candidat) => ({
+    candidat,
+    rid: ridDe(candidat) ?? Number.POSITIVE_INFINITY,
+    cle: cleBuild(candidat),
+  })).sort((a, b) => {
+    if (a.rid !== b.rid) return a.rid - b.rid;
+    return a.cle < b.cle ? -1 : a.cle > b.cle ? 1 : 0;
+  }).map(({ candidat }) => candidat);
 }
 
 /**
@@ -538,7 +609,7 @@ export function ordonnerParDepartage<T extends BuildCandidate>(candidats: readon
  * ⚠️ **Un build optimisé peut donc passer devant, et c'est le comportement
  * voulu** — voir `candidatAvecSaPaire` pour l'argument de convergence.
  */
-export function classementResolu(
+export function classementResoluReference(
   base: BuildCandidate[],
   parBuild: ReadonlyMap<string, ResultatArtefacts>,
   sortBy: StatKey | Objective,
@@ -549,7 +620,40 @@ export function classementResolu(
     base.filter((c) => parBuild.get(cleBuild(c))?.conforme !== false),
     (c) => parBuild.get(cleBuild(c))?.relique?.id
   );
-  return sortCandidates(conformes.map((c) => candidatAvecSaPaire(c, parBuild)), sortBy, options);
+  return trierCandidatsIncrementalement(conformes.map((c) => candidatAvecSaPaire(c, parBuild)), sortBy, options);
+}
+
+const CLASSEMENTS_COMPACTS = new WeakMap<BuildCandidate[], ClassementCompact>();
+/** Compteurs de travail, sans horloge ; observables pour le différentiel et le pilote. */
+export function travailDuClassementCompact(base: BuildCandidate[]): Readonly<TravailClassementCompact> | undefined {
+  return CLASSEMENTS_COMPACTS.get(base)?.travail;
+}
+
+export function classementResolu(
+  base: BuildCandidate[], parBuild: ReadonlyMap<string, ResultatArtefacts>,
+  sortBy: StatKey | Objective, options: OptionsDeClassement
+): BuildCandidate[] {
+  const journal = journalResolution(parBuild);
+  if (!journal || parBuild.size === 0) {
+    CLASSEMENTS_COMPACTS.delete(base);
+    return classementResoluReference(base, parBuild, sortBy, options);
+  }
+  try {
+    const notation = preparerNotationCompacte(sortBy, options);
+    if (!notation) {
+      CLASSEMENTS_COMPACTS.delete(base);
+      return classementResoluReference(base, parBuild, sortBy, options);
+    }
+    let classement = CLASSEMENTS_COMPACTS.get(base);
+    if (!classement) { classement = new ClassementCompact(base); CLASSEMENTS_COMPACTS.set(base, classement); }
+    classement.actualiser(parBuild, journal, notation.contexte, notation.noter);
+    // Adaptation temporaire : références stables, jamais N décompactages.
+    return classement.page(0, base.length).map((i) => candidatAvecSaPaire(base[i], parBuild));
+  } catch (e) {
+    if (!(e instanceof CandidatNonCompactable)) throw e;
+    CLASSEMENTS_COMPACTS.delete(base);
+    return classementResoluReference(base, parBuild, sortBy, options);
+  }
 }
 
 export interface CompteAffichable {

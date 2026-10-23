@@ -31,6 +31,8 @@
 // stat séparément (meilleure relique, meilleur artéfact), une relique n'a
 // qu'une principale et une paire deux emplacements, d'où des rejets.
 
+import { isDeepStrictEqual } from 'node:util';
+import { corpusAvecRejetes } from './relique-ou.test';
 import { ArtifactDetail, RelicDetail, RuneDetail } from '../src/types';
 import { buildOptimizerRecipe, OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { DEFAULT_DAMAGE_SETUP, artifactDamageProfile } from '../src/lib/damage';
@@ -48,7 +50,8 @@ import {
 import { K_BUILDS_OPTIMISES, K_BUILDS_RECHERCHE_RELIQUE, ResultatArtefacts, cibleDeLaFile, classementResolu, cleBuild, prochainsATraiter } from '../src/lib/artifactQueue';
 import { entreeResolutionDuBuild, etatReliqueDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { regimeArtefacts, regimeEquipementDe } from '../src/lib/artifactEvaluation';
-import { artefactsDuCli, recipeToSearchParams } from '../scripts/lib/recipeToSearchParams';
+import { artefactsDuCli, recipeToSearchParams, resoudreEquipementCli } from '../scripts/lib/recipeToSearchParams';
+import { resoudreEquipementDuBuildExhaustif } from '../src/lib/resolutionExhaustive';
 import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import { LoadedMonster } from '../scripts/lib/loadMonster';
 import { runSearchToCompletion } from '../scripts/lib/runSearch';
@@ -160,7 +163,7 @@ function classementEcran(recipe: OptimizerRecipe, candidats: BuildCandidate[], r
   return { affichees: classementResolu(fullSortedCandidates, parBuild, recipe.objective, options), options, parBuild, fullSortedCandidates };
 }
 
-export function testCliClassementParMode() {
+export async function testCliClassementParMode() {
   titre('CLI — résolution par build et classement de l’écran, trois modes de relique');
 
   const cas: { mode: 'off' | 'equipped' | 'recherche'; atk: number; def: number }[] = [
@@ -172,19 +175,27 @@ export function testCliClassementParMode() {
     const recipe = recette(mode, atk, def);
     const params = recipeToSearchParams(recipe, LOADED);
     egal(params.relicContext?.mode, mode, `${mode} : précondition, mode de relique du vrai producteur`);
-    const res = runSearchToCompletion(params);
+    const res = await runSearchToCompletion(params);
     ok(res.candidates.length > 0 && !res.truncated, `${mode} : ${res.candidates.length} candidat(s) collecté(s), recherche complète (tronqué : ${res.truncated})`);
+    // En relique `recherche`, la recherche n'émet plus les faux positifs de
+    // la borne par stat (relique en « OU ») : le corpus les ajoute après ses
+    // candidats, pour garder l'issue « rejeté » exercée.
+    const candidats = mode === 'recherche' ? corpusAvecRejetes(params) : res.candidates;
+    if (mode === 'recherche') {
+      egal(candidats.slice(0, res.candidates.length).map(cleBuild), res.candidates.map(cleBuild), 'recherche : le corpus commence par les candidats de la recherche');
+      ok(candidats.length > res.candidates.length, `recherche : ${candidats.length - res.candidates.length} faux positif(s) de la borne ajoutés au corpus`);
+    }
     const realDamage = buildRealDamageContext(recipe, LUSHEN, params.artifacts);
     ok(realDamage != null, `${mode} : sort calculable`);
 
     // Le CLI : la fonction même que le script appelle — ici avec
     // `--resoudre-tout` (tous les candidats) ; le mode par défaut, comme la
     // file de l'écran, est vérifié plus bas.
-    const cli = classerCommeLEcran({ recipe, loaded: LOADED, params, candidates: res.candidates, realDamage, toutResoudre: true });
+    const cli = classerCommeLEcran({ recipe, loaded: LOADED, params, candidates: candidats, realDamage, toutResoudre: true });
     egal(cli.resolu != null, mode !== 'off', `${mode} : résolution par build ${mode === 'off' ? 'absente (optimisation coupée, comme l’écran sans file)' : 'présente'}`);
 
     // L'écran, par ses producteurs, file résolue sur tous les candidats.
-    const ecran = classementEcran(recipe, res.candidates, realDamage, false);
+    const ecran = classementEcran(recipe, candidats, realDamage, false);
     const top = (classes: BuildCandidate[], options: OptionsDeClassement) =>
       classes.slice(0, 5).map((c) => ({ cle: cleBuild(c), score: scoreDuCandidat(c, recipe.objective, options) }));
     const topCli = top(cli.classes, cli.options);
@@ -223,8 +234,31 @@ export function testCliClassementParMode() {
         elements.some((e) => archetypes.some((a) => respecteConditionsAvecRelique(
           { base: BASE, runes: c.runeIds.map((id) => runeById.get(id)!), artifacts: [e, a].filter((x): x is ArtifactDetail => x != null) },
           rel, params.requirement).respecte)));
-      const parCle = new Map(res.candidates.map((c) => [cleBuild(c), c]));
+      const parCle = new Map(candidats.map((c) => [cleBuild(c), c]));
       egal(rejetes.filter((k) => faisable(parCle.get(k)!)), [], `recherche : les ${rejetes.length} rejetés n’ont aucun couple faisable (énumération exhaustive)`);
+      // L'option `diagnostic` du CLI, contre le calcul exhaustif sur l'entrée
+      // assemblée comme le CLI l'assemble : avec elle, le résultat entier du
+      // calcul exhaustif ; sans elle (le chemin de l'app), un conforme
+      // identique, un rejeté sans paire ni artéfact.
+      const sansDiagnostic = resoudreEquipementCli(recipe, LOADED, params)!;
+      const avecDiagnostic = resoudreEquipementCli(recipe, LOADED, params, { diagnostic: true })!;
+      const a = artefactsDuCli(recipe, LOADED)!;
+      const exhaustif = (c: BuildCandidate) => resoudreEquipementDuBuildExhaustif(entreeResolutionDuBuild({
+        fiche: LOADED.gear, runes: c.runeIds.map((id) => runeById.get(id)!), artifactParams: a.params,
+        regime: regimeEquipementDe(regimeArtefacts(recipe.objective), a.degats != null), degats: a.degats,
+        exclusive: { setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP, element: a.element },
+        requirement: params.requirement, relicContext: params.relicContext, caches: null,
+      }));
+      let diagnostics = 0;
+      const ecartsDiagnostic = candidats.filter((c) => {
+        const app = sansDiagnostic(c);
+        const diag = avecDiagnostic(c);
+        const ref = exhaustif(c);
+        if (!diag.conforme && diag.paire) diagnostics++;
+        return !isDeepStrictEqual(diag, ref) || (ref.conforme ? !isDeepStrictEqual(app, ref) : app.conforme || app.paire !== null || app.artefacts.length > 0);
+      }).map(cleBuild);
+      egal(ecartsDiagnostic, [], `recherche : option diagnostic du CLI = calcul exhaustif sur les ${candidats.length} candidats ; sans elle, conformes identiques et rejetés sans paire`);
+      ok(diagnostics > 0, `… ${diagnostics} rejeté(s) portent le diagnostic (un couple au score) avec l’option`);
       egal(cli.classes.filter((c) => !respecteConditionsAvecRelique(
         { base: BASE, runes: c.runeIds.map((id) => runeById.get(id)!), artifacts: resolu.parBuild.get(cleBuild(c))!.artefacts },
         resolu.parBuild.get(cleBuild(c))!.relique!, params.requirement).respecte).map(cleBuild), [],
@@ -247,8 +281,8 @@ export function testCliClassementParMode() {
 
     // Mode par DÉFAUT du CLI, comme la file de l'écran (file non exhaustive,
     // voir plus bas) : comparé au hook déroulé build par build.
-    const cliFile = classerCommeLEcran({ recipe, loaded: LOADED, params, candidates: res.candidates, realDamage, toutResoudre: false });
-    const ecranFile = classementEcran(recipe, res.candidates, realDamage, true);
+    const cliFile = classerCommeLEcran({ recipe, loaded: LOADED, params, candidates: candidats, realDamage, toutResoudre: false });
+    const ecranFile = classementEcran(recipe, candidats, realDamage, true);
     const lignes = (classes: BuildCandidate[], options: OptionsDeClassement) =>
       classes.slice(0, LIGNES_IMPRIMEES).map((c) => ({ cle: cleBuild(c), score: scoreDuCandidat(c, recipe.objective, options) }));
     const lCli = lignes(cliFile.classes, cliFile.options);
@@ -283,8 +317,8 @@ export function testCliClassementParMode() {
         ok(vues === r.K || fin === cliFile.base.length, `${mode}, file : ${vues} confirmées sur la fenêtre de fond (cible ${r.K}, ou tout l’ordre de base)`);
         ok(cliFile.base.slice(0, fin).every((c) => r.parBuild.has(cleBuild(c))), `${mode}, file : tout build avant la ${r.K}ᵉ confirmée (rang ${fin}) est résolu`);
       }
-      ok(r.parBuild.size < res.candidates.length,
-        `${mode}, file : ${r.parBuild.size} résolus sur ${res.candidates.length} en ${r.lots} lot(s) (la file de l’écran, build par build : ${ecranFile.parBuild.size})`);
+      ok(r.parBuild.size < candidats.length,
+        `${mode}, file : ${r.parBuild.size} résolus sur ${candidats.length} en ${r.lots} lot(s) (la file de l’écran, build par build : ${ecranFile.parBuild.size})`);
       const equipementFile = (c: BuildCandidate) => {
         const e = r.parBuild.get(cleBuild(c))!;
         return { base: BASE, runes: c.runeIds.map((id) => runeById.get(id)!), artifacts: e.artefacts, relic: e.relique ?? LOADED.gear.relic };
@@ -316,12 +350,12 @@ export function testCliClassementParMode() {
       // l'écran avec l'interrupteur ; et son classement est celui de
       // `--resoudre-tout`.
       const recetteTout = { ...recipe, verifierToutesLesCombinaisons: true };
-      const cliTout = classerCommeLEcran({ recipe: recetteTout, loaded: LOADED, params, candidates: res.candidates, realDamage, toutResoudre: false });
-      const ecranTout = classementEcran(recetteTout, res.candidates, realDamage, true);
+      const cliTout = classerCommeLEcran({ recipe: recetteTout, loaded: LOADED, params, candidates: candidats, realDamage, toutResoudre: false });
+      const ecranTout = classementEcran(recetteTout, candidats, realDamage, true);
       const rt = cliTout.resolu!;
       egal([rt.mode, rt.K], ['file', Number.POSITIVE_INFINITY], `${mode}, interrupteur : mode par défaut, cible infinie`);
-      egal([rt.parBuild.size, ecranTout.parBuild.size], [res.candidates.length, res.candidates.length],
-        `${mode}, interrupteur : les ${res.candidates.length} candidats vérifiés, au CLI comme à l’écran`);
+      egal([rt.parBuild.size, ecranTout.parBuild.size], [candidats.length, candidats.length],
+        `${mode}, interrupteur : les ${candidats.length} candidats vérifiés, au CLI comme à l’écran`);
       const lTout = lignes(cliTout.classes, cliTout.options);
       egal(lTout.map((x) => x.cle), lignes(ecranTout.affichees, ecranTout.options).map((x) => x.cle), `${mode}, interrupteur : mêmes ${LIGNES_IMPRIMEES} lignes que l’écran`);
       egal([cliTout.classes.map(cleBuild).join('|') === cli.classes.map(cleBuild).join('|'), cliTout.classes.length], [true, cli.classes.length],

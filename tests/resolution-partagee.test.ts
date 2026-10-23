@@ -17,7 +17,8 @@
 import { readFileSync } from 'node:fs';
 import { ArtifactArchetype, ArtifactDetail, ElementKey, RelicDetail } from '../src/types';
 import { RelicContext } from '../src/lib/relicOptim';
-import { BuildCandidate, OptionsDeClassement, SearchParams, aurasPropresParRunes, conditionsPaireFixePosees, optionsDeClassement, respecteConditionsPaireFixe, scoreDuCandidat, searchBuilds, sortCandidates } from '../src/lib/runeBuildOptim';
+import { BuildCandidate, OptionsDeClassement, SearchParams, aurasPropresParRunes, conditionsPaireFixePosees, optionsDeClassement, respecteConditionsPaireFixe, scoreDuCandidat, sortCandidates } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import { ResultatArtefacts, classementResolu, cleBuild } from '../src/lib/artifactQueue';
 import { EntreeResolution, entreeResolutionDuBuild, etatReliqueDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { ReglagesDifferentiel, maxStatsActifsDe, regimeDe, resoudreCandidat, runesDe } from '../scripts/lib/relicDifferentiel';
@@ -26,6 +27,7 @@ import { StatRow, computeStats, statsParPaire } from '../src/lib/stats';
 import { ArtifactSearchParams } from '../src/lib/artifactOptim';
 import { evaluerPourRegime } from '../src/lib/artifactEvaluation';
 import { CORPUS_5A } from './relic-search.test';
+import { corpusAvecRejetes } from './relique-ou.test';
 import { DEGATS_FICHE } from './artifact-fiche.test';
 import { egal, ok, titre } from './outils';
 
@@ -95,7 +97,9 @@ export function testResolutionProducteurPartage() {
   let compares = 0;
   for (const fx of Object.values(CORPUS_5A)) {
     const p: SearchParams = { ...fx.p0, relicContext: fx.ctx };
-    const candidats = searchBuilds(p).candidates;
+    // Les faux positifs de la borne par stat, que la recherche n'émet plus
+    // (relique en « OU »), gardent les builds rejetés au corpus.
+    const candidats = corpusAvecRejetes(p);
     // UN jeu de caches et UN objet de paramètres de paires pour
     // toute la fixture, comme une file de l'écran — chaque candidat, relique,
     // contexte et critère suivant relit les profils et préfiltres des

@@ -24,11 +24,11 @@ import {
   BuildRequirement,
   buildBuckets,
   prepareSearch,
-  searchBuilds,
   totalPairCount,
   estimatePairBound,
   MAX_PER_SLOT_MATCH,
 } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import { egal, ok, titre } from './outils';
 // Pool synthétique PARTAGÉ — voir scripts/lib/randomPool.ts (la séquence de
 // tirage y est un contrat, figé par tests/random-pool.test.ts).

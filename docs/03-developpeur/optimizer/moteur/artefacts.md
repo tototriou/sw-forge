@@ -163,25 +163,39 @@ admissibles. Ce repli ne garantit pas l'optimum sur l'inventaire entier.
   Les pré-filtres, qui tournent sur des milliards de paires, gardent
   `artFlatMax` et `artFlatMin`, larges donc admissibles, à coût constant.
 - **Construction** (`apportsAtteignables`, `src/lib/artifactOptim.ts`) :
+  - « meilleur » suit le sens de chaque stat suivie : le plus fort sous
+    minimum seul (ou sur une stat non suivie), le plus faible sous maximum
+    seul, toutes les valeurs distinctes sous minimum ET maximum (l'ensemble
+    admis est un intervalle) ;
   - sans ligne verrouillée, seule la principale compte ; par sorte, on
     garde, pour chaque code de principale, le meilleur artéfact **et** le
     meilleur non Intangible — le meilleur peut être Intangible, et la paire
-    de deux Intangibles est interdite —, plus l'emplacement vide s'il est
-    candidat ;
+    de deux Intangibles est interdite — (sous minimum ET maximum, une pièce
+    par valeur, non Intangible de préférence), plus l'emplacement vide s'il
+    est candidat ;
   - avec des lignes verrouillées, cette réduction est impossible (le
     meilleur d'un code peut violer le verrou) : on parcourt tous les
     candidats de `candidatsParSorte`, filtrés par `paireRespecteLignes` ;
   - les paires permises (`artifactPairAllowed`) sont dédoublonnées sur les
-    stats suivies, puis réduites à leur frontière de Pareto.
+    stats suivies, puis réduites à leur frontière de Pareto, dans le même
+    sens (égalité exigée sous minimum ET maximum).
+- ⚠️ **Le sens compte** : pour toute vraie paire, `possibles` contient un
+  apport au moins aussi bon sur CHAQUE condition, minimum comme maximum ; le
+  test qui les juge avec la même paire est donc exact. Une réduction « le
+  plus fort domine » partout perdait, sous un maximum de PV, d'ATQ ou de
+  DEF, la paire plus faible qui le tient (ancien fonctionnement, remplacé) :
+  aux valeurs du jeu (PV +1500 par artéfact), 20 000 PV sans artéfact et
+  21 000 ≤ PV ≤ 22 000, seul +3 000 restait (23 000) et le build qu'un
+  seul artéfact PV rend conforme (21 500) était écarté.
 - Rien ne se perd au pré-filtrage de la file, qui passe par
   `preFiltrerCandidats` : la dominance y garde inconditionnellement les
   trois principales, et rend deux artéfacts incomparables sous un maximum
   actif sur leur principale
   ([optimiseur-artefacts.md § Pré-filtrage exact — pertinence, obligation, dominance](optimiseur-artefacts.md)).
-- **En mode relique `recherche`**, les stats du candidat sont sans relique
-  et le terme de relique s'ajoute en majorant côté minimum, en minorant
-  côté maximum : le test reste une borne, et l'exactitude vient de la
-  résolution avec la relique réelle —
+- **En mode relique `recherche`**, les stats du candidat sont sans relique,
+  et chaque apport s'essaie avec chaque relique représentative (la relique
+  en « OU ») : le test est exact sur la relique comme sur la paire, et
+  rejoint le jugement de la résolution —
   [reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md).
 
 ## Filtre final sur la vraie paire
@@ -344,15 +358,19 @@ source.
 
 ## Partage entre les builds d'une file
 
-Les builds d'une file essaient en grande partie les mêmes paires. Trois
-mémoires et un tri différé partagent ce qui ne dépend pas du build, sans
-changer aucun résultat :
+Les builds d'une file essaient en grande partie les mêmes paires. Quatre
+mémoires partagent ce qui ne dépend pas du build, sans changer aucun
+résultat, et la lecture des notes ne trie rien sur le chemin de l'app
+(dernier point) :
 
 - le **profil de dégâts d'une paire** ne lit que ses deux pièces : il se
   calcule une fois par paire (`CacheProfilsParPaire`,
   `src/lib/artifactEvaluation.ts` ; clé = identifiants des pièces dans
   l'ordre reçu, emplacement vide compris ; une pièce d'identifiant ≤ 0 n'est
-  pas une pièce et n'y entre jamais) ;
+  pas une pièce et n'y entre jamais). ⚠️ La clé est propre à UN
+  inventaire : un identifiant ne désigne la même pièce, donc le même
+  profil, que dans l'inventaire où il a été lu — d'où la durée de vie d'une
+  file, vidée avec l'inventaire (paragraphe suivant la liste) ;
 - les **candidats élagués de chaque sorte** ne se recalculent que si leurs
   entrées changent (`MemoPreFiltre`, `src/lib/artifactOptim.ts`) : la
   pertinence reste sondée contre le vrai calcul à chaque build et à chaque
@@ -362,20 +380,58 @@ changer aucun résultat :
   `statsParPaire` (`src/lib/stats.ts`) rend le même tableau aux paires de
   mêmes sommes, et l'effet unique de la relique essayée n'est calculé
   qu'une fois par tableau (`evaluerPourRegime`) ;
-- la résolution ne lit d'ordinaire que la **meilleure paire** :
-  `pairesParScore` la trouve en un parcours — plus grand score, premier
-  dans l'ordre de l'inventaire en cas d'égalité, comme le tri stable — et
-  ne trie toutes les paires que si l'on lit plus loin, ou si un score vaut
-  NaN. L'ordre rendu est exactement celui de `chercherPaires`.
+- les **formes de paire** de la résolution rapide — par sorte, une pièce
+  par principale `(code, valeur)` distincte de `candidatsParSorte`, plus
+  l'emplacement vide — ne se recalculent que si les entrées de
+  `candidatsParSorte` changent (`CachesResolutionRapide`,
+  `src/lib/resolutionRapide.ts`, mémoïsé par identité comme
+  `MemoPreFiltre`), avec l'indice de chaque forme, par lequel une paire se
+  juge : [reliques.md § Résolution rapide — le chemin de l'app](reliques.md#résolution-rapide--le-chemin-de-lapp) ;
+- la résolution ne note d'ordinaire que les **paires faisables** et ne lit
+  que la meilleure d'entre elles, en un parcours de l'ordre de
+  `chercherPaires` — plus grand score, premier dans l'ordre de l'inventaire
+  en cas d'égalité, comme le tri stable. Le calcul exhaustif, lui, note
+  toutes les paires et les parcourt par `pairesParScore`, qui trouve la
+  meilleure en un parcours et ne trie toutes les paires que si l'on lit plus
+  loin, ou si un score vaut NaN ; l'ordre rendu est exactement celui de
+  `chercherPaires`.
 
-Chaque mémoire est bornée (`BORNE_PROFILS_PAR_PAIRE`,
+Les trois premières mémoires sont bornées (`BORNE_PROFILS_PAR_PAIRE`,
 `BORNE_MEMO_PREFILTRE`, `BORNE_STATS_PAR_APPORT`,
-`BORNE_APPORTS_PAR_STATS`) et se vide d'un coup à sa borne. Leur durée de vie
+`BORNE_APPORTS_PAR_STATS`) et se vident d'un coup à leur borne ; celle des
+formes ne garde qu'un jeu, celui des dernières entrées. Leur durée de vie
 est celle d'une file (`nouveauxCachesResolution`) : l'écran les recrée avec
 la signature des réglages et les paramètres de paires (donc l'inventaire), le
 Worker de résolution à chaque contexte reçu, le CLI une fois par recette —
 jamais un état global qu'un nouvel inventaire laisserait périmé. Ce qu'elles
 rendent est partagé : à lire, jamais à modifier.
+
+Dans un même build et une même relique, l'évaluateur « Dégâts réels » de
+`evaluerPourRegime` note des milliers de paires ; il porte un
+`MemoCombat` (`src/lib/damage.ts`) qui calcule une fois ce que
+`computeTotalDamage` relit à l'identique d'une paire à l'autre : la
+chronologie des poses entre les coups (le sort et le réglage seuls), les
+stats au début du combat (par tableau de stats, que `statsParPaire` partage
+entre paires de mêmes principales) et les stats de combat (par tableau et
+par amplifications de buff de la paire). Reconnues à leur identité, ces
+entrées rendent la valeur de la fonction elle-même, au bit près
+(`tests/memo-combat.test.ts`). Ce qui ne peut pas être relu ne se retient
+pas : une chronologie seulement pour le réglage et le sort de
+`computeTotalDamage` (ou un réglage qu'une chronologie retenue a rendu),
+jamais pour un réglage ou un profil recopié à chaque appel (critique forcé,
+mode critique d'un passif, coups déduits du build), qui remplirait la
+mémoire de clés jamais relues et la ferait se vider à sa borne ; un élément
+`undefined` vaut `null`, comme dans `computeTotalDamage`. Bornes `BORNE_CHRONOLOGIES` (16),
+`BORNE_STATS_PAR_REGLAGE` (64), `BORNE_COMBATS_PAR_STATS` (16) ; durée de
+vie : celle de l'évaluateur.
+`sortsConnus` n'a pas de borne propre : cet évaluateur garde le même profil
+de sort pour tous ses appels ; les profils dérivés par paire n'y entrent
+pas. L'API directe qui partagerait un memo entre des profils toujours
+nouveaux ne bénéficie pas de cette limite. Au vidage des chronologies,
+tous les réglages et sorts connus sont oubliés, ceux de l'appel courant
+compris ; la chronologie courante est ensuite retenue et ses réglages
+dérivés réinscrits. Le réglage et le sort de `computeTotalDamage` ne
+reviennent qu'à son prochain appel.
 
 ## Mesurer un changement des bornes
 

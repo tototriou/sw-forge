@@ -118,7 +118,9 @@ d'être jetés. Jamais recalculé ailleurs, seulement fusionné et mis en forme.
 - **Une tentative** est une paire (combinaison A, combinaison B) jugée avec
   UN apport d'artéfacts du test conjoint : chacun des apports réellement
   atteignables (`artPossibles`), à défaut celui de la paire figée
-  (`artFlatFige`). Une tentative en échec liste TOUTES ses conditions en
+  (`artFlatFige`) — et, en mode relique `recherche`, avec UNE relique
+  représentative (`fichesDuTestConjoint`) : apport par apport, relique par
+  relique, dans cet ordre. Une tentative en échec liste TOUTES ses conditions en
   échec, jamais seulement la première : un `StatShortfall` par condition
   (`key`, `kind`, `requested`, `actual`, `shortfall`, toujours positif).
 - **Par condition** (`nearMissByCondition`) : seule compte une tentative qui
@@ -137,12 +139,18 @@ d'être jetés. Jamais recalculé ailleurs, seulement fusionné et mis en forme.
   le maximum juge un build sur sa pire condition manquée ; une somme
   mélangerait les unités.
 - **`actual`** est la valeur que juge le test conjoint : fiche, décalage de
-  l'apport essayé, terme relique en mode `recherche` (`relTermMax`,
-  `relTermMin`), auras comptées par `totalCondition` avec les auras propres
-  exactes des six runes.
+  l'apport essayé, auras comptées par `totalCondition` avec les auras
+  propres exactes des six runes. En mode relique `recherche`, une tentative
+  est un apport ET une relique représentative : la fiche est calculée avec
+  elle ([reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md)),
+  et le quasi-succès retient la tentative qui approche le plus le build,
+  comme sa validation — jamais la borne par stat, qui accordait la
+  meilleure PV %, ATQ % et DEF % à la fois et déclarait réussi un build
+  qu'aucune relique ne rend conforme.
 - **`NearMiss`** : `runeIds`, `stats`, `effTotal`, `shortfalls`. `stats` est
   la fiche `computeStats` calculée avec la paire figée, et sans relique en
-  mode `recherche` : les écarts viennent de l'apport essayé, la fiche non.
+  mode `recherche` : les écarts viennent de l'apport et de la relique
+  essayés, la fiche non.
   `effTotal` est la somme sur six runes de la mesure Efficience ou Score
   active pendant la recherche.
 - **Toujours calculé** : avec ou sans candidats. Une paire peut alimenter le
@@ -179,23 +187,23 @@ d'être jetés. Jamais recalculé ailleurs, seulement fusionné et mis en forme.
 - `nearMissByCondition` et `globalNearMiss` sont des champs OBLIGATOIRES de
   `SearchResult` : `tsc` fait échouer tout site qui construit un
   `SearchResult` sans eux, plutôt qu'un quasi-succès vide passe inaperçu. À
-  l'inverse, `motifTroncature` et `traceur` sont optionnels à dessein.
+  l'inverse, `traceur` est optionnel à dessein.
 - `PairingProgress` porte un instantané du quasi-succès (`nearMissSnapshot`)
   à chaque point de passage (`CHECKPOINT_EVERY`) : à l'arrêt manuel,
   `drivePairing` rend le quasi-succès accumulé avec les candidats, sous
   `truncated: true`.
 - Trois sites reconstruisent un résultat champ par champ et recopient les
-  deux champs : `drivePairing` (`src/workers/pairingDriver.ts`),
-  `pairSliceInWorker` (`src/workers/runeBuildOptim.worker.ts`) et son jumeau
-  Node, `makeSpawnSliceNode` (`scripts/lib/spawnSliceNode.ts`). Le message
-  d'une tranche (`PairSliceResultMessage`, `src/workers/pairSliceBody.ts`)
-  les porte. Un résultat vide (préparation impossible, erreur) les met à
-  `[]` et `null`.
-- **Fusion parallèle** (`combineParallelPairingResults`) : par condition, le
-  plus petit `shortfall` entre tranches ; global, la plus petite distance
-  relative, même formule que `pairBuckets`. En cas d'égalité, la tranche la
-  plus tôt dans la liste. Une tranche sans quasi-succès n'efface rien. Le
-  reste de l'appariement parallèle :
+  deux champs : `drivePairing` (`src/workers/pairingDriver.ts`), `apparier`
+  (`src/lib/rechercheRunes.ts`) et `enResultatDeRecherche`
+  (`src/lib/appariementRapideParallele.ts`). Un résultat vide (préparation
+  impossible, erreur) les met à `[]` et `null`.
+- **Fusion parallèle** (`apparierRapideEnParallele`) : chaque morceau rend
+  les AMÉLIORATIONS successives de son quasi-succès, avec la position de leur
+  paire ; la fusion les rejoue dans l'ordre des morceaux avec la règle de
+  `pairBuckets` (remplacé seulement si strictement meilleur, même formule de
+  distance). Une tentative qui n'améliore pas son morceau ne peut pas
+  améliorer l'état global : le résultat est celui du séquentiel, « première
+  vue à égalité » comprise. Le reste de l'appariement parallèle :
   [pipeline.md § Appariement parallèle](pipeline.md).
 
 ### Rendu du quasi-succès — écran, harnais, CLI
@@ -276,8 +284,9 @@ Le harnais leur passe les `SearchParams` complets de la recherche.
   chaque valeur attendue est dérivée à la main (entrées par condition,
   global, coexistence avec un candidat retenu, aucune condition posée,
   condition triviale), et la survie du quasi-succès à un arrêt manuel par
-  `drivePairing` ; `tests/rune-optim-parallel-truncated.test.ts`, la fusion
-  entre tranches, y compris une tranche sans quasi-succès. Aucun oracle par
+  `drivePairing` ; `tests/appariement-rapide.test.ts` et
+  `tests/appariement-parallele.test.ts`, le même quasi-succès que
+  `pairBuckets` par le noyau et par la fusion des morceaux. Aucun oracle par
   balayage exhaustif des paires.
 - **Écueil d'un test du quasi-succès** : un pool synthétique minimal (un seul
   set sans bonus de stat, aucun artéfact) n'exerce jamais son code, puisque

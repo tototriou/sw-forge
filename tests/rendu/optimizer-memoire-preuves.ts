@@ -4,7 +4,8 @@ import { baseCompleteCriteres, photoCriteres } from '../../src/lib/criteresOptim
 import { cleMemoireMembre } from '../../src/lib/optimizerMemberStorage';
 import { exclusionSelectorKey, type ExclusionSelector } from '../../src/lib/optimizerExclusion';
 import { buildOptimizerRecipe } from '../../src/lib/optimizerRecipe';
-import { searchBuilds, type SearchParams } from '../../src/lib/runeBuildOptim';
+import type { DemandeDeRecherche } from '../../src/workers/runeBuildOptim.worker';
+import { searchBuilds } from '../../src/lib/rechercheRunes';
 
 interface BancMemoire {
   etat: () => OptimizerState;
@@ -121,8 +122,8 @@ export async function preparerClicInclusion(genre: string, b: BancMemoire): Prom
     globalThis.Worker = class {
       onmessage: ((e: MessageEvent) => void) | null = null;
       onerror = null;
-      postMessage(params: SearchParams) {
-        const resultat = searchBuilds(params);
+      postMessage(demande: DemandeDeRecherche) {
+        const resultat = searchBuilds(demande.params);
         queueMicrotask(() => this.onmessage?.(new MessageEvent('message', { data: { type: 'result', ...resultat } })));
       }
       terminate() { this.onmessage = null; }

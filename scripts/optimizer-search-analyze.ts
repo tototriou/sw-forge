@@ -143,7 +143,7 @@ if (maxMsArg) {
 }
 
 console.log('\nRecherche en cours…');
-const result = runSearchToCompletion(params);
+const result = await runSearchToCompletion(params);
 console.log(
   `${result.candidates.length} build(s) trouvé(s) — tronqué : ${result.truncated} — ` +
     `${result.explored.toLocaleString('fr-FR')} paires explorées — ` +

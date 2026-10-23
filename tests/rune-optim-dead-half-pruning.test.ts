@@ -21,7 +21,8 @@
 // cas-limite (joker) qui doit survivre pour ne pas perdre de complétude.
 
 import { BaseStats, RuneDetail } from '../src/types';
-import { BuildRequirement, buildBuckets, prepareSearch, searchBuilds } from '../src/lib/runeBuildOptim';
+import { BuildRequirement, buildBuckets, prepareSearch } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import { egal, ok, titre } from './outils';
 
 function drain<T>(gen: Generator<unknown, T, void>): T {

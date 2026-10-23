@@ -16,6 +16,13 @@ ici.
   compartiment (`buildBuckets`, `bucketCap` places par tranche). Une rune
   ou un demi-build écarté à ces étages n'est jamais revu. Mécanisme :
   [03-developpeur/optimizer/moteur/elagages.md § Pré-filtrage heuristique et compartiments](../../03-developpeur/optimizer/moteur/elagages.md#pré-filtrage-heuristique-et-compartiments).
+- **Un préréglage plus large ne perd rien d'un plus étroit, sur une
+  recherche complète seulement.** Chaque préréglage ajoute à sa rétention
+  celle des préréglages plus étroits (Bas ⊆ Moyen ⊆ Haut ⊆ Extrême) ; une
+  recherche que le filet de temps ou le plafond de candidats arrête visite
+  ses demi-builds dans un autre ordre et peut rendre d'autres builds que le
+  préréglage plus étroit :
+  [03-developpeur/optimizer/moteur/elagages.md § Préréglages emboîtés](../../03-developpeur/optimizer/moteur/elagages.md#préréglages-emboîtés).
 - **Plus il y a de conditions à la fois, plus le pré-filtrage les dilue.**
   `relevance` additionne une contribution par minimum posé : une rune utile
   à une partie seulement des conditions se classe d'autant plus bas qu'elles
@@ -97,7 +104,8 @@ ici.
   « Compter les effets d'auras Tolerance et Précision dans les
   conditions » (`compterAurasResPre`). Ne sont pas exposés :
   `MAX_COLLECTED`, `BUCKET_CAP`, `combosOrderMode`, et
-  `adaptiveTrancheWeighting`, que l'écran envoie toujours à faux ;
+  `adaptiveTrancheWeighting`, que l'écran envoie toujours à faux et que le
+  moteur ne lit plus ;
   `SearchParams.bucketCap` sert à la mesure, jamais à l'écran. Détail :
   [ecran/conditions-et-reglages.md § Réglages avancés](ecran/conditions-et-reglages.md).
 - **L'estimation affichée avant de lancer est un ordre de grandeur**
@@ -186,16 +194,16 @@ et [03-developpeur/optimizer/harnais/extensions.md § Le différentiel : l'oracl
   quasi-succès d'un différentiel ne se comparent pas quand le nombre de
   paires explorées diffère au-delà de leur dispersion
   (`scripts/lib/diagnosticDifferentiel.ts`) ; un plafond de candidats
-  (`maxCollected`) que la recherche n'atteint pas ne tronque pas une
-  recherche séquentielle, mais en appariement parallèle une tranche tronque
-  dès qu'elle atteint sa part (motif `quotaTranche`) ;
-- le motif d'une recherche arrêtée à la main ne se distingue pas : en
-  appariement parallèle elle porte `maxMs`, en séquentiel aucun motif
-  (`runeBuildOptim.ts`, `motifTroncature`). L'écran n'en dépend pas, il
-  sait lui-même qu'on a cliqué « Arrêter » ;
+  (`maxCollected`) que la recherche n'atteint pas ne la tronque pas, dans
+  l'un ou l'autre régime ;
+- le motif d'une troncature se déduit du plafond (atteint : `maxCollected`,
+  sinon `maxMs`) : une recherche arrêtée à la main s'y lirait `maxMs`.
+  L'écran n'en dépend pas, il sait lui-même qu'on a cliqué « Arrêter » ;
 - en appariement parallèle, l'instant de découverte d'un build cible est
-  relevé à intervalle de temps, non reproductible : comparer deux
-  configurations sur cette grandeur demande le régime séquentiel.
+  relevé à chaque morceau reçu, non reproductible : comparer deux
+  configurations sur cette grandeur demande le régime séquentiel. Un traceur
+  (`--suivre`) n'est rempli qu'en séquentiel : en régime parallèle, le
+  harnais apparie sans lui.
 
 Ce que le harnais ne sait pas faire, ou dit de travers :
 
@@ -213,12 +221,10 @@ Ce que le harnais ne sait pas faire, ou dit de travers :
   `relevanceScore`, est plus large que le code : `combined` ne replie
   qu'en l'absence de minimum, `potential` jamais ;
 - **la source synthétique** ne force pas de principale par emplacement,
-  n'injecte pas de rune et ne porte aucun artéfact ;
-  `adaptiveTrancheWeighting` ne se règle ni par elle ni par un override
-  (`scripts/lib/diagnosticTypes.ts`) : [03-developpeur/optimizer/harnais/extensions.md § Configuration : une résolution, des arguments refusés, une fidélité bornée](../../03-developpeur/optimizer/harnais/extensions.md#configuration--une-résolution-des-arguments-refusés-une-fidélité-bornée) ;
-- **trois scripts conservés ne reproduisent plus leur référence**, chacun
-  le dit dans son en-tête : `scripts/bucket-cap-scaling-diag.ts`,
-  `scripts/stress-tranche-weighting-attainable-diag.ts` et
+  n'injecte pas de rune et ne porte aucun artéfact :
+  [03-developpeur/optimizer/harnais/extensions.md § Configuration : une résolution, des arguments refusés, une fidélité bornée](../../03-developpeur/optimizer/harnais/extensions.md#configuration--une-résolution-des-arguments-refusés-une-fidélité-bornée) ;
+- **deux scripts conservés ne reproduisent plus leur référence**, chacun
+  le dit dans son en-tête : `scripts/bucket-cap-scaling-diag.ts` et
   `scripts/filterslot-topk-diag.ts`, dont la copie `filterSlotOld` n'a pas
   l'élagage sûr de la production à combo de coût complet
   ([03-developpeur/optimizer/harnais/scripts.md § Les scripts voisins](../../03-developpeur/optimizer/harnais/scripts.md#les-scripts-voisins)).

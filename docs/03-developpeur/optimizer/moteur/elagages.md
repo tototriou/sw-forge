@@ -284,7 +284,10 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   (`buildFilteredBySlot`). Elle saute la dominance et la faisabilité : c'est
   un ordre de grandeur, pas le pool exact de la recherche, ni le nombre de
   paires que l'appariement visite.
-- **Compartiments construits EN FLUX, bornés en mémoire** (`buildBuckets`) :
+- **Compartiments construits EN FLUX, bornés en mémoire** (`buildBuckets`, la
+  référence, et le noyau sur tableaux typés qui en rend exactement les
+  compartiments en production, `construireMoitieRapideTypee` :
+  [pipeline.md § Construction des moitiés](pipeline.md)) :
   chaque combinaison d'une moitié est évaluée puis, selon son mérite,
   retenue ou **immédiatement jetée** — jamais de tableau intermédiaire de
   `cap³` combinaisons, qui épuiserait la mémoire sur un vrai compte. La
@@ -308,10 +311,12 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
     coûte O(log cap), et une combinaison moins bonne que la pire déjà gardée
     s'écarte en un test. Les tranches sont fusionnées sans doublon et triées
     une seule fois par compartiment, à la fin.
-  - `adaptiveTrancheWeighting` (l'ancien interrupteur « Prioriser les
-    stats les plus difficiles », retiré de l'écran, qui l'envoie toujours à
-    faux ; seul le CLI le transmet encore d'une recette) répartit autrement les places des tranches par stat, selon leur
-    dispersion, à budget total égal (`trancheReallocation`).
+  - Les tranches par stat ont toutes `bucketCap` places : aucune stat n'en
+    reçoit plus selon sa dispersion. `SearchParams.adaptiveTrancheWeighting`
+    est accepté et sans effet
+    ([retention-a-parts-egales.md](../../../04-decisions/adr/retention-a-parts-egales.md)) ;
+    il n'a plus d'interrupteur à l'écran, qui l'envoie toujours à faux, et
+    le CLI ne le relaie pas d'une recette.
   - Les bornes d'élagage d'un compartiment (`maxPct`/`maxFlat`, par stat
     contrainte) s'étendent à partir de **toute** combinaison rencontrée,
     même celles finalement jetées : rester large ici ne coûte rien et
@@ -326,6 +331,92 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   visitées par potentiel combiné décroissant (`orderedCompartmentPairs`) :
   les plus prometteuses d'abord, ce qui compte dès que le temps ou le
   plafond de candidats arrête la recherche avant d'avoir tout exploré.
+
+### Préréglages emboîtés
+
+- **Un préréglage contient ce que retient chaque préréglage plus étroit** :
+  Bas ⊆ Moyen ⊆ Haut ⊆ Extrême, en demi-builds retenus, donc en builds
+  valides sur une recherche que ni le filet de temps ni le plafond de
+  candidats n'arrêtent — l'appariement juge chaque paire pour elle-même :
+  plus de demi-builds, c'est plus de paires et jamais un build valide de
+  moins. Pourquoi :
+  [prereglages-emboites.md](../../../04-decisions/adr/prereglages-emboites.md).
+- **La rétention d'une moitié est une union** (`construireMoitieTypee`,
+  `UnionDesRetentionsTypees`, `src/lib/retentionEmboitee.ts` ; adaptateurs
+  objets `construireMoitie` et `UnionDesRetentions` pour les outils) : celle du
+  préréglage de la recherche, puis, compartiment par compartiment, les
+  demi-builds que retient chaque préréglage plus étroit et qui lui
+  manquent. Chaque préréglage plus étroit se construit avec SES paramètres,
+  ceux qu'aurait une recherche lancée à ce préréglage (`CranEmboite`,
+  `PreparedSearch.cransEmboites`, calculés par `prepareSearch`) : son pool
+  (`filterSlot` à son `slotFilterCap`, sur le même pool après principale
+  imposée, dominance et faisabilité), son `bucketCapFor`, son crédit de
+  joker et les bornes de sets de l'autre moitié tirées de son pool. Aucun
+  `bucketCap` n'est agrandi.
+- **Les préréglages plus étroits** sont ceux de `SLOT_FILTER_PRESETS` dont le
+  `slotFilterCap` est strictement inférieur à celui de la recherche : aucun
+  pour Bas (ou un `slotFilterCap` omis, 40), Bas pour Moyen, Moyen et Bas
+  pour Haut, Haut, Moyen et Bas pour Extrême ; un `slotFilterCap` hors
+  préréglage (mesure) emboîte de même ceux qui lui sont inférieurs.
+  `SearchParams.bucketCap` (mesure) ne remplace que le `bucketCap` du
+  préréglage de la recherche, jamais celui d'un préréglage plus étroit.
+- **Ce qui reste exact** :
+  - le pool d'un préréglage plus étroit est inclus dans celui de la
+    recherche, emplacement par emplacement : `filterSlot` garde des préfixes
+    d'un même classement plus des tranches par stat indépendantes du
+    préréglage ; `prepareSearch` le vérifie rune par rune et lève sinon ;
+  - ses élagages de set sont plus stricts (bornes et joker de son pool, plus
+    petit) : chacun de ses demi-builds est un triplet que la construction de
+    la recherche a énuméré. Son compartiment existe donc (l'union lève
+    sinon), les bornes `maxPct`/`maxFlat` le couvrent déjà, et le meilleur
+    score de chaque tranche ne change pas : potentiel et ordre des
+    compartiments sont inchangés ;
+  - dans un compartiment, le tri est celui de `buildBuckets`
+    (`ordonnerCombos`), stable, sur les demi-builds de la recherche dans
+    leur ordre suivis des ajouts : les premiers gardent leur ordre relatif,
+    les ajouts prennent leur place selon `combosOrderMode`, et un
+    compartiment sans ajout est rendu tel quel.
+- **Un Worker par préréglage** (`construireMoitiesEmboiteesTypees`,
+  `src/lib/constructionEmboitee.ts`) : à l'écran, chaque moitié construit
+  ses 1 + n préréglages en même temps, chacun dans son Worker, et l'union se
+  fait ensuite, dans l'ordre des préréglages ; le résultat est exactement
+  celui de `construireMoitieTypee` d'un bloc, qui les construit l'un après
+  l'autre dans un seul fil (CLI, tests). Le temps de construction est donc
+  celui du préréglage de la recherche, le plus coûteux (un préréglage plus
+  étroit coûte bien moins : ses triplets croissent comme le cube de son
+  pool), au prix de Workers de plus. L'appariement voit les paires des
+  demi-builds ajoutés en plus.
+- ⚠️ **Pas d'une seule passe** sur le pool de la recherche qui remplirait
+  en même temps la liste de chaque préréglage : elle ne retient pas les mêmes
+  demi-builds. L'ordre du pool d'un préréglage plus étroit n'est pas une
+  sous-suite de celui du préréglage de la recherche (les runes que gardent
+  les tranches par stat de `filterSlot` s'y rangent ailleurs), et les tas de
+  la rétention départagent les scores égaux — fréquents, les scores par
+  stat sont entiers — par l'ordre d'arrivée : parcouru dans l'ordre du pool
+  de Moyen, Bas ne garde pas les mêmes demi-builds que sa propre
+  construction (mesuré : quelques centaines sur 100 000 à 140 000 par moitié
+  sur deux recherches réelles, `tests/retention-emboitee.test.ts` en garde
+  un témoin). L'inclusion Bas ⊆ Moyen ne vaudrait plus.
+- **Mémoire** : la construction et l'union gardent les demi-builds en
+  colonnes typées, sans objets `HalfCombo` sur le chemin de l'écran.
+  L'union n'ajoute que les demi-builds qui manquent, repérés
+  par la position de leurs trois runes dans le pool de la recherche ; dans
+  un seul fil, elle ne garde d'un préréglage plus étroit que ces ajouts,
+  jamais ses compartiments entiers. En parallèle, les compartiments de
+  chaque préréglage arrivent entiers, tampons transférés, au Worker de
+  recherche avant l'union. Le tri de leurs indices passe par
+  `ordonnerCombos`, avec une vue de stats réutilisée, comme le tri objet.
+- ⚠️ **Sous troncature, l'inclusion ne vaut plus.** Les ajouts s'intercalent
+  dans leurs compartiments : l'ordre de visite change, et une recherche que
+  le filet de temps ou `MAX_COLLECTED` arrête ne rend pas forcément les
+  builds qu'aurait rendus le préréglage plus étroit, arrêté au même point.
+- **Le traceur** (`SearchParams.traceur`) ne suit que la construction du
+  préréglage de la recherche ; sa présence finale (`retenue`, `rang`,
+  `population`) se relit sur les compartiments de l'union, si bien qu'un
+  demi-build évincé de toutes les tranches de la recherche (`tranches`)
+  peut y être retenu par un préréglage plus étroit.
+- **L'estimation affichée avant de lancer** (`estimateSearchSpace`) ne
+  compte que le préréglage de la recherche.
 
 ### Faisabilité de set, groupage par compte et jokers
 
@@ -379,9 +470,11 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
 - **Trois arrêts seulement** : le temps (`maxMs`, défaut `DEFAULT_MAX_MS` ;
   l'écran passe le sien), le plafond de candidats, l'épuisement de
   l'espace. Ne pas réintroduire de plafond de paires : `totalPairCount`
-  compte exactement les paires que `pairBuckets` visite (mêmes prédicats,
-  dans un ordre qui diffère sans changer le compte ; égalité vérifiée par
-  `tests/rune-optim-differential.test.ts`),
+  compte exactement les paires que l'appariement TRAITE — celles que
+  `pairBuckets` juge une à une, celles que le noyau visite ou saute (mêmes
+  prédicats, dans un ordre qui diffère sans changer le compte ; égalité
+  vérifiée par `tests/rune-optim-differential.test.ts` et
+  `tests/appariement-rapide.test.ts`),
   si bien qu'un tel plafond ne protégerait de rien et changerait une future
   divergence de comptage en troncature silencieuse.
 - **La recherche de runes optimise uniquement les 6 runes.** Les artéfacts
@@ -398,24 +491,31 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   les deux cas, une borne pendant la recherche, une pièce réelle après.
 - Toutes les valeurs sont recalculées avec `computeStats`
   (`src/lib/stats.ts`), la même fonction que partout ailleurs dans l'app.
-- **Écrit comme un générateur** (`searchBuildsSteps` : `prepareSearch`,
-  puis `buildBuckets` pour chaque moitié, puis `pairBuckets`), pas une seule
+- **Écrit comme un générateur** (`searchBuildsSteps`,
+  `src/lib/rechercheRunes.ts` : `prepareSearch`,
+  puis `construireMoitieTypee` pour chaque moitié, puis `apparier`), pas une seule
   boucle qui tourne jusqu'au bout : l'appariement rend un point de passage
-  toutes les `CHECKPOINT_EVERY` (500) paires explorées, la construction à
+  toutes les `CHECKPOINT_EVERY` (500) paires traitées, la construction à
   chaque rune du premier emplacement de la moitié. `searchBuilds`, appelé
   par les tests et les scripts, ne fait que le drainer d'un bloc. Le Worker,
   lui, pilote ces étapes pas à pas et poste sa progression par paliers de
   temps :
   [02-app/optimizer/feat-interruption.md § Barre de progression](../../../02-app/optimizer/feat-interruption.md#barre-de-progression).
 - **Parallélisme, invisible à l'écran** : les deux moitiés se construisent
-  en même temps dans deux Web Workers dédiés
-  (`src/workers/buildHalf.worker.ts`), et l'appariement se répartit sur
+  en même temps dans des Web Workers dédiés, un par moitié et par préréglage
+  construit (`src/workers/buildHalf.worker.ts`), et l'appariement se répartit sur
   plusieurs Workers dès que l'espace compte au moins
   `PARALLEL_PAIRING_THRESHOLD` paires (`totalPairCount`), en recherche
   normale comme en mode « Rechercher jusqu'à épuisement complet ». Mêmes
-  garanties : `tests/rune-optim-parallel-pairing.test.ts` compare le
-  découpage au chemin séquentiel. Détail :
+  résultats, dans le même ordre : `tests/appariement-parallele.test.ts`
+  compare le parallèle au séquentiel, sur des Workers simulés et sur de
+  vrais `worker_threads`. Détail :
   [pipeline.md § Appariement parallèle](pipeline.md).
+- **Le test rapide sans paire jugée une à une** : en production, la boucle
+  des combinaisons B passe par un noyau sur tableaux typés qui saute,
+  sans les juger, les paires qui échoueraient sûrement à `quickOk`, et
+  rend exactement le résultat de `pairBuckets` :
+  [noyau-appariement.md](noyau-appariement.md).
 
 ### Variantes écartées ou gardées en réserve
 
@@ -450,12 +550,14 @@ n'est pas en production. Les pistes encore ouvertes sont dans
 - Ne pas passer les stats en `Float32Array` : environ sept chiffres
   significatifs contre des stats au centième de pour cent, pour aucun coût
   de ramasse-miettes identifié (raisonnement, non mesuré).
-- Gardée en réserve, pas adoptée : une autre façon de prioriser les stats
-  les plus difficiles, qui répartit les places des tranches d'après des
-  accumulateurs tenus pendant la construction
-  (`scripts/patches/piste-a-tranche-weighting.patch`, qui ne s'applique
-  plus tel quel). Elle coûte à la construction, là où
-  `trancheReallocation` estime la dispersion sur le pool filtré avant la
-  boucle, et son avantage pour trouver n'a été vu que sur un cas. À
-  reprendre si l'interrupteur actuel laisse encore des recherches
-  infructueuses.
+- Ne pas répartir les places des tranches par stat selon la dispersion de
+  chaque stat, mesurée sur le pool filtré avant la boucle (« Prioriser les
+  stats les plus difficiles ») : à budget égal, elle trouvait 5 à 11 % de
+  builds valides en moins et aucun meilleur build
+  ([retention-a-parts-egales.md](../../../04-decisions/adr/retention-a-parts-egales.md)).
+- Ne pas reprendre sans la mesurer en builds valides trouvés, à
+  pré-filtrage égal, une autre façon de prioriser les stats les plus
+  difficiles, qui répartit les places des tranches d'après des
+  accumulateurs tenus pendant la construction : elle coûte à la
+  construction, son avantage pour trouver n'a été vu que sur un cas, et
+  c'est cette mesure qui a écarté la répartition par dispersion.

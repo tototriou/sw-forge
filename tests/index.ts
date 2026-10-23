@@ -85,6 +85,8 @@ import testArtefactOptim, {
 import testArtefactFile from './artefact-file.test';
 import testArtifactEvaluation, { testArtifactPaireReelleEhp, testArtifactPaireReelleDegatsEffetUnique } from './artifact-evaluation.test';
 import { testResolutionProducteurPartage, testClassementResolu } from './resolution-partagee.test';
+import { testClassementIncremental, testClassementIncrementalEgalites, testClassementIncrementalNotes, testClassementIncrementalInvalidations, testClassementIncrementalFonctions, testClassementIncrementalAutresCriteres } from './classement-incremental.test';
+import { testCandidatsCompactsAllerRetour, testClassementCompactPublications, testClassementCompactDoublons, testClassementCompactNonFinis, testClassementCompactControleVersions, testClassementCompactJournalManquant } from './classement-compact.test';
 import { testResolutionCaches } from './resolution-caches.test';
 import { testResolutionWorker } from './resolution-worker.test';
 import { testResolutionDistante } from './resolution-distante.test';
@@ -156,6 +158,7 @@ import {
   testBladeSurgeLigneArtifactSearch,
 } from './blade-surge-propagation.test';
 import { testRecetteClesIdentifiant } from './recette-cles-identifiant.test';
+import { testChargerMonstreParIdentifiant } from './charger-monstre-identifiant.test';
 import testBladeDancersIgnoreDef,{ testBladeDancersRecette, testBladeDancersEcranEtCli } from './blade-dancers.test';
 import {
   testMecanismesSequenceDeCoups,
@@ -193,11 +196,20 @@ import testDiagnosticProfils from './diagnostic-profils.test';
 import testDiagnosticDifferentiel from './diagnostic-differentiel.test';
 import testDiagnosticDecouverte from './diagnostic-decouverte.test';
 import testRuneOptimScaleMonotonicity from './rune-optim-scale-monotonicity.test';
-import testRuneOptimParallelPairing from './rune-optim-parallel-pairing.test';
-import testRuneOptimParallelTruncated from './rune-optim-parallel-truncated.test';
+import {
+  testAppariementParallele, testAppariementParalleleWorkers, testAppariementParalleleCoupeWorkers, testAppariementParalleleBranchement, testAppariementParalleleCession,
+} from './appariement-parallele.test';
+import testAppariementRapide, { testAppariementHorloge } from './appariement-rapide.test';
+import testValidationRapide from './validation-rapide.test';
 import testRuneOptimNearMiss from './rune-optim-near-miss.test';
 import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
+import testConstructionRapide from './construction-rapide.test';
+import testConstructionColonnes from './construction-colonnes.test';
+import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidatsCredits, testFluxCandidatsApercuFinal, testFluxCandidatsPageLente, testFluxCandidatsReceptionOrdre,
+  testFluxCandidatsRefusRecevoir, testFluxCandidatsRefusSceller, testFluxCandidatsRefusResultat, testFluxCandidatsLanceurCommun } from './flux-candidats.test';
+import testRetentionEmboitee from './retention-emboitee.test';
+import testPrioriteStatsRetiree from './priorite-stats-retiree.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
 import { testListeExemplaires } from './liste-exemplaires.test';
 import { testOptimizerCreationNomParDefaut } from './optimizer-list-names.test';
@@ -261,7 +273,11 @@ import {
 import testRelicOptim from './relic-optim.test';
 import testRelicOracle, { testRelicOracleGroupesEffetUnique, testRelicOracleOptimumParScore } from './relic-oracle.test';
 import testRelicSearch from './relic-search.test';
+import testReliqueOu from './relique-ou.test';
+import testTestConjointExact from './test-conjoint-exact.test';
 import testRelicQueue from './relic-queue.test';
+import testResolutionRapide, { testResolutionRapideNaN } from './resolution-rapide.test';
+import testMemoCombat from './memo-combat.test';
 import testPerfRelicOptions from './perf-relic-options.test';
 import testRelicDifferentiel from './relic-differentiel.test';
 import testRelicUniqueLabel from './relic-unique-label.test';
@@ -282,6 +298,7 @@ import testBureauFenetre from './bureau-fenetre.test';
 import testBureauMiseAJour from './bureau-mise-a-jour.test';
 import testBureauSwex from './bureau-swex.test';
 import testBureauSession from './bureau-session.test';
+import testBureauCoeurs from './bureau-coeurs.test';
 import testSession from './session.test';
 import { testOptimizerPointAllerRetourComplet, testOptimizerPointMemoireMemeGeste, testOptimizerPointLectureDefensive, testOptimizerPointSessionRelue,
   testOptimizerPointRepriseRattachement, testOptimizerPointRepriseCompteVide, testOptimizerPointSuppressionConservation,
@@ -305,6 +322,7 @@ import { testEcranPartageMediaQueryVolet, testEcranPartageMemePage, testRenduEcr
 import { testRenduAccueil, testRenduAccueilBureau, testRenduAccueilEspace } from './rendu/accueil.test';
 import { testRenduTelecharger } from './rendu/telecharger.test';
 import { testRenduBureauTextes } from './rendu/bureau-textes.test';
+import { testRenduBureauCoeursRecherche } from './rendu/recherche-coeurs.test';
 import { testRenduBarreSession } from './rendu/barre-session.test';
 import { testRenduChangementCompte } from './rendu/changement-compte.test';
 import { testRenduIcones } from './rendu/icones.test';
@@ -554,6 +572,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduAccueilBureau', testRenduAccueilBureau],
   ['testRenduTelecharger', testRenduTelecharger],
   ['testRenduBureauTextes', testRenduBureauTextes],
+  ['testRenduBureauCoeursRecherche', testRenduBureauCoeursRecherche],
   ['testRenduBarreSession', testRenduBarreSession],
   ['testRenduChangementCompte', testRenduChangementCompte],
   ['testRenduIcones', testRenduIcones],
@@ -663,6 +682,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testAttaquesConjointesRecetteTransitions', testAttaquesConjointesRecetteTransitions],
   ['testAttaquesConjointesRecetteCli', testAttaquesConjointesRecetteCli],
   ['testRecetteClesIdentifiant', testRecetteClesIdentifiant],
+  ['testChargerMonstreParIdentifiant', testChargerMonstreParIdentifiant],
   ['testFormesEquivalentes', testFormesEquivalentes],
   ['testDegatsTempestFormule', testDegatsTempestFormule],
   ['testDegatsTempestDeclenchement', testDegatsTempestDeclenchement],
@@ -681,11 +701,31 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testDiagnosticDifferentiel', async () => { await testDiagnosticDifferentiel(); }],
   ['testDiagnosticDecouverte', async () => { await testDiagnosticDecouverte(); }],
   ['testRuneOptimScaleMonotonicity', testRuneOptimScaleMonotonicity],
-  ['testRuneOptimParallelPairing', async () => { await testRuneOptimParallelPairing(); }],
-  ['testRuneOptimParallelTruncated', testRuneOptimParallelTruncated],
+  ['testAppariementParallele', async () => { await testAppariementParallele(); }],
+  ['testAppariementParalleleWorkers', async () => { await testAppariementParalleleWorkers(); }],
+  ['testAppariementParalleleCoupeWorkers', async () => { await testAppariementParalleleCoupeWorkers(); }],
+  ['testAppariementParalleleBranchement', async () => { await testAppariementParalleleBranchement(); }],
+  ['testAppariementParalleleCession', async () => { await testAppariementParalleleCession(); }],
+  ['testAppariementRapide', async () => { await testAppariementRapide(); }],
+  ['testAppariementHorloge', testAppariementHorloge],
+  ['testValidationRapide', async () => { await testValidationRapide(); }],
   ['testRuneOptimNearMiss', async () => { await testRuneOptimNearMiss(); }],
   ['testRuneOptimDeadHalfPruning', testRuneOptimDeadHalfPruning],
   ['testFilterSlotTopK', testFilterSlotTopK],
+  ['testConstructionRapide', testConstructionRapide],
+  ['testConstructionColonnes', async () => { await testConstructionColonnes(); }],
+  ['testFluxCandidatsCompactOrdre', testFluxCandidatsCompactOrdre],
+  ['testFluxCandidatsCoupe', testFluxCandidatsCoupe],
+  ['testFluxCandidatsCredits', testFluxCandidatsCredits],
+  ['testFluxCandidatsApercuFinal', testFluxCandidatsApercuFinal],
+  ['testFluxCandidatsPageLente', testFluxCandidatsPageLente],
+  ['testFluxCandidatsReceptionOrdre', testFluxCandidatsReceptionOrdre],
+  ['testFluxCandidatsRefusRecevoir', testFluxCandidatsRefusRecevoir],
+  ['testFluxCandidatsRefusSceller', testFluxCandidatsRefusSceller],
+  ['testFluxCandidatsRefusResultat', testFluxCandidatsRefusResultat],
+  ['testFluxCandidatsLanceurCommun', testFluxCandidatsLanceurCommun],
+  ['testRetentionEmboitee', async () => { await testRetentionEmboitee(); }],
+  ['testPrioriteStatsRetiree', testPrioriteStatsRetiree],
   ['testOptimizerExclusion', testOptimizerExclusion],
   ['testOptimizerColonnes', testOptimizerColonnes],
   ['testOptimizerAgencementsBureau', testOptimizerAgencementsBureau],
@@ -764,7 +804,12 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRelicOracleGroupesEffetUnique', testRelicOracleGroupesEffetUnique],
   ['testRelicOracleOptimumParScore', testRelicOracleOptimumParScore],
   ['testRelicSearch', testRelicSearch],
+  ['testReliqueOu', testReliqueOu],
+  ['testTestConjointExact', testTestConjointExact],
   ['testRelicQueue', testRelicQueue],
+  ['testResolutionRapide', testResolutionRapide],
+  ['testResolutionRapideNaN', testResolutionRapideNaN],
+  ['testMemoCombat', testMemoCombat],
   ['testPerfRelicOptions', testPerfRelicOptions],
   ['testRelicDifferentiel', testRelicDifferentiel],
   ['testRelicUniqueLabel', testRelicUniqueLabel],
@@ -782,6 +827,18 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testArtefactsFicheParamsDifferentiel', testArtefactsFicheParamsDifferentiel],
   ['testResolutionProducteurPartage', testResolutionProducteurPartage],
   ['testClassementResolu', testClassementResolu],
+  ['testCandidatsCompactsAllerRetour', testCandidatsCompactsAllerRetour],
+  ['testClassementCompactPublications', testClassementCompactPublications],
+  ['testClassementCompactDoublons', testClassementCompactDoublons],
+  ['testClassementCompactNonFinis', testClassementCompactNonFinis],
+  ['testClassementCompactControleVersions', testClassementCompactControleVersions],
+  ['testClassementCompactJournalManquant', testClassementCompactJournalManquant],
+  ['testClassementIncremental', testClassementIncremental],
+  ['testClassementIncrementalEgalites', testClassementIncrementalEgalites],
+  ['testClassementIncrementalNotes', testClassementIncrementalNotes],
+  ['testClassementIncrementalInvalidations', testClassementIncrementalInvalidations],
+  ['testClassementIncrementalFonctions', testClassementIncrementalFonctions],
+  ['testClassementIncrementalAutresCriteres', testClassementIncrementalAutresCriteres],
   ['testResolutionCaches', testResolutionCaches],
   ['testResolutionWorker', testResolutionWorker],
   ['testResolutionDistante', testResolutionDistante],
@@ -830,6 +887,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testBureauMiseAJour', testBureauMiseAJour],
   ['testBureauSwex', testBureauSwex],
   ['testBureauSession', async () => { await testBureauSession(); }],
+  ['testBureauCoeurs', async () => { await testBureauCoeurs(); }],
   ['testSession', testSession],
   ['testStockage', async () => { await testStockage(); }],
   ['testPersistance', async () => { await testPersistance(); }],

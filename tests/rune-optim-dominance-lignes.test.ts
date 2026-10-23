@@ -46,11 +46,11 @@ import {
   optionsDeClassement,
   prepareSearch,
   scoreDuCandidat,
-  searchBuilds,
   sortCandidates,
   statsLuesParLesLignes,
   totalPairCount,
 } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import type { BuildCandidate, RealDamageContext, SearchParams, SearchResult } from '../src/lib/runeBuildOptim';
 import { candidatsParSorte, paireRepresentative, type ArtifactSearchParams, type ChoixPrincipale } from '../src/lib/artifactOptim';
 import { artifactPairAllowed } from '../src/lib/artifacts';
@@ -176,8 +176,8 @@ const presque = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * Math.max(1, 
 function espaceExact(p: SearchParams): number {
   const prepared = prepareSearch(p);
   if (!prepared) return 0;
-  const a = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, p.adaptiveTrancheWeighting, p.combosOrderMode));
-  const b = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, p.adaptiveTrancheWeighting, p.combosOrderMode));
+  const a = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, p.combosOrderMode));
+  const b = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, p.combosOrderMode));
   return totalPairCount(prepared, a, b);
 }
 

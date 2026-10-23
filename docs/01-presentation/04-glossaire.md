@@ -165,8 +165,12 @@ fiche qui fait foi : les règles détaillées et les valeurs chiffrées restent 
   combo s'apparient en bloc. Anglais : bucket. Code : `Bucket`, `bucketKeyOf`.
 - **Appariement** : la mise en regard des compartiments des deux moitiés. Anglais : pairing.
   Code : `pairBuckets`. → [pipeline.md](../03-developpeur/optimizer/moteur/pipeline.md)
-- **Tranche** : portion d'un compartiment confiée à un Worker d'appariement.
-  Code : `pairSlice.worker.ts`. → [parallelisation.md](../03-developpeur/optimizer/moteur/parallelisation.md)
+- **Morceau** : suite de lignes d'appariement consécutives (une combinaison A face à un
+  compartiment B) confiée à un Worker d'appariement, à la demande. Code : `Morceau`,
+  `parcourirMorceau` (piloté par tranches par `servirAppariement`). → [parallelisation.md](../03-developpeur/optimizer/moteur/parallelisation.md)
+- **Paires traitées** : les paires que l'appariement a parcourues, jugées ou sautées par le
+  noyau parce qu'elles échoueraient sûrement au test rapide. Code : `explored`.
+  → [noyau-appariement.md](../03-developpeur/optimizer/moteur/noyau-appariement.md)
 - **Paire** : en moteur, une paire de compartiments ; côté artéfacts, une paire d'artéfacts.
 - **Élagage sûr** : ce qui écarte un candidat sans risque de perdre le meilleur (dominance,
   faisabilité). **Pré-filtrage heuristique** : ce qui garde les meilleures runes par
@@ -176,8 +180,8 @@ fiche qui fait foi : les règles détaillées et les valeurs chiffrées restent 
   (`MAX_COLLECTED`). Code : `overBudget`.
 - **Régime séquentiel, parallèle** : l'appariement tourne sur un fil, ou sur plusieurs Workers
   quand la recherche est grande. → [parallelisation.md](../03-developpeur/optimizer/moteur/parallelisation.md)
-- **Worker** : un fil de calcul du navigateur ; l'Optimizer en a pour la recherche, les tranches
-  et la résolution. → [pipeline.md](../03-developpeur/optimizer/moteur/pipeline.md)
+- **Worker** : un fil de calcul du navigateur ; l'Optimizer en a pour la recherche, les moitiés,
+  l'appariement parallèle et la résolution. → [pipeline.md](../03-developpeur/optimizer/moteur/pipeline.md)
 - **Résolution** : le choix des artéfacts et de la relique d'un build déjà trouvé.
   Code : `artifactQueue.ts`, `relicQueue.ts`.
 - **Quasi-succès** : le build le plus proche quand aucun ne remplit les conditions. Anglais :

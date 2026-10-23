@@ -1,7 +1,7 @@
 import type { OptimizerState } from '../../src/hooks/useOptimizerState';
 import type { UseOptimizerLists } from '../../src/hooks/useOptimizerLists';
 import type { ExclusionSelector } from '../../src/lib/optimizerExclusion';
-import type { SearchParams } from '../../src/lib/runeBuildOptim';
+import type { DemandeDeRecherche } from '../../src/workers/runeBuildOptim.worker';
 import { cleMemoireMembre } from '../../src/lib/optimizerMemberStorage';
 import { editerContenuListe } from './optimizer-listes-preuves';
 
@@ -62,10 +62,10 @@ export async function preuvesCombatAfficheOptimizer(b: Banc): Promise<[boolean, 
     await b.geste(() => bouton('Modifier l’équipe', groupe).click());
     return document.querySelector<HTMLElement>('[role="dialog"]')!;
   }
-  const messages: SearchParams[] = [], vraiWorker = globalThis.Worker;
+  const messages: DemandeDeRecherche[] = [], vraiWorker = globalThis.Worker;
   // Observer la frontière réelle du hook sans exécuter le moteur de runes.
   class WorkerObserve {
-    postMessage(params: SearchParams) { messages.push(params); }
+    postMessage(demande: DemandeDeRecherche) { messages.push(demande); }
     terminate() {}
   }
   globalThis.Worker = WorkerObserve as unknown as typeof Worker;
@@ -87,7 +87,10 @@ export async function preuvesCombatAfficheOptimizer(b: Banc): Promise<[boolean, 
     await b.geste(() => bouton('Fermer', dialogue).click());
     const avant = messages.length;
     await b.geste(() => bouton('Rechercher').click());
-    const params = messages[avant];
+    const params = messages[avant]?.params;
+    // Sur le site, aucun pont de bureau : la demande ne porte pas de cœurs physiques.
+    verifier(messages[avant]?.type === 'recherche' && messages[avant]?.coeursPhysiques === null,
+      `${etape} : demande de recherche, sans cœurs physiques sur le site — ${JSON.stringify(messages[avant]?.coeursPhysiques)}`);
     verifier(messages.length === avant + 1 && params?.metric === 'eff' && params.objective === 'degats_reels'
       && params.base.spd === 100 && params.requirement.minStats.spd === 230 && params.requirement.sets.includes('swift'),
       `${etape} : lancement observé, metric=${params?.metric}, objectif=${params?.objective}, minimum VIT=${params?.requirement.minStats.spd}`);

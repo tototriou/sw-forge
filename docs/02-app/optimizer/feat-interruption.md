@@ -28,20 +28,22 @@ Les cas de troncature se distinguent dans le message affiché : un arrêt
 manuel dit « voici le meilleur trouvé jusque-là » (un choix assumé), un
 plafond atteint dit « resserre tes critères » (une limite subie).
 
-⚠️ **Sur une grosse recherche (appariement parallèle, au-delà de 100 M de
-combinaisons), le plafond de candidats est partagé en quatre** : chaque
-tranche en reçoit le quart et s'arrête quand elle l'a rempli. Une tranche
-arrêtée ainsi alors qu'il lui restait des combinaisons à examiner rend la
-recherche **tronquée**, même si le total reste sous le plafond : l'écran
-affiche alors « Recherche interrompue après examen de N combinaisons —
-resserre tes critères pour un résultat exhaustif. »
-(`src/components/outils/optimizer/AvisRechercheTronquee.tsx`), plutôt que de présenter le résultat comme
-complet. La troncature ne change que le message : la recherche n'examine
-rien de plus. Une tranche qui remplit
-son quart sur sa toute dernière combinaison ne laisse rien de côté et ne
-déclenche pas le message. Le moteur transmet le motif (`motifTroncature` :
-temps, plafond global ou quota de tranche) ; l'écran ne l'affiche pas, il
-n'en lit que le booléen `truncated`.
+Sur une grosse recherche (appariement parallèle, au-delà de 100 M de
+combinaisons), le plafond de candidats reste **global** : les combinaisons
+gardées sont les premières dans l'ordre où une recherche sur un seul fil les
+aurait trouvées, et le message « Recherche interrompue après examen de N
+combinaisons — resserre tes critères pour un résultat exhaustif. »
+(`src/components/outils/optimizer/AvisRechercheTronquee.tsx`) ne s'affiche
+que si ce plafond est atteint ou le filet de temps écoulé. L'écran n'en lit
+que le booléen `truncated`. Le
+nombre de Workers suit la machine (la moitié de ses fils logiques, au plus
+8) ; « Arrêter » cesse de leur confier du travail, interrompt celui en
+cours (chaque Worker le lit entre deux tranches de 100 ms) et rend tout ce
+qu'ils ont trouvé.
+
+Une erreur de réception des candidats ou de validation de leur nombre final
+termine la recherche et ses Workers, avec un état d'erreur visible. Une
+nouvelle recherche peut être lancée et arrêtée normalement.
 
 ## Barre de progression
 

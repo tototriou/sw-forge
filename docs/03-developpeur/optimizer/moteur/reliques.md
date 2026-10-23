@@ -139,24 +139,54 @@ recherche : [pipeline.md § Pipeline de la recherche de runes](pipeline.md).
   [elagages.md § Élagage sûr — faisabilité](elagages.md).
 - **En mode `recherche`, le candidat est collecté sans relique**
   (`GearSet.relic = undefined`, `pairBuckets`) : la relique portée n'est
-  pas une hypothèse de la recherche, elle peut être hors du pool. Le test
-  conjoint final y ajoute un terme additif : `relTermMax(k) = ceil(B × Lmax /
-  100)` côté minimum, `relTermMin(k) = floor(B × Lmin / 100)` côté maximum.
-  Ne pas y mettre un `ceil` séparé côté maximum, parce qu'il rejetterait un
-  build faisable : avec B = 101 et R = L = 1 %, le réel vaut 104, le `ceil`
-  séparé 105, et un maximum à 104 tomberait.
-- **Ce test reste une borne en mode `recherche`** : les bornes accordent la
-  meilleure PV %, la meilleure ATQ % et la meilleure DEF % à la fois, alors
-  qu'une relique n'a qu'une principale. Aucun faux négatif au test de
-  faisabilité, mais des faux positifs, que la résolution exacte rejette. Le
-  score qui ordonne les candidats avant elle est donc calculé sans relique,
-  non exact.
+  pas une hypothèse de la recherche, elle peut être hors du pool. Le score
+  qui ordonne les candidats avant la résolution est donc calculé sans
+  relique, non exact.
+- **La validation essaie les reliques une à une (la relique en « OU »)** :
+  les bornes par stat accordent la meilleure PV %, la meilleure ATQ % et la
+  meilleure DEF % à la fois, alors qu'une relique n'a qu'une principale ;
+  elles ne servent qu'avant (préparation, `quickOk`, sauts du noyau). Le
+  test conjoint de la validation juge des TENTATIVES — un apport
+  d'artéfacts de `artPossibles` × une fiche de `fichesDuTestConjoint` (une
+  par relique représentative, `computeStats` avec elle à la place de la
+  portée) —, minimums ET maximums ensemble ; le build est retenu si l'une
+  passe. `Collecteur.valider` recopie ce bloc de `pairBuckets`,
+  `ValidationTypee.ecarts(a, f)` en est le miroir typé (la principale
+  ajoutée à la somme entière des pourcentages avant le `ceil`, valeur
+  entière exigée par son contrat).
+- **Les représentatives** (`reliquesRepresentatives`,
+  `src/lib/relicOptim.ts`, préparées une fois dans `deriveMinMaxContext`,
+  `PreparedSearch.reliquesRepresentatives`) suffisent parce qu'une relique
+  n'agit que sur la stat de sa principale, de façon croissante : par
+  principale, la plus forte (minimum seul, ou aucune condition), la plus
+  faible (maximum seul), toutes les valeurs distinctes quand la stat porte
+  un minimum ET un maximum (l'ensemble admis est un intervalle, que les deux
+  extrêmes peuvent manquer), une seule relique de principale inconnue.
+- **Exact** : avec `artPossibles`, réduit dans le sens de chaque condition
+  ([artefacts.md § Test conjoint exact à la validation finale](artefacts.md)),
+  un build est retenu si et seulement si une relique éligible et une vraie
+  paire lui font tenir toutes ses conditions — le jugement de
+  `respecteConditionsAvecRelique` à la résolution. La recherche ne collecte
+  donc plus de build que la résolution rejette faute de couple faisable.
+- **Sous-ensemble de l'ancienne borne, sans troncature seulement** : sur une
+  recherche non tronquée, les candidats sont ceux que la borne par stat
+  aurait gardés, moins ceux qu'aucune relique ne rend conformes, dans le
+  même ordre, avec les mêmes paires traitées. Tronquée au plafond
+  (`maxCollected`), la recherche va plus loin : les places que les faux
+  positifs prenaient reçoivent d'autres builds, et `explored` augmente.
+- **Le quasi-succès suit les mêmes tentatives** : en mode `recherche`, ses
+  écarts sont ceux d'une relique représentative et d'un apport, la
+  tentative qui approche le plus le build gagnant, jamais ceux de la borne
+  par stat ([diagnostics.md § Ce que le quasi-succès retient](diagnostics.md)).
 - **La relique n'entre dans aucun ordre de rétention** (`filterSlot`,
-  `retentionScore`, `combinedRetentionScore` ne lisent que les runes). Les
-  faux positifs occupent pourtant des places bornées (`slotFilterCap`, les
-  tranches de `bucketCap`, `MAX_COLLECTED`) et peuvent évincer un vrai
-  candidat avant la résolution : une perte par dilution, possible, jamais
-  supposée absente (§ Oracle de la dimension relique).
+  `retentionScore`, `combinedRetentionScore` ne lisent que les runes). La
+  préparation et les compartiments jugent sur les bornes par stat : les
+  demi-builds qu'elles laissent passer à tort occupent des places bornées
+  (`slotFilterCap`, les tranches de `bucketCap`) et peuvent évincer un vrai
+  candidat avant l'appariement : une perte par dilution, possible, jamais
+  supposée absente (§ Oracle de la dimension relique). Au plafond de
+  candidats (`MAX_COLLECTED`), en revanche, ils n'occupent plus aucune
+  place : la validation les écarte avant la collecte.
 - **Pendant la recherche relâchée, le moteur ne lit l'effet unique que par
   la dominance des runes** : les reliques qu'il peut équiper
   (`reliquesEquipables` : la relique portée hors mode `recherche`, tout
@@ -200,10 +230,11 @@ La présence par tranche ne s'observe que sur le chemin séquentiel
 (`searchBuilds`) : sur le chemin Workers, les moitiés se construisent dans
 un autre fil. Un rejet par pré-filtrage (`prepareSearch` rend `null`) ne
 perd pas la trace : `prepareSearch` la passe à `onReject`, et
-`searchBuildsSteps` la pose sur le résultat vide qu'il construit. Les deux
-adaptateurs qui reconstruisent `SearchResult` à la main
-(`scripts/lib/spawnSliceNode.ts`, `pairSliceInWorker` dans
-`src/workers/runeBuildOptim.worker.ts`) recopient `traceur`. Le harnais
+`searchBuildsSteps` la pose sur le résultat vide qu'il construit. Un
+traceur fait passer la construction par `buildBuckets` et l'appariement par
+`pairBuckets`, en séquentiel, qui seuls le remplissent ; `apparier` recopie
+`traceur` sur le résultat qu'il rend
+([noyau-appariement.md § Le contrat numérique](noyau-appariement.md)). Le harnais
 s'en sert pour `--suivre` (`scripts/lib/diagnosticHarness.ts`), le
 différentiel relique pour classer une perte
 (`scripts/lib/relicDifferentiel.ts`).
@@ -229,17 +260,22 @@ différentiel relique pour classer une perte
   mode `recherche`, `null` quand `conditionsPaireFixePosees` ne trouve
   aucune condition), `requirement` (minimums ET maximums, auras comprises),
   `regimeAucun`, `regimeDeStat`, `relicContext` et `caches`.
-- **Hors mode `recherche`** (contexte absent, `off`, `equipped`) :
-  `resoudreReliqueFixe` avec la relique portée (`gear.relic`, le même
-  paramètre que le moteur). Les paires par score décroissant
-  (`pairesParScore`) ; la première qui tient `respecteConditions` est
-  retenue ; aucune : la meilleure au score, `conforme: false`. Cette
-  fonction garde la structure de l'ancienne boucle de la file ; ses entrées
-  ont changé depuis (auras propres, maximums RES/PRE, effet unique), et
-  `tests/relic-queue.test.ts` ne compare sa copie de cette boucle à
-  l'évaluateur courant que sur trois candidats d'une seule fixture. Les
-  modes `off` et `equipped` y rendent, octet pour octet, le résultat du
-  chemin sans contexte.
+- **Hors mode `recherche`** (contexte absent, `off`, `equipped`) : la
+  relique portée (`gear.relic`, le même paramètre que le moteur). La paire
+  retenue est la première, par score décroissant (`pairesParScore`), qui
+  tient `respecteConditions` ; aucune : `conforme: false`, sans paire. Le
+  chemin de l'app, la résolution rapide (`resoudreReliqueFixeRapide`), y
+  arrive sans noter les paires non conformes (§ Résolution rapide — le
+  chemin de l'app) ; la file et `tests/relic-queue.test.ts` passent par
+  lui. Le calcul exhaustif (`resoudreReliqueFixe`,
+  `src/lib/resolutionExhaustive.ts`) en est la référence et garde, pour un
+  build rejeté, la meilleure paire au score, pour diagnostic. Il garde la
+  structure de l'ancienne boucle de la file ; ses entrées ont changé depuis
+  (auras propres, maximums RES/PRE, effet unique), et
+  `tests/relic-queue.test.ts` ne compare la copie de cette boucle au chemin
+  de l'app que sur trois candidats d'une seule fixture. Les modes `off` et
+  `equipped` y rendent, octet pour octet, le résultat du chemin sans
+  contexte.
 - **En mode `recherche`, un ordre fixe** :
   1. énumérer `relicContext.eligibles`, jamais recalculés ;
   2. pour chaque candidate, `pairesParScore(faireParams(candidate))` : la
@@ -254,13 +290,17 @@ différentiel relique pour classer une perte
   5. `bestRelicForBuild(candidates, evaluate, { regimeAucun, equipee,
      departagePortee })` choisit entre candidates (§ Régimes : ce qui note
      la relique) ;
-  6. aucun couple faisable : `conforme: false`, et le résultat porte, pour
-     diagnostic, le meilleur couple au score de l'éligible de plus petite
-     `id`.
+  6. aucun couple faisable : `conforme: false` ; le résultat ne porte ni
+     paire, ni artéfact, ni relique. Le diagnostic d'un build rejeté (le
+     meilleur couple au score de l'éligible de plus petite `id`) ne se
+     calcule qu'à la demande.
 
   Jamais « le meilleur, puis le filtre » : un build faisable avec une
   autre relique serait perdu. Le couple retenu repasse le filtre exact ; un
-  échec lève une erreur (garde défensive, pas un filtre).
+  échec lève une erreur (garde défensive, pas un filtre). Le calcul
+  exhaustif (`resoudreEquipementDuBuildExhaustif`) suit ces étapes à la
+  lettre ; le chemin de l'app arrive au même résultat sans noter les
+  paires infaisables (§ Résolution rapide — le chemin de l'app).
 - **Le résultat** (`ResultatArtefacts`) porte la paire, ses artéfacts, les
   stats recalculées avec l'équipement retenu, `conforme`, et en mode
   `recherche` la relique retenue (`relique`, son `id` est le `rid`) et
@@ -289,6 +329,76 @@ différentiel relique pour classer une perte
   `empreinteRelique`, l'empreinte du contexte lancé (`null` sans contexte),
   à côté du régime effectif (`objective`), de `damageSetup` et de la relique
   portée. Un tri qui ne change pas de régime effectif ne vide rien.
+
+### Résolution rapide — le chemin de l'app
+
+`resoudreEquipementDuBuild` (`src/lib/relicQueue.ts`), le point d'entrée de
+l'écran, du Worker de résolution et du CLI, résout par
+`resoudreEquipementDuBuildRapide` (`src/lib/resolutionRapide.ts`). Le calcul
+exhaustif, `resoudreEquipementDuBuildExhaustif`
+(`src/lib/resolutionExhaustive.ts`), qui note toutes les paires de toutes
+les reliques éligibles, en reste la référence : tests, banc, diagnostic
+d'un build rejeté, repli sur une note NaN.
+
+La faisabilité d'un couple ne dépend des artéfacts que par leurs
+principales : `computeStats` ne lit d'un artéfact que `main.code` et
+`main.value`. La résolution rapide juge donc d'abord, par principale de
+relique, les FORMES de paire — principale de l'attribut ou emplacement
+vide, × principale du type ou vide, tirées de `candidatsParSorte` ; une
+paire hors de ces formes lève une erreur, jamais absorbée. Une relique sans
+forme faisable est écartée sans aucune note. Sinon, seules les paires
+faisables sont notées, dans l'ordre de `collecterPaires` ; la meilleure est
+la plus grande note, au plus petit indice parmi les ex æquo, soit la
+première faisable de `pairesParScore` tant qu'aucune note n'est NaN. Avec
+des lignes verrouillées et `avecCoutDesVerrous`, la relique (ou la paire
+fixe) est notée entière, `meilleurSansVerrous` lisant toutes les notes.
+Aucun producteur de l'app ne pose ce drapeau dans les paramètres d'une
+résolution (l'écran ne le passe qu'à un `chercherPaires` à part) : ces deux
+branches ne servent pas en production, mais le contrat vaut pour toute
+entrée, et le test les compare au calcul exhaustif. Hors mode `recherche`,
+la relique portée est fixe : le prédicat `respecteConditions` y est
+mémoïsé par forme de paire, au premier jugement d'une paire de cette
+forme, et seules les paires conformes sont notées. Sur
+une recette réelle en relique `recherche`, un build demande ainsi près de
+vingt fois moins de notes. Les représentants des formes vivent dans
+les caches de la file (`CachesResolution.rapide`,
+`nouveauxCachesResolution`) : un jeu par file, recréé avec les autres.
+
+Le verdict d'une forme est le jugement de `respecteConditionsAvecRelique`
+(`respecteMinEtMax` sur les stats de la paire, la candidate à la place de
+la portée, auras propres du build), dont les entrées se calculent une
+fois : les auras propres par build, les stats sans artéfact par principale
+de relique (`statsParPaire`, qui rend au bit près le `computeStats` de
+chaque paire). Une paire se juge par l'indice de la forme de chacune de ses
+pièces, lu une fois par pièce et par relique (`FormesDePaire`) : aucune clé
+n'est construite par paire. La paire retenue repasse
+`respecteConditionsAvecRelique` lui-même, dont elle garde les stats.
+
+- Pour un build conforme, le résultat est celui du calcul exhaustif, champ
+  pour champ (paire, artéfacts, stats, `meilleurSansVerrous`, relique,
+  `sansEffetSurLeTri`).
+- Un build rejeté ne porte ni paire, ni artéfact, ni relique. Son
+  diagnostic (le meilleur couple au score) ne se calcule qu'à la demande,
+  par le calcul exhaustif : option `diagnostic` de
+  `resoudreEquipementDuBuildRapide` et de la fonction du CLI
+  `resoudreEquipementCli`, que le banc et les tests exercent ; ni le script
+  du CLI ni le harnais ne l'exposent (piste :
+  [05-feuille-de-route/pistes-optimizer.md § Diagnostic d'un build rejeté au CLI](../../../05-feuille-de-route/pistes-optimizer.md#diagnostic-dun-build-rejeté-au-cli)).
+  L'écran n'en a pas besoin, un build
+  rejeté n'y est jamais montré.
+- Une note NaN vue sur une paire faisable fait résoudre le build par le
+  calcul exhaustif, signalé par `console.warn`. Écart accepté : une note NaN
+  portée par une paire INFAISABLE seule n'est jamais calculée ; le calcul
+  exhaustif, qui trie avec elle, peut alors ordonner autrement les paires
+  faisables, la résolution rapide rendant la meilleure faisable —
+  seulement sur un build dont la note est déjà incohérente.
+
+L'en-tête de `resolutionRapide.ts` dit ses préconditions. Vérification :
+`testResolutionRapide` et `testResolutionRapideNaN`
+(`tests/resolution-rapide.test.ts`), l'option du CLI dans
+`testCliClassementParMode` (`tests/cli-classement.test.ts`) ; sur une
+recette réelle, `scripts/banc-resolution-rapide.ts` compare le chemin de
+l'app au calcul exhaustif, build par build.
 
 ## Régimes : ce qui note la relique
 

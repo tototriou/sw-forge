@@ -16,6 +16,10 @@ contextBridge.exposeInMainWorld(
     // Les couleurs du thème, pour habiller la fenêtre. Le
     // processus principal les vérifie avant de s'en servir.
     couleurs: (c: { fond: string; barre: string; symboles: string }) => ipcRenderer.send('bureau:couleurs', c),
+    // Le nombre de cœurs PHYSIQUES de la machine (voir bureau/coeurs.ts), ou
+    // `null` s'il n'a pas pu être lu : la recherche de runes en dérive son
+    // nombre de Workers.
+    coeursPhysiques: (): Promise<number | null> => ipcRenderer.invoke('bureau:coeurs-physiques'),
     // La mise à jour automatique (voir bureau/miseAJour.ts) : l'état
     // courant, ses changements (rend de quoi se désabonner), « Rechercher »,
     // « Mettre à jour » et « Redémarrer ».

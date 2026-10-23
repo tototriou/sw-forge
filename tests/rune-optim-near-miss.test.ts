@@ -29,7 +29,8 @@
 // l'inverse (coller ce que le moteur a rendu sans le re-vérifier soi-même).
 
 import { BaseStats, EffectLine, RuneDetail } from '../src/types';
-import { BuildRequirement, NearMiss, PairingProgress, SearchResult, searchBuilds } from '../src/lib/runeBuildOptim';
+import { BuildRequirement, NearMiss, PairingProgress, SearchResult } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import { drivePairing } from '../src/workers/pairingDriver';
 import { egal, ok, titre } from './outils';
 

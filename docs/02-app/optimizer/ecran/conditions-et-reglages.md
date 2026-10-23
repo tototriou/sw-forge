@@ -151,7 +151,14 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus
    lent, mais capable de retrouver un build sur un très gros compte),
    **séparés par un liseré vertical** (même patron que `Segmented.tsx`,
-   PC et mobile).
+   PC et mobile). **Les préréglages sont emboîtés** : une recherche
+   complète à un préréglage trouve au moins les builds valides de chaque
+   préréglage plus à gauche (Moyen ceux de Bas, Haut ceux de Moyen et de
+   Bas…), le moteur ajoutant à sa rétention celle des préréglages plus
+   étroits
+   ([elagages.md § Préréglages emboîtés](../../../03-developpeur/optimizer/moteur/elagages.md#préréglages-emboîtés)) ;
+   arrêtée par le filet de temps ou le plafond de candidats, elle peut
+   rendre d'autres builds.
    ⚠️ **Au doigt, dans le panneau « Options »** (bouton de la barre de nav,
    voir App.tsx/`pageAPanneau` — même patron que la Liste et l'Optimisation
    de runes de « Mon compte », voir RunesOptim.tsx), **sous** « Exclusion de
@@ -171,7 +178,9 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    ce réglage, qu'un utilisateur novice n'a aucune raison de connaître. Un
    COUP DE POUCE, pas un verrouillage : l'interrupteur reste cliquable
    normalement ensuite pour revenir à décoché. Choisir Bas ou Moyen ne le
-   décoche PAS automatiquement dans l'autre sens. Sous ce réglage :
+   décoche PAS automatiquement dans l'autre sens. Pour le moteur, un
+   préréglage ne change que `slotFilterCap` (et ce qui en dérive :
+   `bucketCap` et les préréglages plus étroits emboîtés). Sous ce réglage :
    - **« Rechercher jusqu'à épuisement complet »**, décoché par défaut :
      retire le filet de temps de 10 minutes (voir
      ../feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel) — la
@@ -192,8 +201,10 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
      formats : l'écran envoie toujours
      `adaptiveTrancheWeighting: false` à la recherche et l'exporte à faux
      dans une recette. Une recette qui le porte à vrai s'importe sans erreur
-     et n'active rien ; le CLI (`recipeToSearchParams`), lui, le transmet
-     encore au moteur tel que la recette le porte.
+     et n'active rien ; le CLI (`recipeToSearchParams`) ne le relaie pas, et
+     le moteur ne lit plus ce réglage : chaque stat garde la même part de la
+     rétention
+     ([retention-a-parts-egales.md](../../../04-decisions/adr/retention-a-parts-egales.md)).
    - **« Vérifier toutes les combinaisons trouvées »**, décoché par défaut :
      la file de résolution vérifie tous les
      builds trouvés au lieu de s'arrêter à 100 combinaisons confirmées (300

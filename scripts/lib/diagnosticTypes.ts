@@ -74,9 +74,10 @@ export interface OverridesHarnais {
    * PAS : il applique le seuil de la production (`PARALLEL_PAIRING_THRESHOLD`
    * contre `totalPairCount`), donc il est fidèle par construction. Forcer
    * est un override au sens plein — marqué, avec le drapeau de fidélité.
-   * Deux usages légitimes : la reproductibilité (l'ordre de collecte
-   * parallèle dépend de l'ordonnancement des fils) et le différentiel
-   * séquentiel/parallèle.
+   * Deux usages légitimes : la reproductibilité de l'instant de découverte
+   * d'une cible (en parallèle, il dépend de l'arrivée des morceaux) et le
+   * différentiel séquentiel/parallèle. Hors contrat numérique du noyau, le
+   * régime appliqué reste séquentiel, même forcé.
    */
   regime?: RegimeAppariement;
 }
@@ -157,7 +158,7 @@ export type OrigineParametre =
    * d'OVERRIDE, parce que la règle est « chaque paramètre EFFECTIF
    * affiche son origine ». Sont concernés `objective`/`objectiveStats` (un
    * levier de rétention ×4 : `PER_STAT_KEEP` 6 contre
-   * `PER_STAT_KEEP_OBJECTIVE` 24), `adaptiveTrancheWeighting`, `metric`,
+   * `PER_STAT_KEEP_OBJECTIVE` 24), `metric`,
    * la recherche exhaustive et la composition du pool.
    *
    * ⚠️ **Ce n'est PAS une infidélité** : la valeur appliquée est bien celle
@@ -218,10 +219,9 @@ export interface Fidelite {
  * ----------------------------------------------------------------------- */
 
 /**
- * ⚠️ **TROIS motifs, et trois seulement** : le budget de paires n'existe plus,
- * et `quotaTranche` (une tranche parallèle arrêtée sur sa part du plafond
- * avec des paires restantes) s'ajoute à `maxMs` et `maxCollected`. Le type vit dans le moteur, qui le transmet sur le résultat
- * fusionné : une seule définition.
+ * ⚠️ **DEUX motifs, et deux seulement** : le budget de paires n'existe plus,
+ * et le plafond de candidats est global dans les deux régimes. Le type vit
+ * dans le moteur : une seule définition.
  */
 export type { MotifTroncature };
 
@@ -562,7 +562,7 @@ export interface RetentionMoitie {
 }
 
 /* --------------------------------------------------------------------------
- * Pic de tas par moitié (palier LÉGER)
+ * Mémoire de fin de construction par moitié (palier LÉGER)
  * ----------------------------------------------------------------------- */
 
 /**
@@ -573,8 +573,8 @@ export interface RetentionMoitie {
  * énumération close, mais celles auxquelles on avait pensé.
  *
  * ⚠️ La mesure est propre parce que **chaque moitié tourne dans son propre
- * `worker_threads`**, donc dans son propre tas : aucune confusion possible
- * entre A et B.
+ * `worker_threads`**, donc dans son propre tas. `arrayBuffers` comprend les
+ * colonnes hors tas avant transfert ; `rss` porte sur tout le processus.
  */
 export interface MemoireConstruction {
   A: import('./build-half-worker').MemoireMoitie;
@@ -811,53 +811,6 @@ export interface RangBuildCible {
 }
 
 /* --------------------------------------------------------------------------
- * La DISPERSION PAR TRANCHE
- * ----------------------------------------------------------------------- */
-
-/**
- * Une tranche de rétention, avec la dispersion qui décide de sa taille.
- *
- * ⚠️ **`cv` est LE nombre du moteur, pas une reconstitution.** Il vient de
- * `trancheReallocation`, la fonction que `buildBuckets` appelle lui-même —
- * il n'existe pas deux versions. C'est ce qui sépare cette grandeur d'un CV
- * recalculé par un script : la dispersion de `retentionScore` sur les
- * demi-builds RETENUS (principale comprise, compartiments aplatis) n'est pas
- * une approximation de celle-ci, c'est un autre nombre, qui ne pilote rien.
- */
-export interface TrancheDispersion {
-  stat: string;
-  /** Coefficient de variation de la contribution HORS PRINCIPALE, sur le pool FILTRÉ. */
-  cv: number;
-  /** Les places que la réallocation donnerait à cette tranche. */
-  capRealloue: number;
-  /** Les places qu'elle recevrait sans réallocation — la part ÉGALE. */
-  capEgal: number;
-  /** `capRealloue / capEgal`. > 1 = cette tranche GAGNE du budget. */
-  facteur: number;
-}
-
-/**
- * La répartition du budget de rétention entre tranches, pour une moitié.
- *
- * ⚠️ **Rendue MÊME quand `adaptiveTrancheWeighting` est OFF**, et c'est
- * délibéré : le CV est une propriété du POOL, pas du réglage. Le lire sans
- * activer `adaptiveTrancheWeighting` répond à « qu'est-ce que la réallocation ferait ici ? »
- * — la question qu'on se pose AVANT de décider d'activer quoi que ce soit.
- * ⚠️ Mais `applique` dit alors NON : rendre une répartition sans dire qu'elle
- * n'a pas été appliquée serait présenter une simulation comme un fait.
- */
-export interface DispersionTranches {
-  moitie: 'A' | 'B';
-  /** `true` seulement si `adaptiveTrancheWeighting` était actif sur CE run. */
-  applique: boolean;
-  /** Le budget de base par tranche (`bucketCap`). */
-  capEgal: number;
-  /** Une entrée par `retentionKey`, triée par CV DÉCROISSANT — la plus tendue en tête. */
-  tranches: TrancheDispersion[];
-  avertissement: string;
-}
-
-/* --------------------------------------------------------------------------
  * L'INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT
  * ----------------------------------------------------------------------- */
 
@@ -930,7 +883,7 @@ export interface DecouverteBuildCible {
   /** La courbe de rendement, aux jalons de `JALONS_RENDEMENT`. */
   jalons: JalonRendement[];
   regime: RegimeAppariement;
-  /** Le pas des points de passage : un nombre de paires en séquentiel, `null` en parallèle (il est TEMPOREL). */
+  /** Le pas des points de passage : un nombre de paires en séquentiel, `null` en parallèle (une publication fusionnée, de taille variable). */
   granularitePaires: number | null;
   reproductible: boolean;
   /** Renseigné SEULEMENT si la cible n'est jamais apparue — avec ce que ça autorise à conclure. */
@@ -1144,17 +1097,6 @@ export interface ResultatHarnais {
    */
   decouverteBuildCible?: DecouverteBuildCible;
   /**
-   * La DISPERSION PAR TRANCHE (docs/03-developpeur/optimizer/,
-   * « Instant de découverte et dispersion par tranche ») — le CV que
-   * `adaptiveTrancheWeighting` calcule, et la répartition du budget de rétention qu'il produit, par
-   * moitié.
-   *
-   * ⚠️ Rendue dès que la construction a tourné et qu'il existe au moins une
-   * `retentionKey`, que `adaptiveTrancheWeighting` soit actif ou non — le CV
-   * est une propriété du POOL. `applique` dit si ce run l'a réellement suivie.
-   */
-  dispersionTranches?: DispersionTranches[];
-  /**
    * LE VERDICT du build cible — le premier point de
    * divergence, avec la complétude qui dit ce qu'on a le droit d'en conclure.
    *
@@ -1183,12 +1125,12 @@ export interface ResultatHarnais {
    * du top coupé `meilleurs` (le
    * différentiel de fidélité fusionne les N runs de l'oracle et résout TOUS
    * les candidats relâchés de A ; il passe par le harnais pour hériter du
-   * régime d'appariement décidé comme la production — 4 workers au-delà du
+   * régime d'appariement décidé comme la production — parallèle au-delà du
    * seuil — au lieu du `searchBuilds` toujours séquentiel).
    *
    * ⚠️ Ordre de COLLECTE, jamais un classement (`candidates[0]` n'est pas
-   * le meilleur) ; en régime parallèle cet ordre dépend de l'arrivée des
-   * fils. Absent si l'arrêt a eu lieu avant l'appariement, ou si le
+   * le meilleur) ; le même dans les deux régimes, sauf sous une troncature
+   * par le temps. Absent si l'arrêt a eu lieu avant l'appariement, ou si le
    * pré-filtrage a vidé le pool.
    */
   brut?: SearchResult;

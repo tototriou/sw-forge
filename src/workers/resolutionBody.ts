@@ -1,7 +1,8 @@
 // Corps de la RÉSOLUTION D'ÉQUIPEMENT d'un build (paire d'artéfacts ET
 // relique) hors du fil de l'écran — la LOGIQUE seule, sans aucune API de
 // messagerie. Même patron que
-// `pairSliceBody.ts` : la coquille `resolution.worker.ts` ne fait que brancher
+// l'appariement parallèle (`appariementRapide.ts`, coquille
+// `appariementRapide.worker.ts`) : la coquille `resolution.worker.ts` ne fait que brancher
 // `self.onmessage`/`postMessage` dessus ; un fil Node ou un test l'appellent
 // tel quel.
 //

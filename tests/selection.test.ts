@@ -39,9 +39,9 @@ export async function testSelectionFichiersInventaire(): Promise<void> {
   const attendues = [
     'tests/rendu/optimizer-memoire-banc.tsx', 'tests/rendu/optimizer-import-banc.tsx', 'tests/rendu/optimizer-dialogue-banc.tsx',
     'tests/rendu/rta-reco-export-banc.tsx', 'tests/rendu/speed-tune-export-banc.tsx', 'tests/rendu/speed-tune-export-app-banc.tsx',
-    'tests/rendu/siege-export-banc.tsx', 'scripts/lib/pair-slice-worker.ts', 'scripts/lib/build-half-worker.ts',
-    'scripts/lib/pairing-quota-worker.ts', 'scripts/installer-hooks.mjs', '.githooks/pre-commit',
-    '.githooks/commit-msg', 'scripts/relic-differentiel.ts',
+    'tests/rendu/siege-export-banc.tsx', 'scripts/lib/appariement-rapide-worker.ts', 'scripts/lib/build-half-worker.ts',
+    'scripts/installer-hooks.mjs', '.githooks/pre-commit',
+    '.githooks/commit-msg', 'scripts/relic-differentiel.ts', 'tests/rendu/recherche-coeurs-banc.tsx',
   ];
   egal(attendues.filter((r) => !racines.has(r)), [], 'les 14 racines secondaires connues sont retrouvées');
   const erreurs = [...inv.fichiersTest.values()].flatMap((i) => i.racines.filter((r) => r.erreur).map((r) => r.racine));
@@ -140,15 +140,15 @@ export async function testSelectionFichiersCasReels(): Promise<void> {
   egal(statut(s, 'tests/rendu/optimizer-bandes-preuves.ts'), 'couvert', '… et le fichier est couvert');
 
   // Worker : la racine et un module transitif.
-  const avecWorker = [...inv.fichiersTest.entries()].find(([, i]) => i.racines.some((r) => r.racine === 'scripts/lib/pair-slice-worker.ts'));
-  const grapheWorker = avecWorker?.[1].racines.find((r) => r.racine === 'scripts/lib/pair-slice-worker.ts')?.fichiers ?? [];
-  const transitif = grapheWorker.find((f) => f !== 'scripts/lib/pair-slice-worker.ts' && f.startsWith('src/'));
-  s = sel(['scripts/lib/pair-slice-worker.ts']);
-  ok(!s.complet && statut(s, 'scripts/lib/pair-slice-worker.ts') === 'couvert', 'pair-slice-worker.ts (hors de tout graphe principal) → couvert par sa racine');
+  const avecWorker = [...inv.fichiersTest.entries()].find(([, i]) => i.racines.some((r) => r.racine === 'scripts/lib/appariement-rapide-worker.ts'));
+  const grapheWorker = avecWorker?.[1].racines.find((r) => r.racine === 'scripts/lib/appariement-rapide-worker.ts')?.fichiers ?? [];
+  const transitif = grapheWorker.find((f) => f !== 'scripts/lib/appariement-rapide-worker.ts' && f.startsWith('src/'));
+  s = sel(['scripts/lib/appariement-rapide-worker.ts']);
+  ok(!s.complet && statut(s, 'scripts/lib/appariement-rapide-worker.ts') === 'couvert', 'appariement-rapide-worker.ts (hors de tout graphe principal) → couvert par sa racine');
   s = sel([transitif ?? 'absent']);
   const fichierWorker = avecWorker?.[0] ?? '';
   const entreeWorker = inv.entrees.find((e) => e.fichierTest === fichierWorker);
-  ok(!!transitif && !s.complet && /racine secondaire scripts\/lib\/pair-slice-worker\.ts/.test(raisons(s, entreeWorker?.nom ?? entreeWorker?.identifiant ?? '')),
+  ok(!!transitif && !s.complet && /racine secondaire scripts\/lib\/appariement-rapide-worker\.ts/.test(raisons(s, entreeWorker?.nom ?? entreeWorker?.identifiant ?? '')),
     `module transitif du worker (${transitif}) → ${entreeWorker?.nom} retenue par la racine du worker`);
 
   // Chemin construit et dossier cité.

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BuildCandidate, SearchParams, SearchResult } from '../lib/runeBuildOptim';
 import { RelicContext, RelicVide } from '../lib/relicOptim';
-import { WorkerResponse } from '../workers/runeBuildOptim.worker';
+import { coeursPhysiques } from '../lib/bureau';
+import { RecepteurCandidats } from '../lib/candidatsCompacts';
+import type { DemandeDeRecherche, WorkerResponse } from '../workers/runeBuildOptim.worker';
 
 // Plafond de sécurité sur la liste APERÇU accumulée pendant une recherche en
 // cours — pas `maxCollected` (100 000 par défaut, voir MAX_COLLECTED dans
@@ -33,7 +35,8 @@ export interface HalfBuildProgress {
 // distinction, l'UI n'avait AUCUNE information pendant cette phase (voir
 // docs/03-developpeur/optimizer/ § Construction des moitiés).
 // ⚠️ `building` garde les DEUX moitiés (`halves.A`/`halves.B`), pas une seule
-// — depuis leur construction en parallèle (deux Workers, voir
+// — depuis leur construction en parallèle (un Worker par moitié et par
+// préréglage construit, 2 à 8, voir
 // runeBuildOptim.worker.ts), les messages de progression des deux moitiés
 // s'entrelacent ; ne garder que le dernier reçu (l'ancien comportement)
 // ferait « disparaître » l'autre moitié de l'écran alors qu'elle avance en
@@ -56,8 +59,7 @@ export type BuildOptimProgress =
       pct: number;
       totalPairs: number;
       // Aperçu EN DIRECT, accumulé message après message à partir des
-      // deltas envoyés par le Worker (voir `WorkerPairingMessage.
-      // newCandidates`) — plafonné à `PREVIEW_CANDIDATES_CAP`, PAS égal à
+      // blocs transférés par le Worker — plafonné à `PREVIEW_CANDIDATES_CAP`, PAS égal à
       // `found` au-delà de ce plafond (voir son commentaire). Permet
       // d'afficher des cartes de résultat PENDANT la recherche, sans
       // attendre `result` (voir OptimizerSection.tsx).
@@ -86,9 +88,9 @@ export type BuildOptimProgress =
 // lancer/arrêter plusieurs recherches rapprochées pouvait figer une des deux
 // barres de la phase `building` (voir
 // docs/03-developpeur/optimizer/ § Lancement) — plus
-// probable depuis la parallélisation des deux moitiés (deux Workers de plus
-// à chaque recherche, donc deux fois plus de messages en vol au moment d'un
-// arrêt/relance). Chaque `run()` incrémente `runId` ; tout message reçu par
+// probable depuis la parallélisation des moitiés (2 à 8 Workers de plus à
+// chaque recherche, un par moitié et par préréglage, donc davantage de
+// messages en vol au moment d'un arrêt/relance). Chaque `run()` incrémente `runId` ; tout message reçu par
 // un gestionnaire qui ne porte plus le `runId` COURANT est silencieusement
 // ignoré — indépendant de la rapidité réelle de `terminate()`, qui n'a donc
 // plus besoin d'être instantané pour rester correct.
@@ -106,12 +108,28 @@ export function useBuildOptimSearch() {
   // consomme sur les candidats de CETTE recherche. `undefined` tant que
   // l'écran n'en pose pas : la file garde alors la relique portée.
   const [relicContext, setRelicContext] = useState<RelicContext | undefined>(undefined);
+  // Les cœurs physiques de la machine, que le Worker de recherche ne peut pas
+  // lire (seul le pont de l'application de bureau les donne) : demandés une
+  // fois au montage, passés dans chaque demande. `null` sur le site, tant que
+  // la réponse n'est pas arrivée, ou si la lecture a échoué : le Worker garde
+  // alors la règle des fils logiques.
+  const coeursPhysiquesRef = useRef<number | null>(null);
+  useEffect(() => {
+    let actif = true;
+    void coeursPhysiques().then((n) => {
+      if (actif) coeursPhysiquesRef.current = n;
+    });
+    return () => {
+      actif = false;
+    };
+  }, []);
 
   const cancel = useCallback(() => {
     runIdRef.current++;
     if (workerRef.current) {
       workerRef.current.onmessage = null;
       workerRef.current.onerror = null;
+      workerRef.current.onmessageerror = null;
       workerRef.current.terminate();
     }
     workerRef.current = null;
@@ -132,55 +150,64 @@ export function useBuildOptimSearch() {
         type: 'module',
       });
       workerRef.current = worker;
-      worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
-        if (runIdRef.current !== myRunId) return; // message périmé d'une recherche déjà remplacée — voir commentaire ci-dessus
-        const data = e.data;
-        if (data.type === 'progress') {
-          if (data.phase === 'building') {
-            setProgress((prev) => {
-              const halves = prev && prev.phase === 'building' ? prev.halves : { A: null, B: null };
-              return { phase: 'building', halves: { ...halves, [data.half]: { scanned: data.scanned, total: data.total, pct: data.pct } } };
-            });
-          } else {
-            setProgress((prev) => {
-              const prevCandidates = prev && prev.phase === 'pairing' ? prev.candidates : [];
-              const candidates =
-                prevCandidates.length >= PREVIEW_CANDIDATES_CAP
-                  ? prevCandidates
-                  : prevCandidates.concat(data.newCandidates).slice(0, PREVIEW_CANDIDATES_CAP);
-              return {
-                phase: 'pairing',
-                explored: data.explored,
-                found: data.found,
-                pct: data.pct,
-                totalPairs: data.totalPairs,
-                candidates,
-              };
-            });
-          }
-          return;
-        }
-        if (data.type === 'refus') {
-          setRefusal({ motif: data.motif, vide: data.vide });
-          setProgress(null);
-          setStatus('refused');
-          return;
-        }
-        if (data.type === 'error') {
-          setProgress(null);
-          setStatus('error');
-          return;
-        }
-        const { type: _type, ...res } = data;
-        setResult(res);
-        setProgress(null);
-        setStatus('done');
-      };
-      worker.onerror = () => {
+      const candidatsRecus = new RecepteurCandidats(PREVIEW_CANDIDATES_CAP);
+      const echouer = (erreur: unknown) => {
         if (runIdRef.current !== myRunId) return;
+        console.error('Recherche de runes interrompue :', erreur);
+        cancel();
+        setProgress(null);
         setStatus('error');
       };
-      worker.postMessage(params);
+      worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
+        if (runIdRef.current !== myRunId) return; // message périmé d'une recherche déjà remplacée — voir commentaire ci-dessus
+        try {
+          const data = e.data;
+          if (data.type === 'candidats') {
+            candidatsRecus.recevoir([data.bloc]);
+            worker.postMessage({ credit: true });
+            return;
+          }
+          if (data.type === 'progress') {
+            if (data.phase === 'building') {
+              setProgress((prev) => {
+                const halves = prev && prev.phase === 'building' ? prev.halves : { A: null, B: null };
+                return { phase: 'building', halves: { ...halves, [data.half]: { scanned: data.scanned, total: data.total, pct: data.pct } } };
+              });
+            } else {
+              const candidates = candidatsRecus.apercuCourant();
+              setProgress(() => {
+                return {
+                  phase: 'pairing',
+                  explored: data.explored,
+                  found: data.found,
+                  pct: data.pct,
+                  totalPairs: data.totalPairs,
+                  candidates,
+                };
+              });
+            }
+            return;
+          }
+          if (data.type === 'refus') {
+            setRefusal({ motif: data.motif, vide: data.vide });
+            setProgress(null);
+            setStatus('refused');
+            return;
+          }
+          if (data.type === 'error') {
+            echouer(new Error(data.message));
+            return;
+          }
+          const { type: _type, nombre, ...res } = data;
+          setResult({ ...res, candidates: candidatsRecus.sceller(nombre) });
+          setProgress(null);
+          setStatus('done');
+        } catch (erreur) { echouer(erreur); }
+      };
+      worker.onerror = echouer;
+      worker.onmessageerror = echouer;
+      const demande: DemandeDeRecherche = { type: 'recherche', params, coeursPhysiques: coeursPhysiquesRef.current };
+      worker.postMessage(demande);
     },
     [cancel]
   );

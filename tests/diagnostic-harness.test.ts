@@ -33,7 +33,7 @@ import {
   resoudreSelectionCas,
 } from '../scripts/lib/diagnosticLot';
 import { CASES } from '../scripts/lib/perfShared';
-import { MAX_COLLECTED, SearchParams, SearchResult, bucketCapFor, combineParallelPairingResults } from '../src/lib/runeBuildOptim';
+import { MAX_COLLECTED, SearchParams, SearchResult, bucketCapFor } from '../src/lib/runeBuildOptim';
 
 function configSynthetique(surcharges: Partial<ConfigHarnais> = {}): ConfigHarnais {
   return {
@@ -84,15 +84,29 @@ export default async function testDiagnosticHarness() {
     bucketCapFor(120),
     'surcharger slotFilterCap déplace AUSSI bucketCap — deux paramètres bougent, un seul a été touché'
   );
+  // … et les préréglages emboîtés, chacun à son bucketCap dérivé.
+  const emboitesSans = sansOverride.parametres.find((p) => p.nom === 'préréglages emboîtés')!;
+  egal([emboitesSans.valeur, emboitesSans.origine, emboitesSans.derivéDe], ['aucun', 'dérivé', 'slotFilterCap'], 'slotFilterCap 40 : aucun préréglage emboîté, origine dérivée de slotFilterCap');
+  egal(
+    capSurcharge.parametres.find((p) => p.nom === 'préréglages emboîtés')!.valeur,
+    `Moyen (80, bucketCap ${bucketCapFor(80)}), Bas (40, bucketCap ${bucketCapFor(40)})`,
+    'slotFilterCap 120 : Moyen et Bas emboîtés, chacun à son bucketCap dérivé — affichés dans la table'
+  );
+  const bucketSurcharge = resoudreConfig(configSynthetique({ overrides: { slotFilterCap: 80, bucketCap: 500 } }));
+  egal(
+    bucketSurcharge.parametres.find((p) => p.nom === 'préréglages emboîtés')!.valeur,
+    `Bas (40, bucketCap ${bucketCapFor(40)})`,
+    'un override de bucketCap ne touche pas le bucketCap d’un préréglage emboîté'
+  );
 
   /* ── la table liste les paramètres EFFECTIFS, pas surchargeables ─
    *
    * ⚠️ Le principe dit « chaque paramètre EFFECTIF affiche son
    * origine » ; `resoudreConfig` implémentait « chaque paramètre
-   * SURCHARGEABLE ». Un run lancé avec `adaptiveTrancheWeighting` sans le
-   * savoir mesure une autre rétention, et l'aperçu n'en montrait rien. */
+   * SURCHARGEABLE ». Un run dont l'objectif change les stats retenues
+   * mesure une autre rétention, et l'aperçu n'en montrait rien. */
   const nomsParametres = sansOverride.parametres.map((p) => p.nom);
-  for (const attendu of ['objective', 'adaptiveTrancheWeighting', 'metric', 'recherche exhaustive', 'pool (runes)']) {
+  for (const attendu of ['objective', 'metric', 'recherche exhaustive', 'pool (runes)']) {
     ok(nomsParametres.includes(attendu), `le paramètre EFFECTIF « ${attendu} » figure dans l’aperçu`);
   }
   ok(
@@ -233,6 +247,7 @@ export default async function testDiagnosticHarness() {
   {
     const mem = arretDemiBuilds.demiBuilds!.memoire;
     ok(mem.A.heapUsed > 0 && mem.B.heapUsed > 0, 'chaque moitié rend son relevé mémoire de fin de fil');
+    ok(mem.A.arrayBuffers > 0 && mem.B.arrayBuffers > 0, 'le relevé existant couvre aussi les ArrayBuffer des colonnes avant transfert');
     ok(
       mem.A.heapTotal >= mem.A.heapUsed && mem.B.heapTotal >= mem.B.heapUsed,
       'heapTotal englobe heapUsed — le relevé vient bien de process.memoryUsage()'
@@ -371,17 +386,16 @@ export default async function testDiagnosticHarness() {
   /* ── jamais un « 0 candidat » nu ────────────────────────────── */
   const c = complet.completude!;
   ok(
-    c.complet ? c.motif == null : c.motif === 'maxMs' || c.motif === 'maxCollected' || c.motif === 'quotaTranche',
-    'la complétude porte un motif, et seulement TROIS sont possibles (quotaTranche : régime parallèle seulement)'
+    c.complet ? c.motif == null : c.motif === 'maxMs' || c.motif === 'maxCollected',
+    'la complétude porte un motif, et seulement DEUX sont possibles (le plafond est global dans les deux régimes)'
   );
   ok(
     !c.complet || c.explored === c.totalPairs || c.incoherence != null,
     'un run annoncé complet dont explored < totalPairs est SIGNALÉ, jamais laissé à déduire'
   );
 
-  // Le motif se déduit sans toucher au moteur — règle prouvée dans
-  // `combineParallelPairingResults` : le temps est testé AVANT le push, le
-  // quota APRÈS.
+  // Le motif se déduit sans toucher au moteur : le temps est testé AVANT la
+  // collecte, le plafond APRÈS (noyau et `pairBuckets`, séquentiel et parallèle).
   const paramsFictifs = { maxCollected: 100 } as SearchParams;
   const parQuota: SearchResult = { candidates: new Array(100).fill({ runeIds: [], stats: [], effTotal: 0 }), explored: 500, truncated: true, nearMissByCondition: [], globalNearMiss: null };
   const parTemps: SearchResult = { candidates: new Array(37).fill({ runeIds: [], stats: [], effTotal: 0 }), explored: 500, truncated: true, nearMissByCondition: [], globalNearMiss: null };
@@ -401,59 +415,6 @@ export default async function testDiagnosticHarness() {
     undefined,
     'sans motif FABRIQUÉ : `truncated` est faux, donc la déduction quota/temps ne s’applique pas — on ne sait pas pourquoi'
   );
-
-  // Le motif transmis par le résultat est LU, jamais redéduit : un résultat
-  // fusionné du régime parallèle qui porte « quota de tranche » avec moins de
-  // candidats que le plafond global ne devient pas « maxMs ».
-  const parQuotaTranche: SearchResult = { ...parTemps, motifTroncature: 'quotaTranche' };
-  egal(evaluerCompletude(parQuotaTranche, 1000, paramsFictifs).motif, 'quotaTranche', 'motif porté par le résultat ⇒ lu tel quel, la déduction ne s’applique pas');
-
-  /* ── le quota LOCAL d'un worker, et la composition avec le harnais ─
-   *
-   * ⚠️ **INVERSÉ.**
-   * Ce cas verrouillait la réfutation de deux revues
-   * externes (`docs/03-developpeur/optimizer/`), sur un
-   * scénario où `explored` égalait l'espace. Or une tranche qui remplit son
-   * quota s'ARRÊTE (`pairBuckets`, `break outer`) : en général, le reste de
-   * sa tranche n'est jamais visité, et la recherche était annoncée complète
-   * à tort — le « INCOHÉRENT » du cas réel ATQ 3000 / DC 220 de b4. Les deux
-   * revues avaient raison sur la conclusion (« la recherche n'est pas
-   * complète ») ; la défense avait raison sur le motif (ce n'est pas le
-   * temps). Le motif « quota de tranche » est maintenant transmis par
-   * `combineParallelPairingResults`, et `evaluerCompletude` le lit.
-   *
-   * ⚠️ Ce qui reste épinglé ici, c'est la **COMPOSITION** : le résultat
-   * fusionné, passé à `evaluerCompletude`, ne fabrique AUCUN motif `maxMs`. */
-  {
-    const PAR_WORKER = 25_000;
-    const GLOBAL = 100_000;
-    const candidats = (n: number) => new Array(n).fill({ runeIds: [], stats: [], effTotal: 0 });
-    const parWorker: SearchResult[] = [
-      // Le worker « riche » : quota LOCAL rempli PILE — `pairBuckets` sort
-      // toujours `truncated: true` dans ce cas, et s'arrête.
-      { candidates: candidats(PAR_WORKER), explored: 500_000, truncated: true, nearMissByCondition: [], globalNearMiss: null },
-      { candidates: candidats(5_000), explored: 400_000, truncated: false, nearMissByCondition: [], globalNearMiss: null },
-      { candidates: candidats(5_000), explored: 400_000, truncated: false, nearMissByCondition: [], globalNearMiss: null },
-      { candidates: candidats(5_000), explored: 400_000, truncated: false, nearMissByCondition: [], globalNearMiss: null },
-    ];
-    // L'espace réel : 2 000 000 de paires, dont 300 000 de la tranche riche
-    // jamais visitées.
-    const fusionne = combineParallelPairingResults(parWorker, PAR_WORKER, GLOBAL, 2_000_000);
-    egal(fusionne.candidates.length, 40_000, 'le total (40 000) reste très en-deçà du plafond GLOBAL (100 000)');
-    egal(fusionne.truncated, true, 'un worker arrêté sur son quota LOCAL avec des paires non visitées rend la recherche tronquée');
-
-    const verdict = evaluerCompletude(fusionne, 2_000_000, { maxCollected: GLOBAL } as SearchParams);
-    ok(!verdict.complet, 'et le harnais la déclare TRONQUÉE');
-    egal(verdict.motif, 'quotaTranche', 'avec le motif transmis : quota de tranche — ni maxMs (le temps), ni maxCollected (le plafond global)');
-    ok(verdict.incoherence == null, 'et plus aucune incohérence : le résultat le dit lui-même');
-
-    // Le quota tombe sur la dernière paire de la tranche : rien n'est laissé.
-    const derniere = combineParallelPairingResults(parWorker, PAR_WORKER, GLOBAL, 1_700_000);
-    const verdictDerniere = evaluerCompletude(derniere, 1_700_000, { maxCollected: GLOBAL } as SearchParams);
-    ok(!derniere.truncated && verdictDerniere.complet, 'quota atteint sur la dernière paire : explored = totalPairs, recherche COMPLÈTE');
-    egal(verdictDerniere.motif, undefined, 'AUCUN motif n’est fabriqué sur une recherche complète');
-    ok(verdictDerniere.incoherence == null, 'et aucune incohérence : explored couvre tout l’espace');
-  }
 
   /* ── suivi d'une rune, et ce qu'une disparition SIGNIFIE ────── */
   const pool = randomPool(mulberry32(7), 5, SETS_JOKER);

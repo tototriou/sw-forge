@@ -143,6 +143,14 @@ export interface OptimizerRecipe {
   compterAurasResPre?: boolean;
   metric: RuneMetric;
   slotFilterPreset: SlotFilterPresetKey;
+  /**
+   * « Prioriser les stats les plus difficiles » — ⚠️ SANS EFFET sur la
+   * recherche : le moteur n'a plus de répartition adaptative
+   * (docs/04-decisions/adr/retention-a-parts-egales.md), et le CLI
+   * ne le relaie pas (`recipeToSearchParams`). Une recette qui le porte
+   * s'importe sans erreur ; un booléen reste exigé s'il est présent. Gardé
+   * tant que l'écran l'exporte et le relit (interrupteur encore affiché).
+   */
   adaptiveTrancheWeighting: boolean;
   exhaustiveSearch: boolean;
   /**

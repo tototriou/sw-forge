@@ -1,38 +1,19 @@
-// Exécute une recherche JUSQU'AU BOUT, avec la MÊME fidélité que l'app réelle
-// (runeBuildOptim.worker.ts) et scripts/perf-battery.ts : prepareSearch →
-// buildBuckets ×2 → pairBuckets.
-//
-// ⚠️ Cette factorisation existe parce qu'un script qui pilote `pairBuckets`
-// sans reproduire le chemin de production peut n'explorer qu'une fraction
-// dérisoire de l'espace réel (voir le skill `algo-verify`, section
-// « Fidélité des scripts diagnostics »). Le moteur n'a plus de budget de
-// paires à escalader, mais la raison d'être de ce module tient toujours :
-// c'est ici, et pas dans chaque script, que vit la séquence fidèle au chemin
-// de prod.
-//
-// ⚠️ Écart de fidélité CONNU depuis l'extension de la parallélisation de
-// l'appariement au mode normal (voir docs/05-feuille-de-route/, pistes de l'Optimizer, point 9) : ce script reste
-// TOUJOURS séquentiel (Node n'a pas de Web Worker) — la vraie app peut
-// paralléliser l'appariement (4 workers) dès que `totalPairs ≥ 100M`, quel
-// que soit le mode. Sur une recherche NORMALE (tronquée) assez grande, le
-// séquentiel ici peut donc trouver MOINS de candidats que ce que l'écran a
-// réellement affiché pour la MÊME recette (le parallèle bénéficie d'un
-// débit ×N dans la même fenêtre de temps) — jamais l'inverse (le
-// parallèle ne perd rien, vérifié par différentiel). Sans conséquence en
-// mode exhaustif (`exhaustiveSearch`) : les deux chemins convergent vers le
-// même ensemble complet, juste à des vitesses différentes.
-//
-// Usage : `runSearchToCompletion(params)` — synchrone jusqu'au bout, pas de
-// pilotage pas à pas (pas besoin de rendre la main à une UI dans un script).
+// Recherche complète du CLI : préparation, moitiés typées dans leurs Workers,
+// régime de l'écran, puis son lanceur compact et ses crédits. Les objets sont
+// matérialisés après le scellement, pour le classement et la résolution.
+// Usage : await runSearchToCompletion(params).
+// Voir docs/03-developpeur/optimizer/moteur/pipeline.md.
 
 import {
   SearchParams,
   SearchResult,
   prepareSearch,
-  buildBuckets,
-  pairBuckets,
 } from '../../src/lib/runeBuildOptim';
-import { drain } from './drain';
+import { compterPaires, verifierContrat } from '../../src/lib/appariementRapide';
+import { nombreDeTravailleurs, regimeAppariement } from '../../src/workers/parallelPairing';
+import { availableParallelism } from 'os';
+import { construireMoitiesEnParallele, ensureBuildHalfBundle } from './buildHalvesNode';
+import { apparierNode, assurerBundleAppariementRapide } from './appariementRapideNode';
 
 export interface TimedSearchResult extends SearchResult {
   prepMs: number;
@@ -41,7 +22,8 @@ export interface TimedSearchResult extends SearchResult {
   totalMs: number;
 }
 
-export function runSearchToCompletion(params: SearchParams): TimedSearchResult {
+export async function runSearchToCompletion(params: SearchParams): Promise<TimedSearchResult> {
+  const [bundleMoities, cheminBundle] = await Promise.all([ensureBuildHalfBundle(), assurerBundleAppariementRapide()]);
   const t0 = performance.now();
   const prepared = prepareSearch(params);
   const tPrepared = performance.now();
@@ -52,19 +34,13 @@ export function runSearchToCompletion(params: SearchParams): TimedSearchResult {
     };
   }
 
-  const bucketsA = drain(
-    buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA,
-      undefined, params.adaptiveTrancheWeighting, params.combosOrderMode
-    )
-  );
-  const bucketsB = drain(
-    buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB,
-      undefined, params.adaptiveTrancheWeighting, params.combosOrderMode
-    )
-  );
+  const { bucketsA, bucketsB } = await construireMoitiesEnParallele(prepared, params, bundleMoities);
   const tBuild = performance.now();
 
-  const result = drain(pairBuckets(prepared, bucketsA, bucketsB));
+  const totalPaires = compterPaires(prepared, bucketsA, bucketsB);
+  const { resultat: result } = await apparierNode({ params, prepared, bucketsA, bucketsB, totalPaires,
+    regime: regimeAppariement(totalPaires, verifierContrat(prepared, bucketsA, bucketsB)),
+    travailleurs: nombreDeTravailleurs(availableParallelism(), null), startedAt: prepared.startedAt, cheminBundle });
   const tEnd = performance.now();
 
   return {

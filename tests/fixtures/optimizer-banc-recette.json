@@ -1,0 +1,30 @@
+{
+  "_lisezmoi": "Recette synthétique du banc d'affichage : Cassie, Rapide sans condition, sur compte-banc.json. Aucun compte réel. Les runes de slots 2, 4, 5 et 6 forment Rapide ; le slot 1 Intangible et le slot 3 complètent les six emplacements. L'inventaire contient aussi des alternatives pour afficher plusieurs cartes.",
+  "version": 1,
+  "monsterCom2usId": 19315,
+  "monsterName": "Cassie",
+  "requirement": { "sets": ["swift"], "minStats": {} },
+  "objective": "efficience",
+  "damageSetup": {
+    "setsAuraExternes": [], "skillCom2usId": null,
+    "enemyDef": 1500, "enemyHp": 40000, "enemyHpPct": 100,
+    "ownHpPct": 100, "livingAlliesPct": 100, "aliveEnemies": 1,
+    "sacrificeReservePct": 0, "enemyAtk": 1000, "enemySpd": 100,
+    "enemyHpNotDestroyed": false,
+    "atkBuff": false, "defBuff": false, "spdBuff": false,
+    "defBreak": false, "defBreakParLeSort": false, "brand": false,
+    "critMode": "crit", "summonerSkills": "normal", "passifsOffensifs": {}
+  },
+  "metric": "eff",
+  "slotFilterPreset": "bas",
+  "adaptiveTrancheWeighting": false,
+  "exhaustiveSearch": false,
+  "excludeUsedRunes": false,
+  "excludeUsedScope": "box",
+  "excludedSelectors": [],
+  "ignoreArtifacts": false,
+  "artifactMainByKind": { "element": "libre", "archetype": "libre" },
+  "relicMainChoice": "libre",
+  "relicUniqueChoice": "libre",
+  "relicMinUpgrade": 0
+}

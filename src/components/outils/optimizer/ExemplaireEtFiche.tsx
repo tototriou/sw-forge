@@ -105,7 +105,7 @@ export default function ExemplaireEtFiche({ zoneDRef, sourceOptions, matchesVali
           bord à l'autre de sa rangée la plus large, fiche repliée (décision
           de l'utilisateur), jamais au-delà. `max-w-full` laisse la fiche se
           réduire comme avant quand la place manque. */}
-      <div className={`mx-auto max-w-full ${largeurFiche == null ? 'w-fit' : ''}`} style={largeurFiche == null ? undefined : { width: largeurFiche }}>
+      <div data-fiche-optimizer className={`mx-auto max-w-full ${largeurFiche == null ? 'w-fit' : ''}`} style={largeurFiche == null ? undefined : { width: largeurFiche }}>
         {validatedBadge}
         <MonsterGear
           gear={selected?.gear ?? EMPTY_GEAR}

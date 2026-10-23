@@ -52,6 +52,8 @@ export function testRenduOptimizerReglagesAvancesContenu() {
   const MONSTRE = { selectedId: CHOISI, comboSets: ['violent'] };
   ok(!rendreOptimizer(AVEC_MONSTRE).includes(ANCRE), 'bureau : colonne « Aura, exclusion, avancés » fermée par défaut, aucun réglage avancé monté');
   const telephone = options(MONSTRE);
+  const aidesFixes = [...telephone.matchAll(/<div class="flex-none"><div class="relative"><button\b[^>]*aria-label="([^"]+)"/g)].map((m) => decoder(m[1]));
+  ok(aidesFixes.includes(COMPTER), 'panneau « Options » : l’aide des auras garde sa largeur, seul le libellé peut rétrécir');
   egal(noms(telephone), [EPUISEMENT, DIAGNOSTIC, VERIFIER, COMPTER], 'panneau « Options » : les interrupteurs, l’interrupteur des auras en dernier');
   const sansFile = options({ ...MONSTRE, optimiserArtefacts: false });
   egal(noms(sansFile), [EPUISEMENT, DIAGNOSTIC, COMPTER],

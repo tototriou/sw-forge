@@ -50,7 +50,9 @@ function LibelleEtAide({ bureau, etire = false, libelle, aide, interrupteur }: {
     <>
       <div className={etire ? 'flex min-w-0 flex-1 items-center gap-1.5' : 'flex items-center gap-1.5'}>
         <span className={etire ? 'min-w-0 text-[11.5px] text-ink-dim' : 'text-[11.5px] text-ink-dim'}>{libelle}</span>
-        {aide}
+        {/* Le panneau autorise ses enfants flex à rétrécir : seule la légende
+            cède de la place, jamais l'enveloppe du bouton d'aide de 28 px. */}
+        <div className="flex-none">{aide}</div>
       </div>
       {etire ? <span className="flex-none">{interrupteur}</span> : interrupteur}
     </>

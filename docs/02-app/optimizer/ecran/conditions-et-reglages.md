@@ -225,6 +225,8 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
      apparaîtrait avec la saisie d'une autre carte ne se retrouverait pas.
      Contenu commun aux deux formats (`ReglagesAvancesContenu`) : colonne
      « Aura, exclusion, avancés » au bureau, panneau « Options » au doigt.
+     Dans le panneau, le libellé passe à la ligne en laissant à son aide
+     sa largeur entière : l'enveloppe du bouton ne rétrécit pas sous lui.
      Fermés, ni l'une ni l'autre ne
      montre rien ; « toujours visible » porte sur leur contenu. Ajouter
      Accuracy ou Tolerance aux auras externes, ou le choisir comme set

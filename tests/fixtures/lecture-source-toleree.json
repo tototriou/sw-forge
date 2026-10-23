@@ -7,6 +7,13 @@
   ],
   "entrees": [
     {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/lib/optimizerColonnes",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Motif de sélection de l’écran Optimizer quand ses seuils de conteneur changent ; aucune lecture de source."
+    },
+    {
       "fichier": "tests/artefact-file.test.ts",
       "cible": "src/App.tsx",
       "occurrences": 1,

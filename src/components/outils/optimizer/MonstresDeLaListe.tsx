@@ -138,7 +138,7 @@ export default function MonstresDeLaListe({ activeList, activeMembers, ajoutList
             return (
               // Chaque monstre garde sa carte, au bureau aussi (décision de
               // l'utilisateur : plus lisible que des lignes sous un trait).
-              <div key={key} className="flex flex-wrap items-center gap-x-2 rounded-lg border border-border-soft bg-panel/60 px-2 py-1.5">
+              <div key={key} data-membre-optimizer={resolved?.monster.com2usId} className="flex flex-wrap items-center gap-x-2 rounded-lg border border-border-soft bg-panel/60 px-2 py-1.5">
                 <ZoneCliquable
                   imbrique
                   disabled={!resolved}

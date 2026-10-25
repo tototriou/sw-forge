@@ -16,7 +16,7 @@ export function demandeClassementTest(partiel: Partial<SearchParams> = {}, optim
     signature: 'fixture', idInventaire: 0, idEspece: null,
     resolution: optimiser ? { fiche, artifactParams: { porteur: { element: 'fire', archetype: 'attack' }, inventaire: [], equipes: [], principaleParSorte: {}, lignesVerrouillees: [] },
       regime: 'aucun', degats: null, exclusive, requirement: params.requirement, relicContext: params.relicContext } : null });
-  const vue: VueClassement = { tri: params.objective ?? 'efficience', metric: params.metric, page: 1, adapterArtefactsAuTri: true, toutVerifier: false };
+  const vue: VueClassement = { tri: params.objective ?? 'efficience', metric: params.metric, page: 1, toutVerifier: false };
   return { params, photo, vue };
 }
 
@@ -53,7 +53,7 @@ export function fixtureClassementCombat(objective: 'degats_reels' | 'ehp') {
   const photo = contexteResultat({ params, fiche, realDamage, damageSetup: setup, exclusive, signature: 'combat', idInventaire: 1, idEspece: 1,
     resolution: { fiche, artifactParams: { porteur: { element: 'fire', archetype: 'attack' }, inventaire, equipes: params.artifacts, principaleParSorte: {}, lignesVerrouillees: [] },
       regime: objective, degats: realDamage, exclusive, requirement: params.requirement, relicContext } });
-  const vue: VueClassement = { tri: objective, metric: 'eff', page: 1, adapterArtefactsAuTri: true, toutVerifier: true };
+  const vue: VueClassement = { tri: objective, metric: 'eff', page: 1, toutVerifier: true };
   return { params, photo, vue, candidats };
 }
 

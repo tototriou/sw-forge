@@ -165,7 +165,6 @@ function ResultatsGabarit({ ctx, mode }: { ctx: ContexteGabarits; mode: AttenteR
   const [tri, setTri] = useState<OptimizerSortKey>(ctx.optimizer.sortBy);
   const [page, setPage] = useState(1);
   const [brouillon, setBrouillon] = useState<string | null>(null);
-  const [adapter, setAdapter] = useState(ctx.optimizer.adapterArtefactsAuTri);
   const { candidats, runeById } = useMemo(() => buildsDuCompte(ctx, mode === 'vingt' ? 20 : 0), [ctx, mode]);
   const exemplaire = exemplaireDuCompte(ctx);
   if (mode === 'sans-monstre' || mode === 'sans-recherche') return <ResultatsBureau attente={mode} />;
@@ -174,7 +173,6 @@ function ResultatsGabarit({ ctx, mode }: { ctx: ContexteGabarits; mode: AttenteR
   return (
     <ResultatsBureau attente={null}>
       <EnteteResultats result={result} compteConfirmes={{ confirmees, nonVerifies: 0, pages: 3, aucune: confirmees === 0 }} resoudreEquipement={null}
-        optimiserArtefacts={ctx.optimizer.optimiserArtefacts} adapterArtefactsAuTri={adapter} setAdapterArtefactsAuTri={setAdapter}
         sortBy={tri} setSortBy={setTri} setResultsPage={setPage} realDamage={null} fileArtefacts={{ enAttente: 0 } as UseArtifactOptimQueue}
         compteAffiche={{ compte: confirmees, ecartes: 0, raison: null }} bureau />
       <DiagnosticsSansResultat bureau result={result}
@@ -242,7 +240,7 @@ export const GABARITS_DROITE: Gabarit[] = [
     telephone: 'Les composants des résultats repris tels quels ; aucun modifié.',
     changements: [
       'Présents dès le départ, dans leur cadre : avant la première recherche, une place d\'attente (≈ 160 px, libellés nouveaux à valider) tient la place des cartes.',
-      'Le reste comme aujourd\'hui : en-tête, tri, « Adapter les artéfacts et reliques au tri », cartes de 328 px au moins, 20 par page, pagination.',
+      'Le reste comme aujourd\'hui : en-tête, tri, cartes de 328 px au moins, 20 par page, pagination.',
     ],
     etats: [
       { id: 'sans-monstre', nom: 'Attente : aucun monstre', rendu: enveloppe((ctx) => <ResultatsGabarit ctx={ctx} mode="sans-monstre" />, LARGEUR_RESULTATS_MIN) },

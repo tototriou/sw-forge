@@ -55,12 +55,23 @@ export function selecteurValide(v: unknown): v is ExclusionSelector {
     && typeof v.slotIndex === 'number' && Number.isInteger(v.slotIndex) && v.slotIndex >= 0 && v.slotIndex <= 2;
 }
 
+// « Adapter les artéfacts et reliques au tri » n'existe plus : l'équipement suit
+// l'objectif de la recherche. Une mémoire historique le porte encore.
+const REGLAGES_RETIRES = ['adapterArtefactsAuTri'] as const;
+function sansReglagesRetires(c: CriteresOptimizer): CriteresOptimizer {
+  const copie: Record<string, unknown> = { ...c };
+  for (const k of REGLAGES_RETIRES) delete copie[k];
+  return copie as unknown as CriteresOptimizer;
+}
+
 function criteresValides(v: unknown): v is CriteresOptimizer {
   if (!objet(v)) return false;
   // Tous les champs personnels restent obligatoires, y compris ceux ignorés par une recette.
   const base = baseCompleteCriteres(undefined);
   if (Object.keys(base).some((k) => !(k in v))) return false;
-  if (['excludeBase', 'optimiserArtefacts', 'adapterArtefactsAuTri', 'compterAurasResPre'].some((k) => typeof v[k] !== 'boolean')) return false;
+  if (['excludeBase', 'optimiserArtefacts', 'compterAurasResPre'].some((k) => typeof v[k] !== 'boolean')) return false;
+  // Réglage retiré : toléré seulement sous sa forme historique, puis ôté à la lecture.
+  if (REGLAGES_RETIRES.some((k) => k in v && typeof v[k] !== 'boolean')) return false;
   if (typeof v.critereArtefacts !== 'string' || !['brut', 'reel'].includes(v.critereArtefacts)) return false;
   if (typeof v.sortBy !== 'string' || !['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc', 'efficience', 'ehp', 'vitesse', 'degats_reels'].includes(v.sortBy)) return false;
   if (!objet(v.damageSetup) || !objet(v.maxStats) || !objet(v.mainStatsBySlot) || !objet(v.lockedRunes) || !Array.isArray(v.lignesVerrouillees)) return false;
@@ -158,7 +169,7 @@ export function lireMembresOptimizer(brut: string | null): DonneesMembresOptimiz
       || paire[0] !== cleMemoireMembre(m.listId, m.selector) || memories.has(paire[0])) {
       rejets.memories.push(paire); rapport.push(`Mémoire ${index + 1} malformée ou dupliquée : ignorée.`); continue;
     }
-    const criteres = { ...m.criteres, damageSetup: normaliserCompetencesInvocateur(m.criteres.damageSetup) };
+    const criteres = { ...sansReglagesRetires(m.criteres), damageSetup: normaliserCompetencesInvocateur(m.criteres.damageSetup) };
     memories.set(paire[0], { listId: m.listId, selector: m.selector, com2usId: m.com2usId, criteres });
   }
   const equipes = validerEquipesOptimizer(v.teams);

@@ -13,7 +13,7 @@ type ChampDonnee = {
 // à prendre une décision, même s'il n'entre pas dans la session sur disque.
 export const CLASSEMENT_CHAMPS_OPTIMIZER = {
   comboSets: 'personnel', minStats: 'personnel', maxStats: 'personnel',
-  excludeBase: 'personnel', optimiserArtefacts: 'personnel', adapterArtefactsAuTri: 'personnel',
+  excludeBase: 'personnel', optimiserArtefacts: 'personnel',
   artifactMainByKind: 'personnel', relicMainChoice: 'personnel', relicUniqueChoice: 'personnel',
   lignesVerrouillees: 'personnel', mainStatsBySlot: 'personnel', lockedRunes: 'personnel',
   objective: 'personnel', damageSetup: 'personnel', sortBy: 'personnel',
@@ -136,7 +136,7 @@ export function relicMainChoiceApresChangementExemplaire(
 export function baseCompleteCriteres(exemplaire: Pick<GearSet, 'relic'> | undefined): CriteresOptimizer {
   return {
     comboSets: [], minStats: {}, maxStats: {}, excludeBase: true,
-    optimiserArtefacts: true, adapterArtefactsAuTri: true, artifactMainByKind: {},
+    optimiserArtefacts: true, artifactMainByKind: {},
     relicMainChoice: defaultRelicMainChoice(exemplaire?.relic), relicUniqueChoice: 'libre',
     lignesVerrouillees: [], mainStatsBySlot: {}, lockedRunes: {}, objective: 'efficience',
     damageSetup: copie(DEFAULT_DAMAGE_SETUP), sortBy: 'efficience',

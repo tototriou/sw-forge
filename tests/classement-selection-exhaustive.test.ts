@@ -34,7 +34,7 @@ function banc(nombre: number, doublons = false, apercu = false) {
   // La copie doublonnée partage exactement ses pièces ; aucun identifiant ne manque au pool.
   if (doublons) pool.splice(-6);
   const photo = contexteResultat({ ...f.photo, params: { ...f.params, pool, objective: 'efficience' } });
-  const vue: VueClassement = { ...f.vue, tri: 'efficience', adapterArtefactsAuTri: false };
+  const vue: VueClassement = { ...f.vue, tri: 'efficience' };
   const corps = new CorpsClassement({ publier: () => {}, resoudre: () => {}, incident: () => {} });
   corps.ouvrir(photo, 1, vue, 1);
   const colonnes = creerColonnesCandidats(); candidats.forEach(c => ajouterObjetCandidat(colonnes, c));

@@ -157,7 +157,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
       if (r && !fiche) throw new Error('Résultat du banc sans fiche sélectionnée');
       rechercheForcee = r ? rechercheClasseeTest(r, { fiche: fiche!, pool: runesActuelles, optimiser: etat.optimiserArtefacts,
         requirement: { sets: etat.comboSets, minStats: etat.minStats }, setup: etat.damageSetup,
-        vue: { tri: etat.sortBy, metric: 'eff', page: etat.resultsPage, adapterArtefactsAuTri: etat.adapterArtefactsAuTri, toutVerifier: etat.verifierToutesLesCombinaisons },
+        vue: { tri: etat.sortBy, metric: 'eff', page: etat.resultsPage, toutVerifier: etat.verifierToutesLesCombinaisons },
       }, true) : null;
       rafraichir();
     } };
@@ -333,7 +333,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   } else if (nom === 'saisies') {
     const valeurs = {
       comboSets: ['violent'], minStats: { spd: 245 }, maxStats: { res: 80 }, excludeBase: false,
-      optimiserArtefacts: false, adapterArtefactsAuTri: false, artifactMainByKind: { element: 100 },
+      optimiserArtefacts: false, artifactMainByKind: { element: 100 },
       relicMainChoice: 101, relicUniqueChoice: 1, lignesVerrouillees: [{ code: 206, min: 5 }],
       mainStatsBySlot: { 2: [8] }, lockedRunes: { 1: 888 }, objective: 'vitesse',
       damageSetup: { ...baseCompleteCriteres(undefined).damageSetup, enemyDef: 1234 }, sortBy: 'hp',

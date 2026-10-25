@@ -153,8 +153,7 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
           la recherche de runes, seulement jusqu'où la file vérifie.
           MASQUÉ sans optimisation d'artéfacts : sans file, rien n'est
           vérifié, et une saisie sans effet est pire qu'une saisie
-          absente (même règle que « Adapter les artéfacts et reliques
-          au tri »). L'interrupteur qui le masque vit dans une autre
+          absente. L'interrupteur qui le masque vit dans une autre
           carte : rien ne bouge sous le clic. */}
       {optimiserArtefacts && (
         <div className="flex items-center justify-between gap-2 py-3 last:pb-0">

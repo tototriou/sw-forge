@@ -141,7 +141,7 @@ const recherche = (search: Record<string, unknown>, autres: Record<string, unkno
   rendreOptimizer((r: Reel) => ({ ...AVEC_MONSTRE, ...autres, search: { ...r.search, ...rechercheClasseeTest(search, {
     fiche: BOX[0].gear!, pool: BOX[0].gear!.runes, optimiser: autres.optimiserArtefacts !== false,
     requirement: { sets: r.comboSets, minStats: (autres.minStats ?? r.minStats) as BuildRequirement['minStats'] },
-    vue: { tri: r.sortBy, metric: 'eff', page: Number(autres.resultsPage ?? 1), adapterArtefactsAuTri: true, toutVerifier: false },
+    vue: { tri: r.sortBy, metric: 'eff', page: Number(autres.resultsPage ?? 1), toutVerifier: false },
   }) } }));
 const selecteurTri = (html: string) => /<select\b[\s\S]*?Trier par /.test(html);
 
@@ -173,8 +173,8 @@ export function testRenduOptimizerResultatsEntete() {
   ok(tUn.includes('0 combinaison(s) confirmée(s)') && !tUn.includes("pour l'instant") && !tUn.includes('Aucune combinaison'),
     'recherche finie, file active, rien de vérifié : « 0 combinaison(s) confirmée(s) », jamais « Aucune »');
   ok(!!bouton(un, 'Combinaisons confirmées'), 'file active : l’infobulle « Combinaisons confirmées » à côté de l’en-tête');
-  ok(interrupteurs(un).some((x) => x.nom === 'Adapter les artéfacts et reliques au tri' && x.coche) && tUn.includes('Adapter les artéfacts et reliques au tri'),
-    '« Adapter les artéfacts et reliques au tri », affichant son état');
+  ok(!interrupteurs(un).some((x) => x.nom === 'Adapter les artéfacts et reliques au tri') && !tUn.includes('Adapter les artéfacts'),
+    'réglage retiré : aucun « Adapter les artéfacts et reliques au tri », le tri ne résout aucun équipement');
   ok(selecteurTri(un) && tUn.includes('Trier par ATQ'), '« Trier par » proposé');
   ok(!tUn.includes('Astuce : active le diagnostic approfondi'), 'des résultats : aucun diagnostic de 0 résultat');
 
@@ -200,9 +200,6 @@ export function testRenduOptimizerLigneFile() {
       result={resultat(3) as unknown as SearchResult}
       compteConfirmes={{ confirmees: 1, nonVerifies: 2, pages: 1, aucune: false }}
       resoudreEquipement={avecFile ? ((() => null) as unknown as EnteteResultatsProps['resoudreEquipement']) : null}
-      optimiserArtefacts={avecFile}
-      adapterArtefactsAuTri
-      setAdapterArtefactsAuTri={() => {}}
       sortBy="atk"
       setSortBy={() => {}}
       setResultsPage={() => {}}

@@ -58,7 +58,7 @@ export function classerCommeLEcran(e: {
   const toutVerifier = e.toutResoudre || toutVerifierDeLaRecette(recipe);
   const debut = performance.now();
   const publication = classerEnLocal(photo, e.candidates, {
-    tri: recipe.objective, metric: recipe.metric, page: 1, pageImprimee: true, adapterArtefactsAuTri: false, toutVerifier,
+    tri: recipe.objective, metric: recipe.metric, page: 1, pageImprimee: true, toutVerifier,
   });
   const ms = performance.now() - debut;
   const optionsBase = optionsDuContexte(photo, null, recipe.metric);

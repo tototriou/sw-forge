@@ -306,7 +306,6 @@ export interface VueClassement {
   tri: StatKey | Objective;
   metric: OptimMetric;
   page: number;
-  adapterArtefactsAuTri: boolean;
   toutVerifier: boolean;
 }
 export interface VersionsClassement {
@@ -405,7 +404,7 @@ export class CorpsClassement {
   ouvrir(contexte: ContexteResultat, idRecherche: number, vue: VueClassement, idDemande: number): void {
     if (contexte.versionSchema !== 1 || !Number.isSafeInteger(idRecherche) || idRecherche <= this.versions.idRecherche) throw new Error('Génération de classement invalide');
     const signature = JSON.stringify([contexte.idInventaire, contexte.idEspece, contexte.signature, contexte.recherche.relicContext?.empreinte,
-      resolutionDuContexte(contexte, vue.tri, vue.adapterArtefactsAuTri)?.regime]);
+      resolutionDuContexte(contexte)?.regime]);
     if (signature !== this.signature) { this.cache = new CacheResolutionCompact(); this.generationCache = compteurSuivant(this.generationCache); }
     this.signature = signature;
     this.abandonnerReponses();
@@ -478,9 +477,9 @@ export class CorpsClassement {
     if (!this.contexte || idVue <= this.versions.idVue) return;
     if (!Number.isSafeInteger(idVue) || !Number.isSafeInteger(idDemande) || !Number.isSafeInteger(vue.page) || vue.page < 1) throw new Error('Vue de classement invalide');
     const avant = this.vue;
-    const entrees = resolutionDuContexte(this.contexte, vue.tri, vue.adapterArtefactsAuTri);
-    if (entrees?.regime !== this.entrees?.regime || (!avant && entrees)) {
-      if (avant) { this.cache.clear(); this.generationCache = compteurSuivant(this.generationCache); }
+    // Le régime suit l'objectif photographié : seule l'ouverture le pose.
+    const entrees = avant ? this.entrees : resolutionDuContexte(this.contexte);
+    if (!avant && entrees) {
       this.entrees = entrees; this.versions.idContexteResolution = compteurSuivant(this.versions.idContexteResolution);
       this.signature = JSON.stringify([this.contexte.idInventaire, this.contexte.idEspece, this.contexte.signature, this.contexte.recherche.relicContext?.empreinte, entrees?.regime]);
     }
@@ -488,7 +487,7 @@ export class CorpsClassement {
     this.sourceEnVol = null;
     this.vue = { ...vue }; this.versions.idVue = idVue; this.versions.idDemande = idDemande;
     if (!vue.toutVerifier) this.fileExhaustive = null;
-    if (!avant || avant.tri !== vue.tri || avant.metric !== vue.metric || entrees?.regime !== resolutionDuContexte(this.contexte, avant.tri, avant.adapterArtefactsAuTri)?.regime) this.trierBase();
+    if (!avant || avant.tri !== vue.tri || avant.metric !== vue.metric) this.trierBase();
     this.sale = true;
   }
   private trierBase(): void {

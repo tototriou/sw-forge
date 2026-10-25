@@ -84,7 +84,7 @@ export function testVoieDeLaFile() {
   const hook = readFileSync('src/hooks/useArtifactOptimQueue.ts', 'utf8');
   ok(!/requestIdleCallback|new Worker|CacheResolutionJournalise/.test(hook),
     'aucune voie de calcul ou cache n’est conservé sur le fil de l’écran');
-  ok(hook.includes('changerVue({ tri, metric, page, adapterArtefactsAuTri, toutVerifier })'),
+  ok(hook.includes('changerVue({ tri, metric, page, toutVerifier })'),
     'priorité de page et cible de fond sont déléguées au propriétaire par la vue');
   ok(!hook.includes('terminate('), 'démonter l’adaptateur ne termine pas le propriétaire');
 }

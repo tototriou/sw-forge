@@ -62,9 +62,10 @@ export function contexteResultat(e: {
     realDamage: e.realDamage, damageSetup: e.damageSetup, exclusive: e.exclusive });
 }
 
-export function resolutionDuContexte(c: ContexteResultat, tri: Parameters<typeof regimeArtefacts>[0], adapter: boolean): EntreesResolutionSerialisables | null {
+/** L'équipement se résout pour l'objectif lancé, jamais pour le tri affiché. */
+export function resolutionDuContexte(c: ContexteResultat): EntreesResolutionSerialisables | null {
   if (!c.resolution) return null;
-  const regime = regimeEquipementDe(regimeArtefacts(adapter ? tri : c.recherche.objective ?? 'efficience'), c.resolution.degats !== null);
+  const regime = regimeEquipementDe(regimeArtefacts(c.recherche.objective ?? 'efficience'), c.resolution.degats !== null);
   return { ...c.resolution, regime };
 }
 

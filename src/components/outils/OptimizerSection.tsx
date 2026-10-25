@@ -399,8 +399,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     setExcludeBase,
     optimiserArtefacts,
     setOptimiserArtefacts,
-    adapterArtefactsAuTri,
-    setAdapterArtefactsAuTri,
     artifactMainByKind,
     setArtifactMainByKind,
     relicMainChoice,
@@ -1373,15 +1371,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
    * ne passe et la recherche refuse de partir.
    */
   /**
-   * Le critère sur lequel la paire d’artéfacts est optimisée.
-   *
-   * ⚠️ **Le TRI si l’utilisateur le demande, l’OBJECTIF sinon.** Le tri est
-   * une VUE, l’optimisation une DÉCISION : les coupler d’office déplaçait la
-   * paire dès qu’on changeait de tri pour explorer. Voir
-   * `adapterArtefactsAuTri`.
+   * La paire d’artéfacts et la relique se choisissent sur l’OBJECTIF de la
+   * recherche, jamais sur le tri affiché : le tri est une vue, il ne résout
+   * aucun équipement (pour un autre critère, on relance la recherche).
    */
-  const critereArtefactsPaire = adapterArtefactsAuTri ? sortBy : objective;
-  const regimePaire = regimeArtefacts(critereArtefactsPaire);
+  const regimePaire = regimeArtefacts(objective);
   /**
    * Le régime EFFECTIF de l'équipement complet — paire ET relique (le bouton
    * gouverne les deux, aucun interrupteur parallèle) : sort
@@ -1448,10 +1442,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     // `evaluerPourRegime` centralise ce contrat, partagé avec le site « au
     // fil de l'eau » plus bas et le CLI (`recipeToSearchParams.ts`).
     //
-    // ⚠️ **Le RÉGIME suit `objective`, jamais `regimePaire`/`sortBy`** : cette
+    // ⚠️ **Le RÉGIME suit `objective`, jamais le tri** : cette
     // paire sert à LANCER/BORNER la recherche avant qu'aucun résultat
-    // n'existe, alors que `regimePaire` répond à « qu'est-ce que je REGARDE
-    // en ce moment » (docs/03-developpeur/optimizer/, « Régime de
+    // n'existe (docs/03-developpeur/optimizer/, « Régime de
     // la paire »). `objective` (`Objective`,
     // runeBuildOptim.ts) ne peut jamais valoir `'hp'`/`'atk'`/`'def'` : seuls
     // `degats_reels`/`ehp`/`aucun` sont possibles ici.
@@ -1849,7 +1842,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         regime: regimeEquipement, degats: contexteDegatsArtefacts, exclusive: contexteExclusive,
         requirement: requirementAvecAuras, relicContext: params.relicContext } : null,
       realDamage, damageSetup, exclusive: contexteExclusive, signature: signatureArtefacts, idInventaire: importDuCompte, idEspece: selected.monster.com2usId ?? null });
-    run(params, photo, { tri: objective, metric, page: 1, adapterArtefactsAuTri, toutVerifier: verifierToutesLesCombinaisons });
+    run(params, photo, { tri: objective, metric, page: 1, toutVerifier: verifierToutesLesCombinaisons });
   }
 
   // Exporte la RECETTE de cette recherche (set, minimums, objectif,
@@ -2188,7 +2181,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     [relicContextRecherche, selected?.gear.relic]
   );
   const fileArtefacts = useArtifactOptimQueue({ search, vue: {
-    tri: sortBy, metric, page: resultsPage, adapterArtefactsAuTri, toutVerifier: verifierToutesLesCombinaisons,
+    tri: sortBy, metric, page: resultsPage, toutVerifier: verifierToutesLesCombinaisons,
   } });
   const fullSortedCandidates = fileArtefacts.base;
 
@@ -2219,13 +2212,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         // cache intact quand on changeait le buff ATQ ou les PV de la cible.
         damageSetup,
         compterAurasResPre,
-        // ⚠️ Le TRI, pas l'objectif : c'est lui qui décide du critère
-        // de choix de la paire (voir `resoudreEquipement`). Changer de tri
-        // entre Dégâts réels et PV effectifs change donc la meilleure paire, et
-        // doit vider le cache. Entre Efficience et Vitesse, rien ne change —
-        // aucun artéfact n'entre dans ces deux scores — mais `sortBy` variant
-        // quand même, le cache est refait pour rien : coût borné (K builds en
-        // temps masqué), contre le risque d'afficher une paire périmée.
         // ⚠️ **Le RÉGIME EFFECTIF (`regimeEquipement`), jamais `regimePaire`
         // brut** :
         // `regimePaire` ne rabat PAS « Dégâts réels » sur `aucun` quand le
@@ -2297,12 +2283,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
    * pour un résultat identique et cent tranches de temps masqué en pure
    * perte.
    *
-   * ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** : le régime
-   * effectif (`regimeEquipement`) suit `sortBy`, pas `objective`, quand
-   * « Adapter les artéfacts et reliques au tri » est activé. L'objectif fige
-   * le critère au lancement ; le tri, lui, peut changer après coup. Une paire
-   * optimisée pour les dégâts affichée dans une liste triée par PV effectifs
-   * montrerait une valeur qui n'est pas la meilleure atteignable.
+   * ⚠️ **La paire se choisit sur l'objectif de la recherche** : le régime
+   * effectif (`regimeEquipement`) est photographié au lancement ; le tri
+   * réordonne les cartes sans rien résoudre.
    */
   // Les chiffres des cartes lisent la photographie et la publication du propriétaire.
   const contexteResultatAffiche = search.contexte;
@@ -3057,9 +3040,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             result={result}
             compteConfirmes={compteConfirmes}
             resoudreEquipement={resoudreEquipement}
-            optimiserArtefacts={contexteResultatAffiche ? contexteResultatAffiche.resolution !== null : optimiserArtefacts}
-            adapterArtefactsAuTri={adapterArtefactsAuTri}
-            setAdapterArtefactsAuTri={setAdapterArtefactsAuTri}
             sortBy={sortBy}
             setSortBy={setSortBy}
             setResultsPage={setResultsPage}

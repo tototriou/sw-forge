@@ -54,7 +54,7 @@ export function testKDeLaFile() {
     'écran : la cible de vérification voyage avec la vue, sans reconstruire le contexte relique');
   egal((ecran.match(/kDeLaFile\(/g) ?? []).length, 0, 'écran : aucun K recopié');
   const hook = readFileSync('src/hooks/useArtifactOptimQueue.ts', 'utf8');
-  ok(hook.includes('changerVue({ tri, metric, page, adapterArtefactsAuTri, toutVerifier })'),
+  ok(hook.includes('changerVue({ tri, metric, page, toutVerifier })'),
     'adaptateur : la page et la cible en direct parviennent au propriétaire');
   ok(!/new Map|new Set/.test(hook.replace('const VIDE: ReadonlyMap<string, ResultatArtefacts> = new Map();', '')),
     'adaptateur : aucune copie des clés ni cache de calcul');

@@ -335,7 +335,7 @@ export async function testClassementDistantPanne() {
     await fini;
     ok(incident && derniere !== null, 'incident rapporté ; le classeur termine la même file sans secours sur la page');
     const publication = derniere as unknown as PublicationClassement;
-    const entrees = resolutionDuContexte(f.photo, f.vue.tri, f.vue.adapterArtefactsAuTri)!;
+    const entrees = resolutionDuContexte(f.photo)!;
     const runeById = new Map(f.photo.recherche.pool.map((r) => [r.id, r]));
     const caches = nouveauxCachesResolution();
     for (const candidat of f.candidats) {

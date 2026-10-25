@@ -1906,7 +1906,7 @@ export function classer(
     fiche: resolue.monstre?.gear ?? { base: resolue.params.base, runes: [], artifacts: resolue.params.artifacts, relic: resolue.params.relic },
     realDamage, damageSetup: setup, exclusive: { setup, element }, signature: '', idInventaire: 0, idEspece: resolue.monstre?.com2usId ?? null, resolution: null });
   const classes = classerEnLocal(photo, candidats, { tri: objectif, metric: resolue.params.metric,
-    page: 1, adapterArtefactsAuTri: false, toutVerifier: false }).affichees;
+    page: 1, toutVerifier: false }).affichees;
   // ⚠️ `candidateMetricTotal` recalcule depuis les VRAIES runes dans la
   // mesure courante — jamais `effTotal`, figé au moment de la recherche. Il
   // est appliqué à la DEMANDE, pas à toute la liste : le classement peut

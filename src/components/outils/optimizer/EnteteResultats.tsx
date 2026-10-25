@@ -1,5 +1,5 @@
 import HelpPopover from '../../HelpPopover';
-import { Interrupteur, Selecteur } from '../../../ui';
+import { Selecteur } from '../../../ui';
 import { OptimizerSortKey } from '../../../hooks/useOptimizerState';
 import { RECO_STATS } from '../../../types';
 import { OBJECTIVE_LABELS, type SearchResult, type BuildCandidate, type RealDamageContext } from '../../../lib/runeBuildOptim';
@@ -11,9 +11,6 @@ export interface EnteteResultatsProps {
   result: SearchResult | null;
   compteConfirmes: CompteConfirme;
   resoudreEquipement: ((c: BuildCandidate) => ResultatArtefacts) | null;
-  optimiserArtefacts: boolean;
-  adapterArtefactsAuTri: boolean;
-  setAdapterArtefactsAuTri: Dispatch<SetStateAction<boolean>>;
   sortBy: OptimizerSortKey;
   setSortBy: Dispatch<SetStateAction<OptimizerSortKey>>;
   setResultsPage: Dispatch<SetStateAction<number>>;
@@ -24,7 +21,7 @@ export interface EnteteResultatsProps {
   bureau?: boolean;
 }
 
-export default function EnteteResultats({ result, compteConfirmes, resoudreEquipement, optimiserArtefacts, adapterArtefactsAuTri, setAdapterArtefactsAuTri, sortBy, setSortBy, setResultsPage, realDamage, fileArtefacts, compteAffiche, bureau = false }: EnteteResultatsProps) {
+export default function EnteteResultats({ result, compteConfirmes, resoudreEquipement, sortBy, setSortBy, setResultsPage, realDamage, fileArtefacts, compteAffiche, bureau = false }: EnteteResultatsProps) {
   // ⚠️ Le compte des CONFIRMÉES (`compteConfirmes`) : seulement les builds
   // vérifiés (résolus et conformes), un compte qui ne baisse jamais pendant
   // une recherche. « Aucune combinaison… » seulement quand tout est vérifié
@@ -56,41 +53,8 @@ export default function EnteteResultats({ result, compteConfirmes, resoudreEquip
       les combinaisons trouvées », dans les réglages avancés, va jusqu'au bout.
     </HelpPopover>
   );
-  // ⚠️ **Le tri est une VUE, l’optimisation d’artéfacts une DÉCISION.** Les
-  // coupler d’office déplaçait la paire dès qu’on changeait de tri pour
-  // explorer — alors qu’on veut souvent garder celle qui maximise les PV
-  // effectifs tout en regardant les builds classés par une stat.
-  //
-  // ⚠️ MASQUÉ quand l’optimisation est désactivée : il n’y a alors qu’une
-  // paire possible, celle qui est portée. Une saisie sans effet est pire
-  // qu’une saisie absente — même règle que les sélecteurs de principale et
-  // les sous-propriétés verrouillées.
-  const adapter = optimiserArtefacts && !compteConfirmes.aucune && (
-    <div className="ml-auto flex items-center gap-1.5">
-      <span className="text-xs font-semibold text-ink-dim">Adapter les artéfacts et reliques au tri</span>
-      <HelpPopover title="Adapter les artéfacts et reliques au tri">
-        Activé (défaut), chaque build reçoit les artéfacts ET la relique qui maximisent le{' '}
-        <b className="text-ink">critère de tri</b> affiché : trier par ATQ ne retient pas les mêmes
-        pièces que trier par PV effectifs.
-        <br />
-        <br />
-        Désactivé, les artéfacts et la relique restent ceux qui servent l’<b className="text-ink">objectif de la
-        recherche</b>, quel que soit le tri. Utile pour parcourir les résultats classés autrement sans
-        que l’équipement bouge — et « Valider les artéfacts » propose alors toujours le même.
-        <br />
-        <br />
-        Sans effet sur Efficience, Vitesse, Taux CRIT, Dgts CRIT, Résistance et Précision : aucun
-        artéfact ni aucune propriété de relique n’entre dans ces classements.
-      </HelpPopover>
-      <Interrupteur
-        actif={adapterArtefactsAuTri}
-        onChange={setAdapterArtefactsAuTri}
-        aria-label="Adapter les artéfacts et reliques au tri"
-      />
-    </div>
-  );
-  // Masqué (avec « Adapter… ») seulement quand tout est vérifié sans aucune
-  // confirmée.
+  // Masqué seulement quand tout est vérifié sans aucune confirmée. Le tri
+  // réordonne les combinaisons confirmées ; il ne résout aucun équipement.
   const tri = !compteConfirmes.aucune && (
     <Selecteur
       value={sortBy}
@@ -141,7 +105,7 @@ export default function EnteteResultats({ result, compteConfirmes, resoudreEquip
         // ⚠️ **Au bureau, l'en-tête tient sur une rangée** (décision de
         // l'utilisateur : la première carte remonte) : à gauche le compte et,
         // SOUS lui, la ligne « en vérification » (sa place reste réservée,
-        // même vide), l'aide à leur droite ; à droite « Adapter… » et le tri.
+        // même vide), l'aide à leur droite ; à droite le tri.
         // Quand la colonne est étroite, la rangée passe à la ligne d'elle-même :
         // ce passage ne dépend que de la largeur, jamais d'un clic.
         <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
@@ -153,7 +117,6 @@ export default function EnteteResultats({ result, compteConfirmes, resoudreEquip
             {aide}
           </div>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-            {adapter}
             {tri}
           </div>
         </div>
@@ -164,7 +127,6 @@ export default function EnteteResultats({ result, compteConfirmes, resoudreEquip
               {compte}
               {aide}
             </div>
-            {adapter}
             {tri}
           </div>
           {resoudreEquipement != null && <p className="mb-2 text-xs text-ink-dim">{enVerification}</p>}

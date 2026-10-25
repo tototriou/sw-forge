@@ -15,7 +15,7 @@ export const LARGEUR_RESULTATS_MIN = 356;
 // recherche, une place d'attente (en-tête et message, ≈ 160 px) tient la place
 // où arrivent les cartes : leur arrivée ne déplace jamais ce qu'on vient de
 // cliquer. Ensuite, le contenu partagé avec le téléphone, passé par l'écran : en-tête
-// (compte, « Adapter les artéfacts et reliques au tri », tri), diagnostics,
+// (compte, tri), diagnostics,
 // grille de cartes (`GrilleResultats`, ≥ 328 px par carte à la souris, ou toute la largeur en dessous) et pagination.
 // L'état d'attente vient d'`attenteResultats` (src/lib/optimizerColonnes.ts) :
 // pendant une recherche encore sans carte, le cadre reste, la phrase

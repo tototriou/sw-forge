@@ -576,8 +576,8 @@ classementCompact.ts), jamais un candidat ni un ordinal par build trouvé :
 - les versions (recherche, inventaire, contexte de résolution, données, vue,
   publication, demande) et la vue réellement rendue ;
 - les comptes de la vue : candidats reçus de la recherche, affichables (reçus
-  moins les écartés de la résolution), confirmées, non vérifiés, et si une
-  file vérifie ;
+  moins les écartés de la résolution), résolus, confirmées, et si une file
+  vérifie ;
 - la page : son premier rang, ses vingt cartes au plus et ses places en
   attente. Une carte porte son ordinal, le candidat avec les statistiques de
   sa vraie paire, son équipement résolu (paire, artéfacts, relique, ou rien

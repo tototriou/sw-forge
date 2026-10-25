@@ -12,8 +12,8 @@
 import { AVEC_MONSTRE, BOX, CHOISI, rendreOptimizer } from './optimizer.test';
 import { auTelephone, bouton, boutons, rendre, texteVisible } from './outils-rendu';
 import { egal, ok, titre } from '../outils';
-import type { BuildCandidate, BuildRequirement, SearchResult } from '../../src/lib/runeBuildOptim';
-import EnteteResultats, { type EnteteResultatsProps } from '../../src/components/outils/optimizer/EnteteResultats';
+import type { BuildCandidate, BuildRequirement } from '../../src/lib/runeBuildOptim';
+import EnteteResultats from '../../src/components/outils/optimizer/EnteteResultats';
 import { rechercheClasseeTest } from './optimizer-classement-banc';
 
 const EPUISEMENT = "Rechercher jusqu'à épuisement complet";

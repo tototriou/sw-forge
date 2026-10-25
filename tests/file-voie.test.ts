@@ -9,7 +9,6 @@
 // d'infrastructure de test React : le hook (`useArtifactOptimQueue`) se
 // contrôle sur la source ; le délai réel au navigateur ne se mesure pas ici.
 
-import { readFileSync } from 'node:fs';
 import { BuildCandidate } from '../src/lib/runeBuildOptim';
 import { VoieDeLaFile, cleBuild, prochainsATraiter, voieDeLaFile } from '../src/lib/artifactQueue';
 import { egal, ok, titre } from './outils';

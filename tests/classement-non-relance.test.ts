@@ -51,13 +51,16 @@ export function testTriSansNouvelleResolution() {
   ok(prochainsATraiter(parAtq, b.cache(), 300, []).length > 0,
     'témoin : l’ancienne fenêtre de fond suivant le tri ATQ aurait demandé de nouvelles résolutions');
 
-  for (const geste of [{ tri: 'atk' }, { tri: 'hp' }, { metric: 'score' }, { tri: 'ehp', metric: 'eff' }] as Partial<VueClassement>[]) {
-    b.changer({ ...geste, page: 1 });
+  const derniere = Math.ceil(confirmees / 20) + 1;
+  // Le tri change aussi quand la page reste au-delà des confirmées (mesure changée dans les réglages).
+  for (const geste of [{ tri: 'atk', page: 1 }, { tri: 'hp', page: 1 }, { metric: 'score', page: 1 }, { tri: 'ehp', metric: 'eff', page: 1 },
+    { tri: 'atk', page: derniere }, { metric: 'score', page: derniere }] as Partial<VueClassement>[]) {
+    b.changer(geste);
     egal([b.demandes(), b.cache().size, b.generation()], [apresLancement, resolus.size, generation],
       `${JSON.stringify(geste)} : aucune demande, aucun équipement nouveau, cache intact`);
   }
   // Une page au-delà des confirmées, ouverte en naviguant : elle seule résout.
-  const derniere = Math.ceil(confirmees / 20) + 1;
+  b.changer({ tri: 'efficience', metric: 'eff', page: 1 });
   b.changer({ page: derniere });
   ok(b.demandes() > apresLancement, `navigation vers la page ${derniere} : ses places en attente se résolvent (${b.demandes() - apresLancement} demandes)`);
   const avantRetour = b.demandes();

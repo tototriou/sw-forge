@@ -3,11 +3,9 @@ import OptimizerSection from '../src/components/outils/OptimizerSection';
 import GrilleResultats, { type GrilleResultatsProps } from '../src/components/outils/optimizer/GrilleResultats';
 import { useOptimizerState } from '../src/hooks/useOptimizerState';
 import { useOptimizerLists } from '../src/hooks/useOptimizerLists';
-import { classerEnLocal } from '../src/lib/classementCompact';
-import { fixtureClassementCombat } from './classement-fixture';
+import { classerPourLaPage, fixtureClassementCombat } from './classement-fixture';
 import { faussLocalStorage, egal, ok, titre } from './outils';
 import type { Monster } from '../src/types';
-import { cleBuild } from '../src/lib/artifactQueue';
 import { resoudreContexteRelique } from '../src/lib/relicOptim';
 import { contexteResultat } from '../src/lib/contexteResultat';
 
@@ -54,9 +52,8 @@ export function testClassementComparerApresValidation() {
   const relicContext = resoudreContexteRelique({ mode: 'off', principale: 'libre', type: 'libre', seuil: 6 }, f.photo.fiche.relic, []);
   const photo = contexteResultat({ ...f.photo, params: { ...f.params, relicContext, objective: 'degats_reels' },
     resolution: { ...f.photo.resolution!, relicContext } });
-  const publication = classerEnLocal(photo, f.candidats, f.vue);
-  const resultat = { ...publication.bilan, explored: 42, truncated: false, nearMissByCondition: [], globalNearMiss: null,
-    candidates: publication.candidats };
+  const { instantane: publication } = classerPourLaPage(photo, f.candidats, f.vue);
+  const resultat = { ...publication.bilan!, nombre: publication.comptes.recus };
   const monster: Monster = { id: 1, com2usId: 1, name: 'Test', element: 'fire', archetype: 'attack', stars: 6,
     naturalStars: 5, secondAwaken: false, image: null, leaderSkill: null,
     stats: { hp: 10000, attack: 700, defense: 600, speed: 100, critRate: 15, critDamage: 50, resistance: 15, accuracy: 0 } };
@@ -76,22 +73,22 @@ export function testClassementComparerApresValidation() {
     const g = grille(construire());
     if (!g) throw new Error('Grille réelle absente');
     // Une carte dont les runes diffèrent de la photo, avec la relique portée.
-    const c = publication.affichees.find(c => c.runeIds[0] !== f.photo.fiche.runes[0].id
-      && (publication.parBuild.get(cleBuild(c))?.relique?.id ?? f.photo.fiche.relic?.id) === f.photo.fiche.relic?.id);
-    if (!c) throw new Error('Carte de comparaison absente');
-    return g.proprietesCarte(c);
+    const rang = publication.page.cartes.findIndex(c => c.candidat.runeIds[0] !== f.photo.fiche.runes[0].id
+      && (c.resultat?.relique?.id ?? f.photo.fiche.relic?.id) === f.photo.fiche.relic?.id);
+    if (rang < 0) throw new Error('Carte de comparaison absente');
+    return g.proprietesCarte(publication.page.cartes[rang].candidat, rang);
   };
   const avant = lire();
   ok(!!avant.onCompare && !!avant.onValidate, 'les deux vrais gestes sont disponibles');
   avant.onCompare!();
   const comparee = lire();
   ok(comparee.comparaison!.some(s => s.delta !== 0), 'avant validation : équipement différent, écarts non nuls');
-  const photoAvant = JSON.stringify(photo), ordreAvant = publication.affichees;
+  const photoAvant = JSON.stringify(photo), ordreAvant = publication.page.cartes;
   comparee.onValidate!();
   const apres = lire();
   egal(apres.validated, 'oui', 'le vrai geste de la carte a réservé ce build dans la liste');
   egal(apres.comparaison!.map(s => s.delta), Array(8).fill(0), 'après validation : huit écarts statistiques nuls');
   egal(apres.pvEffectifs?.delta, 0, 'après validation : écart PV effectifs nul');
   egal(apres.degatsReels?.delta, 0, 'après validation : écart Dégâts réels nul');
-  ok(publication.affichees === ordreAvant && JSON.stringify(photo) === photoAvant, 'candidats, ordre et paramètres photographiés conservés');
+  ok(publication.page.cartes === ordreAvant && JSON.stringify(photo) === photoAvant, 'candidats, ordre et paramètres photographiés conservés');
 }

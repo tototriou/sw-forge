@@ -25,7 +25,14 @@
       "cible": "src/hooks/useArtifactOptimQueue.ts",
       "occurrences": 1,
       "statut": "exception",
-      "justification": "Garde d'architecture : l'adaptateur d'écran ne doit pas recréer de Worker, de cache propriétaire ni de résolution."
+      "justification": "Garde d'architecture : l'adaptateur d'écran retiré ne doit pas revenir ; l'écran ne reçoit que l'instantané du classeur."
+    },
+    {
+      "fichier": "tests/classement-distant.test.ts",
+      "cible": "src/lib/adaptateurClassement.ts",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Garde d'architecture : la projection objet de l'écran retirée ne doit pas revenir ; seule la projection du corps sert Node."
     },
     {
       "fichier": "tests/classement-distant.test.ts",
@@ -757,18 +764,6 @@
       "statut": "stock"
     },
     {
-      "fichier": "tests/file-k.test.ts",
-      "cible": "src/hooks/useArtifactOptimQueue.ts",
-      "occurrences": 1,
-      "statut": "stock"
-    },
-    {
-      "fichier": "tests/file-voie.test.ts",
-      "cible": "src/hooks/useArtifactOptimQueue.ts",
-      "occurrences": 1,
-      "statut": "stock"
-    },
-    {
       "fichier": "tests/import-reco-copies.test.ts",
       "cible": "src/components/siege/RecoBoard.tsx",
       "occurrences": 1,
@@ -1149,12 +1144,6 @@
     {
       "fichier": "tests/resolution-distante.test.ts",
       "cible": "src/components/outils/OptimizerSection.tsx",
-      "occurrences": 1,
-      "statut": "stock"
-    },
-    {
-      "fichier": "tests/resolution-distante.test.ts",
-      "cible": "src/hooks/useArtifactOptimQueue.ts",
       "occurrences": 1,
       "statut": "stock"
     },

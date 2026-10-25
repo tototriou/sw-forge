@@ -1,6 +1,5 @@
 import { CandidatsCompacts, RecepteurCandidats, ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs, terminerEtapes, trierIndicesEtapes, type BlocCandidats } from './candidatsCompacts';
-import { AdaptateurClassement } from './adaptateurClassement';
-import { cibleDeLaFile, type JournalResolution, type ResultatArtefacts } from './artifactQueue';
+import { candidatAvecSaPaire, cibleDeLaFile, cleBuild, type JournalResolution, type ResultatArtefacts } from './artifactQueue';
 import { scoreDuCandidat, type BuildCandidate, type Objective, type OptionsDeClassement } from './runeBuildOptim';
 import type { StatKey } from './effects';
 import type { OptimMetric } from './runeOptim';
@@ -285,6 +284,12 @@ export class ClassementCompact {
     return { total: this.ordreDeReference.length, confirmes, potentiels: this.ordreDeReference.length - confirmes };
   }
   note(i: number): number | null { return this.notesPresentes[i] ? this.notes[i] : null; }
+  /** Les confirmées de rang `debut` à `debut + taille − 1` parmi les confirmées, dans l'ordre du classement. */
+  pageConfirmees(debut: number, taille: number): number[] {
+    if (this.cacheVide) return [];
+    if (this.ordreDeReference) return this.ordreDeReference.filter((i) => this.magasin.etat(i) === 1).slice(debut, debut + taille);
+    return this.ordre.page(debut, taille, 'confirmes');
+  }
   enAttente(taille: number): number[] {
     if (this.cacheVide) return Array.from(this.ordreBase.slice(0, taille));
     if (this.ordreDeReference) return this.ordreDeReference.filter((i) => this.magasin.etat(i) === 0).slice(0, taille);
@@ -318,7 +323,41 @@ export interface VersionsClassement {
   idDemande: number;
 }
 export type IdentitePublication = Pick<VersionsClassement, 'idRecherche' | 'idVue' | 'idDemande' | 'revisionPubliee'>;
-/** Projection de compatibilité de l'écran ; les données propriétaires restent en colonnes. */
+/** Une carte de la page : le build avec les statistiques de sa vraie paire et son équipement résolu. */
+export interface CarteClassement {
+  ordinal: number;
+  candidat: BuildCandidate;
+  /** `null` sans file : l'équipement est celui de la fiche. */
+  resultat: ResultatArtefacts | null;
+  /** Le chiffre qui classe la carte, quand l'objectif ou le tri le demande ; calculé par le classeur. */
+  pvEffectifs: number | null;
+  degatsReels: number | null;
+}
+export interface ComptesClassement {
+  /** Candidats reçus de la recherche : l'aperçu, puis tous. */
+  recus: number;
+  /** Reçus moins les écartés de la résolution. */
+  affichables: number;
+  /** Reçus dont l'équipement est résolu, conformes ou écartés. */
+  resolus: number;
+  /** Reçus résolus ET conformes. */
+  confirmees: number;
+  /** Une file vérifie l'équipement (optimisation d'artéfacts active). */
+  avecFile: boolean;
+}
+/** Tout ce que la page reçoit : jamais un objet ni un ordinal par build trouvé. */
+export interface InstantaneClassement {
+  versions: VersionsClassement;
+  vue: VueClassement;
+  comptes: ComptesClassement;
+  page: { premierRang: number; cartes: CarteClassement[]; placesEnAttente: number };
+  enAttente: number;
+  /** Panne du résolveur reprise dans le classeur, s'il y en a eu une. */
+  incident: string | null;
+  bilan: Omit<SearchResult, 'candidates'> | null;
+}
+export const TAILLE_PAGE_CLASSEMENT = 20;
+/** Projection objet complète, pour Node seulement (CLI, harnais, tests) : jamais envoyée à la page. */
 export interface PublicationClassement {
   versions: VersionsClassement;
   vue: VueClassement;
@@ -326,18 +365,6 @@ export interface PublicationClassement {
   base: BuildCandidate[];
   affichees: BuildCandidate[];
   parBuild: Map<string, ResultatArtefacts>;
-  enAttente: number;
-  bilan: Omit<SearchResult, 'candidates'> | null;
-}
-export interface PublicationTransport {
-  versions: VersionsClassement;
-  vue: VueClassement;
-  candidats?: BuildCandidate[];
-  ordreBase: Uint32Array;
-  ordreAffiche: Uint32Array;
-  generationCache: number;
-  revisionCache: number;
-  changements: [string, ResultatArtefacts][];
   enAttente: number;
   bilan: Omit<SearchResult, 'candidates'> | null;
 }
@@ -386,11 +413,10 @@ export class CorpsClassement {
     suivants: Uint32Array; precedents: Uint32Array; ordinaux: Uint32Array; premier: number; nombre: number;
   } | null = null;
   private generationCache = 0;
-  private candidatsAcquittes = -1;
-  private sourceEnVol: (IdentitePublication & { nombre: number }) | null = null;
+  private incident: string | null = null;
 
   constructor(private readonly sorties: {
-    publier: (p: PublicationTransport) => void;
+    publier: (p: InstantaneClassement) => void;
     resoudre: (m: MessageVersResolution) => void;
     incident: (raison: string, detail: unknown) => void;
   }, private readonly differe = false, modeResolution: 'distante' | 'directe' = 'distante') {
@@ -416,7 +442,6 @@ export class CorpsClassement {
     this.tache = null; this.nombreCible = 0; this.plages = [];
     this.contexte = contexte; this.vue = null; this.flux = new RecepteurCandidats(0); this.lots = [];
     this.index = null; this.fileExhaustive = null; this.base = new Uint32Array(); this.fondPropre = null; this.bilan = null; this.collecteScellee = false;
-    this.candidatsAcquittes = -1; this.sourceEnVol = null;
     this.versions = { versionSchema: 1, idRecherche, idInventaire: contexte.idInventaire,
       idContexteResolution: this.versions.idContexteResolution, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande };
     this.entrees = null;
@@ -492,8 +517,6 @@ export class CorpsClassement {
       this.entrees = entrees; this.versions.idContexteResolution = compteurSuivant(this.versions.idContexteResolution);
       this.signature = JSON.stringify([this.contexte.idInventaire, this.contexte.idEspece, this.contexte.signature, this.contexte.recherche.relicContext?.empreinte, entrees?.regime]);
     }
-    // Une publication de l'ancienne vue peut être rejetée sans ACK par l'écran.
-    this.sourceEnVol = null;
     if (!avant) this.pagePrioritaire = true;
     else if (avant.tri !== vue.tri || avant.metric !== vue.metric) this.pagePrioritaire = false;
     else if (avant.page !== vue.page || avant.pageImprimee !== vue.pageImprimee) this.pagePrioritaire = true;
@@ -662,6 +685,7 @@ export class CorpsClassement {
   panneResolution(raison: string, detail: unknown): void {
     if (this.repli) return;
     this.sorties.incident(raison, detail);
+    this.incident = raison;
     this.reponsesEnAttente = []; this.reponsesDirectes = [];
     this.pilote.renoncer(); this.pilote = new ResolutionDistante(); this.direct = new CorpsResolution(); this.repli = true;
     this.sale = true; this.publicationForcee = true;
@@ -681,7 +705,6 @@ export class CorpsClassement {
   }
   liberer(): void {
     this.abandonnerReponses();
-    this.sourceEnVol = null; this.candidatsAcquittes = -1;
     this.publicationForcee = false;
     this.collecteScellee = false;
     this.tache = null; this.nombreCible = 0; this.plages = []; this.reponsesEnAttente = [];
@@ -691,49 +714,69 @@ export class CorpsClassement {
       if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m);
     }
   }
-  acquitter(generationCache: number, revisionCache: number, nombre: number, identite: IdentitePublication): void {
-    if (!this.contexte || generationCache !== this.generationCache || identite.idRecherche !== this.versions.idRecherche
-      || identite.idVue !== this.versions.idVue || identite.idDemande !== this.versions.idDemande) return;
-    if (!Number.isSafeInteger(revisionCache) || revisionCache < 0 || revisionCache > this.cache.version) throw new Error('Acquittement de cache invalide');
-    if (!Number.isSafeInteger(identite.revisionPubliee) || identite.revisionPubliee < 1 || identite.revisionPubliee > this.versions.revisionPubliee) return;
-    this.cache.acquitter(revisionCache);
-    if (this.sourceEnVol?.revisionPubliee === identite.revisionPubliee && this.sourceEnVol.nombre === nombre) {
-      this.candidatsAcquittes = nombre; this.sourceEnVol = null;
-    }
-  }
   publier(maintenant: number, forcer = false): boolean {
     this.publicationForcee ||= forcer;
     if (this.tache) return false;
     if (!this.contexte || !this.vue || !this.sale) return true;
-    // Les ordres suivants dépendent de cette source ; ni réexpédition N,
-    // ni publication inutilisable avant son adoption. Les changements restent dus.
-    if (this.sourceEnVol) return false;
     if (!this.publicationForcee && maintenant - this.dernierePublication < 400) return false;
+    // Un index en retard sur le cache serait publié avec de fausses cartes :
+    // la publication reste due jusqu'à la fin de son actualisation.
+    const enAttente = this.restants().length;
+    if (this.tache) return false;
     this.dernierePublication = maintenant; this.sale = false; this.publicationForcee = false;
     this.versions.revisionPubliee = compteurSuivant(this.versions.revisionPubliee);
-    const nombre = this.index?.magasin.longueur ?? 0;
-    const candidats = nombre !== this.candidatsAcquittes
-      ? Array.from({ length: nombre }, (_, i) => this.index!.magasin.candidat(i, false)) : undefined;
-    if (candidats) this.sourceEnVol = { ...this.versions, nombre };
-    this.sorties.publier({ versions: { ...this.versions }, vue: { ...this.vue }, candidats,
-      ordreBase: this.base.slice(), ordreAffiche: Uint32Array.from(this.index?.page(0, nombre) ?? []),
-      generationCache: this.generationCache, revisionCache: this.cache.version, changements: this.cache.changements(),
-      enAttente: this.restants().length, bilan: this.bilan });
+    this.sorties.publier(this.instantane(enAttente));
     return true;
+  }
+  /** Comptes de l'arbre, confirmées du rang demandé, places attendues : O(log N + 20). */
+  private instantane(enAttente: number): InstantaneClassement {
+    const contexte = this.contexte!, vue = this.vue!, index = this.index;
+    const debut = (vue.page - 1) * TAILLE_PAGE_CLASSEMENT;
+    const recus = index?.magasin.longueur ?? 0;
+    const { total, confirmes } = index?.comptes() ?? { total: 0, confirmes: 0 };
+    const avecFile = this.entrees !== null;
+    let ordinaux: number[] = [], places = 0;
+    if (index && avecFile) {
+      ordinaux = index.pageConfirmees(debut, TAILLE_PAGE_CLASSEMENT);
+      places = Math.min(TAILLE_PAGE_CLASSEMENT, Math.max(0, total - debut)) - ordinaux.length;
+    } else if (index) ordinaux = index.page(debut, TAILLE_PAGE_CLASSEMENT);
+    const objectif = contexte.recherche.objective;
+    const options = optionsDuContexte(contexte, this.cache, vue.metric);
+    const avecEhp = objectif === 'ehp' || vue.tri === 'ehp';
+    const avecDegats = contexte.realDamage !== null && (objectif === 'degats_reels' || vue.tri === 'degats_reels');
+    const cartes = ordinaux.map((i): CarteClassement => {
+      const brut = index!.magasin.candidat(i, false);
+      const resultat = avecFile ? this.cache.get(cleBuild(brut)) ?? null : null;
+      const candidat = resultat ? { ...brut, stats: resultat.stats } : brut;
+      return { ordinal: i, candidat, resultat,
+        pvEffectifs: avecEhp ? scoreDuCandidat(candidat, 'ehp', options) : null,
+        degatsReels: avecDegats ? scoreDuCandidat(candidat, 'degats_reels', options) : null };
+    });
+    return { versions: { ...this.versions }, vue: { ...vue },
+      comptes: { recus, affichables: total, resolus: recus - total + confirmes, confirmees: confirmes, avecFile },
+      page: { premierRang: debut + 1, cartes, placesEnAttente: places }, enAttente, incident: this.incident, bilan: this.bilan };
+  }
+  /**
+   * La projection objet complète de l'état courant : candidats, ordre de base,
+   * classement affiché et cache. Node seulement (`classerEnLocal`, tests) :
+   * elle matérialise N objets, jamais envoyée à la page.
+   */
+  projection(): PublicationClassement {
+    if (!this.contexte || !this.vue) throw new Error('Projection sans recherche ouverte');
+    const index = this.index, n = index?.magasin.longueur ?? 0;
+    const candidats = Array.from({ length: n }, (_, i) => index!.magasin.candidat(i, false));
+    const parBuild = new Map(this.cache);
+    return { versions: { ...this.versions }, vue: { ...this.vue }, candidats, base: Array.from(this.base, (i) => candidats[i]),
+      affichees: (index?.page(0, n) ?? []).map((i) => candidatAvecSaPaire(candidats[i], parBuild)), parBuild,
+      enAttente: this.restants().length, bilan: this.bilan };
   }
 }
 
 /** Consommateur synchrone du propriétaire de production, sans protocole de plateforme. */
 export function classerEnLocal(contexte: ContexteResultat, candidats: readonly BuildCandidate[], vue: VueClassement): PublicationClassement {
-  let derniere!: PublicationTransport;
-  let source: BuildCandidate[] = [];
+  let publiee = false;
   const corps = new CorpsClassement({
-    publier: (p) => {
-      derniere = p;
-      if (p.candidats) source = p.candidats;
-      // Les différences restent dues jusqu'à la projection finale ; la source, elle, est adoptée.
-      corps.acquitter(p.generationCache, 0, source.length, p.versions);
-    },
+    publier: () => { publiee = true; },
     resoudre: () => { throw new Error('Résolution distante sur le consommateur local'); },
     incident: (raison) => { throw new Error(raison); },
   }, false, 'directe');
@@ -745,6 +788,6 @@ export function classerEnLocal(contexte: ContexteResultat, candidats: readonly B
   // Le classement d'une collection ne fabrique pas de bilan de recherche.
   corps.sceller(1, candidats.length, lots.length - 1, null);
   do { corps.pomper(0); } while (corps.travailEnRepli);
-  if (!derniere) throw new Error('Classement local sans publication finale');
-  return new AdaptateurClassement().appliquer({ ...derniere, candidats: source });
+  if (!publiee || corps.travailEnCours) throw new Error('Classement local sans publication finale');
+  return corps.projection();
 }

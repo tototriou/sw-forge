@@ -1,22 +1,26 @@
 // Les bancs de rendu posent une publication du vrai propriétaire ; ils ne
 // réintroduisent pas le classement local que l'écran ne possède plus.
 import type { GearSet, RuneDetail } from '../../src/types';
-import type { useBuildOptimSearch } from '../../src/hooks/useBuildOptimSearch';
-import type { BuildRequirement } from '../../src/lib/runeBuildOptim';
+import type { BuildOptimProgress, useBuildOptimSearch } from '../../src/hooks/useBuildOptimSearch';
+import type { BuildCandidate, BuildRequirement, SearchResult } from '../../src/lib/runeBuildOptim';
 import type { DemandeDeRecherche } from '../../src/workers/runeBuildOptim.worker';
-import { CorpsClassement, type PublicationClassement, type VueClassement } from '../../src/lib/classementCompact';
-import { AdaptateurClassement } from '../../src/lib/adaptateurClassement';
+import { CorpsClassement, type InstantaneClassement, type PublicationClassement, type VueClassement } from '../../src/lib/classementCompact';
 import { contexteResultat } from '../../src/lib/contexteResultat';
 import { DEFAULT_DAMAGE_SETUP, type DamageSetup } from '../../src/lib/damage';
 import { computeStats } from '../../src/lib/stats';
 import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs } from '../../src/lib/candidatsCompacts';
 
 type Recherche = ReturnType<typeof useBuildOptimSearch>;
-export function rechercheClasseeTest(search: Partial<Recherche>, e: {
+/** L'entrée d'un banc : un résultat ou un aperçu avec ses candidats, comme le moteur les rend. */
+export type RechercheBanc = Omit<Partial<Recherche>, 'result' | 'progress'> & {
+  result?: SearchResult | null;
+  progress?: BuildOptimProgress | (Extract<BuildOptimProgress, { phase: 'pairing' }> & { candidates: BuildCandidate[] }) | null;
+};
+export function rechercheClasseeTest(search: RechercheBanc, e: {
   fiche: GearSet; pool: RuneDetail[]; optimiser: boolean; vue: VueClassement;
   requirement?: BuildRequirement; setup?: DamageSetup; toutVerifier?: boolean;
-}, resoudre = false): Partial<Recherche> {
-  const bruts = search.result?.candidates ?? (search.progress?.phase === 'pairing' ? search.progress.candidates : []);
+}, resoudre = false): Partial<Recherche> & { projection: PublicationClassement } {
+  const bruts = search.result?.candidates ?? (search.progress?.phase === 'pairing' && 'candidates' in search.progress ? search.progress.candidates : []);
   // Les anciennes fixtures n'avaient qu'une ligne ATQ ; le transport réel
   // porte les huit lignes, y compris celles que l'assertion ne lit pas.
   const stats = computeStats(e.fiche);
@@ -29,12 +33,8 @@ export function rechercheClasseeTest(search: Partial<Recherche>, e: {
     resolution: e.optimiser ? { fiche: e.fiche,
       artifactParams: { porteur: { element: 'fire', archetype: 'attack' }, inventaire: e.fiche.artifacts, equipes: e.fiche.artifacts, principaleParSorte: {}, lignesVerrouillees: [] },
       regime: 'aucun', degats: null, exclusive, requirement: params.requirement, relicContext: undefined } : null });
-  let classement!: PublicationClassement;
-  const adapter = new AdaptateurClassement();
-  const corps = new CorpsClassement({ publier: (p) => {
-    classement = adapter.appliquer(p);
-    corps.acquitter(p.generationCache, p.revisionCache, classement.candidats.length, p.versions);
-  }, resoudre: () => {}, incident: () => {} }, false, 'directe');
+  let classement!: InstantaneClassement;
+  const corps = new CorpsClassement({ publier: (p) => { classement = p; }, resoudre: () => {}, incident: () => {} }, false, 'directe');
   corps.ouvrir(photo, 1, e.vue, 1);
   const colonnes = creerColonnesCandidats(); candidats.forEach((c) => ajouterObjetCandidat(colonnes, c));
   const lots = extraireBlocs(colonnes); lots.forEach((b, i) => corps.ajouter(1, i, b));
@@ -44,9 +44,12 @@ export function rechercheClasseeTest(search: Partial<Recherche>, e: {
   } else corps.activer(1);
   if (resoudre) { do { corps.pomper(0); } while (corps.travailEnRepli); }
   corps.publier(0, true);
-  return { ...search, classement, contexte: photo,
-    ...(search.result ? { result: { ...search.result, candidates: classement.candidats } } : {}),
-    ...(search.progress?.phase === 'pairing' ? { progress: { ...search.progress, candidates: classement.candidats } } : {}) };
+  // La page ne reçoit que le bilan et l'instantané, jamais les candidats.
+  const { result, progress, ...reste } = search;
+  const sansCandidats = <T extends object>(o: T) => { const { candidates: _c, ...r } = o as T & { candidates?: unknown }; return r; };
+  return { ...reste, classement, contexte: photo, projection: corps.projection(),
+    ...(result !== undefined ? { result: result && { ...sansCandidats(result), nombre: candidats.length } } : {}),
+    ...(progress !== undefined ? { progress: progress && (sansCandidats(progress) as BuildOptimProgress) } : {}) };
 }
 
 /** Observer seulement la recherche ; le classeur et son aller-retour restent réels. */

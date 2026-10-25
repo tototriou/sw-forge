@@ -33,7 +33,7 @@ const RECHERCHER_DANS_LA_RANGEE = 'w-full @[448px]/rangee:w-60 @[448px]/rangee:f
 // grands nombres ; préparation, erreur et refus tiennent dans sa place) :
 // sa copie invisible fixe la hauteur de la barre fine de A1.
 const PROGRESSION_LA_PLUS_HAUTE: Omit<ProgressionRechercheProps, 'status'> = {
-  progress: { phase: 'pairing', explored: 999_999_999_999, found: 999_999, pct: 1, totalPairs: 999_999_999_999, candidates: [] },
+  progress: { phase: 'pairing', explored: 999_999_999_999, found: 999_999, pct: 1, totalPairs: 999_999_999_999 },
   refusal: null,
   compteAffiche: { compte: 999_999 },
 };

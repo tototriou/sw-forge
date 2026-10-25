@@ -8,8 +8,6 @@ import { CacheResolutionCompact } from '../src/lib/cacheResolutionCompact';
 import { fixtureClassementCombat } from './classement-fixture';
 import { egal, ok, titre } from './outils';
 import { banc as bancDiffere } from './classement-publication.test';
-import { AdaptateurClassement } from '../src/lib/adaptateurClassement';
-import { verifierOracle } from './classement-distant.test';
 
 /** Compte chaque lecture numérique, y compris celle d'un maillon ignoré. */
 function observer(colonne: Uint32Array, lire: () => void, ecrire = () => {}): Uint32Array {
@@ -169,8 +167,6 @@ export function testClassementSelectionExhaustiveTransitions() {
     changer({ page: 2 }); verifier('navigation après un tri : la page demandée repasse devant');
     b.corps.changerVue({ ...vue, page: 99 }, idVue - 1, 999);
     verifier('vieille vue sans effet');
-    b.corps.acquitter(-1, 0, b.candidats.length, { idRecherche: 1, idVue: 1, idDemande: 1, revisionPubliee: 1 });
-    verifier('vieil ACK sans effet');
     const derniere = verifier('avant clear')[0];
     interne.cache.clear(); connu(derniere, false); verifier('nouvelle génération de cache et repli complet');
     b.corps.liberer();
@@ -198,11 +194,10 @@ export function testClassementSelectionExhaustiveTransitions() {
 }
 
 export function testClassementSelectionExhaustiveDifferee() {
-  titre('Sélection exhaustive — vrai corps différé, réponses retenues et ACK retardé');
+  titre('Sélection exhaustive — vrai corps différé et réponses retenues');
   const b = bancDiffere(), interne = b.corps as unknown as Interne;
   b.ouvrir(1);
   ok(b.f.photo.toutVerifier, 'la recherche différée exerce K infini');
-  const initiale = b.publications[0];
   b.corps.recevoirResolution(b.produire(), 1);
   ok(b.corps.travailEnCours && interne.cache.size === 1, 'une vraie réponse commet le cache puis programme la tâche différée');
   egal(interne.restants().length, 0, 'pendant la tâche, les choix sont indisponibles');
@@ -214,16 +209,10 @@ export function testClassementSelectionExhaustiveDifferee() {
   const choix = interne.restants();
   egal(choix.length, b.f.candidats.length - 2, 'les deux groupes commis sont retirés de la sélection exhaustive');
   egal(interne.restants().slice(0, 3).map(cleBuild), choix.slice(0, 3).map(cleBuild), 'les lectures répétées ne consomment pas les demandes suivantes en vol');
-  egal(b.publications.length, 1, 'ACK initial retardé : aucune réexpédition de source');
-  b.acquitter(initiale);
   b.pomper(400);
-  let lues = 1;
-  const adopter = () => { while (lues < b.publications.length) b.acquitter(b.publications[lues++]); };
-  adopter();
-  for (let i = 3; i <= b.f.candidats.length; i++) { b.repondre(400 + i); adopter(); }
+  for (let i = 3; i <= b.f.candidats.length; i++) b.repondre(400 + i);
   const finale = b.publications[b.publications.length - 1];
   egal([interne.cache.size, finale.enAttente], [b.f.candidats.length, 0], 'la vraie dernière réponse force la publication finale après pompage');
-  const adaptateur = new AdaptateurClassement();
-  for (const p of b.publications) verifierOracle(adaptateur.appliquer(p), b.f.photo);
+  b.verifierTout();
   ok(b.maximum() <= 2, 'le chemin différé maintient la limite de deux demandes sans réponse');
 }

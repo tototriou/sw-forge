@@ -468,19 +468,17 @@ export function testRelicClassementParMode() {
   /* ── L'écran appelle CE producteur, et la carte lit la MÊME relique ────── */
   {
     const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
-    ok(ecran.includes('optionsDuContexte(contexteResultatAffiche, fileArtefacts.parBuild, fileArtefacts.vue.metric)'),
-      'écran : les options du tri affiché viennent de la photographie et du cache publié');
-    // La valeur passée à la carte, qu'elle soit écrite en prop JSX ou dans
-    // les propriétés calculées par l'écran pour chaque carte.
-    ok(/etatRelique(=\{|: )etatReliqueDe\(c\)/.test(ecran), 'écran : la relique affichée par la carte est celle que le score compte');
-    // L'ordre de BASE (`fullSortedCandidates`) est affiché TEL QUEL tant que
-    // la file n'a rien résolu — toujours, quand l'optimisation d'artéfacts
-    // est coupée (mode `off`). Il doit compter la relique fixe, sans lire le
-    // cache de la file (qui se nourrit de cet ordre).
-    ok(ecran.includes('const fullSortedCandidates = fileArtefacts.base;'),
-      'écran : ordre de base publié par le propriétaire, sans nouveau tri sur le fil de l’écran');
-    ok(/const etatReliqueDe = useCallback\([\s\S]{0,400}?\[fileArtefacts\.parBuild, contexteResultatAffiche\]/.test(ecran),
-      'écran : etatReliqueDe dépend des pièces photographiées et du cache de cette publication');
+    // Les valeurs qui classent la carte viennent du classeur (`scoreDuCandidat`
+    // avec les options du classement affiché) ; l'écran ne note rien.
+    ok(!/optionsDuContexte|scoreDuCandidat\(/.test(ecran) && /const total = carte\?\.pvEffectifs as number;/.test(ecran)
+      && /const total = carte\?\.degatsReels as number;/.test(ecran),
+      'écran : PV effectifs et Dégâts réels des cartes sont ceux que le classeur a notés, jamais recalculés');
+    // La valeur passée à la carte : l'état de la relique que le score compte,
+    // lu dans l'équipement de la carte et la photographie.
+    ok(/etatRelique: etatReliqueDuBuild\(carte\?\.resultat \?\? undefined, photo\?\.recherche\.relicContext, photo\?\.fiche\.relic\)/.test(ecran),
+      'écran : la relique affichée par la carte est celle que le score compte');
+    // Ces valeurs sont celles de `scoreDuCandidat` avec les options de la
+    // photographie et du cache : verifierInstantane (classement-distant.test.ts).
     // Le CLI : même producteur ; sans cache de file, `fixe` en off/equipped
     // (relique de la fiche, `SearchParams.relic`), `en attente` en recherche.
     // Ces options de l'ordre de BASE vivent dans

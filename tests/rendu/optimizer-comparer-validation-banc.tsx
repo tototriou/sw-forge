@@ -5,10 +5,9 @@ import OptimizerSection from '../../src/components/outils/OptimizerSection';
 import { useOptimizerState, type OptimizerState } from '../../src/hooks/useOptimizerState';
 import { useOptimizerLists, type UseOptimizerLists } from '../../src/hooks/useOptimizerLists';
 import { setPersistence } from '../../src/hooks/usePersistence';
-import { classerEnLocal } from '../../src/lib/classementCompact';
 import { contexteResultat } from '../../src/lib/contexteResultat';
 import { resoudreContexteRelique } from '../../src/lib/relicOptim';
-import { fixtureClassementCombat } from '../classement-fixture';
+import { classerPourLaPage, fixtureClassementCombat } from '../classement-fixture';
 import type { Monster } from '../../src/types';
 
 // Le résultat est synthétique ; hooks, effets, validation et cartes sont ceux de l'application.
@@ -16,9 +15,9 @@ const f = fixtureClassementCombat('ehp');
 const relicContext = resoudreContexteRelique({ mode: 'off', principale: 'libre', type: 'libre', seuil: 6 }, f.photo.fiche.relic, []);
 const photo = contexteResultat({ ...f.photo, params: { ...f.params, relicContext, objective: 'degats_reels' },
   resolution: { ...f.photo.resolution!, relicContext } });
-const publication = classerEnLocal(photo, f.candidats, f.vue);
-const resultat = { ...publication.bilan, explored: 42, truncated: false, nearMissByCondition: [], globalNearMiss: null,
-  candidates: publication.candidats };
+const { instantane: publication } = classerPourLaPage(photo, f.candidats, f.vue);
+const resultat = { ...publication.bilan!, nombre: publication.comptes.recus };
+const cartes = publication.page.cartes.map(c => c.candidat);
 const monster: Monster = { id: 1, com2usId: 1, name: 'Test', element: 'fire', archetype: 'attack', stars: 6,
   naturalStars: 5, secondAwaken: false, image: null, leaderSkill: null,
   stats: { hp: 10000, attack: 700, defense: 600, speed: 100, critRate: 15, critDamage: 50, resistance: 15, accuracy: 0 } };
@@ -27,7 +26,7 @@ const allMonsters = [monster], rtaEntries = {}, siegeDefenseTeams: [] = [], sieg
 const data = { box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById: new Map([['1', monster]]) };
 const runeIds = new Set(f.params.pool.map(r => r.id));
 let etat: OptimizerState, listes: UseOptimizerLists, afficherResultat: () => void;
-const photoInitiale = JSON.stringify(photo), ordreInitial = publication.affichees;
+const photoInitiale = JSON.stringify(photo), ordreInitial = publication.page.cartes;
 
 function Banc() {
   listes = useOptimizerLists();
@@ -61,16 +60,16 @@ export async function monter() {
   await geste(() => { listes.addMember(listId, { source: 'box', unitKey: '1' }, monster.com2usId!); });
   await geste(() => { etat.choisirMembre(listId, { source: 'box', unitKey: '1' }); });
   await geste(afficherResultat);
-  const indice = publication.affichees.findIndex(c => c.runeIds[0] !== f.photo.fiche.runes[0].id);
+  const indice = cartes.findIndex(c => c.runeIds[0] !== f.photo.fiche.runes[0].id);
   if (indice < 0) throw new Error('La fixture ne fournit pas de carte différente de la fiche');
-  return { indice, labels: publication.affichees[indice].stats.map(s => s.label) };
+  return { indice, labels: cartes[indice].stats.map(s => s.label) };
 }
 
 export function etatApresValidation() {
   return {
     valide: listes.validated.length === 1,
     photoConservee: JSON.stringify(photo) === photoInitiale,
-    ordreConserve: publication.affichees === ordreInitial,
+    ordreConserve: publication.page.cartes === ordreInitial,
     contexteVivantDistinct: etat.damageSetup.enemyDef !== photo.damageSetup.enemyDef,
     runesValidees: listes.validated[0]?.runeIds ?? [],
   };

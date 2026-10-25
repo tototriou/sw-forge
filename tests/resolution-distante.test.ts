@@ -919,19 +919,17 @@ export function testResolutionDistante() {
 
   /* ── 7. L'adaptateur et l'écran ─────────────────────────────────────── */
   titre('Résolution hors du fil — délégation au propriétaire de la recherche');
-  const hook = sansCommentaires(readFileSync('src/hooks/useArtifactOptimQueue.ts', 'utf8'));
   const ecran = sansCommentaires(readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8'));
-  ok(!/new Worker|CacheResolutionJournalise|resoudreEquipementDuBuild/.test(hook),
-    'adaptateur : aucun Worker, cache mutable ou repli de calcul sur le fil de l’écran');
-  ok(hook.includes('changerVue({ tri, metric, page })'),
-    'adaptateur : seuls les réglages de vue sont envoyés au propriétaire');
+  ok(!/new Worker|CacheResolutionJournalise|resoudreEquipementDuBuild/.test(ecran),
+    'écran : aucun Worker, cache mutable ou repli de calcul sur le fil de l’écran');
+  ok(ecran.includes('changerVue({ tri: sortBy, metric, page: resultsPage })'),
+    'écran : seuls les réglages de vue sont envoyés au propriétaire');
   ok(ecran.includes('const photo = contexteResultat({ params, fiche: selected.gear,')
     && ecran.includes('requirement: requirementAvecAuras, relicContext: params.relicContext')
     && ecran.includes('run(params, photo,'),
     'écran : les entrées de résolution sont photographiées avec les paramètres et le contexte relique du lancement');
-  ok(ecran.includes('const affichees = fileArtefacts.affichees;')
-    && ecran.includes('optionsDuContexte(contexteResultatAffiche, fileArtefacts.parBuild, fileArtefacts.vue.metric)'),
-    'écran : classement propriétaire et options de sa photographie, sans nouveau tri');
+  ok(ecran.includes('const instantane = search.classement;') && !/optionsDuContexte|sortCandidates|classementResolu/.test(ecran),
+    'écran : il lit l’instantané du propriétaire, sans options de classement ni nouveau tri');
 
   /* ── 8. Un seul producteur des runes d'un build ──────── */
   titre('Résolution hors du fil — un seul producteur des runes d’un build');

@@ -3,7 +3,7 @@ import type { GabaritCandidat } from './candidatsCompacts';
 import type { ChangementResolution, JournalResolution, ResultatArtefacts } from './artifactQueue';
 
 const TAILLE = 4096;
-type Bloc = { ids: Float64Array[]; stats: Float64Array[]; pieces: Uint32Array[]; nombres: Float64Array[]; flags: Uint8Array; modifie: Uint8Array; revision: Float64Array };
+type Bloc = { ids: Float64Array[]; stats: Float64Array[]; pieces: Uint32Array[]; nombres: Float64Array[]; flags: Uint8Array };
 
 /** Map de transport reconstruite à la sortie seulement ; aucune clé chaîne conservée par build. */
 export class CacheResolutionCompact extends Map<string, ResultatArtefacts> {
@@ -19,38 +19,10 @@ export class CacheResolutionCompact extends Map<string, ResultatArtefacts> {
   private revision = 0;
   private dernier: { cle: string; resultat: ResultatArtefacts } | null = null;
   private dernierJournal: JournalResolution | undefined;
-  private modifications: Uint32Array[] = [];
-  private nombreModifications = 0;
 
   override get size() { return this.nombre; }
   get journal() { return this.dernierJournal; }
   get version() { return this.revision; }
-  private marquer(i: number): void {
-    const b = this.bloc(i), j = i % TAILLE;
-    b.revision[j] = this.revision;
-    if (b.modifie[j]) return;
-    b.modifie[j] = 1;
-    if (this.nombreModifications % TAILLE === 0) this.modifications.push(new Uint32Array(TAILLE));
-    this.modifications[Math.floor(this.nombreModifications / TAILLE)][this.nombreModifications % TAILLE] = i;
-    this.nombreModifications++;
-  }
-  changements(): [string, ResultatArtefacts][] {
-    const resultat: [string, ResultatArtefacts][] = [];
-    for (let k = 0; k < this.nombreModifications; k++) {
-      const i = this.modifications[Math.floor(k / TAILLE)][k % TAILLE];
-      resultat.push([this.ids(i).join(','), this.resultat(i)]);
-    }
-    return resultat;
-  }
-  acquitter(revision: number): void {
-    let conserves = 0;
-    for (let k = 0; k < this.nombreModifications; k++) {
-      const i = this.modifications[Math.floor(k / TAILLE)][k % TAILLE], b = this.bloc(i), j = i % TAILLE;
-      if (b.revision[j] <= revision) b.modifie[j] = 0;
-      else { this.modifications[Math.floor(conserves / TAILLE)][conserves % TAILLE] = i; conserves++; }
-    }
-    this.nombreModifications = conserves; this.modifications.length = Math.ceil(conserves / TAILLE);
-  }
   private bloc(i: number) { return this.blocs[Math.floor(i / TAILLE)]; }
   private ids(i: number) { const b = this.bloc(i), j = i % TAILLE; return b.ids.map((c) => c[j]); }
   private emplacement(ids: number[], table = this.table): number {
@@ -98,7 +70,7 @@ export class CacheResolutionCompact extends Map<string, ResultatArtefacts> {
       this.table[p] = i + 1;
       if (i % TAILLE === 0) this.blocs.push({ ids: Array.from({ length: 6 }, () => new Float64Array(TAILLE)),
         stats: Array.from({ length: 8 }, () => new Float64Array(TAILLE)), pieces: Array.from({ length: 5 }, () => new Uint32Array(TAILLE)),
-        nombres: [new Float64Array(TAILLE), new Float64Array(TAILLE)], flags: new Uint8Array(TAILLE), modifie: new Uint8Array(TAILLE), revision: new Float64Array(TAILLE) });
+        nombres: [new Float64Array(TAILLE), new Float64Array(TAILLE)], flags: new Uint8Array(TAILLE) });
     }
     const b = this.bloc(i), j = i % TAILLE;
     ids.forEach((id, k) => { b.ids[k][j] = id; });
@@ -119,7 +91,6 @@ export class CacheResolutionCompact extends Map<string, ResultatArtefacts> {
     b.flags[j] = Number(resultat.conforme) | (resultat.paire ? 2 : 0) | (resultat.meilleurSansVerrous !== null ? 4 : 0)
       | (Object.prototype.hasOwnProperty.call(resultat, 'relique') ? 8 : 0) | (resultat.sansEffetSurLeTri ? 16 : 0);
     if (!Number.isSafeInteger(++this.revision)) throw new Error('Révision de cache épuisée');
-    this.marquer(i);
     this.dernier = { cle, resultat };
     const changement: ChangementResolution = { cle, avant, apres: resultat };
     this.dernierJournal = { generation: this.generation, version: this.revision, tailleAvant, tailleApres: this.nombre, changements: [changement] };
@@ -139,7 +110,6 @@ export class CacheResolutionCompact extends Map<string, ResultatArtefacts> {
     this.blocs = []; this.nombre = 0; this.table = new Uint32Array(1024); this.gabarits = null;
     this.arts = []; this.reliques = []; this.indicesArts.clear(); this.indicesReliques.clear();
     this.generation = {}; this.revision = 0; this.dernier = null; this.dernierJournal = undefined;
-    this.modifications = []; this.nombreModifications = 0;
   }
   override delete(_cle: string): boolean { throw new Error('Le cache vivant ne retire pas de résolution'); }
   override *entries(): MapIterator<[string, ResultatArtefacts]> { for (let i = 0; i < this.nombre; i++) yield [this.ids(i).join(','), this.resultat(i)]; }

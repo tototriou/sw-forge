@@ -1,6 +1,7 @@
-import type { BuildCandidate, RealDamageContext, SearchParams } from '../src/lib/runeBuildOptim';
-import type { VueClassement } from '../src/lib/classementCompact';
-import { contexteResultat } from '../src/lib/contexteResultat';
+import type { BuildCandidate, RealDamageContext, SearchParams, SearchResult } from '../src/lib/runeBuildOptim';
+import { CorpsClassement, type InstantaneClassement, type VueClassement } from '../src/lib/classementCompact';
+import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs } from '../src/lib/candidatsCompacts';
+import { contexteResultat, type ContexteResultat } from '../src/lib/contexteResultat';
 import { DEFAULT_DAMAGE_SETUP, artifactDamageProfile, estPrisEnCharge, skillDamageProfile } from '../src/lib/damage';
 import { computeStats } from '../src/lib/stats';
 import { resoudreContexteRelique } from '../src/lib/relicOptim';
@@ -57,6 +58,25 @@ export function fixtureClassementCombat(objective: 'degats_reels' | 'ehp') {
   return { params, photo, vue, candidats };
 }
 
+/**
+ * Le vrai corps du classeur, résolution directe jusqu'au point fixe : son
+ * dernier instantané (ce que la page reçoit) et sa projection objet (oracle).
+ */
+export function classerPourLaPage(photo: ContexteResultat, candidats: readonly BuildCandidate[], vue: VueClassement,
+  bilan: Omit<SearchResult, 'candidates'> | null = { explored: 42, truncated: false, nearMissByCondition: [], globalNearMiss: null }) {
+  let instantane: InstantaneClassement | null = null;
+  const corps = new CorpsClassement({ publier: (p) => { instantane = p; },
+    resoudre: () => { throw new Error('Résolution distante sur le classement local'); }, incident: (r) => { throw new Error(r); } }, false, 'directe');
+  corps.ouvrir(photo, 1, vue, 1);
+  const colonnes = creerColonnesCandidats(); candidats.forEach((c) => ajouterObjetCandidat(colonnes, c));
+  const lots = extraireBlocs(colonnes); lots.forEach((b, i) => corps.ajouter(1, i, b));
+  corps.sceller(1, candidats.length, lots.length - 1, bilan);
+  do { corps.pomper(0); } while (corps.travailEnRepli);
+  corps.publier(1e9, true);
+  if (!instantane) throw new Error('Classement sans publication');
+  return { instantane: instantane as InstantaneClassement, projection: corps.projection(), corps };
+}
+
 /** Transport de résultat vide pour les bancs d'import ; le propriétaire est conservé. */
 export class ClassementVideTest {
   onmessage: ((e: MessageEvent) => void) | null = null;
@@ -72,7 +92,8 @@ export class ClassementVideTest {
       this.onmessage?.(new MessageEvent('message', { data: { type: 'publication', versionSchema: 1, publication: {
         versions: { versionSchema: 1, idRecherche: m.idRecherche, idInventaire: m.contexte.idInventaire, idContexteResolution: 1, revisionDonnees: 1,
           idVue: 1, revisionPubliee: 1, idDemande: m.idDemande }, vue: m.vue,
-        candidats: [], ordreBase: new Uint32Array(), ordreAffiche: new Uint32Array(), generationCache: 1, revisionCache: 0, changements: [], enAttente: 0,
+        comptes: { recus: 0, affichables: 0, resolus: 0, confirmees: 0, avecFile: false },
+        page: { premierRang: 1, cartes: [], placesEnAttente: 0 }, enAttente: 0, incident: null,
         bilan: { explored: 1, truncated: false, nearMissByCondition: [], globalNearMiss: null },
       } } }));
     });

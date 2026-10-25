@@ -65,7 +65,8 @@ export function testRetraitAdaptationMigrations() {
   const entrees = resolutionDuContexte(f.photo)!;
   ok(entrees.regime === 'ehp', 'résolution : régime de l’objectif lancé');
   let derniere: { idContexte: number; generation: number } | null = null;
-  const corps = new CorpsClassement({ publier: (p) => { derniere = { idContexte: p.versions.idContexteResolution, generation: p.generationCache }; },
+  const corps: CorpsClassement = new CorpsClassement({ publier: (p) => { derniere = { idContexte: p.versions.idContexteResolution,
+    generation: (corps as unknown as { generationCache: number }).generationCache }; },
     resoudre: () => {}, incident: () => {} }, false, 'directe');
   corps.ouvrir(f.photo, 1, f.vue, 1);
   const colonnes = creerColonnesCandidats(); f.candidats.forEach((c) => ajouterObjetCandidat(colonnes, c));

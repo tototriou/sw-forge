@@ -18,7 +18,8 @@ function banc(nombre: number, toutVerifier: boolean) {
   const vue: VueClassement = { tri: 'efficience', metric: 'eff', page: 1 };
   const resolution = new CorpsResolution(), reponses: ReponseResolution[] = [];
   let demandes = 0, generation = -1;
-  const corps = new CorpsClassement({ publier: (p) => { generation = p.generationCache; },
+  // La génération du cache est interne : l'instantané n'en dit rien à la page.
+  const corps: CorpsClassement = new CorpsClassement({ publier: () => { generation = (corps as unknown as { generationCache: number }).generationCache; },
     resoudre: (m) => { if (m.type === 'resoudre') demandes++; reponses.push(...resolution.recevoir(m)); }, incident: () => {} });
   corps.ouvrir(photo, 1, vue, 1);
   const colonnes = creerColonnesCandidats(); candidats.forEach(c => ajouterObjetCandidat(colonnes, c));

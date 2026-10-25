@@ -214,6 +214,6 @@ export function testClassementResolu() {
 
   // Raccordement : l'écran classe par CE producteur.
   const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
-  ok(ecran.includes('const affichees = fileArtefacts.affichees;'),
-    'écran : le classement affiché est la publication du corps compact, sans tri parallèle');
+  ok(ecran.includes('const instantane = search.classement;') && !/classementResolu|sortCandidates/.test(ecran),
+    'écran : la page affichée est l’instantané du corps compact, sans tri parallèle');
 }

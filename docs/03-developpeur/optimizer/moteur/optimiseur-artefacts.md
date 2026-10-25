@@ -464,4 +464,12 @@ non-finis, journaux manquants et travail par différence à l'oracle.
 `testClassementDistantPanne` et `testClassementBranchementApp` ajoutent la
 photographie immuable, les générations et vues dépassées, les ports réels,
 le repli après perte du résolveur et la navigation pendant la recherche.
-Ces contrôles ne prouvent aucun gain de temps au navigateur.
+`verifierInstantane` (tests/classement-distant.test.ts) compare chaque
+instantané publié à ce que l'écran calculait sur la projection complète
+(comptes, page, cartes et valeurs) ; `testClassementInstantaneBorne` montre
+qu'aucune publication ne porte de tableau de plus de vingt éléments, de 40 à
+2 000 builds ; `testTriSansNouvelleResolution` et
+`testToutVerifierPhotographie`, que tri, mesure et réglages ne résolvent rien ;
+`testClassementCession…`, que les tranches cèdent par message de canal sans
+affamer les messages reçus. Ces contrôles ne prouvent aucun gain de temps au
+navigateur.

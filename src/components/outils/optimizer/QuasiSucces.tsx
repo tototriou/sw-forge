@@ -5,7 +5,7 @@ import { type StatKey } from '../../../lib/effects';
 import { type DamageSetup, type SetAura } from '../../../lib/damage';
 
 export interface QuasiSuccesProps {
-  result: SearchResult;
+  result: Pick<SearchResult, 'globalNearMiss' | 'nearMissByCondition'>;
   runeById: Map<number, RuneDetail>;
   metric: RuneMetric;
   objective: Objective;

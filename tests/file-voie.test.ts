@@ -79,12 +79,6 @@ export function testVoieDeLaFile() {
     egal(voie([build(1), build(2), build(7)], deja), 'page', 'piège — un nouveau candidat entre dans la page : idem');
   }
 
-  titre('File de résolution — le hook, contrôlé sur la source');
-
-  const hook = readFileSync('src/hooks/useArtifactOptimQueue.ts', 'utf8');
-  ok(!/requestIdleCallback|new Worker|CacheResolutionJournalise/.test(hook),
-    'aucune voie de calcul ou cache n’est conservé sur le fil de l’écran');
-  ok(hook.includes('changerVue({ tri, metric, page })'),
-    'priorité de page déléguée au propriétaire par la vue ; la cible de fond est photographiée');
-  ok(!hook.includes('terminate('), 'démonter l’adaptateur ne termine pas le propriétaire');
+  // L'écran ne garde ni file ni cache : il envoie sa vue au classeur et n'en
+  // reçoit que l'instantané (testClassementBranchementApp).
 }

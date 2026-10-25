@@ -296,11 +296,11 @@ export function testCompositionDePage() {
 
   const brut = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8').replace(/\r\n/g, '\n');
   const src = brut.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  ok(/const composition = useMemo\(\s*\(\) =>\s*compositionDePage\(\{\s*classement: affichees,\s*parBuild: resoudreEquipement != null \? fileArtefacts\.parBuild : null,\s*page: resultsPage,\s*taillePage: RESULTS_PAGE_SIZE,\s*\}\),\s*\[affichees, resoudreEquipement, fileArtefacts\.parBuild, resultsPage\]\s*\);/.test(src),
-    'écran : `composition` vient du classement affiché et du cache publié (null sans file), page courante');
-  egal((src.match(/compositionDePage\(/g) ?? []).length, 1, 'écran : un seul appel à `compositionDePage`');
-  ok(/pageAfficheeRef\.current = composition\.aVerifier;/.test(src), 'file : la « page affichée » qu’elle sert en priorité est `composition.aVerifier`');
-  egal((src.match(/pageAfficheeRef\.current = /g) ?? []).length, 1, 'file : une seule écriture de la page qu’elle sert');
+  ok(/const cartes = instantane\?\.page\.cartes \?\? AUCUNE_CARTE;/.test(src) && /placesEnAttente: instantane\?\.page\.placesEnAttente \?\? 0,/.test(src),
+    'écran : cartes et places viennent de l’instantané composé par le classeur');
+  egal((src.match(/compositionDePage\(/g) ?? []).length, 0, 'écran : aucune page recomposée sur le fil de l’écran');
+  // Le classeur compose cette page selon la même règle : verifierInstantane
+  // (tests/classement-distant.test.ts) la compare à `compositionDePage`.
   // La grille à l'écran — une carte par build de la page, rang compté depuis
   // le premier de la page, une place « Vérification… » par build en attente :
   // `testRenduOptimizerResultatsCartes`.

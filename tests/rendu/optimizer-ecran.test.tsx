@@ -197,14 +197,14 @@ export function testRenduOptimizerLigneFile() {
   titre('rendu · Optimizer — ligne « N combinaison(s) en vérification… » de l’en-tête des résultats');
   const entete = (avecFile: boolean, enAttente: number) => rendre(
     <EnteteResultats
-      result={resultat(3) as unknown as SearchResult}
+      result={{ nombre: 3, explored: 10, truncated: false, nearMissByCondition: [], globalNearMiss: null }}
       compteConfirmes={{ confirmees: 1, nonVerifies: 2, pages: 1, aucune: false }}
-      resoudreEquipement={avecFile ? ((() => null) as unknown as EnteteResultatsProps['resoudreEquipement']) : null}
+      avecFile={avecFile}
       sortBy="atk"
       setSortBy={() => {}}
       setResultsPage={() => {}}
       realDamage={null}
-      fileArtefacts={{ enAttente, parBuild: new Map() } as unknown as EnteteResultatsProps['fileArtefacts']}
+      enAttente={enAttente}
       compteAffiche={{ compte: 3, ecartes: 0, raison: null }}
     />,
   );

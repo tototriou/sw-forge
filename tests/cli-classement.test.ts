@@ -62,7 +62,6 @@ import { contexteDeResultatCli } from '../scripts/lib/classementCli';
 import { compositionDePage } from '../src/lib/artifactQueue';
 import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs } from '../src/lib/candidatsCompacts';
 import { ResolutionDistante } from '../src/workers/resolutionDistante';
-import { AdaptateurClassement } from '../src/lib/adaptateurClassement';
 import { optionsDuContexte } from '../src/lib/contexteResultat';
 
 const LUSHEN = 13413;
@@ -111,12 +110,7 @@ export async function testCliClassementDifferentiel() {
   for (const pageImprimee of [false, true]) {
     const vue: VueClassement = { tri: recipe.objective, metric: recipe.metric, page: 1, pageImprimee };
     let publication!: PublicationClassement;
-    const adaptateur = new AdaptateurClassement();
-    const corps = new CorpsClassement({ publier: (p) => {
-      publication = adaptateur.appliquer(p);
-      // La projection a adopté la source et les différences de cette publication.
-      corps.acquitter(p.generationCache, p.revisionCache, publication.candidats.length, p.versions);
-    }, resoudre: () => {}, incident: () => {} }, false, 'directe');
+    const corps = new CorpsClassement({ publier: () => {}, resoudre: () => {}, incident: () => {} }, false, 'directe');
     // Un seul crédit isole le choix de priorité de la prélecture du transport.
     const observation = corps as unknown as { pilote: ResolutionDistante; cache: Map<string, ResultatArtefacts>; restants(): BuildCandidate[] };
     observation.pilote = new ResolutionDistante(1);
@@ -128,7 +122,8 @@ export async function testCliClassementDifferentiel() {
     const ordreResolution: string[] = [];
     const cacheOracle = new Map<string, ResultatArtefacts>(), resoudreOracle = resoudreEquipementCli(recipe, LOADED, params)!;
     for (let garde = 0; garde < 5000; garde++) {
-      corps.publier(garde * 400, true);
+      // La projection objet du corps, celle que lit le CLI, à chaque transition.
+      corps.publier(garde * 400, true); publication = corps.projection();
       const cache = observation.cache, options = optionsOracleCli(recipe, params, degats, cache);
       if (!isDeepStrictEqual([...cache], [...cacheOracle])) throw new Error(`Écart de cache ou d'ordre de résolution à ${cache.size} résolutions`);
       const anciennes = classementResolu(base, cache, recipe.objective, options);

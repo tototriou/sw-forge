@@ -18,8 +18,8 @@ let resolution: MessagePort | null = null;
 function poster(r: ReponseClassement) { self.postMessage(r); }
 const corps = creerCorps();
 function creerCorps(): CorpsClassement {
-  return new CorpsClassement({ publier: (publication) => self.postMessage({ type: 'publication', versionSchema: 1, publication },
-    [publication.ordreBase.buffer as ArrayBuffer, publication.ordreAffiche.buffer as ArrayBuffer]),
+  // L'instantané de la page est petit : il se clone, rien n'est transféré.
+  return new CorpsClassement({ publier: (publication) => poster({ type: 'publication', versionSchema: 1, publication }),
     resoudre: (m) => { if (!resolution) throw new Error('Canal de résolution absent'); resolution.postMessage(m); },
     incident: (raison, detail) => {
       resolution?.close(); resolution = null;
@@ -75,7 +75,6 @@ self.onmessage = (e: MessageEvent<MessageVersClassement | Branchement>) => prote
     poster({ type: 'ouverte', versionSchema: 1, idRecherche: generation, idDemande: m.idDemande }); programmer(); return;
   }
   if (m.idRecherche !== generation) return;
-  if (m.type === 'publicationRecue') { corps.acquitter(m.generationCache, m.revisionCache, m.nombre, m); programmer(); return; }
   if (m.type === 'vue') {
     corps.changerVue(m.vue, m.idVue, m.idDemande);
     poster({ type: 'vueRecue', versionSchema: 1, idRecherche: generation, idDemande: m.idDemande, idVue: m.idVue }); programmer();

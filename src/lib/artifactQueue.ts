@@ -770,23 +770,41 @@ export function compteConfirme(e: {
   taillePage: number;
   termine: boolean;
 }): CompteConfirme {
-  if (e.parBuild === null) {
-    return {
-      confirmees: e.trouves,
-      nonVerifies: 0,
-      pages: Math.max(1, Math.ceil(e.recus.length / e.taillePage)),
-      aucune: e.termine && e.trouves === 0,
-    };
-  }
   let confirmees = 0;
   let resolus = 0;
-  for (const c of e.recus) {
+  if (e.parBuild !== null) for (const c of e.recus) {
     const r = e.parBuild.get(cleBuild(c));
     if (r === undefined) continue;
     resolus++;
     if (r.conforme) confirmees++;
   }
-  const nonVerifies = e.recus.length - resolus;
+  return compteConfirmeDesComptes({ recus: e.recus.length, resolus, confirmees, avecFile: e.parBuild !== null,
+    trouves: e.trouves, taillePage: e.taillePage, termine: e.termine });
+}
+
+/**
+ * La même règle sur des comptes : l'écran ne reçoit du classeur que ses
+ * comptes (reçus, résolus, confirmées), jamais la liste des reçus.
+ */
+export function compteConfirmeDesComptes(e: {
+  recus: number;
+  resolus: number;
+  confirmees: number;
+  avecFile: boolean;
+  trouves: number;
+  taillePage: number;
+  termine: boolean;
+}): CompteConfirme {
+  if (!e.avecFile) {
+    return {
+      confirmees: e.trouves,
+      nonVerifies: 0,
+      pages: Math.max(1, Math.ceil(e.recus / e.taillePage)),
+      aucune: e.termine && e.trouves === 0,
+    };
+  }
+  const { confirmees } = e;
+  const nonVerifies = e.recus - e.resolus;
   const pagesConfirmees = Math.ceil(confirmees / e.taillePage);
   const pages = Math.max(1, Math.min(Math.ceil((confirmees + nonVerifies) / e.taillePage), pagesConfirmees + 1));
   return { confirmees, nonVerifies, pages, aucune: e.termine && confirmees === 0 && nonVerifies === 0 };

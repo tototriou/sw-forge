@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { BuildCandidate, SearchParams, SearchResult } from '../lib/runeBuildOptim';
+import type { SearchParams, SearchResult } from '../lib/runeBuildOptim';
 import type { RelicContext, RelicVide } from '../lib/relicOptim';
 import { coeursPhysiques } from '../lib/bureau';
 import type { ContexteResultat } from '../lib/contexteResultat';
-import type { PublicationClassement, VueClassement } from '../lib/classementCompact';
+import type { InstantaneClassement, VueClassement } from '../lib/classementCompact';
 import { ClassementDistant, type ReponseClassement } from '../workers/classementDistant';
 import type { DemandeDeRecherche, WorkerResponse } from '../workers/runeBuildOptim.worker';
 
@@ -11,7 +11,9 @@ export type BuildOptimStatus = 'idle' | 'running' | 'done' | 'error' | 'refused'
 export interface HalfBuildProgress { scanned: number; total: number; pct: number }
 export type BuildOptimProgress =
   | { phase: 'building'; halves: { A: HalfBuildProgress | null; B: HalfBuildProgress | null } }
-  | { phase: 'pairing'; explored: number; found: number; pct: number; totalPairs: number; candidates: BuildCandidate[] };
+  | { phase: 'pairing'; explored: number; found: number; pct: number; totalPairs: number };
+/** Le bilan d'une recherche finie, sans ses candidats : ils restent dans le classeur. */
+export type BilanRecherche = Omit<SearchResult, 'candidates'> & { nombre: number };
 type Classement = { worker: Worker; resolution: Worker | null; pilote: ClassementDistant };
 
 /** Propriétaire remonté dans App : la navigation ne termine aucun de ces Workers. */
@@ -21,15 +23,15 @@ export function useBuildOptimSearch() {
   const runIdRef = useRef(0);
   const demarrerRef = useRef<((idRecherche: number) => void) | null>(null);
   const arretDemandeRef = useRef(false);
-  const publicationRef = useRef<PublicationClassement | null>(null);
+  const publicationRef = useRef<InstantaneClassement | null>(null);
   const vueRef = useRef<VueClassement | null>(null);
   const [status, setStatus] = useState<BuildOptimStatus>('idle');
-  const [result, setResult] = useState<SearchResult | null>(null);
+  const [result, setResult] = useState<BilanRecherche | null>(null);
   const [progress, setProgress] = useState<BuildOptimProgress | null>(null);
   const [refusal, setRefusal] = useState<{ motif: 'relique-pool-vide'; vide: RelicVide } | null>(null);
   const [relicContext, setRelicContext] = useState<RelicContext | undefined>(undefined);
   const [contexte, setContexte] = useState<ContexteResultat | null>(null);
-  const [classement, setClassement] = useState<PublicationClassement | null>(null);
+  const [classement, setClassement] = useState<InstantaneClassement | null>(null);
   const coeursPhysiquesRef = useRef<number | null>(null);
   useEffect(() => {
     let actif = true;
@@ -61,6 +63,7 @@ export function useBuildOptimSearch() {
     const myRunId = runIdRef.current;
     setStatus('running'); setResult(null); setProgress(null); setRefusal(null);
     setRelicContext(params.relicContext); setContexte(photo); vueRef.current = vue;
+    publicationRef.current = null; setClassement(null);
     try {
       let d = classementRef.current;
       if (!d) {
@@ -69,13 +72,10 @@ export function useBuildOptimSearch() {
           publier: (p) => {
             const precedent = publicationRef.current;
             publicationRef.current = p; setClassement(p);
-            if (!p) return;
-            if (p.bilan) {
-              const premierBilan = !precedent?.bilan || precedent.versions.idRecherche !== p.versions.idRecherche;
-              if (premierBilan || precedent.candidats !== p.candidats) setResult({ ...p.bilan, candidates: p.candidats });
-              if (premierBilan) { setProgress(null); setStatus('done'); }
+            if (!p?.bilan) return;
+            if (!precedent?.bilan || precedent.versions.idRecherche !== p.versions.idRecherche) {
+              setResult({ ...p.bilan, nombre: p.comptes.recus }); setProgress(null); setStatus('done');
             }
-            else setProgress((courant) => courant?.phase === 'pairing' ? { ...courant, candidates: p.candidats } : courant);
           }, ouverte: (id) => demarrerRef.current?.(id), erreur: echouer,
           incident: (raison, detail) => {
             console.error(`File de résolution : ${raison} — repli dans le classeur.`, detail);
@@ -122,8 +122,7 @@ export function useBuildOptimSearch() {
                 ...(prev?.phase === 'building' ? prev.halves : { A: null, B: null }),
                 [data.half]: { scanned: data.scanned, total: data.total, pct: data.pct },
               } }));
-              else setProgress({ phase: 'pairing', explored: data.explored, found: data.found, pct: data.pct,
-                totalPairs: data.totalPairs, candidates: publicationRef.current?.candidats ?? [] });
+              else setProgress({ phase: 'pairing', explored: data.explored, found: data.found, pct: data.pct, totalPairs: data.totalPairs });
             } else if (data.type === 'refus') {
               distant.pilote.liberer(); setRefusal({ motif: data.motif, vide: data.vide }); setProgress(null); setStatus('refused');
             } else if (data.type === 'error') echouer(new Error(data.message));
@@ -150,7 +149,8 @@ export function useBuildOptimSearch() {
   const stop = useCallback(() => { arretDemandeRef.current = true; workerRef.current?.postMessage({ stop: true }); }, []);
   const cancel = useCallback(() => { terminerRecherche(); classementRef.current?.pilote.liberer(); }, [terminerRecherche]);
   const reset = useCallback(() => {
-    cancel(); setStatus('idle'); setResult(null); setProgress(null); setRefusal(null); setRelicContext(undefined); setContexte(null);
+    cancel(); publicationRef.current = null; setClassement(null);
+    setStatus('idle'); setResult(null); setProgress(null); setRefusal(null); setRelicContext(undefined); setContexte(null);
   }, [cancel]);
   useEffect(() => () => { terminerRecherche(); detruireClassement(); }, [terminerRecherche, detruireClassement]);
   return { status, result, progress, refusal, relicContext, contexte, classement, changerVue, run, stop, cancel, reset };

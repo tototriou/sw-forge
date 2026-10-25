@@ -1,17 +1,15 @@
 import type { ContexteResultat } from '../lib/contexteResultat';
-import type { PublicationClassement, PublicationTransport, VueClassement } from '../lib/classementCompact';
-import { AdaptateurClassement } from '../lib/adaptateurClassement';
+import type { InstantaneClassement, VueClassement } from '../lib/classementCompact';
 
 export type MessageVersClassement =
   | { type: 'ouvrir'; versionSchema: 1; idRecherche: number; idDemande: number; contexte: ContexteResultat; vue: VueClassement }
   | { type: 'vue'; versionSchema: 1; idRecherche: number; idDemande: number; idVue: number; vue: VueClassement }
   | { type: 'liberer'; versionSchema: 1; idRecherche: number; idDemande: number }
-  | { type: 'publicationRecue'; versionSchema: 1; idRecherche: number; idVue: number; idDemande: number; revisionPubliee: number; generationCache: number; revisionCache: number; nombre: number }
   | { type: 'panneResolution'; versionSchema: 1; idRecherche: number; raison: string; detail: unknown };
 export type ReponseClassement =
   | { type: 'ouverte'; versionSchema: 1; idRecherche: number; idDemande: number }
   | { type: 'vueRecue'; versionSchema: 1; idRecherche: number; idDemande: number; idVue: number }
-  | { type: 'publication'; versionSchema: 1; publication: PublicationTransport }
+  | { type: 'publication'; versionSchema: 1; publication: InstantaneClassement }
   | { type: 'liberee'; versionSchema: 1; idRecherche: number; idDemande: number }
   | { type: 'incidentResolution'; versionSchema: 1; idRecherche: number; raison: string; detail: unknown }
   | { type: 'erreur'; versionSchema: 1; idRecherche: number; message: string };
@@ -31,11 +29,11 @@ export class ClassementDistant {
   private actif = false;
   private mort = false;
   private ouverture: number | null = null;
-  private adaptateur = new AdaptateurClassement();
 
   constructor(private readonly ports: {
     envoyer: (m: MessageVersClassement) => void;
-    publier: (p: PublicationClassement | null) => void;
+    /** L'instantané de la vue courante, ou `null` quand une recherche s'ouvre ou se libère. */
+    publier: (p: InstantaneClassement | null) => void;
     ouverte: (idRecherche: number) => void;
     erreur: (erreur: unknown) => void;
     incident: (raison: string, detail: unknown) => void;
@@ -60,7 +58,6 @@ export class ClassementDistant {
     this.actif = false; this.ouverture = null; this.demande = suivant(this.demande);
     this.envoyer({ type: 'liberer', versionSchema: 1, idRecherche: this.generation, idDemande: this.demande });
     this.ports.publier(null);
-    this.adaptateur.detruire();
   }
   private envoyer(m: MessageVersClassement): void {
     try { this.ports.envoyer(m); } catch (e) { this.panne(e); }
@@ -74,14 +71,10 @@ export class ClassementDistant {
     if (!this.actif) return;
     if (r.type === 'publication') {
       const v = r.publication.versions;
+      // Une seule recherche, un seul inventaire, la vue et la demande courantes : jamais un mélange.
       if (v.versionSchema !== 1 || v.idRecherche !== this.generation || v.idInventaire !== this.inventaire
         || v.idVue !== this.vue || v.idDemande !== this.demande || !Number.isSafeInteger(v.revisionPubliee) || v.revisionPubliee <= this.revision) return;
-      const p = r.publication;
-      const publication = this.adaptateur.appliquer(p);
-      this.revision = v.revisionPubliee; this.ports.publier(publication);
-      this.envoyer({ type: 'publicationRecue', versionSchema: 1, idRecherche: this.generation,
-        idVue: v.idVue, idDemande: v.idDemande, revisionPubliee: v.revisionPubliee,
-        generationCache: p.generationCache, revisionCache: p.revisionCache, nombre: publication.candidats.length }); return;
+      this.revision = v.revisionPubliee; this.ports.publier(r.publication); return;
     }
     if (r.idRecherche !== this.generation) return;
     if (r.type === 'ouverte' && r.idDemande === this.ouverture) { this.ouverture = null; this.ports.ouverte(this.generation); }
@@ -90,7 +83,6 @@ export class ClassementDistant {
     if (this.mort) return;
     this.mort = true;
     this.actif = false; this.ouverture = null;
-    this.adaptateur.detruire();
     this.ports.publier(null); this.ports.erreur(erreur);
   }
 }

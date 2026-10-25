@@ -1,7 +1,7 @@
-import { type SearchResult } from '../../../lib/runeBuildOptim';
+import { type BilanRecherche } from '../../../hooks/useBuildOptimSearch';
 
 export interface AvisRechercheTronqueeProps {
-  result: SearchResult;
+  result: BilanRecherche;
   stoppedManually: boolean;
 }
 

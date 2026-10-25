@@ -2,15 +2,14 @@ import { isDeepStrictEqual } from 'node:util';
 import { Worker, MessageChannel } from 'node:worker_threads';
 import { build } from 'esbuild';
 import { resolve } from 'node:path';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { ClassementDistant, type ReponseClassement, type MessageVersClassement } from '../src/workers/classementDistant';
-import { CorpsClassement, type PublicationClassement, type PublicationTransport, type VueClassement } from '../src/lib/classementCompact';
-import { AdaptateurClassement } from '../src/lib/adaptateurClassement';
+import { CorpsClassement, TAILLE_PAGE_CLASSEMENT, type InstantaneClassement, type PublicationClassement, type VueClassement } from '../src/lib/classementCompact';
 import { contexteResultat, optionsDuContexte, resolutionDuContexte } from '../src/lib/contexteResultat';
 import { entreeResolutionDuBuild, etatReliqueDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild } from '../src/lib/relicQueue';
 import { CorpsResolution, type ReponseResolution } from '../src/workers/resolutionBody';
-import { candidatAvecSaPaire, cleBuild, ordonnerParDepartage, type ResultatArtefacts } from '../src/lib/artifactQueue';
+import { candidatAvecSaPaire, cleBuild, compositionDePage, ordonnerParDepartage, type ResultatArtefacts } from '../src/lib/artifactQueue';
 import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs, tamponsCandidats } from '../src/lib/candidatsCompacts';
 import { aurasPropresParRunes, optionsDeClassement, scoreDeReference, scoreDuCandidat, sortCandidates, type BuildCandidate } from '../src/lib/runeBuildOptim';
 import { computeStats } from '../src/lib/stats';
@@ -58,14 +57,15 @@ export function testClassementBilanStable() {
     globalThis.Worker = b.Fil as unknown as typeof globalThis.Worker;
     const f = fixture(false); b.rendre().run(f.params, f.photo, f.vue);
     const fil = b.fils[0];
-    let transport!: PublicationTransport;
+    let transport!: InstantaneClassement;
     const corps = new CorpsClassement({ publier: (p) => { transport = p; }, resoudre: () => {}, incident: () => {} });
     corps.ouvrir(f.photo, 1, f.vue, 1);
     const bs = blocs(f.candidats); bs.forEach((b, i) => corps.ajouter(1, i, b));
     corps.sceller(1, f.candidats.length, bs.length - 1, BILAN); corps.publier(0, true);
     fil.onmessage({ data: { type: 'publication', versionSchema: 1, publication: transport } });
     const resultat = b.rendre().result, avant = b.ecritures.length;
-    fil.onmessage({ data: { type: 'publication', versionSchema: 1, publication: { ...transport, candidats: undefined,
+    egal(resultat?.nombre, f.candidats.length, 'le bilan porte le nombre de candidats, jamais les candidats');
+    fil.onmessage({ data: { type: 'publication', versionSchema: 1, publication: { ...transport,
       versions: { ...transport.versions, revisionPubliee: 2 } } } });
     ok(b.rendre().result === resultat, 'le résultat moteur garde son identité quand seul le classement est publié');
     egal(b.ecritures.length - avant, 1, 'seul le classement est mis à jour ; aucun setResult, setProgress ni setStatus redondant');
@@ -75,12 +75,10 @@ export function testClassementBilanStable() {
 export function testClassementPublicationForceeDifferee() {
   titre('Classeur — dernière attente de page pendant une notation différée');
   const f = fixture(), resolution = new CorpsResolution(), reponses: ReponseResolution[] = [];
-  const adapter = new AdaptateurClassement();
-  let derniere!: PublicationClassement;
+  let derniere!: InstantaneClassement;
   let publications = 0;
-  const corps = new CorpsClassement({ publier: (p) => {
-    publications++; derniere = adapter.appliquer(p);
-    corps.acquitter(p.generationCache, p.revisionCache, derniere.candidats.length, p.versions);
+  const corps: CorpsClassement = new CorpsClassement({ publier: (p) => {
+    publications++; derniere = p; verifierInstantane(p, corps.projection(), f.photo);
   },
     resoudre: (m) => { reponses.push(...resolution.recevoir(m)); }, incident: () => {} }, true);
   const drainer = () => { for (let garde = 0; corps.travailEnCours && garde < 10000; garde++) corps.avancer(); };
@@ -96,7 +94,7 @@ export function testClassementPublicationForceeDifferee() {
     if (resolues.size === 19) egal(publications, 1, 'aucune publication forcée avant la vraie fin de page');
   }
   egal(resolues.size, 20, 'vingt résolutions achevées, avec travail de fond restant');
-  ok(derniere.parBuild.size >= 20 && derniere.enAttente > 0, 'dernière carte publiée à 1 ms virtuel, sans attendre 400 ms ni vider le fond');
+  ok(derniere.page.cartes.length === TAILLE_PAGE_CLASSEMENT && derniere.enAttente > 0, 'dernière carte publiée à 1 ms virtuel, sans attendre 400 ms ni vider le fond');
 }
 function fixture(optimiser = true) {
   const candidats: BuildCandidate[] = [];
@@ -136,14 +134,38 @@ export function verifierOracle(p: PublicationClassement, photo: ReturnType<typeo
   ok(true, `publication ${p.versions.revisionPubliee} : ordre complet, lignes, doublons et notes identiques à l'oracle objet`);
 }
 
+/**
+ * L'instantané de la page est exactement ce que l'écran calculait sur la
+ * projection complète : comptes de `compteConfirme`/`compteAffichable`, page
+ * de `compositionDePage`, équipement et valeurs de chaque carte.
+ */
+export function verifierInstantane(i: InstantaneClassement, p: PublicationClassement, photo: ReturnType<typeof fixture>['photo']) {
+  verifierOracle(p, photo);
+  const avecFile = photo.resolution !== null;
+  let resolus = 0, confirmees = 0;
+  for (const c of p.candidats) { const r = p.parBuild.get(cleBuild(c)); if (r) { resolus++; if (r.conforme) confirmees++; } }
+  const comptes = { recus: p.candidats.length, affichables: p.affichees.length, resolus: avecFile ? resolus : 0, confirmees: avecFile ? confirmees : 0, avecFile };
+  const page = compositionDePage({ classement: p.affichees, parBuild: avecFile ? p.parBuild : null, page: p.vue.page, taillePage: TAILLE_PAGE_CLASSEMENT });
+  const options = optionsDuContexte(photo, p.parBuild, p.vue.metric), objectif = photo.recherche.objective;
+  const ehp = objectif === 'ehp' || p.vue.tri === 'ehp', degats = photo.realDamage !== null && (objectif === 'degats_reels' || p.vue.tri === 'degats_reels');
+  const cartes = page.cartes.map((c) => ({ candidat: c, resultat: avecFile ? p.parBuild.get(cleBuild(c)) ?? null : null,
+    pvEffectifs: ehp ? scoreDuCandidat(c, 'ehp', options) : null, degatsReels: degats ? scoreDuCandidat(c, 'degats_reels', options) : null }));
+  const attendu = { versions: p.versions, vue: p.vue, comptes, page: { premierRang: page.premierRang, cartes, placesEnAttente: page.placesEnAttente }, enAttente: p.enAttente, bilan: p.bilan };
+  const recu = { versions: i.versions, vue: i.vue, comptes: i.comptes, page: { ...i.page, cartes: i.page.cartes.map(({ ordinal: _o, ...c }) => c) }, enAttente: i.enAttente, bilan: i.bilan };
+  if (!isDeepStrictEqual(recu, attendu)) {
+    throw new Error(`ARRÊT instantané contre l'ancienne page : publication ${i.versions.revisionPubliee}\n${JSON.stringify(recu).slice(0, 600)}\n${JSON.stringify(attendu).slice(0, 600)}`);
+  }
+  ok(i.page.cartes.every((c) => p.candidats[c.ordinal].runeIds.join() === c.candidat.runeIds.join()),
+    `publication ${i.versions.revisionPubliee} : instantané égal à l'ancienne page (comptes, ${i.page.cartes.length} cartes, places, valeurs), ordinaux justes`);
+}
+
 export function testClassementDifferentielCombat() {
   titre('Classeur — oracle indépendant Dégâts réels et PV effectifs, paire et exclusive');
   for (const objectif of ['degats_reels', 'ehp'] as const) {
-    const f = fixtureClassementCombat(objectif), adaptateur = new AdaptateurClassement();
+    const f = fixtureClassementCombat(objectif);
     let derniere!: PublicationClassement;
-    const corps = new CorpsClassement({ publier: (p) => {
-      derniere = adaptateur.appliquer(p); verifierOracle(derniere, f.photo);
-      corps.acquitter(p.generationCache, p.revisionCache, derniere.candidats.length, p.versions);
+    const corps: CorpsClassement = new CorpsClassement({ publier: (p) => {
+      derniere = corps.projection(); verifierInstantane(p, derniere, f.photo);
     }, resoudre: () => {}, incident: () => {} }, false, 'directe');
     corps.ouvrir(f.photo, 1, f.vue, 1);
     const bs = blocs(f.candidats); bs.forEach((b, i) => corps.ajouter(1, i, b));
@@ -179,14 +201,17 @@ export function testClassementBancResultats() {
   const result = { ...BILAN, candidates: f.candidats.slice(0, 1) };
   const entree = { fiche, pool: f.params.pool, optimiser: true, vue: f.vue };
   const confirme = rechercheClasseeTest({ status: 'done', result }, entree, true);
-  ok(confirme.contexte?.resolution !== null && confirme.classement?.parBuild.get(cleBuild(result.candidates[0]))?.conforme === true,
+  ok(confirme.contexte?.resolution !== null && confirme.projection.parBuild.get(cleBuild(result.candidates[0]))?.conforme === true
+    && confirme.classement?.page.cartes.length === 1 && confirme.result?.nombre === 1,
     'le résultat injecté est réellement résolu, file active et cache publié');
   const rejete = rechercheClasseeTest({ status: 'done', result }, { ...entree, requirement: { sets: [], minStats: { spd: 999 } } }, true);
-  ok(rejete.classement?.parBuild.get(cleBuild(result.candidates[0]))?.conforme === false && rejete.classement.affichees.length === 0,
+  ok(rejete.projection.parBuild.get(cleBuild(result.candidates[0]))?.conforme === false && rejete.classement?.comptes.affichables === 0
+    && rejete.classement.page.cartes.length === 0,
     'condition impossible : vrai rejet de résolution, retiré du classement');
   const apercu = rechercheClasseeTest({ status: 'running', progress: { phase: 'pairing', explored: 10, found: 5, pct: 0.1, totalPairs: 100, candidates: result.candidates } },
     { ...entree, requirement: { sets: [], minStats: { spd: 999 } } }, true);
-  ok(apercu.progress?.phase === 'pairing' && apercu.progress.found === 5 && apercu.classement?.parBuild.size === 1 && apercu.classement.affichees.length === 0,
+  ok(apercu.progress?.phase === 'pairing' && apercu.progress.found === 5 && apercu.classement?.comptes.resolus === 1 && apercu.classement.comptes.affichables === 0
+    && !('candidates' in apercu.progress) && apercu.result === undefined,
     'aperçu : cinq trouvées et un rejet réellement publié, sans fabriquer de bilan final');
 }
 
@@ -212,13 +237,11 @@ export function testContexteResultatFige() {
 
 export function testClassementDistantVersions() {
   titre('Classeur distant — recherches, vues, publications et demandes distinctes');
-  const f = fixture(false), envoyes: MessageVersClassement[] = [], recus: PublicationClassement[] = [], erreurs: unknown[] = [];
+  const f = fixture(false), envoyes: MessageVersClassement[] = [], recus: InstantaneClassement[] = [], erreurs: unknown[] = [];
   let ouvertures = 0;
   const pilote = new ClassementDistant({ envoyer: (m) => envoyes.push(m), publier: (p) => { if (p) recus.push(p); }, ouverte: () => ouvertures++, erreur: (e) => erreurs.push(e), incident: () => {} });
-  let publication!: PublicationClassement;
-  let transport!: PublicationTransport;
-  const projection = new AdaptateurClassement();
-  const corps = new CorpsClassement({ publier: (p) => { transport = p; publication = projection.appliquer(p); }, resoudre: () => {}, incident: () => {} });
+  let transport!: InstantaneClassement;
+  const corps: CorpsClassement = new CorpsClassement({ publier: (p) => { transport = p; verifierInstantane(p, corps.projection(), f.photo); }, resoudre: () => {}, incident: () => {} });
   corps.ouvrir(f.photo, 1, f.vue, 1);
   const lots = blocs(f.candidats);
   lots.forEach((b, i) => corps.ajouter(1, i, b));
@@ -226,19 +249,21 @@ export function testClassementDistantVersions() {
   corps.sceller(1, f.candidats.length, lots.length - 1, BILAN);
   corps.ajouter(1, 0, structuredClone(lots[0]));
   corps.sceller(1, f.candidats.length, lots.length - 1, BILAN);
-  corps.publier(0, true); verifierOracle(publication, f.photo);
+  corps.publier(0, true);
   pilote.ouvrir(f.photo, f.vue);
   pilote.recevoir({ type: 'ouverte', versionSchema: 1, idRecherche: 1, idDemande: 1 });
   pilote.recevoir({ type: 'publication', versionSchema: 1, publication: transport });
   egal([ouvertures, recus.length], [1, 1], 'acquittement et première vue');
+  egal(envoyes.map((m) => m.type), ['ouvrir'], 'aucun acquittement de publication : l’instantané n’a rien à faire adopter');
   pilote.changerVue({ ...f.vue, tri: 'hp' });
   pilote.recevoir({ type: 'publication', versionSchema: 1, publication: { ...transport, versions: { ...transport.versions, revisionPubliee: 100 } } });
   egal(recus.length, 1, 'réponse de vue dépassée ignorée même avec une révision plus haute');
   const perimee = transport;
   corps.changerVue({ ...f.vue, tri: 'hp' }, 2, 2); corps.publier(1, true);
   pilote.recevoir({ type: 'publication', versionSchema: 1, publication: transport });
-  egal(recus.length, 2, 'la vue suivante conserve les candidats dont la publication dépassée n’a pas été acquittée');
-  verifierOracle(recus[1], f.photo);
+  egal(recus.length, 2, 'la vue suivante est publiée sans attendre aucun acquittement de l’ancienne');
+  pilote.recevoir({ type: 'publication', versionSchema: 1, publication: { ...transport, versions: { ...transport.versions, idInventaire: 99 } } });
+  egal(recus.length, 2, 'instantané d’un autre inventaire : jamais mélangé');
   pilote.ouvrir(f.photo, f.vue);
   pilote.recevoir({ type: 'publication', versionSchema: 1, publication: perimee });
   egal(recus.length, 2, 'réponse d’ancienne recherche après relance ignorée');
@@ -246,8 +271,8 @@ export function testClassementDistantVersions() {
   egal(recus.length, 2, 'réponse après libération ignorée');
   egal(erreurs, [], 'les réponses périmées ne sont pas des pannes');
 
-  const publicationsReprises: PublicationClassement[] = [], projectionReprise = new AdaptateurClassement();
-  const reprenable = new CorpsClassement({ publier: (p) => publicationsReprises.push(projectionReprise.appliquer(p)), resoudre: () => {}, incident: () => {} }, true);
+  const publicationsReprises: InstantaneClassement[] = [];
+  const reprenable: CorpsClassement = new CorpsClassement({ publier: (p) => { publicationsReprises.push(p); verifierInstantane(p, reprenable.projection(), f.photo); }, resoudre: () => {}, incident: () => {} }, true);
   reprenable.ouvrir(f.photo, 1, f.vue, 1);
   lots.forEach((b, i) => reprenable.ajouter(1, i, b)); reprenable.sceller(1, f.candidats.length, lots.length - 1, BILAN);
   for (let i = 0; i < 5; i++) reprenable.avancer();
@@ -257,18 +282,11 @@ export function testClassementDistantVersions() {
   ok(!reprenable.travailEnCours, 'la nouvelle vue termine les étapes sans dépendre d’un événement futur');
   reprenable.pomper(0);
   egal(publicationsReprises.map((p) => p.versions.idVue), [2], 'la vue abandonnée pendant la construction ne produit aucune publication');
-  verifierOracle(publicationsReprises[0], f.photo);
 
   const resolution = new CorpsResolution(), reponses: ReponseResolution[] = [];
-  const publications: PublicationClassement[] = [];
+  const publications: InstantaneClassement[] = [];
   const g = fixture();
-  const adapter = new AdaptateurClassement();
-  let projectionsSource = 0;
-  const classeur: CorpsClassement = new CorpsClassement({ publier: (p) => {
-    if (p.candidats !== undefined) projectionsSource++;
-    const vue = adapter.appliquer(p); verifierOracle(vue, g.photo); publications.push(vue);
-    classeur.acquitter(p.generationCache, p.revisionCache, vue.candidats.length, p.versions);
-  },
+  const classeur: CorpsClassement = new CorpsClassement({ publier: (p) => { verifierInstantane(p, classeur.projection(), g.photo); publications.push(p); },
     resoudre: (m) => reponses.push(...resolution.recevoir(m)), incident: () => {} });
   const alimenter = (id: number) => { classeur.ouvrir(g.photo, id, g.vue, id); const bs = blocs(g.candidats); bs.forEach((b, i) => classeur.ajouter(id, i, b)); classeur.sceller(id, g.candidats.length, bs.length - 1, BILAN); };
   alimenter(1); classeur.pomper(0);
@@ -276,7 +294,7 @@ export function testClassementDistantVersions() {
   alimenter(2); classeur.pomper(1);
   classeur.recevoirResolution(ancienne, 2);
   classeur.publier(3, true);
-  egal(publications[publications.length - 1].parBuild.size, 0, 'ancienne réponse du résolveur : aucun équipement écrit dans la nouvelle génération');
+  egal(publications[publications.length - 1].comptes.resolus, 0, 'ancienne réponse du résolveur : aucun équipement écrit dans la nouvelle génération');
   for (let garde = 0; garde < 100; garde++) {
     const r = reponses.shift() ?? resolution.etape();
     if (!r) break;
@@ -284,7 +302,6 @@ export function testClassementDistantVersions() {
   }
   classeur.publier(5, true);
   ok(publications[publications.length - 1].enAttente === 0, 'dernière réponse publiée sans dépendre d’un événement suivant');
-  egal(projectionsSource, 2, 'un tableau de candidats par génération, aucune réémission après acquittement');
 }
 
 async function fil(nom: string): Promise<Worker> {
@@ -296,8 +313,13 @@ export async function testClassementDistantPanne() {
   titre('Classeur distant — vrais ports, résolveur perdu, repli dans le propriétaire');
   const f = fixture(), classeur = await fil('classement'), resolution = await fil('resolution');
   const canal = new MessageChannel(), recherche = new MessageChannel();
-  let incident = false, derniere: PublicationClassement | null = null;
-  const adapter = new AdaptateurClassement();
+  let incident = false, derniere: InstantaneClassement | null = null, longueurMax = 0;
+  const longueur = (v: unknown, vus = new Set<unknown>()): number => {
+    if (v === null || typeof v !== 'object' || vus.has(v)) return 0;
+    vus.add(v);
+    const propre = ArrayBuffer.isView(v) ? (v as unknown as ArrayLike<unknown>).length : Array.isArray(v) ? v.length : 0;
+    return Math.max(propre, ...Object.values(v as Record<string, unknown>).map((x) => longueur(x, vus)));
+  };
   try {
     const fini = new Promise<void>((accepter, refuser) => {
       const filet = setTimeout(() => refuser(new Error('Classeur : délai de garde dépassé')), 15000);
@@ -320,10 +342,7 @@ export async function testClassementDistantPanne() {
             });
           }
           if (m.type === 'publication') {
-            derniere = adapter.appliquer(m.publication); verifierOracle(derniere, f.photo);
-            classeur.postMessage({ type: 'publicationRecue', versionSchema: 1, idRecherche: 1,
-              idVue: m.publication.versions.idVue, idDemande: m.publication.versions.idDemande, revisionPubliee: m.publication.versions.revisionPubliee,
-              generationCache: m.publication.generationCache, revisionCache: m.publication.revisionCache, nombre: derniere.candidats.length });
+            derniere = m.publication; longueurMax = Math.max(longueurMax, longueur(m));
             if (derniere.bilan && derniere.enAttente === 0) { clearTimeout(filet); accepter(); }
           }
         } catch (e) { clearTimeout(filet); refuser(e); }
@@ -333,16 +352,27 @@ export async function testClassementDistantPanne() {
     resolution.postMessage({ type: 'port', port: canal.port2 }, [canal.port2]);
     classeur.postMessage({ type: 'ouvrir', versionSchema: 1, idRecherche: 1, idDemande: 1, contexte: f.photo, vue: f.vue });
     await fini;
-    ok(incident && derniere !== null, 'incident rapporté ; le classeur termine la même file sans secours sur la page');
-    const publication = derniere as unknown as PublicationClassement;
+    const publication = derniere as unknown as InstantaneClassement;
+    ok(incident && publication.incident === 'panne injectée', 'incident rapporté et porté par l’instantané ; le classeur termine la même file sans secours sur la page');
+    ok(longueurMax <= TAILLE_PAGE_CLASSEMENT && publication.comptes.recus === f.candidats.length,
+      `vrai Worker : ses messages vers la page ne portent aucun tableau de plus de vingt éléments (max ${longueurMax}), les comptes disent N`);
     const entrees = resolutionDuContexte(f.photo)!;
     const runeById = new Map(f.photo.recherche.pool.map((r) => [r.id, r]));
     const caches = nouveauxCachesResolution();
-    for (const candidat of f.candidats) {
-      const attendu = resoudreEquipementDuBuild(entreeResolutionDuBuild({ ...entrees, runes: runesDuBuild(candidat, runeById), caches }));
-      if (!isDeepStrictEqual(publication.parBuild.get(cleBuild(candidat)), attendu)) throw new Error(`ARRÊT équipement contre résolution directe : ${cleBuild(candidat)}`);
+    const parBuild = new Map<string, ResultatArtefacts>();
+    for (const candidat of f.candidats) parBuild.set(cleBuild(candidat), resoudreEquipementDuBuild(entreeResolutionDuBuild({ ...entrees, runes: runesDuBuild(candidat, runeById), caches })));
+    for (const carte of publication.page.cartes) {
+      if (!isDeepStrictEqual(carte.resultat, parBuild.get(cleBuild(carte.candidat)))) throw new Error(`ARRÊT équipement contre résolution directe : ${cleBuild(carte.candidat)}`);
     }
-    ok(true, 'cache transporté : chaque paire, relique, conformité et StatRow identique à la résolution directe');
+    // Tout est résolu : l'oracle objet compose la même page à partir de la résolution directe.
+    const options = optionsOracle(f.photo, parBuild, f.vue.metric);
+    const base = sortCandidates(f.candidats, f.vue.tri, optionsOracle(f.photo, null, f.vue.metric));
+    const affichees = sortCandidates(ordonnerParDepartage(base.filter((c) => parBuild.get(cleBuild(c))?.conforme !== false),
+      (c) => parBuild.get(cleBuild(c))?.relique?.id).map((c) => candidatAvecSaPaire(c, parBuild)), f.vue.tri, options);
+    const page = compositionDePage({ classement: affichees, parBuild, page: 1, taillePage: TAILLE_PAGE_CLASSEMENT });
+    ok(isDeepStrictEqual(publication.page.cartes.map((c) => c.candidat), page.cartes) && page.cartes.length === TAILLE_PAGE_CLASSEMENT,
+      'cartes de la page : celles de l’oracle objet, dans son ordre, stats de la vraie paire');
+    ok(true, 'cache transporté : chaque paire, relique, conformité et StatRow des cartes identique à la résolution directe');
   } finally { recherche.port2.close(); await classeur.terminate(); await resolution.terminate(); }
 
   let erreurs = 0, publications = 0;
@@ -353,16 +383,27 @@ export async function testClassementDistantPanne() {
 }
 
 export function testClassementBranchementApp() {
-  titre('Classeur — branchement applicatif, navigation et panne');
+  titre('Classeur — branchement applicatif, instantané seul sur la page, navigation et panne');
   const lire = (chemin: string) => readFileSync(resolve(chemin), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
-  const hook = lire('src/hooks/useBuildOptimSearch.ts'), adaptateur = lire('src/hooks/useArtifactOptimQueue.ts');
+  const hook = lire('src/hooks/useBuildOptimSearch.ts');
   const ecran = lire('src/components/outils/OptimizerSection.tsx');
   ok(hook.includes("new URL('../workers/classement.worker.ts'") && hook.includes("new URL('../workers/resolution.worker.ts'") && hook.includes('classement: { port: canal.port2, idRecherche }'), 'le vrai hook crée les deux Workers et transfère le port de recherche');
-  ok(!/new Worker|resoudreEquipementDuBuild|CacheResolutionJournalise/.test(adaptateur) && adaptateur.includes('changerVue({'), 'l’adaptateur ne possède ni Worker, ni cache, ni résolution');
-  ok(ecran.includes('run(params, photo,') && ecran.includes('const photo = contexteResultat(') && ecran.includes('const affichees = fileArtefacts.affichees;'), 'la photo et le classement propriétaire alimentent le vrai écran');
+  ok(!existsSync(resolve('src/hooks/useArtifactOptimQueue.ts')) && !existsSync(resolve('src/lib/adaptateurClassement.ts')),
+    'l’adaptateur de l’écran et sa projection objet n’existent plus');
+  ok(ecran.includes('run(params, photo,') && ecran.includes('const photo = contexteResultat(') && ecran.includes('const instantane = search.classement;')
+    && ecran.includes('const cartes = instantane?.page.cartes ?? AUCUNE_CARTE;'), 'la photo et l’instantané du classeur alimentent le vrai écran');
+  ok(!/parBuild|fullSortedCandidates|affichees|compositionDePage\(|compteConfirme\(|optionsDuContexte|cleBuild\(/.test(ecran),
+    'l’écran ne lit ni cache, ni classement complet, ni composition : aucun parcours de N');
   ok(hook.includes('setStatus(\'error\')') && !/const \w+ = new RecepteurCandidats/.test(hook), 'perte du classeur via le canal d’erreur, sans récepteur de secours sur la page');
-  ok(hook.includes('d.worker.terminate(); d.resolution?.terminate();') && adaptateur.indexOf('terminate(') < 0, 'seul le propriétaire applicatif détruit les Workers ; démonter l’écran retire la souscription seulement');
+  ok(hook.includes('d.worker.terminate(); d.resolution?.terminate();'), 'seul le propriétaire applicatif détruit les Workers');
 
+  const plusLong = (v: unknown, vus = new Set<unknown>()): number => {
+    if (v === null || typeof v !== 'object' || vus.has(v)) return 0;
+    vus.add(v);
+    const propre = ArrayBuffer.isView(v) ? (v as unknown as ArrayLike<unknown>).length : Array.isArray(v) ? v.length : 0;
+    return Math.max(propre, ...Object.values(v as Record<string, unknown>).map((x) => plusLong(x, vus)));
+  };
+  const etatPage = (r: ReturnType<typeof banc.rendre>) => ({ status: r.status, result: r.result, progress: r.progress, classement: r.classement, contexteResolution: r.contexte?.resolution ?? null });
   const banc = monterRecherche(), ancienWorker = globalThis.Worker, ancienError = console.error;
   try {
     globalThis.Worker = banc.Fil as unknown as typeof globalThis.Worker;
@@ -375,21 +416,31 @@ export function testClassementBranchementApp() {
     const recherche = banc.fils.find((f: any) => f.url.pathname.includes('runeBuildOptim.worker'));
     const ancienGestionnaire = recherche.onmessage;
     ancienGestionnaire({ data: { type: 'progress', phase: 'pairing', explored: 12, found: 29, pct: 0.5, totalPairs: 42 } });
-    let transport!: PublicationTransport;
-    const corps = new CorpsClassement({ publier: (p) => { transport = p; }, resoudre: () => {}, incident: () => {} });
-    corps.ouvrir(f.photo, 1, f.vue, ouverture.idDemande);
-    blocs(f.candidats).forEach((b, i) => corps.ajouter(1, i, b)); corps.activer(1); corps.publier(0, true);
-    // Aucun adaptateur d'écran n'est monté : la recherche remonte seule dans App.
+    const publier = (id: number, idDemande: number, nombre = f.candidats.length) => {
+      let transport!: InstantaneClassement;
+      const corps = new CorpsClassement({ publier: (p) => { transport = p; }, resoudre: () => {}, incident: () => {} });
+      corps.ouvrir(f.photo, id, f.vue, idDemande);
+      const bs = blocs(f.candidats.slice(0, nombre)); bs.forEach((b, i) => corps.ajouter(id, i, b));
+      corps.sceller(id, nombre, bs.length - 1, BILAN); corps.publier(0, true);
+      return transport;
+    };
+    const transport = publier(1, ouverture.idDemande);
+    // Aucun écran n'est monté : la recherche remonte seule dans App.
     banc.rendre(); fil.onmessage({ data: { type: 'publication', versionSchema: 1, publication: transport } });
     const pendantNavigation = banc.rendre();
-    ok(pendantNavigation.status === 'running' && pendantNavigation.progress?.phase === 'pairing'
-      && pendantNavigation.progress.candidates.length === 29 && !fil.termine && !recherche.termine,
-      'navigation : progression et aperçu continuent dans l’état remonté, sans écran monté');
+    ok(pendantNavigation.status === 'done' && pendantNavigation.result?.nombre === f.candidats.length && !fil.termine,
+      'navigation : la publication scellée remonte dans l’état applicatif, sans écran monté');
+    ok(plusLong(etatPage(pendantNavigation)) <= 20,
+      `ce que reçoit l’écran (bilan, progression, instantané) ne porte aucun tableau de plus de vingt éléments (max ${plusLong(etatPage(pendantNavigation))})`);
     pendantNavigation.run(f.params, f.photo, f.vue);
     ancienGestionnaire({ data: { type: 'progress', phase: 'pairing', explored: 999, found: 999, pct: 1, totalPairs: 999 } });
     fil.onmessage({ data: { type: 'publication', versionSchema: 1, publication: transport } });
     ok(banc.rendre().status === 'running' && banc.rendre().progress === null && banc.rendre().classement === null,
       'relance : ancien gestionnaire de recherche et ancienne publication du classeur ignorés par le vrai hook');
+    const relance = fil.envoyes.filter((m: any) => m.type === 'ouvrir')[1];
+    fil.onmessage({ data: { type: 'publication', versionSchema: 1, publication: publier(2, relance.idDemande, 5) } });
+    const avantPanne = banc.rendre().classement;
+    ok(avantPanne?.versions.idRecherche === 2 && avantPanne.comptes.recus === 5, 'la nouvelle recherche publie sa première page');
     fil.onerror({ message: 'classeur perdu' });
     ok(banc.rendre().status === 'error' && banc.rendre().result === null && banc.rendre().classement === null
       && fil.termine && banc.fils.filter((f: any) => f.url.pathname.includes('resolution.worker')).every((f: any) => f.termine),

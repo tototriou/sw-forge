@@ -7,12 +7,12 @@ import { importerRecoOptimizer } from '../../lib/importRecoOptimizer';
 import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importerPrepaRtaOptimizer, type RapportImportOptimizer } from '../../lib/importEquipes';
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
 import { computeStats } from '../../lib/stats';
-import { cleBuild, compositionDePage, compteAffichable, compteConfirme, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
+import { compteAffichable, compteConfirmeDesComptes, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
 import { etatReliqueDuBuild } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
-import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
-import { contexteResultat, optionsDuContexte, runesDuContexte } from '../../lib/contexteResultat';
+import { contexteResultat, runesDuContexte } from '../../lib/contexteResultat';
+import { TAILLE_PAGE_CLASSEMENT, type CarteClassement } from '../../lib/classementCompact';
 import {
   bornesArtefacts,
   chercherPaires,
@@ -37,8 +37,6 @@ import {
   rankBlockingConditions,
   BlockingConditionsDiagnosis,
   avecAurasConditions,
-  scoreDuCandidat,
-  optionsDeClassement,
   scoreDeReference,
   candidateMetricTotal,
   aurasPropresParRunes,
@@ -348,6 +346,7 @@ function memesIds(a: number[], b: number[]): boolean {
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
 // minimums de stats donnés. Voir docs/02-app/optimizer/.
 const AUCUNE_RECOMMANDATION: Reco[] = [];
+const AUCUNE_CARTE: CarteClassement[] = [];
 
 export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATION, box, runes, artifacts, relics, relicUsageById, optimizer, onImporterEquipe, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu, onMonstreHorsVue }: Props) {
   const [rapportImport, setRapportImport] = useState<RapportImportOptimizer | null>(null);
@@ -1776,7 +1775,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // de renvoyer 0 résultat — jamais à chaque frappe comme le palier 1.
   const blockingDiagnosis = useMemo<BlockingConditionsDiagnosis | null>(() => {
     if (!selected || !diagnoseBlockingEnabled) return null;
-    if (!result || result.candidates.length > 0) return null;
+    if (!result || result.nombre > 0) return null;
     const fige = search.contexte?.recherche;
     if (fige) return rankBlockingConditions({ base: fige.base, artifacts: fige.artifacts, artifactBounds: fige.artifactBounds, relic: fige.relic, pool: fige.pool, requirement: fige.requirement, metric: fige.metric });
     return rankBlockingConditions({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement: requirementAvecAuras, metric });
@@ -2152,45 +2151,15 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     });
   }
 
-  // Source des candidats affichés : le résultat FINAL une fois la recherche
-  // terminée, sinon l'aperçu EN DIRECT accumulé pendant qu'elle tourne (voir
-  // useBuildOptimSearch.ts) — pour voir des builds apparaître au fur et à
-  // mesure plutôt que d'attendre l'épuisement complet de l'espace de
-  // recherche. `null` tant qu'aucun des deux n'existe (recherche jamais
-  // lancée, ou encore en phase `building` — pas de candidat possible avant
-  // que l'appariement ait commencé).
+  // La vue (tri, mesure, page) part au classeur, qui en compose la page ;
+  // l'écran n'en reçoit que l'instantané : vingt cartes au plus, comptes,
+  // versions. Aucun de ces trois réglages ne résout d'équipement, sauf la page
+  // demandée en naviguant (le classeur le distingue d'un changement de tri).
+  const { changerVue } = search;
+  useEffect(() => { changerVue({ tri: sortBy, metric, page: resultsPage }); }, [changerVue, sortBy, metric, resultsPage]);
+  const instantane = search.classement;
 
-  // Tri CLIENT, sans relancer la recherche : le moteur collecte déjà les
-  // stats complètes de chaque candidat valide (voir runeBuildOptim.ts).
-  // ⚠️ Liste COMPLÈTE, plus limitée à 20 — la pagination ci-dessous découpe
-  // cette liste en pages, pour pouvoir visualiser TOUS les builds trouvés
-  // (jusqu'à `MAX_COLLECTED`, voir runeBuildOptim.ts), pas seulement les
-  // meilleurs 20.
-  // ⚠️ Le tri vit dans `sortCandidates` (runeBuildOptim.ts), PAS ici — il
-  // était inline, donc invisible et irréutilisable pour tout autre
-  // consommateur. Les scripts CLI prenaient `candidates[0]` ou
-  // `slice(0, 20)` en croyant lire les meilleurs, alors que le moteur ne
-  // trie pas par l'objectif. Une seule porte, comme `damageRelevantStats`.
-  // ⚠️ La relique de l'ordre de BASE, SANS le cache de la file : la file lit
-  // cet ordre (`triees`), il ne peut donc jamais se nourrir de ses résultats.
-  // Mais une relique FIXE (`off`, `equipped`) est connue d'avance : son effet
-  // unique compte dès ici — cet ordre est affiché tel quel tant que
-  // la file n'a rien résolu, toujours quand l'optimisation d'artéfacts est
-  // coupée, et les cartes le comptent. En `recherche` : neutre (`en attente`).
-  const etatReliqueDeBase = useCallback(
-    (_c: BuildCandidate) => etatReliqueDuBuild(undefined, relicContextRecherche, selected?.gear.relic),
-    [relicContextRecherche, selected?.gear.relic]
-  );
-  const fileArtefacts = useArtifactOptimQueue({ search, vue: {
-    tri: sortBy, metric, page: resultsPage,
-  } });
-  const fullSortedCandidates = fileArtefacts.base;
-
-  const RESULTS_PAGE_SIZE = 20;
-
-  // ⚠️ `composition` (la page affichée) est définie PLUS BAS, après la file
-  // d'optimisation d'artéfacts : elle dépend du classement corrigé par les
-  // paires trouvées, qui n'existe qu'une fois la file déclarée.
+  const RESULTS_PAGE_SIZE = TAILLE_PAGE_CLASSEMENT;
 
   /**
    * Optimisation d'artéfacts des meilleurs builds, EN TEMPS MASQUÉ pendant que
@@ -2267,55 +2236,14 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     [selected?.monster.com2usId, selected?.gear.relic, selected?.gear.artifacts, damageSetup, compterAurasResPre, regimeEquipement, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte, requirementAvecAuras, artefactsReserves, importDuCompte]
   );
 
-  /**
-   * Résout l'équipement d'UN build — paire ET relique, ensemble — pour la
-   * file : `resoudreEquipementDuBuild` (relicQueue.ts), la partie
-   * pure que `tests/relic-queue.test.ts` compare à l'oracle, avec l'entrée
-   * construite par `entreeResolutionDuBuild` — le producteur que le CLI
-   * appelle aussi : le build, le prédicat à relique
-   * fixe (`respecteConditionsPaireFixe` : minimums et maximums RES/PRE, les
-   * autres maximums restant hors filtre), les conditions complètes et
-   * le contexte relique de la recherche LANCÉE (jamais une
-   * relecture des trois champs).
-   *
-   * ⚠️ `null` quand l'optimisation est coupée : il n'y a alors qu'UNE paire
-   * possible (celle qui est portée), déjà comptée par `searchArtifacts`. La
-   * faire passer par la file lui ferait « choisir » entre un seul candidat,
-   * pour un résultat identique et cent tranches de temps masqué en pure
-   * perte.
-   *
-   * ⚠️ **La paire se choisit sur l'objectif de la recherche** : le régime
-   * effectif (`regimeEquipement`) est photographié au lancement ; le tri
-   * réordonne les cartes sans rien résoudre.
-   */
-  // Les chiffres des cartes lisent la photographie et la publication du propriétaire.
+  // Les chiffres des cartes lisent la photographie et l'instantané du classeur.
   const contexteResultatAffiche = search.contexte;
-  const optionsDuTriAffiche = useMemo(
-    () => contexteResultatAffiche
-      ? optionsDuContexte(contexteResultatAffiche, fileArtefacts.parBuild, fileArtefacts.vue.metric)
-      : optionsDeClassement({ realDamage, damageSetup, runeById, metric, aurasPropresDe,
-          artefactsDuBuild: () => null, etatReliqueDe: etatReliqueDeBase, contexteExclusive }),
-    [contexteResultatAffiche, fileArtefacts.parBuild, fileArtefacts.vue.metric, realDamage, damageSetup, runeById, metric, aurasPropresDe, etatReliqueDeBase, contexteExclusive]
-  );
-  // La fonction ne sert qu'à lire une résolution publiée ; l'écran ne résout plus.
-  const resoudreEquipement = useMemo(() => contexteResultatAffiche?.resolution
-    ? (c: BuildCandidate) => {
-        const r = fileArtefacts.parBuild.get(cleBuild(c));
-        if (!r) throw new Error('Équipement encore en vérification');
-        return r;
-      }
-    : null, [contexteResultatAffiche, fileArtefacts.parBuild]);
-  const etatReliqueDe = useCallback(
-    (c: BuildCandidate) => etatReliqueDuBuild(fileArtefacts.parBuild.get(cleBuild(c)),
-      contexteResultatAffiche?.recherche.relicContext, contexteResultatAffiche?.fiche.relic),
-    [fileArtefacts.parBuild, contexteResultatAffiche]
-  );
-  const affichees = fileArtefacts.affichees;
+  const avecFile = instantane ? instantane.comptes.avecFile : contexteResultatAffiche?.resolution != null;
   const aurasPropresDuResultat = useMemo(() => contexteResultatAffiche
     ? aurasPropresParRunes(runesDuContexte(contexteResultatAffiche)) : aurasPropresDe,
   [contexteResultatAffiche, aurasPropresDe]);
-  const publicationCouranteRef = useRef(search.classement?.versions);
-  publicationCouranteRef.current = search.classement?.versions;
+  const publicationCouranteRef = useRef(instantane?.versions);
+  publicationCouranteRef.current = instantane?.versions;
   const contexteReferenceResultat = useMemo(() => contexteResultatAffiche
     ? { degats: contexteResultatAffiche.realDamage, damageSetup: contexteResultatAffiche.damageSetup, exclusive: contexteResultatAffiche.exclusive }
     : contexteReference, [contexteResultatAffiche, contexteReference]);
@@ -2323,42 +2251,34 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const refEhpResultat = useMemo(() => ficheDeReference ? scoreDeReference('ehp', ficheDeReference, contexteReferenceResultat) : null, [ficheDeReference, contexteReferenceResultat]);
   const refDegatsResultat = useMemo(() => ficheDeReference ? scoreDeReference('degats_reels', ficheDeReference, contexteReferenceResultat) : null, [ficheDeReference, contexteReferenceResultat]);
 
-  // Le compte du MOTEUR : les candidats du résultat à la fin, le compte de la
+  // Le compte du MOTEUR : le nombre du bilan à la fin, le compte de la
   // progression pendant l'appariement (non plafonné, contrairement à l'aperçu).
-  const trouvesParLeMoteur = result ? result.candidates.length : progress?.phase === 'pairing' ? progress.found : fullSortedCandidates.length;
-  // Le compte des TROUVÉES : trouvés par le moteur,
-  // moins les builds que la résolution a écartés — ces derniers mesurés comme
-  // reçus moins affichables, jamais lus dans le cache de la file (voir
-  // `compteAffichable`). `affichees` change à chaque publication du cache : le
-  // compte suit, en pleine recherche comme après. Seule source de la ligne de
-  // progression et de la ligne de raison ; l'en-tête et les
-  // pages lisent les CONFIRMÉES (`compteConfirmes`, ci-dessous).
-  const compteAffiche = useMemo(
-    () =>
-      compteAffichable({
-        trouves: trouvesParLeMoteur,
-        recus: fullSortedCandidates.length,
-        affichables: affichees.length,
-        modeRecherche: relicContextRecherche?.mode === 'recherche',
-      }),
-    [trouvesParLeMoteur, fullSortedCandidates.length, affichees.length, relicContextRecherche?.mode]
-  );
+  const recus = instantane?.comptes.recus ?? 0;
+  const trouvesParLeMoteur = result ? result.nombre : progress?.phase === 'pairing' ? progress.found : recus;
+  // Le compte des TROUVÉES : trouvés par le moteur moins les écartés de la
+  // résolution, mesurés comme reçus moins affichables (deux comptes de
+  // l'instantané), jamais lus dans le cache de la file (voir
+  // `compteAffichable`). Seule source de la ligne de progression et de la
+  // ligne de raison ; l'en-tête et les pages lisent les CONFIRMÉES.
+  const compteAffiche = compteAffichable({
+    trouves: trouvesParLeMoteur,
+    recus,
+    affichables: instantane?.comptes.affichables ?? 0,
+    modeRecherche: relicContextRecherche?.mode === 'recherche',
+  });
   // Le compte des CONFIRMÉES : les builds de cette recherche résolus ET
-  // conformes, lus dans le cache publié de la file — un compte qui ne baisse
-  // jamais pendant une recherche. Seule source de l'en-tête, du nombre de pages
-  // et des contrôles masqués sous « Aucune combinaison… ». Sans file
-  // (optimisation d'artéfacts coupée), les trouvés, comme avant.
-  const compteConfirmes = useMemo(
-    () =>
-      compteConfirme({
-        recus: fullSortedCandidates,
-        parBuild: resoudreEquipement != null ? fileArtefacts.parBuild : null,
-        trouves: trouvesParLeMoteur,
-        taillePage: RESULTS_PAGE_SIZE,
-        termine: result != null,
-      }),
-    [fullSortedCandidates, resoudreEquipement, fileArtefacts.parBuild, trouvesParLeMoteur, result]
-  );
+  // conformes — un compte qui ne baisse jamais pendant une recherche. Seule
+  // source de l'en-tête, du nombre de pages et des contrôles masqués sous
+  // « Aucune combinaison… ». Sans file, les trouvés, comme avant.
+  const compteConfirmes = compteConfirmeDesComptes({
+    recus,
+    resolus: instantane?.comptes.resolus ?? 0,
+    confirmees: instantane?.comptes.confirmees ?? 0,
+    avecFile,
+    trouves: trouvesParLeMoteur,
+    taillePage: RESULTS_PAGE_SIZE,
+    termine: result != null,
+  });
   const totalResultsPages = compteConfirmes.pages;
 
   // ⚠️ CORRIGE la page courante, ne la remet PAS à 1 : un aperçu EN DIRECT
@@ -2373,27 +2293,18 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     setResultsPage((p) => Math.min(Math.max(p, 1), totalResultsPages));
   }, [totalResultsPages, setResultsPage]);
 
-  // La page affichée : les builds VÉRIFIÉS seuls,
-  // dans l'ordre réel, puis des places « Vérification… » jusqu'à ce que la page
-  // attend — une seule fonction pure, `compositionDePage`. Un build reçu de la
-  // recherche ne s'affiche pas avec sa paire supposée pour disparaître à la
-  // résolution : il apparaît une fois résolu et conforme, ou jamais. Sans file
-  // (optimisation d'artéfacts coupée), rien n'est à vérifier : la tranche du
-  // classement.
-  const composition = useMemo(
-    () =>
-      compositionDePage({
-        classement: affichees,
-        parBuild: resoudreEquipement != null ? fileArtefacts.parBuild : null,
-        page: resultsPage,
-        taillePage: RESULTS_PAGE_SIZE,
-      }),
-    [affichees, resoudreEquipement, fileArtefacts.parBuild, resultsPage]
-  );
-  // ⚠️ Renseignée à CHAQUE rendu : c’est ce qui fait qu’un changement de page
-  // repriorise la file sans rien relancer ni invalider. La file sert ces
-  // builds avant l'avance de fond (`prochainsATraiter`) ; vide quand la page est
-  // complète.
+  // La page affichée, composée par le classeur : les builds VÉRIFIÉS seuls,
+  // dans l'ordre réel, puis des places « Vérification… » (règle de
+  // `compositionDePage`). Un build reçu de la recherche ne s'affiche pas avec
+  // sa paire supposée pour disparaître à la résolution : il apparaît une fois
+  // résolu et conforme, ou jamais. Sans file, la tranche du classement.
+  const cartes = instantane?.page.cartes ?? AUCUNE_CARTE;
+  const composition = useMemo(() => ({
+    cartes: cartes.map((c) => c.candidat),
+    premierRang: instantane?.page.premierRang ?? 1,
+    placesEnAttente: instantane?.page.placesEnAttente ?? 0,
+    aVerifier: [],
+  }), [cartes, instantane?.page.premierRang, instantane?.page.placesEnAttente]);
   const hauteurCarte = useHauteurDesCartes(grilleResultatsRef);
 
   // Base « nue » du monstre choisi pour une stat — 0 tant qu'aucun monstre
@@ -2882,14 +2793,16 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
 
   // Ce que chaque carte de résultat reçoit de l'écran : sa paire, sa relique,
   // ses chiffres de classement et ses gestes (comparer, valider).
-  function proprietesCarte(c: BuildCandidate) {
+  function proprietesCarte(c: BuildCandidate, rang: number) {
     const photo = contexteResultatAffiche;
+    const carte = cartes[rang];
     const objectifDesCartes = photo?.recherche.objective ?? objective;
-    const triDesCartes = fileArtefacts.vue.tri;
+    const triDesCartes = instantane?.vue.tri ?? sortBy;
     const degatsDesCartes = photo ? photo.realDamage : realDamage;
     const combatDesCartes = photo?.damageSetup ?? damageSetup;
     const artefactsDesCartes = photo?.recherche.artifacts ?? searchArtifacts;
-    const versions = search.classement?.versions;
+    const artefactsDeLaCarte = carte?.resultat?.artefacts ?? artefactsDesCartes;
+    const versions = instantane?.versions;
     const encoreCourante = () => versions != null
       && publicationCouranteRef.current?.idRecherche === versions.idRecherche
       && publicationCouranteRef.current?.revisionPubliee === versions.revisionPubliee;
@@ -2900,14 +2813,14 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // Le repli sur la paire SUPPOSÉE ne sert que sans file
       // (optimisation coupée : la paire portée, la seule possible) —
       // avec file, une carte affichée est résolue.
-      artifacts: fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? artefactsDesCartes,
+      artifacts: artefactsDeLaCarte,
       // ⚠️ **Seule source** :
-      // `etatReliqueDuBuild` lit le cache de la file, jamais
+      // `etatReliqueDuBuild` lit l'équipement de la carte, jamais
       // recalculé ici — `fixe` (hors mode `recherche`) n'affiche
       // rien de nouveau, `rejete` n'arrive jamais jusqu'ici (le
       // classement écarte déjà ces builds). Par
       // `etatReliqueDe` : la relique que le score compte.
-      etatRelique: etatReliqueDe(c),
+      etatRelique: etatReliqueDuBuild(carte?.resultat ?? undefined, photo?.recherche.relicContext, photo?.fiche.relic),
       ...(() => {
         // ⚠️ Comparaison contre les stats de la FICHE — donc contre
         // le build validé quand il en existe un, sans avoir à le
@@ -2921,13 +2834,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           // dégâts réels : on peut avoir cherché sur un objectif puis
           // re-trié par PV effectifs, auquel cas le chiffre qui
           // ordonne les cartes doit être visible dessus.
-          // ⚠️ `scoreDuCandidat` avec les options du classement
-          // affiché : le chiffre qui a CLASSÉ la carte, Ténacité et
-          // points de la relique retenue compris.
+          // ⚠️ Le chiffre qui a CLASSÉ la carte : `scoreDuCandidat`
+          // avec les options du classement affiché, calculé par le
+          // classeur (Ténacité et points de la relique retenue compris).
           pvEffectifs:
             objectifDesCartes === 'ehp' || triDesCartes === 'ehp'
               ? (() => {
-                  const total = scoreDuCandidat(c, 'ehp', optionsDuTriAffiche)!;
+                  const total = carte?.pvEffectifs as number;
                   return { total, delta: compare && refEhpResultat != null ? total - refEhpResultat : undefined };
                 })()
               : undefined,
@@ -2960,11 +2873,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         degatsDesCartes && (objectifDesCartes === 'degats_reels' || triDesCartes === 'degats_reels')
           ? (() => {
               // ⚠️ Le chiffre qui a CLASSÉ la carte : `scoreDuCandidat`
-              // avec les options du classement affiché — profil
-              // d'artéfacts de CE build et Conquête de sa relique
-              // retenue compris. Une recopie de `computeTotalDamage`
-              // omettait la Conquête que le tri compte.
-              const total = scoreDuCandidat(c, 'degats_reels', optionsDuTriAffiche)!;
+              // avec les options du classement affiché, calculé par le
+              // classeur — profil d'artéfacts de CE build et Conquête de
+              // sa relique retenue compris. Une recopie de
+              // `computeTotalDamage` omettait la Conquête que le tri compte.
+              const total = carte?.degatsReels as number;
               return {
                 total,
                 partPvCible: combatDesCartes.enemyHp > 0 ? (total / combatDesCartes.enemyHp) * 100 : 0,
@@ -3007,7 +2920,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 lists.activeListId!,
                 sourceSelector,
                 c.runeIds,
-                (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? artefactsDesCartes).map((a) => a.id),
+                artefactsDeLaCarte.map((a) => a.id),
                 selected!.monster.com2usId!
               );
               optimizer.capturerMembre(lists.activeListId!, sourceSelector);
@@ -3019,7 +2932,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // chose que ce qu'on validerait rendrait le libellé menteur.
       validated: etatValidation(
         c.runeIds,
-        (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? artefactsDesCartes).map((a) => a.id)
+        artefactsDeLaCarte.map((a) => a.id)
       ),
       conflit: (() => {
         const conflits = conflitsDeRunes(c.runeIds);
@@ -3032,7 +2945,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
 
   // Ce que les deux formats partagent hors des réglages : les résultats et
   // les fenêtres (modales, dialogues), écrits une fois.
-  const resultatsPresents = result != null || fullSortedCandidates.length > 0;
+  const resultatsPresents = result != null || recus > 0;
   const blocResultats = (
     <>
       {resultatsPresents && (
@@ -3040,12 +2953,12 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           <EnteteResultats
             result={result}
             compteConfirmes={compteConfirmes}
-            resoudreEquipement={resoudreEquipement}
+            avecFile={avecFile}
             sortBy={sortBy}
             setSortBy={setSortBy}
             setResultsPage={setResultsPage}
             realDamage={contexteResultatAffiche ? contexteResultatAffiche.realDamage : realDamage}
-            fileArtefacts={fileArtefacts}
+            enAttente={instantane?.enAttente ?? 0}
             compteAffiche={compteAffiche}
             bureau={!sousLg}
           />
@@ -3058,7 +2971,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             blockingDiagnosis={blockingDiagnosis}
             diagnoseBlockingEnabled={diagnoseBlockingEnabled}
             runeById={contexteResultatAffiche ? runesDuContexte(contexteResultatAffiche) : runeById}
-            metric={fileArtefacts.vue.metric}
+            metric={instantane?.vue.metric ?? metric}
             objective={contexteResultatAffiche?.recherche.objective ?? objective}
             aurasPropresDe={aurasPropresDuResultat}
             damageSetup={contexteResultatAffiche?.damageSetup ?? damageSetup}
@@ -3088,7 +3001,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             metric={metric}
             openDetailKey={openDetailKey}
             onToggleDetail={(key: string) => {
-              const versions = search.classement?.versions, courantes = publicationCouranteRef.current;
+              const versions = instantane?.versions, courantes = publicationCouranteRef.current;
               if (!versions || versions.idRecherche !== courantes?.idRecherche || versions.revisionPubliee !== courantes.revisionPubliee) return;
               setOpenDetailKey((cur) => (cur === key ? null : key));
             }}

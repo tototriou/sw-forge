@@ -15,7 +15,7 @@ export function remplirCriteres(s: OptimizerState) {
   s.setSelectedId('1'); s.setGearSource('rta');
   s.setSourceSelector({ source: 'box', unitKey: '10' });
   s.setComboSets(['Swift']); s.setMinStats({ spd: 230 }); s.setMaxStats({ res: 80 });
-  s.setExcludeBase(false); s.setOptimiserArtefacts(false); s.setAdapterArtefactsAuTri(false);
+  s.setExcludeBase(false); s.setOptimiserArtefacts(false);
   s.setArtifactMainByKind({ element: 100 }); s.setRelicMainChoice(101); s.setRelicUniqueChoice(1);
   s.setLignesVerrouillees([{ code: 206, min: 12 }]); s.setMainStatsBySlot({ 2: [8] }); s.setLockedRunes({ 1: 123 });
   s.setObjective('degats_reels'); s.setSortBy('spd'); s.setCompterAurasResPre(false);
@@ -28,7 +28,7 @@ export function remplirCriteres(s: OptimizerState) {
 }
 
 const PERSONNELS_ANCIENS = [
-  'comboSets', 'minStats', 'maxStats', 'excludeBase', 'optimiserArtefacts', 'adapterArtefactsAuTri',
+  'comboSets', 'minStats', 'maxStats', 'excludeBase', 'optimiserArtefacts',
   'artifactMainByKind', 'relicMainChoice', 'relicUniqueChoice', 'lignesVerrouillees', 'mainStatsBySlot',
   'lockedRunes', 'objective', 'damageSetup', 'sortBy', 'compterAurasResPre',
 ] as const;

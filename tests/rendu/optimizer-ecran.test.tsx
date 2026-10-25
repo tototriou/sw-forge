@@ -12,8 +12,9 @@
 import { AVEC_MONSTRE, BOX, CHOISI, rendreOptimizer } from './optimizer.test';
 import { auTelephone, bouton, boutons, rendre, texteVisible } from './outils-rendu';
 import { egal, ok, titre } from '../outils';
-import type { BuildCandidate, SearchResult } from '../../src/lib/runeBuildOptim';
-import EnteteResultats, { type EnteteResultatsProps } from '../../src/components/outils/optimizer/EnteteResultats';
+import type { BuildCandidate, BuildRequirement } from '../../src/lib/runeBuildOptim';
+import EnteteResultats from '../../src/components/outils/optimizer/EnteteResultats';
+import { rechercheClasseeTest } from './optimizer-classement-banc';
 
 const EPUISEMENT = "Rechercher jusqu'à épuisement complet";
 const DIAGNOSTIC = 'Diagnostic approfondi sur 0 résultat';
@@ -137,7 +138,11 @@ const candidat = (i: number): BuildCandidate => ({ runeIds: [i, i + 100, i + 200
 const resultat = (n: number) => ({ candidates: Array.from({ length: n }, (_, i) => candidat(i + 1)), explored: 10, truncated: false, nearMissByCondition: [], globalNearMiss: null });
 type Reel = Parameters<Extract<Parameters<typeof rendreOptimizer>[0], (...a: never[]) => unknown>>[0];
 const recherche = (search: Record<string, unknown>, autres: Record<string, unknown> = {}) =>
-  rendreOptimizer((r: Reel) => ({ ...AVEC_MONSTRE, ...autres, search: { ...r.search, ...search } }));
+  rendreOptimizer((r: Reel) => ({ ...AVEC_MONSTRE, ...autres, search: { ...r.search, ...rechercheClasseeTest(search, {
+    fiche: BOX[0].gear!, pool: BOX[0].gear!.runes, optimiser: autres.optimiserArtefacts !== false,
+    requirement: { sets: r.comboSets, minStats: (autres.minStats ?? r.minStats) as BuildRequirement['minStats'] },
+    vue: { tri: r.sortBy, metric: 'eff', page: Number(autres.resultsPage ?? 1) },
+  }) } }));
 const selecteurTri = (html: string) => /<select\b[\s\S]*?Trier par /.test(html);
 
 export function testRenduOptimizerResultatsEntete() {
@@ -168,8 +173,8 @@ export function testRenduOptimizerResultatsEntete() {
   ok(tUn.includes('0 combinaison(s) confirmée(s)') && !tUn.includes("pour l'instant") && !tUn.includes('Aucune combinaison'),
     'recherche finie, file active, rien de vérifié : « 0 combinaison(s) confirmée(s) », jamais « Aucune »');
   ok(!!bouton(un, 'Combinaisons confirmées'), 'file active : l’infobulle « Combinaisons confirmées » à côté de l’en-tête');
-  ok(interrupteurs(un).some((x) => x.nom === 'Adapter les artéfacts et reliques au tri' && x.coche) && tUn.includes('Adapter les artéfacts et reliques au tri'),
-    '« Adapter les artéfacts et reliques au tri », affichant son état');
+  ok(!interrupteurs(un).some((x) => x.nom === 'Adapter les artéfacts et reliques au tri') && !tUn.includes('Adapter les artéfacts'),
+    'réglage retiré : aucun « Adapter les artéfacts et reliques au tri », le tri ne résout aucun équipement');
   ok(selecteurTri(un) && tUn.includes('Trier par ATQ'), '« Trier par » proposé');
   ok(!tUn.includes('Astuce : active le diagnostic approfondi'), 'des résultats : aucun diagnostic de 0 résultat');
 
@@ -192,17 +197,14 @@ export function testRenduOptimizerLigneFile() {
   titre('rendu · Optimizer — ligne « N combinaison(s) en vérification… » de l’en-tête des résultats');
   const entete = (avecFile: boolean, enAttente: number) => rendre(
     <EnteteResultats
-      result={resultat(3) as unknown as SearchResult}
+      result={{ nombre: 3, explored: 10, truncated: false, nearMissByCondition: [], globalNearMiss: null }}
       compteConfirmes={{ confirmees: 1, nonVerifies: 2, pages: 1, aucune: false }}
-      resoudreEquipement={avecFile ? ((() => null) as unknown as EnteteResultatsProps['resoudreEquipement']) : null}
-      optimiserArtefacts={avecFile}
-      adapterArtefactsAuTri
-      setAdapterArtefactsAuTri={() => {}}
+      avecFile={avecFile}
       sortBy="atk"
       setSortBy={() => {}}
       setResultsPage={() => {}}
       realDamage={null}
-      fileArtefacts={{ enAttente, parBuild: new Map() } as unknown as EnteteResultatsProps['fileArtefacts']}
+      enAttente={enAttente}
       compteAffiche={{ compte: 3, ecartes: 0, raison: null }}
     />,
   );

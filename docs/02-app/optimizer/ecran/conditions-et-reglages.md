@@ -210,13 +210,14 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
      en mode relique « recherche », voir
      ../../../03-developpeur/optimizer/moteur/artefacts.md § Quand ce choix a lieu) — le
      compte des confirmées devient complet, au prix de plusieurs minutes
-     possibles ; son aide le dit. ⚠️ **Lu EN DIRECT par la file**, jamais par
-     « Rechercher » : il ne change pas la recherche de runes, seulement
-     jusqu'où la file vérifie ; l'activer après une recherche vérifie le
-     reste sans la relancer, le couper ne perd rien de déjà vérifié.
+     possibles ; son aide le dit. ⚠️ **Photographié au clic « Rechercher »**,
+     comme les autres réglages : il ne change pas la recherche de runes,
+     seulement jusqu'où la file vérifie, mais le changer après une recherche
+     prépare la prochaine, sans lancer aucune vérification sur le résultat
+     affiché (seul « Rechercher » lance une recherche ou un équipement).
      ⚠️ **Masqué quand l'optimisation d'artéfacts est désactivée** : sans
-     file, rien n'est vérifié — même règle que « Adapter les artéfacts et
-     reliques au tri ». Fait partie des réglages exportés/importés dans une
+     file, rien n'est vérifié — une saisie sans effet est pire qu'une
+     saisie absente. Fait partie des réglages exportés/importés dans une
      recette, champ optionnel `verifierToutesLesCombinaisons` (absent, il se
      relit désactivé), et le CLI le respecte (voir
      resultats.md § Valeur d'objectif affichée sur les cartes).

@@ -29,6 +29,29 @@ export interface ColonnesCandidats { length: number; blocs: BlocCandidats[] }
 export type SortieCandidats = BuildCandidate[] | ColonnesCandidats;
 export const creerColonnesCandidats = (): ColonnesCandidats => ({ length: 0, blocs: [] });
 
+/** Fusion stable sur ordinaux, avec points de reprise indépendants de la plateforme. */
+export function* trierIndicesEtapes(ordre: Uint32Array, comparer: (a: number, b: number) => number): Generator<void, Uint32Array> {
+  let source: Uint32Array = ordre, destination: Uint32Array = new Uint32Array(ordre.length);
+  for (let largeur = 1; largeur < ordre.length; largeur *= 2) {
+    for (let debut = 0; debut < ordre.length; debut += 2 * largeur) {
+      const milieu = Math.min(debut + largeur, ordre.length), fin = Math.min(debut + 2 * largeur, ordre.length);
+      let a = debut, b = milieu;
+      for (let i = debut; i < fin; i++) {
+        destination[i] = a < milieu && (b === fin || comparer(source[a], source[b]) <= 0) ? source[a++] : source[b++];
+        if ((i & 63) === 0) yield;
+      }
+    }
+    [source, destination] = [destination, source];
+  }
+  return source;
+}
+
+export function terminerEtapes<T>(etapes: Generator<void, T>): T {
+  let etape = etapes.next();
+  while (!etape.done) etape = etapes.next();
+  return etape.value;
+}
+
 export function ajouterValeursCandidat(sortie: ColonnesCandidats, ids: ArrayLike<number>, totaux: ArrayLike<number>, eff: number, gabarits: GabaritCandidat[]): void {
   let bloc = sortie.blocs[sortie.blocs.length - 1];
   if (!bloc || bloc.longueur === LIGNES_PAR_BLOC) {
@@ -150,6 +173,23 @@ export class RecepteurCandidats {
     if (this.publication.length !== this.apercu.length) this.publication = this.apercu.slice();
     return this.publication;
   }
+  get longueur(): number { return this.nombre; }
+  lire(i: number): BuildCandidate {
+    if (!Number.isInteger(i) || i < 0 || i >= this.nombre) throw new Error('Ordinal de candidat absent');
+    // Les derniers blocs peuvent être partiels : debut est l'adresse canonique.
+    let gauche = 0, droite = this.blocs.length - 1;
+    while (gauche < droite) {
+      const milieu = Math.ceil((gauche + droite) / 2);
+      if (this.blocs[milieu].debut <= i) gauche = milieu; else droite = milieu - 1;
+    }
+    const b = this.blocs[gauche];
+    return candidatDuBloc(b, i - b.debut);
+  }
+  scellerColonnes(nombre: number): void {
+    exiger(!this.scelle && nombre === this.nombre, 'Scellement incomplet ou répété');
+    this.scelle = true;
+  }
+  liberer(): void { this.blocs = []; this.apercu = []; this.publication = []; }
   sceller(nombre: number): BuildCandidate[] {
     exiger(!this.scelle && nombre === this.nombre, 'Scellement incomplet ou répété');
     this.scelle = true;
@@ -189,7 +229,7 @@ export class CandidatsCompacts {
   private readonly indicesReliques = new Map<number, number>();
   private readonly indicesArtefacts = new Map<number, number>();
 
-  constructor(candidats: readonly BuildCandidate[]) {
+  constructor(candidats: ArrayLike<BuildCandidate>, differe = false) {
     this.longueur = candidats.length;
     const n = this.longueur;
     this.ids = Array.from({ length: 6 }, () => new Float64Array(n));
@@ -210,6 +250,11 @@ export class CandidatsCompacts {
     let capacite = 1;
     while (capacite < n / 0.75) capacite *= 2;
     this.hachage = new Uint32Array(capacite);
+    if (!differe) terminerEtapes(this.initialiser(candidats));
+  }
+
+  *initialiser(candidats: ArrayLike<BuildCandidate>): Generator<void> {
+    const n = this.longueur;
     const cles: { ligne: number; cle: string }[] = [];
     for (let i = 0; i < n; i++) {
       const c = candidats[i];
@@ -232,9 +277,11 @@ export class CandidatsCompacts {
         this.hachage[emplacement] = i + 1;
         cles.push({ ligne: i, cle: ids.join(',') });
       }
+      yield;
     }
-    cles.sort((a, b) => a.cle < b.cle ? -1 : a.cle > b.cle ? 1 : 0);
-    cles.forEach(({ ligne }, rang) => { this.rangs[ligne] = rang; });
+    const ordre = yield* trierIndicesEtapes(Uint32Array.from({ length: cles.length }, (_, i) => i),
+      (a, b) => cles[a].cle < cles[b].cle ? -1 : cles[a].cle > cles[b].cle ? 1 : 0);
+    for (let rang = 0; rang < ordre.length; rang++) { this.rangs[cles[ordre[rang]].ligne] = rang; yield; }
   }
 
   private verifierStats(stats: readonly StatRow[]): void {
@@ -276,6 +323,7 @@ export class CandidatsCompacts {
   }
 
   cle(i: number): string { return this.idsTries(i).join(','); }
+  groupe(i: number): number { return this.groupes[i] - 1; }
   rangCle(i: number): number { return this.rangs[this.groupes[i] - 1]; }
   version(i: number): number { return this.versions[this.groupes[i] - 1]; }
   etat(i: number): number { return this.etats[this.groupes[i] - 1]; }

@@ -7,12 +7,12 @@ import { importerRecoOptimizer } from '../../lib/importRecoOptimizer';
 import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importerPrepaRtaOptimizer, type RapportImportOptimizer } from '../../lib/importEquipes';
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
 import { computeStats } from '../../lib/stats';
-import { cibleDeLaFile, classementResolu, cleBuild, compositionDePage, compteAffichable, compteConfirme, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
-import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild, etatReliqueDuBuild } from '../../lib/relicQueue';
+import { compteAffichable, compteConfirmeDesComptes, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
+import { etatReliqueDuBuild } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
-import { useArtifactOptimQueue, type ResolutionHorsFil } from '../../hooks/useArtifactOptimQueue';
-import { entreesSerialisables } from '../../workers/resolutionBody';
+import { contexteResultat, runesDuContexte } from '../../lib/contexteResultat';
+import { TAILLE_PAGE_CLASSEMENT, type CarteClassement } from '../../lib/classementCompact';
 import {
   bornesArtefacts,
   chercherPaires,
@@ -37,12 +37,10 @@ import {
   rankBlockingConditions,
   BlockingConditionsDiagnosis,
   avecAurasConditions,
-  sortCandidates,
-  scoreDuCandidat,
-  optionsDeClassement,
   scoreDeReference,
   candidateMetricTotal,
   aurasPropresParRunes,
+  type SearchParams,
   RealDamageContext,
   SLOT_FILTER_PRESETS,
   type BuildCandidate,
@@ -348,6 +346,7 @@ function memesIds(a: number[], b: number[]): boolean {
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
 // minimums de stats donnés. Voir docs/02-app/optimizer/.
 const AUCUNE_RECOMMANDATION: Reco[] = [];
+const AUCUNE_CARTE: CarteClassement[] = [];
 
 export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATION, box, runes, artifacts, relics, relicUsageById, optimizer, onImporterEquipe, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu, onMonstreHorsVue }: Props) {
   const [rapportImport, setRapportImport] = useState<RapportImportOptimizer | null>(null);
@@ -399,8 +398,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     setExcludeBase,
     optimiserArtefacts,
     setOptimiserArtefacts,
-    adapterArtefactsAuTri,
-    setAdapterArtefactsAuTri,
     artifactMainByKind,
     setArtifactMainByKind,
     relicMainChoice,
@@ -817,11 +814,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // mémorise que les identifiants.
   const artifactById = useMemo(() => new Map(artifacts.map((a) => [a.id, a])), [artifacts]);
 
-  // ⚠️ La page que la file sert en priorité : les builds qui rempliront les
-  // places « Vérification… » de la page affichée (`composition.aVerifier`).
-  // Elle est remplie APRÈS `composition` (plus bas) : une ref, parce
-  // que la file est déclarée AVANT elle et ne peut donc pas recevoir sa valeur.
-  const pageAfficheeRef = useRef<BuildCandidate[]>([]);
   // La grille des résultats : `useHauteurDesCartes` y mesure les cartes.
   const grilleResultatsRef = useRef<HTMLDivElement>(null);
 
@@ -1378,15 +1370,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
    * ne passe et la recherche refuse de partir.
    */
   /**
-   * Le critère sur lequel la paire d’artéfacts est optimisée.
-   *
-   * ⚠️ **Le TRI si l’utilisateur le demande, l’OBJECTIF sinon.** Le tri est
-   * une VUE, l’optimisation une DÉCISION : les coupler d’office déplaçait la
-   * paire dès qu’on changeait de tri pour explorer. Voir
-   * `adapterArtefactsAuTri`.
+   * La paire d’artéfacts et la relique se choisissent sur l’OBJECTIF de la
+   * recherche, jamais sur le tri affiché : le tri est une vue, il ne résout
+   * aucun équipement (pour un autre critère, on relance la recherche).
    */
-  const critereArtefactsPaire = adapterArtefactsAuTri ? sortBy : objective;
-  const regimePaire = regimeArtefacts(critereArtefactsPaire);
+  const regimePaire = regimeArtefacts(objective);
   /**
    * Le régime EFFECTIF de l'équipement complet — paire ET relique (le bouton
    * gouverne les deux, aucun interrupteur parallèle) : sort
@@ -1427,14 +1415,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     () => ({ degats: contexteDegatsArtefacts, damageSetup, exclusive: contexteExclusive }),
     [contexteDegatsArtefacts, damageSetup, contexteExclusive]
   );
-  const refEhp = useMemo(
-    () => (selected ? scoreDeReference('ehp', selected.gear, contexteReference) : null),
-    [selected, contexteReference]
-  );
-  const refDegats = useMemo(
-    () => (selected ? scoreDeReference('degats_reels', selected.gear, contexteReference) : null),
-    [selected, contexteReference]
-  );
 
   const sortesFigees = useMemo<ArtifactKind[]>(() => sortesFigeesDe(artifactMainByKind), [artifactMainByKind]);
 
@@ -1461,10 +1441,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     // `evaluerPourRegime` centralise ce contrat, partagé avec le site « au
     // fil de l'eau » plus bas et le CLI (`recipeToSearchParams.ts`).
     //
-    // ⚠️ **Le RÉGIME suit `objective`, jamais `regimePaire`/`sortBy`** : cette
+    // ⚠️ **Le RÉGIME suit `objective`, jamais le tri** : cette
     // paire sert à LANCER/BORNER la recherche avant qu'aucun résultat
-    // n'existe, alors que `regimePaire` répond à « qu'est-ce que je REGARDE
-    // en ce moment » (docs/03-developpeur/optimizer/, « Régime de
+    // n'existe (docs/03-developpeur/optimizer/, « Régime de
     // la paire »). `objective` (`Objective`,
     // runeBuildOptim.ts) ne peut jamais valoir `'hp'`/`'atk'`/`'def'` : seuls
     // `degats_reels`/`ehp`/`aucun` sont possibles ici.
@@ -1781,9 +1760,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // jamais affichée. Voir `diagnoseFeasibility` dans runeBuildOptim.ts pour
   // ce que « satisfiable » garantit et ne garantit PAS.
   const feasibilityDiagnosis = useMemo<StatFeasibility[]>(() => {
+    const fige = search.contexte?.recherche;
+    if (fige) return diagnoseFeasibility({ base: fige.base, artifacts: fige.artifacts, artifactBounds: fige.artifactBounds, relic: fige.relic, pool: fige.pool, requirement: fige.requirement, metric: fige.metric });
     if (!selected) return [];
     return diagnoseFeasibility({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement: requirementAvecAuras, metric });
-  }, [selected, searchArtifacts, searchArtifactBounds, pool, requirementAvecAuras, metric]);
+  }, [search.contexte, selected, searchArtifacts, searchArtifactBounds, pool, requirementAvecAuras, metric]);
   const impossibleFeasibility = useMemo(() => feasibilityDiagnosis.filter((f) => !f.satisfiable), [feasibilityDiagnosis]);
 
   // Palier 2 (voir `rankBlockingConditions` dans runeBuildOptim.ts) — bien
@@ -1794,9 +1775,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // de renvoyer 0 résultat — jamais à chaque frappe comme le palier 1.
   const blockingDiagnosis = useMemo<BlockingConditionsDiagnosis | null>(() => {
     if (!selected || !diagnoseBlockingEnabled) return null;
-    if (!result || result.candidates.length > 0) return null;
+    if (!result || result.nombre > 0) return null;
+    const fige = search.contexte?.recherche;
+    if (fige) return rankBlockingConditions({ base: fige.base, artifacts: fige.artifacts, artifactBounds: fige.artifactBounds, relic: fige.relic, pool: fige.pool, requirement: fige.requirement, metric: fige.metric });
     return rankBlockingConditions({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement: requirementAvecAuras, metric });
-  }, [selected, diagnoseBlockingEnabled, result, searchArtifacts, searchArtifactBounds, pool, requirementAvecAuras, metric]);
+  }, [search.contexte, selected, diagnoseBlockingEnabled, result, searchArtifacts, searchArtifactBounds, pool, requirementAvecAuras, metric]);
 
   // `exhaustiveSearch` (toggle « Rechercher jusqu'à épuisement complet ») :
   // remplace le filet de temps de 10 min (`HARD_TIMEOUT_MS`) par `Infinity` —
@@ -1819,7 +1802,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     setStoppedManually(false);
     optimizer.poserTriRecherche(objective);
     setResultsPage(1);
-    run({
+    const params: SearchParams = {
       base: selected.gear.base,
       artifacts: searchArtifacts,
       // ⚠️ La FAISABILITÉ se décide ici, plus sur `artifacts` — voir
@@ -1852,7 +1835,14 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // ⚠️ Toujours `false` : l'interrupteur « Prioriser les stats les plus
       // difficiles » est retiré de l'écran (sans gain mesuré). Ni une
       // session reprise ni une recette importée ne le réactivent.
-    });
+    };
+    const photo = contexteResultat({ params, fiche: selected.gear,
+      resolution: artifactParams && optimiserArtefacts ? { fiche: selected.gear, artifactParams,
+        regime: regimeEquipement, degats: contexteDegatsArtefacts, exclusive: contexteExclusive,
+        requirement: requirementAvecAuras, relicContext: params.relicContext } : null,
+      realDamage, damageSetup, exclusive: contexteExclusive, signature: signatureArtefacts, idInventaire: importDuCompte, idEspece: selected.monster.com2usId ?? null,
+      toutVerifier: verifierToutesLesCombinaisons });
+    run(params, photo, { tri: objective, metric, page: 1 });
   }
 
   // Exporte la RECETTE de cette recherche (set, minimums, objectif,
@@ -2161,63 +2151,16 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     });
   }
 
-  // Source des candidats affichés : le résultat FINAL une fois la recherche
-  // terminée, sinon l'aperçu EN DIRECT accumulé pendant qu'elle tourne (voir
-  // useBuildOptimSearch.ts) — pour voir des builds apparaître au fur et à
-  // mesure plutôt que d'attendre l'épuisement complet de l'espace de
-  // recherche. `null` tant qu'aucun des deux n'existe (recherche jamais
-  // lancée, ou encore en phase `building` — pas de candidat possible avant
-  // que l'appariement ait commencé).
-  const candidatesSource = result ? result.candidates : status === 'running' && progress?.phase === 'pairing' ? progress.candidates : null;
+  // La vue (tri, mesure, page) part au classeur, qui en compose la page ;
+  // l'écran n'en reçoit que l'instantané : vingt cartes au plus, comptes,
+  // versions. Aucun de ces trois réglages ne résout d'équipement, sauf la page
+  // demandée en naviguant (le classeur le distingue d'un changement de tri).
+  const { changerVue } = search;
+  useEffect(() => { changerVue({ tri: sortBy, metric, page: resultsPage }); }, [changerVue, sortBy, metric, resultsPage]);
+  const instantane = search.classement;
+  const interrompu = search.classementInterrompu;
 
-  // Tri CLIENT, sans relancer la recherche : le moteur collecte déjà les
-  // stats complètes de chaque candidat valide (voir runeBuildOptim.ts).
-  // ⚠️ Liste COMPLÈTE, plus limitée à 20 — la pagination ci-dessous découpe
-  // cette liste en pages, pour pouvoir visualiser TOUS les builds trouvés
-  // (jusqu'à `MAX_COLLECTED`, voir runeBuildOptim.ts), pas seulement les
-  // meilleurs 20.
-  // ⚠️ Le tri vit dans `sortCandidates` (runeBuildOptim.ts), PAS ici — il
-  // était inline, donc invisible et irréutilisable pour tout autre
-  // consommateur. Les scripts CLI prenaient `candidates[0]` ou
-  // `slice(0, 20)` en croyant lire les meilleurs, alors que le moteur ne
-  // trie pas par l'objectif. Une seule porte, comme `damageRelevantStats`.
-  // ⚠️ La relique de l'ordre de BASE, SANS le cache de la file : la file lit
-  // cet ordre (`triees`), il ne peut donc jamais se nourrir de ses résultats.
-  // Mais une relique FIXE (`off`, `equipped`) est connue d'avance : son effet
-  // unique compte dès ici — cet ordre est affiché tel quel tant que
-  // la file n'a rien résolu, toujours quand l'optimisation d'artéfacts est
-  // coupée, et les cartes le comptent. En `recherche` : neutre (`en attente`).
-  const etatReliqueDeBase = useCallback(
-    (_c: BuildCandidate) => etatReliqueDuBuild(undefined, relicContextRecherche, selected?.gear.relic),
-    [relicContextRecherche, selected?.gear.relic]
-  );
-  const fullSortedCandidates = useMemo(
-    () =>
-      candidatesSource
-        ? sortCandidates(
-            candidatesSource,
-            sortBy,
-            optionsDeClassement({
-              realDamage,
-              damageSetup,
-              runeById,
-              metric,
-              aurasPropresDe,
-              // La paire SUPPOSÉE pour tous (`realDamage.artefacts`).
-              artefactsDuBuild: () => null,
-              etatReliqueDe: etatReliqueDeBase,
-              contexteExclusive,
-            })
-          )
-        : [],
-    [candidatesSource, sortBy, runeById, metric, realDamage, damageSetup, aurasPropresDe, etatReliqueDeBase, contexteExclusive]
-  );
-
-  const RESULTS_PAGE_SIZE = 20;
-
-  // ⚠️ `composition` (la page affichée) est définie PLUS BAS, après la file
-  // d'optimisation d'artéfacts : elle dépend du classement corrigé par les
-  // paires trouvées, qui n'existe qu'une fois la file déclarée.
+  const RESULTS_PAGE_SIZE = TAILLE_PAGE_CLASSEMENT;
 
   /**
    * Optimisation d'artéfacts des meilleurs builds, EN TEMPS MASQUÉ pendant que
@@ -2240,13 +2183,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         // cache intact quand on changeait le buff ATQ ou les PV de la cible.
         damageSetup,
         compterAurasResPre,
-        // ⚠️ Le TRI, pas l'objectif : c'est lui qui décide du critère
-        // de choix de la paire (voir `resoudreEquipement`). Changer de tri
-        // entre Dégâts réels et PV effectifs change donc la meilleure paire, et
-        // doit vider le cache. Entre Efficience et Vitesse, rien ne change —
-        // aucun artéfact n'entre dans ces deux scores — mais `sortBy` variant
-        // quand même, le cache est refait pour rien : coût borné (K builds en
-        // temps masqué), contre le risque d'afficher une paire périmée.
         // ⚠️ **Le RÉGIME EFFECTIF (`regimeEquipement`), jamais `regimePaire`
         // brut** :
         // `regimePaire` ne rabat PAS « Dégâts réels » sur `aucun` quand le
@@ -2301,292 +2237,76 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     [selected?.monster.com2usId, selected?.gear.relic, selected?.gear.artifacts, damageSetup, compterAurasResPre, regimeEquipement, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte, requirementAvecAuras, artefactsReserves, importDuCompte]
   );
 
-  /**
-   * Résout l'équipement d'UN build — paire ET relique, ensemble — pour la
-   * file : `resoudreEquipementDuBuild` (relicQueue.ts), la partie
-   * pure que `tests/relic-queue.test.ts` compare à l'oracle, avec l'entrée
-   * construite par `entreeResolutionDuBuild` — le producteur que le CLI
-   * appelle aussi : le build, le prédicat à relique
-   * fixe (`respecteConditionsPaireFixe` : minimums et maximums RES/PRE, les
-   * autres maximums restant hors filtre), les conditions complètes et
-   * le contexte relique de la recherche LANCÉE (jamais une
-   * relecture des trois champs).
-   *
-   * ⚠️ `null` quand l'optimisation est coupée : il n'y a alors qu'UNE paire
-   * possible (celle qui est portée), déjà comptée par `searchArtifacts`. La
-   * faire passer par la file lui ferait « choisir » entre un seul candidat,
-   * pour un résultat identique et cent tranches de temps masqué en pure
-   * perte.
-   *
-   * ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** : le régime
-   * effectif (`regimeEquipement`) suit `sortBy`, pas `objective`, quand
-   * « Adapter les artéfacts et reliques au tri » est activé. L'objectif fige
-   * le critère au lancement ; le tri, lui, peut changer après coup. Une paire
-   * optimisée pour les dégâts affichée dans une liste triée par PV effectifs
-   * montrerait une valeur qui n'est pas la meilleure atteignable.
-   */
-  // Les caches partagés par les builds de la file (`CachesResolution`) :
-  // profil de dégâts par paire et préfiltre. Neufs dès que la signature des
-  // réglages ou les paramètres de paires (donc l'inventaire) changent.
-  const cachesResolution = useMemo(() => nouveauxCachesResolution(), [signatureArtefacts, artifactParams]);
-  const resoudreEquipement = useMemo(() => {
-    if (!artifactParams || !selected || !optimiserArtefacts) return null;
-    return (c: BuildCandidate) =>
-      resoudreEquipementDuBuild(
-        entreeResolutionDuBuild({
-          fiche: selected.gear,
-          runes: runesDuBuild(c, runeById),
-          artifactParams,
-          regime: regimeEquipement,
-          degats: contexteDegatsArtefacts,
-          exclusive: contexteExclusive,
-          requirement: requirementAvecAuras,
-          relicContext: relicContextRecherche,
-          caches: cachesResolution,
-        })
-      );
-  }, [artifactParams, selected, optimiserArtefacts, runeById, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche, cachesResolution]);
+  // Les chiffres des cartes lisent la photographie et l'instantané du classeur.
+  const contexteResultatAffiche = search.contexte;
+  const avecFile = instantane ? instantane.comptes.avecFile : contexteResultatAffiche?.resolution != null;
+  const aurasPropresDuResultat = useMemo(() => contexteResultatAffiche
+    ? aurasPropresParRunes(runesDuContexte(contexteResultatAffiche)) : aurasPropresDe,
+  [contexteResultatAffiche, aurasPropresDe]);
+  const publicationCouranteRef = useRef(instantane?.versions);
+  publicationCouranteRef.current = instantane?.versions;
+  const contexteReferenceResultat = useMemo(() => contexteResultatAffiche
+    ? { degats: contexteResultatAffiche.realDamage, damageSetup: contexteResultatAffiche.damageSetup, exclusive: contexteResultatAffiche.exclusive }
+    : contexteReference, [contexteResultatAffiche, contexteReference]);
+  const ficheDeReference = selected?.gear;
+  const refEhpResultat = useMemo(() => ficheDeReference ? scoreDeReference('ehp', ficheDeReference, contexteReferenceResultat) : null, [ficheDeReference, contexteReferenceResultat]);
+  const refDegatsResultat = useMemo(() => ficheDeReference ? scoreDeReference('degats_reels', ficheDeReference, contexteReferenceResultat) : null, [ficheDeReference, contexteReferenceResultat]);
 
-  // La MÊME résolution, hors du fil de l'écran : les mêmes
-  // arguments que `resoudreEquipement`, en données — `entreesSerialisables`
-  // ne retire que `evaluer`, le Worker reconstruit l'entrée par
-  // `entreeResolutionDuBuild`. ⚠️ Comparé par IDENTITÉ par la file : chaque
-  // nouvel objet est un contexte renvoyé au Worker (tout l'inventaire
-  // d'artéfacts) — mêmes dépendances que `resoudreEquipement`, sans
-  // `runeById` (les runes voyagent avec chaque demande) ni les caches (le
-  // Worker a les siens, neufs à chaque contexte). Les runes d'un build sortent
-  // du MÊME producteur que celles de `resoudreEquipement` (`runesDuBuild`) :
-  // jamais une seconde expression recopiée.
-  const entreesResolution = useMemo(() => {
-    if (!artifactParams || !selected || !optimiserArtefacts) return null;
-    return entreesSerialisables({
-      fiche: selected.gear,
-      artifactParams,
-      regime: regimeEquipement,
-      degats: contexteDegatsArtefacts,
-      exclusive: contexteExclusive,
-      requirement: requirementAvecAuras,
-      relicContext: relicContextRecherche,
-    });
-  }, [artifactParams, selected, optimiserArtefacts, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche]);
-  const resolutionHorsFil = useMemo<ResolutionHorsFil | null>(
-    () =>
-      entreesResolution
-        ? { entrees: entreesResolution, runesDe: (c: BuildCandidate) => runesDuBuild(c, runeById) }
-        : null,
-    [entreesResolution, runeById]
-  );
-
-  const fileArtefacts = useArtifactOptimQueue({
-    // ⚠️ La file lit l'ordre de BASE (paire supposée), jamais un ordre déjà
-    // corrigé par ses propres résultats : se nourrir de sa sortie créerait une
-    // boucle — chaque paire trouvée changerait le classement, donc le top K,
-    // donc la file.
-    triees: fullSortedCandidates,
-    // ⚠️ Accesseur : `composition` se calcule PLUS BAS (elle dépend du
-    // classement corrigé par cette file). Lu au moment de traiter, il voit
-    // toujours les builds qui rempliront les places en attente de la page
-    // réellement à l’écran.
-    pageAffichee: () => pageAfficheeRef.current,
-    // Paire ET relique, ensemble — les stats du résultat sont recalculées
-    // avec le couple retenu (voir `resoudreEquipement`) : sans ça, la carte
-    // montrerait des stats qui ne vont pas avec l'équipement affiché à côté,
-    // et un tri par ATQ porterait sur une valeur périmée.
-    resoudre: resoudreEquipement,
-    signature: signatureArtefacts,
-    // ⚠️ 300 en mode relique « recherche », 100 sinon, dès le
-    // lancement : le contexte de la recherche LANCÉE, jamais les réglages
-    // courants — les changer après coup ne change pas K. Des combinaisons
-    // CONFIRMÉES : la file continue au-delà des écartés ; et
-    // TOUT avec « Vérifier toutes les combinaisons trouvées », lu EN DIRECT
-    // (il ne change pas la recherche de runes, seulement jusqu'où la file
-    // vérifie — voir `cibleDeLaFile`).
-    K: cibleDeLaFile({ relicContext: relicContextRecherche, toutVerifier: verifierToutesLesCombinaisons }),
-    // Le Worker de résolution quand il est disponible ; `resoudre` reste le
-    // chemin de repli.
-    horsFil: resolutionHorsFil,
-  });
-
-  /**
-   * Le profil de dégâts des artéfacts DE CE BUILD, quand sa paire est connue.
-   *
-   * ⚠️ Doit accompagner partout le remplacement des stats : noter des stats
-   * recalculées avec la vraie paire en gardant les lignes d'effet de la paire
-   * supposée mélangerait deux modèles.
-   *
-   * Mémoïsé sur le cache : `artifactDamageProfile` est appelé à chaque
-   * comparaison de tri, soit O(n log n) fois sur des dizaines de milliers de
-   * candidats.
-   */
-  const profilsParBuild = useMemo(() => {
-    const m = new Map<string, ReturnType<typeof artifactDamageProfile>>();
-    for (const [cle, r] of fileArtefacts.parBuild) m.set(cle, artifactDamageProfile(r.artefacts));
-    return m;
-  }, [fileArtefacts.parBuild]);
-  const profilArtefactsDuBuild = (c: BuildCandidate) => profilsParBuild.get(cleBuild(c)) ?? null;
-
-  // L'état de la relique d'un candidat, tel que sa carte l'AFFICHE — et la
-  // relique dont son score compte l'effet unique : une seule expression pour
-  // les deux. ⚠️ Dépend de la PIÈCE de la fiche (l'objet), jamais
-  // de son identifiant : une relique réimportée avec un autre effet unique
-  // sous le même `rid` doit renoter.
-  const etatReliqueDe = useCallback(
-    (c: BuildCandidate) => etatReliqueDuBuild(fileArtefacts.parBuild.get(cleBuild(c)), relicContextRecherche, selected?.gear.relic),
-    [fileArtefacts.parBuild, relicContextRecherche, selected?.gear.relic]
-  );
-  /**
-   * Les options du classement AFFICHÉ (`affichees` ci-dessous) — partagées
-   * avec les cartes, qui affichent leur chiffre par `scoreDuCandidat` avec
-   * CET objet : la carte montre la valeur même qui l'a classée (la
-   * carte « Dégâts réels » recopiait `computeTotalDamage` sans la Conquête de
-   * la relique retenue, « PV effectifs » `pvEffectifs` sans Ténacité).
-   * Construites par `optionsDeClassement` (runeBuildOptim.ts), le producteur
-   * que le CLI et les tests appellent aussi : l'effet unique y compte dans
-   * les trois modes de relique.
-   */
-  const optionsDuTriAffiche = useMemo(
-    () =>
-      optionsDeClassement({
-        realDamage,
-        damageSetup,
-        runeById,
-        metric,
-        aurasPropresDe,
-        // ⚠️ Le profil de CE build, pas celui de la paire supposée : ses stats
-        // viennent d'être recalculées avec sa vraie paire, ses lignes d'effet
-        // doivent suivre. Sinon on note les stats d'un modèle avec les effets
-        // d'un autre.
-        artefactsDuBuild: profilArtefactsDuBuild,
-        etatReliqueDe,
-        contexteExclusive,
-      }),
-    // `profilArtefactsDuBuild` ne lit que `profilsParBuild`.
-    [profilsParBuild, realDamage, damageSetup, runeById, metric, aurasPropresDe, etatReliqueDe, contexteExclusive]
-  );
-
-  /**
-   * Le classement RÉEL : chaque build vu à travers sa vraie paire dès qu'elle
-   * est connue, puis retrié.
-   *
-   * ⚠️ **Un build optimisé peut donc passer devant, et c'est le comportement
-   * voulu** — plutôt qu'afficher un total supérieur à un rang inférieur, ce qui
-   * se lirait comme un défaut.
-   *
-   * ⚠️ Cette boucle « trier → optimiser → retrier » CONVERGE, elle ne
-   * s'emballe pas : optimiser un build ne peut que faire MONTER son score (la
-   * paire supposée fait partie des paires candidates, le maximum lui est donc
-   * toujours ≥). Un build optimisé monte ou reste ; un build non optimisé ne
-   * peut qu'être repoussé vers le bas. Aucun ne peut ENTRER dans les K premiers
-   * de ce fait — l'ensemble à traiter rétrécit, il ne s'élargit jamais.
-   *
-   * ⚠️ La file, elle, lit `fullSortedCandidates` (l'ordre de BASE) et non ce
-   * classement-ci : c'est ce qui borne le nombre de re-tris, et c'est ce qui
-   * fait que changer le tri d'affichage repriorise la file sans rien invalider
-   * (le cache est indexé par build).
-   *
-   * ⚠️ Les stats remplacées INCLUENT la relique retenue
-   * (`ResultatArtefacts.relique`) — c'est ici, AVANT `sortCandidates`, que
-   * la résolution exacte entre dans le classement ; un build qu'aucun couple
-   * (paire, relique) ne rend faisable est `conforme: false` et sort par le
-   * même filtre que les paires. En mode `recherche`, un candidat non encore
-   * résolu (« en attente ») garde ses stats SANS relique : son rang n'est
-   * pas exact tant que la file ne l'a pas traité — la page affichée passe
-   * en priorité.
-   */
-  // ⚠️ **Les builds qu'AUCUNE paire réelle ne rend équipables sont écartés
-  // ICI** (docs/03-developpeur/optimizer/, « Test conjoint exact à
-  // la validation finale »). Ils ont franchi la borne du moteur, calculée par stat
-  // isolée, sans qu'une paire puisse fournir les appoints simultanément.
-  // Un build pas encore résolu (absent du cache) reste dans ce classement —
-  // on ne sait pas encore —, mais il n'est plus MONTRÉ : la
-  // page n'affiche que les vérifiés (`compositionDePage`, plus bas), et la
-  // file résout en priorité ceux qui rempliront ses places en attente.
-  // ⚠️ `sortCandidates` est un tri
-  // STABLE, à score égal l'ordre d'entrée est préservé — mais cet ordre
-  // d'entrée (celui de l'appariement) n'a rien de canonique. Le départage
-  // (`ordonnerParDepartage`, `rid` croissant puis `cleBuild`, la convention
-  // du contrat, la même que l'oracle) est appliqué AVANT, sur les candidats
-  // conformes : le tri stable qui suit préserve ensuite CET ordre pour
-  // toute égalité de score, quel que soit l'ordre d'arrivée des Workers.
-  // Les trois étapes vivent dans `classementResolu` (artifactQueue.ts), que le
-  // CLI appelle aussi.
-  const affichees = useMemo(
-    () => classementResolu(fullSortedCandidates, fileArtefacts.parBuild, sortBy, optionsDuTriAffiche),
-    [fullSortedCandidates, fileArtefacts.parBuild, sortBy, optionsDuTriAffiche]
-  );
-
-  // Le compte du MOTEUR : les candidats du résultat à la fin, le compte de la
+  // Le compte du MOTEUR : le nombre du bilan à la fin, le compte de la
   // progression pendant l'appariement (non plafonné, contrairement à l'aperçu).
-  const trouvesParLeMoteur = result ? result.candidates.length : progress?.phase === 'pairing' ? progress.found : fullSortedCandidates.length;
-  // Le compte des TROUVÉES : trouvés par le moteur,
-  // moins les builds que la résolution a écartés — ces derniers mesurés comme
-  // reçus moins affichables, jamais lus dans le cache de la file (voir
-  // `compteAffichable`). `affichees` change à chaque publication du cache : le
-  // compte suit, en pleine recherche comme après. Seule source de la ligne de
-  // progression et de la ligne de raison ; l'en-tête et les
-  // pages lisent les CONFIRMÉES (`compteConfirmes`, ci-dessous).
-  const compteAffiche = useMemo(
-    () =>
-      compteAffichable({
-        trouves: trouvesParLeMoteur,
-        recus: fullSortedCandidates.length,
-        affichables: affichees.length,
-        modeRecherche: relicContextRecherche?.mode === 'recherche',
-      }),
-    [trouvesParLeMoteur, fullSortedCandidates.length, affichees.length, relicContextRecherche?.mode]
-  );
+  const recus = instantane?.comptes.recus ?? 0;
+  const trouvesParLeMoteur = result ? result.nombre : progress?.phase === 'pairing' ? progress.found : recus;
+  // Le compte des TROUVÉES : trouvés par le moteur moins les écartés de la
+  // résolution, mesurés comme reçus moins affichables (deux comptes de
+  // l'instantané), jamais lus dans le cache de la file (voir
+  // `compteAffichable`). Seule source de la ligne de progression et de la
+  // ligne de raison ; l'en-tête et les pages lisent les CONFIRMÉES.
+  const compteAffiche = compteAffichable({
+    trouves: trouvesParLeMoteur,
+    recus,
+    affichables: instantane?.comptes.affichables ?? 0,
+    modeRecherche: relicContextRecherche?.mode === 'recherche',
+  });
   // Le compte des CONFIRMÉES : les builds de cette recherche résolus ET
-  // conformes, lus dans le cache publié de la file — un compte qui ne baisse
-  // jamais pendant une recherche. Seule source de l'en-tête, du nombre de pages
-  // et des contrôles masqués sous « Aucune combinaison… ». Sans file
-  // (optimisation d'artéfacts coupée), les trouvés, comme avant.
-  const compteConfirmes = useMemo(
-    () =>
-      compteConfirme({
-        recus: fullSortedCandidates,
-        parBuild: resoudreEquipement != null ? fileArtefacts.parBuild : null,
-        trouves: trouvesParLeMoteur,
-        taillePage: RESULTS_PAGE_SIZE,
-        termine: result != null,
-      }),
-    [fullSortedCandidates, resoudreEquipement, fileArtefacts.parBuild, trouvesParLeMoteur, result]
-  );
+  // conformes — un compte qui ne baisse jamais pendant une recherche. Seule
+  // source de l'en-tête, du nombre de pages et des contrôles masqués sous
+  // « Aucune combinaison… ». Sans file, les trouvés, comme avant.
+  const compteConfirmes = compteConfirmeDesComptes({
+    recus,
+    resolus: instantane?.comptes.resolus ?? 0,
+    confirmees: instantane?.comptes.confirmees ?? 0,
+    avecFile,
+    trouves: trouvesParLeMoteur,
+    taillePage: RESULTS_PAGE_SIZE,
+    termine: result != null,
+  });
   const totalResultsPages = compteConfirmes.pages;
 
   // ⚠️ CORRIGE la page courante, ne la remet PAS à 1 : un aperçu EN DIRECT
   // (pendant la phase d'appariement) grandit au fil de la recherche sans
   // que ce soit une NOUVELLE recherche — recommencer à la page 1 à chaque
   // candidat qui arrive rendrait la pagination inutilisable pendant qu'une
-  // recherche tourne. Seuls `handleSearch` (nouvelle recherche) et le choix
-  // de tri (classement entièrement différent) remettent explicitement à 1.
+  // recherche tourne. Seuls `handleSearch` (nouvelle recherche), le choix
+  // de tri et celui de la mesure (classement entièrement différent,
+  // useOptimizerState.ts) remettent explicitement à 1.
   // Le nombre de pages peut aussi DIMINUER (la page au-delà des confirmées disparaît quand ses derniers builds non
   // vérifiés sont écartés) : la page courante revient alors sur la dernière.
   useEffect(() => {
     setResultsPage((p) => Math.min(Math.max(p, 1), totalResultsPages));
   }, [totalResultsPages, setResultsPage]);
 
-  // La page affichée : les builds VÉRIFIÉS seuls,
-  // dans l'ordre réel, puis des places « Vérification… » jusqu'à ce que la page
-  // attend — une seule fonction pure, `compositionDePage`. Un build reçu de la
-  // recherche ne s'affiche pas avec sa paire supposée pour disparaître à la
-  // résolution : il apparaît une fois résolu et conforme, ou jamais. Sans file
-  // (optimisation d'artéfacts coupée), rien n'est à vérifier : la tranche du
-  // classement.
-  const composition = useMemo(
-    () =>
-      compositionDePage({
-        classement: affichees,
-        parBuild: resoudreEquipement != null ? fileArtefacts.parBuild : null,
-        page: resultsPage,
-        taillePage: RESULTS_PAGE_SIZE,
-      }),
-    [affichees, resoudreEquipement, fileArtefacts.parBuild, resultsPage]
-  );
-  // ⚠️ Renseignée à CHAQUE rendu : c’est ce qui fait qu’un changement de page
-  // repriorise la file sans rien relancer ni invalider. La file sert ces
-  // builds avant l'avance de fond (`prochainsATraiter`) ; vide quand la page est
-  // complète.
-  pageAfficheeRef.current = composition.aVerifier;
+  // La page affichée, composée par le classeur : les builds VÉRIFIÉS seuls,
+  // dans l'ordre réel, puis des places « Vérification… » (règle de
+  // `compositionDePage`). Un build reçu de la recherche ne s'affiche pas avec
+  // sa paire supposée pour disparaître à la résolution : il apparaît une fois
+  // résolu et conforme, ou jamais. Sans file, la tranche du classement.
+  const cartes = instantane?.page.cartes ?? AUCUNE_CARTE;
+  const composition = useMemo(() => ({
+    cartes: cartes.map((c) => c.candidat),
+    premierRang: instantane?.page.premierRang ?? 1,
+    placesEnAttente: instantane?.page.placesEnAttente ?? 0,
+    aVerifier: [],
+  }), [cartes, instantane?.page.premierRang, instantane?.page.placesEnAttente]);
   const hauteurCarte = useHauteurDesCartes(grilleResultatsRef);
 
   // Base « nue » du monstre choisi pour une stat — 0 tant qu'aucun monstre
@@ -3075,7 +2795,20 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
 
   // Ce que chaque carte de résultat reçoit de l'écran : sa paire, sa relique,
   // ses chiffres de classement et ses gestes (comparer, valider).
-  function proprietesCarte(c: BuildCandidate) {
+  function proprietesCarte(c: BuildCandidate, rang: number) {
+    const photo = contexteResultatAffiche;
+    const carte = cartes[rang];
+    const objectifDesCartes = photo?.recherche.objective ?? objective;
+    const triDesCartes = instantane?.vue.tri ?? sortBy;
+    const degatsDesCartes = photo ? photo.realDamage : realDamage;
+    const combatDesCartes = photo?.damageSetup ?? damageSetup;
+    const artefactsDesCartes = photo?.recherche.artifacts ?? searchArtifacts;
+    const artefactsDeLaCarte = carte?.resultat?.artefacts ?? artefactsDesCartes;
+    const versions = instantane?.versions;
+    // Classeur perdu : la page reste visible, aucun geste ne part.
+    const encoreCourante = () => versions != null && !interrompu
+      && publicationCouranteRef.current?.idRecherche === versions.idRecherche
+      && publicationCouranteRef.current?.revisionPubliee === versions.revisionPubliee;
     return {
       // ⚠️ La paire de CE build, jamais une paire commune : deux
       // builds voisins n'appellent pas les mêmes artéfacts, et ce
@@ -3083,14 +2816,14 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // Le repli sur la paire SUPPOSÉE ne sert que sans file
       // (optimisation coupée : la paire portée, la seule possible) —
       // avec file, une carte affichée est résolue.
-      artifacts: fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts,
+      artifacts: artefactsDeLaCarte,
       // ⚠️ **Seule source** :
-      // `etatReliqueDuBuild` lit le cache de la file, jamais
+      // `etatReliqueDuBuild` lit l'équipement de la carte, jamais
       // recalculé ici — `fixe` (hors mode `recherche`) n'affiche
       // rien de nouveau, `rejete` n'arrive jamais jusqu'ici (le
       // classement écarte déjà ces builds). Par
       // `etatReliqueDe` : la relique que le score compte.
-      etatRelique: etatReliqueDe(c),
+      etatRelique: etatReliqueDuBuild(carte?.resultat ?? undefined, photo?.recherche.relicContext, photo?.fiche.relic),
       ...(() => {
         // ⚠️ Comparaison contre les stats de la FICHE — donc contre
         // le build validé quand il en existe un, sans avoir à le
@@ -3098,20 +2831,20 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         const cle = c.runeIds.join('-');
         const compare = compareKey === cle && statsReference != null;
         return {
-          onCompare: statsReference ? () => setCompareKey((k) => (k === cle ? null : cle)) : undefined,
+          onCompare: statsReference ? () => { if (encoreCourante()) setCompareKey((k) => (k === cle ? null : cle)); } : undefined,
           // ⚠️ Affichée dès que les PV effectifs sont le critère de
           // CLASSEMENT — objectif OU tri —, exactement comme les
           // dégâts réels : on peut avoir cherché sur un objectif puis
           // re-trié par PV effectifs, auquel cas le chiffre qui
           // ordonne les cartes doit être visible dessus.
-          // ⚠️ `scoreDuCandidat` avec les options du classement
-          // affiché : le chiffre qui a CLASSÉ la carte, Ténacité et
-          // points de la relique retenue compris.
+          // ⚠️ Le chiffre qui a CLASSÉ la carte : `scoreDuCandidat`
+          // avec les options du classement affiché, calculé par le
+          // classeur (Ténacité et points de la relique retenue compris).
           pvEffectifs:
-            objective === 'ehp' || sortBy === 'ehp'
+            objectifDesCartes === 'ehp' || triDesCartes === 'ehp'
               ? (() => {
-                  const total = scoreDuCandidat(c, 'ehp', optionsDuTriAffiche)!;
-                  return { total, delta: compare && refEhp != null ? total - refEhp : undefined };
+                  const total = carte?.pvEffectifs as number;
+                  return { total, delta: compare && refEhpResultat != null ? total - refEhpResultat : undefined };
                 })()
               : undefined,
           metricDelta:
@@ -3140,25 +2873,25 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // par dégâts réels, auquel cas le chiffre qui ordonne les
       // cartes doit être visible dessus.
       degatsReels:
-        realDamage && (objective === 'degats_reels' || sortBy === 'degats_reels')
+        degatsDesCartes && (objectifDesCartes === 'degats_reels' || triDesCartes === 'degats_reels')
           ? (() => {
               // ⚠️ Le chiffre qui a CLASSÉ la carte : `scoreDuCandidat`
-              // avec les options du classement affiché — profil
-              // d'artéfacts de CE build et Conquête de sa relique
-              // retenue compris. Une recopie de `computeTotalDamage`
-              // omettait la Conquête que le tri compte.
-              const total = scoreDuCandidat(c, 'degats_reels', optionsDuTriAffiche)!;
+              // avec les options du classement affiché, calculé par le
+              // classeur — profil d'artéfacts de CE build et Conquête de
+              // sa relique retenue compris. Une recopie de
+              // `computeTotalDamage` omettait la Conquête que le tri compte.
+              const total = carte?.degatsReels as number;
               return {
                 total,
-                partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0,
+                partPvCible: combatDesCartes.enemyHp > 0 ? (total / combatDesCartes.enemyHp) * 100 : 0,
                 // ⚠️ L'écart se calcule contre les dégâts de la
-                // RÉFÉRENCE (`refDegats`) : la fiche notée avec SES
+                // RÉFÉRENCE (`refDegatsResultat`) : la fiche notée avec SES
                 // stats, SA paire d'artéfacts et SA relique — jamais
                 // contre le total d'un autre candidat, jamais avec
                 // la paire de la recherche.
                 delta:
-                  compareKey === c.runeIds.join('-') && refDegats != null
-                    ? total - refDegats
+                  compareKey === c.runeIds.join('-') && refDegatsResultat != null
+                    ? total - refDegatsResultat
                     : undefined,
               };
             })()
@@ -3182,7 +2915,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           ? () => {
               // ⚠️ Garde de DERNIÈRE minute en plus du bouton
               // désactivé : le clic peut partir d'un rendu périmé.
-              if (conflitsDeRunes(c.runeIds).length > 0) return;
+              if (!encoreCourante() || conflitsDeRunes(c.runeIds).length > 0) return;
               // ⚠️ La paire DE CE CANDIDAT, pas celle du monstre
               // affiché : c’est elle que la carte montre et qui a
               // servi à calculer ses stats.
@@ -3190,7 +2923,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 lists.activeListId!,
                 sourceSelector,
                 c.runeIds,
-                (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id),
+                artefactsDeLaCarte.map((a) => a.id),
                 selected!.monster.com2usId!
               );
               optimizer.capturerMembre(lists.activeListId!, sourceSelector);
@@ -3202,8 +2935,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // chose que ce qu'on validerait rendrait le libellé menteur.
       validated: etatValidation(
         c.runeIds,
-        (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id)
+        artefactsDeLaCarte.map((a) => a.id)
       ),
+      inactif: interrompu,
       conflit: (() => {
         const conflits = conflitsDeRunes(c.runeIds);
         if (conflits.length === 0) return null;
@@ -3215,7 +2949,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
 
   // Ce que les deux formats partagent hors des réglages : les résultats et
   // les fenêtres (modales, dialogues), écrits une fois.
-  const resultatsPresents = result != null || fullSortedCandidates.length > 0;
+  const resultatsPresents = result != null || recus > 0;
   const blocResultats = (
     <>
       {resultatsPresents && (
@@ -3223,15 +2957,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           <EnteteResultats
             result={result}
             compteConfirmes={compteConfirmes}
-            resoudreEquipement={resoudreEquipement}
-            optimiserArtefacts={optimiserArtefacts}
-            adapterArtefactsAuTri={adapterArtefactsAuTri}
-            setAdapterArtefactsAuTri={setAdapterArtefactsAuTri}
+            avecFile={avecFile}
             sortBy={sortBy}
             setSortBy={setSortBy}
             setResultsPage={setResultsPage}
-            realDamage={realDamage}
-            fileArtefacts={fileArtefacts}
+            realDamage={contexteResultatAffiche ? contexteResultatAffiche.realDamage : realDamage}
+            enAttente={instantane?.enAttente ?? 0}
+            interrompu={interrompu}
             compteAffiche={compteAffiche}
             bureau={!sousLg}
           />
@@ -3243,11 +2975,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             impossibleFeasibility={impossibleFeasibility}
             blockingDiagnosis={blockingDiagnosis}
             diagnoseBlockingEnabled={diagnoseBlockingEnabled}
-            runeById={runeById}
-            metric={metric}
-            objective={objective}
-            aurasPropresDe={aurasPropresDe}
-            damageSetup={damageSetup}
+            runeById={contexteResultatAffiche ? runesDuContexte(contexteResultatAffiche) : runeById}
+            metric={instantane?.vue.metric ?? metric}
+            objective={contexteResultatAffiche?.recherche.objective ?? objective}
+            aurasPropresDe={aurasPropresDuResultat}
+            damageSetup={contexteResultatAffiche?.damageSetup ?? damageSetup}
           />
   
           {result?.truncated && (
@@ -3273,7 +3005,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             relicUsageById={relicUsageById}
             metric={metric}
             openDetailKey={openDetailKey}
-            onToggleDetail={(key: string) => setOpenDetailKey((cur) => (cur === key ? null : key))}
+            onToggleDetail={(key: string) => {
+              const versions = instantane?.versions, courantes = publicationCouranteRef.current;
+              if (!versions || versions.idRecherche !== courantes?.idRecherche || versions.revisionPubliee !== courantes.revisionPubliee) return;
+              setOpenDetailKey((cur) => (cur === key ? null : key));
+            }}
             proprietesCarte={proprietesCarte}
             hauteurCarte={hauteurCarte}
           />
@@ -3289,6 +3025,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             <PaginationResultats
               setResultsPage={setResultsPage}
               resultsPage={resultsPage}
+              inactif={interrompu}
               pageDraft={pageDraft}
               setPageDraft={setPageDraft}
               totalResultsPages={totalResultsPages}

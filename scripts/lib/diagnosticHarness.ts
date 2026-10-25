@@ -18,6 +18,8 @@
 // par construction, et il affiche lequel s'est appliqué et pourquoi. Forcer
 // un régime reste possible — c'est un override, marqué comme tel.
 
+import { contexteResultat } from '../../src/lib/contexteResultat';
+import { classerEnLocal } from '../../src/lib/classementCompact';
 import {
   ALL_STAT_KEYS,
   Bucket,
@@ -43,9 +45,6 @@ import {
   relevance,
   runeContribution,
   satisfiesSets,
-  aurasPropresParRunes,
-  optionsDeClassement,
-  sortCandidates,
   weightedContribution,
 } from '../../src/lib/runeBuildOptim';
 // ⚠️ Les DEUX fonctions que `pairBuckets` appelle pour décider d'accepter une
@@ -62,7 +61,6 @@ import { RuneDetail } from '../../src/types';
 import { buildRealDamageContext } from './realDamageCli';
 import { loadMonstersList } from './monstersData';
 import { DEFAULT_DAMAGE_SETUP } from '../../src/lib/damage';
-import { etatReliqueDuBuild } from '../../src/lib/relicQueue';
 import { ConfigResolue, resoudreConfig } from './diagnosticConfig';
 import { apparierNode, assurerBundleAppariementRapide } from './appariementRapideNode';
 import { construireMoitiesEnParallele, ensureBuildHalfBundle } from './buildHalvesNode';
@@ -86,7 +84,6 @@ import {
   EtagePopulation,
   Faisabilite,
   NatureEtage,
-  PreuveFaisabilite,
   ProgressionConstruction,
   ProgressionMoitieRendue,
   QuasiSucces,
@@ -1905,17 +1902,11 @@ export function classer(
   // neutre en `recherche` (aucune résolution par build ici non plus).
   const setup = resolue.recette?.damageSetup ?? DEFAULT_DAMAGE_SETUP;
   const element = resolue.monstre ? (loadMonstersList().find((m) => m.com2usId === resolue.monstre!.com2usId)?.element ?? null) : null;
-  const classes = sortCandidates(candidats, objectif, optionsDeClassement({
-    realDamage,
-    runeById,
-    metric: resolue.params.metric,
-    damageSetup: setup,
-    // Auras propres des six runes de chaque candidat, comme l'écran.
-    aurasPropresDe: aurasPropresParRunes(runeById),
-    artefactsDuBuild: () => null,
-    etatReliqueDe: () => etatReliqueDuBuild(undefined, resolue.params.relicContext, resolue.params.relic),
-    contexteExclusive: { setup, element },
-  }));
+  const photo = contexteResultat({ params: { ...resolue.params, pool: resolue.poolInitial },
+    fiche: resolue.monstre?.gear ?? { base: resolue.params.base, runes: [], artifacts: resolue.params.artifacts, relic: resolue.params.relic },
+    realDamage, damageSetup: setup, exclusive: { setup, element }, signature: '', idInventaire: 0, idEspece: resolue.monstre?.com2usId ?? null, resolution: null, toutVerifier: false });
+  const classes = classerEnLocal(photo, candidats, { tri: objectif, metric: resolue.params.metric,
+    page: 1 }).affichees;
   // ⚠️ `candidateMetricTotal` recalcule depuis les VRAIES runes dans la
   // mesure courante — jamais `effTotal`, figé au moment de la recherche. Il
   // est appliqué à la DEMANDE, pas à toute la liste : le classement peut

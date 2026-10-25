@@ -304,7 +304,7 @@ différentiel relique pour classer une perte
 - **Le résultat** (`ResultatArtefacts`) porte la paire, ses artéfacts, les
   stats recalculées avec l'équipement retenu, `conforme`, et en mode
   `recherche` la relique retenue (`relique`, son `id` est le `rid`) et
-  `sansEffetSurLeTri`. Le classement (`affichees`, par `classementResolu`)
+  `sansEffetSurLeTri`. Le classement compact partagé (projeté en `affichees`)
   écarte un build non conforme et classe sur ces stats, qui incluent la
   relique : [pipeline.md § Résultat affiché](pipeline.md).
 - **Non-régression conditionnelle** : une principale en pourcentage ne fait
@@ -403,10 +403,10 @@ l'app au calcul exhaustif, build par build.
 ## Régimes : ce qui note la relique
 
 - **Un seul régime pour la paire et la relique** : `regimeEquipement =
-  regimeEquipementDe(regimeArtefacts(adapterArtefactsAuTri ? sortBy :
-  objective), contexte de dégâts disponible)` (`OptimizerSection.tsx`,
+  regimeEquipementDe(regimeArtefacts(objective), contexte de dégâts
+  disponible)` (`OptimizerSection.tsx`, `resolutionDuContexte`,
   `src/lib/artifactEvaluation.ts`). « Dégâts réels » sans sort calculable
-  est rabattu sur `aucun` une fois, à l'écran, jamais absorbé par
+  est rabattu sur `aucun` une fois, jamais absorbé par
   `evaluerPourRegime`.
 - **`degats_reels` et `ehp`** : la note compte l'effet unique de la relique
   essayée (§ L'effet unique — score de la propriété exclusive). Ex æquo :
@@ -417,9 +417,9 @@ l'app au calcul exhaustif, build par build.
   æquo : la relique portée l'emporte si elle est parmi les meilleures,
   sinon la plus petite `id` (`regimeDeStat`, option `departagePortee` de
   `bestRelicForBuild`). Ce départage porte sur le CHOIX, pas sur le score.
-  Conséquence : « Adapter les artéfacts et reliques au tri » étant activé
-  par défaut, trier par une stat ne fait pas préférer une Bravoure, une
-  Éternité ou une Origine pour ses points.
+  Aucun objectif de recherche ne mène à ces régimes : la résolution de
+  l'app suit l'objectif, jamais le tri ; ils restent pour un appelant qui
+  les demande explicitement (tests de la résolution).
 - **`aucun`** (Efficience, Vitesse, VIT, Taux CRIT, Dgts CRIT, RES, PRE) :
   aucune note à maximiser. La relique portée si elle est candidate et
   faisable, sinon la première faisable par `id` croissant ;

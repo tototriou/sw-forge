@@ -12,7 +12,7 @@ commits, vérifications) sont dans [AGENTS.md](../../AGENTS.md) et
 | Build | Vite 5, Tailwind 3, PostCSS + autoprefixer, et le plugin de l'écran partagé (`scripts/lib/postcssVolets.ts`), tous déclarés dans `vite.config.ts` |
 | Dépendances runtime | `lucide-react` (icônes), `framer-motion` (animations), `react-resizable-panels` (séparateur de l'écran partagé) — aucune mesure d'audience |
 | Node | **24** (LTS active), déclaré à trois endroits qui doivent rester alignés : `engines` de `package.json`, `.nvmrc` et la CI |
-| Calcul lourd | Web Workers (`src/workers/`) |
+| Calcul lourd | Web Workers de recherche, classement et résolution (`src/workers/`) ; corps de calcul partagés avec les outils Node |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé) |
 | Déploiement du site | Vercel (preset Vite, sortie `dist`) : déploiement automatique sur `main`, preview par branche |
 | Application de bureau | Electron, voir ci-dessous |

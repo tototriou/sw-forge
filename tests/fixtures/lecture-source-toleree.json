@@ -7,6 +7,34 @@
   ],
   "entrees": [
     {
+      "fichier": "tests/classement-cession.test.ts",
+      "cible": "src/workers/classement.worker.ts",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Garde de la coquille du classeur : ses tranches se relancent par message de canal, jamais par setTimeout, que Node ne bride pas et ne peut donc pas distinguer ; la relance elle-même est testée par import."
+    },
+    {
+      "fichier": "tests/classement-distant.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Garde du branchement du classement propriétaire à l'écran existant, complétée par le cycle réel du hook dans le même test."
+    },
+    {
+      "fichier": "tests/classement-distant.test.ts",
+      "cible": "src/hooks/useBuildOptimSearch.ts",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Garde des ports et de la durée de vie applicative, complétée par navigation, relance et panne exécutées sur le vrai hook."
+    },
+    {
+      "fichier": "tests/classement-distant.test.ts",
+      "cible": "src/lib/contexteResultat.ts",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Garde de neutralité du producteur de données partagé entre navigateur et Node ; son comportement est également testé par import."
+    },
+    {
       "fichier": "tests/banc/ecrans.ts",
       "cible": "src/lib/optimizerColonnes",
       "occurrences": 1,
@@ -722,18 +750,6 @@
       "statut": "stock"
     },
     {
-      "fichier": "tests/file-k.test.ts",
-      "cible": "src/hooks/useArtifactOptimQueue.ts",
-      "occurrences": 1,
-      "statut": "stock"
-    },
-    {
-      "fichier": "tests/file-voie.test.ts",
-      "cible": "src/hooks/useArtifactOptimQueue.ts",
-      "occurrences": 1,
-      "statut": "stock"
-    },
-    {
       "fichier": "tests/import-reco-copies.test.ts",
       "cible": "src/components/siege/RecoBoard.tsx",
       "occurrences": 1,
@@ -1114,12 +1130,6 @@
     {
       "fichier": "tests/resolution-distante.test.ts",
       "cible": "src/components/outils/OptimizerSection.tsx",
-      "occurrences": 1,
-      "statut": "stock"
-    },
-    {
-      "fichier": "tests/resolution-distante.test.ts",
-      "cible": "src/hooks/useArtifactOptimQueue.ts",
       "occurrences": 1,
       "statut": "stock"
     },

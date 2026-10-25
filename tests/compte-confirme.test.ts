@@ -176,9 +176,10 @@ export function testCompteConfirme() {
 
   const brut = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8').replace(/\r\n/g, '\n');
   const src = brut.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  ok(/const compteConfirmes = useMemo\(\s*\(\) =>\s*compteConfirme\(\{\s*recus: fullSortedCandidates,\s*parBuild: resoudreEquipement != null \? fileArtefacts\.parBuild : null,\s*trouves: trouvesParLeMoteur,\s*taillePage: RESULTS_PAGE_SIZE,\s*termine: result != null,\s*\}\),/.test(src),
-    'écran : `compteConfirmes` vient des reçus et du cache PUBLIÉ de la file (null sans file)');
-  egal((src.match(/compteConfirme\(/g) ?? []).length, 1, 'écran : un seul appel à `compteConfirme`');
+  ok(/const compteConfirmes = compteConfirmeDesComptes\(\{\s*recus,\s*resolus: instantane\?\.comptes\.resolus \?\? 0,\s*confirmees: instantane\?\.comptes\.confirmees \?\? 0,\s*avecFile,\s*trouves: trouvesParLeMoteur,\s*taillePage: RESULTS_PAGE_SIZE,\s*termine: result != null,\s*\}\);/.test(src),
+    'écran : `compteConfirmes` vient des comptes de l’instantané (reçus, résolus, confirmées)');
+  egal([(src.match(/compteConfirmeDesComptes\(/g) ?? []).length, (src.match(/compteConfirme\(/g) ?? []).length], [1, 0],
+    'écran : un seul appel, sur les comptes, jamais sur la liste des reçus');
   ok(/const totalResultsPages = compteConfirmes\.pages;/.test(src), 'pagination : le nombre de pages vient des confirmées');
   ok(/setResultsPage\(\(p\) => Math\.min\(Math\.max\(p, 1\), totalResultsPages\)\);\s*\}, \[totalResultsPages, setResultsPage\]\);/.test(src),
     'pagination : la page courante revient sur la dernière quand le nombre de pages diminue');

@@ -85,10 +85,9 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   passe dans un troisième état, actif, qui met à jour la seule paire sans
   toucher aux runes. Sans lui, la carte dirait « Validé » et n'offrirait plus
   rien alors que ce qu'elle montre n'est pas ce qui est réservé.
-  Le cas se présente dès que « Adapter les artéfacts et reliques au tri »
-  est activé (le défaut) : la paire suit alors le critère affiché, donc
-  changer de tri peut la changer à runes identiques. Interrupteur désactivé,
-  elle reste stable et ce bouton n’apparaît plus au fil de l’exploration.
+  Le cas se présente quand une recherche sur un autre objectif retrouve les
+  runes réservées avec une autre paire : la paire suit l'objectif de la
+  recherche, jamais le tri affiché, donc changer de tri ne la change pas.
 
   Sans cette mémorisation, la fiche d'un build validé rejouerait la paire portée
   AUJOURD'HUI plutôt que celle retenue par la recherche. ⚠️ Un build validé

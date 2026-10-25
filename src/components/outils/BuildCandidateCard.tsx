@@ -102,6 +102,9 @@ interface Props {
    * pas de bouton — aucun monstre résolu, donc aucune référence à comparer.
    */
   onCompare?: () => void;
+  // Classement perdu : la carte reste lisible, « Comparer » et « Valider »
+  // gardent leur place, désactivés.
+  inactif?: boolean;
   /**
    * L'écart, statistique par statistique, entre ce build et la référence —
    * fourni SEULEMENT quand cette carte est celle qu'on compare.
@@ -191,6 +194,7 @@ export default function BuildCandidateCard({
   conflit,
   validated,
   onCompare,
+  inactif = false,
   comparaison,
   pvEffectifs,
   metricDelta,
@@ -341,6 +345,7 @@ export default function BuildCandidateCard({
       {onCompare && place(
         <Bouton
           onClick={onCompare}
+          disabled={inactif}
           ton={comparaison ? 'accent' : 'neutre'}
           fond={comparaison ? 'doux' : 'vide'}
           taille="sm"
@@ -354,7 +359,7 @@ export default function BuildCandidateCard({
           onClick={onValidate}
           // ⚠️ Seul `'oui'` désactive. `'artefacts'` reste ACTIF : c'est
           // précisément l'état où il reste quelque chose à valider.
-          disabled={validated === 'oui' || !!conflit}
+          disabled={inactif || validated === 'oui' || !!conflit}
           title={conflit ?? undefined}
           // Le ton « déjà réservé » ne vaut que pour l'identité complète —
           // sinon la carte se lirait comme terminée alors qu'elle attend

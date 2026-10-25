@@ -1,6 +1,46 @@
-import { CandidatsCompacts } from './candidatsCompacts';
-import type { JournalResolution, ResultatArtefacts } from './artifactQueue';
-import type { BuildCandidate } from './runeBuildOptim';
+import { CandidatsCompacts, RecepteurCandidats, ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs, terminerEtapes, trierIndicesEtapes, type BlocCandidats } from './candidatsCompacts';
+import { candidatAvecSaPaire, cibleDeLaFile, cleBuild, type JournalResolution, type ResultatArtefacts } from './artifactQueue';
+import { scoreDuCandidat, type BuildCandidate, type Objective, type OptionsDeClassement } from './runeBuildOptim';
+import type { StatKey } from './effects';
+import type { OptimMetric } from './runeOptim';
+import { CacheResolutionCompact } from './cacheResolutionCompact';
+import { optionsDuContexte, resolutionDuContexte, runesDuContexte, type ContexteResultat } from './contexteResultat';
+import { runesDuBuild } from './relicQueue';
+import { ResolutionDistante, repliSurErreur, type PortsResolutionDistante } from '../workers/resolutionDistante';
+import { CorpsResolution, type MessageVersResolution, type ReponseResolution, type EntreesResolutionSerialisables } from '../workers/resolutionBody';
+import type { SearchResult } from './runeBuildOptim';
+
+/** Adaptation paresseuse : aucun objet par ligne n'est retenu par le propriétaire. */
+export function candidatsParIndice(nombre: number, lire: (i: number) => BuildCandidate): BuildCandidate[] {
+  return new Proxy([] as BuildCandidate[], { get(cible, cle, receveur) {
+    if (cle === 'length') return nombre;
+    if (typeof cle === 'string' && /^(0|[1-9][0-9]*)$/.test(cle)) return Number(cle) < nombre ? lire(Number(cle)) : undefined;
+    return Reflect.get(cible, cle, receveur);
+  }, has(cible, cle) {
+    if (typeof cle === 'string' && /^(0|[1-9][0-9]*)$/.test(cle)) return Number(cle) < nombre;
+    return Reflect.has(cible, cle);
+  } });
+}
+
+/** Le tri porte sur les ordinaux ; même soustraction et stabilité que sortCandidates. */
+export function ordreCollecte(candidats: ArrayLike<BuildCandidate>, critere: StatKey | Objective, options: OptionsDeClassement): Uint32Array {
+  return terminerEtapes(ordreCollecteEtapes(candidats, critere, options));
+}
+
+function* ordreCollecteEtapes(candidats: ArrayLike<BuildCandidate>, critere: StatKey | Objective, options: OptionsDeClassement): Generator<void, Uint32Array> {
+  const notes = new Float64Array(candidats.length);
+  let calculable = false, nonFini = false;
+  for (let i = 0; i < candidats.length; i++) {
+    const note = scoreDuCandidat(candidats[i], critere, options);
+    calculable ||= note !== null;
+    notes[i] = note ?? 0; nonFini ||= note !== null && !Number.isFinite(note);
+    yield;
+  }
+  const ordre = Uint32Array.from({ length: candidats.length }, (_, i) => i);
+  if (!calculable) return ordre;
+  if (nonFini) return Uint32Array.from(Array.from(ordre).sort((a, b) => notes[b] - notes[a]));
+  return yield* trierIndicesEtapes(ordre, (a, b) => notes[b] - notes[a]);
+}
 
 /** AVL par ordinal ; les liens codent ordinal + 1, jamais un objet par nœud. */
 class OrdreCompact {
@@ -90,15 +130,17 @@ class OrdreCompact {
   comptes(): { total: number; confirmes: number; potentiels: number } {
     return { total: this.totaux[this.racine], confirmes: this.confirmes[this.racine], potentiels: this.potentiels[this.racine] };
   }
-  page(debut: number, taille: number): number[] {
+  page(debut: number, taille: number, choix: 'total' | 'confirmes' | 'potentiels' = 'total'): number[] {
     const resultat: number[] = [];
     const fin = debut + taille;
+    const comptes = choix === 'confirmes' ? this.confirmes : choix === 'potentiels' ? this.potentiels : this.totaux;
     const lire = (p: number, avant: number): void => {
-      if (!p || avant >= fin || avant + this.totaux[p] <= debut) return;
-      const rang = avant + this.totaux[this.gauche[p]];
+      if (!p || avant >= fin || avant + comptes[p] <= debut) return;
+      const rang = avant + comptes[this.gauche[p]];
+      const retenu = choix === 'total' || (choix === 'confirmes' ? this.confirme(p - 1) : !this.confirme(p - 1));
       lire(this.gauche[p], avant);
-      if (rang >= debut && rang < fin) resultat.push(p - 1);
-      lire(this.droite[p], rang + 1);
+      if (retenu && rang >= debut && rang < fin) resultat.push(p - 1);
+      lire(this.droite[p], rang + Number(retenu));
     };
     lire(this.racine, 0); return resultat;
   }
@@ -130,12 +172,17 @@ export class ClassementCompact {
   private cacheVide = true;
   private ordreDeReference: number[] | undefined;
   private publicationCourante = new WeakSet<ReadonlyMap<string, ResultatArtefacts>>();
+  private ordreBase: Uint32Array;
+  private readonly rangBase: Uint32Array;
 
-  constructor(base: readonly BuildCandidate[]) {
-    this.magasin = new CandidatsCompacts(base);
+  constructor(base: ArrayLike<BuildCandidate>, ordreBase?: Uint32Array, differe = false) {
+    this.magasin = new CandidatsCompacts(base, differe);
     this.notes = new Float64Array(base.length);
     this.notesPresentes = new Uint8Array(base.length);
     this.versionsNotes = new Uint32Array(base.length);
+    this.ordreBase = ordreBase ?? (differe ? new Uint32Array(base.length) : Uint32Array.from({ length: base.length }, (_, i) => i));
+    this.rangBase = new Uint32Array(base.length);
+    if (!differe) this.ordreBase.forEach((i, rang) => { this.rangBase[i] = rang; });
     this.ordre = new OrdreCompact(base.length, (a, b) => this.comparer(a, b), (i) => this.magasin.etat(i) === 1);
   }
   private comparer(a: number, b: number): number {
@@ -144,7 +191,7 @@ export class ClassementCompact {
     if (note) return note;
     const ra = this.magasin.rid(a) ?? Infinity, rb = this.magasin.rid(b) ?? Infinity;
     if (ra !== rb) return ra - rb;
-    return this.magasin.rangCle(a) - this.magasin.rangCle(b) || a - b;
+    return this.magasin.rangCle(a) - this.magasin.rangCle(b) || this.rangBase[a] - this.rangBase[b];
   }
   private nonFini(i: number): boolean {
     const rid = this.magasin.rid(i);
@@ -161,6 +208,9 @@ export class ClassementCompact {
   }
 
   actualiser(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined, contexte: unknown, score: NoterCompact): void {
+    terminerEtapes(this.actualiserEtapes(cache, journal, contexte, score));
+  }
+  *actualiserEtapes(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined, contexte: unknown, score: NoterCompact): Generator<void> {
     Object.assign(this.travail, { controlees: 0, notes: 0, comparaisons: 0, complet: false, repliNonFini: false });
     const consecutif = journal && journal.generation === this.generation && journal.version === this.version + 1
       && journal.tailleAvant === this.tailleCache && journal.tailleApres === cache.size;
@@ -181,8 +231,8 @@ export class ClassementCompact {
     this.ordreDeReference = undefined;
     if (complet) {
       this.travail.complet = true; this.ordre.vider(); this.nonFinis = 0;
-      for (const g of this.magasin.chefs()) this.magasin.ingerer(g, cache.get(this.magasin.cle(g)));
-      for (let i = 0; i < this.magasin.longueur; i++) this.noter(i, score);
+      for (const g of this.magasin.chefs()) { this.magasin.ingerer(g, cache.get(this.magasin.cle(g))); yield; }
+      for (let i = 0; i < this.magasin.longueur; i++) { this.noter(i, score); yield; }
     } else if (consecutif) {
       // Retirer sous les anciennes clés avant toute ingestion de groupe.
       for (const c of journal.changements) {
@@ -192,15 +242,16 @@ export class ClassementCompact {
           if (this.magasin.etat(i) === 2) continue;
           if (this.nonFini(i)) this.nonFinis--;
           if (!etaitNonFini) this.ordre.retirer(i);
+          yield;
         }
         this.magasin.ingerer(g, c.apres);
-        for (const i of this.magasin.lignesDuGroupe(g)) this.noter(i, score);
+        for (const i of this.magasin.lignesDuGroupe(g)) { this.noter(i, score); yield; }
       }
     }
     this.cacheVide = cache.size === 0;
     if (this.nonFinis) {
       // Même entrée, mêmes expressions, mêmes deux tris natifs que l'oracle.
-      const indices = Array.from({ length: this.magasin.longueur }, (_, i) => i).filter((i) => this.magasin.etat(i) !== 2);
+      const indices = Array.from(this.ordreBase).filter((i) => this.magasin.etat(i) !== 2);
       indices.sort((a, b) => {
         const ra = this.magasin.rid(a) ?? Infinity, rb = this.magasin.rid(b) ?? Infinity;
         if (ra !== rb) return ra - rb;
@@ -210,19 +261,21 @@ export class ClassementCompact {
       this.ordreDeReference = indices; this.travail.repliNonFini = true;
     } else if (complet || etaitNonFini) {
       this.ordre.vider();
-      for (let i = 0; i < this.magasin.longueur; i++) if (this.magasin.etat(i) !== 2) this.ordre.inserer(i);
+      for (let i = 0; i < this.magasin.longueur; i++) { if (this.magasin.etat(i) !== 2) this.ordre.inserer(i); yield; }
     } else if (consecutif) {
       for (const c of journal.changements) {
         const g = this.magasin.groupeDeCle(c.cle);
-        if (g !== undefined) for (const i of this.magasin.lignesDuGroupe(g)) if (this.magasin.etat(i) !== 2) this.ordre.inserer(i);
+        if (g !== undefined) for (const i of this.magasin.lignesDuGroupe(g)) { if (this.magasin.etat(i) !== 2) this.ordre.inserer(i); yield; }
       }
     }
     this.generation = journal?.generation; this.version = journal?.version ?? 0;
     this.tailleCache = cache.size; this.contexte = contexte;
     this.publicationCourante = new WeakSet([cache]);
   }
+
+  invalider(): void { this.contexte = {}; }
   page(debut: number, taille: number): number[] {
-    if (this.cacheVide) return Array.from({ length: Math.max(0, Math.min(taille, this.magasin.longueur - debut)) }, (_, j) => debut + j);
+    if (this.cacheVide) return Array.from(this.ordreBase.slice(debut, debut + taille));
     return this.ordreDeReference?.slice(debut, debut + taille) ?? this.ordre.page(debut, taille);
   }
   comptes(): { total: number; confirmes: number; potentiels: number } {
@@ -231,4 +284,510 @@ export class ClassementCompact {
     return { total: this.ordreDeReference.length, confirmes, potentiels: this.ordreDeReference.length - confirmes };
   }
   note(i: number): number | null { return this.notesPresentes[i] ? this.notes[i] : null; }
+  /** Les confirmées de rang `debut` à `debut + taille − 1` parmi les confirmées, dans l'ordre du classement. */
+  pageConfirmees(debut: number, taille: number): number[] {
+    if (this.cacheVide) return [];
+    if (this.ordreDeReference) return this.ordreDeReference.filter((i) => this.magasin.etat(i) === 1).slice(debut, debut + taille);
+    return this.ordre.page(debut, taille, 'confirmes');
+  }
+  enAttente(taille: number): number[] {
+    if (this.cacheVide) return Array.from(this.ordreBase.slice(0, taille));
+    if (this.ordreDeReference) return this.ordreDeReference.filter((i) => this.magasin.etat(i) === 0).slice(0, taille);
+    return this.ordre.page(0, taille, 'potentiels');
+  }
+  definirOrdreBase(ordre: Uint32Array): void {
+    terminerEtapes(this.definirOrdreBaseEtapes(ordre));
+  }
+  *definirOrdreBaseEtapes(ordre: Uint32Array): Generator<void> {
+    this.ordreBase = ordre;
+    for (let rang = 0; rang < ordre.length; rang++) { this.rangBase[ordre[rang]] = rang; if ((rang & 63) === 0) yield; }
+    this.contexte = Symbol('ordre de base remplacé');
+  }
+}
+
+export interface VueClassement {
+  /** Le CLI imprime aussi les non vérifiés ; l'écran compose ses cartes vérifiées. */
+  pageImprimee?: boolean;
+  tri: StatKey | Objective;
+  metric: OptimMetric;
+  page: number;
+}
+export interface VersionsClassement {
+  versionSchema: 1;
+  idRecherche: number;
+  idInventaire: number;
+  idContexteResolution: number;
+  revisionDonnees: number;
+  idVue: number;
+  revisionPubliee: number;
+  idDemande: number;
+}
+export type IdentitePublication = Pick<VersionsClassement, 'idRecherche' | 'idVue' | 'idDemande' | 'revisionPubliee'>;
+/** Une carte de la page : le build avec les statistiques de sa vraie paire et son équipement résolu. */
+export interface CarteClassement {
+  ordinal: number;
+  candidat: BuildCandidate;
+  /** `null` sans file : l'équipement est celui de la fiche. */
+  resultat: ResultatArtefacts | null;
+  /** Le chiffre qui classe la carte, quand l'objectif ou le tri le demande ; calculé par le classeur. */
+  pvEffectifs: number | null;
+  degatsReels: number | null;
+}
+export interface ComptesClassement {
+  /** Candidats reçus de la recherche : l'aperçu, puis tous. */
+  recus: number;
+  /** Reçus moins les écartés de la résolution. */
+  affichables: number;
+  /** Reçus dont l'équipement est résolu, conformes ou écartés. */
+  resolus: number;
+  /** Reçus résolus ET conformes. */
+  confirmees: number;
+  /** Une file vérifie l'équipement (optimisation d'artéfacts active). */
+  avecFile: boolean;
+}
+/** Tout ce que la page reçoit : jamais un objet ni un ordinal par build trouvé. */
+export interface InstantaneClassement {
+  versions: VersionsClassement;
+  vue: VueClassement;
+  comptes: ComptesClassement;
+  page: { premierRang: number; cartes: CarteClassement[]; placesEnAttente: number };
+  enAttente: number;
+  /** Panne du résolveur reprise dans le classeur, s'il y en a eu une. */
+  incident: string | null;
+  bilan: Omit<SearchResult, 'candidates'> | null;
+}
+export const TAILLE_PAGE_CLASSEMENT = 20;
+/** Projection objet complète, pour Node seulement (CLI, harnais, tests) : jamais envoyée à la page. */
+export interface PublicationClassement {
+  versions: VersionsClassement;
+  vue: VueClassement;
+  candidats: BuildCandidate[];
+  base: BuildCandidate[];
+  affichees: BuildCandidate[];
+  parBuild: Map<string, ResultatArtefacts>;
+  enAttente: number;
+  bilan: Omit<SearchResult, 'candidates'> | null;
+}
+
+function compteurSuivant(n: number): number {
+  if (!Number.isSafeInteger(n) || n >= Number.MAX_SAFE_INTEGER) throw new Error('Compteur du classeur épuisé ; recréer le propriétaire');
+  return n + 1;
+}
+
+/** Corps partagé par le Worker et Node : aucune API de plateforme ni de React. */
+export class CorpsClassement {
+  private flux = new RecepteurCandidats(0);
+  private lots: BlocCandidats[] = [];
+  private plages: { debut: number; longueur: number }[] = [];
+  private nombreCible = 0;
+  private tache: Generator<void> | null = null;
+  private reponsesEnAttente: ReponseResolution[] = [];
+  private index: ClassementCompact | null = null;
+  private base: Uint32Array = new Uint32Array();
+  // L'ordre du fond suit l'objectif et la mesure LANCÉS : `null` quand la vue
+  // les garde, l'ordre de base de la vue sert alors lui-même.
+  private fondPropre: { index: ClassementCompact; ordre: Uint32Array } | null = null;
+  // Seule une page demandée explicitement passe devant le fond : l'ouverture,
+  // ou une vue qui ne change que la page ; jamais un changement de tri.
+  private pagePrioritaire = true;
+  private cache = new CacheResolutionCompact();
+  private signature = '';
+  private contexte: ContexteResultat | null = null;
+  private vue: VueClassement | null = null;
+  private versions: VersionsClassement = { versionSchema: 1, idRecherche: 0, idInventaire: 0, idContexteResolution: 0, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande: 0 };
+  private bilan: Omit<SearchResult, 'candidates'> | null = null;
+  private collecteScellee = false;
+  private entrees: EntreesResolutionSerialisables | null = null;
+  private pilote = new ResolutionDistante();
+  private direct = new CorpsResolution();
+  private reponsesDirectes: ReponseResolution[] = [];
+  private repli = false;
+  private dernierePublication = -Infinity;
+  private sale = true;
+  private publicationForcee = false;
+  private visites = new Uint32Array();
+  private passage = 0;
+  private versionLue = -1;
+  private fileExhaustive: {
+    index: ClassementCompact; base: Uint32Array; generationCache: number; generationJournal: object | undefined; version: number;
+    suivants: Uint32Array; precedents: Uint32Array; ordinaux: Uint32Array; premier: number; nombre: number;
+  } | null = null;
+  private generationCache = 0;
+  private incident: string | null = null;
+
+  constructor(private readonly sorties: {
+    publier: (p: InstantaneClassement) => void;
+    resoudre: (m: MessageVersResolution) => void;
+    incident: (raison: string, detail: unknown) => void;
+  }, private readonly differe = false, modeResolution: 'distante' | 'directe' = 'distante') {
+    this.repli = modeResolution === 'directe';
+  }
+
+  get travailEnCours() { return this.tache !== null; }
+  avancer(): void {
+    if (this.tache?.next().done) this.tache = null;
+  }
+  private programmer(tache: Generator<void>): void {
+    this.tache = tache;
+    if (!this.differe) while (this.tache) this.avancer();
+  }
+
+  ouvrir(contexte: ContexteResultat, idRecherche: number, vue: VueClassement, idDemande: number): void {
+    if (contexte.versionSchema !== 1 || !Number.isSafeInteger(idRecherche) || idRecherche <= this.versions.idRecherche) throw new Error('Génération de classement invalide');
+    const signature = JSON.stringify([contexte.idInventaire, contexte.idEspece, contexte.signature, contexte.recherche.relicContext?.empreinte,
+      resolutionDuContexte(contexte)?.regime]);
+    if (signature !== this.signature) { this.cache = new CacheResolutionCompact(); this.generationCache = compteurSuivant(this.generationCache); }
+    this.signature = signature;
+    this.abandonnerReponses();
+    this.tache = null; this.nombreCible = 0; this.plages = [];
+    this.contexte = contexte; this.vue = null; this.flux = new RecepteurCandidats(0); this.lots = [];
+    this.index = null; this.fileExhaustive = null; this.base = new Uint32Array(); this.fondPropre = null; this.bilan = null; this.collecteScellee = false;
+    this.versions = { versionSchema: 1, idRecherche, idInventaire: contexte.idInventaire,
+      idContexteResolution: this.versions.idContexteResolution, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande };
+    this.entrees = null;
+    for (const m of this.pilote.invalider()) {
+      if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m));
+      else this.sorties.resoudre(m);
+    }
+    this.sale = true; this.publicationForcee = false; this.dernierePublication = -Infinity;
+    this.changerVue(vue, 1, idDemande);
+  }
+  private get fond(): Uint32Array { return this.fondPropre?.index === this.index && this.fondPropre ? this.fondPropre.ordre : this.base; }
+  private vueSuitLeLancement(vue: VueClassement): boolean {
+    return vue.tri === (this.contexte?.recherche.objective ?? 'efficience') && vue.metric === this.contexte?.recherche.metric;
+  }
+  private courant(idRecherche: number) { return this.contexte !== null && idRecherche === this.versions.idRecherche; }
+  ajouter(idRecherche: number, sequence: number, bloc: BlocCandidats): void {
+    if (!this.courant(idRecherche)) return;
+    if (!Number.isSafeInteger(sequence) || sequence < 0) throw new Error('Séquence de candidats invalide');
+    if (this.collecteScellee && !this.lots.length) {
+      const plage = this.plages[sequence];
+      if (!plage || plage.debut !== bloc.debut || plage.longueur !== bloc.longueur || bloc.schema !== 1
+        || bloc.ids.length !== 6 || bloc.totaux.length !== 8 || bloc.gabarits.length !== 8
+        || [...bloc.ids, ...bloc.totaux, bloc.efficience].some((c) => c.length !== bloc.longueur)) throw new Error('Lot retransmis après scellement incohérent');
+      for (let i = 0; i < bloc.longueur; i++) {
+        const c = this.index!.magasin.candidat(bloc.debut + i, false);
+        if (!Object.is(c.effTotal, bloc.efficience[i]) || c.runeIds.some((id, j) => !Object.is(id, bloc.ids[j][i]))
+          || c.stats.some((s, j) => !Object.is(s.total, bloc.totaux[j][i]) || !Object.is(s.base, bloc.gabarits[j].base)
+            || s.key !== bloc.gabarits[j].key || s.label !== bloc.gabarits[j].label || s.suffix !== bloc.gabarits[j].suffix)) throw new Error('Lot retransmis avec un contenu différent');
+      }
+      return;
+    }
+    const connu = this.lots[sequence];
+    if (connu) {
+      const colonnes = (b: BlocCandidats) => [...b.ids, ...b.totaux, b.efficience];
+      if (bloc.debut !== connu.debut || bloc.longueur !== connu.longueur || bloc.schema !== connu.schema
+        || bloc.gabarits.length !== connu.gabarits.length || bloc.gabarits.some((g, i) => {
+          const autre = connu.gabarits[i];
+          return !Object.is(g.base, autre.base) || g.key !== autre.key || g.label !== autre.label || g.suffix !== autre.suffix;
+        })
+        || colonnes(bloc).some((c, j) => c.length !== colonnes(connu)[j].length || c.some((v, i) => !Object.is(v, colonnes(connu)[j][i])))) throw new Error('Lot retransmis avec un contenu différent');
+      return;
+    }
+    if (this.collecteScellee || sequence !== this.lots.length) throw new Error('Séquence de candidats manquante ou flux scellé');
+    this.flux.recevoir([bloc]); this.lots.push(bloc); this.plages.push({ debut: bloc.debut, longueur: bloc.longueur }); this.versions.revisionDonnees = compteurSuivant(this.versions.revisionDonnees);
+  }
+  activer(idRecherche: number): void {
+    if (!this.courant(idRecherche)) return;
+    const nombre = this.collecteScellee ? this.flux.longueur : Math.min(3000, this.flux.longueur);
+    if (this.nombreCible !== nombre) { this.nombreCible = nombre; this.trierBase(); this.sale = true; }
+    this.libererSourceScellee();
+  }
+  sceller(idRecherche: number, nombre: number, derniereSequence: number, bilan: Omit<SearchResult, 'candidates'> | null): void {
+    if (!this.courant(idRecherche)) return;
+    if (derniereSequence !== this.plages.length - 1) throw new Error('Scellement de séquence incomplet');
+    if (this.collecteScellee) {
+      if (nombre !== this.nombreCible || JSON.stringify(bilan) !== JSON.stringify(this.bilan)) throw new Error('Scellement retransmis incohérent');
+      return;
+    }
+    this.flux.scellerColonnes(nombre); this.bilan = bilan; this.collecteScellee = true;
+    this.activer(idRecherche); this.sale = true;
+  }
+  private libererSourceScellee(): void {
+    // Le magasin n'adopte la source qu'une fois sa construction terminée.
+    if (this.collecteScellee && this.index?.magasin.longueur === this.nombreCible && !this.tache) { this.flux.liberer(); this.lots = []; }
+  }
+  changerVue(vue: VueClassement, idVue: number, idDemande: number): void {
+    if (!this.contexte || idVue <= this.versions.idVue) return;
+    if (!Number.isSafeInteger(idVue) || !Number.isSafeInteger(idDemande) || !Number.isSafeInteger(vue.page) || vue.page < 1) throw new Error('Vue de classement invalide');
+    const avant = this.vue;
+    // Le régime suit l'objectif photographié : seule l'ouverture le pose.
+    const entrees = avant ? this.entrees : resolutionDuContexte(this.contexte);
+    if (!avant && entrees) {
+      this.entrees = entrees; this.versions.idContexteResolution = compteurSuivant(this.versions.idContexteResolution);
+      this.signature = JSON.stringify([this.contexte.idInventaire, this.contexte.idEspece, this.contexte.signature, this.contexte.recherche.relicContext?.empreinte, entrees?.regime]);
+    }
+    if (!avant) this.pagePrioritaire = true;
+    else if (avant.tri !== vue.tri || avant.metric !== vue.metric) this.pagePrioritaire = false;
+    else if (avant.page !== vue.page || avant.pageImprimee !== vue.pageImprimee) this.pagePrioritaire = true;
+    this.vue = { ...vue }; this.versions.idVue = idVue; this.versions.idDemande = idDemande;
+    if (!this.contexte.toutVerifier) this.fileExhaustive = null;
+    if (!avant || avant.tri !== vue.tri || avant.metric !== vue.metric) this.trierBase();
+    this.sale = true;
+  }
+  private trierBase(): void {
+    if (!this.contexte || !this.vue) return;
+    this.index?.invalider();
+    this.programmer(this.trierBaseEtapes());
+  }
+  private *trierBaseEtapes(): Generator<void> {
+    if (!this.contexte || !this.vue) return;
+    let index = this.index;
+    if (!index || index.magasin.longueur !== this.nombreCible) {
+      const source = candidatsParIndice(this.nombreCible, (i) => this.flux.lire(i));
+      index = new ClassementCompact(source, undefined, true);
+      yield* index.magasin.initialiser(source);
+    }
+    const source = candidatsParIndice(index.magasin.longueur, (i) => index.magasin.candidat(i, false));
+    const base = yield* ordreCollecteEtapes(source, this.vue.tri, optionsDuContexte(this.contexte, null, this.vue.metric));
+    yield* index.definirOrdreBaseEtapes(base);
+    let fond = base;
+    if (!this.vueSuitLeLancement(this.vue)) {
+      fond = this.fondPropre?.index === index ? this.fondPropre.ordre
+        : yield* ordreCollecteEtapes(source, this.contexte.recherche.objective ?? 'efficience', optionsDuContexte(this.contexte, null, this.contexte.recherche.metric));
+      this.fondPropre = { index, ordre: fond };
+    } else this.fondPropre = null;
+    yield* this.actualiserEtapes(index, fond);
+    this.index = index; this.base = base;
+    this.visites = new Uint32Array(index.magasin.longueur); this.passage = 0;
+    this.sale = true;
+  }
+  private cacheLecture(): ReadonlyMap<string, ResultatArtefacts> {
+    return this.cache;
+  }
+  private actualiser(): void {
+    if (this.tache || !this.index || !this.contexte || !this.vue) return;
+    if ((this.cache.journal?.version ?? -1) === this.versionLue && (!this.contexte.toutVerifier || this.selectionExhaustiveCourante())) return;
+    this.programmer(this.actualiserEtapes(this.index));
+  }
+  private *actualiserEtapes(index: ClassementCompact, fond = this.fond): Generator<void> {
+    if (!this.contexte || !this.vue) return;
+    const options = optionsDuContexte(this.contexte, this.cache, this.vue.metric);
+    yield* index.actualiserEtapes(this.cacheLecture(), this.cache.journal, `${this.versions.idRecherche}:${this.vue.tri}:${this.vue.metric}:${this.versions.idContexteResolution}`,
+      (c) => scoreDuCandidat(c, this.vue!.tri, options));
+    yield* this.actualiserSelectionEtapes(index, fond);
+    this.versionLue = this.cache.journal?.version ?? -1;
+  }
+  private selectionExhaustiveCourante(): boolean {
+    const f = this.fileExhaustive;
+    return f !== null && f.index === this.index && f.base === this.fond && f.generationCache === this.generationCache
+      && f.generationJournal === this.cache.journal?.generation && f.version === (this.cache.journal?.version ?? -1);
+  }
+  private *actualiserSelectionEtapes(index: ClassementCompact, base: Uint32Array): Generator<void> {
+    if (!this.contexte?.toutVerifier) { this.fileExhaustive = null; return; }
+    const journal = this.cache.journal, version = journal?.version ?? -1;
+    let f = this.fileExhaustive;
+    // Un repli complet ne peut pas se déduire du seul dernier delta du journal.
+    if (!f || f.index !== index || f.base !== base || f.generationCache !== this.generationCache || f.generationJournal !== journal?.generation
+      || index.travail.complet || (version !== f.version && version !== f.version + 1)) {
+      const n = index.magasin.longueur;
+      f = { index, base, generationCache: this.generationCache, generationJournal: journal?.generation, version,
+        suivants: new Uint32Array(n), precedents: new Uint32Array(n), ordinaux: new Uint32Array(n), premier: 0, nombre: 0 };
+      let dernier = 0;
+      for (let j = 0; j < base.length; j++) {
+        const i = base[j], g = index.magasin.groupe(i);
+        if (!f.ordinaux[g] && index.magasin.etat(i) === 0) {
+          f.ordinaux[g] = i + 1; f.precedents[g] = dernier;
+          if (dernier) f.suivants[dernier - 1] = g + 1; else f.premier = g + 1;
+          dernier = g + 1; f.nombre++;
+        }
+        if ((j & 63) === 0) yield;
+      }
+      this.fileExhaustive = this.contexte?.toutVerifier ? f : null;
+      return;
+    }
+    if (version === f.version) return;
+    for (const c of journal!.changements) {
+      const g = index.magasin.groupeDeCle(c.cle);
+      // Lire ou envoyer ne consomme rien : seul le cache commis retire un groupe.
+      if (g === undefined || !f.ordinaux[g] || index.magasin.etat(g) === 0) continue;
+      const avant = f.precedents[g], apres = f.suivants[g];
+      if (avant) f.suivants[avant - 1] = apres; else f.premier = apres;
+      if (apres) f.precedents[apres - 1] = avant;
+      f.ordinaux[g] = 0; f.nombre--;
+      yield;
+    }
+    f.version = version;
+  }
+  private pageIndices(): number[] {
+    if (!this.index || !this.entrees || !this.pagePrioritaire) return [];
+    if (this.vue?.pageImprimee) return this.index.page((this.vue.page - 1) * 20, 20)
+      .filter((i) => this.index!.magasin.etat(i) === 0);
+    const { total, confirmes } = this.index.comptes();
+    const debut = ((this.vue?.page ?? 1) - 1) * 20;
+    const attendues = Math.min(20, Math.max(0, total - debut));
+    const cartes = Math.max(0, Math.min(20, confirmes - debut));
+    return attendues > cartes ? this.index.enAttente(Math.min(20, debut + attendues - confirmes)) : [];
+  }
+  private page(): BuildCandidate[] {
+    return this.pageIndices().map((i) => this.index!.magasin.candidat(i, false));
+  }
+  private restants(): BuildCandidate[] {
+    if (this.tache) return [];
+    if (!this.entrees || !this.index || !this.vue || !this.contexte) return [];
+    if ((this.cache.journal?.version ?? -1) !== this.versionLue || (this.contexte.toutVerifier && !this.selectionExhaustiveCourante())) { this.actualiser(); if (this.tache) return []; }
+    if (this.passage === 0xffffffff) { this.visites.fill(0); this.passage = 0; }
+    const passage = ++this.passage, premiers: number[] = [];
+    let nombre = 0;
+    const ajouter = (i: number) => {
+      const g = this.index!.magasin.groupe(i);
+      if (this.visites[g] === passage) return;
+      this.visites[g] = passage; nombre++;
+      // Le pilote ne lit que ses deux places en vol et l'entrée suivante.
+      if (premiers.length < 3) premiers.push(i);
+    };
+    for (const i of this.pageIndices()) ajouter(i);
+    const K = cibleDeLaFile({ relicContext: this.contexte.recherche.relicContext, toutVerifier: this.contexte.toutVerifier });
+    if (K === Infinity) {
+      const f = this.fileExhaustive!;
+      // Trois choix au total, page comprise ; au plus trois maillons lus, sauts compris.
+      for (let lien = f.premier; lien && premiers.length < 3; lien = f.suivants[lien - 1]) ajouter(f.ordinaux[lien - 1] - 1);
+      return candidatsParIndice(f.nombre, (i) => premiers[i] === undefined ? undefined as unknown as BuildCandidate : this.index!.magasin.candidat(premiers[i], false));
+    }
+    let confirmees = 0, aVerifier = 0;
+    const fond = this.fond;
+    for (let j = 0; j < fond.length && confirmees + aVerifier < K; j++) {
+      const i = fond[j], etat = this.index.magasin.etat(i);
+      if (etat === 0) { aVerifier++; ajouter(i); }
+      else if (etat === 1) confirmees++;
+    }
+    return candidatsParIndice(nombre, (i) => premiers[i] === undefined ? undefined as unknown as BuildCandidate : this.index!.magasin.candidat(premiers[i], false));
+  }
+  private ports(maintenant: number): PortsResolutionDistante {
+    return { courant: () => this.entrees ? { entrees: this.entrees, signature: `${this.signature}:${this.entrees.regime}` } : null,
+      runesDe: (c) => runesDuBuild(c, runesDuContexte(this.contexte!)), restants: () => this.restants(), page: () => this.page(), cache: () => this.cache,
+      actualisationEnCours: () => this.travailEnCours,
+      envoyer: (m) => { if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m); },
+      publier: (forcer) => { this.actualiser(); this.versions.revisionDonnees = compteurSuivant(this.versions.revisionDonnees); this.sale = true; return this.publier(maintenant, forcer); },
+      enAttente: () => {}, repli: (raison, detail) => this.panneResolution(raison, detail) };
+  }
+  pomper(maintenant: number): void {
+    if (this.tache) return;
+    this.libererSourceScellee();
+    const reponse = this.reponsesEnAttente.shift();
+    if (reponse) { this.recevoirResolution(reponse, maintenant); if (this.tache) return; }
+    const p = this.ports(maintenant);
+    this.pilote.pomper(p);
+    if (this.repli) {
+      const r = this.reponsesDirectes.shift() ?? this.direct.etape();
+      if (r) {
+        if (r.type === 'erreur') throw new Error(`${r.nom}: ${r.message}`);
+        this.pilote.surReponse(r, p);
+      }
+    }
+    const restants = this.restants();
+    this.publier(maintenant, !this.tache && restants.length === 0);
+  }
+  recevoirResolution(r: ReponseResolution, maintenant: number): void {
+    if (this.tache) { this.reponsesEnAttente.push(r); return; }
+    this.pilote.surReponse(r, this.ports(maintenant));
+  }
+  panneResolution(raison: string, detail: unknown): void {
+    if (this.repli) return;
+    this.sorties.incident(raison, detail);
+    this.incident = raison;
+    this.reponsesEnAttente = []; this.reponsesDirectes = [];
+    this.pilote.renoncer(); this.pilote = new ResolutionDistante(); this.direct = new CorpsResolution(); this.repli = true;
+    this.sale = true; this.publicationForcee = true;
+  }
+  get travailEnRepli() { return this.reponsesEnAttente.length > 0 || (this.repli && this.restants().length > 0); }
+  private abandonnerReponses(): void {
+    // Ces réponses ont déjà rendu leur crédit dans le résolveur. Les jeter
+    // sans passer par le pilote conserverait à jamais des demandes en vol.
+    for (const r of this.reponsesEnAttente) {
+      const issue = this.pilote.recevoir(r, null, null);
+      if (issue.issue === 'erreur') {
+        const { raison, detail } = repliSurErreur(issue);
+        this.panneResolution(raison, detail);
+      }
+    }
+    this.reponsesEnAttente = [];
+  }
+  liberer(): void {
+    this.abandonnerReponses();
+    this.publicationForcee = false;
+    this.collecteScellee = false;
+    this.tache = null; this.nombreCible = 0; this.plages = []; this.reponsesEnAttente = [];
+    this.contexte = null; this.vue = null; this.index = null; this.fileExhaustive = null; this.flux.liberer(); this.lots = [];
+    this.cache.clear(); this.generationCache = compteurSuivant(this.generationCache); this.entrees = null; this.sale = false;
+    for (const m of this.pilote.invalider()) {
+      if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m);
+    }
+  }
+  publier(maintenant: number, forcer = false): boolean {
+    this.publicationForcee ||= forcer;
+    if (this.tache) return false;
+    if (!this.contexte || !this.vue || !this.sale) return true;
+    if (!this.publicationForcee && maintenant - this.dernierePublication < 400) return false;
+    // Un index en retard sur le cache serait publié avec de fausses cartes :
+    // la publication reste due jusqu'à la fin de son actualisation.
+    const enAttente = this.restants().length;
+    if (this.tache) return false;
+    this.dernierePublication = maintenant; this.sale = false; this.publicationForcee = false;
+    this.versions.revisionPubliee = compteurSuivant(this.versions.revisionPubliee);
+    this.sorties.publier(this.instantane(enAttente));
+    return true;
+  }
+  /** Comptes de l'arbre, confirmées du rang demandé, places attendues : O(log N + 20). */
+  private instantane(enAttente: number): InstantaneClassement {
+    const contexte = this.contexte!, vue = this.vue!, index = this.index;
+    const debut = (vue.page - 1) * TAILLE_PAGE_CLASSEMENT;
+    const recus = index?.magasin.longueur ?? 0;
+    const { total, confirmes } = index?.comptes() ?? { total: 0, confirmes: 0 };
+    const avecFile = this.entrees !== null;
+    let ordinaux: number[] = [], places = 0;
+    if (index && avecFile) {
+      ordinaux = index.pageConfirmees(debut, TAILLE_PAGE_CLASSEMENT);
+      places = Math.min(TAILLE_PAGE_CLASSEMENT, Math.max(0, total - debut)) - ordinaux.length;
+    } else if (index) ordinaux = index.page(debut, TAILLE_PAGE_CLASSEMENT);
+    const objectif = contexte.recherche.objective;
+    const options = optionsDuContexte(contexte, this.cache, vue.metric);
+    const avecEhp = objectif === 'ehp' || vue.tri === 'ehp';
+    const avecDegats = contexte.realDamage !== null && (objectif === 'degats_reels' || vue.tri === 'degats_reels');
+    const cartes = ordinaux.map((i): CarteClassement => {
+      const brut = index!.magasin.candidat(i, false);
+      const resultat = avecFile ? this.cache.get(cleBuild(brut)) ?? null : null;
+      const candidat = resultat ? { ...brut, stats: resultat.stats } : brut;
+      return { ordinal: i, candidat, resultat,
+        pvEffectifs: avecEhp ? scoreDuCandidat(candidat, 'ehp', options) : null,
+        degatsReels: avecDegats ? scoreDuCandidat(candidat, 'degats_reels', options) : null };
+    });
+    return { versions: { ...this.versions }, vue: { ...vue },
+      comptes: { recus, affichables: total, resolus: recus - total + confirmes, confirmees: confirmes, avecFile },
+      page: { premierRang: debut + 1, cartes, placesEnAttente: places }, enAttente, incident: this.incident, bilan: this.bilan };
+  }
+  /**
+   * La projection objet complète de l'état courant : candidats, ordre de base,
+   * classement affiché et cache. Node seulement (`classerEnLocal`, tests) :
+   * elle matérialise N objets, jamais envoyée à la page.
+   */
+  projection(): PublicationClassement {
+    if (!this.contexte || !this.vue) throw new Error('Projection sans recherche ouverte');
+    const index = this.index, n = index?.magasin.longueur ?? 0;
+    const candidats = Array.from({ length: n }, (_, i) => index!.magasin.candidat(i, false));
+    const parBuild = new Map(this.cache);
+    return { versions: { ...this.versions }, vue: { ...this.vue }, candidats, base: Array.from(this.base, (i) => candidats[i]),
+      affichees: (index?.page(0, n) ?? []).map((i) => candidatAvecSaPaire(candidats[i], parBuild)), parBuild,
+      enAttente: this.restants().length, bilan: this.bilan };
+  }
+}
+
+/** Consommateur synchrone du propriétaire de production, sans protocole de plateforme. */
+export function classerEnLocal(contexte: ContexteResultat, candidats: readonly BuildCandidate[], vue: VueClassement): PublicationClassement {
+  let publiee = false;
+  const corps = new CorpsClassement({
+    publier: () => { publiee = true; },
+    resoudre: () => { throw new Error('Résolution distante sur le consommateur local'); },
+    incident: (raison) => { throw new Error(raison); },
+  }, false, 'directe');
+  corps.ouvrir(contexte, 1, vue, 1);
+  const colonnes = creerColonnesCandidats();
+  for (const c of candidats) ajouterObjetCandidat(colonnes, c);
+  const lots = extraireBlocs(colonnes);
+  lots.forEach((b, i) => corps.ajouter(1, i, b));
+  // Le classement d'une collection ne fabrique pas de bilan de recherche.
+  corps.sceller(1, candidats.length, lots.length - 1, null);
+  do { corps.pomper(0); } while (corps.travailEnRepli);
+  if (!publiee || corps.travailEnCours) throw new Error('Classement local sans publication finale');
+  return corps.projection();
 }

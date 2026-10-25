@@ -14,6 +14,7 @@ import { leadEffectifMembreOptimizer, memeLeadOptimizer, modifierEquipeOptimizer
 import type { EquipeOptimizer } from '../lib/optimizerMemberStorage';
 import { LigneVerrouillee } from '../lib/artifactOptim';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
+import { useRuneMetric } from './useRuneMetric';
 import { combatSelonContenuListeOptimizer } from '../lib/combatListeOptimizer';
 
 const REFUS_IDENTITE_MEMBRE = 'Critères non restaurés : l’identité enregistrée du membre diffère de l’espèce résolue.';
@@ -170,28 +171,6 @@ export interface OptimizerState {
    */
   optimiserArtefacts: boolean;
   setOptimiserArtefacts: Dispatch<SetStateAction<boolean>>;
-  /**
-   * La paire retenue suit-elle le TRI affiché, ou l’OBJECTIF de la recherche ?
-   * Activé par défaut.
-   *
-   * ⚠️ **Le tri est une VUE, l’optimisation d’artéfacts une DÉCISION.** Les
-   * coupler d’office impose un arbitrage : trier par ATQ pour explorer
-   * déplaçait la paire, alors qu’on voulait parfois garder celle qui
-   * maximise les PV effectifs. Ce réglage rend l’arbitrage à l’utilisateur.
-   *
-   * - `true` — la paire suit `sortBy` : « les meilleurs artéfacts pour ce
-   *   que je regarde ».
-   * - `false` — la paire suit `objective` : « les meilleurs artéfacts pour
-   *   ce que j’ai cherché ». La référence est stable pendant toute
-   *   l’exploration, donc « Valider les artéfacts » propose la même chose
-   *   quel que soit le tri.
-   *
-   * ⚠️ **Ne désactive PAS l’optimisation** — c’est `optimiserArtefacts` qui
-   * le fait. Sans objectif de repli défini, « ne pas recalculer » ne
-   * voudrait rien dire : il faut savoir par rapport à QUOI.
-   */
-  adapterArtefactsAuTri: boolean;
-  setAdapterArtefactsAuTri: Dispatch<SetStateAction<boolean>>;
   // Statistique principale EXIGÉE pour chacun des deux emplacements d'artéfact
   // (Attribut/Type, voir ARTIFACT_KINDS dans types.ts) — n'a d'effet que si
   // `optimiserArtefacts` est activé.
@@ -310,8 +289,8 @@ export interface OptimizerState {
   // un paramètre de recherche : n'entre donc jamais dans `OptimizerRecipe`
   // ni les scripts CLI (voir le skill optimizer-field-propagation, dont la
   // checklist recette/CLI ne s'applique PAS à ce champ précisément pour
-  // cette raison). Remise à 1 par l'écran à chaque nouvelle recherche ou
-  // changement de tri — voir OptimizerSection.tsx.
+  // cette raison). Remise à 1 à chaque nouvelle recherche, changement de tri
+  // (OptimizerSection.tsx) ou de mesure (ci-dessous, dans le même rendu).
   resultsPage: number;
   setResultsPage: Dispatch<SetStateAction<number>>;
   slotFilterPreset: SlotFilterPresetKey;
@@ -417,10 +396,6 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   // Activee par defaut : chercher les artefacts est le comportement utile,
   // et il ne coute rien a la recherche de runes (temps masque).
   const [optimiserArtefacts, setOptimiserArtefacts] = useState(base.optimiserArtefacts);
-  // Activé par défaut : ce qu’on affiche reste le meilleur pour ce qu’on
-  // regarde. Ne coûte rien sur les tris qu’aucun artéfact ne touche
-  // (efficience, VIT, TC, DCC, RES, PRE) — voir `regimeArtefacts`.
-  const [adapterArtefactsAuTri, setAdapterArtefactsAuTri] = useState(base.adapterArtefactsAuTri);
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>(base.artifactMainByKind);
   // ⚠️ Défaut STATIQUE ('libre') volontairement — le vrai défaut
   // ('equipped' si le monstre porte une relique) se calcule au choix du
@@ -457,6 +432,14 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   const [verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons] = useState(false);
   const [sortBy, setSortBy] = useState<OptimizerSortKey>(base.sortBy);
   const [resultsPage, setResultsPage] = useState(1);
+  // La mesure (réglage global, changé depuis n'importe quelle page, écran de
+  // l'Optimizer monté ou non) réordonne le classement comme le tri : la page
+  // repart de 1 dans le même rendu. Sans cela, le classeur recevrait une
+  // mesure nouvelle sur une page au-delà de ce que le fond vérifie, et ses
+  // places « Vérification… » resteraient sans aucun travail pour les remplir.
+  const mesure = useRuneMetric();
+  const [mesureDeLaPage, setMesureDeLaPage] = useState(mesure);
+  if (mesureDeLaPage !== mesure) { setMesureDeLaPage(mesure); setResultsPage(1); }
   const [slotFilterPreset, setSlotFilterPreset] = useState<SlotFilterPresetKey>('moyen');
   const [diagnoseBlockingEnabled, setDiagnoseBlockingEnabled] = useState(false);
   const [stoppedManually, setStoppedManually] = useState(false);
@@ -470,7 +453,7 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   const refusIdentite = useRef<ProprietaireCriteresOptimizer | null>(null);
   // Les callbacks retardés lisent le dernier affichage, jamais la fermeture
   // du membre qui était sélectionné au début d'une lecture de fichier.
-  const criteresAffiches: CriteresOptimizer = { comboSets, minStats, maxStats, excludeBase, optimiserArtefacts, adapterArtefactsAuTri,
+  const criteresAffiches: CriteresOptimizer = { comboSets, minStats, maxStats, excludeBase, optimiserArtefacts,
       artifactMainByKind, relicMainChoice, relicUniqueChoice, lignesVerrouillees, mainStatsBySlot,
       lockedRunes, objective, damageSetup, sortBy, compterAurasResPre, critereArtefacts };
   const vivant = useRef({ contexte, selectedId, sourceSelector, proprietaire: proprietaireCriteres, criteres: criteresAffiches, importDuCompte });
@@ -494,7 +477,7 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     vivant.current.criteres = suivante;
     setComboSets(suivante.comboSets); setMinStats(suivante.minStats); setMaxStats(suivante.maxStats);
     setExcludeBase(suivante.excludeBase); setOptimiserArtefacts(suivante.optimiserArtefacts);
-    setAdapterArtefactsAuTri(suivante.adapterArtefactsAuTri); setArtifactMainByKind(suivante.artifactMainByKind);
+    setArtifactMainByKind(suivante.artifactMainByKind);
     setRelicMainChoice(suivante.relicMainChoice); setRelicUniqueChoice(suivante.relicUniqueChoice);
     setLignesVerrouillees(suivante.lignesVerrouillees); setMainStatsBySlot(suivante.mainStatsBySlot);
     setLockedRunes(suivante.lockedRunes); setObjective(suivante.objective); setDamageSetup(suivante.damageSetup);
@@ -753,7 +736,6 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     setMaxStats(suivant.maxStats);
     setExcludeBase(suivant.excludeBase);
     setOptimiserArtefacts(suivant.optimiserArtefacts);
-    setAdapterArtefactsAuTri(suivant.adapterArtefactsAuTri);
     setArtifactMainByKind(suivant.artifactMainByKind);
     // ⚠️ Défaut statique ici — voir le commentaire du `useState` ci-dessus ;
     // `pickSpecies` surcharge avec `defaultRelicMainChoice` juste après cet
@@ -831,8 +813,6 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     setExcludeBase: saisie('excludeBase', setExcludeBase),
     optimiserArtefacts,
     setOptimiserArtefacts: saisie('optimiserArtefacts', setOptimiserArtefacts),
-    adapterArtefactsAuTri,
-    setAdapterArtefactsAuTri: saisie('adapterArtefactsAuTri', setAdapterArtefactsAuTri),
     artifactMainByKind,
     setArtifactMainByKind: saisie('artifactMainByKind', setArtifactMainByKind),
     relicMainChoice,

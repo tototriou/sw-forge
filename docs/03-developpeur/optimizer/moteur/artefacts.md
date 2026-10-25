@@ -260,11 +260,11 @@ paire qui viole ses conditions, ce qui est pire qu'un build manquant.
   sans sa branche y échoue aussi (`const _exhaustif: never`) : jamais un
   `else` qui le noterait par la somme des principales. Elle vit hors
   d'`artifactOptim.ts`, qui reste sans logique de dégâts.
-- **Le régime de la représentative suit l'objectif ; celui de la
-  résolution, le critère regardé** : `regimeEquipement =
-  regimeEquipementDe(regimeArtefacts(adapterArtefactsAuTri ? sortBy :
-  objective), contexte de dégâts disponible)`. « Dégâts réels » sans sort
-  calculable est rabattu sur `aucun`.
+- **La représentative et la résolution suivent l'objectif de la
+  recherche** : `regimeEquipement = regimeEquipementDe(regimeArtefacts(objective),
+  contexte de dégâts disponible)`, photographié au lancement
+  (`resolutionDuContexte`). « Dégâts réels » sans sort calculable est rabattu
+  sur `aucun`. Le tri affiché ne choisit jamais le régime : il ne résout rien.
 - **Régime `aucun`** (Efficience, Vitesse, VIT, Taux CRIT, Dgts CRIT, RES,
   PRE) : aucun artéfact n'entre dans le score, rien n'est à maximiser. La
   note est la somme des principales, pour un ordre qui ne soit pas
@@ -278,14 +278,18 @@ paire qui viole ses conditions, ce qui est pire qu'un build manquant.
   pas le critère : deux critères ne la partagent que si la paire optimale
   y est démontrablement la même, ce qui n'est vrai que dans le régime
   `aucun`. Passer d'Efficience à Vitesse ne recalcule donc rien.
-- **« Adapter les artéfacts et reliques au tri »**, activé par défaut, fait
-  suivre le tri à la paire ; désactivé, elle suit l'objectif de la recherche
-  et reste stable pendant toute l'exploration — ce n'est pas « pas
-  d'optimisation ». L'interrupteur est masqué sans optimisation
-  d'artéfacts (une seule paire possible) :
+- Ne pas faire suivre le tri affiché à la paire (l'ancien interrupteur
+  « Adapter les artéfacts et reliques au tri », retiré) : un changement de
+  vue deviendrait une nouvelle résolution ; pour un autre critère, on
+  relance la recherche avec cet objectif :
   [02-app/optimizer/ecran/resultats.md § Tri des résultats](../../../02-app/optimizer/ecran/resultats.md#tri-des-résultats).
 
 ## Recalcul quand la paire peut changer
+
+Les entrées suivantes sont celles du contexte figé au lancement. Éditer les
+critères ne modifie ni la file ni le cache du résultat vivant ; le prochain
+lancement photographie ces changements. Le régime effectif est celui de
+l'objectif lancé : ni le tri ni la page ne le changent.
 
 Le cache de la file (paires et reliques résolues, clé `cleBuild`) ne fait que
 grandir sous une même signature, et se vide quand `signatureArtefacts`
@@ -330,31 +334,27 @@ que s'il change le régime effectif.
 
 ## Résolution hors du fil de l'écran
 
-Quand il est disponible, un Worker dédié (`src/workers/resolution.worker.ts`,
-corps `CorpsResolution`) exécute la même résolution que le fil de l'écran,
-`entreeResolutionDuBuild` puis `resoudreEquipementDuBuild`, sur des entrées
-en données (`entreesSerialisables`, qui ne retire que `evaluer`) et avec les
-runes de chaque build produites par `runesDuBuild`, le producteur de la
-résolution directe. Ce qui compte pour la paire :
+Le Worker dédié `resolution.worker.ts` exécute `CorpsResolution` sur un port
+reçu du Worker de classement. L'entrée reste dérivée par
+`entreeResolutionDuBuild`, puis résolue par `resoudreEquipementDuBuild` ;
+`entreesSerialisables` ne retire que `evaluer`, et `runesDuBuild` fournit
+les runes de chaque demande. La priorité, le cache et les deux demandes au
+plus sans réponse appartiennent au classeur, via `ResolutionDistante`.
 
-- la priorité reste décidée sur le fil de l'écran (`prochainsATraiter`) ; ni
-  les builds traités, ni leur ordre, ni `K` ne changent ;
-- un nouveau contexte ne vide pas le cache : seul un changement de
-  signature le vide, comme sur le chemin direct ;
-- une réponse périmée — d'un contexte remplacé ou d'une demande annulée —
-  n'est jamais écrite dans le cache ;
-- un Worker qui échoue est journalisé et terminé, et la file reprend sur le
-  fil de l'écran, avec le cache tel qu'il est.
+Une réponse d'un contexte remplacé ou d'une demande annulée libère son crédit
+sans écriture. Un nouveau contexte compatible conserve le cache ; un autre
+régime effectif ou une autre signature le vide. Si le résolveur échoue, il
+est journalisé et terminé ; la même résolution reprend dans le classeur,
+avec son cache, sans calcul sur le fil de l'écran. Perdre le classeur lui-même
+passe par l'erreur de recherche existante et perd ses données.
 
-Le protocole, l'annulation, la cadence de publication et le repli :
-[pipeline.md § Worker de résolution](pipeline.md) et
-[pipeline.md § File de résolution](pipeline.md). La logique côté écran est
-un module pur, `ResolutionDistante` (`src/workers/resolutionDistante.ts`) :
-`tests/resolution-distante.test.ts` y fait tourner une file simulée — le
-corps derrière `structuredClone`, des entrelacements aléatoires de messages,
-de pages, de candidats et de contextes — qui doit remplir le même cache que
-la résolution directe, et garde le branchement du hook par des contrôles de
-source.
+Protocole, annulation et cadence :
+[pipeline.md § Worker de résolution](pipeline.md),
+[pipeline.md § File de résolution](pipeline.md) et
+[parallelisation.md § Worker de résolution](parallelisation.md).
+`tests/resolution-distante.test.ts` contrôle le pilote neutre avec des
+entrelacements de demandes ; `tests/classement-distant.test.ts` transfère
+les vrais ports et termine réellement le résolveur avant de vérifier le repli.
 
 ## Partage entre les builds d'une file
 

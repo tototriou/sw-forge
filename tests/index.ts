@@ -90,7 +90,12 @@ import { testCandidatsCompactsAllerRetour, testClassementCompactPublications, te
 import { testResolutionCaches } from './resolution-caches.test';
 import { testResolutionWorker } from './resolution-worker.test';
 import { testResolutionDistante } from './resolution-distante.test';
-import { testCliClassementParMode } from './cli-classement.test';
+import { testClassementDistantVersions, testClassementDistantPanne, testContexteResultatFige, testClassementBranchementApp,
+  testClassementArretAvantOuverture, testClassementPublicationForceeDifferee, testClassementIncidentInactif, testClassementBilanStable, testClassementDifferentielCombat, testClassementBancResultats } from './classement-distant.test';
+import { testCliClassementParMode, testCliClassementDifferentiel } from './cli-classement.test';
+import { testClassementCessionOrdre, testClassementCessionSansAffamement, testClassementCessionCanal } from './classement-cession.test';
+import { testRetraitAdaptationMigrations } from './retrait-adaptation.test';
+import { testTriSansNouvelleResolution, testToutVerifierPhotographie, testPlacesEnAttenteToujoursTravaillees } from './classement-non-relance.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
 import { testOptimizerFormatBig } from './format-big.test';
@@ -208,6 +213,9 @@ import testConstructionRapide from './construction-rapide.test';
 import testConstructionColonnes from './construction-colonnes.test';
 import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidatsCredits, testFluxCandidatsApercuFinal, testFluxCandidatsPageLente, testFluxCandidatsReceptionOrdre,
   testFluxCandidatsRefusRecevoir, testFluxCandidatsRefusSceller, testFluxCandidatsRefusResultat, testFluxCandidatsLanceurCommun } from './flux-candidats.test';
+import { testClassementCreditsRelance, testClassementCadenceDifferee, testClassementInstantaneBorne, testClassementMortInactive } from './classement-publication.test';
+import { testClassementComparerApresValidation } from './classement-comparer.test';
+import { testClassementSelectionExhaustiveBorne, testClassementSelectionExhaustiveTransitions, testClassementSelectionExhaustiveDifferee } from './classement-selection-exhaustive.test';
 import testRetentionEmboitee from './retention-emboitee.test';
 import testPrioriteStatsRetiree from './priorite-stats-retiree.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
@@ -337,6 +345,8 @@ import { testRenduOptimizerGabaritsComposants, testRenduOptimizerGabaritsVue, te
 import { testRenduOptimizerGabaritsColonnes, testRenduOptimizerGabaritsDroite, testRenduOptimizerPageBureauDroite } from './rendu/optimizer-gabarits-droite.test';
 import { testRenduOptimizerGabaritsGestes, testRenduOptimizerGabaritsLargeurs } from './rendu/optimizer-gabarits-navigateur.test';
 import { testRenduOptimizerCarteResultatBureau, testRenduOptimizerCarteResultatTelephone } from './rendu/optimizer-carte-resultat-navigateur.test';
+import { testRenduOptimizerComparerValidationBureau, testRenduOptimizerComparerValidationTelephone } from './rendu/optimizer-comparer-validation.test';
+import { testRenduOptimizerNonRelanceBureau, testRenduOptimizerNonRelanceTelephone, testRenduOptimizerPageInterrompueBureau, testRenduOptimizerPageInterrompueTelephone } from './rendu/optimizer-non-relance.test';
 import { testRenduOptimizerReglagesAvancesContenu, testRenduOptimizerListeDeTravail, testRenduOptimizerResultatsEntete,
   testRenduOptimizerResultatsCartes, testRenduOptimizerLigneFile } from './rendu/optimizer-ecran.test';
 import { testRenduOptimizerEcranReglagesAvances, testRenduTelephoneOptimizerEcranReglagesAvances, testRenduOptimizerEcranGuidage,
@@ -509,6 +519,12 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduOptimizerGabaritsLargeurs', testRenduOptimizerGabaritsLargeurs],
   ['testRenduOptimizerCarteResultatBureau', testRenduOptimizerCarteResultatBureau],
   ['testRenduOptimizerCarteResultatTelephone', testRenduOptimizerCarteResultatTelephone],
+  ['testRenduOptimizerComparerValidationBureau', testRenduOptimizerComparerValidationBureau],
+  ['testRenduOptimizerNonRelanceBureau', testRenduOptimizerNonRelanceBureau],
+  ['testRenduOptimizerNonRelanceTelephone', testRenduOptimizerNonRelanceTelephone],
+  ['testRenduOptimizerPageInterrompueBureau', testRenduOptimizerPageInterrompueBureau],
+  ['testRenduOptimizerPageInterrompueTelephone', testRenduOptimizerPageInterrompueTelephone],
+  ['testRenduOptimizerComparerValidationTelephone', testRenduOptimizerComparerValidationTelephone],
   ['testRenduOptimizerMonstre', testRenduOptimizerMonstre],
   ['testRenduOptimizerReglages', testRenduOptimizerReglages],
   ['testRenduTelephoneOptimizer', testRenduTelephoneOptimizer],
@@ -842,7 +858,33 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testResolutionCaches', testResolutionCaches],
   ['testResolutionWorker', testResolutionWorker],
   ['testResolutionDistante', testResolutionDistante],
+  ['testClassementDistantVersions', testClassementDistantVersions],
+  ['testClassementDistantPanne', testClassementDistantPanne],
+  ['testContexteResultatFige', testContexteResultatFige],
+  ['testClassementArretAvantOuverture', testClassementArretAvantOuverture],
+  ['testClassementPublicationForceeDifferee', testClassementPublicationForceeDifferee],
+  ['testClassementCreditsRelance', testClassementCreditsRelance],
+  ['testClassementCadenceDifferee', testClassementCadenceDifferee],
+  ['testClassementInstantaneBorne', testClassementInstantaneBorne],
+  ['testClassementMortInactive', testClassementMortInactive],
+  ['testClassementComparerApresValidation', testClassementComparerApresValidation],
+  ['testClassementSelectionExhaustiveBorne', testClassementSelectionExhaustiveBorne],
+  ['testClassementSelectionExhaustiveTransitions', testClassementSelectionExhaustiveTransitions],
+  ['testClassementSelectionExhaustiveDifferee', testClassementSelectionExhaustiveDifferee],
+  ['testClassementIncidentInactif', testClassementIncidentInactif],
+  ['testClassementBilanStable', testClassementBilanStable],
+  ['testClassementDifferentielCombat', testClassementDifferentielCombat],
+  ['testClassementBancResultats', testClassementBancResultats],
+  ['testClassementBranchementApp', testClassementBranchementApp],
+  ['testClassementCessionOrdre', testClassementCessionOrdre],
+  ['testClassementCessionSansAffamement', testClassementCessionSansAffamement],
+  ['testClassementCessionCanal', testClassementCessionCanal],
+  ['testRetraitAdaptationMigrations', testRetraitAdaptationMigrations],
+  ['testTriSansNouvelleResolution', testTriSansNouvelleResolution],
+  ['testToutVerifierPhotographie', testToutVerifierPhotographie],
+  ['testPlacesEnAttenteToujoursTravaillees', testPlacesEnAttenteToujoursTravaillees],
   ['testCliClassementParMode', testCliClassementParMode],
+  ['testCliClassementDifferentiel', testCliClassementDifferentiel],
   ['testKDeLaFile', testKDeLaFile],
   ['testCompteAffichable', testCompteAffichable],
   ['testOptimizerFormatBig', testOptimizerFormatBig],

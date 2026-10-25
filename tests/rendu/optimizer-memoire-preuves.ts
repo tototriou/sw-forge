@@ -6,7 +6,7 @@ import { exclusionSelectorKey, type ExclusionSelector } from '../../src/lib/opti
 import { buildOptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import type { DemandeDeRecherche } from '../../src/workers/runeBuildOptim.worker';
 import { searchBuilds } from '../../src/lib/rechercheRunes';
-import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs } from '../../src/lib/candidatsCompacts';
+import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs, tamponsCandidats } from '../../src/lib/candidatsCompacts';
 
 interface BancMemoire {
   etat: () => OptimizerState;
@@ -120,22 +120,35 @@ export async function preparerClicInclusion(genre: string, b: BancMemoire): Prom
   if (genre === 'carte') {
     // Le transport seul est remplacé : le vrai moteur calcule ce minuscule
     // inventaire et le vrai hook reçoit son résultat avant le clic de carte,
-    // dans le protocole du Worker (blocs compacts, puis le bilan et leur nombre).
-    globalThis.Worker = class {
+    // dans le protocole réel : blocs et scellement sur le port du classeur.
+    const WorkerNatif = globalThis.Worker;
+    class RechercheSimulee {
       onmessage: ((e: MessageEvent) => void) | null = null;
       onerror = null;
+      private port: MessagePort | null = null;
+      private actif = true;
       postMessage(demande: DemandeDeRecherche | { credit: true }) {
         if (!('params' in demande)) return;
+        if (!demande.classement) throw new Error('Port du classeur absent du banc de recherche');
+        const { port, idRecherche } = demande.classement;
+        this.port = port;
         const { candidates, ...bilan } = searchBuilds(demande.params);
         const colonnes = creerColonnesCandidats();
         for (const c of candidates) ajouterObjetCandidat(colonnes, c);
         const nombre = colonnes.length;
         queueMicrotask(() => {
-          for (const bloc of extraireBlocs(colonnes)) this.onmessage?.(new MessageEvent('message', { data: { type: 'candidats', bloc } }));
+          if (!this.actif) return;
+          const blocs = extraireBlocs(colonnes);
+          blocs.forEach((bloc, sequence) => port.postMessage({ type: 'candidats', idRecherche, sequence, bloc }, tamponsCandidats([bloc])));
+          port.postMessage({ type: 'sceller', idRecherche, nombre, derniereSequence: blocs.length - 1, bilan });
           this.onmessage?.(new MessageEvent('message', { data: { type: 'result', nombre, ...bilan } }));
         });
       }
-      terminate() { this.onmessage = null; }
+      terminate() { this.actif = false; this.onmessage = null; this.port?.close(); }
+    }
+    globalThis.Worker = function(url: string | URL, options?: WorkerOptions) {
+      return new URL(url, location.href).pathname.endsWith('/runeBuildOptim.worker.ts')
+        ? new RechercheSimulee() : new WorkerNatif(url, options);
     } as unknown as typeof Worker;
   }
   return [[b.etat().proprietaireCriteres === null, 'avant clic : aucun propriétaire'],

@@ -17,10 +17,9 @@ import type { Selected } from '../../../MonsterGear';
 import { exclusionCandidatesFor, libellePuceSource, SOURCE_OPTIONS, type ExclusionCandidate, type ExclusionSource, type ValidatedBuild } from '../../../../lib/optimizerExclusion';
 import { computeStats } from '../../../../lib/stats';
 import { useRuneMetric } from '../../../../hooks/useRuneMetric';
-import type { BuildOptimProgress, BuildOptimStatus } from '../../../../hooks/useBuildOptimSearch';
-import type { UseArtifactOptimQueue } from '../../../../hooks/useArtifactOptimQueue';
+import type { BilanRecherche, BuildOptimProgress, BuildOptimStatus } from '../../../../hooks/useBuildOptimSearch';
 import type { OptimizerSortKey } from '../../../../hooks/useOptimizerState';
-import type { BuildCandidate, Objective, SearchResult } from '../../../../lib/runeBuildOptim';
+import type { BuildCandidate, Objective } from '../../../../lib/runeBuildOptim';
 import type { SetAura } from '../../../../lib/damage';
 import type { RuneDetail } from '../../../../types';
 import type { RelicVide } from '../../../../lib/relicOptim';
@@ -106,7 +105,7 @@ function ObjectifGabarit({ ctx, forme, etat }: { ctx: ContexteGabarits; forme: F
   );
 }
 
-const APPARIEMENT: BuildOptimProgress = { phase: 'pairing', explored: 12_345_678, found: 1_234, pct: 0.42, totalPairs: 29_393_280, candidates: [] };
+const APPARIEMENT: BuildOptimProgress = { phase: 'pairing', explored: 12_345_678, found: 1_234, pct: 0.42, totalPairs: 29_393_280 };
 const CONSTRUCTION: BuildOptimProgress = { phase: 'building', halves: { A: { scanned: 1_234, total: 2_468, pct: 0.5 }, B: null } };
 
 function etatsObjectif(forme: FormeObjectif, largeur?: number) {
@@ -165,17 +164,15 @@ function ResultatsGabarit({ ctx, mode }: { ctx: ContexteGabarits; mode: AttenteR
   const [tri, setTri] = useState<OptimizerSortKey>(ctx.optimizer.sortBy);
   const [page, setPage] = useState(1);
   const [brouillon, setBrouillon] = useState<string | null>(null);
-  const [adapter, setAdapter] = useState(ctx.optimizer.adapterArtefactsAuTri);
   const { candidats, runeById } = useMemo(() => buildsDuCompte(ctx, mode === 'vingt' ? 20 : 0), [ctx, mode]);
   const exemplaire = exemplaireDuCompte(ctx);
   if (mode === 'sans-monstre' || mode === 'sans-recherche') return <ResultatsBureau attente={mode} />;
-  const result: SearchResult = { candidates: candidats, explored: 29_393_280, truncated: false, nearMissByCondition: [], globalNearMiss: null };
+  const result: BilanRecherche = { nombre: candidats.length, explored: 29_393_280, truncated: false, nearMissByCondition: [], globalNearMiss: null };
   const confirmees = mode === 'vingt' ? 60 : 0;
   return (
     <ResultatsBureau attente={null}>
-      <EnteteResultats result={result} compteConfirmes={{ confirmees, nonVerifies: 0, pages: 3, aucune: confirmees === 0 }} resoudreEquipement={null}
-        optimiserArtefacts={ctx.optimizer.optimiserArtefacts} adapterArtefactsAuTri={adapter} setAdapterArtefactsAuTri={setAdapter}
-        sortBy={tri} setSortBy={setTri} setResultsPage={setPage} realDamage={null} fileArtefacts={{ enAttente: 0 } as UseArtifactOptimQueue}
+      <EnteteResultats result={result} compteConfirmes={{ confirmees, nonVerifies: 0, pages: 3, aucune: confirmees === 0 }} avecFile={false}
+        sortBy={tri} setSortBy={setTri} setResultsPage={setPage} realDamage={null} enAttente={0}
         compteAffiche={{ compte: confirmees, ecartes: 0, raison: null }} bureau />
       <DiagnosticsSansResultat bureau result={result}
         feasibilityDiagnosis={mode === 'zero' ? [{ key: 'spd', kind: 'min', requested: 0, bound: 0, satisfiable: true }] : []}
@@ -242,7 +239,7 @@ export const GABARITS_DROITE: Gabarit[] = [
     telephone: 'Les composants des résultats repris tels quels ; aucun modifié.',
     changements: [
       'Présents dès le départ, dans leur cadre : avant la première recherche, une place d\'attente (≈ 160 px, libellés nouveaux à valider) tient la place des cartes.',
-      'Le reste comme aujourd\'hui : en-tête, tri, « Adapter les artéfacts et reliques au tri », cartes de 328 px au moins, 20 par page, pagination.',
+      'Le reste comme aujourd\'hui : en-tête, tri, cartes de 328 px au moins, 20 par page, pagination.',
     ],
     etats: [
       { id: 'sans-monstre', nom: 'Attente : aucun monstre', rendu: enveloppe((ctx) => <ResultatsGabarit ctx={ctx} mode="sans-monstre" />, LARGEUR_RESULTATS_MIN) },

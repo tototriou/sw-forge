@@ -1,30 +1,31 @@
 import HelpPopover from '../../HelpPopover';
-import { Interrupteur, Selecteur } from '../../../ui';
+import { Selecteur } from '../../../ui';
 import { OptimizerSortKey } from '../../../hooks/useOptimizerState';
 import { RECO_STATS } from '../../../types';
-import { OBJECTIVE_LABELS, type SearchResult, type BuildCandidate, type RealDamageContext } from '../../../lib/runeBuildOptim';
-import { type CompteConfirme, type ResultatArtefacts, type CompteAffichable } from '../../../lib/artifactQueue';
+import { OBJECTIVE_LABELS, type RealDamageContext } from '../../../lib/runeBuildOptim';
+import { type CompteConfirme, type CompteAffichable } from '../../../lib/artifactQueue';
 import { type Dispatch, type SetStateAction } from 'react';
-import { type UseArtifactOptimQueue } from '../../../hooks/useArtifactOptimQueue';
+import { type BilanRecherche } from '../../../hooks/useBuildOptimSearch';
 
 export interface EnteteResultatsProps {
-  result: SearchResult | null;
+  result: BilanRecherche | null;
   compteConfirmes: CompteConfirme;
-  resoudreEquipement: ((c: BuildCandidate) => ResultatArtefacts) | null;
-  optimiserArtefacts: boolean;
-  adapterArtefactsAuTri: boolean;
-  setAdapterArtefactsAuTri: Dispatch<SetStateAction<boolean>>;
+  // Une file vérifie l'équipement (optimisation d'artéfacts active).
+  avecFile: boolean;
   sortBy: OptimizerSortKey;
   setSortBy: Dispatch<SetStateAction<OptimizerSortKey>>;
   setResultsPage: Dispatch<SetStateAction<number>>;
   realDamage: RealDamageContext | null;
-  fileArtefacts: UseArtifactOptimQueue;
+  // Le reste de la file du classeur (instantané).
+  enAttente: number;
+  // Le classeur est perdu : la page affichée est la dernière reçue, sans geste possible.
+  interrompu?: boolean;
   compteAffiche: CompteAffichable;
   // L'en-tête resserré du bureau (voir plus bas) ; le téléphone garde le sien.
   bureau?: boolean;
 }
 
-export default function EnteteResultats({ result, compteConfirmes, resoudreEquipement, optimiserArtefacts, adapterArtefactsAuTri, setAdapterArtefactsAuTri, sortBy, setSortBy, setResultsPage, realDamage, fileArtefacts, compteAffiche, bureau = false }: EnteteResultatsProps) {
+export default function EnteteResultats({ result, compteConfirmes, avecFile, sortBy, setSortBy, setResultsPage, realDamage, enAttente, interrompu = false, compteAffiche, bureau = false }: EnteteResultatsProps) {
   // ⚠️ Le compte des CONFIRMÉES (`compteConfirmes`) : seulement les builds
   // vérifiés (résolus et conformes), un compte qui ne baisse jamais pendant
   // une recherche. « Aucune combinaison… » seulement quand tout est vérifié
@@ -41,7 +42,7 @@ export default function EnteteResultats({ result, compteConfirmes, resoudreEquip
   );
   // Seulement quand une file vérifie : sans elle, confirmées et trouvées sont
   // le même nombre.
-  const aide = resoudreEquipement != null && !compteConfirmes.aucune && (
+  const aide = avecFile && !compteConfirmes.aucune && (
     <HelpPopover title="Combinaisons confirmées">
       Une combinaison est <b className="text-ink">confirmée</b> quand ses artéfacts et sa relique ont
       été vérifiés avec les pièces de ton inventaire : elle tient vraiment toutes les conditions.
@@ -56,41 +57,8 @@ export default function EnteteResultats({ result, compteConfirmes, resoudreEquip
       les combinaisons trouvées », dans les réglages avancés, va jusqu'au bout.
     </HelpPopover>
   );
-  // ⚠️ **Le tri est une VUE, l’optimisation d’artéfacts une DÉCISION.** Les
-  // coupler d’office déplaçait la paire dès qu’on changeait de tri pour
-  // explorer — alors qu’on veut souvent garder celle qui maximise les PV
-  // effectifs tout en regardant les builds classés par une stat.
-  //
-  // ⚠️ MASQUÉ quand l’optimisation est désactivée : il n’y a alors qu’une
-  // paire possible, celle qui est portée. Une saisie sans effet est pire
-  // qu’une saisie absente — même règle que les sélecteurs de principale et
-  // les sous-propriétés verrouillées.
-  const adapter = optimiserArtefacts && !compteConfirmes.aucune && (
-    <div className="ml-auto flex items-center gap-1.5">
-      <span className="text-xs font-semibold text-ink-dim">Adapter les artéfacts et reliques au tri</span>
-      <HelpPopover title="Adapter les artéfacts et reliques au tri">
-        Activé (défaut), chaque build reçoit les artéfacts ET la relique qui maximisent le{' '}
-        <b className="text-ink">critère de tri</b> affiché : trier par ATQ ne retient pas les mêmes
-        pièces que trier par PV effectifs.
-        <br />
-        <br />
-        Désactivé, les artéfacts et la relique restent ceux qui servent l’<b className="text-ink">objectif de la
-        recherche</b>, quel que soit le tri. Utile pour parcourir les résultats classés autrement sans
-        que l’équipement bouge — et « Valider les artéfacts » propose alors toujours le même.
-        <br />
-        <br />
-        Sans effet sur Efficience, Vitesse, Taux CRIT, Dgts CRIT, Résistance et Précision : aucun
-        artéfact ni aucune propriété de relique n’entre dans ces classements.
-      </HelpPopover>
-      <Interrupteur
-        actif={adapterArtefactsAuTri}
-        onChange={setAdapterArtefactsAuTri}
-        aria-label="Adapter les artéfacts et reliques au tri"
-      />
-    </div>
-  );
-  // Masqué (avec « Adapter… ») seulement quand tout est vérifié sans aucune
-  // confirmée.
+  // Masqué seulement quand tout est vérifié sans aucune confirmée. Le tri
+  // réordonne les combinaisons confirmées ; il ne résout aucun équipement.
   const tri = !compteConfirmes.aucune && (
     <Selecteur
       value={sortBy}
@@ -100,6 +68,7 @@ export default function EnteteResultats({ result, compteConfirmes, resoudreEquip
         // n'a plus le même sens, on repart du meilleur résultat.
         setResultsPage(1);
       }}
+      disabled={interrompu}
       taille="sm"
       surface="panel"
       pleineLargeur={false}
@@ -130,9 +99,14 @@ export default function EnteteResultats({ result, compteConfirmes, resoudreEquip
   // reste de la file, tenu par le hook pour l'affichage. ⚠️ Ligne TOUJOURS
   // présente quand la file tourne : quand elle se vide, l'espace insécable
   // garde sa hauteur, et la grille ne remonte pas.
-  const enVerification =
-    fileArtefacts.enAttente > 0
-      ? `${fileArtefacts.enAttente.toLocaleString('fr-FR')} combinaison(s) en vérification…`
+  // ⚠️ Classeur perdu : la même place porte l'avis de page interrompue, même
+  // sans file — rien ne bouge sous la ligne qui l'annonce.
+  const ligneFile = avecFile || interrompu;
+  const tonLigne = interrompu ? 'text-bad' : 'text-ink-dim';
+  const enVerification = interrompu
+    ? 'Classement interrompu : relance la recherche pour agir sur ces résultats.'
+    : enAttente > 0
+      ? `${enAttente.toLocaleString('fr-FR')} combinaison(s) en vérification…`
       : ' ';
 
   return (
@@ -141,19 +115,18 @@ export default function EnteteResultats({ result, compteConfirmes, resoudreEquip
         // ⚠️ **Au bureau, l'en-tête tient sur une rangée** (décision de
         // l'utilisateur : la première carte remonte) : à gauche le compte et,
         // SOUS lui, la ligne « en vérification » (sa place reste réservée,
-        // même vide), l'aide à leur droite ; à droite « Adapter… » et le tri.
+        // même vide), l'aide à leur droite ; à droite le tri.
         // Quand la colonne est étroite, la rangée passe à la ligne d'elle-même :
         // ce passage ne dépend que de la largeur, jamais d'un clic.
         <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <div className="flex items-center gap-1.5">
             <div className="flex flex-col">
               {compte}
-              {resoudreEquipement != null && <p className="text-xs leading-4 text-ink-dim">{enVerification}</p>}
+              {ligneFile && <p className={`text-xs leading-4 ${tonLigne}`}>{enVerification}</p>}
             </div>
             {aide}
           </div>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-            {adapter}
             {tri}
           </div>
         </div>
@@ -164,10 +137,9 @@ export default function EnteteResultats({ result, compteConfirmes, resoudreEquip
               {compte}
               {aide}
             </div>
-            {adapter}
             {tri}
           </div>
-          {resoudreEquipement != null && <p className="mb-2 text-xs text-ink-dim">{enVerification}</p>}
+          {ligneFile && <p className={`mb-2 text-xs ${tonLigne}`}>{enVerification}</p>}
         </>
       )}
 

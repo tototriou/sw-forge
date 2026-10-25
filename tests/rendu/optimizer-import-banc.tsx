@@ -2,6 +2,7 @@ import { ajouterLeadEquipe } from './import-lead-equipe';
 import { listeActiveLue } from './optimizer-listes-preuves';
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { ClassementVideTest, demandeClassementTest } from '../classement-fixture';
 import { flushSync } from 'react-dom';
 import { useOptimizerState, type OptimizerState } from '../../src/hooks/useOptimizerState';
 import { useOptimizerLists, type UseOptimizerLists } from '../../src/hooks/useOptimizerLists';
@@ -67,13 +68,8 @@ const photographierAffichage = () => JSON.stringify({ selectedId: etat.selectedI
 async function preparerResultatsRefus() {
   // Un transport synthétique remplit le vrai hook pour vérifier qu'un refus
   // conserve aussi un résultat déjà reçu, sans exécuter le moteur.
-  globalThis.Worker = class {
-    onmessage: ((e: MessageEvent) => void) | null = null; onerror = null;
-    postMessage() { queueMicrotask(() => this.onmessage?.(new MessageEvent('message', { data: { type: 'result', nombre: 0, explored: 1,
-      truncated: false, nearMissByCondition: [], globalNearMiss: null } }))); }
-    terminate() { this.onmessage = null; }
-  } as unknown as typeof Worker;
-  await geste(() => etat.search.run({} as never));
+globalThis.Worker = ClassementVideTest as unknown as typeof Worker;
+  await geste(() => { const d = demandeClassementTest(); etat.search.run(d.params, d.photo, d.vue); });
   await geste(() => { etat.setResultsPage(4); etat.setStoppedManually(true); etat.setOpenDetailKey('à conserver'); });
   if (!etat.search.result || etat.search.status !== 'done' || !etat.proprietaireCriteres) throw new Error('Précondition de refus manquante.');
 }
@@ -221,13 +217,8 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   } else if (nom === 'action') {
     await geste(() => afficher(false));
     // Le transport injecte un résultat synthétique dans le vrai hook ; aucun moteur n'est lancé.
-    globalThis.Worker = class {
-      onmessage: ((e: MessageEvent) => void) | null = null; onerror = null;
-      postMessage() { queueMicrotask(() => this.onmessage?.(new MessageEvent('message', { data: { type: 'result', nombre: 0, explored: 1,
-        truncated: false, nearMissByCondition: [], globalNearMiss: null } }))); }
-      terminate() { this.onmessage = null; }
-    } as unknown as typeof Worker;
-    await geste(() => etat.search.run({} as never));
+globalThis.Worker = ClassementVideTest as unknown as typeof Worker;
+    await geste(() => { const d = demandeClassementTest(); etat.search.run(d.params, d.photo, d.vue); });
     await geste(() => { etat.setResultsPage(4); etat.setStoppedManually(true); etat.setOpenDetailKey('ancien'); });
     verifier(etat.search.result !== null && etat.search.status === 'done', 'précondition : résultat reçu par le vrai hook, écran démonté');
     avant = photographierExistant(listes, idsAvant);
@@ -248,7 +239,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     verifier(listes.validated.length === 1 && listes.validated[0].runeIds[0] === 91 && listes.validated[0].artifactIds?.[0] === 92
       && JSON.stringify(listes.memories.get(cleMemoireMembre('a', selector))) === ancienne, 'action : ancienne mémoire et build intacts');
     const memoires = JSON.stringify([...listes.memories]);
-    await geste(() => etat.search.run({} as never));
+    await geste(() => { const d = demandeClassementTest(); etat.search.run(d.params, d.photo, d.vue); });
     const resultatAvantImportVide = etat.search.result;
     await geste(() => { etat.importerEquipe(courantes => importerPrepaRtaOptimizer({ ...courantes, rtaEntries: {} })); });
     verifier(listes.activeListId === id && listes.lists.length === 2 && JSON.stringify([...listes.memories]) === memoires

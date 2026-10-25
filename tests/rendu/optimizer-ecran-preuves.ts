@@ -9,6 +9,8 @@ import type { ExclusionSelector } from '../../src/lib/optimizerExclusion';
 import { buildOptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import { DEFAULT_DAMAGE_SETUP } from '../../src/lib/damage';
 import { AVERTISSEMENT_CRIT_MOYENNE } from '../../src/lib/optimizerRecipe';
+import { attendreDemandeTest, observerRechercheTest } from './optimizer-classement-banc';
+import type { DemandeDeRecherche } from '../../src/workers/runeBuildOptim.worker';
 
 export interface BancEcran {
   etat: () => OptimizerState;
@@ -333,8 +335,8 @@ export async function preuvesListesEcran(b: BancEcran): Promise<Preuves> {
 export async function preuvesResultats(b: BancEcran): Promise<Preuves> {
   const preuves: Preuves = [];
   await b.geste(() => b.etat().choisirMembre('a', b.second));
-  // Le build des six runes de Second, rendu comme le moteur l'aurait trouvé ;
-  // la file le vérifie (repli sans Worker), comme après une vraie recherche.
+  // Le build des six runes de Second traverse le corps de classement du banc,
+  // qui publie sa résolution derrière l'adaptateur actuel de l'écran.
   const candidat = { runeIds: [101, 102, 103, 104, 105, 106], effTotal: 0,
     stats: [{ key: 'atk', label: 'ATQ', suffix: '', base: 800, bonus: 0, total: 800 }] };
   await b.geste(() => b.forcerRecherche({ status: 'done', progress: null,
@@ -417,23 +419,18 @@ export async function preuvesMessageImport(b: BancEcran): Promise<Preuves> {
 
   // Après import historique, ni la recherche ni la recette exportée ne
   // transmettent le champ retiré (message Worker et fichier interceptés).
-  const envois: Record<string, unknown>[] = [];
+  const envois: DemandeDeRecherche[] = [];
   let fichier: Blob | null = null;
-  const vraiWorker = globalThis.Worker, vraiCreer = URL.createObjectURL, vraiClic = HTMLAnchorElement.prototype.click;
-  class FauxWorker {
-    onmessage: unknown = null; onerror: unknown = null;
-    postMessage(d: Record<string, unknown>) { envois.push(d); }
-    terminate() {} addEventListener() {} removeEventListener() {}
-  }
+  const restaurerWorker = observerRechercheTest(envois), vraiCreer = URL.createObjectURL, vraiClic = HTMLAnchorElement.prototype.click;
   try {
-    (globalThis as unknown as { Worker: unknown }).Worker = FauxWorker;
     URL.createObjectURL = (b: Blob | MediaSource) => { fichier = b as Blob; return 'blob:recette'; };
     HTMLAnchorElement.prototype.click = () => {};
     await b.geste(() => b.etat().setComboSets(['violent']));
     const rechercher = bouton('Rechercher');
     if (rechercher) await b.geste(() => rechercher.click());
+    await attendreDemandeTest(envois, 1);
     // La demande du Worker porte les paramètres sous `params` (DemandeDeRecherche).
-    const recherche = envois.map((d) => (d.params ?? d) as Record<string, unknown>).find((d) => 'pool' in d);
+    const recherche = envois.find((d) => d.type === 'recherche')?.params;
     preuves.push([!!recherche && !('adaptiveTrancheWeighting' in recherche),
       'après import ancien : la recherche part sans le champ retiré']);
     const exporter = bouton('Exporter les paramètres de recherche');
@@ -442,7 +439,7 @@ export async function preuvesMessageImport(b: BancEcran): Promise<Preuves> {
     preuves.push([!!recetteExportee && !('adaptiveTrancheWeighting' in recetteExportee),
       'après import ancien : la recette exportée ne porte plus le champ retiré']);
   } finally {
-    (globalThis as unknown as { Worker: unknown }).Worker = vraiWorker;
+    await b.geste(() => b.etat().effacerResultats()); restaurerWorker();
     URL.createObjectURL = vraiCreer;
     HTMLAnchorElement.prototype.click = vraiClic;
   }

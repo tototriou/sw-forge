@@ -214,6 +214,14 @@ Les critères textuels contrôlés hors du lecteur de recette, `sortBy` et
 admises. Un tableau contenant une valeur admise est rejeté, signalé dans le
 rapport et conservé parmi les valeurs brutes inutilisables.
 
+Le réglage retiré `adapterArtefactsAuTri` (« Adapter les artéfacts et
+reliques au tri ») d'une mémoire historique est retiré à la lecture, vrai ou
+faux, sans avertissement : les autres critères sont conservés et la
+prochaine écriture ne le contient plus. Présent mais mal typé, il fait
+toujours rejeter la mémoire, comme avant : sa forme reste la règle, pas un
+prétexte de migration. Le point de sauvegarde, relu par le même lecteur à
+la reprise, garde son texte opaque inchangé.
+
 Le membre suit son sélecteur : exemplaire Box par `unitKey`, entrée RTA par
 `monsterId`, slot de siège par `teamId` et `slotIndex`. RTA et siège ne conservent
 pas l’identifiant de la copie : une autre copie de la même espèce occupant la

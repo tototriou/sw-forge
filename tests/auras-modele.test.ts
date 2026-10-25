@@ -879,11 +879,14 @@ export function testAurasCarteEgaleTri() {
     'sans exclusive, PV effectifs inchangés (B)');
   egal(scoreDuCandidat(cA, 'degats_reels', { damageSetup: setup, aurasPropresDe }), null, 'sans contexte de dégâts : null, comme le tri');
 
-  // L'écran : les deux cartes lisent `scoreDuCandidat`, plus de formule recopiée.
+  // Les deux valeurs des cartes viennent de `scoreDuCandidat`, notées par le
+  // classeur dans l'instantané (comparées à `scoreDuCandidat` sur chaque
+  // publication par `verifierInstantane`, classement-distant.test.ts) ;
+  // l'écran les lit telles quelles, sans formule recopiée.
   const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
-  // La valeur passée à la carte, en prop JSX ou dans ses propriétés calculées.
-  ok(/degatsReels(=\{|:)[\s\S]{0,700}?scoreDuCandidat\(c, 'degats_reels'/.test(ecran), 'écran : la carte « Dégâts réels » lit scoreDuCandidat');
-  ok(/pvEffectifs:\s*[\s\S]{0,300}?scoreDuCandidat\(c, 'ehp'/.test(ecran), 'écran : la carte « PV effectifs » lit scoreDuCandidat');
+  ok(/degatsReels:[\s\S]{0,800}?carte\?\.degatsReels/.test(ecran), 'écran : la carte « Dégâts réels » lit la valeur de l’instantané');
+  ok(/pvEffectifs:[\s\S]{0,300}?carte\?\.pvEffectifs/.test(ecran), 'écran : la carte « PV effectifs » lit la valeur de l’instantané');
+  ok(!/scoreDuCandidat\(c, '(ehp|degats_reels)'/.test(ecran), 'écran : plus de scoreDuCandidat recalculé sur la page');
   ok(!/computeTotalDamage\(\s*realDamage\.profile,\s*realDamage\.passifs,\s*c\.stats/.test(ecran),
     'écran : plus de computeTotalDamage recopié sur les stats du candidat');
 }

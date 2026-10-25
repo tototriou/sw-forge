@@ -8,9 +8,11 @@ export interface PaginationResultatsProps {
   pageDraft: string | null;
   setPageDraft: Dispatch<SetStateAction<string | null>>;
   totalResultsPages: number;
+  // Classement perdu : la page reste visible, la navigation est désactivée.
+  inactif?: boolean;
 }
 
-export default function PaginationResultats({ setResultsPage, resultsPage, pageDraft, setPageDraft, totalResultsPages }: PaginationResultatsProps) {
+export default function PaginationResultats({ setResultsPage, resultsPage, pageDraft, setPageDraft, totalResultsPages, inactif = false }: PaginationResultatsProps) {
   return (
     <div className="mt-4 flex items-center justify-center gap-3">
       <BoutonIcone
@@ -18,7 +20,7 @@ export default function PaginationResultats({ setResultsPage, resultsPage, pageD
         libelle="Page précédente"
         icone={<ChevronLeft size={16} />}
         onClick={() => setResultsPage((p) => Math.max(1, p - 1))}
-        disabled={resultsPage <= 1}
+        disabled={inactif || resultsPage <= 1}
         className="h-8 w-8"
       />
 
@@ -30,6 +32,7 @@ export default function PaginationResultats({ setResultsPage, resultsPage, pageD
           inputMode="numeric"
           value={pageDraft ?? String(resultsPage)}
           aria-label="Aller à la page"
+          disabled={inactif}
           pleineLargeur={false}
           onChange={(e) => {
             const brut = e.target.value.trim();
@@ -60,7 +63,7 @@ export default function PaginationResultats({ setResultsPage, resultsPage, pageD
         libelle="Page suivante"
         icone={<ChevronRight size={16} />}
         onClick={() => setResultsPage((p) => Math.min(totalResultsPages, p + 1))}
-        disabled={resultsPage >= totalResultsPages}
+        disabled={inactif || resultsPage >= totalResultsPages}
         className="h-8 w-8"
       />
     </div>

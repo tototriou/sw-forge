@@ -46,30 +46,25 @@ export function testKDeLaFile() {
   const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
   ok(/relicContext: relicContextRecherche, run, stop \} = search;/.test(ecran),
     'écran : `relicContextRecherche` est le contexte de la recherche lancée (`useBuildOptimSearch`)');
-  const appelFile = ecran.match(/useArtifactOptimQueue\(\{[\s\S]*?\n {2}\}\);/)?.[0] ?? '';
+  const appelFile = ecran.match(/useEffect\(\(\) => \{ changerVue\(\{[^}]*\}\); \}/)?.[0] ?? '';
   // Via `cibleDeLaFile`, qui rend `kDeLaFile` du même contexte
   // sans l'interrupteur « Vérifier toutes les combinaisons trouvées »
   // (tests/verifier-toutes.test.ts).
-  ok(/\n\s*K: cibleDeLaFile\(\{ relicContext: relicContextRecherche, toutVerifier: verifierToutesLesCombinaisons \}\),/.test(appelFile),
-    'écran : la file reçoit `K: cibleDeLaFile({ relicContext: relicContextRecherche, … })`');
-  egal((ecran.match(/cibleDeLaFile\(/g) ?? []).length, 1, 'écran : un seul appel à `cibleDeLaFile`');
-  egal((ecran.match(/kDeLaFile\(/g) ?? []).length, 0, 'écran : plus aucun appel direct à `kDeLaFile`');
-
-  // Le hook : K obligatoire, sans défaut (un appel qui l'oublierait ne compile pas).
-  const hook = readFileSync('src/hooks/useArtifactOptimQueue.ts', 'utf8');
-  ok(/\n\s*K: number;/.test(hook) && !/K = /.test(hook) && !/K\?:/.test(hook), 'hook : `K` obligatoire, sans valeur par défaut');
-  ok(/prochainsATraiter\(trieesRef\.current, cacheRef\.current, K, pageRef\.current\(\)\)/.test(hook),
-    'hook : la file sert `prochainsATraiter` avec ce K, sur le cache lui-même (conformité lue)');
-  ok(!/new Set\(cacheRef\.current\.keys\(\)\)/.test(hook), 'hook : plus aucune copie des seules clés du cache pour la file');
+  ok(appelFile !== '' && !appelFile.includes('toutVerifier') && /contexteResultat\(\{[\s\S]*?toutVerifier: verifierToutesLesCombinaisons \}\);/.test(ecran),
+    'écran : la cible de vérification est photographiée au lancement, jamais envoyée avec la vue');
+  egal((ecran.match(/kDeLaFile\(/g) ?? []).length, 0, 'écran : aucun K recopié');
+  ok(appelFile.includes('changerVue({ tri: sortBy, metric, page: resultsPage })'),
+    'écran : seuls tri, mesure et page parviennent au propriétaire');
 
   // Le CLI : le contexte de la recherche lancée (`params.relicContext`).
   const cli = readFileSync('scripts/lib/classementCli.ts', 'utf8');
-  ok(/const K = cibleDeLaFile\(\{ relicContext: e\.params\.relicContext, toutVerifier: toutVerifierDeLaRecette\(e\.recipe\) \}\);/.test(cli),
-    'CLI : `K = cibleDeLaFile({ relicContext: e.params.relicContext, … })`');
-  ok(/prochainsATraiter\(e\.base, parBuild, K, page\)/.test(cli), 'CLI : la file du CLI sert `prochainsATraiter` avec ce K, sur son cache');
+  ok(/const K = cibleDeLaFile\(\{ relicContext: params\.relicContext, toutVerifier: toutVerifierDeLaRecette\(recipe\) \}\);/.test(cli),
+    'CLI : `K = cibleDeLaFile({ relicContext: params.relicContext, … })`, le K qu’il annonce');
+  ok(/classerEnLocal\(photo, e\.candidates,/.test(cli) && /contexteDeResultatCli\(recipe, loaded, params, e\.realDamage, e\.toutResoudre \|\| toutVerifierDeLaRecette\(recipe\)\)/.test(cli),
+    'CLI : sa file est celle du corps du classeur, cible photographiée dans son contexte');
 
   // Aucun autre appel de production ne choisit sa taille de file à la main.
-  const appels = [ecran, hook, cli, readFileSync('scripts/optimizer-search.ts', 'utf8')]
+  const appels = [ecran, cli, readFileSync('scripts/optimizer-search.ts', 'utf8')]
     .flatMap((s) => s.match(/prochainsATraiter\([^)]*\)[^;]*;/g) ?? []);
   ok(appels.every((a) => !/K_BUILDS_OPTIMISES|\b100\b|\b300\b/.test(a)), `aucun appel de \`prochainsATraiter\` à taille écrite en dur (${appels.length} appel(s))`);
 }

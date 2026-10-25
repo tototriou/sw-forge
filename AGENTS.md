@@ -39,7 +39,7 @@ commit** que le code.
 | App | **React 18** + **TypeScript 5**, **sans router** : routage par `window.location.hash` (`src/App.tsx`) |
 | Build & style | **Vite 5**, **Tailwind 3** (PostCSS + autoprefixer, déclarés dans `vite.config.ts` avec le plugin de l'écran partagé `scripts/lib/postcssVolets.ts` ; requêtes de conteneur `@container` par `@tailwindcss/container-queries`), tokens CSS dans `src/index.css` |
 | Dépendances runtime | `lucide-react` (icônes), `framer-motion` (animation), `react-resizable-panels` (séparateur de l'écran partagé, derrière `src/ui/DeuxVolets.tsx`) — aucune mesure d'audience |
-| Calcul lourd | **Web Workers** (`src/workers/`) : recherche de l'Optimizer, résolution de l'équipement |
+| Calcul lourd | **Web Workers** (`src/workers/`) : recherche de l'Optimizer, classement, résolution de l'équipement |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé), tous deux opt-in |
 | Bureau | **Electron** + `electron-builder` + `electron-updater` (`bureau/`, hors de `src/`) |
 | Tests | lanceur maison `tests/run.mjs` (registre `tests/index.ts`), `fake-indexeddb`, rendu par `react-dom/server` |
@@ -58,7 +58,7 @@ src/
   hooks/         # état et persistance (usePersistence, useOptimizerState, useSpeedTune…)
   lib/           # calcul pur, testé : vitesse (speed.ts), runes, artéfacts, reliques, dégâts réels
                  # (damage.ts), moteur de l'Optimizer (runeBuildOptim.ts), import de compte, session
-  workers/       # Web Workers de l'Optimizer (recherche, appariement parallèle, résolution)
+  workers/       # Web Workers de l'Optimizer (recherche, appariement parallèle, classement, résolution)
   data/          # contenu statique (journal des versions releases.ts)
 bureau/          # application de bureau Electron (main, protocole, session, SW Exporter, mise à jour)
 public/          # icônes, portraits, données SWARFARM (public/data, régénérées par npm run fetch-data)

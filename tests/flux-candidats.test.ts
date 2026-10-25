@@ -17,6 +17,7 @@ import { RuneDetail } from '../src/types';
 import { ok, titre } from './outils';
 import React from 'react';
 import { useBuildOptimSearch } from '../src/hooks/useBuildOptimSearch';
+import { demandeClassementTest } from './classement-fixture';
 import { build } from 'esbuild';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -785,15 +786,16 @@ export async function testFluxCandidatsApercuFinal() {
 }
 
 /** Le hook réel, cellules React synchrones ; aucun rendu ni ordonnanceur DOM simulé. */
-function monterRecherche() {
+export function monterRecherche() {
   const internes = (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
   const cellules: unknown[] = [];
+  const ecritures: unknown[] = [];
   let index = 0;
   const dispatcher = {
     useState(initial: unknown) {
       const i = index++;
       if (!(i in cellules)) cellules[i] = initial;
-      return [cellules[i], (v: any) => { cellules[i] = typeof v === 'function' ? v(cellules[i]) : v; }];
+      return [cellules[i], (v: any) => { ecritures.push(v); cellules[i] = typeof v === 'function' ? v(cellules[i]) : v; }];
     },
     useRef(initial: unknown) {
       const i = index++;
@@ -812,11 +814,11 @@ function monterRecherche() {
   class Fil {
     onmessage: any = null; onerror: any = null; onmessageerror: any = null;
     termine = false; envoyes: unknown[] = [];
-    constructor() { fils.push(this); }
+    constructor(readonly url: URL) { fils.push(this); }
     postMessage(m: unknown) { if (this.termine) throw new Error('envoi après terminaison'); this.envoyes.push(m); }
-    terminate() { this.termine = true; }
+    terminate() { this.termine = true; for (const m of this.envoyes as any[]) { m.port?.close(); m.classement?.port.close(); } }
   }
-  return { rendre, fils, Fil };
+  return { rendre, fils, Fil, ecritures };
 }
 
 function refusDuHook(type: 'recevoir' | 'sceller') {
@@ -827,22 +829,29 @@ function refusDuHook(type: 'recevoir' | 'sceller') {
     globalThis.Worker = banc.Fil as unknown as typeof Worker;
     console.error = (...args) => { erreurs.push(args); };
     const hook = banc.rendre();
-    hook.run(espaceDense().params);
+    const demande = demandeClassementTest(espaceDense().params);
+    hook.run(demande.params, demande.photo, demande.vue);
     const fil = banc.fils[0], recevoir = fil.onmessage;
     const message = type === 'recevoir'
       ? { type: 'candidats', bloc: { schema: 1, debut: 1, longueur: 1 } }
       : { type: 'result', nombre: 1, explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null };
-    recevoir({ data: message });
+    const ouverture = fil.envoyes.find((m: any) => m.type === 'ouvrir');
+    recevoir({ data: { type: 'erreur', versionSchema: 1, idRecherche: ouverture.idRecherche,
+      message: `Flux ${message.type} refusé par le propriétaire` } });
     identiques(banc.rendre().status, 'error', `${type} refusé : erreur visible`);
     ok(fil.termine && fil.onmessage === null && erreurs.length === 1, `${type} refusé : Worker terminé et erreur journalisée`);
     hook.stop();
     recevoir({ data: { type: 'result', nombre: 0, explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null } });
     identiques(banc.rendre().status, 'error', `${type} refusé : réponse tardive ignorée, Arrêter sans blocage`);
-    banc.rendre().run(espaceDense().params);
+    banc.rendre().run(demande.params, demande.photo, demande.vue);
+    const classeur = banc.fils.slice().reverse().find((f: any) => f.url.pathname.includes('classement.worker'));
+    const suivante = classeur.envoyes.find((m: any) => m.type === 'ouvrir');
+    classeur.onmessage({ data: { type: 'ouverte', versionSchema: 1, idRecherche: suivante.idRecherche, idDemande: suivante.idDemande } });
     banc.rendre().stop();
-    identiques(banc.fils[1].envoyes[1], { stop: true }, `${type} refusé : Arrêter reste branché après une relance`);
+    const recherche = banc.fils.slice().reverse().find((f: any) => f.url.pathname.includes('runeBuildOptim.worker'));
+    identiques(recherche.envoyes[1], { stop: true }, `${type} refusé : Arrêter reste branché après une relance`);
     banc.rendre().cancel();
-  } finally { globalThis.Worker = ancienWorker; console.error = ancienError; }
+  } finally { for (const f of banc.fils) f.terminate(); globalThis.Worker = ancienWorker; console.error = ancienError; }
 }
 
 export function testFluxCandidatsRefusRecevoir() {
@@ -873,11 +882,13 @@ export async function testFluxCandidatsRefusResultat() {
   const banc = monterRecherche();
   try {
     globalThis.Worker = banc.Fil as unknown as typeof Worker; console.error = () => {};
-    banc.rendre().run(espaceDense().params);
-    banc.fils[0].onmessage({ data: messages[0] });
+    const demande = demandeClassementTest(espaceDense().params);
+    banc.rendre().run(demande.params, demande.photo, demande.vue);
+    const ouverture = banc.fils[0].envoyes.find((m: any) => m.type === 'ouvrir');
+    banc.fils[0].onmessage({ data: { type: 'erreur', versionSchema: 1, idRecherche: ouverture.idRecherche, message: messages[0].message } });
     ok(banc.rendre().status === 'error' && banc.fils[0].termine, 'message réel : hook en error et Worker terminé');
     banc.rendre().stop();
-  } finally { globalThis.Worker = ancienWorker; console.error = ancienError; }
+  } finally { for (const f of banc.fils) f.terminate(); globalThis.Worker = ancienWorker; console.error = ancienError; }
 }
 
 export async function testFluxCandidatsLanceurCommun() {

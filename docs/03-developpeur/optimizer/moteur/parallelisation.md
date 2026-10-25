@@ -460,115 +460,71 @@ le canal coopératif du bouton « Arrêter ».
 
 ## Worker de résolution
 
-La résolution de l'équipement d'un build (paire d'artéfacts et relique)
-suit le même patron : un corps neutre, `CorpsResolution`
-(`src/workers/resolutionBody.ts`) ; une coquille navigateur,
-`src/workers/resolution.worker.ts` ; et côté écran un module neutre,
-`ResolutionDistante` (`src/workers/resolutionDistante.ts`), que le hook de
-la file branche. Le corps et le module ne touchent ni `self` ni
-`postMessage`, ni `worker_threads`, ni le DOM, ni React : Node et les tests
-les exécutent tels quels. Le corps ne réimplémente rien : il reconstruit
-l'entrée de production par `entreeResolutionDuBuild` et résout par
-`resoudreEquipementDuBuild`, comme le fil de l'écran et le CLI
-([pipeline.md § Résolution de l'équipement d'un build](pipeline.md)).
-Pourquoi la file passe par ce Worker, ses deux voies de repli et ce qui a
-été mesuré : [artefacts.md § Résolution hors du fil de l'écran](artefacts.md).
+Trois propriétaires de tâches restent distincts : recherche, classement,
+résolution. La page crée le Worker de classement auprès de la recherche
+remontée dans App, puis deux canaux transférés une fois : recherche →
+classeur pour chaque lancement ; classeur ↔ résolveur pour la vie du
+classeur. La page ne relaie ni les blocs collectés ni les réponses
+d'équipement. Les crédits de collecte sont rendus après ingestion ;
+le bilan scelle le flux sans réémettre l'aperçu.
 
 ### Entrées sérialisables
 
-Les entrées de la résolution directe ne traversent pas `postMessage` :
-`ArtifactSearchParams` porte une fonction, `evaluer`, et l'entrée de
-production porte des fonctions et des caches. Le contexte voyage donc en
-données, `EntreesResolutionSerialisables` : la fiche (`fiche`), les
-paramètres de paires sans `evaluer` (`artifactParams`), le régime effectif
-(`regime`), le contexte de dégâts (`degats`, `null` hors « Dégâts réels »),
-l'assiette des effets uniques de relique (`exclusive`), les conditions avec
-auras (`requirement`) et le contexte relique de la recherche lancée
-(`relicContext`). Le corps reconstruit le reste de l'autre côté.
-
-- `entreesSerialisables` les produit depuis les arguments que l'écran passe
-  à `entreeResolutionDuBuild` ; elle ne retire que `evaluer`, par
-  décomposition : un champ ajouté à `ArtifactSearchParams` voyage sans
-  qu'on le liste.
-- `ProtocoleClonable` fait échouer `tsc` dès qu'un message ou une réponse
-  du protocole porte une fonction, à toute profondeur ; la garde refuse
-  aussi un objet à méthodes, que le clonage rendrait nu.
-  `tests/resolution-worker.test.ts` le vérifie à l'exécution par
-  `structuredClone`.
-- Les runes d'un build voyagent avec sa demande ; elles viennent de
-  `runesDuBuild` (`src/lib/relicQueue.ts`), le producteur de la résolution
-  du fil de l'écran.
+`contexteResultat` (`src/lib/contexteResultat.ts`) produit une copie
+profonde immuable des identités d'import et d'espèce, des paramètres, de la fiche, des inventaires et du
+combat. Fonctions, accesseurs et instances de classe sont refusés.
+`entreesSerialisables` retire `evaluer` des paramètres de paires ;
+`resolutionDuContexte` reconstruit le régime de la vue à partir de ces
+données photographiées. `optionsDuContexte` reconstruit les fonctions de
+notation. Le CLI et le harnais utilisent ces mêmes producteurs purs.
 
 ### Protocole et ordre
 
-Vers le Worker (`MessageVersResolution`) :
+`ClassementDistant` (`src/workers/classementDistant.ts`) filtre avant
+toute adaptation les schémas, recherches, inventaires, vues, demandes et
+révisions publiées. Une ouverture est acquittée avant de lancer la
+recherche. Une relance invalide l'ancien gestionnaire de recherche et
+l'ancienne génération de classement. Les compteurs de transport sont des
+entiers sûrs ; ils ne sont jamais tronqués par une opération binaire.
 
-- `contexte` (`idContexte`, `entrees`) remplace le précédent : les demandes
-  encore en attente reçoivent `annule`, motif `contexte`, et les caches
-  repartent à neuf (`nouveauxCachesResolution`), jamais réutilisés — le
-  profil de dégâts est rangé par identifiants de pièces, qu'un autre
-  inventaire réattribue ;
-- `resoudre` (`idContexte`, `idDemande`, `cle`, `runes`) : une demande pour
-  un build ; d'un autre contexte que le courant, elle reçoit aussitôt
-  `annule`, motif `contexte` ;
-- `annuler` (`idDemande` facultatif) retire la demande en attente visée, ou
-  toutes ; chacune reçoit `annule`, motif `demande`. Une demande déjà
-  résolue ne se rappelle pas.
+Les blocs du canal de recherche portent séquence et ordinal de début ;
+les colonnes sont scellées et transférées. Une retransmission identique
+est acquittée, un contenu différent est refusé. Le scellement vérifie le
+dernier numéro et le nombre de lignes. La fusion des morceaux reste
+canonique, indépendamment de l'ordre d'arrivée.
 
-Réponses (`ReponseResolution`), toutes marquées `idContexte`, `idDemande` et
-`cle` : `resultat` ; `annule` ; `erreur` (`nom`, `message`, et `vide` d'une
-`RechercheRefusee`). Exactement une réponse par demande reçue : la file
-n'attend jamais un build qui ne viendra pas.
+`ResolutionDistante` pilote le résolveur depuis le classeur :
+contexte, annulations, puis demandes prioritaires ; deux places au plus,
+annulées comprises. Le corps `CorpsResolution` reconstruit les entrées
+par `entreeResolutionDuBuild`, puis appelle `resoudreEquipementDuBuild`.
+Il répond exactement une fois par demande : résultat, annulation ou erreur.
+Le couple contexte/demande et l'identité courante sont vérifiés avant
+chaque écriture ; une réponse périmée libère seulement sa place.
 
-`recevoir` traite un message sans rien résoudre ; `etape` résout la plus
-ancienne demande en attente, une seule. La coquille appelle `etape` dans une
-tâche à part (`setTimeout`), une demande par tâche, pour qu'un nouveau
-contexte ou une annulation arrivés entre deux résolutions passent avant la
-suivante. La plateforme ne garantit pas l'ordre entre cette tâche et un
-message déjà en attente : l'annulation n'est qu'une économie, la garantie
-est du côté de l'appelant, qui ignore toute réponse d'une demande annulée ou
-d'un contexte périmé. Le corps ne trie rien : la priorité (la page affichée
-d'abord) se décide sur le fil de l'écran, par `prochainsATraiter`.
+### Publication et panne
 
-### Côté écran
+Une publication est l'instantané de la vue : versions, vue, comptes, page
+(vingt cartes au plus, avec leur équipement), reste de la file, incident et
+bilan. Elle ne transporte ni candidat ni ordinal par ligne et n'attend aucun
+acquittement ; le récepteur vérifie recherche, inventaire, vue, demande et
+révision publiée avant de la montrer.
+La cadence reste de 400 ms ; dernière attente de page et file réellement
+vide forcent la dernière publication. Une tâche d'actualisation n'est pas
+une fin de file : la décision attend son résultat et tout forçage reste dû.
 
-`ResolutionDistante` décide quoi envoyer (`planifier`, dans l'ordre :
-contexte, annulations, demandes ; détail dans
-[pipeline.md § Worker de résolution](pipeline.md)), quoi écrire
-(`recevoir`), quand publier et quand renoncer.
+Une erreur du résolveur ferme son canal et le termine. Le classeur garde
+les candidats et son cache, recrée les caches de calcul et reprend dans
+son propre fil par `CorpsResolution`, une demande par tâche. Une erreur
+métier levée également dans ce repli termine la recherche en erreur.
+Aucun calcul de résolution ne revient sur la page.
 
-- Le contexte courant (`ContexteCourant`) est l'objet des entrées et la
-  signature des réglages, comparés par identité à l'envoi ET à chaque
-  réponse : une réponse arrivée entre un changement de réglage et le renvoi
-  du contexte porte encore l'`idContexte` courant, c'est l'identité qui la
-  démasque. Le contexte ne part que s'il reste du travail.
-- `planifier` est idempotent. Au plus `DEMANDES_EN_VOL_MAX` (2) demandes
-  sans réponse, annulées comprises : deux, pour que le Worker enchaîne la
-  seconde sans attendre l'aller-retour vers un écran occupé ; pas plus,
-  parce qu'une demande partie ne se double qu'en l'annulant. La plus
-  ancienne en vol n'est jamais annulée : le corps l'a sans doute commencée.
-- `recevoir` libère toujours la place en vol et rend une issue : `ecrite`,
-  `ignoree` (motifs `contexte-perime`, `demande-annulee`,
-  `annulee-par-le-corps`, `demande-inconnue`, `cle-differente`, `repli`) ou
-  `erreur`. Une erreur n'est jamais tue, même pour une demande annulée :
-  c'est la résolution de production qui a levé.
-- Publication : `publier` (port) rend vrai si l'écran a reçu le cache, faux
-  si la cadence l'a retenu. Après une écriture, la publication est forcée
-  (`publicationForcee`) quand le build était le dernier non résolu de la
-  page affichée, ou que la file se vide. Une écriture retenue est publiée de
-  force quand la file se vide (`pomper`, réponse ignorée comprise) et au
-  repli (`renoncer` rend vrai).
-- Repli : une réponse `erreur` ou un envoi qui lève font `basculer` —
-  renoncer (plus rien d'envoyé ni d'écrit, demandes en vol oubliées),
-  publier de force s'il le faut, puis appeler le port `repli`, journalisé
-  avec le nom, le message et le motif `vide` (`repliSurErreur`).
-- Le hook de la file (`useArtifactOptimQueue`) fournit les ports
-  (`PortsResolutionDistante`) et crée un seul Worker pour sa vie, au premier
-  besoin, terminé au démontage. Hors d'un effet actif, une réponse libère
-  sa place sans rien écrire. Une erreur du Worker, une réponse illisible ou
-  une création impossible font aussi repasser la file sur le fil de
-  l'écran, l'erreur journalisée par `console.error` ; le repli dure
-  jusqu'au démontage.
+La perte ou la création impossible du classeur utilise le statut
+`error` et le message existant de la recherche. Les projections de
+compatibilité sont jetées ; aucun résultat n'est reconstitué, aucune
+relance n'est automatique. Démonter l'écran laisse le contrôleur vivant ;
+détruire l'état applicatif termine les Workers et leurs ports. Une faute du
+classeur après libération ou refus termine aussi ce propriétaire inactif ;
+la relance explicite crée un nouveau Worker, sans secours ni relance automatique.
 
 ## Vérifier un changement
 
@@ -637,4 +593,5 @@ contexte, annulations, demandes ; détail dans
   annulation, réponses périmées jamais écrites, repli, publication, une file
   simulée qui remplit le même cache que la résolution directe, et le
   branchement du hook gardé par des contrôles de source. La coquille
-  `resolution.worker.ts` ne se vérifie qu'au navigateur.
+  `resolution.worker.ts` est aussi exécutée avec `classement.worker.ts` par
+  `testClassementDistantPanne` : vrais ports transférés et panne du résolveur.

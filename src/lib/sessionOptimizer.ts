@@ -25,7 +25,6 @@ export const CHAMPS_OPTIMIZER_SESSION = [
   'lockedRunes',
   'excludeBase',
   'optimiserArtefacts',
-  'adapterArtefactsAuTri',
   'artifactMainByKind',
   'relicMainChoice',
   'relicUniqueChoice',

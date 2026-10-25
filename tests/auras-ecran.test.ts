@@ -306,7 +306,7 @@ export function testAurasEcranRappel() {
   for (const [nom, corps] of [
     ['pickSpecies (bestiaire)', entre(ecran, 'function pickSpecies(', 'const zoneDRef = useRef')],
     ['pickSource (puces de source)', entre(ecran, 'function pickSource(', 'function pickSpecies(')],
-    ['importRecipe (import de recette)', entre(ecran, 'function importRecipe(', 'const candidatesSource =')],
+    ['importRecipe (import de recette)', entre(ecran, 'function importRecipe(', '\n  }\n')],
   ] as const) {
     ok(corps.length > 0 && !/doitRappeler|setRappelAuras/.test(corps), `source : ${nom} ne rappelle rien`);
   }
@@ -411,7 +411,7 @@ export function testAurasEcranGuidage() {
   egal(ecran.match(/guideVersResPre\(/g)?.length ?? 0, 1, 'source : l’écran ne décide le guidage qu’au choix du set recherché');
   egal(ecran.match(/(?<!function )guiderVersResPre\(\)/g)?.length ?? 0, 1, 'source : guiderVersResPre n’est appelé qu’au choix du set recherché (la carte le reçoit en prop)');
   for (const [nom, corps] of [
-    ['importRecipe (import de recette)', entre(ecran, 'function importRecipe(', 'const candidatesSource =')],
+    ['importRecipe (import de recette)', entre(ecran, 'function importRecipe(', '\n  }\n')],
     ['pickSpecies (bestiaire)', entre(ecran, 'function pickSpecies(', 'const zoneDRef = useRef')],
     ['le geste de la zone C (changement de monstre)', entre(ecran, 'if (!resolved) return;', 'else setRappelAuras(null);')],
   ] as const) {

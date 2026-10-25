@@ -24,6 +24,7 @@ import { preuvesRechercheOptimizer } from './optimizer-recherche-preuves';
 import { preuvesCreationObligatoire, preuvesEtatAuras, preuvesEnteteEquipe, preuvesDialogueElement, preuvesActionsZoneC } from './optimizer-retouches-preuves';
 import { preuvesEquipeImpossible } from './optimizer-equipe-impossible-preuves';
 import { preuvesReglagesAvances, preuvesGuidage, preuvesRappelDeuxRendus, preuvesListesEcran, preuvesMessageImport, preuvesResultats } from './optimizer-ecran-preuves';
+import { rechercheClasseeTest } from './optimizer-classement-banc';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -96,6 +97,10 @@ function Banc() {
 export async function geste(action: () => void) {
   flushSync(action);
   await new Promise(r => setTimeout(r, 0));
+  // Une mise à jour posée hors d'un événement (le `.then` d'une lecture de
+  // fichier) passe par l'ordonnanceur de React, sur un `MessageChannel` :
+  // `flushSync` ne la vide pas, on attend donc un tour de ce canal.
+  await new Promise(r => { const c = new MessageChannel(); c.port1.onmessage = () => { c.port1.close(); r(null); }; c.port2.postMessage(null); });
   flushSync(() => {});
 }
 
@@ -147,7 +152,15 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     runes: () => runesActuelles, arts: () => artefactsActuels, changerBox, changerRunes, changerArtefacts, changerDefenses, geste, premier, second, troisieme, siege }, nom);
   const bancEquipes = { etat: () => etat, listes: () => listes, geste, premier, second, troisieme };
   const bancEcran = { ...bancEquipes, menuOuvert: () => menuOuvert, fermerMenu: () => changerMenu(false),
-    forcerRecherche: (r: Record<string, unknown> | null) => { rechercheForcee = r; rafraichir(); } };
+    forcerRecherche: (r: Record<string, unknown> | null) => {
+      const fiche = compteActuel.box.find((item) => item.monster.id === Number(etat.selectedId))?.gear;
+      if (r && !fiche) throw new Error('Résultat du banc sans fiche sélectionnée');
+      rechercheForcee = r ? rechercheClasseeTest(r, { fiche: fiche!, pool: runesActuelles, optimiser: etat.optimiserArtefacts,
+        requirement: { sets: etat.comboSets, minStats: etat.minStats }, setup: etat.damageSetup,
+        toutVerifier: etat.verifierToutesLesCombinaisons, vue: { tri: etat.sortBy, metric: 'eff', page: etat.resultsPage },
+      }, true) : null;
+      rafraichir();
+    } };
   if (nom === 'ecran-reglages-avances') return preuvesReglagesAvances(bancEcran, () => changerMenu(true));
   if (nom === 'ecran-guidage') return preuvesGuidage(bancEcran);
   if (nom === 'ecran-rappel') return preuvesRappelDeuxRendus(bancEcran);
@@ -320,7 +333,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   } else if (nom === 'saisies') {
     const valeurs = {
       comboSets: ['violent'], minStats: { spd: 245 }, maxStats: { res: 80 }, excludeBase: false,
-      optimiserArtefacts: false, adapterArtefactsAuTri: false, artifactMainByKind: { element: 100 },
+      optimiserArtefacts: false, artifactMainByKind: { element: 100 },
       relicMainChoice: 101, relicUniqueChoice: 1, lignesVerrouillees: [{ code: 206, min: 5 }],
       mainStatsBySlot: { 2: [8] }, lockedRunes: { 1: 888 }, objective: 'vitesse',
       damageSetup: { ...baseCompleteCriteres(undefined).damageSetup, enemyDef: 1234 }, sortBy: 'hp',

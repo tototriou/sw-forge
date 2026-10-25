@@ -13,9 +13,9 @@ export interface GrilleResultatsProps {
   metric: PropsCarte['metric'];
   openDetailKey: PropsCarte['openDetailKey'];
   onToggleDetail: PropsCarte['onToggleDetail'];
-  // Ce que l'écran calcule pour chaque carte : paire, relique, chiffres de
-  // classement, gestes (`proprietesCarte` d'OptimizerSection).
-  proprietesCarte: (c: BuildCandidate) => Omit<PropsCarte, 'rank' | 'candidate' | 'runeById' | 'relicUsageById' | 'metric' | 'openDetailKey' | 'onToggleDetail'>;
+  // Ce que l'écran donne à chaque carte, par son rang dans la page : paire,
+  // relique, chiffres de classement, gestes (`proprietesCarte` d'OptimizerSection).
+  proprietesCarte: (c: BuildCandidate, rang: number) => Omit<PropsCarte, 'rank' | 'candidate' | 'runeById' | 'relicUsageById' | 'metric' | 'openDetailKey' | 'onToggleDetail'>;
   hauteurCarte: number | null;
   // Le rendu des cartes au bureau (`BuildCandidateCard`, `bureau`).
   bureau?: boolean;
@@ -47,7 +47,7 @@ export default function GrilleResultats({ grilleResultatsRef, composition, runeB
           metric={metric}
           openDetailKey={openDetailKey}
           onToggleDetail={onToggleDetail}
-          {...proprietesCarte(c)}
+          {...proprietesCarte(c, i)}
           bureau={bureau}
         />
       ))}

@@ -57,6 +57,12 @@ import { LoadedMonster } from '../scripts/lib/loadMonster';
 import { runSearchToCompletion } from '../scripts/lib/runSearch';
 import { LIGNES_IMPRIMEES, classerCommeLEcran } from '../scripts/lib/classementCli';
 import { egal, ok, titre } from './outils';
+import { CorpsClassement, type PublicationClassement, type VueClassement } from '../src/lib/classementCompact';
+import { contexteDeResultatCli } from '../scripts/lib/classementCli';
+import { compositionDePage } from '../src/lib/artifactQueue';
+import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs } from '../src/lib/candidatsCompacts';
+import { ResolutionDistante } from '../src/workers/resolutionDistante';
+import { optionsDuContexte } from '../src/lib/contexteResultat';
 
 const LUSHEN = 13413;
 const BASE = { hp: 10000, atk: 1000, def: 500, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
@@ -82,6 +88,68 @@ for (let s = 1; s <= 6; s++) {
 const RELIQUE_FICHE = relique(50, 102, 12, 3000, 1); // DEF +12 %, Conquête sans effet sous 3 000 ATQ
 const RELIQUE_ATQ = relique(60, 101, 12, 1000, 2); // ATQ +12 %, Conquête +2 % par 1 000 ATQ
 const ARTEFACTS = [art(901, 'element', 101, 50), art(902, 'element', 102, 50), art(903, 'archetype', 101, 50), art(904, 'archetype', 102, 50)];
+
+/** Options reconstruites comme l'écran de référence, sans le producteur photographié. */
+export function optionsOracleCli(recipe: OptimizerRecipe, params: ReturnType<typeof recipeToSearchParams>, realDamage: ReturnType<typeof buildRealDamageContext>, cache: ReadonlyMap<string, ResultatArtefacts> | null) {
+  const runeById = new Map(POOL.map((r) => [r.id, r]));
+  const setup = recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP;
+  const auras = aurasPropresParRunes(runeById);
+  return optionsDeClassement({ realDamage, damageSetup: setup, runeById, metric: recipe.metric,
+    aurasPropresDe: auras, contexteExclusive: { setup, element: 'wind' },
+    artefactsDuBuild: (c) => { const r = cache?.get(cleBuild(c)); return r ? artifactDamageProfile(r.artefacts) : null; },
+    etatReliqueDe: (c) => etatReliqueDuBuild(cache?.get(cleBuild(c)), params.relicContext, LOADED.gear.relic) });
+}
+
+export async function testCliClassementDifferentiel() {
+  titre('Classement — trace CLI et ancienne page vérifiée sur la même entrée');
+  const recipe = recette('equipped', 1250, 900), params = recipeToSearchParams(recipe, LOADED);
+  const candidats = (await runSearchToCompletion(params)).candidates;
+  const degats = buildRealDamageContext(recipe, LUSHEN, params.artifacts);
+  const photo = contexteDeResultatCli(recipe, LOADED, params, degats);
+  const base = sortCandidates(candidats, recipe.objective, optionsOracleCli(recipe, params, degats, null));
+  for (const pageImprimee of [false, true]) {
+    const vue: VueClassement = { tri: recipe.objective, metric: recipe.metric, page: 1, pageImprimee };
+    let publication!: PublicationClassement;
+    const corps = new CorpsClassement({ publier: () => {}, resoudre: () => {}, incident: () => {} }, false, 'directe');
+    // Un seul crédit isole le choix de priorité de la prélecture du transport.
+    const observation = corps as unknown as { pilote: ResolutionDistante; cache: Map<string, ResultatArtefacts>; restants(): BuildCandidate[] };
+    observation.pilote = new ResolutionDistante(1);
+    corps.ouvrir(photo, 1, vue, 1);
+    const colonnes = creerColonnesCandidats(); candidats.forEach((c) => ajouterObjetCandidat(colonnes, c));
+    const lots = extraireBlocs(colonnes); lots.forEach((b, i) => corps.ajouter(1, i, b));
+    corps.sceller(1, candidats.length, lots.length - 1, null);
+    let premierEcart: unknown = null, controles = 0;
+    const ordreResolution: string[] = [];
+    const cacheOracle = new Map<string, ResultatArtefacts>(), resoudreOracle = resoudreEquipementCli(recipe, LOADED, params)!;
+    for (let garde = 0; garde < 5000; garde++) {
+      // La projection objet du corps, celle que lit le CLI, à chaque transition.
+      corps.publier(garde * 400, true); publication = corps.projection();
+      const cache = observation.cache, options = optionsOracleCli(recipe, params, degats, cache);
+      if (!isDeepStrictEqual([...cache], [...cacheOracle])) throw new Error(`Écart de cache ou d'ordre de résolution à ${cache.size} résolutions`);
+      const anciennes = classementResolu(base, cache, recipe.objective, options);
+      if (!isDeepStrictEqual(publication.base, base) || !isDeepStrictEqual(publication.affichees, anciennes)) throw new Error(`Écart de classement à ${cache.size} résolutions`);
+      const optionsProduction = optionsDuContexte(photo, publication.parBuild, vue.metric);
+      if (anciennes.some((c, i) => !Object.is(scoreDuCandidat(c, recipe.objective, options), scoreDuCandidat(publication.affichees[i], recipe.objective, optionsProduction)))) throw new Error('Écart de note');
+      const page = compositionDePage({ classement: anciennes, parBuild: cache, page: 1, taillePage: 20 });
+      const suivantsEcran = prochainsATraiter(base, cache, 100, page.aVerifier).map(cleBuild);
+      const suivantsCli = prochainsATraiter(base, cache, 100, anciennes.slice(0, 20)).map(cleBuild);
+      const suivantsCorps = Array.from(observation.restants().slice(0, 3)).map(cleBuild);
+      const suivantsAttendus = pageImprimee ? suivantsCli : suivantsEcran;
+      if (!isDeepStrictEqual(suivantsCorps, suivantsAttendus.slice(0, 3))) throw new Error(`Écart du choix ${pageImprimee ? 'CLI' : 'écran'} à ${cache.size} résolutions`);
+      if (!premierEcart && suivantsCli[0] !== suivantsEcran[0]) premierEcart = { resolus: cache.size, ordreResolution: [...ordreResolution], cli: suivantsCli.slice(0, 3), ecran: suivantsEcran.slice(0, 3), notes: anciennes.slice(0, 3).map((c) => [cleBuild(c), scoreDuCandidat(c, recipe.objective, options)]), page: page.aVerifier.map(cleBuild) };
+      controles++;
+      const suivant = prochainsATraiter(base, cacheOracle, 100, pageImprimee ? anciennes.slice(0, 20) : page.aVerifier)[0];
+      if (suivant) cacheOracle.set(cleBuild(suivant), resoudreOracle(suivant));
+      const avant = new Set(cache.keys()); corps.pomper(garde * 400);
+      for (const cle of cache.keys()) if (!avant.has(cle)) ordreResolution.push(cle);
+      if (!isDeepStrictEqual([...cache], [...cacheOracle])) throw new Error(`Écart de résolution après ${cache.size} réponses`);
+      if (!corps.travailEnRepli) break;
+    }
+    ok(premierEcart !== null, 'le CLI historique et la page vérifiée demandent des priorités différentes');
+    egal(controles, observation.cache.size, `chaque transition du corps contrôlée : notes, ordre complet et choix de la page ${pageImprimee ? 'imprimée' : 'vérifiée'}`);
+    egal([...cacheOracle.keys()], ordreResolution, 'même ensemble résolu et même ordre que l’ancienne boucle indépendante');
+  }
+}
 
 const proche = (a: number | null, b: number | null) => a != null && b != null && Math.abs(a - b) < 1e-9 * Math.max(1, Math.abs(b));
 

@@ -1,6 +1,6 @@
 // L'optimisation d'artéfacts EN TEMPS MASQUÉ ralentit-elle la recherche ?
 //
-// La file (`useArtifactOptimQueue`) travaille sur le fil PRINCIPAL pendant que
+// La file (aujourd'hui dans le Worker de classement) travaillait sur le fil PRINCIPAL pendant que
 // l'appariement tourne dans ses Workers. Aucune API JavaScript ne permet de
 // choisir un cœur : la seule vérification honnête est de MESURER si la
 // recherche ralentit, pas de supposer que le temps est masqué.

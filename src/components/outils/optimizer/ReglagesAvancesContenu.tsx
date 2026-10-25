@@ -148,13 +148,14 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
         />
       </div>
 
-      {/* « Vérifier toutes les combinaisons trouvées » : désactivé par défaut, lu EN DIRECT par la file
-          (`cibleDeLaFile`), jamais par `handleSearch` — il ne change pas
-          la recherche de runes, seulement jusqu'où la file vérifie.
+      {/* « Vérifier toutes les combinaisons trouvées » : désactivé par défaut, photographié au clic
+          Rechercher dans le contexte du résultat, puis lu par la file
+          (`cibleDeLaFile`) — il ne change pas la recherche de runes,
+          seulement jusqu'où la file vérifie ; le changer après le lancement
+          ne prépare que la prochaine recherche.
           MASQUÉ sans optimisation d'artéfacts : sans file, rien n'est
           vérifié, et une saisie sans effet est pire qu'une saisie
-          absente (même règle que « Adapter les artéfacts et reliques
-          au tri »). L'interrupteur qui le masque vit dans une autre
+          absente. L'interrupteur qui le masque vit dans une autre
           carte : rien ne bouge sous le clic. */}
       {optimiserArtefacts && (
         <div className="flex items-center justify-between gap-2 py-3 last:pb-0">

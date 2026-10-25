@@ -15,7 +15,7 @@ flowchart TD
   Pages --> Hooks
   Comp --> Lib["src/lib/<br/>calcul pur, testé"]
   Hooks --> Lib
-  Hooks --> Workers["src/workers/<br/>recherche de l'Optimizer"]
+  Hooks --> Workers["src/workers/<br/>recherche et classement de l'Optimizer"]
   Workers --> Lib
   Hooks --> Stockage[("localStorage<br/>IndexedDB")]
   Donnees[("public/data/<br/>données SWARFARM")] --> Hooks
@@ -204,8 +204,8 @@ dans la vue de développement `#/outils/optimizer/gabarits`
 Sous la grille, même dossier, même règle : « Objectif de recherche » et les actions
 (`ObjectifEtActions` : Rechercher, Exporter, Importer, Arrêter), la progression, l'échec et le
 refus, avec la barre d'appariement (`ProgressionRecherche`), le message d'import d'une recette
-(`MessageImportRecette`), l'en-tête des résultats — compte confirmé, « Adapter les artéfacts et
-reliques au tri », tri, ligne de la file de vérification, ligne de raison — (`EnteteResultats`),
+(`MessageImportRecette`), l'en-tête des résultats — compte confirmé,
+tri, ligne de la file de vérification ou avis de page interrompue, ligne de raison — (`EnteteResultats`),
 les blocs de 0 résultat (`DiagnosticsSansResultat` : `DiagnosticFaisabilite`,
 `DiagnosticApprofondi`, `QuasiSucces`), `AvisRechercheTronquee`, la grille des cartes
 (`GrilleResultats`), `PaginationResultats` et les confirmations de libération
@@ -307,7 +307,8 @@ Fonctions **pures**, testables sans rendu. C'est ici que va toute logique, jamai
 | Vitesse & stats | `speed.ts` (source de vérité), `stats.ts` |
 | Speed tuning | `speedTune.ts` (moteur de ticks), `speedTuneLignes.ts` (modèle de l'écran), `speedTuneAuto.ts` (analyse partagée outil/siège), `speedTuneKit.ts` + `speedTunePassif.ts` (lecture des kits), `speedTuneDeck.ts` (import d'un deck), `siegeStatut.ts` (statut d'une équipe de siège) |
 | Runes | `runeOptim.ts`, `runeBuildOptim.ts` (moteur, référence), `rechercheRunes.ts` (orchestration : `searchBuilds`, `construireMoitie`, `apparier`), `constructionRapide.ts`, `appariementRapide.ts` et `validationRapide.ts` (noyaux sur tableaux typés), `retentionEmboitee.ts` (union des rétentions des préréglages emboîtés) et `constructionEmboitee.ts` (un Worker de construction par moitié et par préréglage), `appariementRapideParallele.ts` (appariement parallèle) et `travailleurAppariement.ts` (ce que fait chacun de ses Workers), `runeSort.ts`, `runeCurveShare.ts` |
-| Reliques | `relicOptim.ts` (choix de la meilleure relique pour un build, pertinence et dominance structurelle) ; `relicQueue.ts` (résolution EXACTE de l'équipement d'un build — paire d'artéfacts ET relique, ensemble — la partie pure de la file `useArtifactOptimQueue`, et l'état de la relique d'un candidat pour l'écran) ; `resolutionRapide.ts` (la résolution de l'app, appelée par `relicQueue.ts` : elle ne note que les paires faisables) ; `resolutionExhaustive.ts` (la même résolution, toutes les paires notées : référence des tests et diagnostic d'un build rejeté, à la demande) |
+| Résultats Optimizer | `contexteResultat.ts` (photographie pure partagée Node), `candidatsCompacts.ts` (stockage), `classementCompact.ts` (index et corps propriétaire), `cacheResolutionCompact.ts` (cache typé), `cession.ts` (cession entre deux tranches) ; `classement.worker.ts` et `classementDistant.ts` (transport, versions et instantané de la page) ; `useBuildOptimSearch` garde les Workers vivants pendant la navigation et reçoit l'instantané de la vue |
+| Reliques | `relicOptim.ts` (choix de la meilleure relique pour un build, pertinence et dominance structurelle) ; `relicQueue.ts` (résolution EXACTE de l'équipement d'un build — paire d'artéfacts ET relique, ensemble — la partie pure de la file du classeur, et l'état de la relique d'un candidat pour l'écran) ; `resolutionRapide.ts` (la résolution de l'app, appelée par `relicQueue.ts` : elle ne note que les paires faisables) ; `resolutionExhaustive.ts` (la même résolution, toutes les paires notées : référence des tests et diagnostic d'un build rejeté, à la demande) |
 | Tri | `tri.ts` (le SENS d'un tri, partagé par toutes les listes) |
 | Artéfacts | `artifacts.ts` |
 | Dégâts réels | `damage.ts` ([degats-reels/](../02-app/degats-reels/README.md)) |

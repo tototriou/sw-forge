@@ -212,6 +212,7 @@ import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidat
   testFluxCandidatsRefusRecevoir, testFluxCandidatsRefusSceller, testFluxCandidatsRefusResultat, testFluxCandidatsLanceurCommun } from './flux-candidats.test';
 import { testClassementCreditsRelance, testClassementCadenceDifferee, testClassementTransfertInitial, testClassementMortInactive } from './classement-publication.test';
 import { testClassementComparerApresValidation } from './classement-comparer.test';
+import { testClassementSelectionExhaustiveBorne, testClassementSelectionExhaustiveTransitions, testClassementSelectionExhaustiveDifferee } from './classement-selection-exhaustive.test';
 import testRetentionEmboitee from './retention-emboitee.test';
 import testPrioriteStatsRetiree from './priorite-stats-retiree.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
@@ -859,6 +860,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testClassementTransfertInitial', testClassementTransfertInitial],
   ['testClassementMortInactive', testClassementMortInactive],
   ['testClassementComparerApresValidation', testClassementComparerApresValidation],
+  ['testClassementSelectionExhaustiveBorne', testClassementSelectionExhaustiveBorne],
+  ['testClassementSelectionExhaustiveTransitions', testClassementSelectionExhaustiveTransitions],
+  ['testClassementSelectionExhaustiveDifferee', testClassementSelectionExhaustiveDifferee],
   ['testClassementIncidentInactif', testClassementIncidentInactif],
   ['testClassementBilanStable', testClassementBilanStable],
   ['testClassementDifferentielCombat', testClassementDifferentielCombat],

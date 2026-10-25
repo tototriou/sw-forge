@@ -11,7 +11,7 @@ import { egal, ok, titre } from './outils';
 const BILAN = { explored: 42, truncated: false, nearMissByCondition: [], globalNearMiss: null };
 
 /** Horloge pilotée par le test ; aucune attente ni mesure du processeur. */
-function banc() {
+export function banc() {
   const f = fixtureClassementCombat('ehp'), resolution = new CorpsResolution();
   // Une résolution vaut ici exactement une carte ; les doublons ont leur différentiel dédié.
   f.candidats.pop();

@@ -508,6 +508,25 @@ rejets. Les doublons comptent comme lignes, mais ne partent pas deux fois en
 résolution. La sélection de la file travaille sur les ordinaux et les états
 typés ; seuls les deux builds envoyés sont matérialisés.
 
+Pour K infini, une liste doublement chaînée de groupes inconnus suit l'ordre
+de base, en trois colonnes Uint32 : suivant, précédent, premier ordinal du
+groupe. Une construction parcourt N lignes ; le journal retire un groupe
+seulement lorsque son cache est commis, conforme ou rejeté. Lire, envoyer,
+annuler ou acquitter ne consomme rien ; un groupe encore en vol reste inconnu.
+La sélection lit les ordinaux fournis par la page (au plus vingt), puis
+trois maillons au plus, sauts de doublons compris, pour TROIS choix au total.
+Le compte total des inconnus est conservé séparément des trois choix.
+
+À base et génération stables, avec un journal consécutif, le travail de
+sélection est O(N + R + Q) pour R écritures et Q lectures, en O(N) mémoire
+(12 octets de colonnes par ligne). Cette borne exclut l'extraction de page
+dans l'index, la notation, l'AVL, les publications et la résolution.
+Un nouvel ordre, une nouvelle source ou génération, la bascule vers K
+infini et un repli complet du journal reconstruisent les liens depuis le
+magasin courant. Chaque reconstruction coûte O(N) ; elle n'est jamais
+réduite au dernier delta d'un journal discontinu. K fini conserve son
+parcours du préfixe de base, qui peut s'allonger avec les rejets.
+
 K vient toujours de `cibleDeLaFile`, avec le contexte relique photographié
 et « Vérifier toutes les combinaisons trouvées » lu dans la vue.
 `ResolutionDistante` conserve sa limite de deux demandes sans réponse.

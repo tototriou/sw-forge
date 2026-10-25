@@ -377,6 +377,10 @@ export class CorpsClassement {
   private visites = new Uint32Array();
   private passage = 0;
   private versionLue = -1;
+  private fileExhaustive: {
+    index: ClassementCompact; base: Uint32Array; generationCache: number; generationJournal: object | undefined; version: number;
+    suivants: Uint32Array; precedents: Uint32Array; ordinaux: Uint32Array; premier: number; nombre: number;
+  } | null = null;
   private generationCache = 0;
   private candidatsAcquittes = -1;
   private sourceEnVol: (IdentitePublication & { nombre: number }) | null = null;
@@ -407,7 +411,7 @@ export class CorpsClassement {
     this.abandonnerReponses();
     this.tache = null; this.nombreCible = 0; this.plages = [];
     this.contexte = contexte; this.vue = null; this.flux = new RecepteurCandidats(0); this.lots = [];
-    this.index = null; this.base = new Uint32Array(); this.bilan = null; this.collecteScellee = false;
+    this.index = null; this.fileExhaustive = null; this.base = new Uint32Array(); this.bilan = null; this.collecteScellee = false;
     this.candidatsAcquittes = -1; this.sourceEnVol = null;
     this.versions = { versionSchema: 1, idRecherche, idInventaire: contexte.idInventaire,
       idContexteResolution: this.versions.idContexteResolution, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande };
@@ -483,6 +487,7 @@ export class CorpsClassement {
     // Une publication de l'ancienne vue peut être rejetée sans ACK par l'écran.
     this.sourceEnVol = null;
     this.vue = { ...vue }; this.versions.idVue = idVue; this.versions.idDemande = idDemande;
+    if (!vue.toutVerifier) this.fileExhaustive = null;
     if (!avant || avant.tri !== vue.tri || avant.metric !== vue.metric || entrees?.regime !== resolutionDuContexte(this.contexte, avant.tri, avant.adapterArtefactsAuTri)?.regime) this.trierBase();
     this.sale = true;
   }
@@ -502,7 +507,7 @@ export class CorpsClassement {
     const source = candidatsParIndice(index.magasin.longueur, (i) => index.magasin.candidat(i, false));
     const base = yield* ordreCollecteEtapes(source, this.vue.tri, optionsDuContexte(this.contexte, null, this.vue.metric));
     yield* index.definirOrdreBaseEtapes(base);
-    yield* this.actualiserEtapes(index);
+    yield* this.actualiserEtapes(index, base);
     this.index = index; this.base = base;
     this.visites = new Uint32Array(index.magasin.longueur); this.passage = 0;
     this.sale = true;
@@ -512,15 +517,57 @@ export class CorpsClassement {
   }
   private actualiser(): void {
     if (this.tache || !this.index || !this.contexte || !this.vue) return;
-    if ((this.cache.journal?.version ?? -1) === this.versionLue) return;
+    if ((this.cache.journal?.version ?? -1) === this.versionLue && (!this.vue.toutVerifier || this.selectionExhaustiveCourante())) return;
     this.programmer(this.actualiserEtapes(this.index));
   }
-  private *actualiserEtapes(index: ClassementCompact): Generator<void> {
+  private *actualiserEtapes(index: ClassementCompact, base = this.base): Generator<void> {
     if (!this.contexte || !this.vue) return;
     const options = optionsDuContexte(this.contexte, this.cache, this.vue.metric);
     yield* index.actualiserEtapes(this.cacheLecture(), this.cache.journal, `${this.versions.idRecherche}:${this.vue.tri}:${this.vue.metric}:${this.versions.idContexteResolution}`,
       (c) => scoreDuCandidat(c, this.vue!.tri, options));
+    yield* this.actualiserSelectionEtapes(index, base);
     this.versionLue = this.cache.journal?.version ?? -1;
+  }
+  private selectionExhaustiveCourante(): boolean {
+    const f = this.fileExhaustive;
+    return f !== null && f.index === this.index && f.base === this.base && f.generationCache === this.generationCache
+      && f.generationJournal === this.cache.journal?.generation && f.version === (this.cache.journal?.version ?? -1);
+  }
+  private *actualiserSelectionEtapes(index: ClassementCompact, base: Uint32Array): Generator<void> {
+    if (!this.vue?.toutVerifier) { this.fileExhaustive = null; return; }
+    const journal = this.cache.journal, version = journal?.version ?? -1;
+    let f = this.fileExhaustive;
+    // Un repli complet ne peut pas se déduire du seul dernier delta du journal.
+    if (!f || f.index !== index || f.base !== base || f.generationCache !== this.generationCache || f.generationJournal !== journal?.generation
+      || index.travail.complet || (version !== f.version && version !== f.version + 1)) {
+      const n = index.magasin.longueur;
+      f = { index, base, generationCache: this.generationCache, generationJournal: journal?.generation, version,
+        suivants: new Uint32Array(n), precedents: new Uint32Array(n), ordinaux: new Uint32Array(n), premier: 0, nombre: 0 };
+      let dernier = 0;
+      for (let j = 0; j < base.length; j++) {
+        const i = base[j], g = index.magasin.groupe(i);
+        if (!f.ordinaux[g] && index.magasin.etat(i) === 0) {
+          f.ordinaux[g] = i + 1; f.precedents[g] = dernier;
+          if (dernier) f.suivants[dernier - 1] = g + 1; else f.premier = g + 1;
+          dernier = g + 1; f.nombre++;
+        }
+        if ((j & 63) === 0) yield;
+      }
+      this.fileExhaustive = this.vue?.toutVerifier ? f : null;
+      return;
+    }
+    if (version === f.version) return;
+    for (const c of journal!.changements) {
+      const g = index.magasin.groupeDeCle(c.cle);
+      // Lire ou envoyer ne consomme rien : seul le cache commis retire un groupe.
+      if (g === undefined || !f.ordinaux[g] || index.magasin.etat(g) === 0) continue;
+      const avant = f.precedents[g], apres = f.suivants[g];
+      if (avant) f.suivants[avant - 1] = apres; else f.premier = apres;
+      if (apres) f.precedents[apres - 1] = avant;
+      f.ordinaux[g] = 0; f.nombre--;
+      yield;
+    }
+    f.version = version;
   }
   private pageIndices(): number[] {
     if (!this.index || !this.entrees) return [];
@@ -538,7 +585,7 @@ export class CorpsClassement {
   private restants(): BuildCandidate[] {
     if (this.tache) return [];
     if (!this.entrees || !this.index || !this.vue || !this.contexte) return [];
-    if ((this.cache.journal?.version ?? -1) !== this.versionLue) { this.actualiser(); if (this.tache) return []; }
+    if ((this.cache.journal?.version ?? -1) !== this.versionLue || (this.vue.toutVerifier && !this.selectionExhaustiveCourante())) { this.actualiser(); if (this.tache) return []; }
     if (this.passage === 0xffffffff) { this.visites.fill(0); this.passage = 0; }
     const passage = ++this.passage, premiers: number[] = [];
     let nombre = 0;
@@ -551,6 +598,12 @@ export class CorpsClassement {
     };
     for (const i of this.pageIndices()) ajouter(i);
     const K = cibleDeLaFile({ relicContext: this.contexte.recherche.relicContext, toutVerifier: this.vue.toutVerifier });
+    if (K === Infinity) {
+      const f = this.fileExhaustive!;
+      // Trois choix au total, page comprise ; au plus trois maillons lus, sauts compris.
+      for (let lien = f.premier; lien && premiers.length < 3; lien = f.suivants[lien - 1]) ajouter(f.ordinaux[lien - 1] - 1);
+      return candidatsParIndice(f.nombre, (i) => premiers[i] === undefined ? undefined as unknown as BuildCandidate : this.index!.magasin.candidat(premiers[i], false));
+    }
     let confirmees = 0, aVerifier = 0;
     for (let j = 0; j < this.base.length && confirmees + aVerifier < K; j++) {
       const i = this.base[j], etat = this.index.magasin.etat(i);
@@ -614,7 +667,7 @@ export class CorpsClassement {
     this.publicationForcee = false;
     this.collecteScellee = false;
     this.tache = null; this.nombreCible = 0; this.plages = []; this.reponsesEnAttente = [];
-    this.contexte = null; this.vue = null; this.index = null; this.flux.liberer(); this.lots = [];
+    this.contexte = null; this.vue = null; this.index = null; this.fileExhaustive = null; this.flux.liberer(); this.lots = [];
     this.cache.clear(); this.generationCache = compteurSuivant(this.generationCache); this.entrees = null; this.sale = false;
     for (const m of this.pilote.invalider()) {
       if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m);

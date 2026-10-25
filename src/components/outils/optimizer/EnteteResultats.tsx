@@ -107,7 +107,7 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, sor
     ? 'Classement interrompu : relance la recherche pour agir sur ces résultats.'
     : enAttente > 0
       ? `${enAttente.toLocaleString('fr-FR')} combinaison(s) en vérification…`
-      :' ';
+      : ' ';
 
   return (
     <>

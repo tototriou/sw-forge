@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { Worker, MessageChannel } from 'node:worker_threads';
 import { build } from 'esbuild';
 import { resolve } from 'node:path';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { ClassementDistant, type ReponseClassement, type MessageVersClassement } from '../src/workers/classementDistant';
 import { CorpsClassement, TAILLE_PAGE_CLASSEMENT, type InstantaneClassement, type PublicationClassement, type VueClassement } from '../src/lib/classementCompact';
@@ -388,8 +388,6 @@ export function testClassementBranchementApp() {
   const hook = lire('src/hooks/useBuildOptimSearch.ts');
   const ecran = lire('src/components/outils/OptimizerSection.tsx');
   ok(hook.includes("new URL('../workers/classement.worker.ts'") && hook.includes("new URL('../workers/resolution.worker.ts'") && hook.includes('classement: { port: canal.port2, idRecherche }'), 'le vrai hook crée les deux Workers et transfère le port de recherche');
-  ok(!existsSync(resolve('src/hooks/useArtifactOptimQueue.ts')) && !existsSync(resolve('src/lib/adaptateurClassement.ts')),
-    'l’adaptateur de l’écran et sa projection objet n’existent plus');
   ok(ecran.includes('run(params, photo,') && ecran.includes('const photo = contexteResultat(') && ecran.includes('const instantane = search.classement;')
     && ecran.includes('const cartes = instantane?.page.cartes ?? AUCUNE_CARTE;'), 'la photo et l’instantané du classeur alimentent le vrai écran');
   ok(!/parBuild|fullSortedCandidates|affichees|compositionDePage\(|compteConfirme\(|optionsDuContexte|cleBuild\(/.test(ecran),

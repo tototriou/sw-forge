@@ -25,8 +25,8 @@
 // `resoudreEquipementDuBuild`, est la rapide ; l'exhaustive reste la
 // référence des tests et le diagnostic à la demande.
 //
-// ⚠️ Ce module ne planifie rien (le « quand » vit dans
-// `useArtifactOptimQueue`, le « qui » dans `artifactQueue.ts`) : il répond à
+// ⚠️ Ce module ne planifie rien (le « quand » vit dans le classeur,
+// `CorpsClassement`, le « qui » dans `artifactQueue.ts`) : il répond à
 // « quel équipement pour CE build ». C'est la partie pure que le différentiel
 // contre l'oracle (`tests/relic-queue.test.ts`) exerce sur TOUS les candidats
 // d'une recherche, sans navigateur.

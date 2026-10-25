@@ -28,7 +28,7 @@ function artefactsDe(p: PaireArtefacts): ArtifactDetail[] {
 /**
  * Le chemin relique FIXE (`gear.relic`), hors mode `recherche` : la meilleure paire
  * au score, la première CONFORME si un minimum est posé — recopié de
- * `useArtifactOptimQueue.tranche()` tel qu'il était, pour que le chemin écran
+ * l'ancienne `tranche()` de la file de l'écran telle qu'elle était, pour que le chemin écran
  * sans contexte reste byte-identique.
  */
 function resoudreReliqueFixe(e: EntreeResolution, relique: RelicDetail | undefined): ResultatArtefacts {

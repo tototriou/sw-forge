@@ -5,8 +5,8 @@
 // résout ce qu'on lui demande, dans l'ordre reçu.
 //
 // ⚠️ **Ce module doit rester NEUTRE**, comme le corps : ni `self`, ni
-// `Worker`, ni DOM, ni React. Le hook (`useArtifactOptimQueue`) ne fait que le
-// BRANCHER — il crée le Worker, lui passe les messages et lui fournit ses
+// `Worker`, ni DOM, ni React. Le classeur (`CorpsClassement`) ne fait que le
+// BRANCHER — il lui passe les messages du résolveur et lui fournit ses
 // « ports » (`PortsResolutionDistante`) ; les tests et le script de preuve
 // branchent les mêmes méthodes sur `CorpsResolution`, sans navigateur.
 //

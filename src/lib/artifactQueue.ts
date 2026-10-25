@@ -14,8 +14,8 @@
 //
 // ⚠️ Ce module ne planifie rien : il dit seulement QUI traiter, dans quel
 // ordre, et par quelle voie (`voieDeLaFile` : la page affichée sans attendre,
-// le fond sur l'inactivité). Le « quand » vit dans `useArtifactOptimQueue`
-// (fil principal), le « comment » dans `artifactOptim.ts`. Trois
+// le fond sur l'inactivité). Le « quand » vit dans le Worker de classement
+// (`CorpsClassement`), le « comment » dans `artifactOptim.ts`. Trois
 // responsabilités séparées, dont celle-ci est la seule testable sans
 // navigateur.
 
@@ -220,8 +220,8 @@ export const K_BUILDS_RECHERCHE_RELIQUE = 300;
 
 /**
  * La cible de la file pour UNE recherche, en combinaisons CONFIRMÉES —
- * partagée par l'écran (`useArtifactOptimQueue`) et le CLI
- * (`classerApresResolution`).
+ * partagée par le classeur de l'écran (`CorpsClassement`) et le CLI
+ * (`classerCommeLEcran`).
  *
  * ⚠️ **Des confirmées, pas des rangs** : K vaut 300 / 100, et la file ne
  * s'arrête pas aux K premiers de l'ordre de base mais quand K builds y sont

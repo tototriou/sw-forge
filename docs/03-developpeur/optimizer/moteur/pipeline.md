@@ -549,6 +549,10 @@ l'acquittement d'une publication acceptée : ignorer une ancienne vue ne
 fait perdre aucune différence. L'adaptateur garde l'identité des objets
 inchangés. Il matérialise encore N références par publication ; ce coût
 de compatibilité n'est pas celui de l'index par différences.
+La référence « Comparer » reste la fiche affichée courante (`selected.gear`),
+pour les statistiques comme pour les PV effectifs et dégâts. Seuls les
+paramètres de calcul des résultats restent photographiés ; valider un build
+ne dégèle ni les candidats ni leur contexte de recherche.
 
 `CorpsClassement` est le même corps de notation, d'ordre et de choix de file
 pour le Worker, le CLI et le harnais. `classerEnLocal` le consomme sans

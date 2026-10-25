@@ -2335,7 +2335,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const contexteReferenceResultat = useMemo(() => contexteResultatAffiche
     ? { degats: contexteResultatAffiche.realDamage, damageSetup: contexteResultatAffiche.damageSetup, exclusive: contexteResultatAffiche.exclusive }
     : contexteReference, [contexteResultatAffiche, contexteReference]);
-  const ficheDeReference = contexteResultatAffiche?.fiche ?? selected?.gear;
+  const ficheDeReference = selected?.gear;
   const refEhpResultat = useMemo(() => ficheDeReference ? scoreDeReference('ehp', ficheDeReference, contexteReferenceResultat) : null, [ficheDeReference, contexteReferenceResultat]);
   const refDegatsResultat = useMemo(() => ficheDeReference ? scoreDeReference('degats_reels', ficheDeReference, contexteReferenceResultat) : null, [ficheDeReference, contexteReferenceResultat]);
 

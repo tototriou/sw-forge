@@ -2286,8 +2286,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // (pendant la phase d'appariement) grandit au fil de la recherche sans
   // que ce soit une NOUVELLE recherche — recommencer à la page 1 à chaque
   // candidat qui arrive rendrait la pagination inutilisable pendant qu'une
-  // recherche tourne. Seuls `handleSearch` (nouvelle recherche) et le choix
-  // de tri (classement entièrement différent) remettent explicitement à 1.
+  // recherche tourne. Seuls `handleSearch` (nouvelle recherche), le choix
+  // de tri et celui de la mesure (classement entièrement différent,
+  // useOptimizerState.ts) remettent explicitement à 1.
   // Le nombre de pages peut aussi DIMINUER (la page au-delà des confirmées disparaît quand ses derniers builds non
   // vérifiés sont écartés) : la page courante revient alors sur la dernière.
   useEffect(() => {

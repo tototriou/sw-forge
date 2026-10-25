@@ -253,7 +253,10 @@ tous les builds non résolus classés avant elle, puisque le rang d'un
 vérifié dépend de tous ceux du dessus. ⚠️ **Seule une page demandée en
 naviguant passe devant le fond** (précédente, suivante, numéro saisi) : la
 page qui revient à 1 parce que le tri ou la mesure a changé n'en demande
-aucune. Elle montre les confirmées dans le nouvel ordre, puis ses places en
+aucune (la mesure, réglage global, remet la page à 1 comme le tri, même
+changée depuis une autre page). Aucune place « Vérification… » ne reste
+sans travail : la page 1 est toujours sous les K confirmées que le fond
+vise, et une page plus loin n'est atteinte qu'en naviguant. Elle montre les confirmées dans le nouvel ordre, puis ses places en
 attente, que le fond (qui vérifie toujours dans l'ordre de l'objectif de la
 recherche) ou une navigation remplissent. Ni l'ordre du fond, ni K, ni la
 résolution ne changent. Le classeur compose la page (cartes, places, builds

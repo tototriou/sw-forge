@@ -14,6 +14,7 @@ import { leadEffectifMembreOptimizer, memeLeadOptimizer, modifierEquipeOptimizer
 import type { EquipeOptimizer } from '../lib/optimizerMemberStorage';
 import { LigneVerrouillee } from '../lib/artifactOptim';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
+import { useRuneMetric } from './useRuneMetric';
 import { combatSelonContenuListeOptimizer } from '../lib/combatListeOptimizer';
 
 const REFUS_IDENTITE_MEMBRE = 'Critères non restaurés : l’identité enregistrée du membre diffère de l’espèce résolue.';
@@ -288,8 +289,8 @@ export interface OptimizerState {
   // un paramètre de recherche : n'entre donc jamais dans `OptimizerRecipe`
   // ni les scripts CLI (voir le skill optimizer-field-propagation, dont la
   // checklist recette/CLI ne s'applique PAS à ce champ précisément pour
-  // cette raison). Remise à 1 par l'écran à chaque nouvelle recherche ou
-  // changement de tri — voir OptimizerSection.tsx.
+  // cette raison). Remise à 1 à chaque nouvelle recherche, changement de tri
+  // (OptimizerSection.tsx) ou de mesure (ci-dessous, dans le même rendu).
   resultsPage: number;
   setResultsPage: Dispatch<SetStateAction<number>>;
   slotFilterPreset: SlotFilterPresetKey;
@@ -431,6 +432,14 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   const [verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons] = useState(false);
   const [sortBy, setSortBy] = useState<OptimizerSortKey>(base.sortBy);
   const [resultsPage, setResultsPage] = useState(1);
+  // La mesure (réglage global, changé depuis n'importe quelle page, écran de
+  // l'Optimizer monté ou non) réordonne le classement comme le tri : la page
+  // repart de 1 dans le même rendu. Sans cela, le classeur recevrait une
+  // mesure nouvelle sur une page au-delà de ce que le fond vérifie, et ses
+  // places « Vérification… » resteraient sans aucun travail pour les remplir.
+  const mesure = useRuneMetric();
+  const [mesureDeLaPage, setMesureDeLaPage] = useState(mesure);
+  if (mesureDeLaPage !== mesure) { setMesureDeLaPage(mesure); setResultsPage(1); }
   const [slotFilterPreset, setSlotFilterPreset] = useState<SlotFilterPresetKey>('moyen');
   const [diagnoseBlockingEnabled, setDiagnoseBlockingEnabled] = useState(false);
   const [stoppedManually, setStoppedManually] = useState(false);

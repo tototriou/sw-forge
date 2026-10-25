@@ -260,11 +260,11 @@ paire qui viole ses conditions, ce qui est pire qu'un build manquant.
   sans sa branche y échoue aussi (`const _exhaustif: never`) : jamais un
   `else` qui le noterait par la somme des principales. Elle vit hors
   d'`artifactOptim.ts`, qui reste sans logique de dégâts.
-- **Le régime de la représentative suit l'objectif ; celui de la
-  résolution, le critère regardé** : `regimeEquipement =
-  regimeEquipementDe(regimeArtefacts(adapterArtefactsAuTri ? sortBy :
-  objective), contexte de dégâts disponible)`. « Dégâts réels » sans sort
-  calculable est rabattu sur `aucun`.
+- **La représentative et la résolution suivent l'objectif de la
+  recherche** : `regimeEquipement = regimeEquipementDe(regimeArtefacts(objective),
+  contexte de dégâts disponible)`, photographié au lancement
+  (`resolutionDuContexte`). « Dégâts réels » sans sort calculable est rabattu
+  sur `aucun`. Le tri affiché ne choisit jamais le régime : il ne résout rien.
 - **Régime `aucun`** (Efficience, Vitesse, VIT, Taux CRIT, Dgts CRIT, RES,
   PRE) : aucun artéfact n'entre dans le score, rien n'est à maximiser. La
   note est la somme des principales, pour un ordre qui ne soit pas
@@ -278,19 +278,18 @@ paire qui viole ses conditions, ce qui est pire qu'un build manquant.
   pas le critère : deux critères ne la partagent que si la paire optimale
   y est démontrablement la même, ce qui n'est vrai que dans le régime
   `aucun`. Passer d'Efficience à Vitesse ne recalcule donc rien.
-- **« Adapter les artéfacts et reliques au tri »**, activé par défaut, fait
-  suivre le tri à la paire ; désactivé, elle suit l'objectif de la recherche
-  et reste stable pendant toute l'exploration — ce n'est pas « pas
-  d'optimisation ». L'interrupteur est masqué sans optimisation
-  d'artéfacts (une seule paire possible) :
+- Ne pas faire suivre le tri affiché à la paire (l'ancien interrupteur
+  « Adapter les artéfacts et reliques au tri », retiré) : un changement de
+  vue deviendrait une nouvelle résolution ; pour un autre critère, on
+  relance la recherche avec cet objectif :
   [02-app/optimizer/ecran/resultats.md § Tri des résultats](../../../02-app/optimizer/ecran/resultats.md#tri-des-résultats).
 
 ## Recalcul quand la paire peut changer
 
 Les entrées suivantes sont celles du contexte figé au lancement. Éditer les
 critères ne modifie ni la file ni le cache du résultat vivant ; le prochain
-lancement photographie ces changements. Le régime effectif demeure commandé
-par le sélecteur existant d'adaptation au tri.
+lancement photographie ces changements. Le régime effectif est celui de
+l'objectif lancé : ni le tri ni la page ne le changent.
 
 Le cache de la file (paires et reliques résolues, clé `cleBuild`) ne fait que
 grandir sous une même signature, et se vide quand `signatureArtefacts`

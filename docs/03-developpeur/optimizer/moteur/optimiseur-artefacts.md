@@ -389,9 +389,9 @@ Une seule primitive, `chercherPaires`, sert deux entrées.
 - Le même sélecteur de principale sert les deux : sans optimisation
   d'artéfacts, l'écran impose « Comme équipé » des deux côtés ;
   avec, `'libre'` et les principales deviennent des filtres de candidats.
-- Le Worker de classement possède la file et son cache compact. Le hook
-  `useArtifactOptimQueue` souscrit à la vue et expose les projections de
-  l'écran ; aucune résolution n'y tourne.
+- Le Worker de classement possède la file et son cache compact. L'écran lui
+  envoie sa vue (tri, mesure, page) et n'en reçoit que l'instantané de la
+  page affichée ; aucune résolution n'y tourne.
 
 ### Classement incrémental
 
@@ -417,15 +417,15 @@ différence : O(Δ log N), doublons compris ; page : O(log N + taille).
 Le cache propriétaire (`cacheResolutionCompact.ts`) garde aussi les stats,
 indices de pièces et états en colonnes. Son journal identifie génération,
 version et dernière écriture ; journal manqué ou incohérent impose un
-recalcul complet. Les changements destinés à l'écran restent en attente
-jusqu'à l'acquittement de leur version, même si une vue dépassée est ignorée.
-Une écriture plus récente n'est jamais effacée par cet acquittement.
+recalcul complet. Aucune liste de changements n'est tenue pour l'écran : il
+ne reçoit que les vingt équipements de sa page, relus à chaque publication.
 Les inventaires sont immuables et propres à l'import photographié.
 
 `CorpsClassement` appelle le même index et les mêmes notes que le CLI et le
 harnais. Construction, notation, tri fini et insertion dans l'index offrent
 des étapes ; Node les consomme jusqu'au bout, la coquille Worker cède la main
-entre des tranches visées de 4 ms. Une vue nouvelle abandonne le travail
+entre des tranches visées de 4 ms, par message de canal (`Relance`,
+`cession.ts`). Une vue nouvelle abandonne le travail
 précédent avant publication. Les non-finis gardent les tris natifs stables de
 la référence, qui sont synchrones ; la cible de tranche ne les préempte pas.
 
@@ -436,11 +436,12 @@ dans l'ordre de base. Sans note calculable, seul le départage s'applique.
 natifs stables sur indices JavaScript, avec les expressions de la référence,
 sans normalisation ni comparateur composite.
 
-L'adaptateur `adaptateurClassement.ts` matérialise encore les tableaux
-complets de l'interface actuelle. La source objet traverse à l'aperçu et au
-scellement, puis seulement les ordres copiés et les équipements modifiés.
-Cette projection de compatibilité reste O(N), distincte du travail de
-notation. Le stockage vivant n'est jamais transféré pour servir une vue.
+Une publication pour l'écran est l'instantané de sa page : comptes de
+l'arbre, extraction des confirmées du rang demandé, places attendues, soit
+O(log N + 20) ; aucun objet ni ordinal par ligne ne la traverse. Seul
+`classerEnLocal` (CLI, harnais, tests) lit la projection objet complète
+(`CorpsClassement.projection`), une fois, à la fin de sa file. Le stockage
+vivant n'est jamais transféré pour servir une vue.
 
 Les appels génériques de `classementResolu` hors du contrat compact utilisent
 un recalcul sur indices avec les mêmes formules. Les fonctions détectées

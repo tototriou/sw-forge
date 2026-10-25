@@ -207,8 +207,9 @@ lecteur actuel ; réécrite, elle porte la version 2.
 `lireSession(texte)` lit et valide le fichier entier, et rend une session
 avec ses avertissements, ou une erreur.
 
-Le champ retiré `adaptiveTrancheWeighting` d'une session historique est
-ignoré sans erreur ni avertissement, vrai ou faux : `garderChampsOptimizer`
+Les champs retirés `adaptiveTrancheWeighting` et `adapterArtefactsAuTri`
+(« Adapter les artéfacts et reliques au tri ») d'une session historique sont
+ignorés sans erreur ni avertissement, vrais ou faux : `garderChampsOptimizer`
 ne conserve que `CHAMPS_OPTIMIZER_SESSION`. Il ne repart pas dans une
 sauvegarde suivante.
 

@@ -209,13 +209,10 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
 
 ### Paire d'artéfacts d'un build
 
-- **La meilleure paire d'artéfacts d'un build suit le critère de
-  classement**, et l'interrupteur « Adapter les artéfacts et reliques au
-  tri », activé par défaut, décide lequel : le **tri affiché**, ou
-  l'**objectif de la recherche**. Trier par PV effectifs ne retient pas les
-  mêmes pièces que trier par Dégâts réels : un artéfact change les
-  statistiques du monstre, donc le meilleur dépend de ce qu'on cherche. Le
-  choix lui-même :
+- **La meilleure paire d'artéfacts d'un build suit l'objectif de la
+  recherche**, jamais le tri affiché : chercher sur PV effectifs ne retient
+  pas les mêmes pièces que chercher sur Dégâts réels, un artéfact changeant
+  les statistiques du monstre. Le choix lui-même :
   [artefacts.md § Le choix des artéfacts — un second problème, séparé](artefacts.md).
 - ⚠️ **Un artéfact ne fait varier que PV, ATQ et DEF** (sa principale est
   plate, `artifactFlatBonus`). D'où quatre régimes (`regimeArtefacts`,
@@ -225,9 +222,8 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
     dépasse. La stat est celle de la **fiche**, sans les points Bravoure,
     Éternité ni Origine : la valeur que la carte affiche et qui classe
     (`statTotal`, la même expression dans `scorerPour` et
-    `evaluerPourRegime`). Le régime de l'équipement suivant le tri par
-    défaut, trier par une stat ne fait donc pas préférer une relique
-    Bravoure, Éternité ou Origine pour ses points. Deux reliques de même
+    `evaluerPourRegime`). Aucun objectif de recherche ne mène à ce régime :
+    il reste pour un appelant qui le demande explicitement. Deux reliques de même
     principale y sont souvent **ex æquo** : la relique **portée** l'emporte
     si elle est parmi les meilleures, sinon la plus petite `id`
     (`bestRelicForBuild`, option `departagePortee`, `src/lib/relicOptim.ts`).

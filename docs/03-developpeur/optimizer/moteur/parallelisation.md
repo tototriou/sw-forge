@@ -503,15 +503,11 @@ chaque écriture ; une réponse périmée libère seulement sa place.
 
 ### Publication et panne
 
-Une publication porte ensemble les versions, la vue, les ordres, les
-différences d'équipement et le bilan. Les vecteurs transférés sont des
-copies de publication, jamais le stockage vivant. Le récepteur acquitte
-recherche, vue, demande, révision publiée, génération et révision de cache.
-Le transfert initial des candidats attend cet ACK avant toute autre
-publication de la même vue ; les écritures restent cumulées. Une vue nouvelle
-abandonne cette attente, car l'ancienne publication peut être ignorée sans
-ACK ; un vieil ACK ne libère pas le nouveau transfert. Recevoir l'ACK courant
-réveille la coquille, même si la résolution est terminée.
+Une publication est l'instantané de la vue : versions, vue, comptes, page
+(vingt cartes au plus, avec leur équipement), reste de la file, incident et
+bilan. Elle ne transporte ni candidat ni ordinal par ligne et n'attend aucun
+acquittement ; le récepteur vérifie recherche, inventaire, vue, demande et
+révision publiée avant de la montrer.
 La cadence reste de 400 ms ; dernière attente de page et file réellement
 vide forcent la dernière publication. Une tâche d'actualisation n'est pas
 une fin de file : la décision attend son résultat et tout forçage reste dû.

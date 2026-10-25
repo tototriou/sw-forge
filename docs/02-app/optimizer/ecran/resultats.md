@@ -10,14 +10,22 @@ garde à la relance sont dans
 ils suivent la progression, sur toute la largeur.
 
 Les résultats gardent le contexte photographié au clic « Rechercher » :
-conditions, inventaires, fiche et combat. Modifier les critères prépare la
-prochaine recherche ; le tri, la mesure, la page et les interrupteurs de
-la vue continuent à agir sur le résultat vivant. Le classement et la file
-vivent dans un Worker dédié, conservé pendant la navigation. L'écran reçoit
-encore ses tableaux et sa Map par un adaptateur, sans calcul de résolution.
-Une panne du résolveur seul est reprise dans le classeur. Perte du classeur :
-le message d'échec de recherche existant s'affiche, sans relance automatique
-ni reconstruction d'un résultat depuis l'écran.
+conditions, inventaires, fiche, combat, objectif et « Vérifier toutes les
+combinaisons trouvées ». **Seul « Rechercher » lance une recherche** :
+modifier les stats, les conditions minimum et maximum, l'objectif, les sets
+ou un réglage de recherche prépare la prochaine, sans relancer ni la
+recherche ni l'équipement des builds, et sans changer les résultats
+affichés ; rafraîchir la page ne relance rien ; changer de monstre (dans le
+bestiaire ou dans la liste) efface les résultats, sans rien relancer non
+plus. Le tri, la mesure et la page ne font que choisir ce qui est montré :
+ils ne résolvent aucun équipement, sauf la page demandée en naviguant
+(ci-dessous). Le classement et la file vivent dans un Worker dédié,
+conservé pendant la navigation ; l'écran n'en reçoit que la page affichée,
+ses comptes et ses versions. Une panne du résolveur seul est reprise dans
+le classeur. Perte du classeur : le message d'échec de recherche existant
+s'affiche et la dernière page reçue reste visible, marquée interrompue, ses
+actions désactivées (§ Compte des combinaisons confirmées et pagination),
+sans relance automatique ni reconstruction d'un résultat depuis l'écran.
 
 13. **Résultats** — jusqu'à 20 combinaisons affichées par page, chacune : rang, les
     sets obtenus, le **panneau de stats** (`StatPanel.tsx`, le même composant
@@ -187,10 +195,8 @@ confirmée(s) pour l'instant — recherche en cours… », puis « XX
 combinaison(s) confirmée(s) » : seulement les builds de cette recherche
 vérifiés (résolus ET conformes), lus dans le cache publié de la file. Le
 compte **ne baisse jamais pendant une recherche** : le cache ne fait que
-grandir, l'aperçu des reçus aussi ; seul un changement de signature (un
-réglage qui change la note d'une paire, dont un tri qui change de régime
-avec « Adapter les artéfacts et reliques au tri ») vide le cache et fait
-recommencer la vérification, donc le compte. Une petite infobulle
+grandir, l'aperçu des reçus aussi ; ni le tri ni la page ne vident le
+cache, dont la signature est photographiée au lancement. Une petite infobulle
 (« Combinaisons confirmées », à droite de l'en-tête, quand une file
 vérifie) dit la différence avec les trouvées de la ligne de progression :
 une combinaison confirmée tient vraiment toutes les conditions avec les
@@ -202,8 +208,8 @@ avancés) va jusqu'au bout.
 **« Aucune combinaison ne répond à ces critères »** ne s'affiche qu'une
 fois la recherche finie et tout vérifié sans aucune confirmée — la file
 va jusqu'au dernier build trouvé faute de K confirmées (voir
-../../../03-developpeur/optimizer/moteur/artefacts.md § Quand ce choix a lieu) ; alors seulement « Trier par » et « Adapter les
-artéfacts et reliques au tri » se masquent, comme sur un moteur vide.
+../../../03-developpeur/optimizer/moteur/artefacts.md § Quand ce choix a lieu) ; alors seulement « Trier par » se masque,
+comme sur un moteur vide.
 **Les pages suivent les confirmées** : les pages des confirmées, plus
 une tant qu'il reste des builds non vérifiés qui n'ont pas de place sur
 la dernière — ses places « Vérification… » se résolvent quand on
@@ -213,8 +219,9 @@ l'ouvre (ci-dessous) —, soit `min(⌈(confirmées + non vérifiés) / 20⌉,
 confirmées perd ses derniers non vérifiés, ou la vérification
 recommence), la page courante revient sur la dernière. Une seule
 fonction pure, `compteConfirme` (artifactQueue.ts), donne le compte, les
-non vérifiés, les pages et l'état « Aucune combinaison… », à partir des
-reçus et du cache publié. Sans optimisation d'artéfacts, pas de file :
+non vérifiés, les pages et l'état « Aucune combinaison… » ; l'écran l'appelle
+sur les comptes de l'instantané du classeur (`compteConfirmeDesComptes`),
+sans jamais recevoir la liste des reçus. Sans optimisation d'artéfacts, pas de file :
 l'équipement est celui de la fiche, déjà jugé exactement par le moteur —
 les confirmées sont les trouvées, les pages celles des reçus, et
 l'infobulle ne s'affiche pas.
@@ -243,10 +250,15 @@ fond, qui vise K combinaisons **confirmées** (voir
 confirmées, après la recherche) montre ses places et se résout quand on
 l'ouvre — au prix de
 tous les builds non résolus classés avant elle, puisque le rang d'un
-vérifié dépend de tous ceux du dessus. Ni l'ordre de base, ni K, ni la
-résolution ne changent. Une seule fonction pure, `compositionDePage`
-(artifactQueue.ts), donne les cartes, les places et les builds à
-vérifier, à partir du classement affiché et du cache publié de la file.
+vérifié dépend de tous ceux du dessus. ⚠️ **Seule une page demandée en
+naviguant passe devant le fond** (précédente, suivante, numéro saisi) : la
+page qui revient à 1 parce que le tri ou la mesure a changé n'en demande
+aucune. Elle montre les confirmées dans le nouvel ordre, puis ses places en
+attente, que le fond (qui vérifie toujours dans l'ordre de l'objectif de la
+recherche) ou une navigation remplissent. Ni l'ordre du fond, ni K, ni la
+résolution ne changent. Le classeur compose la page (cartes, places, builds
+à vérifier) selon la règle de `compositionDePage` (artifactQueue.ts), sa
+référence de test, et n'envoie à l'écran que ses vingt cartes au plus.
 Les comptes gardent leur règle (ci-dessus) ; une ligne dit
 combien la file doit encore vérifier (« N combinaison(s) en
 vérification… » : le reste de la file, places en attente puis avance de
@@ -256,14 +268,22 @@ d'artéfacts, pas de file : la page est la tranche du classement.
 ⚠️ **Au bureau, l'en-tête des résultats tient sur une rangée**
 (`EnteteResultats`, `bureau`, décision de l'utilisateur : la première
 carte remonte) : à gauche le compte des confirmées et, sous lui, la ligne
-« en vérification », l'aide à leur droite ; à droite « Adapter les
-artéfacts et reliques au tri » et le tri ; 4 px avant la première carte.
-Rien n'est retiré ni reformulé. Quand la colonne est étroite, la rangée
-passe à la ligne d'elle-même (le tri, puis « Adapter… », sous le compte),
+« en vérification », l'aide à leur droite ; à droite le tri ; 4 px avant
+la première carte. Quand la colonne est étroite, la rangée
+passe à la ligne d'elle-même (le tri sous le compte),
 sans déborder à la largeur minimale de la colonne : le passage ne dépend
 que de la largeur. Mesuré (compte d'exemple, 20 résultats), la première
 carte remonte de 26 px à 1920 × 940 et 2560 × 1300, de 34 px à la largeur
 minimale de la colonne.
+
+⚠️ **Page interrompue.** Si le Worker de classement est perdu, le message
+d'échec de recherche s'affiche et la dernière page reçue reste à l'écran,
+telle quelle : la ligne « en vérification » laisse sa place réservée à
+l'avis « Classement interrompu : relance la recherche pour agir sur ces
+résultats. », et le tri, la pagination, « Comparer » et « Valider ce
+build » sont désactivés, au bureau comme au téléphone. Le détail d'une
+rune ou d'un artéfact reste consultable. Rien n'est relancé : « Rechercher »
+remplace cette page par la première publication de la nouvelle recherche.
 
 ## Tri des résultats
 
@@ -275,33 +295,19 @@ recherche (voir objectif-de-recherche.md § Les quatre objectifs disponibles ;
 « Dégâts réels » n'y figure que si un sort est réellement calculable
 pour ce monstre).
 
-⚠️ **Interrupteur « Adapter les artéfacts et reliques au tri »**
-(un seul contrôle gouverne l'équipement complet, paire et relique, d'un
-seul geste), collé à GAUCHE de ce sélecteur, **activé par défaut**. Le
-tri est une **vue**, l’optimisation une **décision** : les coupler
-d’office imposerait un arbitrage.
-- **Activé** — chaque build reçoit les artéfacts ET la relique qui
-  maximisent le critère affiché : « le meilleur équipement pour ce que je
-  regarde ».
-- **Désactivé** — ils restent ceux qui servent l’**objectif de la
-  recherche**, quel que soit le tri : « le meilleur équipement pour ce que
-  j’ai cherché ». Utile pour parcourir les résultats classés autrement sans
-  que l'équipement bouge — par exemple garder celui qui maximise les PV
-  effectifs tout en regardant les builds triés par une stat.
-
-⚠️ **Désactivé ne veut PAS dire « pas d’optimisation »** — c’est
-« Activer l’optimisation d’artéfacts et reliques » qui le fait. Sans référence de
-repli définie, « ne pas recalculer » ne voudrait rien dire : il faut savoir
-par rapport à quoi, d’où l’objectif de recherche, seule référence stable.
-
-⚠️ **Masqué quand l’optimisation d’artéfacts est désactivée** : il n’y a
-alors qu’une paire possible, celle qui est portée. Même règle que les
-sélecteurs de principale et les sous-propriétés verrouillées — une saisie
-sans effet est pire qu’une saisie absente.
-
-⚠️ Désactivé, la paire est **stable pendant toute l’exploration** : le
-bouton « Valider les artéfacts » propose donc la même chose quel que soit
-le tri, ce qui rend prévisible une action qui réserve des pièces.
+⚠️ **Le tri ne résout aucun équipement.** Les artéfacts et la relique de
+chaque build sont ceux qui servent l'**objectif de la recherche** : changer
+de tri ne les change pas, ne vide pas le cache et ne remet aucun build en
+vérification ; « Valider les artéfacts » propose donc la même chose quel
+que soit le tri. Pour un équipement choisi sur un autre critère, on relance
+la recherche avec cet objectif. Le tri ne fait que réordonner les
+combinaisons confirmées ; la vérification de fond continue dans l'ordre de
+l'objectif de la recherche (§ Compte des combinaisons confirmées et
+pagination). Ne pas réoptimiser l'équipement pour le tri affiché (c'était
+l'interrupteur « Adapter les artéfacts et reliques au tri », retiré) : un
+changement de vue deviendrait une nouvelle vérification. Une mémoire de
+membre ou une session qui porte encore ce réglage est relue sans lui, sans
+avertissement.
 
 ## Valeur d'objectif affichée sur les cartes
 

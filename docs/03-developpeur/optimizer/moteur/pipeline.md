@@ -354,9 +354,12 @@ journalisée, et ce qui a été fusionné avant elle rendu, tronqué. Détail : 
 
 Le Worker transfère les derniers blocs, attend leur acquittement, puis poste
 le bilan (`type: 'result'`, nombre, comptes, quasi-succès, troncature), sans
-candidats. Le hook scelle le nombre reçu, adapte les lignes restantes en
-objets, libère les colonnes, enregistre le résultat, efface la progression
-et passe en `done`. Les objets d'aperçu gardent leur identité. Une plage
+candidats. Dans l'app, le port de recherche scelle ce flux chez le classeur ;
+sa publication du bilan fait enregistrer le résultat par le hook, effacer
+la progression et passer en `done`. Le passage de l'aperçu au résultat final
+ne garantit pas l'identité des objets. L'adaptateur les réutilise tant que
+la source publiée ne change pas ; elle est notamment remplacée quand le
+résultat final contient davantage de candidats. Une plage
 manquante, répétée ou hors schéma est refusée par le récepteur.
 Ce refus est journalisé, passe le hook en `error` et termine le Worker avec
 ses enfants ; toute réponse tardive est invalidée. Un rejet de publication
@@ -467,7 +470,15 @@ d'une seule recherche et d'une seule vue ; la dernière est forcée à la fin
 de la file et au dernier build attendu de la page.
 
 Une publication forcée demandée pendant une étape de classement reste due
-jusqu'à la fin de cette étape, même si le fond continue. Un arrêt demandé
+jusqu'à la fin de cette étape, même si le fond continue. Une actualisation
+en cours rend la file indisponible, jamais vide : sa fin seule permet de
+décider si la page ou la file est réellement terminée. Hors de ces fins et
+des forçages explicites ou incidents, le fond respecte les 400 ms.
+Une réponse déjà reçue et retenue pendant une tâche rend son crédit avant
+d'être abandonnée par une ouverture ou une libération ; son équipement
+n'entre jamais dans la nouvelle génération. Une demande réellement sans
+réponse conserve sa place, annulée comprise, dans la limite de deux.
+Un arrêt demandé
 avant l'acquittement d'ouverture est retenu et transmis dès le lancement
 du Worker de recherche. Un incident du résolveur termine ce Worker même
 si la recherche vient d'être libérée.
@@ -476,7 +487,10 @@ Le résolveur reste séparé. Sa panne termine son canal et fait reprendre la
 résolution par les mêmes producteurs dans le fil du classeur. La perte ou
 l'impossibilité de créer le classeur passe par le statut `error` de la
 recherche et son message existant : aucune relance automatique ni copie
-intégrale de secours. Le magasin perdu n'est jamais reconstitué.
+intégrale de secours. Le magasin perdu n'est jamais reconstitué. Cette règle
+vaut aussi après libération ou refus : une faute termine le propriétaire
+inactif, et le lancement explicite suivant en crée un nouveau. Une réponse
+ordinaire périmée reste seulement ignorée.
 
 L'adaptateur conserve le contrat de l'écran : candidats objets, tableau de
 base, classement complet et Map du cache publiés ensemble. Ces projections
@@ -517,8 +531,17 @@ ni cache de calcul, ni résolution sur le fil de l'écran.
 candidats, ordre de base, classement affiché et Map du cache, dans un
 instantané de versions unique.
 
-Le classeur envoie les candidats à l'activation de l'aperçu, plafonné à
-3 000, puis du résultat final. Les publications suivantes transfèrent des
+Le classeur envoie les candidats lorsqu'une nouvelle source doit être
+adoptée : l'aperçu, plafonné à 3 000, puis le résultat final si sa source
+change. Un seul transfert initial peut attendre son
+acquittement pour la recherche et la vue courantes : pendant cette attente,
+ni réexpédition des N objets ni ordres dépendant d'une source non adoptée.
+Les écritures et forçages s'accumulent ; l'ACK réveille leur publication sans
+nouvel événement de résolution, y compris à la fin de la file.
+Une nouvelle vue peut renvoyer sa source si l'ancienne publication a été
+ignorée sans ACK. L'acquittement identifie recherche, vue, demande et révision
+publiée, en plus du cache : un ancien ACK de même longueur ne débloque jamais
+le nouveau transfert. Les publications suivantes transfèrent des
 copies des deux vecteurs d'ordinaux et les seules résolutions modifiées.
 Le stockage vivant n'est jamais transféré pour publier une vue.
 Les changements et le tableau de candidats restent dus jusqu'à

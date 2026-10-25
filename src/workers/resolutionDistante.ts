@@ -55,6 +55,8 @@ export interface PortsResolutionDistante {
   runesDe(c: BuildCandidate): RuneDetail[];
   /** Les builds à traiter, dans l'ordre de priorité : `prochainsATraiter` sur le cache courant. */
   restants(): readonly BuildCandidate[];
+  /** Le classement doit terminer son actualisation avant de connaître la file. */
+  actualisationEnCours?(): boolean;
   /** La page RÉELLEMENT affichée. */
   page(): readonly BuildCandidate[];
   /** Le cache de la file (`cleBuild` → résultat), le même que celui du chemin direct. */
@@ -63,8 +65,8 @@ export interface PortsResolutionDistante {
   envoyer(m: MessageVersResolution): void;
   /**
    * Publie le cache à l'écran — `forcer` passe outre la cadence. Rend VRAI si
-   * l'écran a reçu le cache, FAUX si la cadence l'a retenu (jamais faux quand
-   * `forcer`) : c'est ainsi que le module sait qu'une écriture attend encore.
+   * l'écran a reçu le cache, FAUX si la cadence, une tâche ou l'adoption de
+   * la source le retient. Un forçage retenu reste dû chez le propriétaire.
    */
   publier(forcer: boolean): boolean;
   /** Combien restent à traiter, pour l'affichage. */
@@ -131,6 +133,7 @@ export class ResolutionDistante {
   // retenue (`publier` a rendu faux). Remis à faux par toute publication
   // effective, et par `renoncer`, qui la rend à l'appelant.
   private nonPubliee = false;
+  private voieAvantActualisation: VoieDeLaFile | null = null;
 
   constructor(readonly maxEnVol: number = DEMANDES_EN_VOL_MAX) {}
 
@@ -150,6 +153,8 @@ export class ResolutionDistante {
   /** Change de propriétaire sans réutiliser les identifiants des demandes en vol. */
   invalider(): MessageVersResolution[] {
     this.contexte = null;
+    this.voieAvantActualisation = null;
+    this.nonPubliee = false;
     return this.enVol.filter((d) => !d.annulee).map((d) => {
       d.annulee = true;
       return { type: 'annuler' as const, idDemande: d.idDemande };
@@ -265,6 +270,7 @@ export class ResolutionDistante {
     this.enVol = [];
     const nonPubliee = this.nonPubliee;
     this.nonPubliee = false;
+    this.voieAvantActualisation = null;
     return nonPubliee;
   }
 
@@ -277,7 +283,9 @@ export class ResolutionDistante {
   pomper(p: PortsResolutionDistante): void {
     if (this.renonce) return;
     const restants = p.restants();
+    if (p.actualisationEnCours?.()) return;
     p.enAttente(restants.length);
+    this.acheverActualisation(p, restants);
     // ⚠️ **La file s'est vidée sans nouvelle écriture** — réponse ignorée,
     // changement de page, nouvelle recherche — alors que la cadence a retenu
     // la dernière : publication FORCÉE. Sans elle, ce résultat
@@ -304,7 +312,9 @@ export class ResolutionDistante {
     if (this.renonce) return;
     const cache = p.cache();
     const page = p.page();
-    const avant = voieDeLaFile(p.restants(), page, cache);
+    const restants = p.restants();
+    this.acheverActualisation(p, restants);
+    const avant = voieDeLaFile(restants, page, cache);
     const issue = this.recevoir(r, cache, p.courant());
     if (issue.issue === 'erreur') {
       const { raison, detail } = repliSurErreur(issue);
@@ -313,9 +323,21 @@ export class ResolutionDistante {
     }
     if (issue.issue === 'ecrite') {
       this.nonPubliee = true;
-      this.publier(p, publicationForcee(avant, voieDeLaFile(p.restants(), page, cache)));
+      const apres = p.restants();
+      if (p.actualisationEnCours?.()) {
+        // Le tableau vide provisoire ne dit rien de la page ni du fond.
+        this.voieAvantActualisation = avant;
+        this.publier(p, false);
+      } else this.publier(p, publicationForcee(avant, voieDeLaFile(apres, page, cache)));
     }
     this.pomper(p);
+  }
+
+  private acheverActualisation(p: PortsResolutionDistante, restants: readonly BuildCandidate[]): void {
+    if (this.voieAvantActualisation === null || p.actualisationEnCours?.()) return;
+    const avant = this.voieAvantActualisation;
+    this.voieAvantActualisation = null;
+    if (this.nonPubliee && publicationForcee(avant, voieDeLaFile(restants, p.page(), p.cache()))) this.publier(p, true);
   }
 
   /**

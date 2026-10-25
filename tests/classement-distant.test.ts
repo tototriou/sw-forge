@@ -77,7 +77,11 @@ export function testClassementPublicationForceeDifferee() {
   const f = fixture(), resolution = new CorpsResolution(), reponses: ReponseResolution[] = [];
   const adapter = new AdaptateurClassement();
   let derniere!: PublicationClassement;
-  const corps = new CorpsClassement({ publier: (p) => { derniere = adapter.appliquer(p); },
+  let publications = 0;
+  const corps = new CorpsClassement({ publier: (p) => {
+    publications++; derniere = adapter.appliquer(p);
+    corps.acquitter(p.generationCache, p.revisionCache, derniere.candidats.length, p.versions);
+  },
     resoudre: (m) => { reponses.push(...resolution.recevoir(m)); }, incident: () => {} }, true);
   const drainer = () => { for (let garde = 0; corps.travailEnCours && garde < 10000; garde++) corps.avancer(); };
   corps.ouvrir(f.photo, 1, f.vue, 1);
@@ -89,6 +93,7 @@ export function testClassementPublicationForceeDifferee() {
     if (!r) throw new Error('File arrêtée avant la fin de la page');
     if (r.type === 'resultat') resolues.add(r.cle);
     corps.recevoirResolution(r, 1); drainer(); corps.pomper(1);
+    if (resolues.size === 19) egal(publications, 1, 'aucune publication forcée avant la vraie fin de page');
   }
   egal(resolues.size, 20, 'vingt résolutions achevées, avec travail de fond restant');
   ok(derniere.parBuild.size >= 20 && derniere.enAttente > 0, 'dernière carte publiée à 1 ms virtuel, sans attendre 400 ms ni vider le fond');
@@ -120,7 +125,7 @@ function optionsOracle(photo: ReturnType<typeof fixture>['photo'], cache: Readon
     artefactsDuBuild: (c) => { const r = cache?.get(cleBuild(c)); return r ? artifactDamageProfile(r.artefacts) : null; },
     etatReliqueDe: (c) => etatReliqueDuBuild(cache?.get(cleBuild(c)), photo.recherche.relicContext, photo.fiche.relic) });
 }
-function verifierOracle(p: PublicationClassement, photo: ReturnType<typeof fixture>['photo']) {
+export function verifierOracle(p: PublicationClassement, photo: ReturnType<typeof fixture>['photo']) {
   const base = sortCandidates(p.candidats, p.vue.tri, optionsOracle(photo, null, p.vue.metric));
   const options = optionsOracle(photo, p.parBuild, p.vue.metric);
   const optionsProduction = optionsDuContexte(photo, p.parBuild, p.vue.metric);
@@ -136,7 +141,10 @@ export function testClassementDifferentielCombat() {
   for (const objectif of ['degats_reels', 'ehp'] as const) {
     const f = fixtureClassementCombat(objectif), adaptateur = new AdaptateurClassement();
     let derniere!: PublicationClassement;
-    const corps = new CorpsClassement({ publier: (p) => { derniere = adaptateur.appliquer(p); verifierOracle(derniere, f.photo); }, resoudre: () => {}, incident: () => {} }, false, 'directe');
+    const corps = new CorpsClassement({ publier: (p) => {
+      derniere = adaptateur.appliquer(p); verifierOracle(derniere, f.photo);
+      corps.acquitter(p.generationCache, p.revisionCache, derniere.candidats.length, p.versions);
+    }, resoudre: () => {}, incident: () => {} }, false, 'directe');
     corps.ouvrir(f.photo, 1, f.vue, 1);
     const bs = blocs(f.candidats); bs.forEach((b, i) => corps.ajouter(1, i, b));
     corps.sceller(1, f.candidats.length, bs.length - 1, BILAN);
@@ -157,11 +165,11 @@ export function testClassementDifferentielCombat() {
       if (score !== scoreDeReference(objectif, { ...fiche, artifacts: [] }, reference)) effetsArtefacts++;
     }
     ok(effetsArtefacts > 0 && effetsExclusifs > 0, `${objectif} : les artéfacts et la propriété exclusive ont un effet chiffré, aucun canal neutre`);
-    // La fiche affichée peut changer après lancement ; la référence du résultat reste photographiée.
+    // Seuls les paramètres de calcul restent photographiés ; Comparer suit la fiche affichée.
     const reference = { degats: f.photo.realDamage, damageSetup: f.photo.damageSetup, exclusive: f.photo.exclusive };
     const avant = scoreDeReference(objectif, f.photo.fiche, reference);
     const ficheVivante = { ...f.photo.fiche, base: { ...f.photo.fiche.base, hp: 1, atk: 1 } };
-    ok(avant !== scoreDeReference(objectif, ficheVivante, reference) && avant === scoreDeReference(objectif, f.photo.fiche, reference), `${objectif} : changer la fiche vivante ne change pas la référence figée`);
+    ok(avant !== scoreDeReference(objectif, ficheVivante, reference), `${objectif} : changer la fiche affichée change sa note de référence`);
   }
 }
 
@@ -259,7 +267,7 @@ export function testClassementDistantVersions() {
   const classeur: CorpsClassement = new CorpsClassement({ publier: (p) => {
     if (p.candidats !== undefined) projectionsSource++;
     const vue = adapter.appliquer(p); verifierOracle(vue, g.photo); publications.push(vue);
-    classeur.acquitter(p.generationCache, p.revisionCache, vue.candidats.length);
+    classeur.acquitter(p.generationCache, p.revisionCache, vue.candidats.length, p.versions);
   },
     resoudre: (m) => reponses.push(...resolution.recevoir(m)), incident: () => {} });
   const alimenter = (id: number) => { classeur.ouvrir(g.photo, id, g.vue, id); const bs = blocs(g.candidats); bs.forEach((b, i) => classeur.ajouter(id, i, b)); classeur.sceller(id, g.candidats.length, bs.length - 1, BILAN); };
@@ -314,6 +322,7 @@ export async function testClassementDistantPanne() {
           if (m.type === 'publication') {
             derniere = adapter.appliquer(m.publication); verifierOracle(derniere, f.photo);
             classeur.postMessage({ type: 'publicationRecue', versionSchema: 1, idRecherche: 1,
+              idVue: m.publication.versions.idVue, idDemande: m.publication.versions.idDemande, revisionPubliee: m.publication.versions.revisionPubliee,
               generationCache: m.publication.generationCache, revisionCache: m.publication.revisionCache, nombre: derniere.candidats.length });
             if (derniere.bilan && derniere.enAttente === 0) { clearTimeout(filet); accepter(); }
           }

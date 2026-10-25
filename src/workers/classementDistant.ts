@@ -6,7 +6,7 @@ export type MessageVersClassement =
   | { type: 'ouvrir'; versionSchema: 1; idRecherche: number; idDemande: number; contexte: ContexteResultat; vue: VueClassement }
   | { type: 'vue'; versionSchema: 1; idRecherche: number; idDemande: number; idVue: number; vue: VueClassement }
   | { type: 'liberer'; versionSchema: 1; idRecherche: number; idDemande: number }
-  | { type: 'publicationRecue'; versionSchema: 1; idRecherche: number; generationCache: number; revisionCache: number; nombre: number }
+  | { type: 'publicationRecue'; versionSchema: 1; idRecherche: number; idVue: number; idDemande: number; revisionPubliee: number; generationCache: number; revisionCache: number; nombre: number }
   | { type: 'panneResolution'; versionSchema: 1; idRecherche: number; raison: string; detail: unknown };
 export type ReponseClassement =
   | { type: 'ouverte'; versionSchema: 1; idRecherche: number; idDemande: number }
@@ -29,6 +29,7 @@ export class ClassementDistant {
   private revision = 0;
   private inventaire = 0;
   private actif = false;
+  private mort = false;
   private ouverture: number | null = null;
   private adaptateur = new AdaptateurClassement();
 
@@ -68,6 +69,8 @@ export class ClassementDistant {
     if (!r || r.versionSchema !== 1) { this.panne(new Error('Schéma de réponse de classement inconnu')); return; }
     // L'incident concerne le résolveur du propriétaire vivant, même après libération de sa recherche.
     if (r.type === 'incidentResolution') { this.ports.incident(r.raison, r.detail); return; }
+    // Une faute concerne le propriétaire, même sans recherche active.
+    if (r.type === 'erreur') { this.panne(new Error(r.message)); return; }
     if (!this.actif) return;
     if (r.type === 'publication') {
       const v = r.publication.versions;
@@ -77,14 +80,15 @@ export class ClassementDistant {
       const publication = this.adaptateur.appliquer(p);
       this.revision = v.revisionPubliee; this.ports.publier(publication);
       this.envoyer({ type: 'publicationRecue', versionSchema: 1, idRecherche: this.generation,
+        idVue: v.idVue, idDemande: v.idDemande, revisionPubliee: v.revisionPubliee,
         generationCache: p.generationCache, revisionCache: p.revisionCache, nombre: publication.candidats.length }); return;
     }
     if (r.idRecherche !== this.generation) return;
-    if (r.type === 'erreur') { this.panne(new Error(r.message)); return; }
     if (r.type === 'ouverte' && r.idDemande === this.ouverture) { this.ouverture = null; this.ports.ouverte(this.generation); }
   }
   panne(erreur: unknown): void {
-    if (!this.actif) return;
+    if (this.mort) return;
+    this.mort = true;
     this.actif = false; this.ouverture = null;
     this.adaptateur.detruire();
     this.ports.publier(null); this.ports.erreur(erreur);

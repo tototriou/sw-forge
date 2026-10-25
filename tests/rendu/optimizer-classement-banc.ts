@@ -31,7 +31,10 @@ export function rechercheClasseeTest(search: Partial<Recherche>, e: {
       regime: 'aucun', degats: null, exclusive, requirement: params.requirement, relicContext: undefined } : null });
   let classement!: PublicationClassement;
   const adapter = new AdaptateurClassement();
-  const corps = new CorpsClassement({ publier: (p) => { classement = adapter.appliquer(p); }, resoudre: () => {}, incident: () => {} }, false, 'directe');
+  const corps = new CorpsClassement({ publier: (p) => {
+    classement = adapter.appliquer(p);
+    corps.acquitter(p.generationCache, p.revisionCache, classement.candidats.length, p.versions);
+  }, resoudre: () => {}, incident: () => {} }, false, 'directe');
   corps.ouvrir(photo, 1, e.vue, 1);
   const colonnes = creerColonnesCandidats(); candidats.forEach((c) => ajouterObjetCandidat(colonnes, c));
   const lots = extraireBlocs(colonnes); lots.forEach((b, i) => corps.ajouter(1, i, b));

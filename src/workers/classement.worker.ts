@@ -75,7 +75,7 @@ self.onmessage = (e: MessageEvent<MessageVersClassement | Branchement>) => prote
     poster({ type: 'ouverte', versionSchema: 1, idRecherche: generation, idDemande: m.idDemande }); programmer(); return;
   }
   if (m.idRecherche !== generation) return;
-  if (m.type === 'publicationRecue') { corps.acquitter(m.generationCache, m.revisionCache, m.nombre); return; }
+  if (m.type === 'publicationRecue') { corps.acquitter(m.generationCache, m.revisionCache, m.nombre, m); programmer(); return; }
   if (m.type === 'vue') {
     corps.changerVue(m.vue, m.idVue, m.idDemande);
     poster({ type: 'vueRecue', versionSchema: 1, idRecherche: generation, idDemande: m.idDemande, idVue: m.idVue }); programmer();

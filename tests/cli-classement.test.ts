@@ -112,7 +112,11 @@ export async function testCliClassementDifferentiel() {
     const vue: VueClassement = { tri: recipe.objective, metric: recipe.metric, page: 1, pageImprimee, adapterArtefactsAuTri: false, toutVerifier: false };
     let publication!: PublicationClassement;
     const adaptateur = new AdaptateurClassement();
-    const corps = new CorpsClassement({ publier: (p) => { publication = adaptateur.appliquer(p); }, resoudre: () => {}, incident: () => {} }, false, 'directe');
+    const corps = new CorpsClassement({ publier: (p) => {
+      publication = adaptateur.appliquer(p);
+      // La projection a adopté la source et les différences de cette publication.
+      corps.acquitter(p.generationCache, p.revisionCache, publication.candidats.length, p.versions);
+    }, resoudre: () => {}, incident: () => {} }, false, 'directe');
     // Un seul crédit isole le choix de priorité de la prélecture du transport.
     const observation = corps as unknown as { pilote: ResolutionDistante; cache: Map<string, ResultatArtefacts>; restants(): BuildCandidate[] };
     observation.pilote = new ResolutionDistante(1);

@@ -7,7 +7,7 @@ import type { OptimMetric } from './runeOptim';
 import { CacheResolutionCompact } from './cacheResolutionCompact';
 import { optionsDuContexte, resolutionDuContexte, runesDuContexte, type ContexteResultat } from './contexteResultat';
 import { runesDuBuild } from './relicQueue';
-import { ResolutionDistante, type PortsResolutionDistante } from '../workers/resolutionDistante';
+import { ResolutionDistante, repliSurErreur, type PortsResolutionDistante } from '../workers/resolutionDistante';
 import { CorpsResolution, type MessageVersResolution, type ReponseResolution, type EntreesResolutionSerialisables } from '../workers/resolutionBody';
 import type { SearchResult } from './runeBuildOptim';
 
@@ -319,6 +319,7 @@ export interface VersionsClassement {
   revisionPubliee: number;
   idDemande: number;
 }
+export type IdentitePublication = Pick<VersionsClassement, 'idRecherche' | 'idVue' | 'idDemande' | 'revisionPubliee'>;
 /** Projection de compatibilité de l'écran ; les données propriétaires restent en colonnes. */
 export interface PublicationClassement {
   versions: VersionsClassement;
@@ -378,6 +379,7 @@ export class CorpsClassement {
   private versionLue = -1;
   private generationCache = 0;
   private candidatsAcquittes = -1;
+  private sourceEnVol: (IdentitePublication & { nombre: number }) | null = null;
 
   constructor(private readonly sorties: {
     publier: (p: PublicationTransport) => void;
@@ -402,10 +404,11 @@ export class CorpsClassement {
       resolutionDuContexte(contexte, vue.tri, vue.adapterArtefactsAuTri)?.regime]);
     if (signature !== this.signature) { this.cache = new CacheResolutionCompact(); this.generationCache = compteurSuivant(this.generationCache); }
     this.signature = signature;
-    this.tache = null; this.nombreCible = 0; this.plages = []; this.reponsesEnAttente = [];
+    this.abandonnerReponses();
+    this.tache = null; this.nombreCible = 0; this.plages = [];
     this.contexte = contexte; this.vue = null; this.flux = new RecepteurCandidats(0); this.lots = [];
     this.index = null; this.base = new Uint32Array(); this.bilan = null; this.collecteScellee = false;
-    this.candidatsAcquittes = -1;
+    this.candidatsAcquittes = -1; this.sourceEnVol = null;
     this.versions = { versionSchema: 1, idRecherche, idInventaire: contexte.idInventaire,
       idContexteResolution: this.versions.idContexteResolution, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande };
     this.entrees = null;
@@ -477,6 +480,8 @@ export class CorpsClassement {
       this.entrees = entrees; this.versions.idContexteResolution = compteurSuivant(this.versions.idContexteResolution);
       this.signature = JSON.stringify([this.contexte.idInventaire, this.contexte.idEspece, this.contexte.signature, this.contexte.recherche.relicContext?.empreinte, entrees?.regime]);
     }
+    // Une publication de l'ancienne vue peut être rejetée sans ACK par l'écran.
+    this.sourceEnVol = null;
     this.vue = { ...vue }; this.versions.idVue = idVue; this.versions.idDemande = idDemande;
     if (!avant || avant.tri !== vue.tri || avant.metric !== vue.metric || entrees?.regime !== resolutionDuContexte(this.contexte, avant.tri, avant.adapterArtefactsAuTri)?.regime) this.trierBase();
     this.sale = true;
@@ -557,6 +562,7 @@ export class CorpsClassement {
   private ports(maintenant: number): PortsResolutionDistante {
     return { courant: () => this.entrees ? { entrees: this.entrees, signature: `${this.signature}:${this.entrees.regime}` } : null,
       runesDe: (c) => runesDuBuild(c, runesDuContexte(this.contexte!)), restants: () => this.restants(), page: () => this.page(), cache: () => this.cache,
+      actualisationEnCours: () => this.travailEnCours,
       envoyer: (m) => { if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m); },
       publier: (forcer) => { this.actualiser(); this.versions.revisionDonnees = compteurSuivant(this.versions.revisionDonnees); this.sale = true; return this.publier(maintenant, forcer); },
       enAttente: () => {}, repli: (raison, detail) => this.panneResolution(raison, detail) };
@@ -575,7 +581,8 @@ export class CorpsClassement {
         this.pilote.surReponse(r, p);
       }
     }
-    this.publier(maintenant, this.restants().length === 0);
+    const restants = this.restants();
+    this.publier(maintenant, !this.tache && restants.length === 0);
   }
   recevoirResolution(r: ReponseResolution, maintenant: number): void {
     if (this.tache) { this.reponsesEnAttente.push(r); return; }
@@ -586,10 +593,24 @@ export class CorpsClassement {
     this.sorties.incident(raison, detail);
     this.reponsesEnAttente = []; this.reponsesDirectes = [];
     this.pilote.renoncer(); this.pilote = new ResolutionDistante(); this.direct = new CorpsResolution(); this.repli = true;
-    this.sale = true;
+    this.sale = true; this.publicationForcee = true;
   }
   get travailEnRepli() { return this.reponsesEnAttente.length > 0 || (this.repli && this.restants().length > 0); }
+  private abandonnerReponses(): void {
+    // Ces réponses ont déjà rendu leur crédit dans le résolveur. Les jeter
+    // sans passer par le pilote conserverait à jamais des demandes en vol.
+    for (const r of this.reponsesEnAttente) {
+      const issue = this.pilote.recevoir(r, null, null);
+      if (issue.issue === 'erreur') {
+        const { raison, detail } = repliSurErreur(issue);
+        this.panneResolution(raison, detail);
+      }
+    }
+    this.reponsesEnAttente = [];
+  }
   liberer(): void {
+    this.abandonnerReponses();
+    this.sourceEnVol = null; this.candidatsAcquittes = -1;
     this.publicationForcee = false;
     this.collecteScellee = false;
     this.tache = null; this.nombreCible = 0; this.plages = []; this.reponsesEnAttente = [];
@@ -599,22 +620,30 @@ export class CorpsClassement {
       if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m);
     }
   }
-  acquitter(generationCache: number, revisionCache: number, nombre: number): void {
-    if (generationCache !== this.generationCache) return;
+  acquitter(generationCache: number, revisionCache: number, nombre: number, identite: IdentitePublication): void {
+    if (!this.contexte || generationCache !== this.generationCache || identite.idRecherche !== this.versions.idRecherche
+      || identite.idVue !== this.versions.idVue || identite.idDemande !== this.versions.idDemande) return;
     if (!Number.isSafeInteger(revisionCache) || revisionCache < 0 || revisionCache > this.cache.version) throw new Error('Acquittement de cache invalide');
+    if (!Number.isSafeInteger(identite.revisionPubliee) || identite.revisionPubliee < 1 || identite.revisionPubliee > this.versions.revisionPubliee) return;
     this.cache.acquitter(revisionCache);
-    if (nombre === (this.index?.magasin.longueur ?? 0)) this.candidatsAcquittes = nombre;
+    if (this.sourceEnVol?.revisionPubliee === identite.revisionPubliee && this.sourceEnVol.nombre === nombre) {
+      this.candidatsAcquittes = nombre; this.sourceEnVol = null;
+    }
   }
   publier(maintenant: number, forcer = false): boolean {
     this.publicationForcee ||= forcer;
     if (this.tache) return false;
     if (!this.contexte || !this.vue || !this.sale) return true;
+    // Les ordres suivants dépendent de cette source ; ni réexpédition N,
+    // ni publication inutilisable avant son adoption. Les changements restent dus.
+    if (this.sourceEnVol) return false;
     if (!this.publicationForcee && maintenant - this.dernierePublication < 400) return false;
     this.dernierePublication = maintenant; this.sale = false; this.publicationForcee = false;
     this.versions.revisionPubliee = compteurSuivant(this.versions.revisionPubliee);
     const nombre = this.index?.magasin.longueur ?? 0;
     const candidats = nombre !== this.candidatsAcquittes
       ? Array.from({ length: nombre }, (_, i) => this.index!.magasin.candidat(i, false)) : undefined;
+    if (candidats) this.sourceEnVol = { ...this.versions, nombre };
     this.sorties.publier({ versions: { ...this.versions }, vue: { ...this.vue }, candidats,
       ordreBase: this.base.slice(), ordreAffiche: Uint32Array.from(this.index?.page(0, nombre) ?? []),
       generationCache: this.generationCache, revisionCache: this.cache.version, changements: this.cache.changements(),
@@ -632,7 +661,7 @@ export function classerEnLocal(contexte: ContexteResultat, candidats: readonly B
       derniere = p;
       if (p.candidats) source = p.candidats;
       // Les différences restent dues jusqu'à la projection finale ; la source, elle, est adoptée.
-      corps.acquitter(p.generationCache, 0, source.length);
+      corps.acquitter(p.generationCache, 0, source.length, p.versions);
     },
     resoudre: () => { throw new Error('Résolution distante sur le consommateur local'); },
     incident: (raison) => { throw new Error(raison); },

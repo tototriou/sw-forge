@@ -506,9 +506,15 @@ chaque écriture ; une réponse périmée libère seulement sa place.
 Une publication porte ensemble les versions, la vue, les ordres, les
 différences d'équipement et le bilan. Les vecteurs transférés sont des
 copies de publication, jamais le stockage vivant. Le récepteur acquitte
-la génération et la révision de cache reçues : une différence publiée
-dans une vue dépassée n'est pas oubliée. La cadence reste de 400 ms ;
-dernière attente de page et file vide forcent la dernière publication.
+recherche, vue, demande, révision publiée, génération et révision de cache.
+Le transfert initial des candidats attend cet ACK avant toute autre
+publication de la même vue ; les écritures restent cumulées. Une vue nouvelle
+abandonne cette attente, car l'ancienne publication peut être ignorée sans
+ACK ; un vieil ACK ne libère pas le nouveau transfert. Recevoir l'ACK courant
+réveille la coquille, même si la résolution est terminée.
+La cadence reste de 400 ms ; dernière attente de page et file réellement
+vide forcent la dernière publication. Une tâche d'actualisation n'est pas
+une fin de file : la décision attend son résultat et tout forçage reste dû.
 
 Une erreur du résolveur ferme son canal et le termine. Le classeur garde
 les candidats et son cache, recrée les caches de calcul et reprend dans
@@ -520,7 +526,9 @@ La perte ou la création impossible du classeur utilise le statut
 `error` et le message existant de la recherche. Les projections de
 compatibilité sont jetées ; aucun résultat n'est reconstitué, aucune
 relance n'est automatique. Démonter l'écran laisse le contrôleur vivant ;
-détruire l'état applicatif termine les Workers et leurs ports.
+détruire l'état applicatif termine les Workers et leurs ports. Une faute du
+classeur après libération ou refus termine aussi ce propriétaire inactif ;
+la relance explicite crée un nouveau Worker, sans secours ni relance automatique.
 
 ## Vérifier un changement
 

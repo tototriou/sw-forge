@@ -210,6 +210,7 @@ import testConstructionRapide from './construction-rapide.test';
 import testConstructionColonnes from './construction-colonnes.test';
 import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidatsCredits, testFluxCandidatsApercuFinal, testFluxCandidatsPageLente, testFluxCandidatsReceptionOrdre,
   testFluxCandidatsRefusRecevoir, testFluxCandidatsRefusSceller, testFluxCandidatsRefusResultat, testFluxCandidatsLanceurCommun } from './flux-candidats.test';
+import { testClassementCreditsRelance, testClassementCadenceDifferee, testClassementTransfertInitial, testClassementMortInactive } from './classement-publication.test';
 import testRetentionEmboitee from './retention-emboitee.test';
 import testPrioriteStatsRetiree from './priorite-stats-retiree.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
@@ -849,6 +850,10 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testContexteResultatFige', testContexteResultatFige],
   ['testClassementArretAvantOuverture', testClassementArretAvantOuverture],
   ['testClassementPublicationForceeDifferee', testClassementPublicationForceeDifferee],
+  ['testClassementCreditsRelance', testClassementCreditsRelance],
+  ['testClassementCadenceDifferee', testClassementCadenceDifferee],
+  ['testClassementTransfertInitial', testClassementTransfertInitial],
+  ['testClassementMortInactive', testClassementMortInactive],
   ['testClassementIncidentInactif', testClassementIncidentInactif],
   ['testClassementBilanStable', testClassementBilanStable],
   ['testClassementDifferentielCombat', testClassementDifferentielCombat],

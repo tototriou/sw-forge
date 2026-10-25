@@ -283,7 +283,7 @@ l'avis « Classement interrompu : relance la recherche pour agir sur ces
 résultats. », et le tri, la pagination, « Comparer » et « Valider ce
 build » sont désactivés, au bureau comme au téléphone. Le détail d'une
 rune ou d'un artéfact reste consultable. Rien n'est relancé : « Rechercher »
-remplace cette page par la première publication de la nouvelle recherche.
+efface cette page, comme toute nouvelle recherche, et lance la suivante.
 
 ## Tri des résultats
 

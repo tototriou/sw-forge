@@ -47,7 +47,7 @@ export function rechercheClasseeTest(search: RechercheBanc, e: {
   // La page ne reçoit que le bilan et l'instantané, jamais les candidats.
   const { result, progress, ...reste } = search;
   const sansCandidats = <T extends object>(o: T) => { const { candidates: _c, ...r } = o as T & { candidates?: unknown }; return r; };
-  return { ...reste, classement, contexte: photo, projection: corps.projection(),
+  return { ...reste, classement, classementInterrompu: false, contexte: photo, projection: corps.projection(),
     ...(result !== undefined ? { result: result && { ...sansCandidats(result), nombre: candidats.length } } : {}),
     ...(progress !== undefined ? { progress: progress && (sansCandidats(progress) as BuildOptimProgress) } : {}) };
 }

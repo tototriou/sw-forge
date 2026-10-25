@@ -18,12 +18,14 @@ export interface EnteteResultatsProps {
   realDamage: RealDamageContext | null;
   // Le reste de la file du classeur (instantané).
   enAttente: number;
+  // Le classeur est perdu : la page affichée est la dernière reçue, sans geste possible.
+  interrompu?: boolean;
   compteAffiche: CompteAffichable;
   // L'en-tête resserré du bureau (voir plus bas) ; le téléphone garde le sien.
   bureau?: boolean;
 }
 
-export default function EnteteResultats({ result, compteConfirmes, avecFile, sortBy, setSortBy, setResultsPage, realDamage, enAttente, compteAffiche, bureau = false }: EnteteResultatsProps) {
+export default function EnteteResultats({ result, compteConfirmes, avecFile, sortBy, setSortBy, setResultsPage, realDamage, enAttente, interrompu = false, compteAffiche, bureau = false }: EnteteResultatsProps) {
   // ⚠️ Le compte des CONFIRMÉES (`compteConfirmes`) : seulement les builds
   // vérifiés (résolus et conformes), un compte qui ne baisse jamais pendant
   // une recherche. « Aucune combinaison… » seulement quand tout est vérifié
@@ -66,6 +68,7 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, sor
         // n'a plus le même sens, on repart du meilleur résultat.
         setResultsPage(1);
       }}
+      disabled={interrompu}
       taille="sm"
       surface="panel"
       pleineLargeur={false}
@@ -96,10 +99,13 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, sor
   // reste de la file, tenu par le hook pour l'affichage. ⚠️ Ligne TOUJOURS
   // présente quand la file tourne : quand elle se vide, l'espace insécable
   // garde sa hauteur, et la grille ne remonte pas.
-  const ligneFile = avecFile;
-  const tonLigne = 'text-ink-dim';
-  const enVerification =
-    enAttente > 0
+  // ⚠️ Classeur perdu : la même place porte l'avis de page interrompue, même
+  // sans file — rien ne bouge sous la ligne qui l'annonce.
+  const ligneFile = avecFile || interrompu;
+  const tonLigne = interrompu ? 'text-bad' : 'text-ink-dim';
+  const enVerification = interrompu
+    ? 'Classement interrompu : relance la recherche pour agir sur ces résultats.'
+    : enAttente > 0
       ? `${enAttente.toLocaleString('fr-FR')} combinaison(s) en vérification…`
       :' ';
 

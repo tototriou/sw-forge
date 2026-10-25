@@ -32,6 +32,8 @@ export function useBuildOptimSearch() {
   const [relicContext, setRelicContext] = useState<RelicContext | undefined>(undefined);
   const [contexte, setContexte] = useState<ContexteResultat | null>(null);
   const [classement, setClassement] = useState<InstantaneClassement | null>(null);
+  // Le propriétaire est perdu : le dernier instantané reste montré, non actionnable.
+  const [classementInterrompu, setClassementInterrompu] = useState(false);
   const coeursPhysiquesRef = useRef<number | null>(null);
   useEffect(() => {
     let actif = true;
@@ -54,14 +56,16 @@ export function useBuildOptimSearch() {
   const echouer = useCallback((erreur: unknown) => {
     console.error('Recherche de runes interrompue :', erreur);
     terminerRecherche(); detruireClassement();
-    publicationRef.current = null; setClassement(null); setResult(null); setProgress(null); setContexte(null); setStatus('error');
+    // Aucune reconstitution : la dernière page reçue reste, marquée interrompue.
+    setClassementInterrompu(publicationRef.current !== null);
+    setProgress(null); setStatus('error');
   }, [terminerRecherche, detruireClassement]);
 
   const run = useCallback((params: SearchParams, photo: ContexteResultat, vue: VueClassement) => {
     params = photo.recherche;
     terminerRecherche();
     const myRunId = runIdRef.current;
-    setStatus('running'); setResult(null); setProgress(null); setRefusal(null);
+    setStatus('running'); setResult(null); setProgress(null); setRefusal(null); setClassementInterrompu(false);
     setRelicContext(params.relicContext); setContexte(photo); vueRef.current = vue;
     publicationRef.current = null; setClassement(null);
     try {
@@ -149,9 +153,9 @@ export function useBuildOptimSearch() {
   const stop = useCallback(() => { arretDemandeRef.current = true; workerRef.current?.postMessage({ stop: true }); }, []);
   const cancel = useCallback(() => { terminerRecherche(); classementRef.current?.pilote.liberer(); }, [terminerRecherche]);
   const reset = useCallback(() => {
-    cancel(); publicationRef.current = null; setClassement(null);
+    cancel(); publicationRef.current = null; setClassement(null); setClassementInterrompu(false);
     setStatus('idle'); setResult(null); setProgress(null); setRefusal(null); setRelicContext(undefined); setContexte(null);
   }, [cancel]);
   useEffect(() => () => { terminerRecherche(); detruireClassement(); }, [terminerRecherche, detruireClassement]);
-  return { status, result, progress, refusal, relicContext, contexte, classement, changerVue, run, stop, cancel, reset };
+  return { status, result, progress, refusal, relicContext, contexte, classement, classementInterrompu, changerVue, run, stop, cancel, reset };
 }

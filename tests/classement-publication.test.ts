@@ -145,6 +145,7 @@ export function testClassementMortInactive() {
       else if (incident === 'messageerror') mort.onmessageerror({});
       else messageAncien({ data: { type: 'erreur', versionSchema: 1, idRecherche: ouvrir.idRecherche, message: 'classeur mort' } });
       ok(mort.termine && b.fils[1].termine && b.rendre().status === 'error', `${geste}/${incident} : propriétaire terminé, erreur visible, aucun secours résolveur`);
+      ok(b.rendre().classement === null && !b.rendre().classementInterrompu, `${geste}/${incident} : aucune page publiée, rien à marquer interrompu`);
       b.rendre().run(f.params, f.photo, f.vue);
       const vivant = b.fils.find((fil: any) => fil !== mort && fil.url.pathname.includes('classement.worker'));
       ok(!!vivant, `${geste}/${incident} : nouveau propriétaire`);

@@ -441,14 +441,23 @@ export function testClassementBranchementApp() {
     fil.onmessage({ data: { type: 'publication', versionSchema: 1, publication: publier(2, relance.idDemande, 5) } });
     const avantPanne = banc.rendre().classement;
     ok(avantPanne?.versions.idRecherche === 2 && avantPanne.comptes.recus === 5, 'la nouvelle recherche publie sa première page');
+    const recevoirAncien = fil.onmessage;
     fil.onerror({ message: 'classeur perdu' });
-    ok(banc.rendre().status === 'error' && banc.rendre().result === null && banc.rendre().classement === null
+    const apres = banc.rendre();
+    ok(apres.status === 'error' && apres.classementInterrompu && apres.classement === avantPanne && apres.result?.nombre === 5
       && fil.termine && banc.fils.filter((f: any) => f.url.pathname.includes('resolution.worker')).every((f: any) => f.termine),
-      'perte du classeur : erreur de recherche existante, données perdues et Workers terminés');
+      'perte du classeur : erreur de recherche existante, dernière page gardée et marquée interrompue, Workers terminés');
+    recevoirAncien({ data: { type: 'publication', versionSchema: 1, publication: { ...avantPanne!, versions: { ...avantPanne!.versions, revisionPubliee: 99 } } } });
+    ok(banc.rendre().classement === avantPanne, 'aucune publication tardive du propriétaire perdu n’est appliquée');
+    banc.rendre().run(f.params, f.photo, f.vue);
+    ok(banc.rendre().classement === null && !banc.rendre().classementInterrompu && banc.rendre().status === 'running',
+      'Rechercher : nouveau propriétaire, la page interrompue est effacée, jamais reconstituée');
+    banc.rendre().reset();
+    ok(banc.rendre().classement === null && !banc.rendre().classementInterrompu && banc.rendre().status === 'idle', 'reset : plus rien d’affiché');
     const creationRefusee = monterRecherche();
     globalThis.Worker = class { constructor() { throw new Error('création du classeur refusée'); } } as unknown as typeof globalThis.Worker;
     creationRefusee.rendre().run(f.params, f.photo, f.vue);
-    ok(creationRefusee.rendre().status === 'error' && creationRefusee.fils.length === 0,
-      'création impossible du classeur : erreur existante avant tout lancement du moteur');
+    ok(creationRefusee.rendre().status === 'error' && creationRefusee.fils.length === 0 && !creationRefusee.rendre().classementInterrompu,
+      'création impossible du classeur : erreur existante avant tout lancement du moteur, rien à marquer interrompu');
   } finally { for (const f of banc.fils) f.terminate(); globalThis.Worker = ancienWorker; console.error = ancienError; }
 }

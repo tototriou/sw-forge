@@ -612,8 +612,9 @@ message illisible, refus du flux, création impossible), le hook passe en
 interrompu (`classementInterrompu`) : la page le montre tel quel, avec un
 avis à la place de la ligne « en vérification », et désactive le tri, la
 pagination, Comparer et Valider, aux deux formats. Rien n'est reconstitué ni
-relancé : seul Rechercher crée un nouveau propriétaire, et sa première
-publication remplace la page interrompue.
+relancé : seul Rechercher crée un nouveau propriétaire ; il efface la page
+interrompue, comme toute nouvelle recherche efface la précédente, et la
+remplit de ses propres publications.
 
 `CorpsClassement` est le même corps de notation, d'ordre et de choix de file
 pour le Worker, le CLI et le harnais. `classerEnLocal` le consomme sans

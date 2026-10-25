@@ -2158,6 +2158,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const { changerVue } = search;
   useEffect(() => { changerVue({ tri: sortBy, metric, page: resultsPage }); }, [changerVue, sortBy, metric, resultsPage]);
   const instantane = search.classement;
+  const interrompu = search.classementInterrompu;
 
   const RESULTS_PAGE_SIZE = TAILLE_PAGE_CLASSEMENT;
 
@@ -2803,7 +2804,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     const artefactsDesCartes = photo?.recherche.artifacts ?? searchArtifacts;
     const artefactsDeLaCarte = carte?.resultat?.artefacts ?? artefactsDesCartes;
     const versions = instantane?.versions;
-    const encoreCourante = () => versions != null
+    // Classeur perdu : la page reste visible, aucun geste ne part.
+    const encoreCourante = () => versions != null && !interrompu
       && publicationCouranteRef.current?.idRecherche === versions.idRecherche
       && publicationCouranteRef.current?.revisionPubliee === versions.revisionPubliee;
     return {
@@ -2934,6 +2936,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         c.runeIds,
         artefactsDeLaCarte.map((a) => a.id)
       ),
+      inactif: interrompu,
       conflit: (() => {
         const conflits = conflitsDeRunes(c.runeIds);
         if (conflits.length === 0) return null;
@@ -2959,6 +2962,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             setResultsPage={setResultsPage}
             realDamage={contexteResultatAffiche ? contexteResultatAffiche.realDamage : realDamage}
             enAttente={instantane?.enAttente ?? 0}
+            interrompu={interrompu}
             compteAffiche={compteAffiche}
             bureau={!sousLg}
           />
@@ -3020,6 +3024,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             <PaginationResultats
               setResultsPage={setResultsPage}
               resultsPage={resultsPage}
+              inactif={interrompu}
               pageDraft={pageDraft}
               setPageDraft={setPageDraft}
               totalResultsPages={totalResultsPages}

@@ -35,6 +35,7 @@ export class ClassementDistant {
     /** L'instantané de la vue courante, ou `null` quand une recherche s'ouvre ou se libère. */
     publier: (p: InstantaneClassement | null) => void;
     ouverte: (idRecherche: number) => void;
+    /** Propriétaire perdu : la page garde son dernier instantané, marqué interrompu. */
     erreur: (erreur: unknown) => void;
     incident: (raison: string, detail: unknown) => void;
   }) {}
@@ -83,6 +84,6 @@ export class ClassementDistant {
     if (this.mort) return;
     this.mort = true;
     this.actif = false; this.ouverture = null;
-    this.ports.publier(null); this.ports.erreur(erreur);
+    this.ports.erreur(erreur);
   }
 }

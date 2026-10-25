@@ -11,11 +11,11 @@ import type { LoadedMonster } from './loadMonster';
 import { loadMonstersList } from './monstersData';
 import { artefactsDuCli, toutVerifierDeLaRecette } from './recipeToSearchParams';
 
-export function contexteDeResultatCli(recipe: OptimizerRecipe, loaded: LoadedMonster, params: SearchParams, realDamage: RealDamageContext | null) {
+export function contexteDeResultatCli(recipe: OptimizerRecipe, loaded: LoadedMonster, params: SearchParams, realDamage: RealDamageContext | null, toutVerifier = toutVerifierDeLaRecette(recipe)) {
   const a = recipe.ignoreArtifacts ? null : artefactsDuCli(recipe, loaded);
   const setup = recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP;
   const exclusive = { setup, element: a?.element ?? loadMonstersList().find((m) => m.com2usId === loaded.com2usId)?.element ?? null };
-  return contexteResultat({ params, fiche: loaded.gear, realDamage, damageSetup: setup, exclusive, idInventaire: 0, idEspece: loaded.com2usId,
+  return contexteResultat({ params, fiche: loaded.gear, realDamage, damageSetup: setup, exclusive, idInventaire: 0, idEspece: loaded.com2usId, toutVerifier,
     signature: JSON.stringify([params.requirement, recipe.damageSetup, recipe.artifactMainByKind, recipe.lignesVerrouillees]),
     resolution: a ? { fiche: loaded.gear, artifactParams: a.params,
       regime: regimeEquipementDe(regimeArtefacts(recipe.objective), a.degats !== null), degats: a.degats, exclusive,
@@ -54,11 +54,10 @@ export function classerCommeLEcran(e: {
   toutResoudre: boolean;
 }): ClassementCli {
   const { recipe, loaded, params } = e;
-  const photo = contexteDeResultatCli(recipe, loaded, params, e.realDamage);
-  const toutVerifier = e.toutResoudre || toutVerifierDeLaRecette(recipe);
+  const photo = contexteDeResultatCli(recipe, loaded, params, e.realDamage, e.toutResoudre || toutVerifierDeLaRecette(recipe));
   const debut = performance.now();
   const publication = classerEnLocal(photo, e.candidates, {
-    tri: recipe.objective, metric: recipe.metric, page: 1, pageImprimee: true, toutVerifier,
+    tri: recipe.objective, metric: recipe.metric, page: 1, pageImprimee: true,
   });
   const ms = performance.now() - debut;
   const optionsBase = optionsDuContexte(photo, null, recipe.metric);

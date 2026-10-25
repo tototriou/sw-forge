@@ -157,7 +157,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
       if (r && !fiche) throw new Error('Résultat du banc sans fiche sélectionnée');
       rechercheForcee = r ? rechercheClasseeTest(r, { fiche: fiche!, pool: runesActuelles, optimiser: etat.optimiserArtefacts,
         requirement: { sets: etat.comboSets, minStats: etat.minStats }, setup: etat.damageSetup,
-        vue: { tri: etat.sortBy, metric: 'eff', page: etat.resultsPage, toutVerifier: etat.verifierToutesLesCombinaisons },
+        toutVerifier: etat.verifierToutesLesCombinaisons, vue: { tri: etat.sortBy, metric: 'eff', page: etat.resultsPage },
       }, true) : null;
       rafraichir();
     } };

@@ -108,8 +108,8 @@ function fixture(optimiser = true) {
   }
   // Deux lignes distinctes du même équipement gardent leur place canonique.
   candidats.push({ ...candidats[3], runeIds: [...candidats[3].runeIds].reverse(), effTotal: 100 });
-  const d = demandeClassementTest({ pool, objective: 'ehp' }, optimiser);
-  const vue: VueClassement = { ...d.vue, tri: 'atk', toutVerifier: true };
+  const d = demandeClassementTest({ pool, objective: 'ehp' }, optimiser, true);
+  const vue: VueClassement = { ...d.vue, tri: 'atk' };
   return { ...d, vue, candidats };
 }
 function blocs(candidats: BuildCandidate[]) {
@@ -196,7 +196,7 @@ export function testContexteResultatFige() {
   const setup = structuredClone(DEFAULT_DAMAGE_SETUP);
   const fiche = { base: { ...BASE }, runes: f.params.pool.slice(0, 6), artifacts: [] };
   const photo = contexteResultat({ params: f.params, fiche, resolution: null, realDamage: null, damageSetup: setup,
-    exclusive: { setup, element: 'fire' }, signature: 'même import', idInventaire: 7, idEspece: 12345 });
+    exclusive: { setup, element: 'fire' }, signature: 'même import', idInventaire: 7, idEspece: 12345, toutVerifier: false });
   const copie = structuredClone(photo);
   setup.enemyHp = 1; fiche.base.atk = 99999; f.params.pool[0].main.value = 99999;
   f.params.requirement.minStats.atk = 99999;
@@ -204,7 +204,7 @@ export function testContexteResultatFige() {
   ok(Object.isFrozen(photo) && Object.isFrozen(photo.recherche.pool[0].main), 'photographie profondément immuable');
   const externe = runInNewContext('({ base: { hp: 10 }, runes: [], artifacts: [] })');
   const depuisHarnais = contexteResultat({ params: f.params, fiche: externe, resolution: null, realDamage: null,
-    damageSetup: setup, exclusive: { setup, element: null }, signature: 'autre contexte JS', idInventaire: 7, idEspece: null });
+    damageSetup: setup, exclusive: { setup, element: null }, signature: 'autre contexte JS', idInventaire: 7, idEspece: null, toutVerifier: false });
   egal(depuisHarnais.fiche.base.hp, 10, 'le même producteur accepte les données simples du contexte JS du harnais');
   const source = readFileSync(resolve('src/lib/contexteResultat.ts'), 'utf8');
   ok(!/from ['"](?:react|node:)|\b(?:window|document|self|structuredClone)\b/.test(source), 'producteur sans React ni plateforme');

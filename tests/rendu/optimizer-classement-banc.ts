@@ -14,7 +14,7 @@ import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs } from '../
 type Recherche = ReturnType<typeof useBuildOptimSearch>;
 export function rechercheClasseeTest(search: Partial<Recherche>, e: {
   fiche: GearSet; pool: RuneDetail[]; optimiser: boolean; vue: VueClassement;
-  requirement?: BuildRequirement; setup?: DamageSetup;
+  requirement?: BuildRequirement; setup?: DamageSetup; toutVerifier?: boolean;
 }, resoudre = false): Partial<Recherche> {
   const bruts = search.result?.candidates ?? (search.progress?.phase === 'pairing' ? search.progress.candidates : []);
   // Les anciennes fixtures n'avaient qu'une ligne ATQ ; le transport réel
@@ -25,7 +25,7 @@ export function rechercheClasseeTest(search: Partial<Recherche>, e: {
   const params = { base: e.fiche.base, pool: e.pool, artifacts: e.fiche.artifacts, relic: e.fiche.relic,
     requirement: e.requirement ?? { sets: [], minStats: {} }, metric: e.vue.metric, objective: 'efficience' as const };
   const photo = contexteResultat({ params, fiche: e.fiche, damageSetup: setup, realDamage: null, exclusive,
-    signature: 'rendu', idInventaire: 0, idEspece: null,
+    signature: 'rendu', idInventaire: 0, idEspece: null, toutVerifier: e.toutVerifier ?? false,
     resolution: e.optimiser ? { fiche: e.fiche,
       artifactParams: { porteur: { element: 'fire', archetype: 'attack' }, inventaire: e.fiche.artifacts, equipes: e.fiche.artifacts, principaleParSorte: {}, lignesVerrouillees: [] },
       regime: 'aucun', degats: null, exclusive, requirement: params.requirement, relicContext: undefined } : null });

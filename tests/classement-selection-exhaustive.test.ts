@@ -115,16 +115,18 @@ export function testClassementSelectionExhaustiveTransitions() {
   titre('Sélection exhaustive — oracle de file, doublons, vues, cache et source');
   for (const pageImprimee of [false, true]) {
     const b = banc(48, true), interne = b.corps as unknown as Interne;
-    let vue = { ...b.vue, pageImprimee }, idVue = 1;
+    let vue = { ...b.vue, pageImprimee }, idVue = 1, pagePrioritaire = true;
     const attendus = () => {
       const options = optionsDuContexte(b.photo, null, vue.metric);
       const base = sortCandidates(b.candidats, vue.tri, options);
+      // Le fond suit l'objectif et la mesure lancés, jamais le tri de la vue.
+      const fond = sortCandidates(b.candidats, b.photo.recherche.objective ?? 'efficience', optionsDuContexte(b.photo, null, b.photo.recherche.metric));
       // Oracle volontairement linéaire : page précise, puis premier représentant de base.
       const affiches = classementResolu(base, interne.cache, vue.tri, optionsDuContexte(b.photo, interne.cache, vue.metric));
-      const page = vue.pageImprimee ? affiches.slice((vue.page - 1) * 20, vue.page * 20)
+      const page = !pagePrioritaire ? [] : vue.pageImprimee ? affiches.slice((vue.page - 1) * 20, vue.page * 20)
         : compositionDePage({ classement: affiches, parBuild: interne.cache, page: vue.page, taillePage: 20 }).aVerifier;
       const resultat: BuildCandidate[] = [], vus = new Set<string>();
-      for (const c of [...page, ...base]) {
+      for (const c of [...page, ...fond]) {
         const cle = cleBuild(c);
         if (!interne.cache.has(cle) && !vus.has(cle)) { vus.add(cle); resultat.push(c); }
       }
@@ -138,7 +140,11 @@ export function testClassementSelectionExhaustiveTransitions() {
       return reel;
     };
     const changer = (partiel: Partial<VueClassement>) => {
-      vue = { ...vue, ...partiel }; b.corps.changerVue(vue, ++idVue, idVue);
+      const avant = vue;
+      vue = { ...vue, ...partiel };
+      if (avant.tri !== vue.tri || avant.metric !== vue.metric) pagePrioritaire = false;
+      else if (avant.page !== vue.page || avant.pageImprimee !== vue.pageImprimee) pagePrioritaire = true;
+      b.corps.changerVue(vue, ++idVue, idVue);
     };
     changer({});
     verifier('source avec doublon éloigné');
@@ -159,10 +165,8 @@ export function testClassementSelectionExhaustiveTransitions() {
     verifier('groupe hors base');
     changer({ page: 2 }); verifier('nouvelle page');
     changer({ page: 99 }); verifier('page vide, priorité de fond');
-    changer({ toutVerifier: false });
-    egal(interne.fileExhaustive, null, 'K fini libère les colonnes de sélection exhaustive');
-    changer({ toutVerifier: true }); verifier('false vers true sans nouveau tri');
-    changer({ tri: 'hp', page: 1 }); verifier('nouvel ordre de base');
+    changer({ tri: 'hp', page: 1 }); verifier('nouvel ordre de vue : le fond garde l’ordre lancé, aucune page prioritaire');
+    changer({ page: 2 }); verifier('navigation après un tri : la page demandée repasse devant');
     b.corps.changerVue({ ...vue, page: 99 }, idVue - 1, 999);
     verifier('vieille vue sans effet');
     b.corps.acquitter(-1, 0, b.candidats.length, { idRecherche: 1, idVue: 1, idDemande: 1, revisionPubliee: 1 });
@@ -197,7 +201,7 @@ export function testClassementSelectionExhaustiveDifferee() {
   titre('Sélection exhaustive — vrai corps différé, réponses retenues et ACK retardé');
   const b = bancDiffere(), interne = b.corps as unknown as Interne;
   b.ouvrir(1);
-  ok(b.f.vue.toutVerifier, 'la recherche différée exerce K infini');
+  ok(b.f.photo.toutVerifier, 'la recherche différée exerce K infini');
   const initiale = b.publications[0];
   b.corps.recevoirResolution(b.produire(), 1);
   ok(b.corps.travailEnCours && interne.cache.size === 1, 'une vraie réponse commet le cache puis programme la tâche différée');

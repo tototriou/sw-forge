@@ -306,7 +306,6 @@ export interface VueClassement {
   tri: StatKey | Objective;
   metric: OptimMetric;
   page: number;
-  toutVerifier: boolean;
 }
 export interface VersionsClassement {
   versionSchema: 1;
@@ -358,6 +357,12 @@ export class CorpsClassement {
   private reponsesEnAttente: ReponseResolution[] = [];
   private index: ClassementCompact | null = null;
   private base: Uint32Array = new Uint32Array();
+  // L'ordre du fond suit l'objectif et la mesure LANCÉS : `null` quand la vue
+  // les garde, l'ordre de base de la vue sert alors lui-même.
+  private fondPropre: { index: ClassementCompact; ordre: Uint32Array } | null = null;
+  // Seule une page demandée explicitement passe devant le fond : l'ouverture,
+  // ou une vue qui ne change que la page ; jamais un changement de tri.
+  private pagePrioritaire = true;
   private cache = new CacheResolutionCompact();
   private signature = '';
   private contexte: ContexteResultat | null = null;
@@ -410,7 +415,7 @@ export class CorpsClassement {
     this.abandonnerReponses();
     this.tache = null; this.nombreCible = 0; this.plages = [];
     this.contexte = contexte; this.vue = null; this.flux = new RecepteurCandidats(0); this.lots = [];
-    this.index = null; this.fileExhaustive = null; this.base = new Uint32Array(); this.bilan = null; this.collecteScellee = false;
+    this.index = null; this.fileExhaustive = null; this.base = new Uint32Array(); this.fondPropre = null; this.bilan = null; this.collecteScellee = false;
     this.candidatsAcquittes = -1; this.sourceEnVol = null;
     this.versions = { versionSchema: 1, idRecherche, idInventaire: contexte.idInventaire,
       idContexteResolution: this.versions.idContexteResolution, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande };
@@ -421,6 +426,10 @@ export class CorpsClassement {
     }
     this.sale = true; this.publicationForcee = false; this.dernierePublication = -Infinity;
     this.changerVue(vue, 1, idDemande);
+  }
+  private get fond(): Uint32Array { return this.fondPropre?.index === this.index && this.fondPropre ? this.fondPropre.ordre : this.base; }
+  private vueSuitLeLancement(vue: VueClassement): boolean {
+    return vue.tri === (this.contexte?.recherche.objective ?? 'efficience') && vue.metric === this.contexte?.recherche.metric;
   }
   private courant(idRecherche: number) { return this.contexte !== null && idRecherche === this.versions.idRecherche; }
   ajouter(idRecherche: number, sequence: number, bloc: BlocCandidats): void {
@@ -485,8 +494,11 @@ export class CorpsClassement {
     }
     // Une publication de l'ancienne vue peut être rejetée sans ACK par l'écran.
     this.sourceEnVol = null;
+    if (!avant) this.pagePrioritaire = true;
+    else if (avant.tri !== vue.tri || avant.metric !== vue.metric) this.pagePrioritaire = false;
+    else if (avant.page !== vue.page || avant.pageImprimee !== vue.pageImprimee) this.pagePrioritaire = true;
     this.vue = { ...vue }; this.versions.idVue = idVue; this.versions.idDemande = idDemande;
-    if (!vue.toutVerifier) this.fileExhaustive = null;
+    if (!this.contexte.toutVerifier) this.fileExhaustive = null;
     if (!avant || avant.tri !== vue.tri || avant.metric !== vue.metric) this.trierBase();
     this.sale = true;
   }
@@ -506,7 +518,13 @@ export class CorpsClassement {
     const source = candidatsParIndice(index.magasin.longueur, (i) => index.magasin.candidat(i, false));
     const base = yield* ordreCollecteEtapes(source, this.vue.tri, optionsDuContexte(this.contexte, null, this.vue.metric));
     yield* index.definirOrdreBaseEtapes(base);
-    yield* this.actualiserEtapes(index, base);
+    let fond = base;
+    if (!this.vueSuitLeLancement(this.vue)) {
+      fond = this.fondPropre?.index === index ? this.fondPropre.ordre
+        : yield* ordreCollecteEtapes(source, this.contexte.recherche.objective ?? 'efficience', optionsDuContexte(this.contexte, null, this.contexte.recherche.metric));
+      this.fondPropre = { index, ordre: fond };
+    } else this.fondPropre = null;
+    yield* this.actualiserEtapes(index, fond);
     this.index = index; this.base = base;
     this.visites = new Uint32Array(index.magasin.longueur); this.passage = 0;
     this.sale = true;
@@ -516,24 +534,24 @@ export class CorpsClassement {
   }
   private actualiser(): void {
     if (this.tache || !this.index || !this.contexte || !this.vue) return;
-    if ((this.cache.journal?.version ?? -1) === this.versionLue && (!this.vue.toutVerifier || this.selectionExhaustiveCourante())) return;
+    if ((this.cache.journal?.version ?? -1) === this.versionLue && (!this.contexte.toutVerifier || this.selectionExhaustiveCourante())) return;
     this.programmer(this.actualiserEtapes(this.index));
   }
-  private *actualiserEtapes(index: ClassementCompact, base = this.base): Generator<void> {
+  private *actualiserEtapes(index: ClassementCompact, fond = this.fond): Generator<void> {
     if (!this.contexte || !this.vue) return;
     const options = optionsDuContexte(this.contexte, this.cache, this.vue.metric);
     yield* index.actualiserEtapes(this.cacheLecture(), this.cache.journal, `${this.versions.idRecherche}:${this.vue.tri}:${this.vue.metric}:${this.versions.idContexteResolution}`,
       (c) => scoreDuCandidat(c, this.vue!.tri, options));
-    yield* this.actualiserSelectionEtapes(index, base);
+    yield* this.actualiserSelectionEtapes(index, fond);
     this.versionLue = this.cache.journal?.version ?? -1;
   }
   private selectionExhaustiveCourante(): boolean {
     const f = this.fileExhaustive;
-    return f !== null && f.index === this.index && f.base === this.base && f.generationCache === this.generationCache
+    return f !== null && f.index === this.index && f.base === this.fond && f.generationCache === this.generationCache
       && f.generationJournal === this.cache.journal?.generation && f.version === (this.cache.journal?.version ?? -1);
   }
   private *actualiserSelectionEtapes(index: ClassementCompact, base: Uint32Array): Generator<void> {
-    if (!this.vue?.toutVerifier) { this.fileExhaustive = null; return; }
+    if (!this.contexte?.toutVerifier) { this.fileExhaustive = null; return; }
     const journal = this.cache.journal, version = journal?.version ?? -1;
     let f = this.fileExhaustive;
     // Un repli complet ne peut pas se déduire du seul dernier delta du journal.
@@ -552,7 +570,7 @@ export class CorpsClassement {
         }
         if ((j & 63) === 0) yield;
       }
-      this.fileExhaustive = this.vue?.toutVerifier ? f : null;
+      this.fileExhaustive = this.contexte?.toutVerifier ? f : null;
       return;
     }
     if (version === f.version) return;
@@ -569,7 +587,7 @@ export class CorpsClassement {
     f.version = version;
   }
   private pageIndices(): number[] {
-    if (!this.index || !this.entrees) return [];
+    if (!this.index || !this.entrees || !this.pagePrioritaire) return [];
     if (this.vue?.pageImprimee) return this.index.page((this.vue.page - 1) * 20, 20)
       .filter((i) => this.index!.magasin.etat(i) === 0);
     const { total, confirmes } = this.index.comptes();
@@ -584,7 +602,7 @@ export class CorpsClassement {
   private restants(): BuildCandidate[] {
     if (this.tache) return [];
     if (!this.entrees || !this.index || !this.vue || !this.contexte) return [];
-    if ((this.cache.journal?.version ?? -1) !== this.versionLue || (this.vue.toutVerifier && !this.selectionExhaustiveCourante())) { this.actualiser(); if (this.tache) return []; }
+    if ((this.cache.journal?.version ?? -1) !== this.versionLue || (this.contexte.toutVerifier && !this.selectionExhaustiveCourante())) { this.actualiser(); if (this.tache) return []; }
     if (this.passage === 0xffffffff) { this.visites.fill(0); this.passage = 0; }
     const passage = ++this.passage, premiers: number[] = [];
     let nombre = 0;
@@ -596,7 +614,7 @@ export class CorpsClassement {
       if (premiers.length < 3) premiers.push(i);
     };
     for (const i of this.pageIndices()) ajouter(i);
-    const K = cibleDeLaFile({ relicContext: this.contexte.recherche.relicContext, toutVerifier: this.vue.toutVerifier });
+    const K = cibleDeLaFile({ relicContext: this.contexte.recherche.relicContext, toutVerifier: this.contexte.toutVerifier });
     if (K === Infinity) {
       const f = this.fileExhaustive!;
       // Trois choix au total, page comprise ; au plus trois maillons lus, sauts compris.
@@ -604,8 +622,9 @@ export class CorpsClassement {
       return candidatsParIndice(f.nombre, (i) => premiers[i] === undefined ? undefined as unknown as BuildCandidate : this.index!.magasin.candidat(premiers[i], false));
     }
     let confirmees = 0, aVerifier = 0;
-    for (let j = 0; j < this.base.length && confirmees + aVerifier < K; j++) {
-      const i = this.base[j], etat = this.index.magasin.etat(i);
+    const fond = this.fond;
+    for (let j = 0; j < fond.length && confirmees + aVerifier < K; j++) {
+      const i = fond[j], etat = this.index.magasin.etat(i);
       if (etat === 0) { aVerifier++; ajouter(i); }
       else if (etat === 1) confirmees++;
     }

@@ -50,12 +50,12 @@ export function testKDeLaFile() {
   // Via `cibleDeLaFile`, qui rend `kDeLaFile` du même contexte
   // sans l'interrupteur « Vérifier toutes les combinaisons trouvées »
   // (tests/verifier-toutes.test.ts).
-  ok(appelFile.includes('toutVerifier: verifierToutesLesCombinaisons'),
-    'écran : la cible de vérification voyage avec la vue, sans reconstruire le contexte relique');
+  ok(!appelFile.includes('toutVerifier') && /contexteResultat({[sS]*?toutVerifier: verifierToutesLesCombinaisons });/.test(ecran),
+    'écran : la cible de vérification est photographiée au lancement, jamais envoyée avec la vue');
   egal((ecran.match(/kDeLaFile\(/g) ?? []).length, 0, 'écran : aucun K recopié');
   const hook = readFileSync('src/hooks/useArtifactOptimQueue.ts', 'utf8');
-  ok(hook.includes('changerVue({ tri, metric, page, toutVerifier })'),
-    'adaptateur : la page et la cible en direct parviennent au propriétaire');
+  ok(hook.includes('changerVue({ tri, metric, page })'),
+    'adaptateur : seuls tri, mesure et page parviennent au propriétaire');
   ok(!/new Map|new Set/.test(hook.replace('const VIDE: ReadonlyMap<string, ResultatArtefacts> = new Map();', '')),
     'adaptateur : aucune copie des clés ni cache de calcul');
 

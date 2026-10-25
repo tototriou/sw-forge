@@ -109,7 +109,7 @@ export async function testCliClassementDifferentiel() {
   const photo = contexteDeResultatCli(recipe, LOADED, params, degats);
   const base = sortCandidates(candidats, recipe.objective, optionsOracleCli(recipe, params, degats, null));
   for (const pageImprimee of [false, true]) {
-    const vue: VueClassement = { tri: recipe.objective, metric: recipe.metric, page: 1, pageImprimee, toutVerifier: false };
+    const vue: VueClassement = { tri: recipe.objective, metric: recipe.metric, page: 1, pageImprimee };
     let publication!: PublicationClassement;
     const adaptateur = new AdaptateurClassement();
     const corps = new CorpsClassement({ publier: (p) => {

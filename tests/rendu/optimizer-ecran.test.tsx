@@ -141,7 +141,7 @@ const recherche = (search: Record<string, unknown>, autres: Record<string, unkno
   rendreOptimizer((r: Reel) => ({ ...AVEC_MONSTRE, ...autres, search: { ...r.search, ...rechercheClasseeTest(search, {
     fiche: BOX[0].gear!, pool: BOX[0].gear!.runes, optimiser: autres.optimiserArtefacts !== false,
     requirement: { sets: r.comboSets, minStats: (autres.minStats ?? r.minStats) as BuildRequirement['minStats'] },
-    vue: { tri: r.sortBy, metric: 'eff', page: Number(autres.resultsPage ?? 1), toutVerifier: false },
+    vue: { tri: r.sortBy, metric: 'eff', page: Number(autres.resultsPage ?? 1) },
   }) } }));
 const selecteurTri = (html: string) => /<select\b[\s\S]*?Trier par /.test(html);
 

@@ -245,10 +245,10 @@ export function kDeLaFile(relicContext: RelicContext | undefined): number {
  *
  * - `relicContext` : celui de la recherche LANCÉE (voir `kDeLaFile`).
  * - `toutVerifier` : l'interrupteur (`verifierToutesLesCombinaisons`, réglage
- *   avancé, désactivé par défaut, gardé dans la recette). ⚠️ Lu EN DIRECT à
- *   l'écran, pas figé au lancement : il ne change pas la recherche, seulement
- *   jusqu'où la file vérifie ; l'activer après coup vérifie le reste sans
- *   relancer, et rien de déjà vérifié n'est perdu en le coupant.
+ *   avancé, désactivé par défaut, gardé dans la recette). ⚠️ Photographié au
+ *   lancement (`ContexteResultat.toutVerifier`) : il ne change pas la recherche,
+ *   seulement jusqu'où la file vérifie, et le changer après coup ne lance
+ *   aucune résolution sur le résultat affiché.
  */
 export function cibleDeLaFile(e: { relicContext: RelicContext | undefined; toutVerifier: boolean }): number {
   return e.toutVerifier ? Number.POSITIVE_INFINITY : kDeLaFile(e.relicContext);

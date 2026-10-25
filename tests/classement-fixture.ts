@@ -7,16 +7,16 @@ import { resoudreContexteRelique } from '../src/lib/relicOptim';
 import type { ArtifactDetail, RelicDetail, RuneDetail } from '../src/types';
 const BASE = { hp: 10000, atk: 700, def: 600, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 
-export function demandeClassementTest(partiel: Partial<SearchParams> = {}, optimiser = false) {
+export function demandeClassementTest(partiel: Partial<SearchParams> = {}, optimiser = false, toutVerifier = false) {
   const params: SearchParams = { base: BASE, pool: [], artifacts: [], requirement: { sets: [], minStats: {} }, metric: 'eff', objective: 'efficience', ...partiel };
   const fiche = { base: params.base, runes: [], artifacts: params.artifacts, relic: params.relic };
   const setup = DEFAULT_DAMAGE_SETUP;
   const exclusive = { setup, element: 'fire' as const };
   const photo = contexteResultat({ params, fiche, realDamage: null, damageSetup: setup, exclusive,
-    signature: 'fixture', idInventaire: 0, idEspece: null,
+    signature: 'fixture', idInventaire: 0, idEspece: null, toutVerifier,
     resolution: optimiser ? { fiche, artifactParams: { porteur: { element: 'fire', archetype: 'attack' }, inventaire: [], equipes: [], principaleParSorte: {}, lignesVerrouillees: [] },
       regime: 'aucun', degats: null, exclusive, requirement: params.requirement, relicContext: params.relicContext } : null });
-  const vue: VueClassement = { tri: params.objective ?? 'efficience', metric: params.metric, page: 1, toutVerifier: false };
+  const vue: VueClassement = { tri: params.objective ?? 'efficience', metric: params.metric, page: 1 };
   return { params, photo, vue };
 }
 
@@ -50,10 +50,10 @@ export function fixtureClassementCombat(objective: 'degats_reels' | 'ehp') {
   const params: SearchParams = { base: BASE, pool, artifacts: inventaire.slice(0, 2), requirement: { sets: [], minStats: {} }, metric: 'eff', objective, relicContext };
   const fiche = { base: BASE, runes: pool.slice(0, 6), artifacts: params.artifacts, relic: reliques[0] };
   const exclusive = { setup, element: 'fire' as const };
-  const photo = contexteResultat({ params, fiche, realDamage, damageSetup: setup, exclusive, signature: 'combat', idInventaire: 1, idEspece: 1,
+  const photo = contexteResultat({ params, fiche, realDamage, damageSetup: setup, exclusive, signature: 'combat', idInventaire: 1, idEspece: 1, toutVerifier: true,
     resolution: { fiche, artifactParams: { porteur: { element: 'fire', archetype: 'attack' }, inventaire, equipes: params.artifacts, principaleParSorte: {}, lignesVerrouillees: [] },
       regime: objective, degats: realDamage, exclusive, requirement: params.requirement, relicContext } });
-  const vue: VueClassement = { tri: objective, metric: 'eff', page: 1, toutVerifier: true };
+  const vue: VueClassement = { tri: objective, metric: 'eff', page: 1 };
   return { params, photo, vue, candidats };
 }
 

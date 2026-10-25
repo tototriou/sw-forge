@@ -40,6 +40,8 @@ export interface ContexteResultat {
   readonly realDamage: RealDamageContext | null;
   readonly damageSetup: DamageSetup;
   readonly exclusive: EntreesResolutionSerialisables['exclusive'];
+  /** « Vérifier toutes les combinaisons trouvées », figé au lancement : le changer après coup ne résout rien. */
+  readonly toutVerifier: boolean;
 }
 
 /** Seul producteur de la photographie, jamais une liste parallèle dans l'écran. */
@@ -53,13 +55,14 @@ export function contexteResultat(e: {
   signature: string;
   idInventaire: number;
   idEspece: number | null;
+  toutVerifier: boolean;
 }): ContexteResultat {
   if (!Number.isSafeInteger(e.idInventaire) || e.idInventaire < 0) throw new Error('Identité d’inventaire invalide');
   if (e.idEspece !== null && !Number.isSafeInteger(e.idEspece)) throw new Error('Identité d’espèce invalide');
   return copierDonnees({ versionSchema: 1 as const, idInventaire: e.idInventaire, idEspece: e.idEspece,
     signature: e.signature, recherche: e.params, fiche: e.fiche,
     resolution: e.resolution ? entreesSerialisables({ ...e.resolution, requirement: e.params.requirement, relicContext: e.params.relicContext }) : null,
-    realDamage: e.realDamage, damageSetup: e.damageSetup, exclusive: e.exclusive });
+    realDamage: e.realDamage, damageSetup: e.damageSetup, exclusive: e.exclusive, toutVerifier: e.toutVerifier === true });
 }
 
 /** L'équipement se résout pour l'objectif lancé, jamais pour le tri affiché. */

@@ -1904,9 +1904,9 @@ export function classer(
   const element = resolue.monstre ? (loadMonstersList().find((m) => m.com2usId === resolue.monstre!.com2usId)?.element ?? null) : null;
   const photo = contexteResultat({ params: { ...resolue.params, pool: resolue.poolInitial },
     fiche: resolue.monstre?.gear ?? { base: resolue.params.base, runes: [], artifacts: resolue.params.artifacts, relic: resolue.params.relic },
-    realDamage, damageSetup: setup, exclusive: { setup, element }, signature: '', idInventaire: 0, idEspece: resolue.monstre?.com2usId ?? null, resolution: null });
+    realDamage, damageSetup: setup, exclusive: { setup, element }, signature: '', idInventaire: 0, idEspece: resolue.monstre?.com2usId ?? null, resolution: null, toutVerifier: false });
   const classes = classerEnLocal(photo, candidats, { tri: objectif, metric: resolue.params.metric,
-    page: 1, toutVerifier: false }).affichees;
+    page: 1 }).affichees;
   // ⚠️ `candidateMetricTotal` recalcule depuis les VRAIES runes dans la
   // mesure courante — jamais `effTotal`, figé au moment de la recherche. Il
   // est appliqué à la DEMANDE, pas à toute la liste : le classement peut

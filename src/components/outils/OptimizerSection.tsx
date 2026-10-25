@@ -1841,8 +1841,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       resolution: artifactParams && optimiserArtefacts ? { fiche: selected.gear, artifactParams,
         regime: regimeEquipement, degats: contexteDegatsArtefacts, exclusive: contexteExclusive,
         requirement: requirementAvecAuras, relicContext: params.relicContext } : null,
-      realDamage, damageSetup, exclusive: contexteExclusive, signature: signatureArtefacts, idInventaire: importDuCompte, idEspece: selected.monster.com2usId ?? null });
-    run(params, photo, { tri: objective, metric, page: 1, toutVerifier: verifierToutesLesCombinaisons });
+      realDamage, damageSetup, exclusive: contexteExclusive, signature: signatureArtefacts, idInventaire: importDuCompte, idEspece: selected.monster.com2usId ?? null,
+      toutVerifier: verifierToutesLesCombinaisons });
+    run(params, photo, { tri: objective, metric, page: 1 });
   }
 
   // Exporte la RECETTE de cette recherche (set, minimums, objectif,
@@ -2181,7 +2182,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     [relicContextRecherche, selected?.gear.relic]
   );
   const fileArtefacts = useArtifactOptimQueue({ search, vue: {
-    tri: sortBy, metric, page: resultsPage, toutVerifier: verifierToutesLesCombinaisons,
+    tri: sortBy, metric, page: resultsPage,
   } });
   const fullSortedCandidates = fileArtefacts.base;
 

@@ -346,6 +346,7 @@ import { testRenduOptimizerGabaritsColonnes, testRenduOptimizerGabaritsDroite, t
 import { testRenduOptimizerGabaritsGestes, testRenduOptimizerGabaritsLargeurs } from './rendu/optimizer-gabarits-navigateur.test';
 import { testRenduOptimizerCarteResultatBureau, testRenduOptimizerCarteResultatTelephone } from './rendu/optimizer-carte-resultat-navigateur.test';
 import { testRenduOptimizerComparerValidationBureau, testRenduOptimizerComparerValidationTelephone } from './rendu/optimizer-comparer-validation.test';
+import { testRenduOptimizerNonRelanceBureau, testRenduOptimizerNonRelanceTelephone, testRenduOptimizerPageInterrompueBureau, testRenduOptimizerPageInterrompueTelephone } from './rendu/optimizer-non-relance.test';
 import { testRenduOptimizerReglagesAvancesContenu, testRenduOptimizerListeDeTravail, testRenduOptimizerResultatsEntete,
   testRenduOptimizerResultatsCartes, testRenduOptimizerLigneFile } from './rendu/optimizer-ecran.test';
 import { testRenduOptimizerEcranReglagesAvances, testRenduTelephoneOptimizerEcranReglagesAvances, testRenduOptimizerEcranGuidage,
@@ -519,6 +520,10 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduOptimizerCarteResultatBureau', testRenduOptimizerCarteResultatBureau],
   ['testRenduOptimizerCarteResultatTelephone', testRenduOptimizerCarteResultatTelephone],
   ['testRenduOptimizerComparerValidationBureau', testRenduOptimizerComparerValidationBureau],
+  ['testRenduOptimizerNonRelanceBureau', testRenduOptimizerNonRelanceBureau],
+  ['testRenduOptimizerNonRelanceTelephone', testRenduOptimizerNonRelanceTelephone],
+  ['testRenduOptimizerPageInterrompueBureau', testRenduOptimizerPageInterrompueBureau],
+  ['testRenduOptimizerPageInterrompueTelephone', testRenduOptimizerPageInterrompueTelephone],
   ['testRenduOptimizerComparerValidationTelephone', testRenduOptimizerComparerValidationTelephone],
   ['testRenduOptimizerMonstre', testRenduOptimizerMonstre],
   ['testRenduOptimizerReglages', testRenduOptimizerReglages],

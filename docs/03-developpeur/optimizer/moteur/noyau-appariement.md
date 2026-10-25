@@ -108,6 +108,13 @@ Tous fondés sur la même équivalence (`survivantsLigne`) :
    est sauté dès qu'une stat l'exclut tout entier (`max(W) ≤ L` ou
    `min(W) > H`), chaque combinaison restante est jugée par `L < W ≤ H`.
 
+Les stats se testent dans l'ordre de leur sélectivité sur la ligne : nombre
+croissant de combinaisons B dans `]L, H]` (à compte égal, dans l'ordre des
+stats contraintes), la stat de la dichotomie n'étant plus testée sur celles
+qu'elle a elle-même retenues. Le test est une conjonction sans effet de
+bord : son ordre ne change que le nombre de comparaisons, jamais le verdict
+ni l'ordre des survivants.
+
 ## Ordre, garde et comptes
 
 La sortie de collecte est injectée : objets pour la référence et les outils,

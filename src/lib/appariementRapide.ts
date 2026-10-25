@@ -484,6 +484,12 @@ export const compteursVides = (): CompteursNoyau => ({ lignesSautees: 0, lignesD
  * Les comboB du compartiment B `ib` qui franchissent les seuils de la ligne,
  * par indice local CROISSANT (ordre d'origine), écrits dans `sortie`. Rend
  * leur nombre. Toute paire absente de `sortie` échoue à `quickOk`.
+ *
+ * `comptes` et `ordre` (longueur `m`) sont des tampons de travail : les
+ * stats y sont rangées par nombre croissant de comboB dans `]L, H]`, et
+ * chaque comboB est testé dans cet ordre. Le test est une conjonction sans
+ * effet de bord : son ordre ne change que le nombre de comparaisons, jamais
+ * le verdict.
  */
 export function survivantsLigne(
   ct: CompartimentsTypes,
@@ -491,6 +497,8 @@ export function survivantsLigne(
   L: Float64Array,
   H: Float64Array,
   sortie: Int32Array,
+  comptes: Int32Array,
+  ordre: Int32Array,
   compteurs: CompteursNoyau,
   forcer?: 'dichotomie' | 'lineaire'
 ): number {
@@ -512,28 +520,41 @@ export function survivantsLigne(
     const bas = rangSup(B.tri, seg, n, L[kk]);
     const haut = rangSup(B.tri, seg, n, H[kk]);
     const compte = haut > bas ? haut - bas : 0;
+    if (compte === 0) {
+      compteurs.lignesSautees++;
+      return 0;
+    }
+    comptes[kk] = compte;
     if (compte < meilleurCompte) {
       meilleurCompte = compte;
       meilleure = kk;
       meilleurDebut = bas;
-      if (compte === 0) break;
     }
   }
-  if (meilleurCompte === 0) {
-    compteurs.lignesSautees++;
-    return 0;
+  // Tri par insertion stable : à compte égal, l'indice le plus petit d'abord,
+  // si bien que `ordre[0]` est `meilleure`.
+  for (let i = 0; i < m; i++) {
+    const ci = comptes[i];
+    let p = i;
+    while (p > 0 && comptes[ordre[p - 1]] > ci) {
+      ordre[p] = ordre[p - 1];
+      p--;
+    }
+    ordre[p] = i;
   }
   let c = 0;
   if (forcer === 'dichotomie' || (forcer !== 'lineaire' && meilleurCompte * FACTEUR_DICHOTOMIE <= n)) {
-    // 2. Dichotomie : seuls les comboB qui passent la stat la plus sélective,
-    // testés sur les autres, puis remis dans l'ordre d'origine.
+    // 2. Dichotomie : seuls les comboB qui passent la stat la plus sélective
+    // (elle-même n'est plus à tester), testés sur les autres, puis remis dans
+    // l'ordre d'origine.
     compteurs.lignesDichotomie++;
     const seg = m * off + meilleure * n;
     for (let p = meilleurDebut; p < meilleurDebut + meilleurCompte; p++) {
       const j = B.perm[seg + p];
       const base = (off + j) * m;
       let passe = true;
-      for (let kk = 0; kk < m; kk++) {
+      for (let o = 1; o < m; o++) {
+        const kk = ordre[o];
         const w = W[base + kk];
         if (w <= L[kk] || w > H[kk]) {
           passe = false;
@@ -551,7 +572,8 @@ export function survivantsLigne(
   for (let blk = 0; blk * TAILLE_BLOC < n; blk++) {
     const bm = (blocs0 + blk) * m;
     let sauter = false;
-    for (let kk = 0; kk < m; kk++) {
+    for (let o = 0; o < m; o++) {
+      const kk = ordre[o];
       if (B.blocMax[bm + kk] <= L[kk] || B.blocMin[bm + kk] > H[kk]) {
         sauter = true;
         break;
@@ -565,7 +587,8 @@ export function survivantsLigne(
     for (let j = blk * TAILLE_BLOC; j < fin; j++) {
       const base = (off + j) * m;
       let passe = true;
-      for (let kk = 0; kk < m; kk++) {
+      for (let o = 0; o < m; o++) {
+        const kk = ordre[o];
         const w = W[base + kk];
         if (w <= L[kk] || w > H[kk]) {
           passe = false;
@@ -957,6 +980,8 @@ export function* apparierRapide<C extends SortieCandidats = BuildCandidate[]>(
   let maxB = 0;
   for (const b of bucketsB) maxB = Math.max(maxB, b.combos.length);
   const sortie = new Int32Array(maxB);
+  const comptes = new Int32Array(c.m);
+  const ordre = new Int32Array(c.m);
   const compteurs = compteursVides();
   const runesA = runesAPlat(bucketsA, prepared.filtered);
   const runesB = runesAPlat(bucketsB, prepared.filtered);
@@ -988,7 +1013,7 @@ export function* apparierRapide<C extends SortieCandidats = BuildCandidate[]>(
       const debutLigne = traitees;
       const ga = ct.A.debut[iA] + a;
       seuilsLigne(c, ct.A, ga, L, H);
-      const nSurv = survivantsLigne(ct, iB, L, H, sortie, compteurs, options.forcerChemin);
+      const nSurv = survivantsLigne(ct, iB, L, H, sortie, comptes, ordre, compteurs, options.forcerChemin);
       for (let s = 0; s < nSurv; s++) {
         const j = sortie[s];
         const g = debutLigne + j + 1;
@@ -1106,6 +1131,8 @@ export interface ContexteTravailleur {
   L: Float64Array;
   H: Float64Array;
   sortie: Int32Array;
+  comptes: Int32Array;
+  ordre: Int32Array;
   validation: ValidationTypee | null;
 }
 
@@ -1131,7 +1158,7 @@ export function initialiserTravailleur(init: InitTravailleur): ContexteTravaille
     return r;
   });
   const { validation } = validationDe(prepared, runesDe(ct.A.ids), runesDe(ct.B.ids), init.forcerValidation);
-  return { prepared, ct, c, runeParId, L: new Float64Array(c.m), H: new Float64Array(c.m), sortie: new Int32Array(maxB), validation };
+  return { prepared, ct, c, runeParId, L: new Float64Array(c.m), H: new Float64Array(c.m), sortie: new Int32Array(maxB), comptes: new Int32Array(c.m), ordre: new Int32Array(c.m), validation };
 }
 
 /** Un morceau d'un bloc, sans arrêt manuel possible : le générateur drainé. */
@@ -1156,7 +1183,7 @@ export function traiterMorceau(ctx: ContexteTravailleur, morceau: Morceau): Resu
  * seul test les couvre, et la troncature tombe sur le premier d'entre eux.
  */
 export function* parcourirMorceau<C extends SortieCandidats = BuildCandidate[]>(ctx: ContexteTravailleur, morceau: Morceau, collecte: C = [] as unknown as C): Generator<ResultatMorceau<C> | void, ResultatMorceau<C>, boolean | undefined> {
-  const { prepared, ct, c, runeParId, L, H, sortie, validation } = ctx;
+  const { prepared, ct, c, runeParId, L, H, sortie, comptes, ordre, validation } = ctx;
   const { maxCollected, maxMs, startedAt } = prepared;
   const overBudget = () => Date.now() - startedAt > maxMs;
   const compteurs = compteursVides();
@@ -1217,7 +1244,7 @@ export function* parcourirMorceau<C extends SortieCandidats = BuildCandidate[]>(
       const debutLigne = pos;
       const ga = ct.A.debut[iA] + a;
       seuilsLigne(c, ct.A, ga, L, H);
-      const nSurv = survivantsLigne(ct, iB, L, H, sortie, compteurs);
+      const nSurv = survivantsLigne(ct, iB, L, H, sortie, comptes, ordre, compteurs);
       for (let k = 0; k < nSurv; k++) {
         const j = sortie[k];
         const g = debutLigne + j + 1;

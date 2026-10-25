@@ -8,7 +8,12 @@ import type { Browser, Page } from 'playwright';
 
 let cssConstruit: string | undefined;
 
-export async function navigateurOptimizer(telephone = false, entreeBanc = 'tests/rendu/optimizer-memoire-banc.tsx'): Promise<{ browser: Browser; page: Page }> {
+/**
+ * `recharger` : un vrai `page.reload()` (le document, ses Workers et tout l'état
+ * JavaScript disparaissent, le stockage de l'origine reste), puis le banc
+ * réinjecté comme au premier chargement.
+ */
+export async function navigateurOptimizer(telephone = false, entreeBanc = 'tests/rendu/optimizer-memoire-banc.tsx'): Promise<{ browser: Browser; page: Page; recharger: () => Promise<void> }> {
   const requireLocal = createRequire(resolve('package.json'));
   const { chromium } = requireLocal('playwright') as typeof import('playwright');
   if (cssConstruit === undefined) {
@@ -97,7 +102,7 @@ export async function navigateurOptimizer(telephone = false, entreeBanc = 'tests
     });
     await page.goto('http://optimizer.test/');
     await page.addStyleTag({ content: cssConstruit });
-    await page.addScriptTag({ content: `
+    const script = `
       globalThis.process = { env: { NODE_ENV: 'development' } };
       globalThis.__APP_VERSION__ = 'test';
       const modules = ${JSON.stringify(modules)}, cache = {};
@@ -109,9 +114,15 @@ export async function navigateurOptimizer(telephone = false, entreeBanc = 'tests
         return module.exports;
       }
       globalThis.bancOptimizer = charger(${entree});
-    ` });
+    `;
+    await page.addScriptTag({ content: script });
     if (erreurs.length) throw new Error(erreurs.join('\n'));
     page.on('pageerror', erreur => { throw erreur; });
-    return { browser, page };
+    const recharger = async () => {
+      await page.reload();
+      await page.addStyleTag({ content: cssConstruit });
+      await page.addScriptTag({ content: script });
+    };
+    return { browser, page, recharger };
   } catch (erreur) { await browser.close(); throw erreur; }
 }

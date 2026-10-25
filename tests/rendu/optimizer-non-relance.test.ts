@@ -14,7 +14,8 @@ const journaux = new WeakMap<Page, string[]>();
 async function rechercher(page: Page) {
   if (!journaux.has(page)) { const j: string[] = []; journaux.set(page, j); page.on('console', m => { if (m.type() === 'error') j.push(m.text()); }); }
   await page.getByRole('button', { name: 'Rechercher', exact: true }).first().click();
-  for (let i = 0; i < 200; i++) {
+  // Jusqu'à 30 s : avec « Vérifier toutes les combinaisons », la file résout les 729 builds.
+  for (let i = 0; i < 1200; i++) {
     const r = await appel(page, 'releve');
     if (r.status === 'done' && r.enAttente === 0 && r.cartes.length > 0) return r;
     await page.waitForTimeout(25);
@@ -24,41 +25,75 @@ async function rechercher(page: Page) {
 
 async function nonRelance(telephone: boolean) {
   const format = telephone ? 'téléphone' : 'ordinateur';
-  titre(`rendu · Optimizer — seul Rechercher relance la recherche ou l’équipement, ${format}`);
-  const { browser, page } = await navigateurOptimizer(telephone, BANC);
+  titre(`rendu · Optimizer — seul Rechercher relance la recherche ou l’équipement, vrais gestes, ${format}`);
+  const { browser, page, recharger } = await navigateurOptimizer(telephone, BANC);
   try {
-    await appel(page, 'monter');
+    await appel(page, 'monter', true);
     const lance = await rechercher(page);
-    ok(lance.recherches === 1 && lance.idRecherche === 1 && lance.cartes.length === 20 && lance.recus === 64,
-      `${format} : un vrai clic sur Rechercher lance une recherche, 64 builds, page de vingt cartes (${JSON.stringify({ ...lance, contexte: undefined })})`);
+    ok(lance.recherches === 1 && lance.idRecherche === 1 && lance.cartes.length === 20 && lance.recus === 729
+      && lance.resolus !== null && lance.resolus < 729,
+      `${format} : un vrai clic sur Rechercher lance une recherche, 729 builds, page de vingt cartes, file arrêtée à K (${lance.resolus} résolus)`);
     const cartesAvant = [...lance.cartes].sort();
-    for (const nom of ['stats', 'maximums', 'objectif', 'sets', 'toutVerifier', 'tri'] as const) {
-      await appel(page, 'gesteNomme', nom);
-      await page.waitForTimeout(300);
+    const inchange = async (nom: string, memesCartes = true) => {
+      await page.waitForTimeout(600);
       const r = await appel(page, 'releve');
-      egal([r.recherches, r.idRecherche, r.resolus, r.status], [1, 1, lance.resolus, 'done'],
-        `${format} — ${nom} : aucune recherche ni résolution relancée`);
+      egal([r.recherches, r.idRecherche, r.resolus, r.status], [1, 1, lance.resolus, 'done'], `${format} — ${nom} : aucune recherche ni résolution relancée`);
       ok(r.contexte === lance.contexte, `${format} — ${nom} : contexte et équipement du résultat conservés`);
-      if (nom === 'tri') ok(r.cartes.length === lance.cartes.length, `${format} — tri : la page se réordonne sans rien vérifier de plus (${r.cartes.length} cartes)`);
-      else egal([...r.cartes].sort(), cartesAvant, `${format} — ${nom} : mêmes cartes affichées`);
-    }
-    const avant = await appel(page, 'releve');
-    egal(avant.toutVerifierPhoto, false, `${format} : « Vérifier toutes les combinaisons » reste celui du lancement`);
+      if (memesCartes) egal([...r.cartes].sort(), cartesAvant, `${format} — ${nom} : mêmes cartes affichées`);
+      return r;
+    };
+    // Réglages de recherche : ils ne préparent que la prochaine recherche.
+    for (const nom of ['stats', 'maximums', 'objectif', 'sets'] as const) { await appel(page, 'gesteNomme', nom); await inchange(nom); }
+    // « Vérifier toutes les combinaisons trouvées », le vrai interrupteur, après le lancement :
+    // 729 builds au-delà de K, une lecture en direct demanderait aussitôt des résolutions.
+    // Au bureau, l'interrupteur vit dans la colonne « Aura, exclusion, avancés », ouverte par son onglet ;
+    // au téléphone, dans le panneau que la barre de l'app ouvre (absente du banc).
+    const onglet = page.getByRole('group', { name: 'Colonnes repliables' }).getByRole('button', { name: 'Aura, exclusion, avancés', exact: true });
+    if (telephone) await appel(page, 'menuTelephone', true); else await onglet.click();
+    const interrupteur = page.getByRole('switch', { name: 'Vérifier toutes les combinaisons trouvées' });
+    await interrupteur.click();
+    ok(await interrupteur.getAttribute('aria-checked') === 'true', `${format} : l’interrupteur est activé par un vrai clic`);
+    const tout = await inchange('vérifier toutes les combinaisons');
+    if (telephone) await appel(page, 'menuTelephone', false); else await onglet.click();
+    egal(tout.toutVerifierPhoto, false, `${format} : « Vérifier toutes les combinaisons » reste celui du lancement dans le contexte`);
+    // Tri : le vrai sélecteur de l'en-tête des résultats.
+    await page.locator('select').filter({ hasText: 'Trier par' }).selectOption('hp');
+    const tri = await inchange('tri', false);
+    ok(tri.tri === 'hp' && tri.resultsPage === 1 && tri.cartes.length === 20 && tri.places === 0,
+      `${format} — tri : la page 1 se réordonne sans rien vérifier de plus (${tri.cartes.length} cartes)`);
+    // Mesure changée pendant la vérification d'une page au-delà des confirmées : la page revient à 1.
+    const aller = page.getByLabel('Aller à la page');
+    await aller.fill('999'); await aller.press('Tab');
+    const loin = await appel(page, 'releve');
+    ok(loin.resultsPage > 1 && loin.resultsPage > Math.ceil((loin.confirmees ?? 0) / 20),
+      `${format} — navigation (vrai champ « Aller à la page ») : page ${loin.resultsPage}, au-delà des ${loin.confirmees} confirmées`);
+    await page.getByRole('button', { name: 'Score SW', exact: true }).click();
+    await page.waitForTimeout(600);
+    const mesure = await appel(page, 'releve');
+    ok(mesure.metric === 'score' && mesure.resultsPage === 1 && mesure.premierRang === 1 && mesure.places === 0 && mesure.cartes.length === 20,
+      `${format} — mesure (vrai contrôle « Score ») : la page revient à 1, vingt cartes, aucune place laissée sans travail (${JSON.stringify({ page: mesure.resultsPage, places: mesure.places, enAttente: mesure.enAttente })})`);
+    egal([mesure.recherches, mesure.idRecherche, mesure.contexte === lance.contexte], [1, 1, true], `${format} — mesure : aucune recherche relancée, contexte conservé`);
     const relance = await rechercher(page);
     ok(relance.recherches === 2 && relance.idRecherche === 2 && relance.contexte !== lance.contexte,
       `${format} : Rechercher relance bien une nouvelle recherche, avec son nouveau contexte`);
     ok(relance.toutVerifierPhoto === true && JSON.stringify(relance.minStatsPhoto).includes('"spd":101'),
       `${format} : les réglages modifiés entrent dans la photographie de la nouvelle recherche seulement`);
-    await appel(page, 'gesteNomme', 'monstre');
+    // Monstre : un vrai clic sur un autre membre de la liste de travail (au téléphone,
+    // la liste se déplie d'abord par « Gérer mes listes »).
+    const membre = page.locator('[data-membre-optimizer="10102"]');
+    if (telephone && !await membre.isVisible()) await page.getByText('Gérer mes listes', { exact: true }).click();
+    await page.locator('[data-membre-optimizer="10102"]').getByText('Second', { exact: true }).click();
     await page.waitForTimeout(300);
     const monstre = await appel(page, 'releve');
-    egal([monstre.recherches, monstre.idRecherche, monstre.cartes.length, monstre.status], [2, null, 0, 'idle'],
-      `${format} — monstre de la liste : résultats effacés, rien relancé`);
-    await appel(page, 'remonter');
+    egal([monstre.recherches, monstre.idRecherche, monstre.cartes.length, monstre.status, monstre.membre], [2, null, 0, 'idle', '2'],
+      `${format} — monstre de la liste (vrai clic) : résultats effacés, rien relancé`);
+    // Rafraîchir : un vrai rechargement du document ; la liste gardée revient, rien ne se relance.
+    await recharger();
+    await appel(page, 'apresRechargement');
     await page.waitForTimeout(500);
     const rafraichi = await appel(page, 'releve');
-    egal([rafraichi.recherches, rafraichi.classeurs, rafraichi.status], [0, 0, 'idle'],
-      `${format} — rafraîchir : l’écran remonté ne crée ni recherche ni classeur`);
+    egal([rafraichi.recherches, rafraichi.classeurs, rafraichi.status, rafraichi.listes], [0, 0, 'idle', 1],
+      `${format} — rafraîchir (page.reload) : la liste gardée revient, ni recherche ni classeur créé`);
   } finally { await browser.close(); }
 }
 

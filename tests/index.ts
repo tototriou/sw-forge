@@ -93,6 +93,7 @@ import { testResolutionDistante } from './resolution-distante.test';
 import { testClassementDistantVersions, testClassementDistantPanne, testContexteResultatFige, testClassementBranchementApp,
   testClassementArretAvantOuverture, testClassementPublicationForceeDifferee, testClassementIncidentInactif, testClassementBilanStable, testClassementDifferentielCombat, testClassementBancResultats } from './classement-distant.test';
 import { testCliClassementParMode, testCliClassementDifferentiel } from './cli-classement.test';
+import { testClassementCessionOrdre, testClassementCessionSansAffamement, testClassementCessionCanal } from './classement-cession.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
 import { testOptimizerFormatBig } from './format-big.test';
@@ -868,6 +869,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testClassementDifferentielCombat', testClassementDifferentielCombat],
   ['testClassementBancResultats', testClassementBancResultats],
   ['testClassementBranchementApp', testClassementBranchementApp],
+  ['testClassementCessionOrdre', testClassementCessionOrdre],
+  ['testClassementCessionSansAffamement', testClassementCessionSansAffamement],
+  ['testClassementCessionCanal', testClassementCessionCanal],
   ['testCliClassementParMode', testCliClassementParMode],
   ['testCliClassementDifferentiel', testCliClassementDifferentiel],
   ['testKDeLaFile', testKDeLaFile],

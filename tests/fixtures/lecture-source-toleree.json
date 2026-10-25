@@ -7,6 +7,13 @@
   ],
   "entrees": [
     {
+      "fichier": "tests/classement-cession.test.ts",
+      "cible": "src/workers/classement.worker.ts",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Garde de la coquille du classeur : ses tranches se relancent par message de canal, jamais par setTimeout, que Node ne bride pas et ne peut donc pas distinguer ; la relance elle-même est testée par import."
+    },
+    {
       "fichier": "tests/classement-distant.test.ts",
       "cible": "src/components/outils/OptimizerSection.tsx",
       "occurrences": 1,

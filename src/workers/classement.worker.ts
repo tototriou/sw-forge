@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 import { CorpsClassement } from '../lib/classementCompact';
+import { Relance } from '../lib/cession';
 import type { BlocCandidats } from '../lib/candidatsCompacts';
 import type { SearchResult } from '../lib/runeBuildOptim';
 import type { ReponseResolution } from './resolutionBody';
@@ -14,7 +15,6 @@ type Branchement = { type: 'portRecherche'; idRecherche: number; port: MessagePo
 let generation = 0;
 let recherche: MessagePort | null = null;
 let resolution: MessagePort | null = null;
-let tache: ReturnType<typeof setTimeout> | null = null;
 function poster(r: ReponseClassement) { self.postMessage(r); }
 const corps = creerCorps();
 function creerCorps(): CorpsClassement {
@@ -26,23 +26,23 @@ function creerCorps(): CorpsClassement {
       poster({ type: 'incidentResolution', versionSchema: 1, idRecherche: generation, raison, detail });
     } }, true);
 }
+// Tranches de 4 ms relancées par message de canal : des `setTimeout(0)`
+// enchaînés sont bridés à ~4 ms par Chromium, le classeur passait la moitié
+// de son temps à attendre. La relance prend son tour derrière les messages
+// déjà reçus (annulation, crédits, réponses du résolveur).
+const relance = new Relance(() => proteger(() => {
+  const limite = performance.now() + 4;
+  do { corps.avancer(); } while (corps.travailEnCours && performance.now() < limite);
+  corps.pomper(performance.now());
+  if (corps.travailEnCours || corps.travailEnRepli) relance.programmer();
+}));
 function proteger(f: () => void): void {
   try { f(); } catch (e) {
-    if (tache !== null) clearTimeout(tache);
-    tache = null; recherche?.close(); recherche = null;
+    relance.annuler(); recherche?.close(); recherche = null;
     poster({ type: 'erreur', versionSchema: 1, idRecherche: generation, message: e instanceof Error ? e.message : String(e) });
   }
 }
-function programmer(): void {
-  if (tache !== null) return;
-  tache = setTimeout(() => proteger(() => {
-    tache = null;
-    const limite = performance.now() + 4;
-    do { corps.avancer(); } while (corps.travailEnCours && performance.now() < limite);
-    corps.pomper(performance.now());
-    if (corps.travailEnCours || corps.travailEnRepli) programmer();
-  }), 0);
-}
+const programmer = () => relance.programmer();
 self.onmessage = (e: MessageEvent<MessageVersClassement | Branchement>) => proteger(() => {
   const m = e.data;
   if (m.type === 'portResolution') {
@@ -82,8 +82,7 @@ self.onmessage = (e: MessageEvent<MessageVersClassement | Branchement>) => prote
   }
   if (m.type === 'panneResolution') { corps.panneResolution(m.raison, m.detail); programmer(); }
   if (m.type === 'liberer') {
-    if (tache !== null) clearTimeout(tache);
-    tache = null; recherche?.close(); recherche = null; corps.liberer();
+    relance.annuler(); recherche?.close(); recherche = null; corps.liberer();
     poster({ type: 'liberee', versionSchema: 1, idRecherche: generation, idDemande: m.idDemande });
   }
 });

@@ -38,3 +38,33 @@ export function cederLaMain(
     canal.port2.postMessage(null);
   });
 }
+
+/**
+ * Relance d'une tâche découpée en tranches : une seule relance en attente à
+ * la fois, cédée par `cederLaMain`. La cession prend son tour derrière les
+ * messages déjà reçus (annulation, crédit, réponse) : une tranche qui se
+ * reprogramme sans fin ne les affame jamais. `annuler` rend sans effet la
+ * relance en attente ; un `programmer` suivant en ouvre une nouvelle. La
+ * tranche attrape ses propres erreurs : levée ici, elle deviendrait un rejet
+ * de promesse que personne n'écoute.
+ */
+export class Relance {
+  private jeton = 0;
+  private attente = false;
+  constructor(
+    private readonly tranche: () => void,
+    private readonly ceder: () => Promise<void> = () => cederLaMain()
+  ) {}
+  get enAttente(): boolean { return this.attente; }
+  programmer(): void {
+    if (this.attente) return;
+    this.attente = true;
+    const jeton = this.jeton;
+    void this.ceder().then(() => {
+      if (jeton !== this.jeton) return;
+      this.attente = false;
+      this.tranche();
+    });
+  }
+  annuler(): void { this.jeton++; this.attente = false; }
+}

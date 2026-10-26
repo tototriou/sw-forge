@@ -550,14 +550,16 @@ export function survivantsLigne(
     compteurs.lignesLineaires++;
     return n;
   }
-  // 1. Par stat, combien de comboB dans ]L, H] ? (deux dichotomies)
+  // 1. Par stat, combien de comboB dans ]L, H] ? (deux dichotomies ; une
+  // borne infinie, stat sans minimum ou sans maximum, n'en demande pas :
+  // aucun entier n'est ≤ −∞, tous sont ≤ +∞)
   let meilleure = 0;
   let meilleurCompte = Infinity;
   let meilleurDebut = 0;
   for (let kk = 0; kk < m; kk++) {
     const seg = m * off + kk * n;
-    const bas = rangSup(B.tri, seg, n, L[kk]);
-    const haut = rangSup(B.tri, seg, n, H[kk]);
+    const bas = L[kk] === -Infinity ? 0 : rangSup(B.tri, seg, n, L[kk]);
+    const haut = H[kk] === Infinity ? n : rangSup(B.tri, seg, n, H[kk]);
     const compte = haut > bas ? haut - bas : 0;
     if (compte === 0) {
       compteurs.lignesSautees++;

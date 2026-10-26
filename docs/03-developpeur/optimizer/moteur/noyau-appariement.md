@@ -103,7 +103,8 @@ Tous fondés sur la même équivalence (`survivantsLigne`) :
 
 1. **Une ligne entière** : pour chaque stat, deux dichotomies sur `W` trié
    comptent les combinaisons B dans `]L, H]` ; une stat à zéro écarte toute
-   la ligne.
+   la ligne. Une borne infinie (stat sans minimum ou sans maximum) se passe
+   de sa dichotomie : son rang est `0` ou `n`.
 2. **Une dichotomie** sur la stat la plus sélective, quand elle laisse au
    plus un quart des combinaisons B : seules celles-là sont testées sur les
    autres stats, puis REMISES dans l'ordre d'origine avant d'être visitées.

@@ -85,7 +85,7 @@ export interface TableauResultatsProps {
   // La vue vide (bornes contradictoires, plus rien sous les filtres) : la phrase, à la place des lignes.
   vide: ReactNode;
   inactif?: boolean;
-  // « Bonus » : PV, ATQ, DEF et VIT en total − base du monstre (`base`), valeurs comme bornes.
+  // « Stats bonus » : PV, ATQ, DEF et VIT en total − base du monstre (`base`), valeurs comme bornes.
   enBonus?: boolean;
   base?: Partial<Record<StatKey, number>>;
 }

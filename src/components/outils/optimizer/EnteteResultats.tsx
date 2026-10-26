@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Filter } from 'lucide-react';
 import HelpPopover from '../../HelpPopover';
 import BoutonSensTri from '../../BoutonSensTri';
-import { Bouton, Flottant, Interrupteur, MobileSheet, Segmented, Selecteur } from '../../../ui';
+import { Bouton, Flottant, MobileSheet, Segmented, Selecteur } from '../../../ui';
 import { COLONNES_RESULTATS, type ColonneResultat } from '../../../lib/colonnesResultats';
 import type { BornesResultats } from '../../../lib/filtresResultats';
 import type { FiltrePublie } from '../../../lib/classementCompact';
@@ -46,8 +46,9 @@ export interface EnteteResultatsProps {
   // Cartes ou tableau, au bureau seulement (le téléphone garde les cartes).
   forme?: FormeResultats;
   setForme?: (forme: FormeResultats) => void;
-  // « Bonus » du tableau (bureau, forme tableau) : PV, ATQ, DEF et VIT sans
-  // la base du monstre. Un réglage d'affichage, pas « Stats de base exclues ».
+  // « Stats totales / Stats bonus » du tableau (bureau, forme tableau) : en
+  // bonus, PV, ATQ, DEF et VIT sans la base du monstre. Un réglage
+  // d'affichage, pas « Stats de base exclues ».
   bonus?: boolean;
   setBonus?: (bonus: boolean) => void;
 }
@@ -209,10 +210,18 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, tri
             {reglable && (
               <div className="ml-auto flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
                 {/* Avec le tableau seulement (forme tableau, assez de place). */}
+                {/* Deux choix exclusifs, de la forme du choix cartes / tableau voisin. */}
                 {setBonus && forme === 'tableau' && (
                   <div className={`${AVEC_LE_TABLEAU} items-center`}>
-                    <Interrupteur actif={bonus} onChange={setBonus} libelle="Bonus" disabled={interrompu}
-                      title="Bonus : PV, ATQ, DEF et VIT sans la base du monstre ; Total : les valeurs complètes. Affichage seulement." />
+                    <Segmented<'total' | 'bonus'>
+                      options={[
+                        { key: 'total', label: 'Stats totales', hint: 'Les valeurs complètes. Affichage seulement.' },
+                        { key: 'bonus', label: 'Stats bonus', hint: 'PV, ATQ, DEF et VIT sans la base du monstre. Affichage seulement.' },
+                      ]}
+                      value={bonus ? 'bonus' : 'total'}
+                      onChange={(v) => setBonus(v === 'bonus')}
+                      disabled={interrompu}
+                    />
                   </div>
                 )}
                 {setForme && (

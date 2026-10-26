@@ -1932,7 +1932,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const [pageDraft, setPageDraft] = useState<string | null>(null);
   // Le build ouvert en détail depuis le tableau des résultats (ses runes).
   const [detailTableau, setDetailTableau] = useState<string | null>(null);
-  // « Total / Bonus » du tableau des résultats : un réglage d'AFFICHAGE,
+  // « Stats totales / Stats bonus » du tableau des résultats : un réglage d'AFFICHAGE,
   // distinct de « Stats de base exclues » (réglage de recherche). Il part de
   // celui-ci, photographié au lancement (`handleSearch`), puis ne change que
   // par l'utilisateur.

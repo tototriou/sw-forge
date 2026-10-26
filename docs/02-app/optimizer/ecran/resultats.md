@@ -499,17 +499,19 @@ ce choix.
   colonne insérée, 1 052 colonnes fermées, 1 356 à 2560 en pleine page
   (tableau) ; 516 à 2560 scindé et 358 au téléphone (cartes). Vérifié sans rognage au seuil
   (tests/rendu/optimizer-tableau-navigateur.test.ts).
-- **« Bonus »** (interrupteur de l'en-tête, forme tableau seulement, visible
-  avec le tableau) : un réglage d'**affichage**, distinct de « Stats de base
-  exclues » des conditions, qui reste un réglage de recherche. Il part de la
-  valeur de celui-ci **photographiée au lancement**, puis ne change que par
-  l'utilisateur. En Bonus, PV, ATQ, DEF et VIT montrent total − base du
+- **« Stats totales / Stats bonus »** (deux choix exclusifs dans l'en-tête,
+  un `Segmented` de la forme de « Cartes / Tableau », à sa gauche ; forme
+  tableau seulement, visible avec le tableau) : un réglage d'**affichage**,
+  distinct de « Stats de base exclues » des conditions, qui reste un réglage
+  de recherche. Il part de la valeur de celui-ci **photographiée au
+  lancement** (exclues : « Stats bonus »), puis ne change que par
+  l'utilisateur. En Stats bonus, PV, ATQ, DEF et VIT montrent total − base du
   monstre (la base du contexte de la recherche) ; Taux Crit, Dmg Crit, RES et
   Précision restent en total, PV effectifs, Dégâts réels et Efficience ne
   changent pas. **Les bornes se convertissent** : le classeur les garde en
   total, le tableau les écrit et les saisit dans le mode courant
   (`versAffichage`, `depuisAffichage`, filtresAffichage.ts) ; à 900 d'ATQ de
-  base, un minimum de 3500 s'écrit 2600 en Bonus, et basculer ne masque ni ne
+  base, un minimum de 3500 s'écrit 2600 en Stats bonus, et basculer ne masque ni ne
   révèle aucun build. Le tri ne change pas. Les cartes gardent leur bascule
   propre (clic sur la fiche).
 

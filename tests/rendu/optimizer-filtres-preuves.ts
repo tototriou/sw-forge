@@ -138,7 +138,27 @@ export async function preuvesFiltresEcran(b: BancEcran): Promise<Preuves> {
     const racine = document.querySelector('[data-forme-resultats]');
     preuves.push([racine?.getAttribute('data-forme-resultats') === 'tableau' && localStorage.getItem('swblacksmith-optimizer-resultats-forme-v1') === 'tableau',
       `bureau : « Tableau » choisi et mémorisé (${localStorage.getItem('swblacksmith-optimizer-resultats-forme-v1')})`]);
+    // « Stats totales / Stats bonus » : deux choix exclusifs, avec le tableau seulement ;
+    // la borne, gardée en total par le classeur, s'écrit dans le choix courant.
+    const presse = (nom: string) => bouton(nom)?.getAttribute('aria-pressed') === 'true';
+    const vitMin = () => champ('VIT minimum affiché')?.value ?? '';
+    // Le départ suit « Stats de base exclues » (exclues par défaut : Stats bonus).
+    const depart = b.etat().excludeBase ? 'Stats bonus' : 'Stats totales';
+    preuves.push([!!bouton('Stats totales') && !!bouton('Stats bonus') && presse(depart) && presse('Stats bonus') !== presse('Stats totales'),
+      `bureau, tableau : deux choix exclusifs, « ${depart} » au départ comme « Stats de base exclues » (${b.etat().excludeBase})`]);
+    await b.geste(() => bouton('Stats totales')!.click());
+    preuves.push([presse('Stats totales') && !presse('Stats bonus') && vitMin() === '220',
+      `bureau, tableau : « Stats totales » choisi, VIT ≥ 220 écrite en total (« ${vitMin()} »)`]);
+    await b.geste(() => bouton('Stats bonus')!.click());
+    const enBonus = vitMin();
+    preuves.push([presse('Stats bonus') && !presse('Stats totales') && enBonus !== '' && Number(enBonus) < 220,
+      `bureau, tableau : « Stats bonus » choisi, la même borne écrite sans la base (« ${enBonus} »)`]);
+    preuves.push([json(b.etat().bornesResultats.spd) === json({ min: 220, max: 200 }), 'bureau, tableau : la borne du classeur reste en total']);
+    await b.geste(() => bouton('Stats totales')!.click());
+    preuves.push([presse('Stats totales') && vitMin() === '220', `bureau, tableau : retour à « Stats totales » (« ${vitMin()} »)`]);
+    preuves.push([b.etat().excludeBase === (depart === 'Stats bonus'), 'bureau, tableau : « Stats de base exclues » (recherche) inchangé']);
     await b.geste(() => bouton('Cartes')!.click());
+    preuves.push([!bouton('Stats totales') && !bouton('Stats bonus'), 'bureau, cartes : pas de choix Stats totales / Stats bonus']);
     preuves.push([localStorage.getItem('swblacksmith-optimizer-resultats-forme-v1') === 'cartes', 'bureau : retour aux cartes, mémorisé']);
   }
   await b.geste(() => b.forcerRecherche(null));

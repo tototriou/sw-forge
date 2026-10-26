@@ -90,6 +90,7 @@ import { testCandidatsCompactsAllerRetour, testClassementCompactPublications, te
 import { testResolutionCaches } from './resolution-caches.test';
 import { testResolutionWorker } from './resolution-worker.test';
 import { testResolutionDistante } from './resolution-distante.test';
+import { testResolutionDistanteVoies, testResolutionPoolAnnulation, testResolutionPoolDifferentiel, testResolutionPoolPanne, testResolutionPoolVoiesAvantScelle, testResolutionPoolGestes } from './resolution-pool.test';
 import { testClassementDistantVersions, testClassementDistantPanne, testContexteResultatFige, testClassementBranchementApp,
   testClassementArretAvantOuverture, testClassementPublicationForceeDifferee, testClassementIncidentInactif, testClassementBilanStable, testClassementDifferentielCombat, testClassementBancResultats } from './classement-distant.test';
 import { testCliClassementParMode, testCliClassementDifferentiel } from './cli-classement.test';
@@ -888,6 +889,12 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testResolutionDistante', testResolutionDistante],
   ['testClassementDistantVersions', testClassementDistantVersions],
   ['testClassementDistantPanne', testClassementDistantPanne],
+  ['testResolutionDistanteVoies', testResolutionDistanteVoies],
+  ['testResolutionPoolDifferentiel', testResolutionPoolDifferentiel],
+  ['testResolutionPoolPanne', testResolutionPoolPanne],
+  ['testResolutionPoolAnnulation', testResolutionPoolAnnulation],
+  ['testResolutionPoolVoiesAvantScelle', testResolutionPoolVoiesAvantScelle],
+  ['testResolutionPoolGestes', testResolutionPoolGestes],
   ['testContexteResultatFige', testContexteResultatFige],
   ['testClassementArretAvantOuverture', testClassementArretAvantOuverture],
   ['testClassementPublicationForceeDifferee', testClassementPublicationForceeDifferee],

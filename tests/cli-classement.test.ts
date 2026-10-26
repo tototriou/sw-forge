@@ -134,9 +134,11 @@ export async function testCliClassementDifferentiel() {
       const page = compositionDePage({ classement: anciennes, parBuild: cache, page: 1, taillePage: 20 });
       const suivantsEcran = prochainsATraiter(base, cache, 100, page.aVerifier).map(cleBuild);
       const suivantsCli = prochainsATraiter(base, cache, 100, anciennes.slice(0, 20)).map(cleBuild);
-      const suivantsCorps = Array.from(observation.restants().slice(0, 3)).map(cleBuild);
+      // Le corps ne matérialise que les places en vol du pilote plus une.
+      const lus = observation.pilote.maxEnVol + 1;
+      const suivantsCorps = Array.from(observation.restants().slice(0, lus)).map(cleBuild);
       const suivantsAttendus = pageImprimee ? suivantsCli : suivantsEcran;
-      if (!isDeepStrictEqual(suivantsCorps, suivantsAttendus.slice(0, 3))) throw new Error(`Écart du choix ${pageImprimee ? 'CLI' : 'écran'} à ${cache.size} résolutions`);
+      if (!isDeepStrictEqual(suivantsCorps, suivantsAttendus.slice(0, lus))) throw new Error(`Écart du choix ${pageImprimee ? 'CLI' : 'écran'} à ${cache.size} résolutions`);
       if (!premierEcart && suivantsCli[0] !== suivantsEcran[0]) premierEcart = { resolus: cache.size, ordreResolution: [...ordreResolution], cli: suivantsCli.slice(0, 3), ecran: suivantsEcran.slice(0, 3), notes: anciennes.slice(0, 3).map((c) => [cleBuild(c), scoreDuCandidat(c, recipe.objective, options)]), page: page.aVerifier.map(cleBuild) };
       controles++;
       const suivant = prochainsATraiter(base, cacheOracle, 100, pageImprimee ? anciennes.slice(0, 20) : page.aVerifier)[0];

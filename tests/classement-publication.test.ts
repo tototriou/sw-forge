@@ -210,7 +210,9 @@ export function testClassementMortInactive() {
       const f = fixtureClassementCombat('ehp'); b.rendre().run(f.params, f.photo, f.vue);
       const mort = b.fils[0], ouvrir = mort.envoyes.find((m: any) => m.type === 'ouvrir');
       mort.onmessage({ data: { type: 'ouverte', versionSchema: 1, idRecherche: ouvrir.idRecherche, idDemande: ouvrir.idDemande } });
-      if (geste === 'refus') b.fils[2].onmessage({ data: { type: 'refus', motif: 'relique-pool-vide', vide: {} } });
+      const resolveurs = b.fils.filter((fil: any) => fil.url.pathname.includes('resolution.worker'));
+      if (geste === 'refus') b.fils.find((fil: any) => fil.url.pathname.includes('runeBuildOptim.worker'))
+        .onmessage({ data: { type: 'refus', motif: 'relique-pool-vide', vide: {} } });
       else b.rendre()[geste]();
       const messageAncien = mort.onmessage;
       messageAncien({ data: { type: 'ouverte', versionSchema: 1, idRecherche: ouvrir.idRecherche, idDemande: ouvrir.idDemande } });
@@ -218,7 +220,8 @@ export function testClassementMortInactive() {
       if (incident === 'error') mort.onerror({ message: 'classeur mort' });
       else if (incident === 'messageerror') mort.onmessageerror({});
       else messageAncien({ data: { type: 'erreur', versionSchema: 1, idRecherche: ouvrir.idRecherche, message: 'classeur mort' } });
-      ok(mort.termine && b.fils[1].termine && b.rendre().status === 'error', `${geste}/${incident} : propriétaire terminé, erreur visible, aucun secours résolveur`);
+      ok(mort.termine && resolveurs.length > 0 && resolveurs.every((fil: any) => fil.termine) && b.rendre().status === 'error',
+        `${geste}/${incident} : propriétaire et ses ${resolveurs.length} résolveurs terminés, erreur visible, aucun secours résolveur`);
       ok(b.rendre().classement === null && !b.rendre().classementInterrompu, `${geste}/${incident} : aucune page publiée, rien à marquer interrompu`);
       b.rendre().run(f.params, f.photo, f.vue);
       const vivant = b.fils.find((fil: any) => fil !== mort && fil.url.pathname.includes('classement.worker'));

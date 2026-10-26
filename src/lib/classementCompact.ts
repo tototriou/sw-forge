@@ -717,8 +717,14 @@ export class CorpsClassement {
 
   constructor(private readonly sorties: {
     publier: (p: InstantaneClassement) => void;
-    resoudre: (m: MessageVersResolution) => void;
-    incident: (raison: string, detail: unknown) => void;
+    /** Un message vers le résolveur de la voie `voie` (l'indice de son canal). */
+    resoudre: (m: MessageVersResolution, voie: number) => void;
+    /**
+     * Un résolveur est perdu : `voie` nomme le Worker retiré du pool, les
+     * autres continuent ; sans `voie`, tout le pool est abandonné et la
+     * résolution reprend dans le classeur.
+     */
+    incident: (raison: string, detail: unknown, voie?: number) => void;
   }, private readonly differe = false, modeResolution: 'distante' | 'directe' = 'distante') {
     this.repli = modeResolution === 'directe';
   }
@@ -746,9 +752,11 @@ export class CorpsClassement {
     this.versions = { versionSchema: 1, idRecherche, idInventaire: contexte.idInventaire,
       idContexteResolution: this.versions.idContexteResolution, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande };
     this.entrees = null;
-    for (const m of this.pilote.invalider()) {
-      if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m));
-      else this.sorties.resoudre(m);
+    // Une voie tant que la recherche apparie, toutes au scellé (`sceller`).
+    this.pilote.activerVoies(1);
+    for (const { voie, message } of this.pilote.invaliderVoies()) {
+      if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(message));
+      else this.sorties.resoudre(message, voie);
     }
     this.sale = true; this.publicationForcee = false; this.dernierePublication = -Infinity;
     this.changerVue(vue, 1, idDemande);
@@ -840,6 +848,8 @@ export class CorpsClassement {
       return;
     }
     this.flux.scellerColonnes(nombre); this.bilan = bilan; this.collecteScellee = true;
+    // L'appariement est fini : tout le pool résout.
+    this.pilote.activerVoies(Infinity);
     // Le bilan (fin de recherche) part dès que son instantané est prêt : retenu
     // par la cadence, il n'attendrait que la prochaine réponse du résolveur.
     this.activer(idRecherche); this.sale = true; this.publicationForcee = true;
@@ -1026,21 +1036,21 @@ export class CorpsClassement {
     if (!this.entrees || !this.index || !this.vue || !this.contexte) return [];
     if ((this.cache.journal?.version ?? -1) !== this.versionLue || (this.contexte.toutVerifier && !this.selectionExhaustiveCourante())) { this.actualiser(); if (this.tache) return []; }
     if (this.passage === 0xffffffff) { this.visites.fill(0); this.passage = 0; }
-    const passage = ++this.passage, premiers: number[] = [];
+    const passage = ++this.passage, premiers: number[] = [], choix = this.pilote.maxEnVol + 1;
     let nombre = 0;
     const ajouter = (i: number) => {
       const g = this.index!.magasin.groupe(i);
       if (this.visites[g] === passage) return;
       this.visites[g] = passage; nombre++;
-      // Le pilote ne lit que ses deux places en vol et l'entrée suivante.
-      if (premiers.length < 3) premiers.push(i);
+      // Le pilote ne lit que ses places en vol et l'entrée suivante.
+      if (premiers.length < choix) premiers.push(i);
     };
     for (const i of this.pageIndices()) ajouter(i);
     const K = cibleDeLaFile({ relicContext: this.contexte.recherche.relicContext, toutVerifier: this.contexte.toutVerifier });
     if (K === Infinity) {
       const f = this.fileExhaustive!;
-      // Trois choix au total, page comprise ; au plus trois maillons lus, sauts compris.
-      for (let lien = f.premier; lien && premiers.length < 3; lien = f.suivants[lien - 1]) ajouter(f.ordinaux[lien - 1] - 1);
+      // Places en vol plus une au total, page comprise ; autant de maillons lus au plus, sauts compris.
+      for (let lien = f.premier; lien && premiers.length < choix; lien = f.suivants[lien - 1]) ajouter(f.ordinaux[lien - 1] - 1);
       return candidatsParIndice(f.nombre, (i) => premiers[i] === undefined ? undefined as unknown as BuildCandidate : this.index!.magasin.candidat(premiers[i], false));
     }
     let confirmees = 0, aVerifier = 0;
@@ -1056,7 +1066,7 @@ export class CorpsClassement {
     return { courant: () => this.entrees ? { entrees: this.entrees, signature: `${this.signature}:${this.entrees.regime}` } : null,
       runesDe: (c) => runesDuBuild(c, runesDuContexte(this.contexte!)), restants: () => this.restants(), page: () => this.page(), cache: () => this.cache,
       actualisationEnCours: () => this.travailEnCours,
-      envoyer: (m) => { if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m); },
+      envoyer: (m, voie) => { if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m, voie); },
       publier: (forcer) => { this.actualiser(); this.versions.revisionDonnees = compteurSuivant(this.versions.revisionDonnees); this.sale = true; return this.publier(maintenant, forcer); },
       enAttente: () => {}, repli: (raison, detail) => this.panneResolution(raison, detail) };
   }
@@ -1081,8 +1091,31 @@ export class CorpsClassement {
     if (this.tache) { this.reponsesEnAttente.push(r); return; }
     this.pilote.surReponse(r, this.ports(maintenant));
   }
-  panneResolution(raison: string, detail: unknown): void {
+  /**
+   * Des résolveurs branchés, `voies` canaux d'indices 0 à voies − 1. Sans
+   * effet en repli : la résolution reste dans le classeur.
+   */
+  brancherVoies(voies: number): void {
     if (this.repli) return;
+    this.reponsesEnAttente = [];
+    this.pilote.brancherVoies(voies);
+  }
+  /**
+   * Un résolveur est perdu. `voie` donnée et d'autres voies vivantes : seule
+   * celle-ci est retirée, ses builds en vol repartent sur les autres au
+   * prochain tour (aucune écriture n'en venait). Sinon, repli complet dans le
+   * classeur.
+   */
+  panneResolution(raison: string, detail: unknown, voie?: number): void {
+    if (this.repli) return;
+    // Un même Worker se signale deux fois (le hook par `onerror`, le classeur
+    // par son port) : une voie déjà retirée n'est plus une panne.
+    if (voie !== undefined && !this.pilote.voieVivante(voie)) return;
+    if (voie !== undefined && this.pilote.voiesVivantes > 1) {
+      this.pilote.retirerVoie(voie);
+      this.sorties.incident(raison, detail, voie);
+      return;
+    }
     this.sorties.incident(raison, detail);
     this.incident = raison;
     this.reponsesEnAttente = []; this.reponsesDirectes = [];
@@ -1110,8 +1143,8 @@ export class CorpsClassement {
     this.contexte = null; this.vue = null; this.index = null; this.fileExhaustive = null; this.flux.liberer(); this.lots = [];
     this.auFil = []; this.auFilEnAttente = false;
     this.cache.clear(); this.generationCache = compteurSuivant(this.generationCache); this.entrees = null; this.sale = false;
-    for (const m of this.pilote.invalider()) {
-      if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m);
+    for (const { voie, message } of this.pilote.invaliderVoies()) {
+      if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(message)); else this.sorties.resoudre(message, voie);
     }
   }
   publier(maintenant: number, forcer = false): boolean {

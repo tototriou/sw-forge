@@ -304,7 +304,8 @@ export function testClassementDistantVersions() {
   ok(publications[publications.length - 1].enAttente === 0, 'dernière réponse publiée sans dépendre d’un événement suivant');
 }
 
-async function fil(nom: string): Promise<Worker> {
+/** Une coquille de production (`<nom>.worker.ts`) sur un vrai fil Node. */
+export async function fil(nom: string): Promise<Worker> {
   const paquet = await build({ stdin: { contents: `import './src/workers/${nom}.worker';`, resolveDir: process.cwd(), loader: 'ts' }, bundle: true, platform: 'node', format: 'cjs', write: false, logLevel: 'error' });
   return new Worker(`const {parentPort}=require('node:worker_threads'); global.self={postMessage:(m,t)=>parentPort.postMessage(m,t)};\n${paquet.outputFiles[0].text}\nparentPort.on('message',data=>self.onmessage({data}));`, { eval: true });
 }
@@ -393,7 +394,9 @@ export function testClassementBranchementApp() {
   ok(!/parBuild|fullSortedCandidates|affichees|compositionDePage\(|compteConfirme\(|optionsDuContexte|cleBuild\(/.test(ecran),
     'l’écran ne lit ni cache, ni classement complet, ni composition : aucun parcours de N');
   ok(hook.includes('setStatus(\'error\')') && !/const \w+ = new RecepteurCandidats/.test(hook), 'perte du classeur via le canal d’erreur, sans récepteur de secours sur la page');
-  ok(hook.includes('d.worker.terminate(); d.resolution?.terminate();'), 'seul le propriétaire applicatif détruit les Workers');
+  ok(hook.includes('d.worker.terminate(); for (const r of d.resolutions) r?.terminate();'), 'seul le propriétaire applicatif détruit les Workers, tout le pool de résolution');
+  ok(hook.includes('nombreDeResolveurs(navigator.hardwareConcurrency, coeursPhysiquesRef.current)')
+    && hook.includes("worker.postMessage({ type: 'portsResolution', ports }, ports)"), 'le pool suit la règle des Workers de la machine, ses canaux transférés ensemble au classeur');
 
   const plusLong = (v: unknown, vus = new Set<unknown>()): number => {
     if (v === null || typeof v !== 'object' || vus.has(v)) return 0;

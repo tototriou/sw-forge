@@ -10,21 +10,36 @@ export type MessageRechercheClassement =
   | { type: 'candidats'; idRecherche: number; sequence: number; bloc: BlocCandidats }
   | { type: 'activer'; idRecherche: number }
   | { type: 'sceller'; idRecherche: number; nombre: number; derniereSequence: number; bilan: Omit<SearchResult, 'candidates'> };
-type Branchement = { type: 'portRecherche'; idRecherche: number; port: MessagePort } | { type: 'portResolution'; port: MessagePort };
+// `portResolution` : un seul résolveur ; `portsResolution` : le pool, un canal par
+// Worker, la voie étant l'indice du canal.
+type Branchement = { type: 'portRecherche'; idRecherche: number; port: MessagePort }
+  | { type: 'portResolution'; port: MessagePort } | { type: 'portsResolution'; ports: MessagePort[] };
 
 let generation = 0;
 let recherche: MessagePort | null = null;
-let resolution: MessagePort | null = null;
+let resolutions: (MessagePort | null)[] = [];
 function poster(r: ReponseClassement) { self.postMessage(r); }
 const corps = creerCorps();
 function creerCorps(): CorpsClassement {
   // L'instantané de la page est petit : il se clone, rien n'est transféré.
   return new CorpsClassement({ publier: (publication) => poster({ type: 'publication', versionSchema: 1, publication }),
-    resoudre: (m) => { if (!resolution) throw new Error('Canal de résolution absent'); resolution.postMessage(m); },
-    incident: (raison, detail) => {
-      resolution?.close(); resolution = null;
-      poster({ type: 'incidentResolution', versionSchema: 1, idRecherche: generation, raison, detail });
+    resoudre: (m, voie) => { const port = resolutions[voie]; if (!port) throw new Error('Canal de résolution absent'); port.postMessage(m); },
+    incident: (raison, detail, voie) => {
+      // Une voie : ce Worker seul quitte le pool ; sinon tout le pool.
+      if (voie !== undefined) { resolutions[voie]?.close(); resolutions[voie] = null; }
+      else { for (const p of resolutions) p?.close(); resolutions = []; }
+      poster({ type: 'incidentResolution', versionSchema: 1, idRecherche: generation, raison, detail, ...(voie !== undefined ? { voie } : {}) });
     } }, true);
+}
+function brancherResolveurs(ports: MessagePort[]): void {
+  for (const p of resolutions) p?.close();
+  resolutions = [...ports];
+  ports.forEach((port, voie) => {
+    port.onmessage = (e: MessageEvent<ReponseResolution>) => proteger(() => { if (resolutions[voie] !== port) return; corps.recevoirResolution(e.data, performance.now()); programmer(); });
+    port.onmessageerror = () => proteger(() => { if (resolutions[voie] !== port) return; corps.panneResolution('Réponse du résolveur illisible', null, voie); programmer(); });
+    port.start();
+  });
+  corps.brancherVoies(ports.length);
 }
 // Tranches de 4 ms relancées par message de canal : des `setTimeout(0)`
 // enchaînés sont bridés à ~4 ms par Chromium, le classeur passait la moitié
@@ -52,12 +67,10 @@ function proteger(f: () => void): void {
 const programmer = () => relance.programmer();
 self.onmessage = (e: MessageEvent<MessageVersClassement | Branchement>) => proteger(() => {
   const m = e.data;
-  if (m.type === 'portResolution') {
-    resolution?.close(); resolution = m.port;
-    const port = resolution;
-    resolution.onmessage = (e: MessageEvent<ReponseResolution>) => proteger(() => { if (resolution !== port) return; corps.recevoirResolution(e.data, performance.now()); programmer(); });
-    resolution.onmessageerror = () => proteger(() => { corps.panneResolution('Réponse du résolveur illisible', null); programmer(); });
-    resolution.start(); return;
+  if (m.type === 'portResolution') { brancherResolveurs([m.port]); return; }
+  if (m.type === 'portsResolution') {
+    if (!Array.isArray(m.ports) || m.ports.length < 1) throw new Error('Pool de résolution vide');
+    brancherResolveurs(m.ports); return;
   }
   if (m.type === 'portRecherche') {
     if (m.idRecherche !== generation) { m.port.close(); return; }
@@ -87,7 +100,7 @@ self.onmessage = (e: MessageEvent<MessageVersClassement | Branchement>) => prote
     corps.changerVue(m.vue, m.idVue, m.idDemande);
     poster({ type: 'vueRecue', versionSchema: 1, idRecherche: generation, idDemande: m.idDemande, idVue: m.idVue }); programmer();
   }
-  if (m.type === 'panneResolution') { corps.panneResolution(m.raison, m.detail); programmer(); }
+  if (m.type === 'panneResolution') { corps.panneResolution(m.raison, m.detail, m.voie); programmer(); }
   if (m.type === 'liberer') {
     relance.annuler(); recherche?.close(); recherche = null; corps.liberer();
     poster({ type: 'liberee', versionSchema: 1, idRecherche: generation, idDemande: m.idDemande });

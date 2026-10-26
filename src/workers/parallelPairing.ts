@@ -58,6 +58,23 @@ export function nombreDeTravailleurs(concurrence: number | undefined, coeursPhys
   return Math.min(TRAVAILLEURS_MAX, Math.max(TRAVAILLEURS_MIN, coeurs - COEURS_LAISSES));
 }
 
+/**
+ * Nombre de Workers du pool de résolution de l'équipement : la règle de
+ * l'appariement (`nombreDeTravailleurs`), parce que les deux ne tournent pas
+ * en même temps sur le gros du travail — l'appariement finit en une à
+ * quelques secondes, la résolution dure ensuite des dizaines de secondes, un
+ * build à la fois par Worker.
+ *
+ * Mémoire, relevée en Node sur une recherche « Dégâts réels » à relique
+ * libre (300 builds) : chaque Worker garde ~21 Mo vivants (fil vide ~8 Mo,
+ * contexte cloné ~6 Mo, caches de résolution ~7 Mo) ; un seul Worker en
+ * garde autant, le pool les multiplie par N. Pas de borne propre : le
+ * plafond de la règle (8) reste sous ~170 Mo.
+ */
+export function nombreDeResolveurs(concurrence: number | undefined, coeursPhysiques: number | null): number {
+  return nombreDeTravailleurs(concurrence, coeursPhysiques);
+}
+
 export type RegimeAppariement = 'sequentiel' | 'parallele';
 
 /**

@@ -12,7 +12,7 @@ import type { SearchResult } from './runeBuildOptim';
 import { triDesResultats, type ColonneResultat } from './colonnesResultats';
 import { SENS_PAR_DEFAUT, signeTri, type SensTri } from './tri';
 import { CATEGORIE_LIGNE, NOMBRE_CATEGORIES, SANS_FILTRE, colonneDisponible, copierBornes, dansLaVue, etatDesBornes, filtreDesLignes, valeurAffichee,
-  AUCUNE_BORNE, type BornesResultats, type EtatBornes, type FiltreLignes } from './filtresResultats';
+  AUCUNE_BORNE, objectifsMontres, type BornesResultats, type EtatBornes, type FiltreLignes } from './filtresResultats';
 
 /** Une ligne pas encore notée : aucune catégorie, hors des comptes. */
 const NON_JUGEE = 255;
@@ -553,6 +553,12 @@ export interface VueClassement {
    * que le panneau de stats écrit, au plus 100 (`displayedTotal`).
    */
   afficherDepassement?: boolean;
+  /**
+   * Les onze valeurs sur chaque carte publiée, PV effectifs et Dégâts réels
+   * compris (le tableau des résultats) ; absent = seulement celles que la
+   * carte écrit (`objectifsMontres`). Ne change ni l'ordre ni les bornes.
+   */
+  colonnesCompletes?: boolean;
 }
 const sensDe = (vue: VueClassement): SensTri => vue.sens ?? SENS_PAR_DEFAUT;
 const depassementDe = (vue: VueClassement): boolean => vue.afficherDepassement ?? true;
@@ -1136,8 +1142,11 @@ export class CorpsClassement {
     } else if (index) ordinaux = index.page(debut, TAILLE_PAGE_CLASSEMENT);
     const objectif = contexte.recherche.objective;
     const options = optionsDuContexte(contexte, this.cache, vue.metric);
-    const avecEhp = objectif === 'ehp' || vue.tri === 'ehp';
-    const avecDegats = contexte.realDamage !== null && (objectif === 'degats_reels' || vue.tri === 'degats_reels');
+    // La carte écrit la valeur qui la classe (objectif, tri) ou qu'une borne
+    // juge ; le tableau, toutes ses colonnes (`colonnesCompletes`).
+    const montres = objectifsMontres(objectif, vue.tri, this.bornes.actives.map((b) => b.colonne));
+    const avecEhp = montres.ehp || vue.colonnesCompletes === true;
+    const avecDegats = contexte.realDamage !== null && (montres.degats || vue.colonnesCompletes === true);
     const cartes = ordinaux.map((i): CarteClassement => {
       const { candidat, resultat } = this.ligneAffichee(index!, i);
       return { ordinal: i, candidat, resultat,

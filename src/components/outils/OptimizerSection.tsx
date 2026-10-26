@@ -14,6 +14,7 @@ import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactC
 import { contexteResultat, runesDuContexte } from '../../lib/contexteResultat';
 import { TAILLE_PAGE_CLASSEMENT, type CarteClassement } from '../../lib/classementCompact';
 import { triDesResultats } from '../../lib/colonnesResultats';
+import { objectifsMontres } from '../../lib/filtresResultats';
 import {
   bornesArtefacts,
   chercherPaires,
@@ -2253,6 +2254,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
 
   // Les chiffres des cartes lisent la photographie et l'instantané du classeur.
   const contexteResultatAffiche = search.contexte;
+  // Les runes et la mesure que la carte écrit sont celles que le classeur a
+  // jugées : les runes du contexte (le pool du lancement, mêmes données que
+  // l'inventaire jusqu'au prochain import, qui efface les résultats) et la
+  // mesure de la vue publiée. Une borne d'Efficience compare donc le chiffre
+  // même de la carte.
+  const runesDesCartes = contexteResultatAffiche ? runesDuContexte(contexteResultatAffiche) : runeById;
+  const mesureDesCartes = instantane?.vue.metric ?? metric;
   const avecFile = instantane ? instantane.comptes.avecFile : contexteResultatAffiche?.resolution != null;
   const aurasPropresDuResultat = useMemo(() => contexteResultatAffiche
     ? aurasPropresParRunes(runesDuContexte(contexteResultatAffiche)) : aurasPropresDe,
@@ -2816,6 +2824,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     const carte = cartes[rang];
     const objectifDesCartes = photo?.recherche.objective ?? objective;
     const triDesCartes = instantane?.vue.tri ?? sortBy;
+    // Les rangées « PV effectifs » et « Dégâts » de la carte : la valeur qui
+    // la classe, ou celle qu'une borne active juge (même règle que le classeur).
+    const montres = objectifsMontres(objectifDesCartes, triDesCartes, instantane?.filtre.bornes.actives ?? []);
     const degatsDesCartes = photo ? photo.realDamage : realDamage;
     const combatDesCartes = photo?.damageSetup ?? damageSetup;
     const artefactsDesCartes = photo?.recherche.artifacts ?? searchArtifacts;
@@ -2857,15 +2868,17 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           // avec les options du classement affiché, calculé par le
           // classeur (Ténacité et points de la relique retenue compris).
           pvEffectifs:
-            objectifDesCartes === 'ehp' || triDesCartes === 'ehp'
+            montres.ehp && carte?.pvEffectifs != null
               ? (() => {
                   const total = carte?.pvEffectifs as number;
                   return { total, delta: compare && refEhpResultat != null ? total - refEhpResultat : undefined };
                 })()
               : undefined,
           metricDelta:
-            compare && refMetric != null
-              ? candidateMetricTotal(c, runeById, metric) - refMetric
+            // La référence est dans la mesure courante : pas d'écart tant que
+            // la page publiée est encore dans l'autre.
+            compare && refMetric != null && mesureDesCartes === metric
+              ? candidateMetricTotal(c, runesDesCartes, mesureDesCartes) - refMetric
               : undefined,
           // ⚠️ Le delta est calculé PAR STAT contre la référence, et
           // seulement pour la carte comparée : le faire pour les 20
@@ -2889,7 +2902,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // par dégâts réels, auquel cas le chiffre qui ordonne les
       // cartes doit être visible dessus.
       degatsReels:
-        degatsDesCartes && (objectifDesCartes === 'degats_reels' || triDesCartes === 'degats_reels')
+        degatsDesCartes && montres.degats && carte?.degatsReels != null
           ? (() => {
               // ⚠️ Le chiffre qui a CLASSÉ la carte : `scoreDuCandidat`
               // avec les options du classement affiché, calculé par le
@@ -3017,9 +3030,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             bureau={!sousLg}
             grilleResultatsRef={grilleResultatsRef}
             composition={composition}
-            runeById={runeById}
+            runeById={runesDesCartes}
             relicUsageById={relicUsageById}
-            metric={metric}
+            metric={mesureDesCartes}
             openDetailKey={openDetailKey}
             onToggleDetail={(key: string) => {
               const versions = instantane?.versions, courantes = publicationCouranteRef.current;

@@ -102,6 +102,7 @@ import { testFiltresResultatsBornes, testFiltresResultatsReversibles, testFiltre
   testFiltresResultatsDifferentiel, testFiltresResultatsPlafondAffiche } from './filtres-resultats.test';
 import { testFiltresResultatsDoublonsTaches } from './filtres-resultats-doublons.test';
 import { testFiltresResultatsMemoire } from './filtres-memoire.test';
+import { testFiltresResultatsValeurBornee } from './filtres-carte.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
 import { testOptimizerFormatBig } from './format-big.test';
@@ -373,7 +374,7 @@ import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerIdentiteEn
   testRenduMemoireOptimizerClicValiderFiche, testRenduMemoireOptimizerClicValiderInclut,
   testRenduTelephoneMemoireOptimizerClicAjouter, testRenduTelephoneMemoireOptimizerClicValiderFiche,
   testRenduRattachementOptimizer, testRenduTelephoneRattachementOptimizer, testRenduRattachementOptimizerDemonte,
-  testRenduFiltresResultatsMemoire } from './rendu/optimizer-memoire.test';
+  testRenduFiltresResultatsMemoire, testRenduFiltresResultatsCarteContexte } from './rendu/optimizer-memoire.test';
 import { testRenduBestiaire, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
 import { testAlignementVersion } from './alignement-version.test';
 import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi, testRenduTelephoneRtaFiltre } from './rendu/telephone-accueil-rta.test';
@@ -468,6 +469,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduMemoireOptimizerSourceRta', testRenduMemoireOptimizerSourceRta],
   ['testRenduMemoireOptimizerSourceSiege', testRenduMemoireOptimizerSourceSiege],
   ['testRenduFiltresResultatsMemoire', testRenduFiltresResultatsMemoire],
+  ['testRenduFiltresResultatsCarteContexte', testRenduFiltresResultatsCarteContexte],
   ['testRenduMemoireOptimizerClicAjouter', testRenduMemoireOptimizerClicAjouter],
   ['testRenduMemoireOptimizerClicValiderFiche', testRenduMemoireOptimizerClicValiderFiche],
   ['testRenduMemoireOptimizerClicValiderInclut', testRenduMemoireOptimizerClicValiderInclut],
@@ -909,6 +911,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testFiltresResultatsPlafondAffiche', testFiltresResultatsPlafondAffiche],
   ['testFiltresResultatsDoublonsTaches', testFiltresResultatsDoublonsTaches],
   ['testFiltresResultatsMemoire', testFiltresResultatsMemoire],
+  ['testFiltresResultatsValeurBornee', testFiltresResultatsValeurBornee],
   ['testTriSansNouvelleResolution', testTriSansNouvelleResolution],
   ['testToutVerifierPhotographie', testToutVerifierPhotographie],
   ['testPlacesEnAttenteToujoursTravaillees', testPlacesEnAttenteToujoursTravaillees],

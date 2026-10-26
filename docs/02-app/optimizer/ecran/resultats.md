@@ -69,6 +69,12 @@ sans relance automatique ni reconstruction d'un résultat depuis l'écran.
     ([tests/rune-optim.test.ts](tests/rune-optim.test.ts) : la fonction ne
     doit JAMAIS lire `effTotal`, vérifié avec un `effTotal` délibérément
     faux). Le tri « Trier par efficience » recalcule de même.
+    ⚠️ **Les runes et la mesure de la carte sont celles que le classeur a
+    jugées** : les runes du contexte de la recherche (`runesDuContexte`,
+    le pool photographié au lancement) et la mesure de la vue publiée. Une
+    borne d'Efficience compare ainsi le chiffre même de la carte ; avec
+    l'inventaire vivant, un inventaire changé sous des résultats encore
+    affichés aurait fait écrire à la carte un autre chiffre que celui jugé.
     ⚠️ **Au téléphone et au doigt, une carte tient dans 360 px** (`scale=0,45` sur la
     roue et les artéfacts, grille `repeat(auto-fill, minmax(min(360px,100%),
     1fr))`, creux `gap-3`) : c'est la largeur d'une carte par rangée ;
@@ -408,7 +414,11 @@ tri ; ../feat-listes-equipes-et-sauvegarde.md § Mémoires des membres).
 **nombre de dégâts** qui a servi à la classer, et la part des PV de la
 cible qu'il emporte (« tue la cible » à partir de 100 %). Visible dès que
 ce critère ordonne la liste — que ce soit l'objectif de la recherche ou
-un tri choisi après coup.
+un tri choisi après coup —, et dès qu'une borne active le juge (§ Filtres
+d'affichage par colonne) : une carte gardée par « Dégâts réels ≥ 50 000 »
+écrit la valeur bornée. Une seule règle pour le classeur, qui calcule, et
+l'écran, qui montre (`objectifsMontres`, filtresResultats.ts) ; le tableau
+demande les onze valeurs de chaque carte (`colonnesCompletes` de la vue).
 ⚠️ **Objectif « PV effectifs »** : même traitement, et pour la même
 raison — chaque carte affiche la valeur de PV effectifs qui l'a classée :
 sans elle, on trierait par PV effectifs sans jamais voir la valeur

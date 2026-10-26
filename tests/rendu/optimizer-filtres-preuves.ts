@@ -13,6 +13,33 @@ const bouton = (nom: string, racine: ParentNode = document) => [...racine.queryS
   .find((e) => visible(e) && (e.textContent?.trim() === nom || e.getAttribute('aria-label') === nom));
 const json = (v: unknown) => JSON.stringify(v);
 
+const attendre = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const candidatSecond = { runeIds: [101, 102, 103, 104, 105, 106], effTotal: 0,
+  stats: [{ key: 'atk', label: 'ATQ', suffix: '', base: 800, bonus: 0, total: 800 }] };
+const resultatSecond = { status: 'done', progress: null,
+  result: { candidates: [candidatSecond], explored: 1, truncated: false, nearMissByCondition: [], globalNearMiss: null } };
+const moyenneDeLaCarte = () => [...document.querySelectorAll<HTMLElement>('[data-carte-resultat] span')]
+  .find((s) => visible(s) && s.children.length === 0 && /^Efficience moyenne :/.test(s.textContent?.trim() ?? ''))?.textContent?.trim() ?? '';
+
+/**
+ * La carte lit les runes du contexte de la recherche, celles que la borne
+ * juge : l'inventaire vivant peut changer sous elle sans changer ce qu'elle
+ * écrit.
+ */
+export async function preuvesCarteContexte(b: BancEcran & { changerRunes: (runes: never[]) => void }): Promise<Preuves> {
+  const preuves: Preuves = [];
+  await b.geste(() => b.etat().choisirMembre('a', b.second));
+  await b.geste(() => b.forcerRecherche(resultatSecond));
+  for (let t = 0; t < 100 && !moyenneDeLaCarte(); t++) await attendre(100);
+  const avant = moyenneDeLaCarte();
+  preuves.push([/Efficience moyenne : \d/.test(avant) && !/: 0\.0%/.test(avant), `carte affichée avec sa mesure (${avant})`]);
+  await b.geste(() => b.changerRunes([]));
+  await attendre(200);
+  const apres = moyenneDeLaCarte();
+  preuves.push([apres === avant, `inventaire vidé sous la carte : elle écrit toujours la mesure de ses runes du contexte (${avant} → ${apres})`]);
+  return preuves;
+}
+
 export async function preuvesFiltresMemoire(b: BancEcran): Promise<Preuves> {
   const preuves: Preuves = [];
   const memoire = () => b.listes().memories.get(cleMemoireMembre('a', b.premier))?.criteres;

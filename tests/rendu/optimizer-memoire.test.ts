@@ -37,6 +37,7 @@ export const testRenduMemoireOptimizerGlobauxAvantRestauration = () => transitio
 export const testRenduMemoireOptimizerSourceRta = () => transition('source-rta');
 export const testRenduMemoireOptimizerSourceSiege = () => transition('source-siege');
 export const testRenduFiltresResultatsMemoire = () => transition('filtres-memoire');
+export const testRenduFiltresResultatsCarteContexte = () => transition('filtres-carte-contexte');
 
 async function inclusion(genre: 'ajout' | 'fiche' | 'carte', telephone = false) {
   titre(`rendu · Optimizer mémoire — inclusion par clic ${genre}${telephone ? ' au téléphone' : ''}`);

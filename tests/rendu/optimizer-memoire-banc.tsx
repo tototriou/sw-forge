@@ -25,7 +25,7 @@ import { preuvesCreationObligatoire, preuvesEtatAuras, preuvesEnteteEquipe, preu
 import { preuvesEquipeImpossible } from './optimizer-equipe-impossible-preuves';
 import { preuvesReglagesAvances, preuvesGuidage, preuvesRappelDeuxRendus, preuvesListesEcran, preuvesMessageImport, preuvesResultats } from './optimizer-ecran-preuves';
 import { rechercheClasseeTest } from './optimizer-classement-banc';
-import { preuvesFiltresMemoire } from './optimizer-filtres-preuves';
+import { preuvesCarteContexte, preuvesFiltresMemoire } from './optimizer-filtres-preuves';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -138,7 +138,7 @@ export async function monter(avecRapport = false) {
 
 export async function scenario(nom: string): Promise<[boolean, string][]> {
   avecPoint = nom.startsWith('point-');
-  avecRunes = nom.startsWith('rattachement') || avecPoint || nom === 'ecran-resultats';
+  avecRunes = nom.startsWith('rattachement') || avecPoint || nom === 'ecran-resultats' || nom.startsWith('filtres-');
   await monter(nom === 'zone-c');
   if (nom.startsWith('recherche-auto-')) return preuvesRechercheOptimizer({ etat: () => etat, listes: () => listes,
     data: () => compteActuel, changerBox, changerDefenses, geste, premier, second, troisieme }, nom.slice('recherche-auto-'.length));
@@ -169,6 +169,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   if (nom === 'ecran-message-import') return preuvesMessageImport(bancEcran);
   if (nom === 'ecran-resultats') return preuvesResultats(bancEcran);
   if (nom === 'filtres-memoire') return preuvesFiltresMemoire(bancEcran);
+  if (nom === 'filtres-carte-contexte') return preuvesCarteContexte({ ...bancEcran, changerRunes });
   if (nom.startsWith('equipe-impossible-')) return preuvesEquipeImpossible(bancEquipes,nom.slice('equipe-impossible-'.length));
   if (nom === 'creation-obligatoire') return preuvesCreationObligatoire(bancEquipes);
   if (nom === 'etat-auras') return preuvesEtatAuras(bancEquipes);

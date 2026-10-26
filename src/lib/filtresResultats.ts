@@ -70,6 +70,20 @@ export function copierBornes(bornes: BornesResultats): BornesResultats {
   return copie;
 }
 
+/**
+ * Les deux valeurs d'objectif qu'une carte écrit sur sa rangée (« PV
+ * effectifs », « Dégâts ») : celle qui la classe — objectif lancé ou tri
+ * affiché — et celle qu'une borne active juge, pour qu'une carte gardée par
+ * une borne montre la valeur bornée. Le classeur les calcule, l'écran les
+ * montre, sur cette seule règle. Dégâts réels exige en plus un sort calculable.
+ */
+export function objectifsMontres(objectif: string | undefined, tri: ColonneResultat, bornees: readonly ColonneResultat[]): { ehp: boolean; degats: boolean } {
+  return {
+    ehp: objectif === 'ehp' || tri === 'ehp' || bornees.includes('ehp'),
+    degats: objectif === 'degats_reels' || tri === 'degats_reels' || bornees.includes('degats_reels'),
+  };
+}
+
 /** Une colonne a-t-elle une valeur ? Dégâts réels exige un sort calculable. */
 export function colonneDisponible(colonne: ColonneResultat, realDamage: unknown): boolean {
   return colonne !== 'degats_reels' || (realDamage !== null && realDamage !== undefined);

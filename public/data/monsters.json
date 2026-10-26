@@ -1,8 +1,8 @@
 {
   "meta": {
-    "generated_at": "2026-10-07T10:25:49.186Z",
+    "generated_at": "2026-10-26T12:29:15.210Z",
     "source": "live",
-    "count": 3089
+    "count": 3099
   },
   "monsters": [
     {
@@ -88429,6 +88429,316 @@
       "swarfarmId": 3104,
       "familyId": 701400,
       "skillGroupId": 701400
+    },
+    {
+      "id": 3105,
+      "com2usId": 36701,
+      "name": "Cosmic Worm",
+      "element": "water",
+      "archetype": "support",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_0_1.png",
+      "stats": {
+        "hp": 10215,
+        "attack": 648,
+        "defense": 648,
+        "speed": 100,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Resistance",
+        "amount": 41,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3105,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3106,
+      "com2usId": 36702,
+      "name": "Cosmic Worm",
+      "element": "fire",
+      "archetype": "hp",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_0_2.png",
+      "stats": {
+        "hp": 11700,
+        "attack": 582,
+        "defense": 615,
+        "speed": 100,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Defense",
+        "amount": 33,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3106,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3107,
+      "com2usId": 36703,
+      "name": "Cosmic Worm",
+      "element": "wind",
+      "archetype": "support",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_0_3.png",
+      "stats": {
+        "hp": 10380,
+        "attack": 659,
+        "defense": 626,
+        "speed": 100,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "HP",
+        "amount": 33,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3107,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3108,
+      "com2usId": 36704,
+      "name": "Cosmic Worm",
+      "element": "light",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_0_4.png",
+      "stats": {
+        "hp": 8895,
+        "attack": 801,
+        "defense": 582,
+        "speed": 100,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Attack Power",
+        "amount": 33,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3108,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3109,
+      "com2usId": 36705,
+      "name": "Cosmic Worm",
+      "element": "dark",
+      "archetype": "hp",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_0_5.png",
+      "stats": {
+        "hp": 11535,
+        "attack": 560,
+        "defense": 648,
+        "speed": 100,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Critical Rate",
+        "amount": 24,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3109,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3110,
+      "com2usId": 36711,
+      "name": "Maris",
+      "element": "water",
+      "archetype": "support",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_1_1.png",
+      "stats": {
+        "hp": 11205,
+        "attack": 703,
+        "defense": 692,
+        "speed": 101,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": {
+        "stat": "Resistance",
+        "amount": 41,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3110,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3111,
+      "com2usId": 36712,
+      "name": "Volcaris",
+      "element": "fire",
+      "archetype": "hp",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_1_2.png",
+      "stats": {
+        "hp": 12840,
+        "attack": 626,
+        "defense": 659,
+        "speed": 101,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": {
+        "stat": "Defense",
+        "amount": 33,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3111,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3112,
+      "com2usId": 36713,
+      "name": "Auraris",
+      "element": "wind",
+      "archetype": "support",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_1_3.png",
+      "stats": {
+        "hp": 11370,
+        "attack": 714,
+        "defense": 670,
+        "speed": 101,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": {
+        "stat": "HP",
+        "amount": 33,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3112,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3113,
+      "com2usId": 36714,
+      "name": "Luminaris",
+      "element": "light",
+      "archetype": "attack",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_1_4.png",
+      "stats": {
+        "hp": 9720,
+        "attack": 878,
+        "defense": 615,
+        "speed": 101,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": {
+        "stat": "Attack Power",
+        "amount": 33,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3113,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3114,
+      "com2usId": 36715,
+      "name": "Noctaris",
+      "element": "dark",
+      "archetype": "hp",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_1_5.png",
+      "stats": {
+        "hp": 12675,
+        "attack": 604,
+        "defense": 692,
+        "speed": 101,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": {
+        "stat": "Critical Rate",
+        "amount": 24,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3114,
+      "familyId": 36700,
+      "skillGroupId": 36700
     }
   ]
 }

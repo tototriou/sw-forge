@@ -1,5 +1,6 @@
 import { isDeepStrictEqual } from 'node:util';
-import { CorpsClassement, type InstantaneClassement, type PublicationClassement, type VueClassement } from '../src/lib/classementCompact';
+import { CorpsClassement, ordreCollecte, type InstantaneClassement, type PublicationClassement, type VueClassement } from '../src/lib/classementCompact';
+import { optionsDuContexte, type ContexteResultat } from '../src/lib/contexteResultat';
 import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs, type BlocCandidats } from '../src/lib/candidatsCompacts';
 import type { BuildCandidate } from '../src/lib/runeBuildOptim';
 import { computeStats } from '../src/lib/stats';
@@ -70,6 +71,8 @@ type StatOuObjectif = VueClassement['tri'];
  * prépare notes et ordre de base au fil des blocs, entrelacés avec ses tâches
  * (aperçu, actualisations) à des cadences tirées, l'autre ne prépare rien et
  * classe tout au scellé. Leurs instantanés et projections doivent être égaux.
+ * Les deux passent par le même code au scellé : la référence indépendante de
+ * leur ordre de base est `ordreCollecte` (`verifierOrdresDeBase`).
  */
 function rejouer(s: Scenario) {
   const hasard = generateur(s.graine);
@@ -123,9 +126,30 @@ function rejouer(s: Scenario) {
   return { f, candidats, a, r, auFil };
 }
 
+/**
+ * La référence indépendante du travail au fil : `ordreCollecte`, l'ancien
+ * chemin, qui note les N lignes et les trie d'un bloc (`trierIndicesEtapes`),
+ * pour l'ordre de base de la vue et, quand la vue ne suit pas le lancement,
+ * pour l'ordre du fond.
+ */
+function verifierOrdresDeBase(nom: string, corps: CorpsClassement, photo: ContexteResultat, p: PublicationClassement) {
+  const interne = corps as unknown as { base: Uint32Array; fondPropre: { ordre: Uint32Array } | null };
+  const ecart = (recu: Uint32Array, attendu: Uint32Array) => attendu.findIndex((i, k) => recu[k] !== i);
+  const attendu = ordreCollecte(p.candidats, p.vue.tri, optionsDuContexte(photo, null, p.vue.metric));
+  if (interne.base.length !== attendu.length || ecart(interne.base, attendu) >= 0)
+    throw new Error(`ARRÊT ${nom} : ordre de base contre ordreCollecte, premier écart au rang ${ecart(interne.base, attendu) + 1}`);
+  const objectif = photo.recherche.objective ?? 'efficience', metric = photo.recherche.metric;
+  if (p.vue.tri === objectif && p.vue.metric === metric) return;
+  const fond = ordreCollecte(p.candidats, objectif, optionsDuContexte(photo, null, metric));
+  if (!interne.fondPropre || ecart(interne.fondPropre.ordre, fond) >= 0) throw new Error(`ARRÊT ${nom} : ordre du fond contre ordreCollecte`);
+}
+
 function comparer(s: Scenario) {
   const { f, candidats, a, r, auFil } = rejouer(s);
   const pa: PublicationClassement = a.corps.projection(), pr: PublicationClassement = r.corps.projection();
+  verifierOrdresDeBase(`${s.nom}, au fil`, a.corps, f.photo, pa);
+  verifierOrdresDeBase(`${s.nom}, au scellé`, r.corps, f.photo, pr);
+  ok(true, `${s.nom} : ordre de base (et du fond) des deux propriétaires égal à ordreCollecte, tri des N lignes d'un bloc`);
   if (a.publications.length !== r.publications.length) throw new Error(`ARRÊT ${s.nom} : ${a.publications.length} publications au fil contre ${r.publications.length} au scellé`);
   a.publications.forEach((p, k) => {
     if (!isDeepStrictEqual(p, r.publications[k])) throw new Error(`ARRÊT ${s.nom} : publication ${k + 1} différente\n${JSON.stringify(p).slice(0, 400)}\n${JSON.stringify(r.publications[k]).slice(0, 400)}`);

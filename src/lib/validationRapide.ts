@@ -174,8 +174,17 @@ export class ValidationTypee {
       }
       return i;
     };
-    for (const r of runesA) indiceDe(r.set);
-    for (const r of runesB) indiceDe(r.set);
+    // Une rune revient dans des centaines de demi-builds : chacune n'est vue
+    // qu'une fois (même objet), dans l'ordre de première apparition, qui est
+    // celui où les indices de set sont attribués.
+    const vues = new Set<RuneDetail>();
+    for (const runes of [runesA, runesB]) {
+      for (const r of runes) {
+        if (vues.has(r)) continue;
+        vues.add(r);
+        indiceDe(r.set);
+      }
+    }
     const parDemande = new Map<number, number>();
     for (const key of requirement.sets) {
       const i = indiceDe(key);
@@ -266,30 +275,52 @@ export class ValidationTypee {
 
     // Demi-builds.
     const valeur = (r: RuneDetail) => (metric === 'eff' ? runeEfficiency(r) : runeScore(r));
+    // Par rune distincte (même objet), lue une fois : ses lignes `(voie, valeur)`
+    // dans l'ordre de lecture (principale, innée, sous-stats), son indice de set,
+    // sa valeur. Chaque demi-build rejoue ensuite les mêmes additions, dans le
+    // même ordre, que la lecture rune par rune.
+    const parRune = new Map<RuneDetail, number>();
+    const lignesRune: number[][] = [];
+    const setRune: number[] = [];
+    const valeurRune: number[] = [];
+    const indexDe = (rune: RuneDetail): number => {
+      const connu = parRune.get(rune);
+      if (connu !== undefined) return connu;
+      const lignes: number[] = [];
+      const ligne = (code: number, value: number) => {
+        const def = RUNE_EFFECT[code];
+        if (!def) return;
+        // Un % hors PV/ATQ/DEF n'entre dans aucun total de `computeStats` (voie −1 : ignoré).
+        const voie = def.pct ? voiePct(def.stat) : voiePlate(def.stat);
+        if (voie >= 0) lignes.push(voie, value);
+      };
+      ligne(rune.main.code, rune.main.value);
+      if (rune.innate) ligne(rune.innate.code, rune.innate.value);
+      for (const s of rune.subs) ligne(s.code, s.value);
+      const k = lignesRune.length;
+      lignesRune.push(lignes);
+      setRune.push(indiceDe(rune.set));
+      valeurRune.push(valeur(rune));
+      parRune.set(rune, k);
+      return k;
+    };
     const encoder = (runes: readonly RuneDetail[], n: number, estA: boolean) => {
       const somme = new Int32Array(NV * n);
       const sets = new Uint8Array(3 * n);
       const eff = new Float64Array(estA ? n : 3 * n);
       const ids = new Float64Array(3 * n);
       if (this.motif) return { somme, sets, eff, ids };
-      const ligne = (g: number, code: number, value: number) => {
-        const def = RUNE_EFFECT[code];
-        if (!def) return;
-        // Un % hors PV/ATQ/DEF n'entre dans aucun total de `computeStats` (voie −1 : ignoré).
-        const voie = def.pct ? voiePct(def.stat) : voiePlate(def.stat);
-        if (voie >= 0) somme[g * NV + voie] += value;
-      };
       for (let g = 0; g < n; g++) {
         let pre = 0;
         for (let r = 0; r < 3; r++) {
           const rune = runes[3 * g + r];
-          ligne(g, rune.main.code, rune.main.value);
-          if (rune.innate) ligne(g, rune.innate.code, rune.innate.value);
-          for (const s of rune.subs) ligne(g, s.code, s.value);
-          sets[3 * g + r] = indiceDe(rune.set);
+          const k = indexDe(rune);
+          const lignes = lignesRune[k];
+          for (let l = 0; l < lignes.length; l += 2) somme[g * NV + lignes[l]] += lignes[l + 1];
+          sets[3 * g + r] = setRune[k];
           ids[3 * g + r] = rune.id;
-          if (estA) pre = pre + valeur(rune);
-          else eff[3 * g + r] = valeur(rune);
+          if (estA) pre = pre + valeurRune[k];
+          else eff[3 * g + r] = valeurRune[k];
         }
         if (estA) eff[g] = pre;
       }
@@ -315,9 +346,14 @@ export class ValidationTypee {
     const verifierLigne = (code: number, value: number, ou: string): string | null =>
       RUNE_EFFECT[code] && !entierBorne(value) ? `${ou} : valeur non entière ou hors borne (${value})` : null;
     const ensembles = new Set<string>();
+    // Une rune déjà jugée (même objet) l'est à l'identique : la première
+    // occurrence en échec reste la première rune en échec, et le motif le même.
+    const jugees = new Set<RuneDetail>();
     for (const runes of [runesA, runesB]) {
       if (runes.length % 3 !== 0) return 'demi-builds incomplets';
       for (const r of runes) {
+        if (jugees.has(r)) continue;
+        jugees.add(r);
         if (r.set) ensembles.add(r.set);
         const m = verifierLigne(r.main.code, r.main.value, `rune ${r.id}, principale`)
           ?? (r.innate ? verifierLigne(r.innate.code, r.innate.value, `rune ${r.id}, innée`) : null)

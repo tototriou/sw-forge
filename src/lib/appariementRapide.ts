@@ -151,15 +151,50 @@ export function comboAOuvert(prepared: PreparedSearch, comboA: Pick<VueCombo, 'p
   return comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPctMax, artFlatMax, totalOf, artFlatMin, relPctMin);
 }
 
-/** Le compte exact de production, avec les mêmes prédicats que totalPairCount. */
-export function compterPaires(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[]): number {
-  let total = 0;
-  const vue = nouvelleVueCombo();
-  for (const a of bucketsA) for (const b of bucketsB) {
-    if (!paireDeCompartimentsOuverte(prepared, a, b)) continue;
-    for (let i = 0; i < a.combos.length; i++) if (comboAOuvert(prepared, lireCombo(a, i, vue), b)) total += b.combos.length;
+/**
+ * Les LIGNES de l'espace, dans l'ordre de `pairBuckets` : chaque paire de
+ * compartiments ouverte (`paireDeCompartimentsOuverte`) et, pour chacun de
+ * ses comboA, le verdict de `comboAOuvert`. Le relevé se fait UNE fois, par
+ * le Worker principal : `total` (le compte exact, celui de `totalPairCount`)
+ * choisit le régime, et le plan des morceaux se découpe sur les mêmes
+ * verdicts (`planifierMorceaux`) sans réévaluer un prédicat.
+ */
+export interface ReleveLignes {
+  total: number;
+  /** `(iA, iB)` de chaque paire de compartiments ouverte, dans l'ordre de `ordreDesCompartiments`. */
+  paires: Int32Array;
+  /** Un octet par comboA de chaque paire ouverte, à la suite (1 = ligne ouverte). */
+  drapeaux: Uint8Array;
+}
+
+export function releverLignes(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[]): ReleveLignes {
+  const ouvertes: number[] = [];
+  let lignes = 0;
+  for (const [iA, iB] of ordreDesCompartiments(bucketsA, bucketsB)) {
+    if (!paireDeCompartimentsOuverte(prepared, bucketsA[iA], bucketsB[iB])) continue;
+    ouvertes.push(iA, iB);
+    lignes += bucketsA[iA].combos.length;
   }
-  return total;
+  const drapeaux = new Uint8Array(lignes);
+  const vue = nouvelleVueCombo();
+  let total = 0;
+  let pos = 0;
+  for (let p = 0; p < ouvertes.length; p += 2) {
+    const bA = bucketsA[ouvertes[p]];
+    const bB = bucketsB[ouvertes[p + 1]];
+    const nB = bB.combos.length;
+    for (let a = 0; a < bA.combos.length; a++, pos++) {
+      if (!comboAOuvert(prepared, lireCombo(bA, a, vue), bB)) continue;
+      drapeaux[pos] = 1;
+      total += nB;
+    }
+  }
+  return { total, paires: Int32Array.from(ouvertes), drapeaux };
+}
+
+/** Le compte exact de production, avec les mêmes prédicats que totalPairCount (le `total` du relevé). */
+export function compterPaires(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[]): number {
+  return releverLignes(prepared, bucketsA, bucketsB).total;
 }
 
 /* --------------------------------------------------------------------------
@@ -314,109 +349,138 @@ export function constantesNoyau(prepared: PreparedSearch): ConstantesNoyau {
 
 /**
  * Le contrat numérique (valeurs entières, produits exacts), vérifié AVANT toute paire. Rend `null`
- * s'il tient, sinon le motif du repli sur le chemin actuel.
+ * s'il tient, sinon le motif du repli sur le chemin actuel. Même lecture que `verifierEtEncoder`,
+ * sans rien écrire.
  */
 export function verifierContrat(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[]): string | null {
-  if (prepared.traceur) return 'traceur de diagnostic demandé (le noyau ne le remplit pas)';
+  return contratEtEncodage(prepared, bucketsA, bucketsB, false).motifContrat;
+}
+
+/** Le contrat tenu et l'encodage, ou son motif de repli et rien d'encodé. */
+export type ContratEtEncodage = { motifContrat: null; compartiments: CompartimentsTypes } | { motifContrat: string; compartiments: null };
+
+/**
+ * Le contrat et, s'il tient, l'encodage des compartiments (`encoderCompartiments`),
+ * en UNE lecture des demi-builds : chaque valeur est écrite dans les Int32Array juste
+ * après avoir été vérifiée, dans l'ordre et avec les motifs de `verifierContrat`.
+ */
+export function verifierEtEncoder(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[]): ContratEtEncodage {
+  return contratEtEncodage(prepared, bucketsA, bucketsB, true) as ContratEtEncodage;
+}
+
+/**
+ * Ce que le Worker principal calcule UNE fois, les moitiés construites, pour
+ * choisir le régime (`releve.total`, `motifContrat`) et que l'appariement
+ * reprend tel quel (`lancerAppariement` → `apparierRapide` ou
+ * `apparierRapideEnParallele`) : le relevé des lignes, d'où se découpe le
+ * plan, et l'encodage. ⚠️ Consommé par un seul appariement : en parallèle, le
+ * dernier Worker reçoit l'encodage par transfert, ses tampons sont alors
+ * détachés.
+ */
+export type EspaceAppariement = ContratEtEncodage & { releve: ReleveLignes };
+
+export function analyserEspace(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[]): EspaceAppariement {
+  return { releve: releverLignes(prepared, bucketsA, bucketsB), ...verifierEtEncoder(prepared, bucketsA, bucketsB) };
+}
+
+function contratEtEncodage(
+  prepared: PreparedSearch,
+  bucketsA: Compartiment[],
+  bucketsB: Compartiment[],
+  encoder: boolean
+): { motifContrat: string | null; compartiments: CompartimentsTypes | null } {
+  const refus = (motifContrat: string) => ({ motifContrat, compartiments: null });
+  if (prepared.traceur) return refus('traceur de diagnostic demandé (le noyau ne le remplit pas)');
   const c = constantesNoyau(prepared);
   const { guaranteed, guaranteedMin, artFlatMax, artFlatMin, relPctMax, relPctMin } = prepared;
   for (let kk = 0; kk < c.m; kk++) {
     const k = c.cles[kk];
-    if (!entierBorne(c.b[kk], BORNE_BASE)) return `base ${k} non entière ou hors borne (${c.b[kk]})`;
-    if (!entierBorne(c.A0[kk], BORNE_VALEUR)) return `aura externe ${k} non entière (${c.A0[kk]})`;
+    if (!entierBorne(c.b[kk], BORNE_BASE)) return refus(`base ${k} non entière ou hors borne (${c.b[kk]})`);
+    if (!entierBorne(c.A0[kk], BORNE_VALEUR)) return refus(`aura externe ${k} non entière (${c.A0[kk]})`);
     for (const [nom, v] of [
       ['guaranteedMin.pct', guaranteedMin.pct[k] ?? 0], ['guaranteedMin.flat', guaranteedMin.flat[k] ?? 0],
       ['guaranteed.pct', guaranteed.pct[k] ?? 0], ['guaranteed.flat', guaranteed.flat[k] ?? 0],
       ['artFlatMax', artFlatMax[k] ?? 0], ['artFlatMin', artFlatMin[k] ?? 0],
       ['relPctMax', relPctMax[k] ?? 0], ['relPctMin', relPctMin[k] ?? 0],
     ] as const) {
-      if (!entierBorne(v, BORNE_VALEUR)) return `${nom}[${k}] non entier ou hors borne (${v})`;
+      if (!entierBorne(v, BORNE_VALEUR)) return refus(`${nom}[${k}] non entier ou hors borne (${v})`);
     }
   }
-  for (const { k, min } of prepared.minEntries) if (!Number.isFinite(min)) return `minimum ${k} non fini`;
-  for (const { k, max } of prepared.maxEntries) if (!Number.isFinite(max)) return `maximum ${k} non fini`;
-  for (const [moitie, buckets] of [['A', bucketsA], ['B', bucketsB]] as const) {
+  for (const { k, min } of prepared.minEntries) if (!Number.isFinite(min)) return refus(`minimum ${k} non fini`);
+  for (const { k, max } of prepared.maxEntries) if (!Number.isFinite(max)) return refus(`maximum ${k} non fini`);
+  const A = encoder ? moitieVide(bucketsA, c.cles) : null;
+  const B = encoder ? moitieVide(bucketsB, c.cles) : null;
+  const W = B ? new Int32Array(c.m * B.debut[bucketsB.length]) : null;
+  for (const [moitie, buckets, cible] of [['A', bucketsA, A], ['B', bucketsB, B]] as const) {
     const vue = nouvelleVueCombo();
+    let g = 0;
     for (const bucket of buckets) {
-      for (let i = 0; i < bucket.combos.length; i++) {
+      for (let i = 0; i < bucket.combos.length; i++, g++) {
         const combo = lireCombo(bucket, i, vue);
         for (let r = 0; r < 3; r++) {
           const id = idCombo(bucket, i, r);
-          if (!Number.isSafeInteger(id)) return `identifiant de rune non entier (${id})`;
+          if (!Number.isSafeInteger(id)) return refus(`identifiant de rune non entier (${id})`);
+          if (cible) cible.ids[3 * g + r] = id;
         }
         for (let kk = 0; kk < c.m; kk++) {
           const k = c.cles[kk];
           const p = combo.pct[k] ?? 0;
           const f = combo.flat[k] ?? 0;
-          if (!entierBorne(p, BORNE_VALEUR) || !entierBorne(f, BORNE_VALEUR)) return `demi-build ${moitie} : ${k} non entier ou hors borne (${p} %, ${f})`;
+          if (!entierBorne(p, BORNE_VALEUR) || !entierBorne(f, BORNE_VALEUR)) return refus(`demi-build ${moitie} : ${k} non entier ou hors borne (${p} %, ${f})`);
           if (moitie === 'B') {
             const w = c.pct[kk] ? c.b[kk] * p + 100 * f : f;
-            if (Math.abs(w) >= BORNE_W) return `contribution W de ${k} hors Int32 (${w})`;
+            if (Math.abs(w) >= BORNE_W) return refus(`contribution W de ${k} hors Int32 (${w})`);
+            if (W) W[g * c.m + kk] = w;
+          }
+          if (cible) {
+            if (cible.indicesPct[kk] >= 0) cible.pct[g * cible.pasPct + cible.indicesPct[kk]] = p;
+            cible.flat[g * c.m + kk] = f;
           }
         }
       }
     }
   }
-  return null;
+  if (!A || !B || !W) return { motifContrat: null, compartiments: null };
+  return { motifContrat: null, compartiments: { cles: c.cles, m: c.m, A, B: colonnesDeSaut(c.m, B, W, bucketsB.length) } };
 }
 
-function encoderMoitie(buckets: Compartiment[], cles: StatKey[]): MoitieTypee {
+/** Les colonnes d'une moitié, allouées à zéro : `contratEtEncodage` les remplit à la lecture. */
+function moitieVide(buckets: Compartiment[], cles: StatKey[]): MoitieTypee {
   const m = cles.length;
   const debut = new Int32Array(buckets.length + 1);
   for (let i = 0; i < buckets.length; i++) debut[i + 1] = debut[i] + buckets[i].combos.length;
   const n = debut[buckets.length];
-  const ids = new Float64Array(3 * n);
   let pasPct = 0;
   const indicesPct = Int8Array.from(cles, (k) => estPct(k) ? pasPct++ : -1);
-  const pct = new Int32Array(pasPct * n);
-  const flat = new Int32Array(m * n);
-  let c = 0;
-  const vue = nouvelleVueCombo();
-  for (const bucket of buckets) {
-    for (let i = 0; i < bucket.combos.length; i++) {
-      const combo = lireCombo(bucket, i, vue);
-      ids[3 * c] = idCombo(bucket, i, 0);
-      ids[3 * c + 1] = idCombo(bucket, i, 1);
-      ids[3 * c + 2] = idCombo(bucket, i, 2);
-      for (let kk = 0; kk < m; kk++) {
-        if (indicesPct[kk] >= 0) pct[c * pasPct + indicesPct[kk]] = combo.pct[cles[kk]] ?? 0;
-        flat[c * m + kk] = combo.flat[cles[kk]] ?? 0;
-      }
-      c++;
-    }
-  }
-  return { debut, ids, pasPct, indicesPct, pct, flat };
+  return { debut, ids: new Float64Array(3 * n), pasPct, indicesPct, pct: new Int32Array(pasPct * n), flat: new Int32Array(m * n) };
 }
 
 /**
- * ⚠️ Suppose `verifierContrat` passé : toutes les valeurs écrites dans les
- * Int32Array y sont exactes.
+ * L'encodage des compartiments pour le noyau. Lève hors contrat : les valeurs
+ * ne sont écrites dans les Int32Array qu'une fois vérifiées (`verifierEtEncoder`).
  */
 export function encoderCompartiments(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[]): CompartimentsTypes {
-  const c = constantesNoyau(prepared);
-  const { cles, m } = c;
-  const A = encoderMoitie(bucketsA, cles);
-  const base = encoderMoitie(bucketsB, cles);
-  const nB = base.debut[bucketsB.length];
-  const W = new Int32Array(m * nB);
-  for (let g = 0; g < nB; g++) {
-    for (let kk = 0; kk < m; kk++) {
-      W[g * m + kk] = c.pct[kk] ? c.b[kk] * pctDe(base, g, kk) + 100 * base.flat[g * m + kk] : base.flat[g * m + kk];
-    }
-  }
+  const r = verifierEtEncoder(prepared, bucketsA, bucketsB);
+  if (r.motifContrat !== null) throw new Error(`encodage hors contrat numérique (${r.motifContrat})`);
+  return r.compartiments;
+}
+
+/** Pour B : `W` (écrit à la vérification), puis son tri par compartiment et stat, ses bornes par bloc et celles des blocs de chaque ordre trié. */
+function colonnesDeSaut(m: number, base: MoitieTypee, W: Int32Array, nCompartiments: number): MoitieBTypee {
+  const nB = base.debut[nCompartiments];
   const tri = new Int32Array(m * nB);
   const perm = new Int32Array(m * nB);
-  const debutBlocs = new Int32Array(bucketsB.length + 1);
-  for (let i = 0; i < bucketsB.length; i++) debutBlocs[i + 1] = debutBlocs[i] + Math.ceil((base.debut[i + 1] - base.debut[i]) / TAILLE_BLOC);
-  const nBlocs = debutBlocs[bucketsB.length];
+  const debutBlocs = new Int32Array(nCompartiments + 1);
+  for (let i = 0; i < nCompartiments; i++) debutBlocs[i + 1] = debutBlocs[i] + Math.ceil((base.debut[i + 1] - base.debut[i]) / TAILLE_BLOC);
+  const nBlocs = debutBlocs[nCompartiments];
   const blocMin = new Int32Array(m * nBlocs);
   const blocMax = new Int32Array(m * nBlocs);
-  const debutBlocsTri = new Int32Array(bucketsB.length + 1);
-  for (let i = 0; i < bucketsB.length; i++) debutBlocsTri[i + 1] = debutBlocsTri[i] + Math.ceil((base.debut[i + 1] - base.debut[i]) / TAILLE_BLOC_TRI);
-  const nBlocsTri = debutBlocsTri[bucketsB.length];
+  const debutBlocsTri = new Int32Array(nCompartiments + 1);
+  for (let i = 0; i < nCompartiments; i++) debutBlocsTri[i + 1] = debutBlocsTri[i] + Math.ceil((base.debut[i + 1] - base.debut[i]) / TAILLE_BLOC_TRI);
+  const nBlocsTri = debutBlocsTri[nCompartiments];
   const triBlocMin = new Int32Array(m * nBlocsTri * m);
   const triBlocMax = new Int32Array(m * nBlocsTri * m);
-  for (let i = 0; i < bucketsB.length; i++) {
+  for (let i = 0; i < nCompartiments; i++) {
     const off = base.debut[i];
     const n = base.debut[i + 1] - off;
     const nbTri = debutBlocsTri[i + 1] - debutBlocsTri[i];
@@ -458,7 +522,7 @@ export function encoderCompartiments(prepared: PreparedSearch, bucketsA: Compart
       }
     }
   }
-  return { cles, m, A, B: { ...base, W, tri, perm, debutBlocs, blocMin, blocMax, debutBlocsTri, triBlocMin, triBlocMax } };
+  return { ...base, W, tri, perm, debutBlocs, blocMin, blocMax, debutBlocsTri, triBlocMin, triBlocMax };
 }
 
 /* --------------------------------------------------------------------------
@@ -949,6 +1013,8 @@ export interface OptionsAppariementRapide<C extends SortieCandidats = BuildCandi
   controleValidation?: { paire(ga: number, gb: number, runes: RuneDetail[]): void };
   /** Tests seulement : appelé pour chaque paire VISITÉE (indices de compartiment et locaux). */
   observateur?: { visite(iA: number, a: number, iB: number, b: number): void };
+  /** Le contrat et l'encodage déjà calculés par l'appelant pour choisir le régime (`analyserEspace`) ; absent, ils se calculent ici. */
+  espace?: EspaceAppariement;
 }
 
 /** Hors contrat entier : mêmes expressions et points de passage que pairBuckets, sans saut ni HalfCombo. */
@@ -1014,7 +1080,12 @@ export function* apparierRapide<C extends SortieCandidats = BuildCandidate[]>(
   options: OptionsAppariementRapide<C> = {}
 ): Generator<PairingProgress<C>, ResultatAppariementRapide<C>, void> {
   const collecte = options.collecte ?? [] as unknown as C;
-  const motif = verifierContrat(prepared, bucketsA, bucketsB);
+  // ⚠️ Un espace analysé sans le traceur ne vaut pas pour une préparation qui
+  // le porte : le traceur sort du contrat (il demande `pairBuckets`).
+  if (options.espace && prepared.traceur && options.espace.motifContrat === null) {
+    throw new Error('apparierRapide : espace analysé sans le traceur, préparation avec traceur');
+  }
+  const { motifContrat: motif, compartiments } = options.espace ?? verifierEtEncoder(prepared, bucketsA, bucketsB);
   if (motif) {
     // Le traceur reste une API objet explicite ; il ne vient pas de l'écran.
     let r: SearchResult<C>;
@@ -1036,7 +1107,7 @@ export function* apparierRapide<C extends SortieCandidats = BuildCandidate[]>(
   }
   const { maxCollected, maxMs, startedAt } = prepared;
   const overBudget = () => Date.now() - startedAt > maxMs;
-  const ct = encoderCompartiments(prepared, bucketsA, bucketsB);
+  const ct = compartiments!;
   const c = constantesNoyau(prepared);
   const L = new Float64Array(c.m);
   const H = new Float64Array(c.m);

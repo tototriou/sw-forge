@@ -24,7 +24,7 @@ import { PreparedSearch, SearchParams, SearchResult } from '../lib/runeBuildOpti
 import { BlocCandidats, ColonnesCandidats, creerColonnesCandidats } from '../lib/candidatsCompacts';
 import { CompartimentType } from '../lib/demiBuildsTypes';
 import { RelicVide } from '../lib/relicOptim';
-import { compterPaires, verifierContrat } from '../lib/appariementRapide';
+import { analyserEspace } from '../lib/appariementRapide';
 import {
   ErreurAppariementParallele, PoigneeTravailleur, erreurDeWorkerEnfant, resultatApresErreur, type LancerTravailleur,
 } from '../lib/appariementRapideParallele';
@@ -316,19 +316,23 @@ async function traiterMessage(e: MessageEvent<WorkerRequest>) {
     return;
   }
 
-  // Taille RÉELLE de l'espace à épuiser (voir `totalPairCount`) — calculée
-  // UNE SEULE FOIS, maintenant que les deux moitiés sont construites (avant
-  // ça, seule l'estimation brute pré-recherche, `estimateSearchSpace`,
-  // existe). Les prédicats de ligne lisent chaque demi-build A pour chaque
-  // paire de compartiments ouverte, jamais le produit des demi-builds A × B.
-  const totalPairs = compterPaires(prepared, bucketsA, bucketsB);
+  // Taille RÉELLE de l'espace à épuiser (voir `totalPairCount`), contrat
+  // numérique et encodage — calculés UNE SEULE FOIS, maintenant que les deux
+  // moitiés sont construites (avant ça, seule l'estimation brute
+  // pré-recherche, `estimateSearchSpace`, existe), puis repris tels quels par
+  // l'appariement (`espace`) : le plan des morceaux se découpe sur le relevé
+  // des lignes qui donne `totalPairs`. Les prédicats de ligne lisent chaque
+  // demi-build A pour chaque paire de compartiments ouverte, jamais le
+  // produit des demi-builds A × B.
+  const espace = analyserEspace(prepared, bucketsA, bucketsB);
+  const totalPairs = espace.releve.total;
 
   // Le régime (parallelPairing.ts) : parallèle à partir du seuil, séquentiel
   // en dessous ET hors contrat numérique du noyau, où `apparier` parcourt
   // les colonnes sans saut — le coordinateur parallèle, lui, n'a
   // pas de repli.
   {
-    const regime = regimeAppariement(totalPairs, verifierContrat(prepared, bucketsA, bucketsB));
+    const regime = regimeAppariement(totalPairs, espace.motifContrat);
     let dernierMessage = 0;
     const postProgress = async (explored: number, candidats: ColonnesCandidats) => {
       classement?.port.postMessage({ type: 'activer', idRecherche: classement.idRecherche });
@@ -360,7 +364,7 @@ async function traiterMessage(e: MessageEvent<WorkerRequest>) {
         collecte: creerColonnesCandidats(),
         regime, flux,
         estArrete: () => stopped,
-        params, prepared, bucketsA, bucketsB, totalPaires: totalPairs,
+        params, prepared, bucketsA, bucketsB, totalPaires: totalPairs, espace,
         travailleurs: nombreDeTravailleurs(self.navigator?.hardwareConcurrency, coeursPhysiques),
         lancer: lancerTravailleurNavigateur, startedAt,
         surControle: (controle) => {

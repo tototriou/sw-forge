@@ -59,7 +59,14 @@ de chaque stat (`m` bornes par bloc de 16, par stat triée et par sens :
 `2 m² ⌈n / 16⌉` entiers par compartiment de `n` combinaisons B, quand
 `W`, son tri et sa permutation en font `3 m n`). Score de rétention, stats non contraintes, comptes et potentiel
 ne sont pas copiés vers les Workers d'appariement. Les tables de validation
-se reconstruisent depuis les identifiants et le pool préparé, sans `HalfCombo`.
+se reconstruisent depuis les identifiants et le pool préparé, sans `HalfCombo`,
+dans chaque Worker : une rune revient dans des centaines de demi-builds, et
+`ValidationTypee` ne lit chaque rune distincte (même objet du pool) qu'une
+fois — contrat, lignes par voie, indice de set, valeur —, puis chaque
+demi-build rejoue les mêmes additions dans le même ordre ; les indices de set
+s'attribuent dans l'ordre de première apparition, comme en lisant chaque
+occurrence (`tests/validation-par-rune.test.ts`, contre la validation d'avant
+gardée comme oracle).
 
 ## Une stat, un entier
 
@@ -84,7 +91,11 @@ seulement si `W > H`.
 
 ## Le contrat numérique
 
-`verifierContrat`, avant toute paire : base, pourcentages et valeurs plates
+`verifierContrat`, avant toute paire, une fois par recherche : le Worker
+principal le juge pour choisir le régime, et l'appariement reprend son motif
+et son encodage (`analyserEspace`, `verifierEtEncoder` : chaque valeur est
+écrite dans les `Int32Array` juste après sa vérification, dans la même
+lecture des demi-builds ; `encoderCompartiments` lève hors contrat). Base, pourcentages et valeurs plates
 des demi-builds, apports garantis, d'artéfacts et de relique, aura externe,
 tous ENTIERS et bornés ; `|b × pct|` exact en `Float64` ; `W` dans un
 `Int32` ; minimums et maximums finis. Sous ces conditions, l'expression

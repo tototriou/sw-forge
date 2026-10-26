@@ -7,10 +7,10 @@
 // n'importe ni `worker_threads` ni `self`.
 // Voir docs/03-developpeur/optimizer/moteur/parallelisation.md.
 //
-// Le coordinateur énumère les LIGNES (un comboA ouvert face à un compartiment
-// B ouvert) dans l'ordre exact de `pairBuckets`, avec les prédicats de
-// production, et les groupe en MORCEAUX contigus plus fins que les
-// compartiments. Chaque Worker reçoit les tableaux typés une seule fois
+// Le coordinateur groupe les LIGNES (un comboA ouvert face à un compartiment
+// B ouvert), relevées une fois dans l'ordre exact de `pairBuckets` avec les
+// prédicats de production (`releverLignes`), en MORCEAUX contigus plus fins
+// que les compartiments. Chaque Worker reçoit les tableaux typés une seule fois
 // (transférés), puis des morceaux à la demande.
 //
 // ⚠️ **La fusion se fait dans l'ORDRE DES MORCEAUX**, donc dans l'ordre
@@ -26,22 +26,21 @@
 
 import { BuildCandidate, NearMiss, PreparedSearch, SearchParams, SearchResult } from './runeBuildOptim';
 import { ColonnesCandidats, SortieCandidats, creerColonnesCandidats, fusionnerCandidats } from './candidatsCompacts';
-import { Compartiment, lireCombo, nouvelleVueCombo } from './demiBuildsTypes';
+import { Compartiment } from './demiBuildsTypes';
 import {
   CompteursNoyau,
   EntreeQuasiSucces,
+  EspaceAppariement,
   InitTravailleur,
   Morceau,
+  ReleveLignes,
   ResultatAppariementRapide,
   ResultatMorceau,
-  comboAOuvert,
   compteursVides,
   copierCompartiments,
-  encoderCompartiments,
-  ordreDesCompartiments,
-  paireDeCompartimentsOuverte,
+  releverLignes,
   tamponsDe,
-  verifierContrat,
+  verifierEtEncoder,
 } from './appariementRapide';
 
 /** Un Worker lancé, vu par le coordinateur. */
@@ -78,6 +77,7 @@ export interface ResultatParallele<C = BuildCandidate[]> extends ResultatApparie
   parTravailleur: number[];
   /** Paires du plus gros morceau (granularité de la répartition). */
   plusGrosMorceau: number;
+  /** Le découpage du plan seul : le contrat et l'encodage le précèdent. */
   msPlanification: number;
 }
 
@@ -140,45 +140,53 @@ export function erreurDeWorkerEnfant(rappel: (erreur: unknown) => void): (evenem
 }
 
 /**
- * Le plan : les morceaux dans l'ordre de `pairBuckets`. ⚠️ Même énumération
- * que `totalPairCount` (prédicats de production, `comboAFeasible` par comboA) :
- * la somme des tailles vaut `totalPairCount`, le banc le vérifie.
+ * Le plan : les morceaux dans l'ordre de `pairBuckets`, découpés sur le relevé
+ * des lignes (`releverLignes`, le même que celui qui a donné `totalPairCount`
+ * et le régime) : aucun prédicat n'est réévalué. La somme des tailles vaut
+ * `releve.total`, le banc le vérifie ; les drapeaux d'un morceau sont la
+ * tranche du relevé qui couvre ses segments, dans une copie qu'il possède
+ * (elle est transférée au Worker).
  */
-export function planifierMorceaux(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[], cible: number): Morceau[] {
+export function planifierMorceaux(
+  prepared: PreparedSearch,
+  bucketsA: Compartiment[],
+  bucketsB: Compartiment[],
+  cible: number,
+  releve: ReleveLignes = releverLignes(prepared, bucketsA, bucketsB)
+): Morceau[] {
   const morceaux: Morceau[] = [];
   let segments: number[] = [];
-  let drapeaux: number[] = [];
   let offset = 0;
   let taille = 0;
-  const vue = nouvelleVueCombo();
+  let debutDrapeaux = 0;
+  let pos = 0;
   const fermer = () => {
     if (segments.length === 0) return;
     morceaux.push({
       type: 'morceau', id: morceaux.length, offset, taille,
-      segments: Int32Array.from(segments), drapeaux: Uint8Array.from(drapeaux),
+      segments: Int32Array.from(segments), drapeaux: releve.drapeaux.slice(debutDrapeaux, pos),
     });
     offset += taille;
     taille = 0;
     segments = [];
-    drapeaux = [];
+    debutDrapeaux = pos;
   };
-  for (const [iA, iB] of ordreDesCompartiments(bucketsA, bucketsB)) {
-    const bA = bucketsA[iA];
-    const bB = bucketsB[iB];
-    if (!paireDeCompartimentsOuverte(prepared, bA, bB)) continue;
-    const nB = bB.combos.length;
+  const { paires, drapeaux } = releve;
+  for (let p = 0; p < paires.length; p += 2) {
+    const iA = paires[p];
+    const iB = paires[p + 1];
+    const nA = bucketsA[iA].combos.length;
+    const nB = bucketsB[iB].combos.length;
     let aDebut = 0;
-    for (let a = 0; a < bA.combos.length; a++) {
-      const ouvert = comboAOuvert(prepared, lireCombo(bA, a, vue), bB);
-      drapeaux.push(ouvert ? 1 : 0);
-      if (ouvert) taille += nB;
+    for (let a = 0; a < nA; a++) {
+      if (drapeaux[pos++]) taille += nB;
       if (taille >= cible) {
         segments.push(iA, iB, aDebut, a + 1);
         aDebut = a + 1;
         fermer();
       }
     }
-    if (aDebut < bA.combos.length) segments.push(iA, iB, aDebut, bA.combos.length);
+    if (aDebut < nA) segments.push(iA, iB, aDebut, nA);
   }
   fermer();
   // Un dernier morceau peut ne porter que des lignes fermées (taille 0) : sans effet.
@@ -193,6 +201,12 @@ export interface OptionsParallele<C extends SortieCandidats = BuildCandidate[]> 
   bucketsB: Compartiment[];
   /** `totalPairCount` déjà calculé par l'appelant, celui qui a choisi le régime. */
   totalPaires: number;
+  /**
+   * Ce que l'appelant a calculé pour choisir le régime (`analyserEspace`) :
+   * relevé des lignes, d'où se découpe le plan, contrat et encodage. Absent,
+   * ils se calculent ici. `releve.total` vaut `totalPaires`.
+   */
+  espace?: EspaceAppariement;
   travailleurs: number;
   lancer: LancerTravailleur<C>;
   startedAt: number;
@@ -237,14 +251,16 @@ export async function apparierRapideEnParallele(o: OptionsParallele<ColonnesCand
       surArret?.();
     },
   });
-  const motifContrat = verifierContrat(prepared, bucketsA, bucketsB);
+  // Le contrat et l'encodage que l'appelant a calculés pour choisir le régime
+  // (`analyserEspace`), sinon calculés ici, en une lecture des demi-builds.
+  const { motifContrat, compartiments } = o.espace ?? verifierEtEncoder(prepared, bucketsA, bucketsB);
   if (motifContrat) throw new Error(`appariement parallèle hors contrat numérique (${motifContrat}) : l'appelant apparie en séquentiel`);
   const { maxCollected, maxMs } = prepared;
   const overBudget = () => Date.now() - o.startedAt > maxMs;
   const t0 = Date.now();
-  const ct = encoderCompartiments(prepared, bucketsA, bucketsB);
+  const ct = compartiments!;
   const cible = o.cibleMorceau ?? Math.max(TAILLE_MIN_MORCEAU, Math.ceil(o.totalPaires / (o.travailleurs * MORCEAUX_PAR_TRAVAILLEUR)));
-  const plan = planifierMorceaux(prepared, bucketsA, bucketsB, cible);
+  const plan = planifierMorceaux(prepared, bucketsA, bucketsB, cible, o.espace?.releve);
   const msPlanification = Date.now() - t0;
   const totalPlan = plan.reduce((s, m) => s + m.taille, 0);
   if (totalPlan !== o.totalPaires) throw new Error(`plan de ${totalPlan} paires ≠ totalPairCount ${o.totalPaires}`);

@@ -362,9 +362,11 @@ Toute mesure suit le skill `optimizer-perf-testing`
 ## Régime d'appariement : le seuil de la production
 
 Le harnais ne choisit pas : une fois les moitiés construites,
-`totalPairs = compterPaires(prepared, bucketsA, bucketsB)`, puis le contrat
+`totalPairs = releverLignes(prepared, bucketsA, bucketsB).total`, puis le contrat
 numérique du noyau, jugé SANS le traceur (que la production ne pose jamais :
-suivre une cible ne change pas le régime) ; `regimeAppariement` rend
+suivre une cible ne change pas le régime) ; le relevé, le contrat et
+l'encodage passent ensuite à l'appariement comme en production (`espace`),
+sauf en séquentiel avec un traceur ; `regimeAppariement` rend
 l'appariement parallèle à partir de `PARALLEL_PAIRING_THRESHOLD` (100 M de
 paires, `src/workers/parallelPairing.ts`), contrat tenu, sur
 `nombreDeTravailleurs(os.availableParallelism(), null)` Workers, sinon le
@@ -427,8 +429,8 @@ observations. Le CLI `runSearchToCompletion` enchaîne les mêmes phases
 jusqu'au bout. Tous deux appellent `apparierNode`, qui injecte le lanceur
 Node dans `lancerAppariement` (`src/workers/pairingDriver.ts`), le lanceur
 de l'écran : `drivePairing` en séquentiel, coordinateur compact en parallèle,
-mêmes publications et mêmes crédits. Le régime dépend de `compterPaires`,
-connu après la construction. Les objets ne sont matérialisés qu'après le
+mêmes publications et mêmes crédits. Le régime dépend du relevé des lignes
+et du contrat (`analyserEspace`), connus après la construction. Les objets ne sont matérialisés qu'après le
 scellement du flux ; le suivi de découverte ne lit en route que les colonnes
 d'identifiants et les comptes. Avec un traceur séquentiel, le noyau appelle
 sa référence `pairBuckets` pour remplir le diagnostic, puis revient au même

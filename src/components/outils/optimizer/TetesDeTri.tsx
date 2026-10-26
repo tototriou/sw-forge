@@ -33,11 +33,13 @@ export function nomTete(colonne: ColonneResultat, metric: OptimMetric, courant: 
   return `${libelleColonne(colonne, metric)}${triee}${bornee ? ', borne posée' : ''}`;
 }
 
+// 16 px (décision de l'utilisateur) : une flèche nette sur la colonne triée,
+// ⇅ estompé mais lisible sur les autres.
 export function IconeSens({ colonne, courant }: { colonne: ColonneResultat; courant: TriResultats }) {
-  if (courant.tri !== colonne) return <ArrowUpDown size={13} className="flex-none text-ink-dimmer" aria-hidden />;
+  if (courant.tri !== colonne) return <ArrowUpDown size={16} className="flex-none text-ink-dim" aria-hidden />;
   return courant.sens === 'desc'
-    ? <ArrowDownWideNarrow size={13} className="flex-none" aria-hidden />
-    : <ArrowUpNarrowWide size={13} className="flex-none" aria-hidden />;
+    ? <ArrowDownWideNarrow size={16} className="flex-none" aria-hidden />
+    : <ArrowUpNarrowWide size={16} className="flex-none" aria-hidden />;
 }
 
 export function MarqueBorne({ bornee }: { bornee: boolean }) {

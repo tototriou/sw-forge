@@ -100,29 +100,31 @@ function installerWorkers() {
   } as unknown as typeof Worker;
 }
 
-// Le canal classeur ↔ résolveur passe par la page, sans rien changer aux
-// messages : le test peut y retenir les réponses du vrai résolveur, comme des
-// résolutions longues en vol.
-let reponsesLibres = Infinity, reponsesRetenues: unknown[] = [], versClasseur: MessagePort | null = null;
+// Chaque canal classeur ↔ résolveur du pool passe par la page, sans rien
+// changer aux messages : le test peut y retenir les réponses des vrais
+// résolveurs, comme des résolutions longues en vol. Le compte des réponses
+// libres est commun au pool ; une réponse retenue repart par son canal.
+let reponsesLibres = Infinity, reponsesRetenues: { classeur: MessagePort; data: unknown }[] = [];
 function relayerResolveur(w: Worker) {
   const poster = w.postMessage.bind(w) as (m: unknown, t?: Transferable[]) => void;
   w.postMessage = ((m: { type?: string; port?: MessagePort }, t?: Transferable[]) => {
     if (m?.type !== 'port' || !m.port) { poster(m, t); return; }
     const classeur = m.port, relais = new MessageChannel();
-    versClasseur = classeur; reponsesLibres = Infinity; reponsesRetenues = [];
+    reponsesLibres = Infinity; reponsesRetenues = reponsesRetenues.filter((r) => r.classeur !== classeur);
     classeur.onmessage = (e) => relais.port1.postMessage(e.data);
     relais.port1.onmessage = (e) => {
-      if (reponsesLibres > 0) { reponsesLibres--; classeur.postMessage(e.data); } else reponsesRetenues.push(e.data);
+      if (reponsesLibres > 0) { reponsesLibres--; classeur.postMessage(e.data); } else reponsesRetenues.push({ classeur, data: e.data });
     };
     poster({ type: 'port', port: relais.port2 }, [relais.port2]);
   }) as typeof w.postMessage;
 }
 
-/** Les `n` prochaines réponses du résolveur passent, les suivantes sont retenues. */
+/** Les `n` prochaines réponses du pool passent, les suivantes sont retenues. */
 export function retenirResolutionsApres(n: number) { reponsesLibres = n; }
-/** Une réponse retenue part vers le classeur ; rend le nombre qui reste retenu. */
+/** Une réponse retenue part vers le classeur, par son canal ; rend le nombre qui reste retenu. */
 export function relacherUneResolution() {
-  if (reponsesRetenues.length && versClasseur) versClasseur.postMessage(reponsesRetenues.shift());
+  const r = reponsesRetenues.shift();
+  if (r) r.classeur.postMessage(r.data);
   return reponsesRetenues.length;
 }
 

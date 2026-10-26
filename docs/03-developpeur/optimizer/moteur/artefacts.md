@@ -334,17 +334,21 @@ que s'il change le régime effectif.
 
 ## Résolution hors du fil de l'écran
 
-Le Worker dédié `resolution.worker.ts` exécute `CorpsResolution` sur un port
-reçu du Worker de classement. L'entrée reste dérivée par
+Un pool de Workers `resolution.worker.ts` (autant que l'appariement)
+exécute `CorpsResolution`, chacun sur un port reçu du Worker de classement. L'entrée reste dérivée par
 `entreeResolutionDuBuild`, puis résolue par `resoudreEquipementDuBuild` ;
 `entreesSerialisables` ne retire que `evaluer`, et `runesDuBuild` fournit
 les runes de chaque demande. La priorité, le cache et les deux demandes au
-plus sans réponse appartiennent au classeur, via `ResolutionDistante`.
+plus sans réponse par Worker appartiennent au classeur, via
+`ResolutionDistante`. Chaque Worker a ses propres caches de résolution, qui
+ne changent aucun résultat : un build reçoit le même équipement sur
+n'importe lequel.
 
 Une réponse d'un contexte remplacé ou d'une demande annulée libère son crédit
 sans écriture. Un nouveau contexte compatible conserve le cache ; un autre
-régime effectif ou une autre signature le vide. Si le résolveur échoue, il
-est journalisé et terminé ; la même résolution reprend dans le classeur,
+régime effectif ou une autre signature le vide. Si un Worker du pool
+échoue, il est journalisé et terminé, ses builds en vol repris par les
+autres ; si le dernier échoue, la même résolution reprend dans le classeur,
 avec son cache, sans calcul sur le fil de l'écran. Perdre le classeur lui-même
 passe par l'erreur de recherche existante et perd ses données.
 

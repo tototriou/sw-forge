@@ -5,6 +5,7 @@ import { coeursPhysiques } from '../lib/bureau';
 import type { ContexteResultat } from '../lib/contexteResultat';
 import type { InstantaneClassement, VueClassement } from '../lib/classementCompact';
 import { ClassementDistant, type ReponseClassement } from '../workers/classementDistant';
+import { nombreDeResolveurs } from '../workers/parallelPairing';
 import type { DemandeDeRecherche, WorkerResponse } from '../workers/runeBuildOptim.worker';
 
 export type BuildOptimStatus = 'idle' | 'running' | 'done' | 'error' | 'refused';
@@ -14,7 +15,8 @@ export type BuildOptimProgress =
   | { phase: 'pairing'; explored: number; found: number; pct: number; totalPairs: number };
 /** Le bilan d'une recherche finie, sans ses candidats : ils restent dans le classeur. */
 export type BilanRecherche = Omit<SearchResult, 'candidates'> & { nombre: number };
-type Classement = { worker: Worker; resolution: Worker | null; pilote: ClassementDistant };
+// `resolutions` : le pool, indexé par voie ; une case vide est un Worker retiré.
+type Classement = { worker: Worker; resolutions: (Worker | null)[]; pilote: ClassementDistant };
 
 /** Propriétaire remonté dans App : la navigation ne termine aucun de ces Workers. */
 export function useBuildOptimSearch() {
@@ -51,7 +53,7 @@ export function useBuildOptimSearch() {
     const d = classementRef.current; classementRef.current = null;
     if (!d) return;
     d.worker.onmessage = null; d.worker.onerror = null; d.worker.onmessageerror = null;
-    d.worker.terminate(); d.resolution?.terminate();
+    d.worker.terminate(); for (const r of d.resolutions) r?.terminate();
   }, []);
   const echouer = useCallback((erreur: unknown) => {
     console.error('Recherche de runes interrompue :', erreur);
@@ -81,35 +83,45 @@ export function useBuildOptimSearch() {
               setResult({ ...p.bilan, nombre: p.comptes.recus }); setProgress(null); setStatus('done');
             }
           }, ouverte: (id) => demarrerRef.current?.(id), erreur: echouer,
-          incident: (raison, detail) => {
-            console.error(`File de résolution : ${raison} — repli dans le classeur.`, detail);
-            classementRef.current?.resolution?.terminate();
-            if (classementRef.current) classementRef.current.resolution = null;
+          incident: (raison, detail, voie) => {
+            const pool = classementRef.current?.resolutions ?? [];
+            if (voie !== undefined) {
+              console.error(`File de résolution : ${raison} — résolveur ${voie} retiré, les autres continuent.`, detail);
+              pool[voie]?.terminate(); pool[voie] = null;
+            } else {
+              console.error(`File de résolution : ${raison} — repli dans le classeur.`, detail);
+              pool.forEach((r, i) => { r?.terminate(); pool[i] = null; });
+            }
           } });
-        d = { worker, resolution: null, pilote }; classementRef.current = d;
+        d = { worker, resolutions: [], pilote }; classementRef.current = d;
         worker.onmessage = (e: MessageEvent<ReponseClassement>) => {
           if (classementRef.current?.worker !== worker) return;
           try { pilote.recevoir(e.data); } catch (err) { pilote.panne(err); }
         };
         worker.onerror = (e) => pilote.panne(e.message || e);
         worker.onmessageerror = (e) => pilote.panne(e);
-        try {
-          const resolution = new Worker(new URL('../workers/resolution.worker.ts', import.meta.url), { type: 'module' });
-          d.resolution = resolution;
-          const canal = new MessageChannel();
-          worker.postMessage({ type: 'portResolution', port: canal.port1 }, [canal.port1]);
-          resolution.postMessage({ type: 'port', port: canal.port2 }, [canal.port2]);
-          const panne = (detail: string) => {
-            if (classementRef.current?.worker !== worker) return;
-            resolution.terminate();
-            worker.postMessage({ type: 'panneResolution', versionSchema: 1, idRecherche: pilote.idRecherche, raison: 'Résolveur interrompu', detail });
-          };
-          resolution.onerror = (e) => panne(e.message);
-          resolution.onmessageerror = () => panne('Réponse du résolveur illisible');
-        } catch (err) {
-          // Le premier besoin de résolution déclenchera le repli dans le classeur.
-          console.error('Worker de résolution impossible à créer :', err);
+        // Le pool de résolveurs, pour la vie du classeur : un Worker et un canal
+        // par voie. Un Worker qui ne se crée pas réduit le pool ; aucun créé, le
+        // premier besoin de résolution déclenchera le repli dans le classeur.
+        const pool = d.resolutions, ports: MessagePort[] = [];
+        for (let i = 0, n = nombreDeResolveurs(navigator.hardwareConcurrency, coeursPhysiquesRef.current); i < n; i++) {
+          try {
+            const resolution = new Worker(new URL('../workers/resolution.worker.ts', import.meta.url), { type: 'module' });
+            const canal = new MessageChannel(), voie = ports.length;
+            pool.push(resolution); ports.push(canal.port1);
+            resolution.postMessage({ type: 'port', port: canal.port2 }, [canal.port2]);
+            const panne = (detail: string) => {
+              if (classementRef.current?.worker !== worker || pool[voie] !== resolution) return;
+              resolution.terminate(); pool[voie] = null;
+              worker.postMessage({ type: 'panneResolution', versionSchema: 1, idRecherche: pilote.idRecherche, raison: 'Résolveur interrompu', detail, voie });
+            };
+            resolution.onerror = (e) => panne(e.message);
+            resolution.onmessageerror = () => panne('Réponse du résolveur illisible');
+          } catch (err) {
+            console.error('Worker de résolution impossible à créer :', err);
+          }
         }
+        if (ports.length) worker.postMessage({ type: 'portsResolution', ports }, ports);
       }
       const distant = d;
       demarrerRef.current = (idRecherche) => {

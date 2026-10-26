@@ -14,6 +14,13 @@
 // décidée sur le fil de l'écran, par `prochainsATraiter` (page affichée
 // d'abord, puis l'avance de fond vers K confirmées) ; ce module ne trie rien, il prend les
 // restants dans l'ordre reçu.
+//
+// Plusieurs résolveurs : chacun est une VOIE (un Worker, un canal). Le pilote
+// donne à chaque voie vivante ses propres crédits, adresse chaque message à
+// une voie et retire une voie en panne sans perdre ses builds : ils
+// redeviennent à faire. Une voie, c'est le comportement d'un seul résolveur.
+// L'ordre d'arrivée des réponses n'est jamais supposé : chacune retrouve sa
+// demande par `idDemande`.
 
 import { RuneDetail } from '../types';
 import { BuildCandidate } from '../lib/runeBuildOptim';
@@ -22,16 +29,22 @@ import { ResultatArtefacts, VoieDeLaFile, cleBuild, voieDeLaFile } from '../lib/
 import { EntreesResolutionSerialisables, MessageVersResolution, ReponseResolution } from './resolutionBody';
 
 /**
- * Au plus DEUX demandes sans réponse, toutes confondues (annulées et d'un
- * contexte périmé comprises, tant que leur réponse n'est pas revenue).
+ * Au plus DEUX demandes sans réponse PAR VOIE, toutes confondues (annulées et
+ * d'un contexte périmé comprises, tant que leur réponse n'est pas revenue).
  *
  * Deux plutôt qu'une : pendant que le Worker résout la première, la seconde
  * attend déjà dans sa file — il enchaîne sans attendre l'aller-retour vers
- * l'écran, souvent occupé pendant une recherche (rendu, tri). Pas davantage :
+ * le classeur, occupé par ses tranches (notation, index). Pas davantage :
  * une demande partie est une demande que la page, si elle change, ne peut plus
  * doubler qu'en l'annulant.
  */
 export const DEMANDES_EN_VOL_MAX = 2;
+
+/** Un message pour le résolveur, et la voie (l'indice du Worker) qui le reçoit. */
+export interface EnvoiResolution {
+  voie: number;
+  message: MessageVersResolution;
+}
 
 /**
  * Ce qui identifie le contexte de la file, côté écran : les entrées
@@ -61,8 +74,8 @@ export interface PortsResolutionDistante {
   page(): readonly BuildCandidate[];
   /** Le cache de la file (`cleBuild` → résultat), le même que celui du chemin direct. */
   cache(): Map<string, ResultatArtefacts>;
-  /** `postMessage` vers le Worker ; peut lever (clonage impossible). */
-  envoyer(m: MessageVersResolution): void;
+  /** `postMessage` vers le Worker de la voie ; peut lever (clonage impossible). */
+  envoyer(m: MessageVersResolution, voie: number): void;
   /**
    * Publie le cache à l'écran — `forcer` passe outre la cadence. Rend VRAI si
    * l'écran a reçu le cache, FAUX si la cadence, une tâche ou l'adoption de
@@ -105,6 +118,9 @@ interface DemandeEnVol {
   idDemande: number;
   idContexte: number;
   cle: string;
+  // La voie qui l'a reçue : son annulation va là, et la panne de cette voie
+  // la rend à faire.
+  voie: number;
   // Annulée par l'écran (ou rendue caduque par un nouveau contexte) : sa
   // réponse, quelle qu'elle soit, ne sera pas écrite.
   annulee: boolean;
@@ -135,10 +151,88 @@ export class ResolutionDistante {
   private nonPubliee = false;
   private voieAvantActualisation: VoieDeLaFile | null = null;
 
-  constructor(readonly maxEnVol: number = DEMANDES_EN_VOL_MAX) {}
+  // Les voies, par indice : vivante ou retirée après une panne.
+  private voies: boolean[];
+  // Combien de voies vivantes reçoivent de nouvelles demandes (les premières
+  // par indice) ; les autres finissent seulement ce qu'elles ont.
+  private actives = Infinity;
+
+  /**
+   * `parVoie` : les crédits de chaque voie ; `voies` : le nombre de
+   * résolveurs. Une voie (le défaut) : un seul résolveur, ou la résolution
+   * directe du classeur.
+   */
+  constructor(readonly parVoie: number = DEMANDES_EN_VOL_MAX, voies = 1) {
+    if (!Number.isSafeInteger(voies) || voies < 1) throw new Error('Nombre de voies de résolution invalide');
+    this.voies = new Array<boolean>(voies).fill(true);
+  }
+
+  /** Les demandes sans réponse permises, toutes voies vivantes confondues. */
+  get maxEnVol(): number {
+    return this.parVoie * Math.min(this.actives, this.voiesVivantes);
+  }
+
+  /**
+   * Seules les `n` premières voies vivantes reçoivent de nouvelles demandes
+   * (`Infinity` : toutes). Le classeur n'en active qu'une tant que la
+   * recherche apparie encore : le pool ne prend pas de cœurs aux Workers
+   * d'appariement. Une demande déjà partie sur une autre voie y reste.
+   */
+  activerVoies(n: number): void {
+    if (!(n >= 1)) throw new Error('Nombre de voies actives invalide');
+    this.actives = n;
+  }
+
+  /** Les voies qui reçoivent de nouvelles demandes. */
+  get voiesActives(): number {
+    return Math.min(this.actives, this.voiesVivantes);
+  }
+
+  get voiesVivantes(): number {
+    return this.voies.filter(Boolean).length;
+  }
+
+  /** La voie existe-t-elle encore (ni retirée après une panne, ni hors du pool) ? */
+  voieVivante(voie: number): boolean {
+    return this.voies[voie] === true;
+  }
 
   get demandesEnVol(): number {
     return this.enVol.length;
+  }
+
+  /** Les demandes sans réponse de chaque voie (une voie retirée n'en a aucune). */
+  get demandesParVoie(): number[] {
+    const n = this.voies.map(() => 0);
+    for (const d of this.enVol) n[d.voie]++;
+    return n;
+  }
+
+  /**
+   * De nouveaux résolveurs, `voies` vivantes : les demandes en vol sont
+   * oubliées (leurs canaux sont fermés, aucune réponse n'en viendra) et le
+   * contexte repartira à la prochaine demande. Les compteurs continuent :
+   * aucun identifiant n'est réutilisé.
+   */
+  brancherVoies(voies: number): void {
+    if (!Number.isSafeInteger(voies) || voies < 1) throw new Error('Nombre de voies de résolution invalide');
+    this.voies = new Array<boolean>(voies).fill(true);
+    this.enVol = [];
+    this.contexte = null;
+  }
+
+  /**
+   * La voie est en panne : retirée, ses demandes en vol sont oubliées — leurs
+   * crédits rendus, leurs builds de nouveau à faire sur les autres voies au
+   * prochain tour. Une réponse tardive de cette voie ne correspond plus à
+   * aucune demande. Rend le nombre de voies vivantes qui restent.
+   */
+  retirerVoie(voie: number): number {
+    if (this.voies[voie]) {
+      this.voies[voie] = false;
+      this.enVol = this.enVol.filter((d) => d.voie !== voie);
+    }
+    return this.voiesVivantes;
   }
 
   get enRepli(): boolean {
@@ -152,12 +246,17 @@ export class ResolutionDistante {
 
   /** Change de propriétaire sans réutiliser les identifiants des demandes en vol. */
   invalider(): MessageVersResolution[] {
+    return this.invaliderVoies().map((e) => e.message);
+  }
+
+  /** `invalider`, chaque annulation adressée à la voie de sa demande. */
+  invaliderVoies(): EnvoiResolution[] {
     this.contexte = null;
     this.voieAvantActualisation = null;
     this.nonPubliee = false;
     return this.enVol.filter((d) => !d.annulee).map((d) => {
       d.annulee = true;
-      return { type: 'annuler' as const, idDemande: d.idDemande };
+      return { voie: d.voie, message: { type: 'annuler' as const, idDemande: d.idDemande } };
     });
   }
 
@@ -181,12 +280,17 @@ export class ResolutionDistante {
    *    y a du travail : changer dix fois un réglage sans recherche n'envoie
    *    rien. Un nouvel `idContexte` rend caduques toutes les demandes encore
    *    en vol (le corps annule celles qu'il n'a pas commencées) ;
+   *    Il part vers CHAQUE voie vivante ;
    * 2. les ANNULATIONS : une demande du contexte courant qui ne fait plus
-   *    partie des premiers restants (la page a changé, de meilleurs builds
-   *    sont arrivés) est retirée, sauf la plus ancienne en vol — le corps l'a
-   *    sans doute commencée, et sa réponse reste bonne à prendre ;
-   * 3. les DEMANDES, dans l'ordre des restants, jusqu'à `maxEnVol` demandes
-   *    sans réponse.
+   *    partie des `maxEnVol` premiers restants (la page a changé, de
+   *    meilleurs builds sont arrivés) est retirée, sauf la plus ancienne en
+   *    vol de sa voie — son Worker l'a sans doute commencée, et sa réponse
+   *    reste bonne à prendre. L'annulation part vers la voie de la demande ;
+   * 3. les DEMANDES, dans l'ordre des restants, chacune vers la voie vivante
+   *    qui en a le moins sans réponse (à égalité, la plus petite), jusqu'à
+   *    `parVoie` par voie.
+   *
+   * Une voie : exactement le pilote d'un seul résolveur.
    *
    * Idempotent : appelé deux fois de suite sans réponse entre les deux, le
    * second appel ne rend rien.
@@ -196,34 +300,57 @@ export class ResolutionDistante {
     restants: readonly BuildCandidate[],
     runesDe: (c: BuildCandidate) => RuneDetail[]
   ): MessageVersResolution[] {
+    return this.planifierVoies(courant, restants, runesDe).map((e) => e.message);
+  }
+
+  /** `planifier`, chaque message adressé à sa voie. */
+  planifierVoies(
+    courant: ContexteCourant | null,
+    restants: readonly BuildCandidate[],
+    runesDe: (c: BuildCandidate) => RuneDetail[]
+  ): EnvoiResolution[] {
     if (this.renonce) return [];
-    const sorties: MessageVersResolution[] = [];
+    const sorties: EnvoiResolution[] = [];
     if (courant !== null && restants.length > 0 && !this.estCourant(courant)) {
       if (!Number.isSafeInteger(this.idContexte + 1)) throw new Error('Compteur de contexte de résolution épuisé');
       this.idContexte++;
       this.contexte = courant;
       for (const d of this.enVol) d.annulee = true;
-      sorties.push({ type: 'contexte', idContexte: this.idContexte, entrees: courant.entrees });
+      this.voies.forEach((vivante, voie) => {
+        if (vivante) sorties.push({ voie, message: { type: 'contexte', idContexte: this.idContexte, entrees: courant.entrees } });
+      });
     }
     const actif = this.estCourant(courant);
     const voulues = new Set(restants.slice(0, this.maxEnVol).map(cleBuild));
-    this.enVol.forEach((d, i) => {
-      if (i === 0 || d.annulee) return;
-      if (actif && d.idContexte === this.idContexte && voulues.has(d.cle)) return;
+    const premiere = new Set<number>();
+    for (const d of this.enVol) {
+      // La plus ancienne de chaque voie, annulée ou non, garde sa place.
+      if (!premiere.has(d.voie)) { premiere.add(d.voie); continue; }
+      if (d.annulee) continue;
+      if (actif && d.idContexte === this.idContexte && voulues.has(d.cle)) continue;
       d.annulee = true;
-      sorties.push({ type: 'annuler', idDemande: d.idDemande });
-    });
+      sorties.push({ voie: d.voie, message: { type: 'annuler', idDemande: d.idDemande } });
+    }
     if (!actif) return sorties;
     const enCours = new Set(this.enVol.filter((d) => !d.annulee && d.idContexte === this.idContexte).map((d) => d.cle));
+    const charge = this.demandesParVoie;
     for (const c of restants) {
-      if (this.enVol.length >= this.maxEnVol) break;
       const cle = cleBuild(c);
       if (enCours.has(cle)) continue;
+      // La voie active la moins chargée : chaque voie a ses `parVoie` places.
+      let voie = -1;
+      for (let v = 0, rang = 0; v < this.voies.length && rang < this.actives; v++) {
+        if (!this.voies[v]) continue;
+        rang++;
+        if (charge[v] < this.parVoie && (voie < 0 || charge[v] < charge[voie])) voie = v;
+      }
+      if (voie < 0) break;
       if (!Number.isSafeInteger(this.prochainIdDemande + 1)) throw new Error('Compteur de demande de résolution épuisé');
       const idDemande = this.prochainIdDemande++;
-      this.enVol.push({ idDemande, idContexte: this.idContexte, cle, annulee: false });
+      this.enVol.push({ idDemande, idContexte: this.idContexte, cle, voie, annulee: false });
+      charge[voie]++;
       enCours.add(cle);
-      sorties.push({ type: 'resoudre', idContexte: this.idContexte, idDemande, cle, runes: runesDe(c) });
+      sorties.push({ voie, message: { type: 'resoudre', idContexte: this.idContexte, idDemande, cle, runes: runesDe(c) } });
     }
     return sorties;
   }
@@ -292,11 +419,11 @@ export class ResolutionDistante {
     // resterait dans le cache sans jamais atteindre l'écran, puisque plus
     // rien ne publierait. Le chemin direct fait de même quand il s'endort.
     if (restants.length === 0 && this.nonPubliee) this.publier(p, true);
-    for (const m of this.planifier(p.courant(), restants, (c) => p.runesDe(c))) {
+    for (const { voie, message } of this.planifierVoies(p.courant(), restants, (c) => p.runesDe(c))) {
       try {
-        p.envoyer(m);
+        p.envoyer(message, voie);
       } catch (err) {
-        this.basculer(p, `envoi au Worker impossible (${m.type})`, err);
+        this.basculer(p, `envoi au Worker impossible (${message.type})`, err);
         return;
       }
     }

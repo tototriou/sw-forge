@@ -3,6 +3,7 @@ import { Selecteur } from '../../../ui';
 import { OptimizerSortKey } from '../../../hooks/useOptimizerState';
 import { RECO_STATS } from '../../../types';
 import { OBJECTIVE_LABELS, type RealDamageContext } from '../../../lib/runeBuildOptim';
+import { estColonneResultat } from '../../../lib/colonnesResultats';
 import { type CompteConfirme, type CompteAffichable } from '../../../lib/artifactQueue';
 import { type Dispatch, type SetStateAction } from 'react';
 import { type BilanRecherche } from '../../../hooks/useBuildOptimSearch';
@@ -85,7 +86,9 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, sor
             réellement calculable pour ce monstre : sans sort, ce
             tri n'aurait aucune formule à appliquer et laisserait la
             liste dans son ordre précédent, sans rien dire. */}
-        {OBJECTIVE_LABELS.filter((o) => o.key !== 'degats_reels' || realDamage).map((o) => (
+        {/* Seuls les objectifs qui sont des colonnes : Vitesse se trie
+            par VIT, dans le groupe « Stats ». */}
+        {OBJECTIVE_LABELS.filter((o) => estColonneResultat(o.key) && (o.key !== 'degats_reels' || realDamage)).map((o) => (
           <option key={o.key} value={o.key}>
             {o.label}
           </option>

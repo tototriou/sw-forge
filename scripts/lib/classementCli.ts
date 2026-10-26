@@ -4,6 +4,7 @@ import type { BuildCandidate, OptionsDeClassement, RealDamageContext, SearchPara
 import { cibleDeLaFile, type ResultatArtefacts } from '../../src/lib/artifactQueue';
 import { contexteResultat, optionsDuContexte } from '../../src/lib/contexteResultat';
 import { classerEnLocal } from '../../src/lib/classementCompact';
+import { triDesResultats } from '../../src/lib/colonnesResultats';
 import { regimeArtefacts, regimeEquipementDe } from '../../src/lib/artifactEvaluation';
 import { DEFAULT_DAMAGE_SETUP } from '../../src/lib/damage';
 import type { OptimizerRecipe } from '../../src/lib/optimizerRecipe';
@@ -57,7 +58,7 @@ export function classerCommeLEcran(e: {
   const photo = contexteDeResultatCli(recipe, loaded, params, e.realDamage, e.toutResoudre || toutVerifierDeLaRecette(recipe));
   const debut = performance.now();
   const publication = classerEnLocal(photo, e.candidates, {
-    tri: recipe.objective, metric: recipe.metric, page: 1, pageImprimee: true,
+    tri: triDesResultats(recipe.objective), metric: recipe.metric, page: 1, pageImprimee: true,
   });
   const ms = performance.now() - debut;
   const optionsBase = optionsDuContexte(photo, null, recipe.metric);

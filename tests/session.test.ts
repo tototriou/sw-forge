@@ -163,7 +163,7 @@ export default function testSession(avecCompteReel = true) {
   const optimizerAbime = lireSession(JSON.stringify({ ...base, outils: { ...base.outils, optimizer: [1, 2] } }));
   ok(optimizerAbime.ok && optimizerAbime.session.outils.optimizer === null && optimizerAbime.avertissements.some((a) => a.includes('Optimizer')), 'Optimizer illisible : ignoré, et dit');
   const horsChamps = lireSession(JSON.stringify({ ...base, outils: { ...base.outils, optimizer: { sortBy: 'vitesse', search: { resultats: [] } } } }));
-  egal(horsChamps.ok ? horsChamps.session.outils.optimizer : 'refusée', { sortBy: 'vitesse' }, 'Optimizer : un champ hors session (les résultats) écarté à la relecture');
+  egal(horsChamps.ok ? horsChamps.session.outils.optimizer : 'refusée', { sortBy: 'spd' }, 'Optimizer : un champ hors session (les résultats) écarté à la relecture, le tri « vitesse » relu VIT');
   const inconnu = lireSession(JSON.stringify({ ...base, futurChamp: { x: 1 }, stockage: { ...base.stockage, 'swblacksmith-futur-v1': '1' } }));
   ok(inconnu.ok && !('swblacksmith-futur-v1' in inconnu.session.stockage), 'un champ ou une clé inconnus : ignorés');
   const sansCompte = lireSession(JSON.stringify({ ...base, compte: null }));

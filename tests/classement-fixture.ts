@@ -1,5 +1,6 @@
 import type { BuildCandidate, RealDamageContext, SearchParams, SearchResult } from '../src/lib/runeBuildOptim';
 import { CorpsClassement, type InstantaneClassement, type VueClassement } from '../src/lib/classementCompact';
+import { triDesResultats } from '../src/lib/colonnesResultats';
 import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs } from '../src/lib/candidatsCompacts';
 import { contexteResultat, type ContexteResultat } from '../src/lib/contexteResultat';
 import { DEFAULT_DAMAGE_SETUP, artifactDamageProfile, estPrisEnCharge, skillDamageProfile } from '../src/lib/damage';
@@ -17,7 +18,7 @@ export function demandeClassementTest(partiel: Partial<SearchParams> = {}, optim
     signature: 'fixture', idInventaire: 0, idEspece: null, toutVerifier,
     resolution: optimiser ? { fiche, artifactParams: { porteur: { element: 'fire', archetype: 'attack' }, inventaire: [], equipes: [], principaleParSorte: {}, lignesVerrouillees: [] },
       regime: 'aucun', degats: null, exclusive, requirement: params.requirement, relicContext: params.relicContext } : null });
-  const vue: VueClassement = { tri: params.objective ?? 'efficience', metric: params.metric, page: 1 };
+  const vue: VueClassement = { tri: triDesResultats(params.objective ?? 'efficience'), metric: params.metric, page: 1 };
   return { params, photo, vue };
 }
 

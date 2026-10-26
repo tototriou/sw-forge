@@ -9,6 +9,7 @@ import { runesDuBuild } from './relicQueue';
 import { ResolutionDistante, repliSurErreur, type PortsResolutionDistante } from '../workers/resolutionDistante';
 import { CorpsResolution, type MessageVersResolution, type ReponseResolution, type EntreesResolutionSerialisables } from '../workers/resolutionBody';
 import type { SearchResult } from './runeBuildOptim';
+import { triDesResultats, type ColonneResultat } from './colonnesResultats';
 
 /** Adaptation paresseuse : aucun objet par ligne n'est retenu par le propriétaire. */
 export function candidatsParIndice(nombre: number, lire: (i: number) => BuildCandidate): BuildCandidate[] {
@@ -434,7 +435,8 @@ export class ClassementCompact {
 export interface VueClassement {
   /** Le CLI imprime aussi les non vérifiés ; l'écran compose ses cartes vérifiées. */
   pageImprimee?: boolean;
-  tri: StatKey | Objective;
+  /** Une des onze colonnes ; l'objectif de recherche Vitesse se trie par VIT (`triDesResultats`). */
+  tri: ColonneResultat;
   metric: OptimMetric;
   page: number;
 }
@@ -586,13 +588,17 @@ export class CorpsClassement {
     this.changerVue(vue, 1, idDemande);
   }
   private get fond(): Uint32Array { return this.fondPropre?.index === this.index && this.fondPropre ? this.fondPropre.ordre : this.base; }
+  /** La colonne de l'objectif lancé : l'ordre du fond. Vitesse se classe par VIT, même note. */
+  private triDuLancement(): ColonneResultat {
+    return triDesResultats(this.contexte?.recherche.objective ?? 'efficience');
+  }
   private vueSuitLeLancement(vue: VueClassement): boolean {
-    return vue.tri === (this.contexte?.recherche.objective ?? 'efficience') && vue.metric === this.contexte?.recherche.metric;
+    return vue.tri === this.triDuLancement() && vue.metric === this.contexte?.recherche.metric;
   }
   private courant(idRecherche: number) { return this.contexte !== null && idRecherche === this.versions.idRecherche; }
   private criteresDeBase(): [StatKey | Objective, OptimMetric][] {
     if (!this.contexte || !this.vue) return [];
-    const lance: [StatKey | Objective, OptimMetric] = [this.contexte.recherche.objective ?? 'efficience', this.contexte.recherche.metric];
+    const lance: [StatKey | Objective, OptimMetric] = [this.triDuLancement(), this.contexte.recherche.metric];
     return this.vueSuitLeLancement(this.vue) ? [lance] : [[this.vue.tri, this.vue.metric], lance];
   }
   private ordreAuFil(critere: StatKey | Objective, metric: OptimMetric): OrdreAuFil {
@@ -725,7 +731,7 @@ export class CorpsClassement {
     yield* index.definirOrdreBaseEtapes(base);
     let fond = base;
     if (!this.vueSuitLeLancement(this.vue)) {
-      const objectif = this.contexte.recherche.objective ?? 'efficience', metric = this.contexte.recherche.metric;
+      const objectif = this.triDuLancement(), metric = this.contexte.recherche.metric;
       fond = this.fondPropre?.index === index ? this.fondPropre.ordre
         : (yield* ordreCollecteEtapes(source, objectif, optionsDuContexte(this.contexte, null, metric), this.travail,
           yield* this.notesConnues(objectif, metric, n))).ordre;

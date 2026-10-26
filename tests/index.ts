@@ -96,6 +96,7 @@ import { testCliClassementParMode, testCliClassementDifferentiel } from './cli-c
 import { testClassementCessionOrdre, testClassementCessionSansAffamement, testClassementCessionCanal } from './classement-cession.test';
 import { testRetraitAdaptationMigrations } from './retrait-adaptation.test';
 import { testTriSansNouvelleResolution, testToutVerifierPhotographie, testPlacesEnAttenteToujoursTravaillees } from './classement-non-relance.test';
+import { testObjectifVitesseMigration } from './objectif-vitesse.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
 import { testOptimizerFormatBig } from './format-big.test';
@@ -891,6 +892,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testClassementCessionSansAffamement', testClassementCessionSansAffamement],
   ['testClassementCessionCanal', testClassementCessionCanal],
   ['testRetraitAdaptationMigrations', testRetraitAdaptationMigrations],
+  ['testObjectifVitesseMigration', testObjectifVitesseMigration],
   ['testTriSansNouvelleResolution', testTriSansNouvelleResolution],
   ['testToutVerifierPhotographie', testToutVerifierPhotographie],
   ['testPlacesEnAttenteToujoursTravaillees', testPlacesEnAttenteToujoursTravaillees],

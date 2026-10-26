@@ -1,6 +1,7 @@
 import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 import { StatKey } from '../lib/effects';
 import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
+import type { ColonneResultat } from '../lib/colonnesResultats';
 import { DamageSetup } from '../lib/damage';
 import { appliquerCriteres, baseCompleteCriteres, criteresApresChangementEspece, defaultRelicMainChoice, photoCriteres, type CriteresOptimizer } from '../lib/criteresOptimizer';
 import { rattacherProprietaireCriteres, validerProprietaireCriteres, type ProprietaireCriteresOptimizer } from '../lib/optimizerCriteriaOwner';
@@ -22,7 +23,9 @@ const REFUS_IDENTITE_MEMBRE = 'Critères non restaurés : l’identité enregist
 export type { SlotFilterPresetKey };
 // API historique conservée pour l'écran, les recettes et les scripts.
 export { defaultRelicMainChoice, relicMainChoiceApresChangementExemplaire, criteresApresChangementEspece, baseCompleteCriteres } from '../lib/criteresOptimizer';
-export type OptimizerSortKey = StatKey | Objective;
+// Le tri des résultats : une de leurs onze colonnes. L'objectif de recherche
+// Vitesse se trie par la colonne VIT (`triDesResultats`).
+export type OptimizerSortKey = ColonneResultat;
 // Choix de statistique principale d'artéfact pour la recherche : les trois
 // valeurs de jeu standard (voir ARTIFACT_MAIN dans effects.ts — 100=PV,
 // 101=ATQ, 102=DEF), plus trois cas hors de cette table : `'equipped'`

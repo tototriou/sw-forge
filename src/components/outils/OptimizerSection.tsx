@@ -13,6 +13,7 @@ import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
 import { contexteResultat, runesDuContexte } from '../../lib/contexteResultat';
 import { TAILLE_PAGE_CLASSEMENT, type CarteClassement } from '../../lib/classementCompact';
+import { triDesResultats } from '../../lib/colonnesResultats';
 import {
   bornesArtefacts,
   chercherPaires,
@@ -1800,7 +1801,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     }
     setSetPickerInvalid(false);
     setStoppedManually(false);
-    optimizer.poserTriRecherche(objective);
+    // Le tri de départ est la colonne de l'objectif ; Vitesse se trie par VIT.
+    const triDeDepart = triDesResultats(objective);
+    optimizer.poserTriRecherche(triDeDepart);
     setResultsPage(1);
     const params: SearchParams = {
       base: selected.gear.base,
@@ -1842,7 +1845,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         requirement: requirementAvecAuras, relicContext: params.relicContext } : null,
       realDamage, damageSetup, exclusive: contexteExclusive, signature: signatureArtefacts, idInventaire: importDuCompte, idEspece: selected.monster.com2usId ?? null,
       toutVerifier: verifierToutesLesCombinaisons });
-    run(params, photo, { tri: objective, metric, page: 1 });
+    run(params, photo, { tri: triDeDepart, metric, page: 1 });
   }
 
   // Exporte la RECETTE de cette recherche (set, minimums, objectif,

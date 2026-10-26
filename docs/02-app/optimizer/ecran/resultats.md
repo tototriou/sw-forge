@@ -295,11 +295,21 @@ efface cette page, comme toute nouvelle recherche, et lance la suivante.
 
 Un sélecteur **« Trier par »** re-trie **côté
 client, dans le Worker de classement**, sans relancer la recherche : le moteur a déjà
-calculé les stats complètes de chaque combinaison retenue. Deux groupes
-d'options — les 8 stats brutes, et les mêmes objectifs que l'objectif de
-recherche (voir objectif-de-recherche.md § Les quatre objectifs disponibles ;
-« Dégâts réels » n'y figure que si un sort est réellement calculable
-pour ce monstre).
+calculé les stats complètes de chaque combinaison retenue. Le tri porte
+sur une des **onze colonnes des résultats** (`COLONNES_RESULTATS`,
+colonnesResultats.ts), en deux groupes d'options — les 8 stats brutes, et
+les objectifs Efficience, Dégâts réels et PV effectifs (voir
+objectif-de-recherche.md § Les quatre objectifs disponibles ; « Dégâts
+réels » n'y figure que si un sort est réellement calculable pour ce
+monstre).
+⚠️ **L'objectif Vitesse n'est pas un tri** : sa note est la VIT de la
+fiche, celle de la colonne VIT, candidat par candidat (l'effet unique d'une
+relique ne porte que sur PV, ATQ et DEF). Une recherche lancée sur Vitesse
+se trie donc par VIT, et un tri `vitesse` enregistré (mémoire de membre,
+session) se relit VIT ; une seule fonction fait cette lecture
+(`triDesResultats`), appelée par l'écran au lancement, le CLI, le harnais,
+le lecteur de mémoires et celui de session. L'objectif de recherche
+Vitesse, lui, reste.
 
 ⚠️ **Le tri ne résout aucun équipement.** Les artéfacts et la relique de
 chaque build sont ceux qui servent l'**objectif de la recherche** : changer

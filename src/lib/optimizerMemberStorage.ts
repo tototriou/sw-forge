@@ -3,6 +3,7 @@ import { baseCompleteCriteres, photoCriteres, type CriteresOptimizer } from './c
 import { OPTIMIZER_RECIPE_VERSION, parseOptimizerRecipe } from './optimizerRecipe';
 import { normaliserCompetencesInvocateur } from './competencesInvocateur';
 import { rattacherStockageOptimizer } from './optimizerRattachement';
+import { triDesResultats, type ColonneResultat } from './colonnesResultats';
 export type { RapportReverificationOptimizer } from './optimizerRattachement';
 import {
   exclusionSelectorKey, resolveExclusionEntry,
@@ -61,6 +62,8 @@ const REGLAGES_RETIRES = ['adapterArtefactsAuTri'] as const;
 function sansReglagesRetires(c: CriteresOptimizer): CriteresOptimizer {
   const copie: Record<string, unknown> = { ...c };
   for (const k of REGLAGES_RETIRES) delete copie[k];
+  // Un tri « vitesse » enregistré se relit VIT : l'objectif Vitesse n'est plus une colonne de tri.
+  copie.sortBy = triDesResultats(c.sortBy as ColonneResultat | 'vitesse');
   return copie as unknown as CriteresOptimizer;
 }
 
@@ -73,7 +76,8 @@ function criteresValides(v: unknown): v is CriteresOptimizer {
   // Réglage retiré : toléré seulement sous sa forme historique, puis ôté à la lecture.
   if (REGLAGES_RETIRES.some((k) => k in v && typeof v[k] !== 'boolean')) return false;
   if (typeof v.critereArtefacts !== 'string' || !['brut', 'reel'].includes(v.critereArtefacts)) return false;
-  if (typeof v.sortBy !== 'string' || !['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc', 'efficience', 'ehp', 'vitesse', 'degats_reels'].includes(v.sortBy)) return false;
+  // `vitesse` : tri historique, admis puis relu VIT (`sansReglagesRetires`).
+  if (typeof v.sortBy !== 'string' || !['hp','atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc', 'efficience', 'ehp', 'vitesse', 'degats_reels'].includes(v.sortBy)) return false;
   if (!objet(v.damageSetup) || !objet(v.maxStats) || !objet(v.mainStatsBySlot) || !objet(v.lockedRunes) || !Array.isArray(v.lignesVerrouillees)) return false;
   // La validation des critères partagés réutilise le lecteur de recette, jamais une deuxième règle.
   const lu = parseOptimizerRecipe(JSON.stringify({

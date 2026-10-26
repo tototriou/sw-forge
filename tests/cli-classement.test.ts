@@ -58,6 +58,7 @@ import { runSearchToCompletion } from '../scripts/lib/runSearch';
 import { LIGNES_IMPRIMEES, classerCommeLEcran } from '../scripts/lib/classementCli';
 import { egal, ok, titre } from './outils';
 import { CorpsClassement, type PublicationClassement, type VueClassement } from '../src/lib/classementCompact';
+import { triDesResultats } from '../src/lib/colonnesResultats';
 import { contexteDeResultatCli } from '../scripts/lib/classementCli';
 import { compositionDePage } from '../src/lib/artifactQueue';
 import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs } from '../src/lib/candidatsCompacts';
@@ -108,7 +109,7 @@ export async function testCliClassementDifferentiel() {
   const photo = contexteDeResultatCli(recipe, LOADED, params, degats);
   const base = sortCandidates(candidats, recipe.objective, optionsOracleCli(recipe, params, degats, null));
   for (const pageImprimee of [false, true]) {
-    const vue: VueClassement = { tri: recipe.objective, metric: recipe.metric, page: 1, pageImprimee };
+    const vue: VueClassement = { tri: triDesResultats(recipe.objective), metric: recipe.metric, page: 1, pageImprimee };
     let publication!: PublicationClassement;
     const corps = new CorpsClassement({ publier: () => {}, resoudre: () => {}, incident: () => {} }, false, 'directe');
     // Un seul crédit isole le choix de priorité de la prélecture du transport.

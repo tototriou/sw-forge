@@ -211,6 +211,7 @@ import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testConstructionRapide from './construction-rapide.test';
 import testConstructionColonnes from './construction-colonnes.test';
+import testConstructionElagage from './construction-elagage.test';
 import testSerieCoordinateur from './serie-coordinateur.test';
 import testValidationParRune from './validation-par-rune.test';
 import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidatsCredits, testFluxCandidatsApercuFinal, testFluxCandidatsPageLente, testFluxCandidatsReceptionOrdre,
@@ -732,6 +733,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testFilterSlotTopK', testFilterSlotTopK],
   ['testConstructionRapide', testConstructionRapide],
   ['testConstructionColonnes', async () => { await testConstructionColonnes(); }],
+  ['testConstructionElagage', testConstructionElagage],
   ['testSerieCoordinateur', async () => { await testSerieCoordinateur(); }],
   ['testValidationParRune', testValidationParRune],
   ['testFluxCandidatsCompactOrdre', testFluxCandidatsCompactOrdre],

@@ -307,6 +307,13 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
     coûte O(log cap), et une combinaison moins bonne que la pire déjà gardée
     s'écarte en un test. Les tranches sont fusionnées sans doublon et triées
     une seule fois par compartiment, à la fin.
+  - Le noyau typé ne note même pas une combinaison qu'aucun tas de son
+    compartiment n'accepterait (borne de sa note sous la racine de chaque
+    tas plein, au début de la ligne des deux premières runes) : c'est un
+    élagage SÛR de la rétention, pas une heuristique de plus — la rétention
+    garde exactement les mêmes demi-builds dans le même ordre, et les bornes
+    `maxPct`/`maxFlat` comptent toujours ces combinaisons. Détail :
+    [pipeline.md § Construction des moitiés](pipeline.md#construction-des-moitiés).
   - Les tranches par stat ont toutes `bucketCap` places : aucune stat n'en
     reçoit plus selon sa dispersion. `adaptiveTrancheWeighting` est retiré
     des paramètres et de l'état

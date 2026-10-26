@@ -30,6 +30,23 @@
 // - Le code d'un triplet, `(idx0 × n1 + idx1) × n2 + idx2`, croît dans l'ordre
 //   même où `buildBuckets` énumère : il sert de rang global (ordre de création
 //   des compartiments, ordre d'apparition des clés de `maxPct`/`maxFlat`).
+// - Les triplets qu'aucun tas n'accepterait ne sont ni sommés, ni notés, ni
+//   poussés (`candidatsDeLaLigne`) : 90 à 96 % des triplets d'une recherche
+//   réelle. Un tas plein refuse un score `≤` sa racine sans rien changer, et sa
+//   racine ne fait que croître : un triplet dont chaque note est majorée par la
+//   racine de son tas AU DÉBUT de la ligne `(idx0, idx1)` est un no-op pour
+//   les tas. La majoration est linéaire en la troisième rune (`ceil(x) < x + 1`),
+//   triée d'avance par tranche et par classe (set, joker) de la troisième rune,
+//   avec une marge relative de 1e-9 qui couvre l'arrondi flottant (erreur réelle
+//   ~1e-14) ; efficience et stats sans pourcentage se bornent sans marge (note
+//   monotone en la contribution de la troisième rune). Ces triplets étendent
+//   quand même `maxPct`/`maxFlat`, d'un coup par classe : l'addition flottante
+//   est monotone, donc `fl(a + max c) = max fl(a + c)`. Une classe se traite
+//   triplet par triplet, comme avant, si son compartiment n'existe pas encore
+//   (sa création fixe l'ordre des compartiments), si un de ses tas n'est pas
+//   plein, ou si elle poserait la première borne non nulle d'une stat (le code
+//   de cette première apparition ordonne les clés de `maxPct`/`maxFlat`). Les
+//   candidats se traitent dans l'ordre croissant d'`idx2`, donc des codes.
 //
 // Découpage parallèle par rune du premier emplacement, sans mémoire partagée
 // (`construireTranche` puis `fusionnerTranches`) :
@@ -195,13 +212,144 @@ interface Noyau {
   sliceCount: number;
   caps: Int32Array | Float64Array;
   codesLarges: boolean;
+  /** Tables de l'élagage des triplets qu'aucun tas n'accepterait ; `null` : chaque triplet est noté. */
+  elagage: Elagage | null;
+}
+
+/**
+ * Par classe de la troisième rune — `(setIdx + 1) × 2 + joker`, ce qui fixe
+ * son compartiment sur une ligne `(idx0, idx1)` — et par tranche de rétention :
+ * les runes triées par clé décroissante. Indices `[classe × sliceCount + tranche]`.
+ */
+interface Elagage {
+  nc: number;
+  /** Runes de la classe, croissantes. */
+  membres: Int32Array[];
+  setDe: Int8Array;
+  jokerDe: Uint8Array;
+  /** 1 si la classe est dans `rescueIdxI2` (Intangible, ou set à 4 pièces demandé). */
+  secours: Uint8Array;
+  /** `[classe × T + t]` : maxima de la classe, pour étendre `maxPct`/`maxFlat` d'un coup. */
+  maxCp: Float64Array;
+  maxCf: Float64Array;
+  /** Par tranche : 0 efficience, 1 stat sans pourcentage (bornes exactes), 2 stat en pourcentage, 3 combinée (bornes avec marge). */
+  sorte: Uint8Array;
+  /** Par tranche : indice suivi de la stat (sortes 1 et 2), −1 sinon. */
+  stat: Int32Array;
+  ordres: Int32Array[];
+  cles: Float64Array[];
+  /** Maximum sur la classe de la somme des valeurs absolues des termes de la clé (marge). */
+  absMax: Float64Array;
+}
+
+/** Marge relative des bornes linéaires : l'erreur d'arrondi des notes est de l'ordre de 1e-14 relatif. */
+const MARGE_ELAGAGE = 1e-9;
+/** Au-delà, l'élagage s'abstient : aucune note ne peut alors déborder ni devenir NaN. */
+const VALEUR_MAX_ELAGAGE = 1e12;
+
+/** Options de la construction typée. `elaguer: false` note chaque triplet (référence des tests). */
+export interface OptionsConstruction {
+  elaguer?: boolean;
+  /** Compte de travail, rempli si présent : triplets notés, et triplets reconnus refusés sans être notés. */
+  compte?: CompteConstruction;
+}
+
+export interface CompteConstruction {
+  notes: number;
+  evites: number;
+}
+
+function preparerElagage(noyau: Omit<Noyau, 'elagage'>): Elagage | null {
+  const { D, T, n, eff, joker, setIdx, cPct, cFlat, wcBase, wcPct, minIdx, minVal, hasCombined, retIdx, sliceCount, fourPiece } = noyau;
+  const fini = (v: number) => Number.isFinite(v) && Math.abs(v) <= VALEUR_MAX_ELAGAGE;
+  for (let s = 0; s < 3; s++) {
+    for (let i = 0; i < n[s]; i++) if (!fini(eff[s][i])) return null;
+    for (let i = 0; i < n[s] * T; i++) if (!fini(cPct[s][i]) || !fini(cFlat[s][i])) return null;
+  }
+  for (let j = 0; j < T; j++) if (!fini(wcBase[j])) return null;
+  for (let m = 0; m < minVal.length; m++) if (!fini(minVal[m]) || !(minVal[m] > 0)) return null;
+
+  const nc = 2 * (D + 1);
+  const membresL: number[][] = Array.from({ length: nc }, () => []);
+  for (let i = 0; i < n[2]; i++) membresL[(setIdx[2][i] + 1) * 2 + joker[2][i]].push(i);
+  const membres = membresL.map((l) => Int32Array.from(l));
+  const setDe = new Int8Array(nc);
+  const jokerDe = new Uint8Array(nc);
+  const secours = new Uint8Array(nc);
+  for (let k = 0; k < nc; k++) {
+    setDe[k] = (k >> 1) - 1;
+    jokerDe[k] = k & 1;
+    secours[k] = jokerDe[k] === 1 || (setDe[k] >= 0 && fourPiece[setDe[k]] === 1) ? 1 : 0;
+  }
+  const maxCp = new Float64Array(nc * T).fill(-Infinity);
+  const maxCf = new Float64Array(nc * T).fill(-Infinity);
+  for (let k = 0; k < nc; k++) {
+    for (const i of membres[k]) {
+      for (let t = 0; t < T; t++) {
+        if (cPct[2][i * T + t] > maxCp[k * T + t]) maxCp[k * T + t] = cPct[2][i * T + t];
+        if (cFlat[2][i * T + t] > maxCf[k * T + t]) maxCf[k * T + t] = cFlat[2][i * T + t];
+      }
+    }
+  }
+
+  const sorte = new Uint8Array(sliceCount);
+  const stat = new Int32Array(sliceCount).fill(-1);
+  let s0 = 1;
+  if (hasCombined) sorte[s0++] = 3;
+  for (let r = 0; r < retIdx.length; r++, s0++) {
+    stat[s0] = retIdx[r];
+    sorte[s0] = wcPct[retIdx[r]] ? 2 : 1;
+  }
+  // Clé d'une rune du troisième emplacement pour la tranche s, et la somme des valeurs absolues de ses termes.
+  const terme = (i: number, j: number) => (wcPct[j] ? (wcBase[j] * cPct[2][i * T + j]) / 100 : 0) + cFlat[2][i * T + j];
+  const termeAbs = (i: number, j: number) => (wcPct[j] ? Math.abs((wcBase[j] * cPct[2][i * T + j]) / 100) : 0) + Math.abs(cFlat[2][i * T + j]);
+  const cle = (s: number, i: number): number => {
+    switch (sorte[s]) {
+      case 0: return eff[2][i];
+      case 1: return cFlat[2][i * T + stat[s]];
+      case 2: return terme(i, stat[s]);
+      default: {
+        let c = 0;
+        for (let m = 0; m < minIdx.length; m++) c += terme(i, minIdx[m]) / minVal[m];
+        return c;
+      }
+    }
+  };
+  const cleAbs = (s: number, i: number): number => {
+    if (sorte[s] === 2) return termeAbs(i, stat[s]);
+    if (sorte[s] !== 3) return 0;
+    let c = 0;
+    for (let m = 0; m < minIdx.length; m++) c += termeAbs(i, minIdx[m]) / minVal[m];
+    return c;
+  };
+  const ordres: Int32Array[] = [];
+  const cles: Float64Array[] = [];
+  const absMax = new Float64Array(nc * sliceCount);
+  for (let k = 0; k < nc; k++) {
+    for (let s = 0; s < sliceCount; s++) {
+      const m = membres[k];
+      const c = new Float64Array(n[2]);
+      let am = 0;
+      for (const i of m) {
+        c[i] = cle(s, i);
+        const a = cleAbs(s, i);
+        if (a > am) am = a;
+      }
+      const ord = Int32Array.from(m).sort((x, y) => c[y] - c[x] || x - y);
+      ordres.push(ord);
+      cles.push(Float64Array.from(ord, (i) => c[i]));
+      absMax[k * sliceCount + s] = am;
+    }
+  }
+  return { nc, membres, setDe, jokerDe, secours, maxCp, maxCf, sorte, stat, ordres, cles, absMax };
 }
 
 function preparerNoyau(
   ctx: ContexteConstruction,
   slotIdxs: readonly [number, number, number],
   otherHalfMaxSets: number[],
-  elargir = false
+  elargir = false,
+  elaguer = true
 ): Noyau {
   const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base } = ctx;
   const [i0, i1, i2] = slotIdxs;
@@ -279,16 +427,17 @@ function preparerNoyau(
     ? new Float64Array(sliceCount).fill(bucketCap > 0 ? Math.ceil(bucketCap) : 0)
     : new Int32Array(sliceCount).fill(bucketCap);
 
-  return {
+  const noyau = {
     pools, n, D, T, trackedKeys,
-    eff: [p[0].eff, p[1].eff, p[2].eff],
-    joker: [p[0].joker, p[1].joker, p[2].joker],
-    setIdx: [p[0].setIdx, p[1].setIdx, p[2].setIdx],
-    cPct: [p[0].cPct, p[1].cPct, p[2].cPct],
-    cFlat: [p[0].cFlat, p[1].cFlat, p[2].cFlat],
+    eff: [p[0].eff, p[1].eff, p[2].eff] as Noyau['eff'],
+    joker: [p[0].joker, p[1].joker, p[2].joker] as Noyau['joker'],
+    setIdx: [p[0].setIdx, p[1].setIdx, p[2].setIdx] as Noyau['setIdx'],
+    cPct: [p[0].cPct, p[1].cPct, p[2].cPct] as Noyau['cPct'],
+    cFlat: [p[0].cFlat, p[1].cFlat, p[2].cFlat] as Noyau['cFlat'],
     requiredPieces, seuil12, seuil2, fourPiece, hasFourPiece, rescueIdxI2: Int32Array.from(rescue),
     constr, wcBase, wcPct, minIdx, minVal, hasCombined, retIdx, sliceCount, caps, codesLarges,
   };
+  return { ...noyau, elagage: elaguer ? preparerElagage(noyau) : null };
 }
 
 /* --------------------------------------------------------------------------
@@ -322,11 +471,32 @@ interface Etat {
   emettre: boolean;
   emis: Int32Array;
   nEmis: number;
+  /** Élagage : sommes des deux premières runes de la ligne, candidats de la ligne et leur marque. */
+  sp01: Float64Array;
+  sf01: Float64Array;
+  countsClasse: Int32Array;
+  cands: Int32Array;
+  marque: Int32Array;
+  ligne: number;
+  /** Par tranche, pour la ligne : terme constant de la borne et somme des valeurs absolues de ses termes. */
+  aLigne: Float64Array;
+  aAbsLigne: Float64Array;
+  compte: CompteConstruction | null;
 }
 
-function nouvelEtat(noyau: Noyau, emettre: boolean): Etat {
+function nouvelEtat(noyau: Noyau, emettre: boolean, compte: CompteConstruction | null = null): Etat {
   const { D, T } = noyau;
+  const n2 = noyau.elagage ? noyau.n[2] : 0;
   return {
+    sp01: new Float64Array(T),
+    sf01: new Float64Array(T),
+    countsClasse: new Int32Array(D),
+    cands: new Int32Array(n2),
+    marque: new Int32Array(n2),
+    ligne: 0,
+    aLigne: new Float64Array(noyau.sliceCount),
+    aAbsLigne: new Float64Array(noyau.sliceCount),
+    compte,
     noyau,
     parCode: new Int32Array(2 * 4 ** D).fill(-1),
     compartiments: [],
@@ -442,12 +612,17 @@ function parcourirR0(etat: Etat, idx0: number): void {
     if (hasFourPiece && jokersR01 === 0) {
       for (let k = 0; k < D; k++) if (fourPiece[k] === 1 && have01[k] === 0) mustRescue = true;
     }
-    const total2 = mustRescue ? rescueIdxI2.length : n2;
     const b1 = idx1 * T;
     const e01 = e0 + eff1[idx1];
     const base01 = (idx0 * n1 + idx1) * n2;
+    let liste: Int32Array | null = mustRescue ? rescueIdxI2 : null;
+    let total2 = mustRescue ? rescueIdxI2.length : n2;
+    if (noyau.elagage) {
+      total2 = candidatsDeLaLigne(etat, noyau.elagage, a, b1, have01, jokersR01, mustRescue, e01);
+      liste = etat.cands;
+    }
     for (let j2 = 0; j2 < total2; j2++) {
-      const idx2 = mustRescue ? rescueIdxI2[j2] : j2;
+      const idx2 = liste ? liste[j2] : j2;
       const j2k = jk2[idx2];
       if (jokersR01 + j2k >= 2) continue;
       const jokers = jokersR01 + j2k;
@@ -478,12 +653,148 @@ function parcourirR0(etat: Etat, idx0: number): void {
           if (b.premierFlat[c] === Infinity) b.premierFlat[c] = code;
         }
       }
+      if (etat.compte) etat.compte.notes++;
       calculerScores(etat, relevance);
       let accepte = false;
       for (let s = 0; s < sliceCount; s++) if (pousser(b.tas[s], scores[s], code)) accepte = true;
       if (accepte && etat.emettre) emettre(etat, code);
     }
   }
+}
+
+/** Vrai si une rune de clé `cle` peut encore battre `racine` (tranche de sorte `sorte`, terme constant `a`). */
+function depasse(sorte: number, cle: number, a: number, marge: number, racine: number): boolean {
+  // Sorte 0 : la note même, `(e0 + e1 + e2) / 1000`. Sorte 1 : la note même, `f0 + f1 + f2`.
+  if (sorte === 0) return (a + cle) / 1000 > racine;
+  if (sorte === 1) return a + cle > racine;
+  return a + cle + marge > racine;
+}
+
+/** Longueur du préfixe de `cles` (décroissantes) qui peut battre la racine : recherche galopante, les préfixes étant courts. */
+function prefixe(cles: Float64Array, sorte: number, a: number, marge: number, racine: number): number {
+  const m = cles.length;
+  if (m === 0 || !depasse(sorte, cles[0], a, marge, racine)) return 0;
+  let vrai = 0;
+  let pas = 1;
+  while (vrai + pas < m && depasse(sorte, cles[vrai + pas], a, marge, racine)) {
+    vrai += pas;
+    pas *= 2;
+  }
+  let lo = vrai + 1;
+  let hi = Math.min(vrai + pas, m);
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (depasse(sorte, cles[mid], a, marge, racine)) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+/**
+ * Les troisièmes runes de la ligne `(idx0, idx1)` dont le triplet peut changer
+ * un tas, croissantes, dans `etat.cands` ; rend leur nombre. Étend d'un coup
+ * `maxPct`/`maxFlat` des classes dont des triplets sont écartés. Les autres
+ * filtres (joker, set mort, sauvetage) restent ceux de la boucle : une classe
+ * qu'ils écartent n'apporte rien.
+ */
+function candidatsDeLaLigne(
+  etat: Etat, el: Elagage, a: number, b1: number, have01: Int32Array,
+  jokersR01: number, mustRescue: boolean, e01: number
+): number {
+  const { noyau, sp01, sf01, countsClasse, cands, marque, aLigne, aAbsLigne } = etat;
+  const { D, T, cPct, cFlat, wcBase, wcPct, minIdx, minVal, constr, sliceCount, requiredPieces } = noyau;
+  const [cp0, cp1] = cPct;
+  const [cf0, cf1] = cFlat;
+  for (let t = 0; t < T; t++) {
+    sp01[t] = cp0[a + t] + cp1[b1 + t];
+    sf01[t] = cf0[a + t] + cf1[b1 + t];
+  }
+  // Terme constant de chaque tranche : pour une stat en pourcentage,
+  // ceil(w × (s01 + c2) / 100) + f01 + f2 < w × s01 / 100 + 1 + f01 + (w × c2 / 100 + f2).
+  for (let s = 0; s < sliceCount; s++) {
+    const sorte = el.sorte[s];
+    if (sorte === 0) aLigne[s] = e01;
+    else if (sorte === 1) aLigne[s] = sf01[el.stat[s]];
+    else if (sorte === 2) {
+      const j = el.stat[s];
+      const y = (wcBase[j] * sp01[j]) / 100;
+      aLigne[s] = y + 1 + sf01[j];
+      aAbsLigne[s] = Math.abs(y) + 1 + Math.abs(sf01[j]);
+    } else {
+      let c = 0;
+      let cAbs = 0;
+      for (let m = 0; m < minIdx.length; m++) {
+        const j = minIdx[m];
+        const y = wcPct[j] ? (wcBase[j] * sp01[j]) / 100 : 0;
+        c += (y + (wcPct[j] ? 1 : 0) + sf01[j]) / minVal[m];
+        cAbs += (Math.abs(y) + (wcPct[j] ? 1 : 0) + Math.abs(sf01[j])) / minVal[m];
+      }
+      aLigne[s] = c;
+      aAbsLigne[s] = cAbs;
+    }
+  }
+
+  const ligne = ++etat.ligne;
+  let nb = 0;
+  let parcourus = 0;
+  const ajouter = (i: number) => {
+    if (marque[i] !== ligne) {
+      marque[i] = ligne;
+      cands[nb++] = i;
+    }
+  };
+  for (let k = 0; k < el.nc; k++) {
+    const membres = el.membres[k];
+    if (membres.length === 0) continue;
+    const jokers = jokersR01 + el.jokerDe[k];
+    if (jokers >= 2 || (mustRescue && el.secours[k] === 0)) continue;
+    const s2 = el.setDe[k];
+    let mort = false;
+    for (let d = 0; d < D; d++) {
+      countsClasse[d] = have01[d] + (s2 === d ? 1 : 0);
+      if (requiredPieces[d] > 3 && countsClasse[d] === 0 && jokers === 0) mort = true;
+    }
+    if (mort) continue;
+    parcourus += membres.length;
+    const ib = etat.parCode[codeCompartiment(countsClasse, D, jokers)];
+    let toute = ib < 0;
+    const b = toute ? null : etat.compartiments[ib];
+    if (b) {
+      for (let c = 0; c < constr.length && !toute; c++) {
+        const t = constr[c];
+        if (b.premierPct[c] === Infinity && sp01[t] + el.maxCp[k * T + t] > b.maxPct[c]) toute = true;
+        if (b.premierFlat[c] === Infinity && sf01[t] + el.maxCf[k * T + t] > b.maxFlat[c]) toute = true;
+      }
+      for (let s = 0; s < sliceCount && !toute; s++) if (b.tas[s].len < b.tas[s].cap) toute = true;
+    }
+    if (toute || !b) {
+      for (let q = 0; q < membres.length; q++) ajouter(membres[q]);
+      continue;
+    }
+    // Les triplets écartés étendent les bornes comme s'ils avaient été rencontrés.
+    for (let c = 0; c < constr.length; c++) {
+      const t = constr[c];
+      const vp = sp01[t] + el.maxCp[k * T + t];
+      const vf = sf01[t] + el.maxCf[k * T + t];
+      if (vp > b.maxPct[c]) b.maxPct[c] = vp;
+      if (vf > b.maxFlat[c]) b.maxFlat[c] = vf;
+    }
+    for (let s = 0; s < sliceCount; s++) {
+      const h = b.tas[s];
+      // Plafond nul : le tas refuse tout.
+      if (h.len === 0) continue;
+      const racine = h.scores[0];
+      const ks = k * sliceCount + s;
+      const sorte = el.sorte[s];
+      const marge = sorte >= 2 ? MARGE_ELAGAGE * (1 + aAbsLigne[s] + el.absMax[ks] + Math.abs(racine)) : 0;
+      const p = prefixe(el.cles[ks], sorte, aLigne[s], marge, racine);
+      const ord = el.ordres[ks];
+      for (let q = 0; q < p; q++) ajouter(ord[q]);
+    }
+  }
+  if (etat.compte) etat.compte.evites += parcourus - nb;
+  cands.subarray(0, nb).sort();
+  return nb;
 }
 
 /* --------------------------------------------------------------------------
@@ -579,17 +890,20 @@ function refuserTraceur(ctx: BuildBucketsContext | ContexteConstruction): void {
 /**
  * Pendant de `buildBuckets` (mêmes arguments, sans `skylineKeys` : aucun appel
  * de production n'en passe), même progression par rune du premier emplacement.
+ * `options.elaguer: false` note chaque triplet : la référence du différentiel
+ * de l'élagage (tests/construction-elagage.test.ts), même résultat.
  */
 export function* construireMoitieRapideTypee(
   half: 'A' | 'B',
   slotIdxs: readonly [number, number, number],
   ctx: BuildBucketsContext,
   otherHalfMaxSets: number[],
-  combosOrderMode: OrdreCombos = 'objective'
+  combosOrderMode: OrdreCombos = 'objective',
+  options: OptionsConstruction = {}
 ): Generator<BuildingProgress, CompartimentType[], void> {
   refuserTraceur(ctx);
-  const noyau = preparerNoyau(ctx, slotIdxs, otherHalfMaxSets, true);
-  const etat = nouvelEtat(noyau, false);
+  const noyau = preparerNoyau(ctx, slotIdxs, otherHalfMaxSets, true, options.elaguer ?? true);
+  const etat = nouvelEtat(noyau, false, options.compte ?? null);
   const total = noyau.n[0];
   for (let idx0 = 0; idx0 < total; idx0++) {
     yield { phase: 'building', half, scanned: idx0 + 1, total };
@@ -655,7 +969,8 @@ export function fusionnerTranches(
   tranches: ResultatTranche[]
 ): Bucket[] {
   refuserTraceur(ctx);
-  const noyau = preparerNoyau(ctx, slotIdxs, otherHalfMaxSets);
+  // La fusion ne parcourt aucune ligne : pas de tables d'élagage.
+  const noyau = preparerNoyau(ctx, slotIdxs, otherHalfMaxSets, false, false);
   const { D, T, n, cPct, cFlat, eff, joker, setIdx, constr, sliceCount } = noyau;
   const vus = new Uint8Array(n[0]);
   for (const t of tranches) for (const i of t.idx0s) vus[i]++;

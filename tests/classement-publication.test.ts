@@ -112,7 +112,7 @@ async function attendre<T>(lire: () => T | undefined | false, ms: number): Promi
 }
 
 export async function testClassementVueSansAutreMessage() {
-  titre('Classeur — un geste de vue est publié dès que son instantané est prêt, sans autre message (vrai Worker)');
+  titre('Classeur — le scellement et un geste de vue sont publiés dès que leur instantané est prêt, sans autre message (vrai Worker)');
   const b = banc(); b.ouvrir(1);
   b.corps.changerVue({ ...b.f.vue, page: 2 }, 2, 2); b.pomper(10);
   egal(b.publications.length, 2, 'corps : la page demandée 10 ms après la publication précédente part aussitôt');
@@ -137,10 +137,18 @@ export async function testClassementVueSansAutreMessage() {
     const colonnes = creerColonnesCandidats(); f.candidats.forEach((c) => ajouterObjetCandidat(colonnes, c));
     const blocs = extraireBlocs(colonnes);
     blocs.forEach((bloc, sequence) => flux.port2.postMessage({ type: 'candidats', idRecherche: id, sequence, bloc }));
-    flux.port2.postMessage({ type: 'sceller', idRecherche: id, nombre: f.candidats.length, derniereSequence: blocs.length - 1, bilan: BILAN });
-    const enVol = await attendre(() => demandes.filter((m) => m.type === 'resoudre').length >= 2, 3000);
-    ok(enVol === true, 'deux résolutions en vol, sans réponse');
     const publications = () => journalDuClasseur.flatMap(({ r, t }) => r.type === 'publication' ? [{ p: r.publication, t }] : []);
+    // La file part avant la fin de la recherche (`activer`, comme le Worker de recherche le demande).
+    flux.port2.postMessage({ type: 'activer', idRecherche: id });
+    const enVol = await attendre(() => demandes.filter((m) => m.type === 'resoudre').length >= 2, 3000);
+    ok(enVol === true, 'file active avant le scellement : deux résolutions en vol, sans réponse');
+    const avantScelle = publications(), precedenteScelle = avantScelle[avantScelle.length - 1], tScelle = performance.now();
+    flux.port2.postMessage({ type: 'sceller', idRecherche: id, nombre: f.candidats.length, derniereSequence: blocs.length - 1, bilan: BILAN });
+    ok(precedenteScelle !== undefined && tScelle - precedenteScelle.t < 400,
+      `scellement : ${precedenteScelle ? Math.round(tScelle - precedenteScelle.t) : '?'} ms après la publication précédente, la cadence l’aurait retenu`);
+    const scellee = await attendre(() => publications().find(({ p }) => p.bilan !== null), 1000);
+    ok(scellee !== undefined && scellee.p.comptes.recus === f.candidats.length,
+      `scellement : bilan publié sans réponse du résolveur ni autre message${scellee ? ` (${Math.round(scellee.t - tScelle)} ms)` : ' (rien en 1 s)'}`);
     const gestes: [string, VueClassement][] = [['page 2', { ...f.vue, page: 2 }], ['tri PV', { ...f.vue, tri: 'hp', page: 1 }], ['mesure Score', { tri: 'hp', metric: 'score', page: 1 }]];
     for (const [i, [nom, vue]] of gestes.entries()) {
       const avant = publications(), idVue = i + 2, precedente = avant[avant.length - 1], t0 = performance.now();

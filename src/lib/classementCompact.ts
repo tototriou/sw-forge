@@ -667,7 +667,9 @@ export class CorpsClassement {
       return;
     }
     this.flux.scellerColonnes(nombre); this.bilan = bilan; this.collecteScellee = true;
-    this.activer(idRecherche); this.sale = true;
+    // Le bilan (fin de recherche) part dès que son instantané est prêt : retenu
+    // par la cadence, il n'attendrait que la prochaine réponse du résolveur.
+    this.activer(idRecherche); this.sale = true; this.publicationForcee = true;
   }
   private libererSourceScellee(): void {
     // Le magasin n'adopte la source qu'une fois sa construction terminée.

@@ -515,9 +515,11 @@ prêt (après le tri qu'il demande) : retenu par la cadence, il n'attendrait
 que la prochaine réponse du résolveur, qui peut tarder (relique
 « recherche », deux résolutions longues en vol), et l'écran garderait
 l'ancienne page sous le nouveau numéro. Le geste vient de l'utilisateur :
-une publication de plus par geste, jamais une par réponse. Hors de ces fins,
-des gestes et des forçages explicites ou incidents, le fond respecte les
-400 ms.
+une publication de plus par geste, jamais une par réponse. Le scellement de
+la recherche force de même la sienne : le bilan, donc le statut « terminé »
+de l'écran, n'attend pas une réponse du résolveur, une fois par recherche.
+Hors de ces fins, du scellement, des gestes et des forçages explicites ou
+incidents, le fond respecte les 400 ms.
 Une réponse déjà reçue et retenue pendant une tâche rend son crédit avant
 d'être abandonnée par une ouverture ou une libération ; son équipement
 n'entre jamais dans la nouvelle génération. Une demande réellement sans

@@ -1,7 +1,7 @@
 import { CandidatsCompacts, RecepteurCandidats, ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs, terminerEtapes, trierIndicesEtapes, type BlocCandidats } from './candidatsCompacts';
 import { candidatAvecSaPaire, cibleDeLaFile, cleBuild, compteConfirmeDesComptes, type JournalResolution, type ResultatArtefacts } from './artifactQueue';
 import { scoreDuCandidat, type BuildCandidate, type Objective, type OptionsDeClassement } from './runeBuildOptim';
-import type { StatKey } from './effects';
+import { CAPPED_STATS, type StatKey } from './effects';
 import type { OptimMetric } from './runeOptim';
 import { CacheResolutionCompact } from './cacheResolutionCompact';
 import { optionsDuContexte, resolutionDuContexte, runesDuContexte, type ContexteResultat } from './contexteResultat';
@@ -547,8 +547,18 @@ export interface VueClassement {
    * masquent sans rien perdre : ni note, ni cache, ni résolution.
    */
   bornes?: BornesResultats;
+  /**
+   * Le réglage d'application « afficher au-delà du plafond » (absent = vrai,
+   * son défaut). Masqué, une borne de Taux Crit, RES ou Précision compare ce
+   * que le panneau de stats écrit, au plus 100 (`displayedTotal`).
+   */
+  afficherDepassement?: boolean;
 }
 const sensDe = (vue: VueClassement): SensTri => vue.sens ?? SENS_PAR_DEFAUT;
+const depassementDe = (vue: VueClassement): boolean => vue.afficherDepassement ?? true;
+/** Ce qui décide des catégories : les bornes, et le dépassement seulement sous une borne plafonnée. */
+const cleDesBornes = (bornes: EtatBornes, afficherDepassement: boolean) =>
+  JSON.stringify([bornes.actives, bornes.contradictoires, bornes.actives.some((b) => CAPPED_STATS.has(b.colonne as StatKey)) ? afficherDepassement : null]);
 /** Critère, mesure et sens d'un ordre de base ; leur clé nomme ses notes. */
 type CritereDeBase = [StatKey | Objective, OptimMetric, SensTri];
 const cleCritere = (critere: StatKey | Objective, metric: OptimMetric, sens: SensTri) => `${critere}|${metric}|${sens}`;
@@ -839,7 +849,8 @@ export class CorpsClassement {
     const realDamage = this.contexte.realDamage;
     const bornes = etatDesBornes(vue.bornes, (c) => colonneDisponible(c, realDamage));
     const avant = this.vue;
-    const autresBornes = avant !== null && JSON.stringify(bornes) !== JSON.stringify(this.bornes);
+    // Le réglage du dépassement ne compte que sous une borne de Taux Crit, RES ou Précision.
+    const autresBornes = avant !== null && cleDesBornes(bornes, depassementDe(vue)) !== cleDesBornes(this.bornes, depassementDe(avant));
     // Le régime suit l'objectif photographié : seule l'ouverture le pose.
     const entrees = avant ? this.entrees : resolutionDuContexte(this.contexte);
     if (!avant && entrees) {
@@ -899,8 +910,9 @@ export class CorpsClassement {
   private filtreLignes(index: ClassementCompact): FiltreLignes {
     const contexte = this.contexte!, vue = this.vue!, bornes = this.bornes, avecFile = this.entrees !== null;
     const options = optionsDuContexte(contexte, this.cache, vue.metric);
-    return filtreDesLignes({ bornes, avecFile, cle: JSON.stringify([bornes.actives, bornes.contradictoires, avecFile, vue.metric]),
-      candidat: (i) => this.ligneAffichee(index, i).candidat, valeur: (colonne, c) => valeurAffichee(colonne, c, options) });
+    const afficherDepassement = depassementDe(vue);
+    return filtreDesLignes({ bornes, avecFile, cle: JSON.stringify([cleDesBornes(bornes, afficherDepassement), avecFile, vue.metric]),
+      candidat: (i) => this.ligneAffichee(index, i).candidat, valeur: (colonne, c) => valeurAffichee(colonne, c, options, afficherDepassement) });
   }
   private *trierBaseEtapes(): Generator<void> {
     if (!this.contexte || !this.vue) return;

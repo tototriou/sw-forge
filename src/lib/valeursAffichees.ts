@@ -5,6 +5,18 @@
 // écriture de l'arrondi divergerait au premier changement de présentation.
 
 import type { OptimMetric } from './runeOptim';
+import { CAPPED_STATS, type StatKey } from './effects';
+
+/**
+ * Le total qu'un panneau de stats écrit en mode « total » : borné à 100 %
+ * pour Taux Crit, RES et Précision quand le dépassement est masqué (réglage
+ * d'application, `useOvercapDisplay`), inchangé sinon. Un réglage
+ * d'affichage : `computeStats` et les conditions gardent le total brut.
+ */
+export function displayedTotal(key: StatKey, total: number, showOvercap: boolean): number {
+  if (!showOvercap && CAPPED_STATS.has(key)) return Math.min(total, 100);
+  return total;
+}
 
 /** La mesure moyenne par rune d'un build : la mesure de ses six runes, divisée par six. */
 export function moyenneParRune(total: number): number {

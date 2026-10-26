@@ -117,6 +117,7 @@ import {
 } from '../../hooks/useOptimizerState';
 import { UseOptimizerLists } from '../../hooks/useOptimizerLists';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
+import { useOvercapDisplay } from '../../hooks/useOvercapDisplay';
 import { useMediaQuery, SOUS_LG, SOUS_SM } from '../../hooks/useMediaQuery';
 import { type Selected as SelectionGear } from '../MonsterGear';
 import { useHauteurDesCartes } from './BuildCandidateCard';
@@ -374,6 +375,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     return rapport;
   }, [onImporterEquipe]);
   const metric = useRuneMetric();
+  // Réglage d'application : ce que le panneau de stats écrit de Taux Crit,
+  // RES et Précision, que les bornes des résultats comparent.
+  const afficherDepassement = useOvercapDisplay();
   // ⚠️ Ne sert PAS aux `Segmented` — ils se resserrent tout seuls
   // en mesurant la place qu'ils reçoivent (voir `Segmented.tsx`), ce qu'un
   // seuil de FENÊTRE ne pouvait pas voir. Reste utilisé par les vignettes
@@ -1845,7 +1849,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         requirement: requirementAvecAuras, relicContext: params.relicContext } : null,
       realDamage, damageSetup, exclusive: contexteExclusive, signature: signatureArtefacts, idInventaire: importDuCompte, idEspece: selected.monster.com2usId ?? null,
       toutVerifier: verifierToutesLesCombinaisons });
-    run(params, photo, { tri: triDeDepart, metric, page: 1 });
+    run(params, photo, { tri: triDeDepart, metric, page: 1, afficherDepassement });
   }
 
   // Exporte la RECETTE de cette recherche (set, minimums, objectif,
@@ -2159,7 +2163,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // versions. Aucun de ces trois réglages ne résout d'équipement, sauf la page
   // demandée en naviguant (le classeur le distingue d'un changement de tri).
   const { changerVue } = search;
-  useEffect(() => { changerVue({ tri: sortBy, metric, page: resultsPage }); }, [changerVue, sortBy, metric, resultsPage]);
+  useEffect(() => { changerVue({ tri: sortBy, metric, page: resultsPage, afficherDepassement }); }, [changerVue, sortBy, metric, resultsPage, afficherDepassement]);
   const instantane = search.classement;
   const interrompu = search.classementInterrompu;
 

@@ -5,8 +5,9 @@ import { contexteResultat, optionsDuContexte, type ContexteResultat } from '../s
 import { CacheResolutionJournalise, cleBuild, journalResolution, type ResultatArtefacts } from '../src/lib/artifactQueue';
 import { candidateMetricTotal, scoreDuCandidat, statTotal, type BuildCandidate } from '../src/lib/runeBuildOptim';
 import { COLONNES_RESULTATS, type ColonneResultat } from '../src/lib/colonnesResultats';
-import { CATEGORIE_LIGNE, COLONNES_IMMUABLES, categorieDeLaLigne, etatDesBornes, filtreDesLignes, type BornesResultats } from '../src/lib/filtresResultats';
-import { chiffresMesureRune, moyenneParRune } from '../src/lib/valeursAffichees';
+import { CATEGORIE_LIGNE, COLONNES_IMMUABLES, categorieDeLaLigne, etatDesBornes, filtreDesLignes, valeurAffichee, type BornesResultats } from '../src/lib/filtresResultats';
+import { chiffresMesureRune, displayedTotal, moyenneParRune } from '../src/lib/valeursAffichees';
+import { displayedTotal as displayedTotalDuPanneau } from '../src/hooks/useOvercapDisplay';
 import { formatRuneMetric } from '../src/hooks/useRuneMetric';
 import { computeStats } from '../src/lib/stats';
 import type { StatKey } from '../src/lib/effects';
@@ -23,10 +24,12 @@ function generateur(graine: number) {
  * Plus de builds que K (300 en relique « recherche ») : après le point fixe,
  * une partie reste non vérifiée. Vrai corps du classeur, vraie résolution.
  */
-function banc(nombre = 420, e: { avecFile?: boolean; sansSort?: boolean } = {}) {
+function banc(nombre = 420, e: { avecFile?: boolean; sansSort?: boolean; stats?: (c: BuildCandidate, i: number) => BuildCandidate['stats'] } = {}) {
   const f = fixtureClassementCombat('degats_reels', false);
-  const candidats: BuildCandidate[] = Array.from({ length: nombre }, (_, i) => ({ ...f.candidats[i % 32],
-    runeIds: Array.from({ length: 6 }, (_, s) => 20000 + i * 6 + s), effTotal: nombre - i }));
+  const candidats: BuildCandidate[] = Array.from({ length: nombre }, (_, i) => {
+    const c = { ...f.candidats[i % 32], runeIds: Array.from({ length: 6 }, (_, s) => 20000 + i * 6 + s), effTotal: nombre - i };
+    return e.stats ? { ...c, stats: e.stats(c, i) } : c;
+  });
   const runeById = new Map(f.params.pool.map((r) => [r.id, r]));
   const pool = candidats.flatMap((c, i) => f.candidats[i % 32].runeIds.map((id, slot) => ({ ...runeById.get(id)!, id: c.runeIds[slot] })));
   const photo = contexteResultat({ ...f.photo, params: { ...f.params, pool }, toutVerifier: false,
@@ -323,4 +326,28 @@ export function testFiltresResultatsDifferentiel() {
   }
   ok(compares >= 40 && vides > 0, `${compares} jeux de bornes comparés, ${vides} contradictoires`);
   egal(ecarts, 0, 'cartes, ordre, potentiels, page 1 et comptes identiques à la référence (valeurs écrites par la carte, ordre sans borne)');
+}
+
+export function testFiltresResultatsPlafondAffiche() {
+  titre('Filtres d’affichage — Taux Crit, RES et Précision : la borne compare ce que le panneau de stats écrit');
+  egal(displayedTotalDuPanneau, displayedTotal, 'le panneau de stats et les bornes appellent la même fonction');
+  // Sans file : les stats reçues sont définitives. Un build sur trois à 115 % de Taux Crit.
+  const auDela = (c: BuildCandidate, i: number) => c.stats.map((s) => s.key === 'cr' && i % 3 === 0 ? { ...s, total: 115, bonus: 115 - s.base } : s);
+  const b = banc(60, { avecFile: false, stats: auDela });
+  b.pomper();
+  const tous = b.corps.projection().affichees.length, auDessus = b.candidats.filter((c) => statTotal(c.stats, 'cr') > 100).length;
+  ok(auDessus === 20 && tous === 60, '60 builds reçus, 20 à 115 % de Taux Crit');
+  const options = optionsDuContexte(b.photo, null, 'eff'), haut = b.candidats[0];
+  egal([valeurAffichee('cr', haut, options, false), valeurAffichee('cr', haut, options, true), valeurAffichee('cr', haut, options)], [100, 115, 115],
+    'valeur comparée : 100 dépassement masqué, 115 affiché (défaut de l’application)');
+  let i = b.changer({ bornes: { cr: { min: null, max: 100 } }, afficherDepassement: false });
+  egal([i.filtre.comptes.visiblesConfirmes, i.filtre.comptes.masquesConfirmes], [60, 0], 'dépassement masqué : la carte écrit 100 %, Taux Crit ≤ 100 la garde');
+  i = b.changer({ afficherDepassement: true });
+  egal([i.filtre.comptes.visiblesConfirmes, i.filtre.comptes.masquesConfirmes], [40, 20], 'dépassement affiché : la carte écrit 115 %, Taux Crit ≤ 100 la masque');
+  i = b.changer({ bornes: { cr: { min: 101, max: null } }, afficherDepassement: false });
+  egal(i.filtre.comptes.visiblesConfirmes, 0, 'dépassement masqué : aucune carte n’écrit plus de 100 %, Taux Crit ≥ 101 ne garde rien');
+  const priorite = () => (b.corps as unknown as { pagePrioritaire: boolean }).pagePrioritaire;
+  b.changer({ bornes: { atk: { min: 0, max: null } } }); b.changer({ page: 2 });
+  const avant = priorite(), comptes = b.changer({ afficherDepassement: true }).filtre.comptes;
+  ok(avant && priorite() && comptes.masquesConfirmes === 0, 'sans borne plafonnée, le réglage ne change ni la vue ni la priorité de page');
 }

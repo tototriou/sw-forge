@@ -99,7 +99,7 @@ import { testTriSansNouvelleResolution, testToutVerifierPhotographie, testPlaces
 import { testObjectifVitesseMigration } from './objectif-vitesse.test';
 import { testColonnesTriAscendant } from './colonnes-tri.test';
 import { testFiltresResultatsBornes, testFiltresResultatsReversibles, testFiltresResultatsIndetermines, testFiltresResultatsComptesPages,
-  testFiltresResultatsDifferentiel } from './filtres-resultats.test';
+  testFiltresResultatsDifferentiel, testFiltresResultatsPlafondAffiche } from './filtres-resultats.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
 import { testOptimizerFormatBig } from './format-big.test';
@@ -902,6 +902,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testFiltresResultatsIndetermines', testFiltresResultatsIndetermines],
   ['testFiltresResultatsComptesPages', testFiltresResultatsComptesPages],
   ['testFiltresResultatsDifferentiel', testFiltresResultatsDifferentiel],
+  ['testFiltresResultatsPlafondAffiche', testFiltresResultatsPlafondAffiche],
   ['testTriSansNouvelleResolution', testTriSansNouvelleResolution],
   ['testToutVerifierPhotographie', testToutVerifierPhotographie],
   ['testPlacesEnAttenteToujoursTravaillees', testPlacesEnAttenteToujoursTravaillees],

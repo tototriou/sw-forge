@@ -358,9 +358,15 @@ l'écran actuel n'envoie aucune borne.
   conditions). Efficience : la moyenne par rune de la carte, une décimale en
   Efficience ou un entier en Score SW, suivant la mesure de la vue. Dégâts
   réels et PV effectifs : le chiffre de la carte (`scoreDuCandidat` du
-  classement), arrondi à l'entier. ⚠️ En mode « total », la carte plafonne
-  Taux Crit, RES et Précision à 100 quand « afficher au-delà du plafond »
-  est coupé ; la borne compare le total brut, comme les conditions.
+  classement), arrondi à l'entier. ⚠️ Quand « afficher au-delà du plafond »
+  est coupé, le panneau de stats écrit Taux Crit, RES et Précision au plus
+  à 100 (`displayedTotal`, valeursAffichees.ts) : la borne compare cette
+  valeur, par la même fonction, la vue portant le réglage
+  (`afficherDepassement`, absent = affiché, le défaut de l'application) ;
+  une carte qui écrit « 100 % » passe une borne ≤ 100. Le réglage affiché,
+  la borne compare le total. Les conditions de recherche, elles, jugent
+  toujours le total brut. Changer ce réglage ne reclasse la vue que sous une
+  borne de l'une de ces trois colonnes.
 - **Un build non vérifié n'est jamais jugé sur ses stats provisoires** :
   sa paire et sa relique peuvent encore changer PV, ATQ, DEF et les deux
   objectifs. Il reste « potentiel » (il garde sa place dans la pagination et

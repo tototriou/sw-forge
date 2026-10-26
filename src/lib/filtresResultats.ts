@@ -6,7 +6,7 @@
 
 import { COLONNES_RESULTATS, type ColonneResultat } from './colonnesResultats';
 import { scoreDuCandidat, statTotal, type BuildCandidate, type OptionsDeClassement } from './runeBuildOptim';
-import { chiffresMesureRune, entierAffiche, moyenneParRune } from './valeursAffichees';
+import { chiffresMesureRune, displayedTotal, entierAffiche, moyenneParRune } from './valeursAffichees';
 
 /** Une borne par sens ; `null` = sans borne. */
 export interface BorneColonne { min: number | null; max: number | null }
@@ -98,9 +98,11 @@ export function etatDesBornes(bornes: BornesResultats | undefined, disponible: (
  * La valeur qu'une carte écrit pour cette colonne, en nombre : les mêmes
  * fonctions que la carte (valeursAffichees.ts), sur le candidat aux stats de
  * sa vraie paire et les options du classement affiché. `null` : colonne sans
- * valeur pour ce contexte.
+ * valeur pour ce contexte. `afficherDepassement` : le réglage d'application
+ * « afficher au-delà du plafond » ; masqué, Taux Crit, RES et Précision
+ * valent ce que le panneau de stats écrit, au plus 100 (`displayedTotal`).
  */
-export function valeurAffichee(colonne: ColonneResultat, candidat: BuildCandidate, options: OptionsDeClassement): number | null {
+export function valeurAffichee(colonne: ColonneResultat, candidat: BuildCandidate, options: OptionsDeClassement, afficherDepassement = true): number | null {
   if (colonne === 'efficience') {
     const total = scoreDuCandidat(candidat, 'efficience', options);
     return total === null || !options.metric ? null : Number(chiffresMesureRune(moyenneParRune(total), options.metric));
@@ -109,7 +111,7 @@ export function valeurAffichee(colonne: ColonneResultat, candidat: BuildCandidat
     const note = scoreDuCandidat(candidat, colonne, options);
     return note === null ? null : entierAffiche(note);
   }
-  return statTotal(candidat.stats, colonne);
+  return displayedTotal(colonne, statTotal(candidat.stats, colonne), afficherDepassement);
 }
 
 /**

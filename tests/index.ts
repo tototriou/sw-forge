@@ -75,6 +75,7 @@ import { testOptimizerRattachementIdentites, verificationsOptimizerRattachementO
   testOptimizerRattachementRuneVendue, testOptimizerRattachementDefensesComplet, testOptimizerRattachementBranchement } from './optimizer-rattachement.test';
 import testMeules, { testGemmeMemeStat, testRegemmeDifferent, testReserveParGrade, testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
+import testArtefactsTop from './artefacts-top.test';
 import testArtefactOptim, {
   testRecettePartagee,
   testAmplificationSurvitDominance,
@@ -308,7 +309,7 @@ import { testRenduAttaqueConjointeEcran } from './rendu/attaque-conjointe-ecran.
 import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense, testRenduRecosTicks, testRenduRecosAnnulerEdition } from './rendu/recos.test';
 import testAnnulerEdition from './annuler-edition.test';
 import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testRenduRunesComparaison, testRenduRunesOptimisation, testRenduRunesAVenir, testRenduRunesFiltresLigne, testRenduRunesTriOnglets, testRenduRunesResumeSouris, testRenduRunesListeSouris, testRenduRunesVuesSouris } from './rendu/runes.test';
-import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompteArtefactsListe, testRenduCompteSouris, testRenduCompteEffacerFiltres } from './rendu/compte.test';
+import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompteArtefactsListe, testRenduCompteArtefactsTop, testRenduCompteSouris, testRenduCompteEffacerFiltres } from './rendu/compte.test';
 import { testRenduSpeedTuneVide, testRenduSpeedTuneCamps, testRenduSpeedTuneAnalyse } from './rendu/speed-tune.test';
 import { testRenduOptimizerVide, testRenduOptimizerMonstre, testRenduOptimizerReglages, testRenduTelephoneOptimizer } from './rendu/optimizer.test';
 import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerIdentiteEnregistree, testRenduMemoireOptimizerSansMemoire, testRenduMemoireOptimizerListes,
@@ -461,6 +462,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduCompteMonstres', testRenduCompteMonstres],
   ['testRenduCompteArtefactsResume', testRenduCompteArtefactsResume],
   ['testRenduCompteArtefactsListe', testRenduCompteArtefactsListe],
+  ['testRenduCompteArtefactsTop', testRenduCompteArtefactsTop],
   ['testRenduCompteSouris', testRenduCompteSouris],
   ['testRenduCompteEffacerFiltres', testRenduCompteEffacerFiltres],
   ['testRenduSpeedTuneVide', testRenduSpeedTuneVide],
@@ -759,6 +761,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testCalculPartielEcran', testCalculPartielEcran],
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
+  ['testArtefactsTop', testArtefactsTop],
   ['testArtefactOptim', testArtefactOptim],
   ['testRecettePartagee', testRecettePartagee],
   ['testAmplificationSurvitDominance', testAmplificationSurvitDominance],

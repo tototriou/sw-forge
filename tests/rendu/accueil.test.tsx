@@ -68,7 +68,7 @@ export function testRenduAccueil() {
     ['#/siege/defense', 'Siège', 'Défenses et offenses', 'Compose tes équipes et vérifie tes speed tune sur les ticks 239 et 286.'],
     ['#/siege/recommandations', 'Partage', 'Recommandations', 'Décris tes decks, partage-les en JSON, et vois ce que ton compte peut jouer.'],
     ['#/compte/runes', 'Compte', 'Analyse de runes', 'Résumé chiffré, efficience ou score SW, courbes, et ce que tes meules et gemmes en réserve permettent d\'améliorer dès maintenant.'],
-    ['#/compte/artefacts', 'Compte', "Analyse d'artéfacts", "Le score du jeu et l'efficience de chaque pièce, la distribution de ton stock et les propriétés que tu possèdes le plus."],
+    ['#/compte/artefacts', 'Compte', "Analyse d'artéfacts", "Le score du jeu et l'efficience de chaque pièce, la distribution de ton stock et le top 10 de chaque propriété."],
     ['#/outils/optimizer', 'Outils', 'Optimiseur de runes', 'Cherche, parmi les runes que tu possèdes déjà, la meilleure combinaison de 6 pour un monstre, un set et des minimums donnés.'],
     ['#/outils/speed-tuning', 'Outils', 'Speed tuning', "Tick par tick, vois quel monstre remplit sa barre d'action en premier — ton équipe et celle d'en face, pour savoir qui joue avant qui."],
     ['#/bestiary', 'Données', 'Bestiaire', 'Recherche et filtres par élément et étoiles naturelles, stats de base à portée de main.'],

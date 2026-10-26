@@ -78,6 +78,7 @@ export const RELEASES: Release[] = [
       { kind: 'fix', scope: 'Dégâts réels', text: 'Unlimited Power (Liam) : un coup en zone, et un choix « 3 ennemis ou moins » à part.' },
       { kind: 'feat', scope: 'Bestiaire', text: '« Jouables uniquement » et « Formes éveillées » : deux filtres, cochés par défaut.' },
       { kind: 'fix', scope: 'Monstres', text: 'Veromos et les autres Ifrit n’apparaissent plus en double dans les recherches, ni les formes de boss.' },
+      { kind: 'feat', scope: 'Artéfacts', text: 'Top 10 : tes meilleures valeurs de chaque propriété, par attribut ou type, et par stat principale.' },
     ],
   },
   {

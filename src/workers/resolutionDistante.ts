@@ -192,6 +192,11 @@ export class ResolutionDistante {
     return this.voies.filter(Boolean).length;
   }
 
+  /** La voie existe-t-elle encore (ni retirée après une panne, ni hors du pool) ? */
+  voieVivante(voie: number): boolean {
+    return this.voies[voie] === true;
+  }
+
   get demandesEnVol(): number {
     return this.enVol.length;
   }

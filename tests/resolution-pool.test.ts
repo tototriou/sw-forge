@@ -231,16 +231,21 @@ export async function testResolutionPoolDifferentiel() {
   }
 }
 
-/** Le vrai classeur et le pool, sur de vrais fils ; chaque canal passe par un relais du test qui retarde les réponses. */
-export async function testResolutionPoolPanne() {
-  titre('Résolution — panne d’un Worker du pool en cours de file : retiré, ses builds repris, aucune perte');
+/**
+ * Le vrai classeur et le pool, sur de vrais fils ; chaque canal passe par un
+ * relais du test qui retarde les réponses. À la douzième réponse, les Workers
+ * de `pannes` sont réellement terminés, puis chacun est signalé au classeur
+ * `signaux` fois (le hook et le port du classeur peuvent signaler le même).
+ */
+async function poolEnPanne(voies: number, pannes: number[], signaux: number) {
   const f = fixturePool(180, { enemyDef: 1200, signature: 'pool', toutVerifier: false });
   const ref = classerPourLaPage(f.photo, f.candidats, f.vue);
   const classeur = await fil('classement');
-  const resolveurs = await Promise.all(Array.from({ length: VOIES }, () => fil('resolution')));
-  const tirage = alea(11), PANNE = 1;
+  const resolveurs = await Promise.all(Array.from({ length: voies }, () => fil('resolution')));
+  const tirage = alea(11);
   const enVol = resolveurs.map(() => new Set<number>());
-  let recues = 0, enVolALaPanne = -1, derniere: InstantaneClassement | null = null, incidentVoie: number | undefined = undefined, incidents = 0;
+  let recues = 0, enVolALaPanne: number[] = [], derniere: InstantaneClassement | null = null, signales = false;
+  const incidents: (number | undefined)[] = [];
   const recherche = new MessageChannel();
   const ports: MessagePort[] = [];
   try {
@@ -257,10 +262,14 @@ export async function testResolutionPoolPanne() {
           enVol[voie].delete(r.idDemande);
           versClasseur.port2.postMessage(r);
           if (++recues === 12) {
-            // La voie perd son Worker pendant qu'il a encore des demandes.
-            enVolALaPanne = enVol[PANNE].size;
-            void resolveurs[PANNE].terminate().then(() => classeur.postMessage({ type: 'panneResolution', versionSchema: 1, idRecherche: 1,
-              raison: 'panne injectée', detail: 'résolveur terminé', voie: PANNE }));
+            // Les voies perdent leur Worker pendant qu'il a encore des demandes.
+            enVolALaPanne = pannes.map((v) => enVol[v].size);
+            void Promise.all(pannes.map((v) => resolveurs[v].terminate())).then(() => {
+              for (const v of pannes) for (let i = 0; i < signaux; i++) {
+                classeur.postMessage({ type: 'panneResolution', versionSchema: 1, idRecherche: 1, raison: 'panne injectée', detail: `résolveur ${v} terminé`, voie: v });
+              }
+              signales = true;
+            });
           }
         }, Math.floor(tirage() * 12)));
         w.postMessage({ type: 'port', port: versResolveur.port2 }, [versResolveur.port2]);
@@ -269,7 +278,7 @@ export async function testResolutionPoolPanne() {
       classeur.on('message', (m: ReponseClassement) => {
         try {
           if (m.type === 'erreur') throw new Error(m.message);
-          if (m.type === 'incidentResolution') { incidents++; incidentVoie = m.voie; }
+          if (m.type === 'incidentResolution') incidents.push(m.voie);
           if (m.type === 'ouverte') {
             classeur.postMessage({ type: 'portRecherche', idRecherche: 1, port: recherche.port1 }, [recherche.port1]);
             const bs = blocs(f.candidats);
@@ -278,7 +287,7 @@ export async function testResolutionPoolPanne() {
           }
           if (m.type === 'publication') {
             derniere = m.publication;
-            if (derniere.bilan && derniere.enAttente === 0 && enVolALaPanne >= 0) { clearTimeout(filet); accepter(); }
+            if (derniere.bilan && derniere.enAttente === 0 && signales) { clearTimeout(filet); accepter(); }
           }
         } catch (e) { clearTimeout(filet); refuser(e); }
       });
@@ -286,16 +295,38 @@ export async function testResolutionPoolPanne() {
     classeur.postMessage({ type: 'portsResolution', ports }, ports);
     classeur.postMessage({ type: 'ouvrir', versionSchema: 1, idRecherche: 1, idDemande: 1, contexte: f.photo, vue: f.vue });
     await fini;
-    const instantane = derniere as unknown as InstantaneClassement;
-    ok(enVolALaPanne > 0, `précondition — la voie ${PANNE} avait ${enVolALaPanne} demande(s) sans réponse quand son Worker est tombé`);
-    egal([incidents, incidentVoie], [1, PANNE], 'un incident, nommant la voie retirée : seul ce Worker quitte le pool');
-    egal(instantane.incident, null, 'aucun repli dans le classeur : l’instantané ne porte pas d’incident');
-    ok(isDeepStrictEqual(vu(instantane), vu(ref.instantane)),
-      `même page, mêmes comptes que le résolveur unique (${instantane.comptes.resolus} résolus, ${instantane.comptes.confirmees} confirmées) : les builds de la voie perdue ont été repris`);
+    // Laisse passer un signal en retard sur la dernière publication.
+    await new Promise((r) => setTimeout(r, 50));
+    return { instantane: derniere as unknown as InstantaneClassement, ref: ref.instantane, incidents, enVolALaPanne };
   } finally {
     recherche.port2.close();
     await classeur.terminate(); await Promise.all(resolveurs.map((w) => w.terminate()));
   }
+}
+
+export async function testResolutionPoolPanne() {
+  titre('Résolution — panne d’un Worker du pool en cours de file : retiré, ses builds repris, aucune perte');
+  const p = await poolEnPanne(VOIES, [1], 1);
+  ok(p.enVolALaPanne[0] > 0, `précondition — la voie 1 avait ${p.enVolALaPanne[0]} demande(s) sans réponse quand son Worker est tombé`);
+  egal(p.incidents, [1], 'un incident, nommant la voie retirée : seul ce Worker quitte le pool');
+  egal(p.instantane.incident, null, 'aucun repli dans le classeur : l’instantané ne porte pas d’incident');
+  ok(isDeepStrictEqual(vu(p.instantane), vu(p.ref)),
+    `même page, mêmes comptes que le résolveur unique (${p.instantane.comptes.resolus} résolus, ${p.instantane.comptes.confirmees} confirmées) : les builds de la voie perdue ont été repris`);
+
+  titre('Résolution — même Worker signalé deux fois (hook et port du classeur), une seule voie saine restante');
+  const d = await poolEnPanne(2, [1], 2);
+  ok(d.enVolALaPanne[0] > 0, `précondition — la voie 1 avait ${d.enVolALaPanne[0]} demande(s) sans réponse, signalée deux fois`);
+  egal(d.incidents, [1], 'un seul incident, pour la voie 1 : le second signal d’une voie déjà retirée est ignoré');
+  egal(d.instantane.incident, null, 'la voie saine continue : aucun repli, aucun incident sur la page');
+  ok(isDeepStrictEqual(vu(d.instantane), vu(d.ref)), 'même page, mêmes comptes que le résolveur unique');
+
+  titre('Résolution — panne du dernier Worker du pool : repli complet dans le classeur, comme avant');
+  const t = await poolEnPanne(2, [1, 0], 1);
+  ok(t.enVolALaPanne.every((n) => n > 0), `précondition — les deux voies avaient des demandes sans réponse (${t.enVolALaPanne.join('/')})`);
+  egal(t.incidents, [1, undefined], 'la première voie est retirée seule, la dernière fait abandonner tout le pool');
+  egal(t.instantane.incident, 'panne injectée', 'l’instantané porte l’incident du repli');
+  const { incident: _i, ...sansIncident } = vu(t.instantane), { incident: _r, ...refSansIncident } = vu(t.ref);
+  ok(isDeepStrictEqual(sansIncident, refSansIncident), 'le classeur termine la même file : même page, mêmes comptes que le résolveur unique');
 }
 
 export async function testResolutionPoolAnnulation() {

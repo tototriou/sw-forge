@@ -1108,6 +1108,9 @@ export class CorpsClassement {
    */
   panneResolution(raison: string, detail: unknown, voie?: number): void {
     if (this.repli) return;
+    // Un même Worker se signale deux fois (le hook par `onerror`, le classeur
+    // par son port) : une voie déjà retirée n'est plus une panne.
+    if (voie !== undefined && !this.pilote.voieVivante(voie)) return;
     if (voie !== undefined && this.pilote.voiesVivantes > 1) {
       this.pilote.retirerVoie(voie);
       this.sorties.incident(raison, detail, voie);

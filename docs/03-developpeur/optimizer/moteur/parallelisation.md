@@ -554,7 +554,10 @@ La panne d'un Worker du pool (`onerror`, réponse illisible) le termine et
 retire sa voie (`retirerVoie`) : ses demandes en vol sont oubliées, leurs
 crédits rendus, leurs builds repartent sur les autres voies ; une réponse
 tardive ne correspond plus à aucune demande. L'incident nomme la voie, la
-page n'en porte aucun. La panne du dernier Worker, ou une réponse `erreur`,
+page n'en porte aucun. Le même Worker peut être signalé deux fois (par le
+hook, `onerror`, et par le port du classeur, `onmessageerror`) : la panne
+d'une voie déjà retirée est ignorée, jamais prise pour la perte du dernier
+Worker. La panne du dernier Worker, ou une réponse `erreur`,
 ferme tout le pool. Le classeur garde
 les candidats et son cache, recrée les caches de calcul et reprend dans
 son propre fil par `CorpsResolution`, une demande par tâche. Une erreur
@@ -647,7 +650,9 @@ la relance explicite crée un nouveau Worker, sans secours ni relance automatiqu
   (même cache build par build, même classement et même page que la
   résolution directe, K = 100 avec écartés et « tout vérifier »),
   `testResolutionPoolPanne` (vrai classeur, un Worker terminé en cours de
-  file : ses builds repris, même page, aucun incident sur la page) et
+  file : ses builds repris, même page, aucun incident sur la page ; le même
+  Worker signalé deux fois avec une seule voie saine restante : aucun repli ;
+  la perte du dernier Worker : repli complet, même page) et
   `testResolutionPoolAnnulation` (nouvelle recherche pendant que le pool
   calcule : aucune réponse de l'ancienne écrite, chaque crédit rendu) et
   `testResolutionPoolVoiesAvantScelle` (file activée sans scellé : une seule

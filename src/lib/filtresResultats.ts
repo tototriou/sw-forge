@@ -63,6 +63,21 @@ function lireBorne(v: unknown): number | null {
   return v;
 }
 
+/**
+ * Les bornes après la saisie d'un côté d'une colonne. Un côté absent
+ * (`undefined`, admis à la relecture d'une mémoire : `bornesBienFormees`) vaut
+ * `null` : la colonne sans aucune borne disparaît, et la borne gardée a
+ * toujours ses deux côtés écrits.
+ */
+export function avecBorne(bornes: BornesResultats, colonne: ColonneResultat, cote: 'min' | 'max', valeur: number | null): BornesResultats {
+  const actuelle = bornes[colonne];
+  const suivante: BorneColonne = { min: actuelle?.min ?? null, max: actuelle?.max ?? null, [cote]: valeur };
+  const next = { ...bornes };
+  if (suivante.min === null && suivante.max === null) delete next[colonne];
+  else next[colonne] = suivante;
+  return next;
+}
+
 /** Une copie des bornes d'une vue : le classeur ne garde aucun objet de l'appelant. */
 export function copierBornes(bornes: BornesResultats): BornesResultats {
   const copie: BornesResultats = {};

@@ -14,7 +14,7 @@ import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactC
 import { contexteResultat, runesDuContexte } from '../../lib/contexteResultat';
 import { TAILLE_PAGE_CLASSEMENT, type CarteClassement } from '../../lib/classementCompact';
 import { triDesResultats } from '../../lib/colonnesResultats';
-import { colonneDisponible, objectifsMontres } from '../../lib/filtresResultats';
+import { avecBorne, colonneDisponible, objectifsMontres } from '../../lib/filtresResultats';
 import type { ColonneResultat } from '../../lib/colonnesResultats';
 import {
   bornesArtefacts,
@@ -3013,13 +3013,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const triAffiche: TriResultats = { tri: sortBy, sens: sensTri };
   const trier = (t: TriResultats) => { setSortBy(t.tri); setSensTri(t.sens); setResultsPage(1); };
   const poserBorne = (colonne: ColonneResultat, cote: 'min' | 'max', valeur: number | null) => {
-    setBornesResultats((prev) => {
-      const suivante = { ...(prev[colonne] ?? { min: null, max: null }), [cote]: valeur };
-      const next = { ...prev };
-      if (suivante.min === null && suivante.max === null) delete next[colonne];
-      else next[colonne] = suivante;
-      return next;
-    });
+    setBornesResultats((prev) => avecBorne(prev, colonne, cote, valeur));
     setResultsPage(1);
   };
   const effacerFiltres = () => { setBornesResultats({}); setResultsPage(1); };

@@ -102,6 +102,7 @@ import { testFiltresResultatsBornes, testFiltresResultatsReversibles, testFiltre
   testFiltresResultatsDifferentiel, testFiltresResultatsPlafondAffiche } from './filtres-resultats.test';
 import { testFiltresResultatsDoublonsTaches } from './filtres-resultats-doublons.test';
 import { testFiltresResultatsMemoire } from './filtres-memoire.test';
+import { testFiltresResultatsAvecBorne } from './filtres-avec-borne.test';
 import { testFiltresResultatsValeurBornee } from './filtres-carte.test';
 import { testFiltresResultatsBonus, testFiltresResultatsDecimales } from './filtres-bonus.test';
 import { testRenduOptimizerTableauSansRognage, testRenduOptimizerTableauEtats, testRenduOptimizerTableauAlignement,
@@ -919,6 +920,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testFiltresResultatsPlafondAffiche', testFiltresResultatsPlafondAffiche],
   ['testFiltresResultatsDoublonsTaches', testFiltresResultatsDoublonsTaches],
   ['testFiltresResultatsMemoire', testFiltresResultatsMemoire],
+  ['testFiltresResultatsAvecBorne', testFiltresResultatsAvecBorne],
   ['testFiltresResultatsValeurBornee', testFiltresResultatsValeurBornee],
   ['testFiltresResultatsBonus', testFiltresResultatsBonus],
   ['testFiltresResultatsDecimales', testFiltresResultatsDecimales],

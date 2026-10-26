@@ -132,8 +132,12 @@ async function interrompue(telephone: boolean) {
     const desactives = async (l: typeof comparer) => (await Promise.all((await l.all()).map(b => b.isDisabled()))).every(Boolean);
     ok(await comparer.count() === 20 && await desactives(comparer), `${format} : « Comparer » garde sa place, désactivé sur les vingt cartes`);
     ok(await valider.count() === 20 && await desactives(valider), `${format} : « Valider ce build » garde sa place, désactivé sur les vingt cartes`);
-    const tri = page.locator('select').filter({ hasText: 'Trier par' });
-    ok(await tri.count() === 1 && await tri.isDisabled(), `${format} : le tri est désactivé`);
+    // Le tri : la liste au téléphone, les onze têtes de la bande au bureau.
+    const tri = telephone ? page.locator('select').filter({ hasText: 'Trier par' })
+      : page.getByRole('group', { name: 'Trier les résultats' }).getByRole('button');
+    ok(await tri.count() === (telephone ? 1 : 11) && await desactives(tri), `${format} : le tri est désactivé`);
+    const filtres = page.getByRole('button', { name: "Filtrer l'affichage", exact: true }).filter({ visible: true });
+    ok(await filtres.count() === 1 && await filtres.isDisabled(), `${format} : « Filtrer l'affichage » est désactivé`);
     ok(await page.getByRole('button', { name: 'Page suivante' }).isDisabled() && await page.getByLabel('Aller à la page').isDisabled(),
       `${format} : la pagination est désactivée`);
     await page.getByRole('button', { name: 'Rechercher', exact: true }).first().click();

@@ -47,6 +47,7 @@ import { DegatsContext, RegimeArtefacts } from '../src/lib/artifactEvaluation';
 import { ResultatArtefacts, cleBuild, prochainsATraiter } from '../src/lib/artifactQueue';
 import { RelicContext } from '../src/lib/relicOptim';
 import { BuildCandidate, SearchParams } from '../src/lib/runeBuildOptim';
+import type { VueClassement } from '../src/lib/classementCompact';
 import { searchBuilds } from '../src/lib/rechercheRunes';
 import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild } from '../src/lib/relicQueue';
 import { CorpsResolution, EntreesResolutionSerialisables, MessageVersResolution, ReponseResolution, entreesSerialisables } from '../src/workers/resolutionBody';
@@ -79,6 +80,36 @@ function sansCommentaires(source: string): string {
 /* --------------------------------------------------------------------------
  * La file simulée — exportée pour le script de preuve sur les recettes
  * ----------------------------------------------------------------------- */
+
+
+// Les champs de chaque type, que `tsc` tient exhaustifs : un champ ajouté ou
+// retiré du type fait échouer la compilation de ces tables.
+const CHAMPS_VUE: Record<keyof VueClassement, true> = { pageImprimee: true, tri: true, sens: true, metric: true, page: true,
+  bornes: true, afficherDepassement: true, colonnesCompletes: true };
+const CHAMPS_ENTREES_RESOLUTION: Record<keyof EntreesResolutionSerialisables, true> = { fiche: true, artifactParams: true, regime: true,
+  degats: true, exclusive: true, requirement: true, relicContext: true };
+const CHAMPS_RECHERCHE: Record<keyof SearchParams, true> = { base: true, artifacts: true, artifactBounds: true, statsLignesArtefactsEquipables: true,
+  relic: true, relicContext: true, pool: true, requirement: true, metric: true, maxCollected: true, maxMs: true, slotFilterCap: true,
+  bucketCap: true, objective: true, objectiveStats: true, combosOrderMode: true, traceur: true };
+
+/**
+ * Les clés de l'objet littéral passé au premier appel `<nom>({ … })` d'une
+ * source : clés écrites, raccourcies, et celles des objets étalés dedans
+ * (`...(c ? { x: 1 } : {})`). Lève si l'appel ou sa fin manque.
+ */
+function clesDeLAppel(source: string, nom: string): string[] {
+  const debut = source.indexOf(`${nom}({`);
+  if (debut < 0) throw new Error(`Appel ${nom}({ … }) absent`);
+  let i = debut + nom.length + 1, profondeur = 0;
+  const ouverture = i;
+  for (; i < source.length; i++) {
+    if (source[i] === '{' || source[i] === '(' || source[i] === '[') profondeur++;
+    else if (source[i] === '}' || source[i] === ')' || source[i] === ']') { profondeur--; if (profondeur === 0) break; }
+  }
+  if (profondeur !== 0) throw new Error(`Fin de l'objet passé à ${nom} introuvable`);
+  const litteral = source.slice(ouverture, i + 1);
+  return [...litteral.matchAll(/[{,]\s*([A-Za-z_$][\w$]*)\s*(?=[:,}])/g)].map((m) => m[1]);
+}
 
 export interface ContexteSimule {
   entrees: EntreesResolutionSerialisables;
@@ -922,8 +953,13 @@ export function testResolutionDistante() {
   const ecran = sansCommentaires(readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8'));
   ok(!/new Worker|CacheResolutionJournalise|resoudreEquipementDuBuild/.test(ecran),
     'écran : aucun Worker, cache mutable ou repli de calcul sur le fil de l’écran');
-  ok(ecran.includes('changerVue({ tri: sortBy, metric, page: resultsPage, afficherDepassement })'),
-    'écran : seuls les réglages de vue sont envoyés au propriétaire');
+  {
+    const cles = clesDeLAppel(ecran, 'changerVue');
+    const horsVue = cles.filter((c) => !(c in CHAMPS_VUE));
+    const interdites = cles.filter((c) => (c in CHAMPS_ENTREES_RESOLUTION || c in CHAMPS_RECHERCHE) && !(c in CHAMPS_VUE));
+    ok(cles.length > 0 && horsVue.length === 0 && interdites.length === 0,
+      `écran : seuls les réglages de vue sont envoyés au propriétaire (${cles.join(', ')}${horsVue.length ? ` ; hors vue : ${horsVue.join(', ')}` : ''})`);
+  }
   ok(ecran.includes('const photo = contexteResultat({ params, fiche: selected.gear,')
     && ecran.includes('requirement: requirementAvecAuras, relicContext: params.relicContext')
     && ecran.includes('run(params, photo,'),

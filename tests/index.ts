@@ -232,6 +232,7 @@ import { testClassementAuFilDifferentiel, testClassementAuFilTravail } from './c
 import { testClassementNotesDeBaseGardees, testClassementNotesAuRepos } from './classement-notes-de-base.test';
 import { testClassementTempsMortApresLaFile } from './classement-temps-mort.test';
 import { testClassementApercuDifferentiel, testClassementApercuNonFinis, testClassementApercuSecondGeste, testClassementApercuPagePrioritaire,
+  testClassementApercuPendantActualisation,
   testClassementApercuTravail } from './classement-apercu.test';
 import { testClassementComparerApresValidation } from './classement-comparer.test';
 import { testClassementSelectionExhaustiveBorne, testClassementSelectionExhaustiveTransitions, testClassementSelectionExhaustiveDifferee } from './classement-selection-exhaustive.test';
@@ -909,6 +910,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testClassementApercuNonFinis', testClassementApercuNonFinis],
   ['testClassementApercuSecondGeste', testClassementApercuSecondGeste],
   ['testClassementApercuPagePrioritaire', testClassementApercuPagePrioritaire],
+  ['testClassementApercuPendantActualisation', testClassementApercuPendantActualisation],
   ['testClassementApercuTravail', testClassementApercuTravail],
   ['testClassementComparerApresValidation', testClassementComparerApresValidation],
   ['testClassementSelectionExhaustiveBorne', testClassementSelectionExhaustiveBorne],

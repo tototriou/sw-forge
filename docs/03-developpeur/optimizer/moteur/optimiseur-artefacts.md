@@ -508,9 +508,16 @@ ne publie rien, et le geste attend la fin de sa tâche comme avant, dès que
 l'équivalence n'est pas établie : note de base non finie, note de ligne
 résolue non finie, note absente parmi des présentes (le comparateur n'est
 plus symétrique, l'arbre dépend de l'ordre d'insertion), relique hors
-contrat, cache écrit depuis la dernière actualisation, ingestion
-interrompue, index en construction, page qui attend des non vérifiées
-(priorité de page). Un aperçu ne vaut que pour l'index et la clé de vue
+contrat, cache que le journal ne relie pas au magasin par une seule
+écriture, index en construction, page qui attend des non vérifiées
+(priorité de page). Un geste arrivé pendant l'actualisation qui suit une
+réponse du résolveur a son aperçu : le magasin rattrape d'abord les seuls
+groupes de cette écriture (`rattraperIngestion`, contrôlés sur le journal
+comme une actualisation consécutive), puis l'aperçu le lit ; l'index, en
+retard sur ce cache, ne prête alors ni ses notes ni ses catégories, et
+l'actualisation complète qui suit réingère le magasin à l'identique (il
+reste lisible pendant cette passe) ; un index ainsi devancé par son magasin
+ne fait jamais de différence. Un aperçu ne vaut que pour l'index et la clé de vue
 (critère, sens, mesure, bornes) qui l'ont produit, quelle que soit la page ;
 un nouveau geste l'efface avant de programmer sa tâche, la fin de tâche
 aussi : aucune vue quittée ne repart. L'aperçu publié est exactement

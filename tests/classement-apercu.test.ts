@@ -21,7 +21,11 @@ function sansCadence(p: InstantaneClassement) {
   return { ...p, versions };
 }
 
-interface Bilan { gestes: number; apercus: number; replis: number; ecarts: string[] }
+interface Bilan {
+  gestes: number; apercus: number; replis: number; ecarts: string[];
+  /** Gestes arrivés pendant l'actualisation qui suit une écriture du cache, et ceux d'entre eux publiés par leur aperçu. */
+  pendantActualisation: number; apercusPendantActualisation: number;
+}
 
 /**
  * Un geste sur l'oracle : la vue, puis sa publication sans pas de file
@@ -106,7 +110,7 @@ function scenario(nom: string, graine: number, e: Parameters<typeof population>[
   const { photo, candidats, vue: vue0 } = population(e);
   const r = classeur(photo, candidats, vue0, false), d = classeur(photo, candidats, vue0, true);
   resoudre(r, e.avant); resoudre(d, e.avant);
-  const bilan: Bilan = { gestes: 0, apercus: 0, replis: 0, ecarts: [] };
+  const bilan: Bilan = { gestes: 0, apercus: 0, replis: 0, ecarts: [], pendantActualisation: 0, apercusPendantActualisation: 0 };
   if (empreinteCache(r) !== empreinteCache(d)) throw new Error(`ARRÊT ${nom} : les deux files n'ont pas résolu les mêmes builds, banc invalide`);
   const hasard = generateur(graine);
   const attendues = new Map<number, InstantaneClassement>();
@@ -156,7 +160,74 @@ function scenario(nom: string, graine: number, e: Parameters<typeof population>[
 
 function verifierScenario(nom: string, b: Bilan, apercusMin: number) {
   if (b.ecarts.length) throw new Error(`ARRÊT ${nom} : ${b.ecarts.length} écart(s) contre la fin de tâche\n${b.ecarts.slice(0, 3).join('\n')}`);
-  ok(b.apercus >= apercusMin, `${nom} : ${b.gestes} gestes, ${b.apercus} aperçus publiés pendant la tâche, ${b.replis} gestes sans aperçu — instantanés et ordre complet identiques à la fin de tâche`);
+  ok(b.apercus >= apercusMin, `${nom} : ${b.gestes} gestes, ${b.apercus} aperçus publiés pendant la tâche, ${b.replis} gestes sans aperçu`
+    + `${b.pendantActualisation ? `, ${b.apercusPendantActualisation} sur ${b.pendantActualisation} gestes arrivés pendant une actualisation publiés par leur aperçu` : ''}`
+    + ' — instantanés et ordre complet identiques à la fin de tâche');
+}
+
+/**
+ * Le geste arrive pendant l'actualisation qui suit une écriture du cache :
+ * le classeur différé seul (l'oracle sans tâche différée enverrait ses
+ * demandes suivantes sous l'ancienne vue, et les deux files divergeraient).
+ * Aucune réponse n'est appliquée pendant une tâche : chaque publication d'un
+ * geste — aperçu compris — doit être exactement sa publication de fin de
+ * tâche, aucune vue quittée ne doit repartir, et l'ordre de base doit être
+ * celui de la référence indépendante.
+ */
+function scenarioPendantActualisation(nom: string, graine: number, e: Parameters<typeof population>[0] & { avant: number; gestes: number }): Bilan {
+  const { photo, candidats, vue: vue0 } = population(e);
+  const d = classeur(photo, candidats, vue0, true);
+  resoudre(d, e.avant);
+  const bilan: Bilan = { gestes: 0, apercus: 0, replis: 0, ecarts: [], pendantActualisation: 0, apercusPendantActualisation: 0 };
+  const hasard = generateur(graine);
+  let vue = vue0, id = 1;
+  for (let g = 0; g < e.gestes; g++) {
+    // Un pas de file : la réponse écrite, son actualisation commencée, pas finie.
+    drainer(d); d.corps.pomper(tic());
+    for (let k = 0, n = Math.floor(hasard() * 6); k < n && d.corps.travailEnCours; k++) d.corps.avancer();
+    const pendant = d.corps.travailEnCours;
+    if (pendant) bilan.pendantActualisation++;
+    const depuis = d.publications.length;
+    const v1 = vueAuHasard(hasard, vue, candidats), id1 = ++id;
+    let courant = id1, coupure = Infinity;
+    if (hasard() < 0.3) {
+      const v2 = vueAuHasard(hasard, v1, candidats), id2 = ++id;
+      gesteDiffere(d, v1, id1, { pas: Math.floor(hasard() * 3000), faire: () => { coupure = d.publications.length; d.corps.changerVue(v2, id2, id2); courant = id2; } });
+      vue = v2;
+    } else { gesteDiffere(d, v1, id1); vue = v1; }
+    bilan.gestes++;
+    const publiees = d.publications.slice(depuis);
+    const fin = publiees[publiees.length - 1].p;
+    if (fin.versions.idVue !== courant) bilan.ecarts.push(`${nom}, geste ${g} : la dernière publication n'est pas celle de la vue ${courant}`);
+    let apercu = false;
+    for (const [k, { p, pendantLaTache }] of publiees.entries()) {
+      if (pendantLaTache) { bilan.apercus++; apercu = true; }
+      if (depuis + k >= coupure && p.versions.idVue !== courant) bilan.ecarts.push(`${nom}, geste ${g} : vue ${p.versions.idVue} publiée après la vue ${courant}`);
+      // Une publication de la vue courante, aperçu compris, est sa fin de tâche (seule la page fait l'aperçu d'une vue quittée).
+      if (p.versions.idVue === courant && !isDeepStrictEqual(sansCadence(p), sansCadence(fin))) {
+        bilan.ecarts.push(`${nom}, geste ${g} : vue ${courant}${pendantLaTache ? ' (aperçu)' : ''} ≠ fin de tâche\n  reçu   ${JSON.stringify({ c: p.page.cartes.map((x) => x.ordinal), a: p.enAttente, f: p.filtre.comptes })}`
+          + `\n  attendu ${JSON.stringify({ c: fin.page.cartes.map((x) => x.ordinal), a: fin.enAttente, f: fin.filtre.comptes })}`);
+      }
+    }
+    if (!apercu) bilan.replis++; else if (pendant) bilan.apercusPendantActualisation++;
+    if (!isDeepStrictEqual(d.corps.projection().base.map(ligne), ordreDeBaseDeReference(candidats, photo, vue))) bilan.ecarts.push(`${nom}, geste ${g} : ordre de base ≠ référence`);
+    if (resoudre(d, 2)) bilan.ecarts.push(`${nom}, geste ${g} : publication pendant une actualisation de la file (aperçu périmé)`);
+  }
+  return bilan;
+}
+
+export function testClassementApercuPendantActualisation() {
+  titre('Aperçu d’un geste de vue — geste arrivé pendant l’actualisation d’une réponse : la page part sans l’attendre, exactement sa fin de tâche');
+  for (const [nom, graine, e] of [
+    ['actualisation, file en cours', 3420, { nombre: 380, avecFile: true, avant: 40, gestes: 50 }],
+    ['actualisation, vérification exhaustive', 3421, { nombre: 120, avecFile: true, toutVerifier: true, avant: 10, gestes: 30 }],
+    ['actualisation, non-finis', 3422, { nombre: 300, avecFile: true, avant: 25, gestes: 40,
+      special: (stats: Stats, i: number): Stats => i % 37 === 5 ? avecTotal(stats, 'atk', Number.NaN) : stats }],
+  ] as const) {
+    const b = scenarioPendantActualisation(nom, graine, e);
+    verifierScenario(nom, b, 5);
+    ok(b.apercusPendantActualisation > 0, `${nom} : ${b.apercusPendantActualisation} gestes arrivés pendant une actualisation publient leur aperçu`);
+  }
 }
 
 export function testClassementApercuDifferentiel() {

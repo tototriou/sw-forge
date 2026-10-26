@@ -358,6 +358,8 @@ export class ClassementCompact {
   // notes, `rangBase` et arbre ceux de la dernière actualisation terminée.
   private ingestionEnCours = false;
   private categoriesFiables = false;
+  // Le cache que le magasin porte : celui de la dernière actualisation terminée, ou une écriture rattrapée depuis.
+  private magasinIngere: { cache: ReadonlyMap<string, ResultatArtefacts>; generation: object | undefined; version: number; taille: number } | null = null;
   private notesFiables = false;
 
   constructor(base: ArrayLike<BuildCandidate>, ordreBase?: Uint32Array, differe = false) {
@@ -461,7 +463,9 @@ export class ClassementCompact {
       }
       if (taille !== cache.size) coherent = false;
     }
-    const complet = !coherent || !Object.is(this.contexte, contexte) || this.cacheVide !== (cache.size === 0);
+    // Un magasin rattrapé en avance de l'index ne se retire plus sous ses anciennes clés : classement complet.
+    const complet = !coherent || !Object.is(this.contexte, contexte) || this.cacheVide !== (cache.size === 0)
+      || (this.magasinDuCache(cache, journal) && !this.memeCache(cache, journal));
     // Seul le contexte de notation change (tri, sens, mesure, ordre de base) :
     // le magasin porte déjà ce cache et chaque ligne sa catégorie sous ce
     // filtre. L'ingestion rendrait le même état et le jugement la même
@@ -476,7 +480,8 @@ export class ClassementCompact {
       this.travail.complet = true; this.ordre.vider(); this.nonFinis = 0;
       for (let i = 0; i < this.magasin.longueur; i++) { this.noter(i, score, base, false); yield; }
     } else if (complet) {
-      this.ingestionEnCours = true;
+      // Un magasin déjà rattrapé sur ce cache se réingère à l'identique : il reste lisible pendant la passe.
+      if (!this.magasinDuCache(cache, journal)) this.ingestionEnCours = true;
       this.travail.complet = true; this.ordre.vider(); this.nonFinis = 0;
       this.categories.fill(NON_JUGEE); this.compteurs.fill(0); this.versionVue++;
       for (const g of this.magasin.chefs()) { this.magasin.ingerer(g, cache.get(this.magasin.cle(g))); yield; }
@@ -517,7 +522,44 @@ export class ClassementCompact {
     this.generation = journal?.generation; this.version = journal?.version ?? 0;
     this.tailleCache = cache.size; this.contexte = contexte;
     this.publicationCourante = new WeakSet([cache]);
+    this.magasinIngere = { cache, generation: journal?.generation, version: journal?.version ?? 0, taille: cache.size };
     this.notesFiables = true;
+  }
+  /** Le magasin porte exactement ce cache : ingéré par la dernière actualisation terminée, ou rattrapé depuis. */
+  private magasinDuCache(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined): boolean {
+    const m = this.magasinIngere;
+    if (!m || m.cache !== cache || m.taille !== cache.size) return false;
+    return journal ? journal.generation === m.generation && journal.version === m.version && journal.tailleApres === m.taille
+      : m.generation === undefined && m.version === 0;
+  }
+  /**
+   * Une écriture du cache arrivée depuis la dernière actualisation, dont la
+   * passe n'est pas faite ou a été interrompue : ses seuls groupes s'ingèrent
+   * dans le magasin, que l'aperçu lit alors comme le lira l'actualisation
+   * complète qui suit (elle les réingère à l'identique). Les notes, les
+   * catégories et l'arbre de l'index ne sont pas touchés ; ils ne valent plus
+   * pour ce cache tant que cette actualisation n'est pas faite. Faux si le
+   * journal ne décrit pas exactement cette seule écriture.
+   */
+  rattraperIngestion(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined): boolean {
+    if (this.magasinDuCache(cache, journal)) return !this.ingestionEnCours;
+    const m = this.magasinIngere;
+    if (!journal || !m || m.cache !== cache || journal.generation !== m.generation || journal.version !== m.version + 1
+      || journal.tailleAvant !== m.taille || journal.tailleApres !== cache.size) return false;
+    const vues = new Set<string>();
+    let taille = m.taille;
+    for (const c of journal.changements) {
+      if (vues.has(c.cle) || cache.get(c.cle) !== c.apres) return false;
+      vues.add(c.cle); taille += Number(c.apres !== undefined) - Number(c.avant !== undefined);
+    }
+    if (taille !== cache.size) return false;
+    for (const c of journal.changements) {
+      const g = this.magasin.groupeDeCle(c.cle);
+      if (g !== undefined) this.magasin.ingerer(g, c.apres);
+    }
+    this.ingestionEnCours = false; this.categoriesFiables = false; this.notesFiables = false;
+    this.magasinIngere = { cache, generation: journal.generation, version: journal.version, taille: cache.size };
+    return true;
   }
   /** Le magasin porte ce cache : aucune écriture depuis la dernière actualisation terminée, aucune ingestion interrompue. */
   aJour(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined): boolean {
@@ -562,11 +604,13 @@ export class ClassementCompact {
    */
   *apercuEtapes(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined, filtre: FiltreLignes,
     nouvelles: NotesDeLApercu | null): Generator<void, ApercuClassement | null> {
-    if (this.ingestionEnCours || !this.memeCache(cache, journal)) return null;
-    if (nouvelles === null ? !this.notesFiables || this.nonFinis > 0 || this.ordreDeReference !== undefined : nouvelles.nonFini) return null;
+    // Le magasin doit porter ce cache ; les notes et catégories de l'index, seulement si elles le suivent aussi.
+    if (this.ingestionEnCours || !this.magasinDuCache(cache, journal)) return null;
+    const indexAJour = this.memeCache(cache, journal);
+    if (nouvelles === null ? !indexAJour || !this.notesFiables || this.nonFinis > 0 || this.ordreDeReference !== undefined : nouvelles.nonFini) return null;
     const n = this.magasin.longueur;
     let categories: Uint8Array, compteurs: Float64Array;
-    if (filtre.cle === this.filtre.cle && this.categoriesFiables) {
+    if (filtre.cle === this.filtre.cle && this.categoriesFiables && indexAJour) {
       categories = this.categories.slice(); compteurs = this.compteurs.slice();
     } else {
       categories = new Uint8Array(n); compteurs = new Float64Array(3 * NOMBRE_CATEGORIES);
@@ -1196,6 +1240,8 @@ export class CorpsClassement {
     const contexte = this.contexte!, vue = this.vue!;
     const lance = this.entreeDeBase(index, cleCritere(this.triDuLancement(), contexte.recherche.metric, SENS_PAR_DEFAUT));
     if (!lance?.ordre) return null;
+    // Une réponse écrite dont l'actualisation a été remplacée par ce geste : le magasin la rattrape d'abord.
+    if (!index.rattraperIngestion(this.cacheLecture(), this.cache.journal)) return null;
     const donnees = yield* index.apercuEtapes(this.cacheLecture(), this.cache.journal, filtre, notes);
     if (donnees) this.apercu = { index, cle: this.cleDeLaVue(vue), donnees, notes: deLaVue?.notes ?? null, enAttente: this.enAttenteDuFond(index, lance.ordre) };
     return donnees;

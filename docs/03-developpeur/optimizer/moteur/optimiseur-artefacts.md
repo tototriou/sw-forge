@@ -429,6 +429,26 @@ entre des tranches visées de 4 ms, par message de canal (`Relance`,
 précédent avant publication. Les non-finis gardent les tris natifs stables de
 la référence, qui sont synchrones ; la cible de tranche ne les préempte pas.
 
+**Ordre de base préparé au fil des blocs.** La note de base d'un candidat ne
+lit que ses valeurs collectées et le contexte photographié, sans cache : elle
+peut se calculer dès l'arrivée de son bloc sans changer de valeur. Pendant la
+recherche, `CorpsClassement` note donc le reçu bloc par bloc (`avancerAuFil`),
+pour le critère de la vue et pour l'objectif lancé (un seul quand la vue suit
+le lancement), et range les notes en plages de 4 096 ordinaux triées de façon
+stable, fusionnées comme un compteur binaire, la plus ancienne à gauche, la
+gauche d'abord à égalité. Sous des notes finies, « note décroissante, puis
+ordinal » est un préordre total : ces fusions donnent exactement le tri stable
+du scellé, qui ne fait plus que les dernières fusions. Une note non finie ou
+absente laisse l'ordre au tri du scellé, avec ses tris natifs ; une note qui
+lève abandonne le travail au fil et le scellé recalcule tout. Changer de tri
+ou de mesure pendant la recherche abandonne le critère quitté ; l'aperçu ne
+reprend que les notes déjà prêtes. Le travail au fil s'arrête au scellé et
+disparaît quand la source est libérée ; un changement de vue ultérieur se
+classe sur le magasin comme avant. À l'actualisation complète de l'index,
+une ligne non résolue (aucune entrée de cache, donc ni paire, ni relique, ni
+stats résolues) reprend sa note de base du même critère au lieu de la
+recalculer ; seules les lignes résolues sont renotées.
+
 Cache vide : ordre de base inchangé. Cache non vide : note décroissante,
 relique croissante (absente en dernier), clé lexicographique, puis position
 dans l'ordre de base. Sans note calculable, seul le départage s'applique.

@@ -214,6 +214,7 @@ import testConstructionColonnes from './construction-colonnes.test';
 import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidatsCredits, testFluxCandidatsApercuFinal, testFluxCandidatsPageLente, testFluxCandidatsReceptionOrdre,
   testFluxCandidatsRefusRecevoir, testFluxCandidatsRefusSceller, testFluxCandidatsRefusResultat, testFluxCandidatsLanceurCommun } from './flux-candidats.test';
 import { testClassementCreditsRelance, testClassementCadenceDifferee, testClassementInstantaneBorne, testClassementMortInactive } from './classement-publication.test';
+import { testClassementAuFilDifferentiel, testClassementAuFilTravail } from './classement-au-fil.test';
 import { testClassementComparerApresValidation } from './classement-comparer.test';
 import { testClassementSelectionExhaustiveBorne, testClassementSelectionExhaustiveTransitions, testClassementSelectionExhaustiveDifferee } from './classement-selection-exhaustive.test';
 import testRetentionEmboitee from './retention-emboitee.test';
@@ -867,6 +868,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testClassementCadenceDifferee', testClassementCadenceDifferee],
   ['testClassementInstantaneBorne', testClassementInstantaneBorne],
   ['testClassementMortInactive', testClassementMortInactive],
+  ['testClassementAuFilDifferentiel', testClassementAuFilDifferentiel],
+  ['testClassementAuFilTravail', testClassementAuFilTravail],
   ['testClassementComparerApresValidation', testClassementComparerApresValidation],
   ['testClassementSelectionExhaustiveBorne', testClassementSelectionExhaustiveBorne],
   ['testClassementSelectionExhaustiveTransitions', testClassementSelectionExhaustiveTransitions],

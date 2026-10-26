@@ -189,6 +189,50 @@ autres — le cadre commun le dit sans un mot. L'option enfoncée est un
 > sait mieux que la mesure — `AncientFilter` resserre par cohérence avec une
 > rangée voisine, pas par manque de place.
 
+#### `Onglets`
+
+**`Onglets`** — de **vrais onglets** posés côte à côte au-dessus d'un contenu,
+un seul ouvert. L'onglet ouvert, sur fond de panneau, efface son bord bas et
+se **fond dans la ligne de base** ; les autres, sur `panel2` et en encre
+atténuée, restent derrière elle. Chaque option : `cle`, `libelle`, `icone`
+facultative, `desactive` + `title` (toujours affichée, jamais retirée).
+Usages : les groupes d'artéfacts du Top 10 par propriété, au Résumé des
+artéfacts ([feat-artefacts.md](../../../02-app/compte/feat-artefacts.md)), les
+combinaisons des builds les plus rapides du Résumé des runes
+([feat-runes/resume.md](../../../02-app/compte/feat-runes/resume.md)), les
+deux sources de la Comparaison des runes
+([feat-runes/comparaison.md](../../../02-app/compte/feat-runes/comparaison.md)),
+les formes d'un monstre transformable dans sa fiche
+([feat-monstres.md](../../../02-app/compte/feat-monstres.md)), les sections de
+la prépa RTA au téléphone
+([feat-sections-runes.md](../../../02-app/rta/feat-sections-runes.md)).
+
+> ⚠️ **Le critère** : le choix REMPLACE le contenu du dessous (un autre
+> écran, une autre fiche, une autre section). Un choix qui règle un mode (le
+> potentiel « Gemme + meule »), trie ou restreint une liste reste un
+> `Segmented` ou une rangée de pastilles.
+
+> ⚠️ **Ni un `Segmented`, ni des pastilles.** `Segmented` règle un MODE dans une
+> rangée de réglages ; une pastille pose un filtre cumulable. Les onglets
+> disent QUEL CONTENU on regarde, et le coiffent : on lit le titre de l'onglet
+> comme celui de ce qui est dessous.
+>
+> ⚠️ **Contour unique, 1 px** ([contours.md](contours.md)) : les onglets ne se
+> touchent pas, un intervalle de 4 px les sépare, et la ligne de base passe
+> sous l'intervalle — un segment par intervalle, plus un pour finir la ligne
+> jusqu'au bord. Deux bords accolés feraient un trait de 2 px. Une ligne tracée
+> par le conteneur, que l'onglet ouvert recouvrirait d'une marge négative,
+> serait rognée par le défilement horizontal.
+>
+> ⚠️ **Au doigt, la rangée défile de côté** au lieu de passer à la ligne : sur
+> deux lignes, il n'y a plus de ligne de base unique, et l'on ne sait plus quel
+> onglet coiffe le contenu.
+>
+> Accessibilité d'un `tablist` : rangée nommée (`aria-label` obligatoire),
+> `role="tab"` et `aria-selected`, seul l'onglet ouvert dans l'ordre de
+> tabulation ; ← et → passent à l'onglet disponible voisin (en bouclant),
+> Début et Fin au premier et au dernier.
+
 #### `Pastille`
 
 **`Pastille`** — pilule de filtre à deux états, posée en RANGÉE de critères :

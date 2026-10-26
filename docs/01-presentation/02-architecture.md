@@ -189,6 +189,7 @@ imposé + sort de chacun) dans le même moteur. Tout est testé dans `tests/spee
 | `BoutonIcone.tsx` | préréglage carré, `libelle` obligatoire (→ `aria-label` + `title`) |
 | `Vignette.tsx` | case **sélectionnable** d'une grille ; la `teinte` vient de l'appelant |
 | `Pastille.tsx` | **pilule de filtre** à deux états d'une rangée de critères (élément, rareté, doublons) ; teinte optionnelle fournie par l'appelant |
+| `Onglets.tsx` | de **vrais onglets** côte à côte au-dessus d'un contenu, un seul ouvert, fondu dans la ligne de base ; clavier ← → |
 | `ZoneCliquable.tsx` | une **surface** rendue cliquable (ligne dépliante, poignée) |
 | `Champ.tsx` / `NumberField.tsx` | saisie texte / numérique (⚠️ jamais `type="number"`) |
 | `Selecteur.tsx` | liste déroulante |

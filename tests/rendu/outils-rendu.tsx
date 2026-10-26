@@ -67,6 +67,27 @@ export function boutons(html: string): Bouton[] {
   });
 }
 
+// Les onglets (`role="tab"`, voir src/ui/Onglets.tsx), dans l'ordre : leur
+// texte, s'ils sont ouverts (`aria-selected`), dans l'ordre de tabulation,
+// désactivés, et leur infobulle.
+export interface OngletRendu {
+  texte: string;
+  ouvert: boolean;
+  focusable: boolean;
+  desactive: boolean;
+  title: string | null;
+}
+
+export function onglets(html: string): OngletRendu[] {
+  return [...html.matchAll(/<button\b([^>]*role="tab"[^>]*)>([\s\S]*?)<\/button>/g)].map(([, attrs, contenu]) => ({
+    texte: texteVisible(contenu),
+    ouvert: attr(attrs, 'aria-selected') === 'true',
+    focusable: /\stabindex="0"/i.test(attrs),
+    desactive: /\sdisabled(=""|\s|$)/.test(attrs),
+    title: attr(attrs, 'title'),
+  }));
+}
+
 // Le bouton nommé `nom` (texte, aria-label ou title), ou undefined.
 export function bouton(html: string, nom: string): Bouton | undefined {
   return boutons(html).find((b) => b.texte === nom || b.ariaLabel === nom || b.title === nom || b.texte.includes(nom));

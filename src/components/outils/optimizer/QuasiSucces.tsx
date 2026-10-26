@@ -1,6 +1,7 @@
 import { RECO_STATS, type RuneDetail } from '../../../types';
 import { candidateMetricTotal, pvEffectifs, type NearMiss, type Objective, type SearchResult, type StatShortfall } from '../../../lib/runeBuildOptim';
 import { formatRuneMetric, type RuneMetric } from '../../../hooks/useRuneMetric';
+import { moyenneParRune } from '../../../lib/valeursAffichees';
 import { type StatKey } from '../../../lib/effects';
 import { type DamageSetup, type SetAura } from '../../../lib/damage';
 
@@ -29,7 +30,7 @@ export default function QuasiSucces({ result, runeById, metric, objective, auras
   // affiché pour une recherche PV effectifs n'aurait aucun rapport
   // avec ce qui est cherché).
   const nearMissScoreText = (miss: NearMiss): string => {
-    const moyenne = candidateMetricTotal(miss, runeById, metric) / 6;
+    const moyenne = moyenneParRune(candidateMetricTotal(miss, runeById, metric));
     const base = `${metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} ${formatRuneMetric(moyenne, metric)}`;
     if (objective !== 'ehp') return base;
     return `${base}, PV effectifs ${Math.round(pvEffectifs(miss.stats, aurasPropresDe(miss), damageSetup)).toLocaleString('fr-FR')}`;

@@ -5,6 +5,7 @@ import { BuildCandidate, candidateMetricTotal } from '../../lib/runeBuildOptim';
 import { activeSets } from '../../lib/effects';
 import { EtatRelique } from '../../lib/relicQueue';
 import { RuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
+import { entierAffiche, moyenneParRune } from '../../lib/valeursAffichees';
 import { ArtifactDetailBox, RuneDetailBox } from '../PieceDetail';
 import RuneWheel from '../RuneWheel';
 import ArtifactSlots from '../ArtifactSlots';
@@ -305,7 +306,7 @@ export default function BuildCandidateCard({
   // `tabular-nums` aligne la valeur d'une carte à l'autre.
   const texteMoyen = (
     <span className="text-xs tabular-nums text-ink-dim">
-      {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(liveTotal / 6, metric)}
+      {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(moyenneParRune(liveTotal), metric)}
     </span>
   );
   const ecartMoyen = metricDelta != null && <Delta valeur={metricDelta / 6} suffixe={metric === 'eff' ? ' %' : ''} />;
@@ -442,7 +443,7 @@ export default function BuildCandidateCard({
           <span className={groupeValeur}>
             <EmplacementEcart>{pvEffectifs.delta != null && <Delta valeur={pvEffectifs.delta} />}</EmplacementEcart>
             <span className="font-mono text-sm font-bold text-star">
-              {Math.round(pvEffectifs.total).toLocaleString('fr-FR')}
+              {entierAffiche(pvEffectifs.total).toLocaleString('fr-FR')}
             </span>
           </span>
         </p>
@@ -461,7 +462,7 @@ export default function BuildCandidateCard({
             {/* La mono sur le chiffre seul : « tue la cible » / « N % des PV »
                 est une phrase, en police du texte. */}
             <span className="text-sm font-bold text-star">
-              <span className="font-mono">{Math.round(degatsReels.total).toLocaleString('fr-FR')}</span>
+              <span className="font-mono">{entierAffiche(degatsReels.total).toLocaleString('fr-FR')}</span>
               <span className="ml-1.5 font-normal text-micro text-ink-dim">
                 {degatsReels.partPvCible >= 100 ? 'tue la cible' : `${Math.round(degatsReels.partPvCible)} % des PV`}
               </span>

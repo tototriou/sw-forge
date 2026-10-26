@@ -341,8 +341,13 @@ effectifs). Ce sont des filtres d'affichage, séparés des conditions de
 recherche : ils ne deviennent jamais une condition, ne relancent rien et ne
 résolvent aucun équipement. La vue envoyée au classeur les porte
 (`VueClassement.bornes`, filtresResultats.ts) ; le classeur filtre **avant
-de paginer**. La forme des contrôles à l'écran n'est pas encore posée :
-l'écran actuel n'envoie aucune borne.
+de paginer**. Les bornes et le sens du tri sont des critères personnels de
+l'écran (`bornesResultats`, `sensTri`, useOptimizerState.ts), comme le
+tri : **mémorisés par membre** (rétablis au retour sur lui), effacés au
+changement de monstre, conservés par une nouvelle recherche, qui remet
+seulement le sens en décroissant avec le tri de son objectif ; dans la
+session, jamais dans la recette ni le CLI (réglages d'affichage, comme le
+tri ; ../feat-listes-equipes-et-sauvegarde.md § Mémoires des membres).
 
 - **Règle.** Bornes inclusives, combinées par ET ; une borne vide
   (`null`) = sans borne. Un minimum plus grand que le maximum sur une même

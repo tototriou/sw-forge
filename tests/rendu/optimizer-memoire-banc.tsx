@@ -25,6 +25,7 @@ import { preuvesCreationObligatoire, preuvesEtatAuras, preuvesEnteteEquipe, preu
 import { preuvesEquipeImpossible } from './optimizer-equipe-impossible-preuves';
 import { preuvesReglagesAvances, preuvesGuidage, preuvesRappelDeuxRendus, preuvesListesEcran, preuvesMessageImport, preuvesResultats } from './optimizer-ecran-preuves';
 import { rechercheClasseeTest } from './optimizer-classement-banc';
+import { preuvesFiltresMemoire } from './optimizer-filtres-preuves';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -167,6 +168,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   if (nom === 'ecran-listes') return preuvesListesEcran(bancEcran);
   if (nom === 'ecran-message-import') return preuvesMessageImport(bancEcran);
   if (nom === 'ecran-resultats') return preuvesResultats(bancEcran);
+  if (nom === 'filtres-memoire') return preuvesFiltresMemoire(bancEcran);
   if (nom.startsWith('equipe-impossible-')) return preuvesEquipeImpossible(bancEquipes,nom.slice('equipe-impossible-'.length));
   if (nom === 'creation-obligatoire') return preuvesCreationObligatoire(bancEquipes);
   if (nom === 'etat-auras') return preuvesEtatAuras(bancEquipes);

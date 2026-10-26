@@ -437,6 +437,10 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     setVerifierToutesLesCombinaisons,
     sortBy,
     setSortBy,
+    sensTri,
+    setSensTri,
+    bornesResultats,
+    setBornesResultats,
     resultsPage,
     setResultsPage,
     slotFilterPreset,
@@ -1849,7 +1853,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         requirement: requirementAvecAuras, relicContext: params.relicContext } : null,
       realDamage, damageSetup, exclusive: contexteExclusive, signature: signatureArtefacts, idInventaire: importDuCompte, idEspece: selected.monster.com2usId ?? null,
       toutVerifier: verifierToutesLesCombinaisons });
-    run(params, photo, { tri: triDeDepart, metric, page: 1, afficherDepassement });
+    // Les bornes posées restent : une nouvelle recherche se lit sous les mêmes filtres.
+    run(params, photo, { tri: triDeDepart, sens: 'desc', bornes: bornesResultats, metric, page: 1, afficherDepassement });
   }
 
   // Exporte la RECETTE de cette recherche (set, minimums, objectif,
@@ -2158,12 +2163,14 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     });
   }
 
-  // La vue (tri, mesure, page) part au classeur, qui en compose la page ;
-  // l'écran n'en reçoit que l'instantané : vingt cartes au plus, comptes,
-  // versions. Aucun de ces trois réglages ne résout d'équipement, sauf la page
-  // demandée en naviguant (le classeur le distingue d'un changement de tri).
+  // La vue (tri et son sens, bornes, mesure, page) part au classeur, qui en
+  // compose la page ; l'écran n'en reçoit que l'instantané : vingt cartes au
+  // plus, comptes, versions. Aucun de ces réglages ne résout d'équipement,
+  // sauf la page demandée en naviguant (le classeur le distingue d'un
+  // changement de tri ou de borne).
   const { changerVue } = search;
-  useEffect(() => { changerVue({ tri: sortBy, metric, page: resultsPage, afficherDepassement }); }, [changerVue, sortBy, metric, resultsPage, afficherDepassement]);
+  useEffect(() => { changerVue({ tri: sortBy, sens: sensTri, bornes: bornesResultats, metric, page: resultsPage, afficherDepassement }); },
+    [changerVue, sortBy, sensTri, bornesResultats, metric, resultsPage, afficherDepassement]);
   const instantane = search.classement;
   const interrompu = search.classementInterrompu;
 

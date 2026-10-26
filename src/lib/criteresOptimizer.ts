@@ -17,6 +17,7 @@ export const CLASSEMENT_CHAMPS_OPTIMIZER = {
   artifactMainByKind: 'personnel', relicMainChoice: 'personnel', relicUniqueChoice: 'personnel',
   lignesVerrouillees: 'personnel', mainStatsBySlot: 'personnel', lockedRunes: 'personnel',
   objective: 'personnel', damageSetup: 'personnel', sortBy: 'personnel',
+  sensTri: 'personnel', bornesResultats: 'personnel',
   compterAurasResPre: 'personnel', critereArtefacts: 'personnel',
   selectedId: 'global', gearSource: 'global', sourceSelector: 'global',
   relicMinUpgrade: 'global', excludeUsedRunes: 'global', excludeUsedScope: 'global',
@@ -140,6 +141,8 @@ export function baseCompleteCriteres(exemplaire: Pick<GearSet, 'relic'> | undefi
     relicMainChoice: defaultRelicMainChoice(exemplaire?.relic), relicUniqueChoice: 'libre',
     lignesVerrouillees: [], mainStatsBySlot: {}, lockedRunes: {}, objective: 'efficience',
     damageSetup: copie(DEFAULT_DAMAGE_SETUP), sortBy: 'efficience',
+    // Filtres d'affichage des résultats : décroissant, aucune borne.
+    sensTri: 'desc', bornesResultats: {},
     compterAurasResPre: true, critereArtefacts: 'brut',
   };
 }

@@ -1,5 +1,6 @@
-import { CorpsClassement, TAILLE_PAGE_CLASSEMENT, type InstantaneClassement, type PublicationClassement } from '../src/lib/classementCompact';
-import { CorpsResolution, type ReponseResolution } from '../src/workers/resolutionBody';
+import { CorpsClassement, TAILLE_PAGE_CLASSEMENT, type InstantaneClassement, type PublicationClassement, type VueClassement } from '../src/lib/classementCompact';
+import { CorpsResolution, type MessageVersResolution, type ReponseResolution } from '../src/workers/resolutionBody';
+import type { ReponseClassement } from '../src/workers/classementDistant';
 import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs } from '../src/lib/candidatsCompacts';
 import type { BuildCandidate } from '../src/lib/runeBuildOptim';
 import { fixtureClassementCombat } from './classement-fixture';
@@ -94,6 +95,71 @@ export function testClassementCadenceDifferee() {
   egal(dernier.enAttente, 0, 'vraie fin de file forcée à 421 ms, dernière écriture comprise');
   b.verifierTout();
   ok(b.maximum() <= 2, 'le traitement différé conserve les deux crédits');
+}
+
+/** Le `self` du vrai Worker de classement, chargé une fois dans ce processus : ses sorties vont au journal du test en cours. */
+let soiDuClasseur: { postMessage(r: ReponseClassement): void; onmessage: ((e: { data: unknown }) => void) | null } | null = null;
+let journalDuClasseur: { r: ReponseClassement; t: number }[] = [];
+let generationDuClasseur = 0;
+
+async function attendre<T>(lire: () => T | undefined | false, ms: number): Promise<T | undefined> {
+  const fin = performance.now() + ms;
+  for (;;) {
+    const v = lire();
+    if (v || performance.now() > fin) return v || undefined;
+    await new Promise((r) => setTimeout(r, 5));
+  }
+}
+
+export async function testClassementVueSansAutreMessage() {
+  titre('Classeur — un geste de vue est publié dès que son instantané est prêt, sans autre message (vrai Worker)');
+  const b = banc(); b.ouvrir(1);
+  b.corps.changerVue({ ...b.f.vue, page: 2 }, 2, 2); b.pomper(10);
+  egal(b.publications.length, 2, 'corps : la page demandée 10 ms après la publication précédente part aussitôt');
+  b.repondre(11);
+  egal(b.publications.length, 2, 'corps : la réponse du fond qui suit reste soumise aux 400 ms');
+
+  // Le vrai Worker (sa boucle de tranches, sa relance), un résolveur qui ne
+  // répond jamais : deux résolutions longues en vol, aucun autre message.
+  const g = globalThis as { self?: unknown }, ancien = g.self;
+  const soi = soiDuClasseur ??= { postMessage: (r) => journalDuClasseur.push({ r, t: performance.now() }), onmessage: null };
+  g.self = soi; journalDuClasseur = [];
+  const resolveur = new MessageChannel(), flux = new MessageChannel();
+  try {
+    await import('../src/workers/classement.worker');
+    const envoyer = (m: unknown) => soi.onmessage!({ data: m });
+    const demandes: MessageVersResolution[] = [];
+    resolveur.port2.onmessage = (e) => { demandes.push(e.data); };
+    envoyer({ type: 'portResolution', port: resolveur.port1 });
+    const f = fixtureClassementCombat('ehp'), id = ++generationDuClasseur;
+    envoyer({ type: 'ouvrir', versionSchema: 1, idRecherche: id, idDemande: 1, contexte: structuredClone(f.photo), vue: f.vue });
+    envoyer({ type: 'portRecherche', idRecherche: id, port: flux.port1 });
+    const colonnes = creerColonnesCandidats(); f.candidats.forEach((c) => ajouterObjetCandidat(colonnes, c));
+    const blocs = extraireBlocs(colonnes);
+    blocs.forEach((bloc, sequence) => flux.port2.postMessage({ type: 'candidats', idRecherche: id, sequence, bloc }));
+    flux.port2.postMessage({ type: 'sceller', idRecherche: id, nombre: f.candidats.length, derniereSequence: blocs.length - 1, bilan: BILAN });
+    const enVol = await attendre(() => demandes.filter((m) => m.type === 'resoudre').length >= 2, 3000);
+    ok(enVol === true, 'deux résolutions en vol, sans réponse');
+    const publications = () => journalDuClasseur.flatMap(({ r, t }) => r.type === 'publication' ? [{ p: r.publication, t }] : []);
+    const gestes: [string, VueClassement][] = [['page 2', { ...f.vue, page: 2 }], ['tri PV', { ...f.vue, tri: 'hp', page: 1 }], ['mesure Score', { tri: 'hp', metric: 'score', page: 1 }]];
+    for (const [i, [nom, vue]] of gestes.entries()) {
+      const avant = publications(), idVue = i + 2, precedente = avant[avant.length - 1], t0 = performance.now();
+      ok(precedente !== undefined && t0 - precedente.t < 400,
+        `${nom} : le geste arrive ${precedente ? Math.round(t0 - precedente.t) : '?'} ms après la publication précédente, la cadence l’aurait retenu`);
+      envoyer({ type: 'vue', versionSchema: 1, idRecherche: id, idDemande: idVue, idVue, vue });
+      const publiee = await attendre(() => publications().find(({ p }) => p.versions.idVue === idVue), 1000);
+      ok(publiee !== undefined && publiee.p.vue.page === vue.page && publiee.p.vue.tri === vue.tri && publiee.p.vue.metric === vue.metric,
+        `${nom} : publiée sans réponse du résolveur ni autre message${publiee ? ` (${Math.round(publiee.t - t0)} ms)` : ' (rien en 1 s)'}`);
+      if (nom === 'page 2') ok(publiee !== undefined && publiee.p.page.premierRang === 21 && publiee.p.page.cartes.length === 0 && publiee.p.page.placesEnAttente > 0,
+        'page 2 : son rang, ses places en attente, jamais l’ancienne page sous le nouveau numéro');
+    }
+    ok(demandes.filter((m) => m.type === 'resoudre').length >= 2 && !journalDuClasseur.some(({ r }) => r.type === 'erreur'), 'aucune erreur du classeur');
+    envoyer({ type: 'liberer', versionSchema: 1, idRecherche: id, idDemande: 99 });
+    ok(journalDuClasseur.some(({ r }) => r.type === 'liberee'), 'classeur libéré');
+  } finally {
+    resolveur.port2.close(); flux.port2.close();
+    if (ancien === undefined) delete g.self; else g.self = ancien;
+  }
 }
 
 /** Cherche, dans un message, un tableau qui grandirait avec le nombre de builds. */

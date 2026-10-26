@@ -216,7 +216,7 @@ import testSerieCoordinateur from './serie-coordinateur.test';
 import testValidationParRune from './validation-par-rune.test';
 import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidatsCredits, testFluxCandidatsApercuFinal, testFluxCandidatsPageLente, testFluxCandidatsReceptionOrdre, testFluxCandidatsArretApresPlafond,
   testFluxCandidatsRefusRecevoir, testFluxCandidatsRefusSceller, testFluxCandidatsRefusResultat, testFluxCandidatsLanceurCommun } from './flux-candidats.test';
-import { testClassementCreditsRelance, testClassementCadenceDifferee, testClassementInstantaneBorne, testClassementMortInactive } from './classement-publication.test';
+import { testClassementCreditsRelance, testClassementCadenceDifferee, testClassementVueSansAutreMessage, testClassementInstantaneBorne, testClassementMortInactive } from './classement-publication.test';
 import { testClassementAuFilDifferentiel, testClassementAuFilTravail } from './classement-au-fil.test';
 import { testClassementComparerApresValidation } from './classement-comparer.test';
 import { testClassementSelectionExhaustiveBorne, testClassementSelectionExhaustiveTransitions, testClassementSelectionExhaustiveDifferee } from './classement-selection-exhaustive.test';
@@ -873,6 +873,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testClassementPublicationForceeDifferee', testClassementPublicationForceeDifferee],
   ['testClassementCreditsRelance', testClassementCreditsRelance],
   ['testClassementCadenceDifferee', testClassementCadenceDifferee],
+  ['testClassementVueSansAutreMessage', testClassementVueSansAutreMessage],
   ['testClassementInstantaneBorne', testClassementInstantaneBorne],
   ['testClassementMortInactive', testClassementMortInactive],
   ['testClassementAuFilDifferentiel', testClassementAuFilDifferentiel],

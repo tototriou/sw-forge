@@ -509,8 +509,15 @@ avant la suivante.
 Une publication forcée demandée pendant une étape de classement reste due
 jusqu'à la fin de cette étape, même si le fond continue. Une actualisation
 en cours rend la file indisponible, jamais vide : sa fin seule permet de
-décider si la page ou la file est réellement terminée. Hors de ces fins et
-des forçages explicites ou incidents, le fond respecte les 400 ms.
+décider si la page ou la file est réellement terminée. Un geste de vue
+(page, tri, mesure) force aussi sa publication, dès que son instantané est
+prêt (après le tri qu'il demande) : retenu par la cadence, il n'attendrait
+que la prochaine réponse du résolveur, qui peut tarder (relique
+« recherche », deux résolutions longues en vol), et l'écran garderait
+l'ancienne page sous le nouveau numéro. Le geste vient de l'utilisateur :
+une publication de plus par geste, jamais une par réponse. Hors de ces fins,
+des gestes et des forçages explicites ou incidents, le fond respecte les
+400 ms.
 Une réponse déjà reçue et retenue pendant une tâche rend son crédit avant
 d'être abandonnée par une ouverture ou une libération ; son équipement
 n'entre jamais dans la nouvelle génération. Une demande réellement sans

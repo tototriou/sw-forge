@@ -21,8 +21,8 @@
 // Voir docs/03-developpeur/optimizer/moteur/elagages.md § Pré-filtrage
 // heuristique et compartiments.
 
-import { BaseStats } from '../src/types';
-import { BuildRequirement, Objective, PreparedSearch, SLOT_FILTER_PRESETS, SearchParams, prepareSearch } from '../src/lib/runeBuildOptim';
+import { BaseStats, RuneDetail } from '../src/types';
+import { BuildBucketsContext, BuildRequirement, Objective, PreparedSearch, SLOT_FILTER_PRESETS, SearchParams, prepareSearch } from '../src/lib/runeBuildOptim';
 import { construireMoitieTypee } from '../src/lib/rechercheRunes';
 import { CompteConstruction, OrdreCombos, construireMoitieRapideTypee, premiereDivergence } from '../src/lib/constructionRapide';
 import { objetsDesCompartiments } from '../src/lib/demiBuildsTypes';
@@ -152,8 +152,55 @@ function balayage(variante: 'pvRare' | 'platFractionnaire'): { cas: number; dive
   return { cas, divergence: null };
 }
 
+/**
+ * Le `+ 1` des bornes, éprouvé directement sur le noyau, un plafond de 1 et
+ * une seule tranche par stat en pourcentage (`tranche: 'pv'`, PV en tranche
+ * de rétention) ou la seule tranche combinée (`tranche: 'combinee'`, un
+ * minimum de PV sans tranche par stat : contexte posé à la main, que
+ * `prepareSearch` ne produit pas, pour qu'aucune autre tranche ne garde le
+ * triplet). Base PV 10, donc `y = PV% / 10` :
+ * - ligne 1 (rune s1a, 10,75 PV plats) : (r0, s1a, B) note ceil(0,5) + 10,75
+ *   = 11,75, la racine ;
+ * - ligne 2 (rune s1b, PV% 110) : (r0, s1b, B) note ceil(11,5) = 12 > 11,75,
+ *   alors que `y + f` = 11,5 ≤ 11,75 : sans le `+ 1`, il serait sauté à tort.
+ * La rune E, très efficiente et sans PV, tient la racine de la tranche
+ * d'efficience au-dessus de (r0, s1b, B).
+ */
+function bordDuPlafond(tranche: 'pv' | 'combinee'): { divergence: string | null; retenu: boolean } {
+  const rune = (id: number, slot: number, subs: { code: number; value: number }[]): RuneDetail => ({
+    id, slot, set: 'violent', rank: 6, rarity: 5, level: 15, main: { code: 9, value: 1 }, subs,
+  });
+  const r0 = rune(1, 1, []);
+  const s1a = rune(2, 2, [{ code: 1, value: 10.75 }]);
+  const s1b = rune(3, 2, [{ code: 2, value: 110 }]);
+  const b = rune(4, 3, [{ code: 2, value: 5 }]);
+  const e = rune(5, 3, [{ code: 8, value: 500 }, { code: 10, value: 500 }]);
+  const ctx: BuildBucketsContext = {
+    filtered: [[r0], [s1a, s1b], [b, e], [r0], [s1a], [b]],
+    distinctKeys: [], requiredPieces: [], jokerCredit: 0, bucketCap: 1,
+    constrainedKeys: tranche === 'pv' ? [] : ['hp'],
+    retentionKeys: tranche === 'pv' ? ['hp'] : [],
+    minEntries: tranche === 'pv' ? [] : [{ k: 'hp', min: 1 }],
+    base: { hp: 10, atk: 500, def: 400, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 },
+    objectiveKeys: tranche === 'pv' ? ['hp'] : [],
+  };
+  const ref = drain(construireMoitieRapideTypee('A', [0, 1, 2], ctx, [], 'objective', { elaguer: false }));
+  const prod = drain(construireMoitieRapideTypee('A', [0, 1, 2], ctx, [], 'objective'));
+  const objets = objetsDesCompartiments(ref, ctx.filtered);
+  return {
+    divergence: premiereDivergence(objets, objetsDesCompartiments(prod, ctx.filtered)),
+    retenu: objets.some((c) => c.combos.some((x) => x.runes[1] === s1b && x.runes[2] === b)),
+  };
+}
+
 export default function testConstructionElagage() {
   titre('Optimizer · construction des moitiés : l’élagage des triplets refusés par tous les tas ne change rien');
+
+  for (const tranche of ['pv', 'combinee'] as const) {
+    const { divergence, retenu } = bordDuPlafond(tranche);
+    ok(divergence === null && retenu,
+      `borne de la tranche ${tranche} au bord du plafond : ${divergence ?? (retenu ? 'identique, (r0, s1b, B) retenu' : '(r0, s1b, B) absent : le cas ne teste rien')}`);
+  }
 
   for (const variante of ['pvRare', 'platFractionnaire'] as const) {
     const { cas, divergence } = balayage(variante);

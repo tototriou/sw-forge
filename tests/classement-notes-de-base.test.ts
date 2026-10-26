@@ -6,8 +6,8 @@
 // (classement-apercu.test.ts).
 import { CorpsClassement, type InstantaneClassement, type VueClassement } from '../src/lib/classementCompact';
 import { CandidatsCompacts, ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs } from '../src/lib/candidatsCompacts';
-import { contexteResultat, type ContexteResultat } from '../src/lib/contexteResultat';
-import { statTotal, type BuildCandidate } from '../src/lib/runeBuildOptim';
+import { contexteResultat, optionsDuContexte, type ContexteResultat } from '../src/lib/contexteResultat';
+import { scoreDuCandidat, statTotal, type BuildCandidate } from '../src/lib/runeBuildOptim';
 import type { StatKey } from '../src/lib/effects';
 import { fixtureClassementCombat } from './classement-fixture';
 import { egal, ok, titre } from './outils';
@@ -27,8 +27,10 @@ export const avecTotal = (stats: Stats, cle: StatKey, total: number): Stats => s
  * exclusive et relique), des doublons aux stats collectées différentes (ils
  * partagent l'équipement, jamais la ligne), et des stats spéciales au choix.
  */
-export function population(e: { nombre: number; avecFile: boolean; toutVerifier?: boolean; special?: (stats: Stats, i: number) => Stats }) {
-  const f = fixtureClassementCombat('degats_reels', e.toutVerifier ?? false);
+export function population(e: { nombre: number; avecFile: boolean; toutVerifier?: boolean; special?: (stats: Stats, i: number) => Stats;
+  objectif?: 'degats_reels' | 'ehp' }) {
+  const objectif = e.objectif ?? 'degats_reels';
+  const f = fixtureClassementCombat(objectif, e.toutVerifier ?? false);
   const uniques: BuildCandidate[] = Array.from({ length: e.nombre }, (_, i) => {
     const c = { ...f.candidats[i % 32], runeIds: Array.from({ length: 6 }, (_, s) => 30000 + i * 6 + s), effTotal: (i * 7) % 23 };
     return e.special ? { ...c, stats: e.special(c.stats, i) } : c;
@@ -43,7 +45,7 @@ export function population(e: { nombre: number; avecFile: boolean; toutVerifier?
   }
   const photo = contexteResultat({ ...f.photo, params: { ...f.params, pool }, toutVerifier: e.toutVerifier ?? false,
     ...(e.avecFile ? {} : { resolution: null }) });
-  const vue: VueClassement = { tri: 'degats_reels', metric: 'eff', page: 1 };
+  const vue: VueClassement = { tri: objectif, metric: 'eff', page: 1 };
   return { photo, candidats, vue };
 }
 
@@ -86,6 +88,22 @@ export function resoudre(c: Classeur, tours: number): number {
 }
 const cacheDe = (c: Classeur) => (c.corps as unknown as { cache: Map<string, { conforme: boolean }> }).cache;
 export const empreinteCache = (c: Classeur) => [...cacheDe(c).entries()].map(([k, r]) => `${k}:${r.conforme}`).sort().join('|');
+
+/** Une ligne par ses identifiants dans l'ordre reçu : les doublons (mêmes runes, autre ordre) restent distincts. */
+export const ligne = (c: BuildCandidate) => c.runeIds.join();
+
+/**
+ * L'ordre de base d'une vue, recalculé ici sans le classeur : note de la
+ * colonne sur le candidat collecté, sans cache, opposée en croissant, puis le
+ * tri stable de JavaScript (note décroissante, ordre reçu à égalité).
+ */
+export function ordreDeBaseDeReference(candidats: readonly BuildCandidate[], photo: ContexteResultat, vue: VueClassement): string[] {
+  const options = optionsDuContexte(photo, null, vue.metric), signe = vue.sens === 'asc' ? -1 : 1;
+  const notes = candidats.map((c) => scoreDuCandidat(c, vue.tri, options));
+  if (notes.every((x) => x === null)) return candidats.map(ligne);
+  const v = notes.map((x) => (x === null ? 0 : x * signe));
+  return candidats.map((_, i) => i).sort((a, b) => v[b] - v[a]).map((i) => ligne(candidats[i]));
+}
 
 /** Le classeur différé au scellé de la population, file finie. */
 export function classeurFini(nombre: number) {
@@ -153,7 +171,22 @@ export function testClassementNotesAuRepos() {
     return d.corps.travail.notes - avant;
   };
   egal(geste({ ...vue, tri: 'ehp' }, 2), 0, 'tri PV effectifs après le temps mort : aucune note');
+  // Les notes du temps mort sont celles des candidats collectés, sans cache : la file a pourtant résolu 300 builds.
+  egal(d.corps.projection().base.map(ligne), ordreDeBaseDeReference(candidats, photo, { ...vue, tri: 'ehp' }),
+    'tri PV effectifs : l’ordre de base est celui de la référence sans cache');
   egal(geste({ ...vue, tri: 'efficience' }, 3), 0, 'tri Efficience après le temps mort : aucune note');
+  egal(d.corps.projection().base.map(ligne), ordreDeBaseDeReference(candidats, photo, { ...vue, tri: 'efficience' }),
+    'tri Efficience : l’ordre de base est celui de la référence sans cache');
   egal(geste({ ...vue, tri: 'efficience', metric: 'score' }, 4), n, 'une autre mesure : sa propre note (la clé d’un critère porte la mesure)');
   ok(d.corps.travailAuRepos, 'sous la nouvelle mesure, les autres objectifs sont à préparer de nouveau');
+  // Lancé sur PV effectifs : le temps mort note Dégâts réels, dont la note avec cache lirait la paire et la relique résolues.
+  const pv = population({ nombre: 600, avecFile: true, objectif: 'ehp' });
+  const e = classeur(pv.photo, pv.candidats, pv.vue, true);
+  resoudre(e, Infinity);
+  while (e.corps.avancerAuRepos()) { /* temps mort */ }
+  const avantDegats = e.corps.travail.notes;
+  e.corps.changerVue({ ...pv.vue, tri: 'degats_reels' }, 2, 2); drainer(e);
+  egal(e.corps.travail.notes - avantDegats, 0, 'lancé sur PV effectifs : tri Dégâts réels après le temps mort, aucune note');
+  egal(e.corps.projection().base.map(ligne), ordreDeBaseDeReference(pv.candidats, pv.photo, { ...pv.vue, tri: 'degats_reels' }),
+    'tri Dégâts réels : l’ordre de base est celui de la référence sans cache');
 }

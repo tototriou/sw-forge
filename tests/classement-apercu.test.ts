@@ -8,28 +8,12 @@
 import { isDeepStrictEqual } from 'node:util';
 import type { InstantaneClassement, VueClassement } from '../src/lib/classementCompact';
 import { COLONNES_RESULTATS, type ColonneResultat } from '../src/lib/colonnesResultats';
-import { optionsDuContexte, type ContexteResultat } from '../src/lib/contexteResultat';
-import { scoreDuCandidat, statTotal, type BuildCandidate } from '../src/lib/runeBuildOptim';
+import { statTotal, type BuildCandidate } from '../src/lib/runeBuildOptim';
 import type { BornesResultats } from '../src/lib/filtresResultats';
 import type { StatKey } from '../src/lib/effects';
-import { avecTotal, classeur, classeurFini, drainer, empreinteCache, generateur, population, resoudre, tic, type Classeur, type Stats } from './classement-notes-de-base.test';
+import { avecTotal, classeur, classeurFini, drainer, empreinteCache, generateur, ligne, ordreDeBaseDeReference, population, resoudre, tic,
+  type Classeur, type Stats } from './classement-notes-de-base.test';
 import { egal, ok, titre } from './outils';
-
-/** Une ligne par ses identifiants dans l'ordre reçu : les doublons (mêmes runes, autre ordre) restent distincts. */
-const ligne = (c: BuildCandidate) => c.runeIds.join();
-
-/**
- * L'ordre de base d'une vue, recalculé ici sans le classeur : note de la
- * colonne sur le candidat collecté, sans cache, opposée en croissant, puis le
- * tri stable de JavaScript (note décroissante, ordre reçu à égalité).
- */
-function ordreDeBaseDeReference(candidats: readonly BuildCandidate[], photo: ContexteResultat, vue: VueClassement): string[] {
-  const options = optionsDuContexte(photo, null, vue.metric), signe = vue.sens === 'asc' ? -1 : 1;
-  const notes = candidats.map((c) => scoreDuCandidat(c, vue.tri, options));
-  if (notes.every((x) => x === null)) return candidats.map(ligne);
-  const v = notes.map((x) => (x === null ? 0 : x * signe));
-  return candidats.map((_, i) => i).sort((a, b) => v[b] - v[a]).map((i) => ligne(candidats[i]));
-}
 
 /** L'instantané sans ses deux compteurs de cadence, qui suivent le nombre de publications et d'écritures. */
 function sansCadence(p: InstantaneClassement) {

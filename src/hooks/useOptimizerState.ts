@@ -1,6 +1,9 @@
 import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 import { StatKey } from '../lib/effects';
 import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
+import type { ColonneResultat } from '../lib/colonnesResultats';
+import type { BornesResultats } from '../lib/filtresResultats';
+import type { SensTri } from '../lib/tri';
 import { DamageSetup } from '../lib/damage';
 import { appliquerCriteres, baseCompleteCriteres, criteresApresChangementEspece, defaultRelicMainChoice, photoCriteres, type CriteresOptimizer } from '../lib/criteresOptimizer';
 import { rattacherProprietaireCriteres, validerProprietaireCriteres, type ProprietaireCriteresOptimizer } from '../lib/optimizerCriteriaOwner';
@@ -22,7 +25,9 @@ const REFUS_IDENTITE_MEMBRE = 'Critères non restaurés : l’identité enregist
 export type { SlotFilterPresetKey };
 // API historique conservée pour l'écran, les recettes et les scripts.
 export { defaultRelicMainChoice, relicMainChoiceApresChangementExemplaire, criteresApresChangementEspece, baseCompleteCriteres } from '../lib/criteresOptimizer';
-export type OptimizerSortKey = StatKey | Objective;
+// Le tri des résultats : une de leurs onze colonnes. L'objectif de recherche
+// Vitesse se trie par la colonne VIT (`triDesResultats`).
+export type OptimizerSortKey = ColonneResultat;
 // Choix de statistique principale d'artéfact pour la recherche : les trois
 // valeurs de jeu standard (voir ARTIFACT_MAIN dans effects.ts — 100=PV,
 // 101=ATQ, 102=DEF), plus trois cas hors de cette table : `'equipped'`
@@ -285,6 +290,16 @@ export interface OptimizerState {
   setVerifierToutesLesCombinaisons: Dispatch<SetStateAction<boolean>>;
   sortBy: OptimizerSortKey;
   setSortBy: Dispatch<SetStateAction<OptimizerSortKey>>;
+  // Le sens du tri des résultats et leurs filtres d'affichage (une borne
+  // minimum et maximum par colonne, filtresResultats.ts) : des réglages
+  // d'AFFICHAGE, comme le tri, jamais des conditions de recherche. Critères
+  // personnels (mémoire du membre, session) ; remis à zéro au changement de
+  // monstre ; une nouvelle recherche garde les bornes, et le sens retombe en
+  // décroissant avec le tri qu'elle repose sur l'objectif.
+  sensTri: SensTri;
+  setSensTri: Dispatch<SetStateAction<SensTri>>;
+  bornesResultats: BornesResultats;
+  setBornesResultats: Dispatch<SetStateAction<BornesResultats>>;
   // Pagination des résultats affichés (1-indexé) — état d'AFFICHAGE pur, pas
   // un paramètre de recherche : n'entre donc jamais dans `OptimizerRecipe`
   // ni les scripts CLI (voir le skill optimizer-field-propagation, dont la
@@ -431,6 +446,8 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   const [exhaustiveSearch, setExhaustiveSearch] = useState(false);
   const [verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons] = useState(false);
   const [sortBy, setSortBy] = useState<OptimizerSortKey>(base.sortBy);
+  const [sensTri, setSensTri] = useState<SensTri>(base.sensTri);
+  const [bornesResultats, setBornesResultats] = useState<BornesResultats>(base.bornesResultats);
   const [resultsPage, setResultsPage] = useState(1);
   // La mesure (réglage global, changé depuis n'importe quelle page, écran de
   // l'Optimizer monté ou non) réordonne le classement comme le tri : la page
@@ -455,7 +472,7 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   // du membre qui était sélectionné au début d'une lecture de fichier.
   const criteresAffiches: CriteresOptimizer = { comboSets, minStats, maxStats, excludeBase, optimiserArtefacts,
       artifactMainByKind, relicMainChoice, relicUniqueChoice, lignesVerrouillees, mainStatsBySlot,
-      lockedRunes, objective, damageSetup, sortBy, compterAurasResPre, critereArtefacts };
+      lockedRunes, objective, damageSetup, sortBy, sensTri, bornesResultats, compterAurasResPre, critereArtefacts };
   const vivant = useRef({ contexte, selectedId, sourceSelector, proprietaire: proprietaireCriteres, criteres: criteresAffiches, importDuCompte });
   vivant.current = { contexte, selectedId, sourceSelector, proprietaire: proprietaireCriteres, criteres: criteresAffiches, importDuCompte };
 
@@ -481,7 +498,8 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     setRelicMainChoice(suivante.relicMainChoice); setRelicUniqueChoice(suivante.relicUniqueChoice);
     setLignesVerrouillees(suivante.lignesVerrouillees); setMainStatsBySlot(suivante.mainStatsBySlot);
     setLockedRunes(suivante.lockedRunes); setObjective(suivante.objective); setDamageSetup(suivante.damageSetup);
-    setSortBy(suivante.sortBy); setCompterAurasResPre(suivante.compterAurasResPre); setCritereArtefacts(suivante.critereArtefacts);
+    setSortBy(suivante.sortBy); setSensTri(suivante.sensTri); setBornesResultats(suivante.bornesResultats);
+    setCompterAurasResPre(suivante.compterAurasResPre); setCritereArtefacts(suivante.critereArtefacts);
   }
 
   // Défauts et restaurations modifient l'affichage, jamais la mémoire :
@@ -767,6 +785,9 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     // Le tri suit l'objectif (`handleSearch` le repose dessus au lancement) :
     // il retombe avec lui ici, et reste avec lui au changement d'exemplaire.
     setSortBy(suivant.sortBy);
+    // Les filtres d'affichage appartiennent au monstre : ils tombent avec lui.
+    setSensTri(suivant.sensTri);
+    setBornesResultats(suivant.bornesResultats);
     effacerResultats();
   }
 
@@ -794,7 +815,9 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     poserCriteresAutomatiques,
     traiterReliqueImportee,
     appliquerReverificationMembres,
-    poserTriRecherche: (tri) => poserCriteresAutomatiques({ sortBy: tri }),
+    // Le tri de la recherche lancée, en décroissant : une nouvelle colonne
+    // repart du meilleur. Les bornes restent.
+    poserTriRecherche: (tri) => poserCriteresAutomatiques({ sortBy: tri, sensTri: 'desc' }),
     selectedId,
     setSelectedId: (valeur) => { effacerProprietaireCriteres(); const v = vivant.current; v.selectedId = typeof valeur === 'function' ? valeur(v.selectedId) : valeur; setSelectedId(v.selectedId); },
     gearSource,
@@ -847,6 +870,10 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     setVerifierToutesLesCombinaisons,
     sortBy,
     setSortBy: saisie('sortBy', setSortBy),
+    sensTri,
+    setSensTri: saisie('sensTri', setSensTri),
+    bornesResultats,
+    setBornesResultats: saisie('bornesResultats', setBornesResultats),
     resultsPage,
     setResultsPage,
     slotFilterPreset,

@@ -3,6 +3,7 @@ import { baseCompleteCriteres, photoCriteres, type CriteresOptimizer } from './c
 import { OPTIMIZER_RECIPE_VERSION, parseOptimizerRecipe } from './optimizerRecipe';
 import { normaliserCompetencesInvocateur } from './competencesInvocateur';
 import { rattacherStockageOptimizer } from './optimizerRattachement';
+import { bornesBienFormees, triDesResultats, type ColonneResultat } from './colonnesResultats';
 export type { RapportReverificationOptimizer } from './optimizerRattachement';
 import {
   exclusionSelectorKey, resolveExclusionEntry,
@@ -58,21 +59,32 @@ export function selecteurValide(v: unknown): v is ExclusionSelector {
 // « Adapter les artéfacts et reliques au tri » n'existe plus : l'équipement suit
 // l'objectif de la recherche. Une mémoire historique le porte encore.
 const REGLAGES_RETIRES = ['adapterArtefactsAuTri'] as const;
+// Champs personnels arrivés après les premières mémoires écrites : leur
+// absence se relit par leur défaut, au lieu de rejeter toute la mémoire.
+const CHAMPS_AJOUTES: Partial<CriteresOptimizer> = { sensTri: 'desc', bornesResultats: {} };
 function sansReglagesRetires(c: CriteresOptimizer): CriteresOptimizer {
   const copie: Record<string, unknown> = { ...c };
   for (const k of REGLAGES_RETIRES) delete copie[k];
+  // Un tri « vitesse » enregistré se relit VIT : l'objectif Vitesse n'est plus une colonne de tri.
+  copie.sortBy = triDesResultats(c.sortBy as ColonneResultat | 'vitesse');
+  // Une mémoire écrite avant les filtres d'affichage : décroissant, sans borne.
+  for (const [k, defaut] of Object.entries(CHAMPS_AJOUTES)) if (!(k in copie)) copie[k] = structuredClone(defaut);
   return copie as unknown as CriteresOptimizer;
 }
 
 function criteresValides(v: unknown): v is CriteresOptimizer {
   if (!objet(v)) return false;
-  // Tous les champs personnels restent obligatoires, y compris ceux ignorés par une recette.
+  // Tous les champs personnels restent obligatoires, y compris ceux ignorés
+  // par une recette, sauf ceux arrivés après coup (`CHAMPS_AJOUTES`).
   const base = baseCompleteCriteres(undefined);
-  if (Object.keys(base).some((k) => !(k in v))) return false;
+  if (Object.keys(base).some((k) => !(k in v) && !(k in CHAMPS_AJOUTES))) return false;
+  if ('sensTri' in v && v.sensTri !== 'desc' && v.sensTri !== 'asc') return false;
+  if ('bornesResultats' in v && !bornesBienFormees(v.bornesResultats)) return false;
   if (['excludeBase', 'optimiserArtefacts', 'compterAurasResPre'].some((k) => typeof v[k] !== 'boolean')) return false;
   // Réglage retiré : toléré seulement sous sa forme historique, puis ôté à la lecture.
   if (REGLAGES_RETIRES.some((k) => k in v && typeof v[k] !== 'boolean')) return false;
   if (typeof v.critereArtefacts !== 'string' || !['brut', 'reel'].includes(v.critereArtefacts)) return false;
+  // `vitesse` : tri historique, admis puis relu VIT (`sansReglagesRetires`).
   if (typeof v.sortBy !== 'string' || !['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc', 'efficience', 'ehp', 'vitesse', 'degats_reels'].includes(v.sortBy)) return false;
   if (!objet(v.damageSetup) || !objet(v.maxStats) || !objet(v.mainStatsBySlot) || !objet(v.lockedRunes) || !Array.isArray(v.lignesVerrouillees)) return false;
   // La validation des critères partagés réutilise le lecteur de recette, jamais une deuxième règle.

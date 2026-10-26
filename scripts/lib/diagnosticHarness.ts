@@ -20,6 +20,7 @@
 
 import { contexteResultat } from '../../src/lib/contexteResultat';
 import { classerEnLocal } from '../../src/lib/classementCompact';
+import { triDesResultats } from '../../src/lib/colonnesResultats';
 import {
   ALL_STAT_KEYS,
   Bucket,
@@ -1911,7 +1912,7 @@ export function classer(
   const photo = contexteResultat({ params: { ...resolue.params, pool: resolue.poolInitial },
     fiche: resolue.monstre?.gear ?? { base: resolue.params.base, runes: [], artifacts: resolue.params.artifacts, relic: resolue.params.relic },
     realDamage, damageSetup: setup, exclusive: { setup, element }, signature: '', idInventaire: 0, idEspece: resolue.monstre?.com2usId ?? null, resolution: null, toutVerifier: false });
-  const classes = classerEnLocal(photo, candidats, { tri: objectif, metric: resolue.params.metric,
+  const classes = classerEnLocal(photo, candidats, { tri: triDesResultats(objectif), metric: resolue.params.metric,
     page: 1 }).affichees;
   // ⚠️ `candidateMetricTotal` recalcule depuis les VRAIES runes dans la
   // mesure courante — jamais `effTotal`, figé au moment de la recherche. Il

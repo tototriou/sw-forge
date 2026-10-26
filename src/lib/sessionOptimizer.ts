@@ -1,5 +1,6 @@
 // L'Optimizer dans une sauvegarde de session : une photo de ses champs de
-// DONNÉES (`useOptimizerState`) : sélection, exemplaire, critères et tri.
+// DONNÉES (`useOptimizerState`) : sélection, exemplaire, critères, tri et
+// filtres d'affichage des résultats.
 // La photo est sérialisée ; App ne la réapplique pas actuellement.
 //
 // ⚠️ **Chaque champ de données de `OptimizerState` est classé** : dans la
@@ -40,6 +41,9 @@ export const CHAMPS_OPTIMIZER_SESSION = [
   'verifierToutesLesCombinaisons',
   'slotFilterPreset',
   'sortBy',
+  // Les filtres d'affichage des résultats voyagent avec le tri.
+  'sensTri',
+  'bornesResultats',
 ] as const;
 
 export const CHAMPS_OPTIMIZER_HORS_SESSION = [

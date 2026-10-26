@@ -922,7 +922,7 @@ export function testResolutionDistante() {
   const ecran = sansCommentaires(readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8'));
   ok(!/new Worker|CacheResolutionJournalise|resoudreEquipementDuBuild/.test(ecran),
     'écran : aucun Worker, cache mutable ou repli de calcul sur le fil de l’écran');
-  ok(ecran.includes('changerVue({ tri: sortBy, metric, page: resultsPage })'),
+  ok(ecran.includes('changerVue({ tri: sortBy, metric, page: resultsPage, afficherDepassement })'),
     'écran : seuls les réglages de vue sont envoyés au propriétaire');
   ok(ecran.includes('const photo = contexteResultat({ params, fiche: selected.gear,')
     && ecran.includes('requirement: requirementAvecAuras, relicContext: params.relicContext')

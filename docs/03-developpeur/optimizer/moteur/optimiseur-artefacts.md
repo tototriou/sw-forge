@@ -390,7 +390,7 @@ Une seule primitive, `chercherPaires`, sert deux entrées.
   d'artéfacts, l'écran impose « Comme équipé » des deux côtés ;
   avec, `'libre'` et les principales deviennent des filtres de candidats.
 - Le Worker de classement possède la file et son cache compact. L'écran lui
-  envoie sa vue (tri, mesure, page) et n'en reçoit que l'instantané de la
+  envoie sa vue (tri et son sens, mesure, page) et n'en reçoit que l'instantané de la
   page affichée ; aucune résolution n'y tourne.
 
 ### Classement incrémental
@@ -452,6 +452,38 @@ recalculer ; seules les lignes résolues sont renotées.
 Cache vide : ordre de base inchangé. Cache non vide : note décroissante,
 relique croissante (absente en dernier), clé lexicographique, puis position
 dans l'ordre de base. Sans note calculable, seul le départage s'applique.
+**Sens croissant** (`VueClassement.sens: 'asc'`, absent = décroissant) :
+toutes les notes de la vue, de base, au fil des blocs et de l'index, sont
+prises opposées (`noteDansLeSens`, `signeTri` de tri.ts), et les mêmes tris
+décroissants stables rangent alors par note croissante : seul le comparateur
+de note s'inverse ; relique, clé et position dans l'ordre de base de CETTE
+vue départagent comme avant, et les égalités ne sont jamais renversées (pas
+de `reverse()`). Le sens fait partie du critère : il nomme les notes
+(`tri|mesure|sens`) et renote l'index comme un changement de tri. Le fond de
+la file garde l'objectif lancé, décroissant ; une vue croissante a donc son
+propre ordre de base.
+
+**Bornes de la vue** (`VueClassement.bornes`, filtresResultats.ts). Chaque
+ligne a une catégorie (`CATEGORIE_LIGNE`) : visible, masquée, indéterminée
+(`NaN` sous une borne active), potentielle (non vérifiée), non vérifiée
+masquée (échec démontré sur une colonne immuable) ou écartée. Elle se pose
+à chaque notation de la ligne, complète ou par différence, et à chaque
+changement de bornes ; une ligne non vérifiée n'est jugée que sur les
+colonnes que la résolution ne change pas (`COLONNES_IMMUABLES`), avec la
+valeur que la carte écrit (`valeurAffichee`). **L'arbre ne contient que les
+visibles et les potentielles** : rang, page, comptes de sous-arbre, places
+en attente et priorité de page portent donc sur la vue filtrée sans autre
+code, et la file de fond, qui lit l'ordre de base et l'état des lignes, ne
+voit pas les bornes. Les comptes par état et catégorie se tiennent à chaque
+catégorisation, sans parcours. Changer de bornes ne renote rien : la
+catégorie de chaque ligne est recalculée, O(N) prédicats, et seules les
+lignes qui entrent dans la vue ou en sortent sont insérées ou retirées,
+O(Δ log N) ; pendant une tâche, le classeur reprend la vue entière, comme
+pour un tri. Le repli des non-finis trie toutes les lignes non écartées,
+puis garde celles de la vue, et le cache vide restreint l'ordre de base à
+la vue : la vue filtrée est toujours une sous-suite, dans le même ordre, de
+la vue sans borne. Sans borne active, toute ligne non écartée est dans la
+vue, comme avant.
 `NaN`, infinis et identifiants de relique hors contrat prennent deux tris
 natifs stables sur indices JavaScript, avec les expressions de la référence,
 sans normalisation ni comparateur composite.

@@ -49,7 +49,8 @@ dans « Monstre & équipement » au téléphone.
    roue puis la relique passer seules à la ligne, la relique finissant hors
    du cadre visible. Groupés, ils se déplacent ensemble ou pas du tout. ⚠️ **L'encadré de stats bascule base+bonus
    ↔ total au clic**, comportement propre à `MonsterGear`, partagé avec RTA
-   et Siège (voir [rta/feat-sections-runes.md](../../rta/feat-sections-runes.md)).
+   et Siège (voir [rta/feat-sections-runes.md](../../rta/feat-sections-runes.md)) ;
+   Taux Crit, Dmg Crit, RES et Précision y restent toujours en total.
    ⚠️ **Affiché SOUS les puces d'exemplaire, TOUJOURS** — au bureau dans
    la section « Exemplaire » (598 px au plus, 356 au moins, la largeur de
    la fiche repliée ; environ 370 px de haut ; en tête de la

@@ -56,11 +56,23 @@ async function nonRelance(telephone: boolean) {
     const tout = await inchange('vérifier toutes les combinaisons');
     if (telephone) await appel(page, 'menuTelephone', false); else await onglet.click();
     egal(tout.toutVerifierPhoto, false, `${format} : « Vérifier toutes les combinaisons » reste celui du lancement dans le contexte`);
-    // Tri : le vrai sélecteur de l'en-tête des résultats.
-    await page.locator('select').filter({ hasText: 'Trier par' }).selectOption('hp');
+    // Tri : la tête PV de la bande au bureau, le sélecteur de l'en-tête au téléphone.
+    if (telephone) await page.locator('select').filter({ hasText: 'Trier par' }).selectOption('hp');
+    else await page.getByRole('group', { name: 'Trier les résultats' }).getByRole('button', { name: 'PV', exact: true }).click();
     const tri = await inchange('tri', false);
     ok(tri.tri === 'hp' && tri.resultsPage === 1 && tri.cartes.length === 20 && tri.places === 0,
       `${format} — tri : la page 1 se réordonne sans rien vérifier de plus (${tri.cartes.length} cartes)`);
+    // Une borne d'affichage, posée puis relâchée au clavier dans « Filtrer
+    // l'affichage » : rien n'est relancé ni résolu, et les mêmes cartes reviennent.
+    await page.getByRole('button', { name: "Filtrer l'affichage", exact: true }).filter({ visible: true }).first().click();
+    const vit = page.locator('input[aria-label="VIT minimum affiché"]').filter({ visible: true }).first();
+    await vit.fill('9999');
+    await inchange('borne posée', false);
+    await vit.fill('');
+    const relache = await inchange('borne relâchée', false);
+    egal([...relache.cartes].sort(), [...tri.cartes].sort(), `${format} — borne relâchée : les mêmes cartes reviennent`);
+    if (telephone) await page.getByRole('button', { name: 'Fermer', exact: true }).filter({ visible: true }).first().click();
+    else await page.keyboard.press('Escape');
     // Mesure changée pendant la vérification d'une page au-delà des confirmées : la page revient à 1.
     const aller = page.getByLabel('Aller à la page');
     await aller.fill('999'); await aller.press('Tab');
@@ -120,8 +132,12 @@ async function interrompue(telephone: boolean) {
     const desactives = async (l: typeof comparer) => (await Promise.all((await l.all()).map(b => b.isDisabled()))).every(Boolean);
     ok(await comparer.count() === 20 && await desactives(comparer), `${format} : « Comparer » garde sa place, désactivé sur les vingt cartes`);
     ok(await valider.count() === 20 && await desactives(valider), `${format} : « Valider ce build » garde sa place, désactivé sur les vingt cartes`);
-    const tri = page.locator('select').filter({ hasText: 'Trier par' });
-    ok(await tri.count() === 1 && await tri.isDisabled(), `${format} : le tri est désactivé`);
+    // Le tri : la liste au téléphone, les onze têtes de la bande au bureau.
+    const tri = telephone ? page.locator('select').filter({ hasText: 'Trier par' })
+      : page.getByRole('group', { name: 'Trier les résultats' }).getByRole('button');
+    ok(await tri.count() === (telephone ? 1 : 11) && await desactives(tri), `${format} : le tri est désactivé`);
+    const filtres = page.getByRole('button', { name: "Filtrer l'affichage", exact: true }).filter({ visible: true });
+    ok(await filtres.count() === 1 && await filtres.isDisabled(), `${format} : « Filtrer l'affichage » est désactivé`);
     ok(await page.getByRole('button', { name: 'Page suivante' }).isDisabled() && await page.getByLabel('Aller à la page').isDisabled(),
       `${format} : la pagination est désactivée`);
     await page.getByRole('button', { name: 'Rechercher', exact: true }).first().click();

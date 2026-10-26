@@ -143,7 +143,9 @@ export function testRenduOptimizerMonstre() {
   const t = texteVisible(html);
   const b = boutons(html);
   ok(/data-monstre-actif[^>]*>[\s\S]{0,400}?Devilmon/.test(html), 'le monstre choisi, sur la rangée du titre de la liste');
-  ok(t.includes('PV 1 500 +180 ATQ 700 +160 DEF 500 — VIT 101 +80 Taux Crit 15% — Dmg Crit 50% +63% RES 15% +63% Précision 0% +7%'), 'ses stats : base et bonus de l\'équipement');
+  // Taux Crit, Dmg Crit, RES et Précision s'écrivent toujours en total (`STATS_AVEC_BASE`).
+  ok(t.includes('PV 1 500 +180 ATQ 700 +160 DEF 500 — VIT 101 +80 Taux Crit 15% Dmg Crit 113% RES 78% Précision 7%'),
+    'ses stats : base et bonus de l\'équipement pour PV, ATQ, DEF et VIT, le total pour les autres');
   ok(t.includes('Relique PV +11%'), 'sa relique');
   ok(!!bouton(html, 'Créer une liste et y ajouter Devilmon'), 'l\'ajouter à une nouvelle liste');
   // Replié (rendu serveur : la forme compacte), le titre ne porte pas le

@@ -88,6 +88,7 @@ export default tseslint.config(
       'src/hooks/useRuneMetric.ts',
       'src/hooks/useAdversaireReference.ts',
       'src/hooks/useBuildsRapides.ts',
+      'src/hooks/useFormeResultats.ts',
     ],
     rules: { 'no-restricted-properties': 'off' },
   },

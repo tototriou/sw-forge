@@ -99,6 +99,12 @@ un habillage. Une grille de modificateurs mêle des gains et des pertes, et le
 signe seul — en mono 12 px au milieu de quarante colonnes — ne saute pas aux
 yeux. Il teinte le **texte et le contour**, jamais le fond : un fond plein par
 cellule ferait un damier, et ces tableaux portent déjà des surlignages.
+⚠️ Axe **`decimales`** (0 par défaut) : le nombre de décimales admises à la
+frappe, pour une valeur que l'app **écrit** avec des décimales — une borne
+d'Efficience des résultats de l'Optimizer se pose comme la carte l'affiche
+(« 78.8 »). Point ou virgule admis ; « 78. » reste à l'écran le temps
+d'écrire la décimale ; `inputMode="decimal"` au doigt. La lecture d'une
+frappe est une fonction pure (`lireFrappe`), vérifiée seule.
 
 ⚠️ **`type="text"` + `inputMode="numeric"`, jamais `type="number"`**, partout
 dans l'app. Les flèches natives du navigateur sont deux triangles gris

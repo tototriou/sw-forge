@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { RuneDetail } from '../types';
 import { runeEfficiency, runeScore } from '../lib/effects';
+import { chiffresMesureRune } from '../lib/valeursAffichees';
 
 // Mesure de la qualité d'une rune, au choix de l'utilisateur :
 //  - `eff`   : efficience (convention communautaire, principale incluse, /2,8) ;
@@ -65,7 +66,8 @@ export function runeMetricValue(rune: RuneDetail, metric: RuneMetric): number {
 // Affichage court : « 140.2% » (efficience) ou « 152 » (score — toujours un
 // entier, la formule du jeu arrondit).
 export function formatRuneMetric(value: number, metric: RuneMetric): string {
-  return metric === 'eff' ? `${value.toFixed(1)}%` : String(Math.round(value));
+  const chiffres = chiffresMesureRune(value, metric);
+  return metric === 'eff' ? `${chiffres}%` : chiffres;
 }
 
 // Convertit un PALIER d'une mesure vers l'autre, en **préservant la sélection** :

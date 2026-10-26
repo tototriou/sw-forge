@@ -35,6 +35,16 @@ export interface StatRow {
   suffix: string; // '%' pour crit/res/précision, '' sinon
 }
 
+/**
+ * Les stats qui s'affichent en base + bonus : PV, ATQ, DEF et VIT, dont la base
+ * grandit avec le niveau et l'éveil et que les runes gonflent. Taux Crit,
+ * Dmg Crit, RES et Précision partent d'une petite valeur d'éveil fixe et
+ * s'affichent TOUJOURS en total, dans toute l'app (décision de l'utilisateur,
+ * généralisant « Stats de base exclues » des conditions de l'Optimizer) :
+ * fiche de stats, recommandations de siège, tableau des résultats.
+ */
+export const STATS_AVEC_BASE: ReadonlySet<StatKey> = new Set<StatKey>(['hp', 'atk', 'def', 'spd']);
+
 const ROWS: { key: StatKey; label: string; suffix: string }[] = [
   { key: 'hp', label: 'PV', suffix: '' },
   { key: 'atk', label: 'ATQ', suffix: '' },

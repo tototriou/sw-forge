@@ -1,5 +1,6 @@
 import type { BuildCandidate, RealDamageContext, SearchParams, SearchResult } from '../src/lib/runeBuildOptim';
 import { CorpsClassement, type InstantaneClassement, type VueClassement } from '../src/lib/classementCompact';
+import { triDesResultats } from '../src/lib/colonnesResultats';
 import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs } from '../src/lib/candidatsCompacts';
 import { contexteResultat, type ContexteResultat } from '../src/lib/contexteResultat';
 import { DEFAULT_DAMAGE_SETUP, artifactDamageProfile, estPrisEnCharge, skillDamageProfile } from '../src/lib/damage';
@@ -17,7 +18,7 @@ export function demandeClassementTest(partiel: Partial<SearchParams> = {}, optim
     signature: 'fixture', idInventaire: 0, idEspece: null, toutVerifier,
     resolution: optimiser ? { fiche, artifactParams: { porteur: { element: 'fire', archetype: 'attack' }, inventaire: [], equipes: [], principaleParSorte: {}, lignesVerrouillees: [] },
       regime: 'aucun', degats: null, exclusive, requirement: params.requirement, relicContext: params.relicContext } : null });
-  const vue: VueClassement = { tri: params.objective ?? 'efficience', metric: params.metric, page: 1 };
+  const vue: VueClassement = { tri: triDesResultats(params.objective ?? 'efficience'), metric: params.metric, page: 1 };
   return { params, photo, vue };
 }
 
@@ -93,6 +94,9 @@ export class ClassementVideTest {
         versions: { versionSchema: 1, idRecherche: m.idRecherche, idInventaire: m.contexte.idInventaire, idContexteResolution: 1, revisionDonnees: 1,
           idVue: 1, revisionPubliee: 1, idDemande: m.idDemande }, vue: m.vue,
         comptes: { recus: 0, affichables: 0, resolus: 0, confirmees: 0, avecFile: false },
+        filtre: { bornes: { actives: [], inactives: [], contradictoires: [] }, pages: 1, vide: null, comptes: { trouvesMoteur: 0, recusActifs: 0,
+          ecartesResolution: 0, confirmesGlobaux: 0, nonVerifiesGlobaux: 0, visiblesConfirmes: 0, masquesConfirmes: 0, potentielsNonVerifies: 0,
+          masquesNonVerifies: 0, indeterminesNumeriques: 0 } },
         page: { premierRang: 1, cartes: [], placesEnAttente: 0 }, enAttente: 0, incident: null,
         bilan: { explored: 1, truncated: false, nearMissByCondition: [], globalNearMiss: null },
       } } }));

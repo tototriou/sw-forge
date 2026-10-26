@@ -297,6 +297,28 @@ export function testRenduRecosTicks() {
   ok(!tick(editeur({ setOptions: [['swift', 'energy'], ['violent', 'will']] }), 'Tick rapide').desactive, 'une option sans Swift suffit : actif');
 }
 
+// La saisie des stats d'un deck : PV, ATQ, DEF et VIT en base + bonus (le
+// « + » devant le champ) ; Taux Crit, Dmg Crit, RES et Précision en total,
+// sans base rappelée ni « + ».
+export function testRenduRecosStatsEnTotal() {
+  titre('rendu · Siège · Recommandations — saisie des stats, bonus ou total');
+  const veromos = MONSTRES.find((m) => m.com2usId === c2u('Veromos', 'dark'))!;
+  const html = rendre(
+    <StatEditor
+      slot={{ ...slot('Veromos', 'dark', { stats: { spd: 200, cr: 60 } }), artifacts: { element: [], archetype: [] } } as RecoSlot}
+      monster={veromos}
+      lead={0}
+      onSet={() => {}}
+    />
+  );
+  const ligne = (cle: string) => html.split(`data-stat-reco="${cle}"`)[1]?.split('data-stat-reco=')[0] ?? '';
+  const plus = (cle: string) => />\+<\/span>/.test(ligne(cle));
+  const avecPlus = ['hp', 'atk', 'def', 'spd'].filter(plus), sansPlus = ['cr', 'cd', 'res', 'acc'].filter((c) => ligne(c) && !plus(c));
+  egal(avecPlus, ['hp', 'atk', 'def', 'spd'], 'PV, ATQ, DEF et VIT : le « + » d’un bonus sur la base');
+  egal(sansPlus, ['cr', 'cd', 'res', 'acc'], 'Taux Crit, Dmg Crit, RES et Précision : pas de « + », le champ vaut le total');
+  ok(/value="60"/.test(ligne('cr')) && ligne('cr').includes('= 60'), 'Taux Crit 60 saisi : le champ et le total écrivent 60');
+}
+
 // « Annuler les modifications » (le mainteneur, 2026-10-05) : en édition seulement,
 // à côté du ✓, grisé tant que rien n'a changé. Le rendu serveur ne clique
 // pas : on vérifie la PRÉSENCE et l'état à l'ouverture, la règle elle-même

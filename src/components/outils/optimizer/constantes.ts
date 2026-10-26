@@ -1,5 +1,6 @@
 import type { GearSet } from '../../../types';
-import { CAPPED_STATS, type StatKey } from '../../../lib/effects';
+import { CAPPED_STATS } from '../../../lib/effects';
+import { STATS_AVEC_BASE } from '../../../lib/stats';
 
 // ⚠️ Le plafond de CAPPED_STATS (voir lib/effects.ts) ne s'applique QU'À la
 // saisie d'une condition (minimum ou maximum) : la RECHERCHE, elle, ne doit
@@ -12,8 +13,9 @@ export const CAPPED_100 = CAPPED_STATS;
 // gonfler en % ou en plat. Taux Crit/Dgts Crit/RES/Précision partent d'une
 // petite valeur d'éveil fixe et restent TOUJOURS en TOTAL, quel que soit ce
 // réglage — demandé explicitement : elles « évoluent suivant la valeur
-// d'éveil des monstres », pas selon un mode bonus/total.
-export const BASE_TOGGLE_STATS = new Set<StatKey>(['hp', 'atk', 'def', 'spd']);
+// d'éveil des monstres », pas selon un mode bonus/total. La règle vaut pour
+// tout affichage de l'app : une seule source, `STATS_AVEC_BASE` (stats.ts).
+export const BASE_TOGGLE_STATS = STATS_AVEC_BASE;
 
 export const CONFIGURABLE_SLOTS: (2 | 4 | 6)[] = [2, 4, 6];
 

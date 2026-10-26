@@ -68,6 +68,9 @@ export async function bancOptimizer() {
       },
     },
     './useBuildOptimSearch': { useBuildOptimSearch: () => search },
+    // La mesure globale (Efficience / Score SW) est un store externe lu par
+    // `useSyncExternalStore`, absent du faux React : sa valeur par défaut.
+    './useRuneMetric': { useRuneMetric: () => 'eff' },
   };
   for (const [, chemin] of code.matchAll(/require\("([^"]+)"\)/g)) {
     if (!(chemin in modules)) throw new Error(`Dépendance de production non instrumentée : ${chemin}`);

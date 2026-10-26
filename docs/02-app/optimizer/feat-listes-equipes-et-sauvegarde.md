@@ -212,7 +212,20 @@ sans passer par une écriture.
 Les critères textuels contrôlés hors du lecteur de recette, `sortBy` et
 `critereArtefacts`, sont obligatoirement des chaînes appartenant aux valeurs
 admises. Un tableau contenant une valeur admise est rejeté, signalé dans le
-rapport et conservé parmi les valeurs brutes inutilisables.
+rapport et conservé parmi les valeurs brutes inutilisables. Un tri
+`vitesse` enregistré avant que l'objectif Vitesse ne quitte les tris reste
+admis et se relit `spd` (la colonne VIT, même ordre), sans avertissement,
+par la seule `triDesResultats` (colonnesResultats.ts).
+
+Le sens du tri (`sensTri`, `desc` ou `asc`) et les filtres d'affichage des
+résultats (`bornesResultats`, une borne minimum et maximum par colonne,
+ecran/resultats.md § Filtres d'affichage par colonne) sont des critères
+personnels, comme le tri : la saisie les écrit dans la mémoire du membre,
+le retour sur lui les rétablit, un autre monstre part sans borne en
+décroissant. Une mémoire écrite avant eux se relit avec ces défauts, sans
+rejet ni avertissement (`CHAMPS_AJOUTES`) ; présents mais mal formés (sens
+inconnu, colonne inconnue, borne non numérique), ils font rejeter la mémoire
+(`bornesBienFormees`, colonnesResultats.ts).
 
 Le réglage retiré `adapterArtefactsAuTri` (« Adapter les artéfacts et
 reliques au tri ») d'une mémoire historique est retiré à la lecture, vrai ou

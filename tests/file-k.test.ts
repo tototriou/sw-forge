@@ -53,8 +53,8 @@ export function testKDeLaFile() {
   ok(appelFile !== '' && !appelFile.includes('toutVerifier') && /contexteResultat\(\{[\s\S]*?toutVerifier: verifierToutesLesCombinaisons \}\);/.test(ecran),
     'écran : la cible de vérification est photographiée au lancement, jamais envoyée avec la vue');
   egal((ecran.match(/kDeLaFile\(/g) ?? []).length, 0, 'écran : aucun K recopié');
-  ok(appelFile.includes('changerVue({ tri: sortBy, metric, page: resultsPage })'),
-    'écran : seuls tri, mesure et page parviennent au propriétaire');
+  ok(appelFile.includes('changerVue({ tri: sortBy, metric, page: resultsPage, afficherDepassement })'),
+    'écran : seuls tri, mesure, page et réglage d’affichage du dépassement parviennent au propriétaire');
 
   // Le CLI : le contexte de la recherche lancée (`params.relicContext`).
   const cli = readFileSync('scripts/lib/classementCli.ts', 'utf8');

@@ -96,6 +96,17 @@ import { testCliClassementParMode, testCliClassementDifferentiel } from './cli-c
 import { testClassementCessionOrdre, testClassementCessionSansAffamement, testClassementCessionCanal } from './classement-cession.test';
 import { testRetraitAdaptationMigrations } from './retrait-adaptation.test';
 import { testTriSansNouvelleResolution, testToutVerifierPhotographie, testPlacesEnAttenteToujoursTravaillees } from './classement-non-relance.test';
+import { testObjectifVitesseMigration } from './objectif-vitesse.test';
+import { testColonnesTriAscendant } from './colonnes-tri.test';
+import { testFiltresResultatsBornes, testFiltresResultatsReversibles, testFiltresResultatsIndetermines, testFiltresResultatsComptesPages,
+  testFiltresResultatsDifferentiel, testFiltresResultatsPlafondAffiche } from './filtres-resultats.test';
+import { testFiltresResultatsDoublonsTaches } from './filtres-resultats-doublons.test';
+import { testFiltresResultatsMemoire } from './filtres-memoire.test';
+import { testFiltresResultatsAvecBorne } from './filtres-avec-borne.test';
+import { testFiltresResultatsValeurBornee } from './filtres-carte.test';
+import { testFiltresResultatsBonus, testFiltresResultatsDecimales } from './filtres-bonus.test';
+import { testRenduOptimizerTableauSansRognage, testRenduOptimizerTableauEtats, testRenduOptimizerTableauAlignement,
+  testRenduOptimizerTableauBonusSousLaBase } from './rendu/optimizer-tableau-navigateur.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
 import { testOptimizerFormatBig } from './format-big.test';
@@ -339,7 +350,7 @@ import { testRenduBarreSession } from './rendu/barre-session.test';
 import { testRenduChangementCompte } from './rendu/changement-compte.test';
 import { testRenduIcones } from './rendu/icones.test';
 import { testRenduAttaqueConjointeEcran } from './rendu/attaque-conjointe-ecran.test';
-import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense, testRenduRecosTicks, testRenduRecosAnnulerEdition } from './rendu/recos.test';
+import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense, testRenduRecosTicks, testRenduRecosAnnulerEdition, testRenduRecosStatsEnTotal } from './rendu/recos.test';
 import testAnnulerEdition from './annuler-edition.test';
 import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testRenduRunesComparaison, testRenduRunesOptimisation, testRenduRunesAVenir, testRenduRunesFiltresLigne, testRenduRunesTriOnglets, testRenduRunesResumeSouris, testRenduRunesListeSouris, testRenduRunesVuesSouris } from './rendu/runes.test';
 import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompteArtefactsListe, testRenduCompteSouris, testRenduCompteEffacerFiltres } from './rendu/compte.test';
@@ -366,7 +377,9 @@ import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerIdentiteEn
   testRenduMemoireOptimizerSourceRta, testRenduMemoireOptimizerSourceSiege, testRenduMemoireOptimizerClicAjouter,
   testRenduMemoireOptimizerClicValiderFiche, testRenduMemoireOptimizerClicValiderInclut,
   testRenduTelephoneMemoireOptimizerClicAjouter, testRenduTelephoneMemoireOptimizerClicValiderFiche,
-  testRenduRattachementOptimizer, testRenduTelephoneRattachementOptimizer, testRenduRattachementOptimizerDemonte } from './rendu/optimizer-memoire.test';
+  testRenduRattachementOptimizer, testRenduTelephoneRattachementOptimizer, testRenduRattachementOptimizerDemonte,
+  testRenduFiltresResultatsMemoire, testRenduFiltresResultatsCarteContexte, testRenduFiltresResultatsCartes,
+  testRenduTelephoneFiltresResultatsCartes, testFiltresBranchementApp, testFiltresBranchementAppTelephone } from './rendu/optimizer-memoire.test';
 import { testRenduBestiaire, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
 import { testAlignementVersion } from './alignement-version.test';
 import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi, testRenduTelephoneRtaFiltre } from './rendu/telephone-accueil-rta.test';
@@ -460,6 +473,12 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduMemoireOptimizerGlobauxAvantRestauration', testRenduMemoireOptimizerGlobauxAvantRestauration],
   ['testRenduMemoireOptimizerSourceRta', testRenduMemoireOptimizerSourceRta],
   ['testRenduMemoireOptimizerSourceSiege', testRenduMemoireOptimizerSourceSiege],
+  ['testRenduFiltresResultatsMemoire', testRenduFiltresResultatsMemoire],
+  ['testRenduFiltresResultatsCarteContexte', testRenduFiltresResultatsCarteContexte],
+  ['testRenduFiltresResultatsCartes', testRenduFiltresResultatsCartes],
+  ['testRenduTelephoneFiltresResultatsCartes', testRenduTelephoneFiltresResultatsCartes],
+  ['testFiltresBranchementApp', testFiltresBranchementApp],
+  ['testFiltresBranchementAppTelephone', testFiltresBranchementAppTelephone],
   ['testRenduMemoireOptimizerClicAjouter', testRenduMemoireOptimizerClicAjouter],
   ['testRenduMemoireOptimizerClicValiderFiche', testRenduMemoireOptimizerClicValiderFiche],
   ['testRenduMemoireOptimizerClicValiderInclut', testRenduMemoireOptimizerClicValiderInclut],
@@ -491,6 +510,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduRecosEdition', testRenduRecosEdition],
   ['testRenduRecosVueDefense', testRenduRecosVueDefense],
   ['testRenduRecosTicks', testRenduRecosTicks],
+  ['testRenduRecosStatsEnTotal', testRenduRecosStatsEnTotal],
   ['testRenduRecosAnnulerEdition', testRenduRecosAnnulerEdition],
   ['testAnnulerEdition', testAnnulerEdition],
   ['testRenduRunesResume', testRenduRunesResume],
@@ -891,6 +911,24 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testClassementCessionSansAffamement', testClassementCessionSansAffamement],
   ['testClassementCessionCanal', testClassementCessionCanal],
   ['testRetraitAdaptationMigrations', testRetraitAdaptationMigrations],
+  ['testObjectifVitesseMigration', testObjectifVitesseMigration],
+  ['testColonnesTriAscendant', testColonnesTriAscendant],
+  ['testFiltresResultatsBornes', testFiltresResultatsBornes],
+  ['testFiltresResultatsReversibles', testFiltresResultatsReversibles],
+  ['testFiltresResultatsIndetermines', testFiltresResultatsIndetermines],
+  ['testFiltresResultatsComptesPages', testFiltresResultatsComptesPages],
+  ['testFiltresResultatsDifferentiel', testFiltresResultatsDifferentiel],
+  ['testFiltresResultatsPlafondAffiche', testFiltresResultatsPlafondAffiche],
+  ['testFiltresResultatsDoublonsTaches', testFiltresResultatsDoublonsTaches],
+  ['testFiltresResultatsMemoire', testFiltresResultatsMemoire],
+  ['testFiltresResultatsAvecBorne', testFiltresResultatsAvecBorne],
+  ['testFiltresResultatsValeurBornee', testFiltresResultatsValeurBornee],
+  ['testFiltresResultatsBonus', testFiltresResultatsBonus],
+  ['testFiltresResultatsDecimales', testFiltresResultatsDecimales],
+  ['testRenduOptimizerTableauSansRognage', testRenduOptimizerTableauSansRognage],
+  ['testRenduOptimizerTableauEtats', testRenduOptimizerTableauEtats],
+  ['testRenduOptimizerTableauAlignement', testRenduOptimizerTableauAlignement],
+  ['testRenduOptimizerTableauBonusSousLaBase', testRenduOptimizerTableauBonusSousLaBase],
   ['testTriSansNouvelleResolution', testTriSansNouvelleResolution],
   ['testToutVerifierPhotographie', testToutVerifierPhotographie],
   ['testPlacesEnAttenteToujoursTravaillees', testPlacesEnAttenteToujoursTravaillees],

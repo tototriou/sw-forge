@@ -637,7 +637,12 @@ classementCompact.ts), jamais un candidat ni un ordinal par build trouvé :
   et Dégâts réels qui l'ont classée — `scoreDuCandidat` avec les options du
   classement, calculé dans le classeur ;
 - le reste de la file (`enAttente`), l'incident du résolveur éventuel et le
-  bilan de la recherche, sans ses candidats.
+  bilan de la recherche, sans ses candidats ;
+- le filtre de la vue (`filtre`) : bornes actives, inactives (colonne
+  indisponible) et contradictoires, comptes globaux et de la vue filtrée
+  (visibles, masqués, potentiels, non vérifiés masqués, indéterminés), pages
+  sous filtre et vue vide signalée. Les comptes ci-dessus restent ceux de la
+  recherche, que les bornes ne changent pas.
 
 Le classeur compose cet instantané sur son index : comptes de l'arbre,
 extraction des confirmées de la page, places attendues. Une publication

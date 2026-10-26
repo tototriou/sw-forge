@@ -143,7 +143,9 @@ const recherche = (search: Record<string, unknown>, autres: Record<string, unkno
     requirement: { sets: r.comboSets, minStats: (autres.minStats ?? r.minStats) as BuildRequirement['minStats'] },
     vue: { tri: r.sortBy, metric: 'eff', page: Number(autres.resultsPage ?? 1) },
   }) } }));
-const selecteurTri = (html: string) => /<select\b[\s\S]*?Trier par /.test(html);
+// Le tri : la liste « Trier par » au téléphone, la bande des têtes au bureau.
+const selecteurTri = (html: string) => /<select\b[\s\S]*?Trier par /.test(html) || /role="group" aria-label="Trier les résultats"/.test(html);
+const trieParAtq = (html: string, texte: string) => texte.includes('Trier par ATQ') || /aria-label="ATQ[",]/.test(html);
 
 export function testRenduOptimizerResultatsEntete() {
   titre('rendu · Optimizer — ligne de progression, en-tête des résultats, tri et diagnostics');
@@ -175,7 +177,7 @@ export function testRenduOptimizerResultatsEntete() {
   ok(!!bouton(un, 'Combinaisons confirmées'), 'file active : l’infobulle « Combinaisons confirmées » à côté de l’en-tête');
   ok(!interrupteurs(un).some((x) => x.nom === 'Adapter les artéfacts et reliques au tri') && !tUn.includes('Adapter les artéfacts'),
     'réglage retiré : aucun « Adapter les artéfacts et reliques au tri », le tri ne résout aucun équipement');
-  ok(selecteurTri(un) && tUn.includes('Trier par ATQ'), '« Trier par » proposé');
+  ok(selecteurTri(un) && trieParAtq(un, tUn), 'le tri proposé, ATQ parmi les colonnes');
   ok(!tUn.includes('Astuce : active le diagnostic approfondi'), 'des résultats : aucun diagnostic de 0 résultat');
 
   const live = texteVisible(recherche({ status: 'running', result: null,
@@ -200,10 +202,10 @@ export function testRenduOptimizerLigneFile() {
       result={{ nombre: 3, explored: 10, truncated: false, nearMissByCondition: [], globalNearMiss: null }}
       compteConfirmes={{ confirmees: 1, nonVerifies: 2, pages: 1, aucune: false }}
       avecFile={avecFile}
-      sortBy="atk"
-      setSortBy={() => {}}
-      setResultsPage={() => {}}
-      realDamage={null}
+      tri={{ tri: 'atk', sens: 'desc' }}
+      trier={() => {}}
+      metric="eff"
+      disponible={(c) => c !== 'degats_reels'}
       enAttente={enAttente}
       compteAffiche={{ compte: 3, ecartes: 0, raison: null }}
     />,

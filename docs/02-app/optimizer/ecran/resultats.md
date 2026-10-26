@@ -69,6 +69,12 @@ sans relance automatique ni reconstruction d'un résultat depuis l'écran.
     ([tests/rune-optim.test.ts](tests/rune-optim.test.ts) : la fonction ne
     doit JAMAIS lire `effTotal`, vérifié avec un `effTotal` délibérément
     faux). Le tri « Trier par efficience » recalcule de même.
+    ⚠️ **Les runes et la mesure de la carte sont celles que le classeur a
+    jugées** : les runes du contexte de la recherche (`runesDuContexte`,
+    le pool photographié au lancement) et la mesure de la vue publiée. Une
+    borne d'Efficience compare ainsi le chiffre même de la carte ; avec
+    l'inventaire vivant, un inventaire changé sous des résultats encore
+    affichés aurait fait écrire à la carte un autre chiffre que celui jugé.
     ⚠️ **Au téléphone et au doigt, une carte tient dans 360 px** (`scale=0,45` sur la
     roue et les artéfacts, grille `repeat(auto-fill, minmax(min(360px,100%),
     1fr))`, creux `gap-3`) : c'est la largeur d'une carte par rangée ;
@@ -293,13 +299,38 @@ efface cette page, comme toute nouvelle recherche, et lance la suivante.
 
 ## Tri des résultats
 
-Un sélecteur **« Trier par »** re-trie **côté
+Le tri se choisit **par les têtes de colonne** au bureau (bande de onze
+têtes au-dessus des cartes, en-têtes du tableau ; § Cartes ou tableau), et
+par un sélecteur **« Trier par »** suivi du bouton de sens au téléphone. Il
+re-trie **côté
 client, dans le Worker de classement**, sans relancer la recherche : le moteur a déjà
-calculé les stats complètes de chaque combinaison retenue. Deux groupes
-d'options — les 8 stats brutes, et les mêmes objectifs que l'objectif de
-recherche (voir objectif-de-recherche.md § Les quatre objectifs disponibles ;
-« Dégâts réels » n'y figure que si un sort est réellement calculable
-pour ce monstre).
+calculé les stats complètes de chaque combinaison retenue. Le tri porte
+sur une des **onze colonnes des résultats** (`COLONNES_RESULTATS`,
+colonnesResultats.ts), en deux groupes d'options — les 8 stats brutes, et
+les objectifs Efficience, Dégâts réels et PV effectifs (voir
+objectif-de-recherche.md § Les quatre objectifs disponibles ; « Dégâts
+réels » n'y figure que si un sort est réellement calculable pour ce
+monstre).
+⚠️ **L'objectif Vitesse n'est pas un tri** : sa note est la VIT de la
+fiche, celle de la colonne VIT, candidat par candidat (l'effet unique d'une
+relique ne porte que sur PV, ATQ et DEF). Une recherche lancée sur Vitesse
+se trie donc par VIT, et un tri `vitesse` enregistré (mémoire de membre,
+session) se relit VIT ; une seule fonction fait cette lecture
+(`triDesResultats`), appelée par l'écran au lancement, le CLI, le harnais,
+le lecteur de mémoires et celui de session. L'objectif de recherche
+Vitesse, lui, reste.
+**Le tri a un sens**, décroissant par défaut, croissant sur demande : la
+vue envoyée au classeur le porte (`sens`). En croissant, seule la note
+s'inverse ; à note égale, les builds gardent l'ordre du décroissant
+(relique, clé, ordre de base). Changer de sens est un changement de tri :
+la page revient à 1 sans demander de page, rien n'est résolu et le cache
+reste. Un clic sur une tête trie sa colonne en décroissant, un second clic
+sur la même passe en croissant, et retour ; une autre tête repart en
+décroissant (au téléphone : une autre colonne de « Trier par » repart en
+décroissant, `BoutonSensTri` bascule le sens). La valeur triée est mise en
+avant sur chaque carte : la ligne de la fiche de stats pour les huit stats
+(`StatPanel`, `ligneMiseEnAvant`), la valeur moyenne en accent pour
+Efficience ; PV effectifs et Dégâts ont leur rangée.
 
 ⚠️ **Le tri ne résout aucun équipement.** Les artéfacts et la relique de
 chaque build sont ceux qui servent l'**objectif de la recherche** : changer
@@ -315,13 +346,199 @@ changement de vue deviendrait une nouvelle vérification. Une mémoire de
 membre ou une session qui porte encore ce réglage est relue sans lui, sans
 avertissement.
 
+## Filtres d'affichage par colonne
+
+Les résultats se filtrent **après coup**, colonne par colonne : une borne
+minimum et une borne maximum sur chacune des onze colonnes (PV, ATQ, DEF,
+VIT, Taux Crit, Dmg Crit, RES, Précision, Efficience, Dégâts réels, PV
+effectifs). Ce sont des filtres d'affichage, séparés des conditions de
+recherche : ils ne deviennent jamais une condition, ne relancent rien et ne
+résolvent aucun équipement. La vue envoyée au classeur les porte
+(`VueClassement.bornes`, filtresResultats.ts) ; le classeur filtre **avant
+de paginer**. Les bornes et le sens du tri sont des critères personnels de
+l'écran (`bornesResultats`, `sensTri`, useOptimizerState.ts), comme le
+tri : **mémorisés par membre** (rétablis au retour sur lui), effacés au
+changement de monstre, conservés par une nouvelle recherche, qui remet
+seulement le sens en décroissant avec le tri de son objectif ; dans la
+session, jamais dans la recette ni le CLI (réglages d'affichage, comme le
+tri ; ../feat-listes-equipes-et-sauvegarde.md § Mémoires des membres).
+
+- **Règle.** Bornes inclusives, combinées par ET ; une borne vide
+  (`null`) = sans borne. Un minimum plus grand que le maximum sur une même
+  colonne donne une **vue vide signalée** (`bornes-contradictoires`), sans
+  correction silencieuse. Une borne sur une colonne indisponible — « Dégâts
+  réels » sans sort calculable — est **inactive** : elle reste dans la vue,
+  listée à part, et ne masque rien.
+- **La valeur comparée est celle de la carte, arrondie comme la carte
+  l'écrit**, par la même fonction (valeursAffichees.ts) : une carte qui
+  affiche « 78.8% » passe une borne ≥ 78.8. Les huit stats : le total de la
+  fiche avec la vraie paire et la relique retenue (`row.total`, un entier,
+  que la carte écrit tel quel ; sans les points de combat, comme les
+  conditions). Efficience : la moyenne par rune de la carte, une décimale en
+  Efficience ou un entier en Score SW, suivant la mesure de la vue. Dégâts
+  réels et PV effectifs : le chiffre de la carte (`scoreDuCandidat` du
+  classement), arrondi à l'entier. ⚠️ Quand « afficher au-delà du plafond »
+  est coupé, le panneau de stats écrit Taux Crit, RES et Précision au plus
+  à 100 (`displayedTotal`, valeursAffichees.ts) : la borne compare cette
+  valeur, par la même fonction, la vue portant le réglage
+  (`afficherDepassement`, absent = affiché, le défaut de l'application) ;
+  une carte qui écrit « 100 % » passe une borne ≤ 100. Le réglage affiché,
+  la borne compare le total. Les conditions de recherche, elles, jugent
+  toujours le total brut. Changer ce réglage ne reclasse la vue que sous une
+  borne de l'une de ces trois colonnes.
+- **Un build non vérifié n'est jamais jugé sur ses stats provisoires** :
+  sa paire et sa relique peuvent encore changer PV, ATQ, DEF et les deux
+  objectifs. Il reste « potentiel » (il garde sa place dans la pagination et
+  peut être vérifié), sauf échec démontré sur une colonne que la résolution
+  ne change pas : VIT, Taux Crit, Dmg Crit, RES, Précision et Efficience
+  (`COLONNES_IMMUABLES` : une principale d'artéfact ou de relique ne porte
+  que PV, ATQ ou DEF). Sans optimisation d'artéfacts, pas de file : les
+  valeurs de chaque build reçu sont définitives et jugées toutes.
+- **Une valeur `NaN` sous une borne active** rend le build **indéterminé**
+  — ni affiché, ni masqué, compté à part ; sans borne sur cette colonne, il
+  s'affiche comme avant. Les infinis se comparent normalement.
+- **Comptes** (instantané, `filtre.comptes`) : trouvés par le moteur, reçus,
+  écartés à la résolution, confirmés et non vérifiés (globaux, que les
+  filtres ne changent pas ; sans file, tout reçu compte comme confirmé),
+  puis, pour la vue, confirmés visibles, confirmés masqués, potentiels non
+  vérifiés, non vérifiés masqués (échec démontré) et indéterminés. Les
+  pages suivent la règle des confirmées (§ Compte des combinaisons
+  confirmées et pagination) sur la vue filtrée : confirmées visibles et
+  potentiels (`filtre.pages`). Une **absence définitive sous filtre**
+  (`aucune-sous-filtre`) n'est dite que recherche finie, sans potentiel ni
+  indéterminé, avec au moins un build masqué : ce n'est pas « Aucune
+  combinaison… », qui reste le constat sur la recherche entière.
+- **Un filtre ne perd rien.** Poser, changer ou relâcher une borne ne
+  renote pas, ne vide pas le cache et ne retire aucun équipement : relâcher
+  rend exactement les mêmes builds, dans le même ordre, avec le même
+  équipement ; une borne plus large que la recherche n'ajoute rien. Comme un
+  changement de tri, il ne donne pas la priorité à la page affichée : seule
+  une page demandée en naviguant la reprend, et le fond continue dans
+  l'ordre de l'objectif lancé.
+
+### À l'écran : « Filtrer l'affichage »
+
+Une grille calquée sur « Conditions » (libellé, Min, Max, `NumberField`,
+`FiltresResultats.tsx`), sous la phrase fixe « Masque des builds déjà
+trouvés ; ne relance pas la recherche. » : la grille ressemble trait pour
+trait aux conditions de recherche, elle vit donc dans l'en-tête des
+résultats, jamais dans « Critères de recherche ». **Un seul JSX, deux
+contenants** : un `Flottant` ancré au bouton « Filtrer l'affichage (n) »
+au bureau (fermé au clic dehors et à Échap), un `MobileSheet` au
+téléphone. `n` compte les colonnes bornées. « Effacer les filtres » vide
+toutes les bornes (dans l'en-tête au bureau, au pied de la grille aux deux
+formats). Les libellés et unités viennent de `filtresAffichage.ts` ;
+« Efficience » devient « Score SW » avec le réglage.
+
+- **Ligne de comptes, toujours présente** sous l'en-tête dès qu'il y a des
+  résultats : « Aucun filtre » sans borne, sinon « Filtres : 12 visibles ·
+  30 masquées · 8 à vérifier · 2 indéterminées » (comptes de la vue
+  publiés par le classeur ; les deux derniers seulement s'ils ne sont pas
+  nuls), suivie au bureau du **résumé des bornes** (« VIT ≥ 220 · 30% ≤
+  Taux Crit ≤ 100% », tronqué sur une ligne, entier au survol), sur sa
+  propre ligne au téléphone. Toujours là : poser une borne n'ajoute aucune
+  ligne au-dessus des cartes.
+- **Minimum > maximum** : les deux champs de la colonne en `ton="bad"`, et à
+  la place des cartes (ou des lignes du tableau) « Vue vide : le minimum de
+  VIT (220) dépasse son maximum (200). » Rien n'est corrigé.
+- **Plus rien sous les filtres** (`aucune-sous-filtre`) : « Aucune
+  combinaison confirmée ne passe ces filtres. », distinct de « Aucune
+  combinaison… », qui reste le constat sur la recherche entière.
+- **Dégâts réels sans sort calculable** : tête grisée (« Aucun sort
+  calculable pour ce monstre » au survol), champs désactivés qui gardent
+  leur valeur, borne dite « (inactive) » dans le résumé, colonne grisée
+  sans valeur dans le tableau.
+- **Pages** : sous une borne active, le nombre de pages est celui de la vue
+  filtrée (`filtre.pages`) ; sans borne, celui de la recherche.
+- **Décimales** : une borne d'Efficience admet une décimale (« 78.8 »,
+  point ou virgule), comme la carte l'écrit (`NumberField decimales`,
+  `decimalesColonne`) ; Score SW et les autres colonnes, des entiers.
+- **Page interrompue** : têtes, choix de forme, « Filtrer » et « Effacer »
+  désactivés, comme « Comparer » et « Valider ».
+
+### Cartes ou tableau
+
+Au bureau, un `Segmented` « Cartes / Tableau » au-dessus des résultats
+(décision de l'utilisateur, les deux formes au choix), mémorisé comme un
+réglage : `useFormeResultats`, clé `swblacksmith-optimizer-resultats-forme-v1`,
+écrite même sans l'accord de conservation (persistance.md, « Un seul
+interrupteur »), dans la session. **Le téléphone garde les cartes**, sans
+ce choix.
+
+⚠️ **Choisir la forme ne déplace rien** (un clic ne déplace jamais ce qu'on
+vient de cliquer) : à droite de « Cartes / Tableau », une place partagée, de
+la largeur du plus large de ses deux occupants, porte « Filtrer
+l'affichage » (cartes, et tableau sous le seuil) ou « Stats totales / Stats
+bonus » (tableau affiché) ; les deux y sont toujours, superposés, l'absent
+invisible (`VISIBLE_AVEC_LE_TABLEAU`, `INVISIBLE_AVEC_LE_TABLEAU`,
+TableauResultats.tsx). Vérifié au navigateur dans les deux sens, tableau
+affiché (`testRenduFiltresResultatsCartes`).
+
+- **Cartes** : au bureau, la bande des onze têtes de tri (`TetesDeTri.tsx`)
+  au-dessus de la grille. Chaque tête réserve la place de son icône de sens
+  (`ArrowUpDown` estompée tant qu'elle ne trie pas) et du point « borne
+  posée » : rien ne change de largeur au clic. Icône de sens de 16 px :
+  flèche nette sur la colonne triée, ⇅ estompé ailleurs. Des `Bouton`, pas des
+  `Pastille` : elles trient, elles ne filtrent pas. L'état à trois valeurs
+  passe par `actif` et le nom accessible (« VIT, tri décroissant, borne
+  posée ») : `aria-sort` n'est valide que sur un en-tête de colonne.
+- **Tableau** (`TableauResultats.tsx`) : une ligne par build, rang puis les
+  onze colonnes ; en-têtes triables : le même `Bouton` sm que la bande, sur
+  toute la largeur de sa colonne, le libellé (sur deux lignes si besoin) au-
+  dessus de l'icône de sens (`aria-sort` sur le `<th>`) ; la colonne triée a
+  son bouton en accent plein et ses cellules teintées sur toute sa hauteur
+  (`bg-accent-soft`). Deux lignes de bornes Min / Max dessous (`NumberField
+  sansBoutons`, toute la largeur de la colonne). ⚠️ **Une colonne, un seul
+  bord** : bouton, deux champs et valeurs prennent toute la largeur de leur
+  cellule, au même rembourrage, et se centrent (bords vérifiés au navigateur,
+  au seuil et à pleine largeur : `testRenduOptimizerTableauAlignement`). Un clic sur une ligne, ou sur
+  son rang au clavier, ouvre la carte telle quelle dans une `Modale`
+  (« Build n° 3 », croix) : « Comparer » et « Valider » y sont. Les places
+  « Vérification… » sont des lignes. La vue demande alors les onze valeurs
+  de chaque build (`colonnesCompletes`).
+- ⚠️ **Largeurs selon le contenu** : la mise en page automatique du
+  `<table>` ; un en-tête de deux mots passe sur deux lignes ; chaque borne a
+  la largeur de la plus grande valeur de sa colonne (`CHIFFRES_MAX_COLONNE`,
+  en `ch` de la police du champ : PV à 5 chiffres, PV effectifs et dégâts à
+  6, Efficience à « 118.6 »). **Largeur minimale mesurée : 661 px** dans
+  l'app construite, polices chargées, chaque valeur remplacée par la plus
+  large de sa colonne et les bornes « 150000 » posées ; c'est le seuil
+  (`SEUIL_TABLEAU_PX`), lu par une requête de conteneur sur la zone des
+  résultats (`@container/resultats`) : en dessous, les cartes, avec la ligne
+  « Trop étroit pour le tableau : cartes affichées ». Zones relevées : 716 px à 1920 avec une
+  colonne insérée, 1 052 colonnes fermées, 1 356 à 2560 en pleine page
+  (tableau) ; 516 à 2560 scindé et 358 au téléphone (cartes). Vérifié sans rognage au seuil
+  (tests/rendu/optimizer-tableau-navigateur.test.ts).
+- **« Stats totales / Stats bonus »** (deux choix exclusifs dans l'en-tête,
+  un `Segmented` de la forme de « Cartes / Tableau », à sa droite, à la place
+  de « Filtrer l'affichage » ; forme
+  tableau seulement, visible avec le tableau) : un réglage d'**affichage**,
+  distinct de « Stats de base exclues » des conditions, qui reste un réglage
+  de recherche. Il part de la valeur de celui-ci **photographiée au
+  lancement** (exclues : « Stats bonus »), puis ne change que par
+  l'utilisateur. En Stats bonus, PV, ATQ, DEF et VIT montrent total − base du
+  monstre (la base du contexte de la recherche) ; Taux Crit, Dmg Crit, RES et
+  Précision restent en total, PV effectifs, Dégâts réels et Efficience ne
+  changent pas. **Les bornes se convertissent** : le classeur les garde en
+  total, le tableau les écrit et les saisit dans le mode courant
+  (`versAffichage`, `depuisAffichage`, filtresAffichage.ts) ; à 900 d'ATQ de
+  base, un minimum de 3500 s'écrit 2600 en Stats bonus, et basculer ne masque ni ne
+  révèle aucun build. Une borne en total sous la base s'écrit négative en
+  Stats bonus : le plancher du champ est un total de 0 (−base), rien ne la
+  réécrit à la sortie du champ. Le tri ne change pas. Les cartes gardent leur bascule
+  propre (clic sur la fiche).
+
 ## Valeur d'objectif affichée sur les cartes
 
 ⚠️ **Objectif « Dégâts réels »** : chaque carte affiche en tête le
 **nombre de dégâts** qui a servi à la classer, et la part des PV de la
 cible qu'il emporte (« tue la cible » à partir de 100 %). Visible dès que
 ce critère ordonne la liste — que ce soit l'objectif de la recherche ou
-un tri choisi après coup.
+un tri choisi après coup —, et dès qu'une borne active le juge (§ Filtres
+d'affichage par colonne) : une carte gardée par « Dégâts réels ≥ 50 000 »
+écrit la valeur bornée. Une seule règle pour le classeur, qui calcule, et
+l'écran, qui montre (`objectifsMontres`, filtresResultats.ts) ; le tableau
+demande les onze valeurs de chaque carte (`colonnesCompletes` de la vue).
 ⚠️ **Objectif « PV effectifs »** : même traitement, et pour la même
 raison — chaque carte affiche la valeur de PV effectifs qui l'a classée :
 sans elle, on trierait par PV effectifs sans jamais voir la valeur

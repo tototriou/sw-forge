@@ -31,7 +31,9 @@ Ce document décrit la carte « Objectif de recherche » et ses quatre objectifs
   à sa comparaison, sans ajouter les autres bonus de début de combat —
   celles des autres monstres comme celles que forment les runes de chaque
   build, dans un seul arrondi.
-- **Vitesse** — VIT seule.
+- **Vitesse** — VIT seule. Ses résultats se trient par la colonne VIT
+  (même note, même ordre) : l'objectif reste un choix de recherche, il
+  n'est plus un tri des résultats ([resultats.md § Tri des résultats](resultats.md#tri-des-résultats)).
 - **Dégâts réels** — la **vraie formule d'un sort précis** contre un
   adversaire configuré, pas une espérance générique. Modèle de calcul
   détaillé : [degats-reels/](../../degats-reels/). Choisir cet objectif
@@ -312,7 +314,8 @@ calculé sur un autre modèle que celui affiché serait invisible.
 ⚠️ **Aucun sort calculable** (monstre perso, fiche absente, formules
 hors modèle) : le sélecteur de **tri** des résultats ne propose pas
 « Dégâts réels » (`OBJECTIVE_LABELS` filtré sur `realDamage`, résolu) ;
-il y reste Efficience/PV effectifs/Vitesse. Le bouton à choix unique de
+il y reste Efficience et PV effectifs (Vitesse n'y figure jamais : elle se
+trie par VIT, dans le groupe des stats). Le bouton à choix unique de
 l'objectif, lui, reçoit `OBJECTIVE_LABELS` sans filtre et propose donc
 toujours « Dégâts réels »
 ([ObjectifEtActions.tsx](src/components/outils/optimizer/ObjectifEtActions.tsx)).

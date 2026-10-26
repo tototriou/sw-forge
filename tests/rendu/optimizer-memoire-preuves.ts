@@ -111,7 +111,7 @@ export async function preparerClicInclusion(genre: string, b: BancMemoire): Prom
   await b.geste(() => {
     b.etat().setComboSets(['energy', 'energy', 'energy']);
     b.etat().setMinStats({ spd: 25 }); b.etat().setMaxStats({ res: 80 });
-    b.etat().setObjective('vitesse'); b.etat().setSortBy('vitesse');
+    b.etat().setObjective('vitesse'); b.etat().setSortBy('spd');
     b.etat().setOptimiserArtefacts(false); b.etat().setCritereArtefacts('brut');
     b.etat().setCompterAurasResPre(false);
   });

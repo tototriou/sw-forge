@@ -160,7 +160,7 @@ import EnteteResultats from './optimizer/EnteteResultats';
 import DiagnosticsSansResultat from './optimizer/DiagnosticsSansResultat';
 import GrilleResultats from './optimizer/GrilleResultats';
 import BandeDeTri, { type TriResultats } from './optimizer/TetesDeTri';
-import TableauResultats, { CARTES_SOUS_LE_SEUIL, SEUIL_TABLEAU_PX, TABLEAU_VISIBLE } from './optimizer/TableauResultats';
+import TableauResultats, { CARTES_SOUS_LE_SEUIL, TABLEAU_VISIBLE } from './optimizer/TableauResultats';
 import BuildCandidateCard from './BuildCandidateCard';
 import { setFormeResultats, useFormeResultats, type FormeResultats } from '../../hooks/useFormeResultats';
 import { libelleColonne } from '../../lib/filtresAffichage';
@@ -1821,6 +1821,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     const triDeDepart = triDesResultats(objective);
     optimizer.poserTriRecherche(triDeDepart);
     setResultsPage(1);
+    setBonusTableau(excludeBase);
     const params: SearchParams = {
       base: selected.gear.base,
       artifacts: searchArtifacts,
@@ -1931,6 +1932,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const [pageDraft, setPageDraft] = useState<string | null>(null);
   // Le build ouvert en détail depuis le tableau des résultats (ses runes).
   const [detailTableau, setDetailTableau] = useState<string | null>(null);
+  // « Total / Bonus » du tableau des résultats : un réglage d'AFFICHAGE,
+  // distinct de « Stats de base exclues » (réglage de recherche). Il part de
+  // celui-ci, photographié au lancement (`handleSearch`), puis ne change que
+  // par l'utilisateur.
+  const [bonusTableau, setBonusTableau] = useState(excludeBase);
   const [importMsg, setImportMsg] = useState<MessageImport | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -3070,7 +3076,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             compteAffiche={compteAffiche}
             bureau={!sousLg}
             filtres={{ bornes: bornesResultats, poserBorne, effacer: effacerFiltres, filtre: instantane?.filtre ?? null }}
-            {...(sousLg ? {} : { forme: formeResultats, setForme: setFormeResultats })}
+            {...(sousLg ? {} : { forme: formeResultats, setForme: setFormeResultats, bonus: bonusTableau, setBonus: setBonusTableau })}
           />
   
           <DiagnosticsSansResultat
@@ -3111,7 +3117,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                   on le dit, plutôt que de laisser « Tableau » sans effet visible. */}
               {formeResultats === 'tableau' && (
                 <p className="mb-2 text-xs text-ink-dim" data-tableau-trop-etroit="">
-                  Le tableau demande {SEUIL_TABLEAU_PX} px de large : cartes affichées.
+                  Trop étroit pour le tableau : cartes affichées
                 </p>
               )}
               {!sousLg && (
@@ -3149,6 +3155,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 ouvrirDetail={(i) => { if (!interrompu) setDetailTableau(composition.cartes[i].runeIds.join('-')); }}
                 vide={vueVide}
                 inactif={interrompu}
+                enBonus={bonusTableau}
+                base={contexteResultatAffiche?.recherche.base ?? selected?.gear.base ?? {}}
               />
             </div>
           )}

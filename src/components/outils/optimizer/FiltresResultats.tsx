@@ -4,7 +4,7 @@ import { Bouton, NumberField } from '../../../ui';
 import { COLONNES_RESULTATS, type ColonneResultat } from '../../../lib/colonnesResultats';
 import type { BornesResultats } from '../../../lib/filtresResultats';
 import type { OptimMetric } from '../../../lib/runeOptim';
-import { colonneContradictoire, libelleColonne, suffixeColonne } from '../../../lib/filtresAffichage';
+import { colonneContradictoire, decimalesColonne, libelleColonne, suffixeColonne } from '../../../lib/filtresAffichage';
 
 // « Filtrer l'affichage » : une borne minimum et une borne maximum par colonne
 // des résultats, la grille de `Conditions` (libellé, Min, Max, `NumberField`).
@@ -66,6 +66,8 @@ export default function FiltresResultats({ bornes, poserBorne, effacer, metric, 
                   allowEmpty
                   // Aucune colonne n'est négative : « − » s'arrête à 0.
                   min={0}
+                  // Une décimale pour l'Efficience, comme la carte l'écrit.
+                  decimales={decimalesColonne(c, metric)}
                   disabled={!libre}
                   ton={ton}
                   placeholder="—"

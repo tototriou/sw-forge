@@ -103,6 +103,7 @@ import { testFiltresResultatsBornes, testFiltresResultatsReversibles, testFiltre
 import { testFiltresResultatsDoublonsTaches } from './filtres-resultats-doublons.test';
 import { testFiltresResultatsMemoire } from './filtres-memoire.test';
 import { testFiltresResultatsValeurBornee } from './filtres-carte.test';
+import { testFiltresResultatsBonus, testFiltresResultatsDecimales } from './filtres-bonus.test';
 import { testRenduOptimizerTableauSansRognage, testRenduOptimizerTableauEtats } from './rendu/optimizer-tableau-navigateur.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
@@ -918,6 +919,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testFiltresResultatsDoublonsTaches', testFiltresResultatsDoublonsTaches],
   ['testFiltresResultatsMemoire', testFiltresResultatsMemoire],
   ['testFiltresResultatsValeurBornee', testFiltresResultatsValeurBornee],
+  ['testFiltresResultatsBonus', testFiltresResultatsBonus],
+  ['testFiltresResultatsDecimales', testFiltresResultatsDecimales],
   ['testRenduOptimizerTableauSansRognage', testRenduOptimizerTableauSansRognage],
   ['testRenduOptimizerTableauEtats', testRenduOptimizerTableauEtats],
   ['testTriSansNouvelleResolution', testTriSansNouvelleResolution],

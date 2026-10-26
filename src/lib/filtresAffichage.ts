@@ -10,6 +10,8 @@ import { COLONNES_RESULTATS, type ColonneResultat } from './colonnesResultats';
 import type { BornesResultats } from './filtresResultats';
 import type { OptimMetric } from './runeOptim';
 import { chiffresMesureRune } from './valeursAffichees';
+import { STATS_AVEC_BASE } from './stats';
+import type { StatKey } from './effects';
 import type { ComptesDeLaVue } from './classementCompact';
 
 /** Le libellé du code : stats de `RECO_STATS`, objectifs d'`OBJECTIVE_LABELS` ; la mesure suit le réglage Efficience / Score SW. */
@@ -34,8 +36,36 @@ export function suffixeColonne(colonne: ColonneResultat, metric: OptimMetric): s
  * pour les pourcentages, la vitesse et la mesure.
  */
 export const CHIFFRES_MAX_COLONNE: Readonly<Record<ColonneResultat, number>> = {
-  hp: 5, atk: 4, def: 4, spd: 3, cr: 3, cd: 3, res: 3, acc: 3, efficience: 3, degats_reels: 6, ehp: 6,
+  // Efficience : trois chiffres, le point et une décimale (« 118.6 »).
+  hp: 5, atk: 4, def: 4, spd: 3, cr: 3, cd: 3, res: 3, acc: 3, efficience: 5, degats_reels: 6, ehp: 6,
 };
+
+/** Les décimales qu'une borne admet : celles que la carte écrit (une pour l'Efficience, aucune ailleurs). */
+export function decimalesColonne(colonne: ColonneResultat, metric: OptimMetric): number {
+  return colonne === 'efficience' && metric === 'eff' ? 1 : 0;
+}
+
+// ── Total ou bonus (tableau des résultats) ────────────────────────────────
+// Un réglage d'AFFICHAGE du tableau : en bonus, PV, ATQ, DEF et VIT montrent
+// total − base du monstre ; les autres colonnes ne changent pas (Taux Crit,
+// Dmg Crit, RES, Précision toujours en total, `STATS_AVEC_BASE`). Les bornes
+// restent en total dans le classeur : seules leur écriture et leur saisie
+// suivent le mode, par ces deux fonctions, l'une l'inverse exacte de l'autre.
+
+/** La part de la base retirée d'une colonne en bonus (0 en total, ou pour une colonne sans base). */
+export function decalageBonus(colonne: ColonneResultat, base: Partial<Record<StatKey, number>>, enBonus: boolean): number {
+  return enBonus && STATS_AVEC_BASE.has(colonne as StatKey) ? base[colonne as StatKey] ?? 0 : 0;
+}
+
+/** Une valeur ou une borne en total, écrite dans le mode affiché. */
+export function versAffichage(colonne: ColonneResultat, total: number, base: Partial<Record<StatKey, number>>, enBonus: boolean): number {
+  return total - decalageBonus(colonne, base, enBonus);
+}
+
+/** Une saisie dans le mode affiché, ramenée au total que garde le classeur. */
+export function depuisAffichage(colonne: ColonneResultat, affiche: number, base: Partial<Record<StatKey, number>>, enBonus: boolean): number {
+  return affiche + decalageBonus(colonne, base, enBonus);
+}
 
 /** Une valeur de colonne écrite comme la carte : séparateur de milliers, une décimale pour l'efficience. */
 export function texteValeurColonne(colonne: ColonneResultat, valeur: number | null, metric: OptimMetric): string {

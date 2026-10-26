@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Filter } from 'lucide-react';
 import HelpPopover from '../../HelpPopover';
 import BoutonSensTri from '../../BoutonSensTri';
-import { Bouton, Flottant, MobileSheet, Segmented, Selecteur } from '../../../ui';
+import { Bouton, Flottant, Interrupteur, MobileSheet, Segmented, Selecteur } from '../../../ui';
 import { COLONNES_RESULTATS, type ColonneResultat } from '../../../lib/colonnesResultats';
 import type { BornesResultats } from '../../../lib/filtresResultats';
 import type { FiltrePublie } from '../../../lib/classementCompact';
@@ -13,7 +13,7 @@ import { type BilanRecherche } from '../../../hooks/useBuildOptimSearch';
 import type { FormeResultats } from '../../../hooks/useFormeResultats';
 import FiltresResultats, { BoutonEffacerFiltres } from './FiltresResultats';
 import type { TriResultats } from './TetesDeTri';
-import { CARTES_SOUS_LE_SEUIL } from './TableauResultats';
+import { AVEC_LE_TABLEAU, CARTES_SOUS_LE_SEUIL } from './TableauResultats';
 
 /** Les filtres d'affichage tels que l'en-tête les pose et les dit. */
 export interface FiltresEntete {
@@ -46,10 +46,14 @@ export interface EnteteResultatsProps {
   // Cartes ou tableau, au bureau seulement (le téléphone garde les cartes).
   forme?: FormeResultats;
   setForme?: (forme: FormeResultats) => void;
+  // « Bonus » du tableau (bureau, forme tableau) : PV, ATQ, DEF et VIT sans
+  // la base du monstre. Un réglage d'affichage, pas « Stats de base exclues ».
+  bonus?: boolean;
+  setBonus?: (bonus: boolean) => void;
 }
 
 export default function EnteteResultats({ result, compteConfirmes, avecFile, tri, trier, metric, disponible, enAttente, interrompu = false,
-  compteAffiche, bureau = false, filtres, forme = 'cartes', setForme }: EnteteResultatsProps) {
+  compteAffiche, bureau = false, filtres, forme = 'cartes', setForme, bonus = false, setBonus }: EnteteResultatsProps) {
   // ⚠️ Le compte des CONFIRMÉES (`compteConfirmes`) : seulement les builds
   // vérifiés (résolus et conformes), un compte qui ne baisse jamais pendant
   // une recherche — les filtres d'affichage ne le changent pas, ils répartissent
@@ -204,6 +208,13 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, tri
             </div>
             {reglable && (
               <div className="ml-auto flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+                {/* Avec le tableau seulement (forme tableau, assez de place). */}
+                {setBonus && forme === 'tableau' && (
+                  <div className={`${AVEC_LE_TABLEAU} items-center`}>
+                    <Interrupteur actif={bonus} onChange={setBonus} libelle="Bonus" disabled={interrompu}
+                      title="Bonus : PV, ATQ, DEF et VIT sans la base du monstre ; Total : les valeurs complètes. Affichage seulement." />
+                  </div>
+                )}
                 {setForme && (
                   <Segmented<FormeResultats>
                     options={[{ key: 'cartes', label: 'Cartes' }, { key: 'tableau', label: 'Tableau' }]}

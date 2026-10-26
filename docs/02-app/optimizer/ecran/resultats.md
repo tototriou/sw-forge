@@ -450,8 +450,9 @@ formats). Les libellés et unités viennent de `filtresAffichage.ts` ;
   sans valeur dans le tableau.
 - **Pages** : sous une borne active, le nombre de pages est celui de la vue
   filtrée (`filtre.pages`) ; sans borne, celui de la recherche.
-- Un champ de borne n'accepte que des entiers (`NumberField`) : une borne
-  d'Efficience se pose à l'unité.
+- **Décimales** : une borne d'Efficience admet une décimale (« 78.8 »,
+  point ou virgule), comme la carte l'écrit (`NumberField decimales`,
+  `decimalesColonne`) ; Score SW et les autres colonnes, des entiers.
 - **Page interrompue** : têtes, choix de forme, « Filtrer » et « Effacer »
   désactivés, comme « Comparer » et « Valider ».
 
@@ -467,14 +468,20 @@ ce choix.
 - **Cartes** : au bureau, la bande des onze têtes de tri (`TetesDeTri.tsx`)
   au-dessus de la grille. Chaque tête réserve la place de son icône de sens
   (`ArrowUpDown` estompée tant qu'elle ne trie pas) et du point « borne
-  posée » : rien ne change de largeur au clic. Des `Bouton`, pas des
+  posée » : rien ne change de largeur au clic. Icône de sens de 16 px :
+  flèche nette sur la colonne triée, ⇅ estompé ailleurs. Des `Bouton`, pas des
   `Pastille` : elles trient, elles ne filtrent pas. L'état à trois valeurs
   passe par `actif` et le nom accessible (« VIT, tri décroissant, borne
   posée ») : `aria-sort` n'est valide que sur un en-tête de colonne.
 - **Tableau** (`TableauResultats.tsx`) : une ligne par build, rang puis les
-  onze colonnes ; en-têtes triables (`ZoneCliquable`, `aria-sort` sur le
-  `<th>`), deux lignes de bornes Min / Max dessous (`NumberField
-  sansBoutons`), la colonne triée en accent. Un clic sur une ligne, ou sur
+  onze colonnes ; en-têtes triables : le même `Bouton` sm que la bande, sur
+  toute la largeur de sa colonne, le libellé (sur deux lignes si besoin) au-
+  dessus de l'icône de sens (`aria-sort` sur le `<th>`) ; la colonne triée a
+  son bouton en accent plein et ses cellules teintées sur toute sa hauteur
+  (`bg-accent-soft`). Deux lignes de bornes Min / Max dessous (`NumberField
+  sansBoutons`, toute la largeur de la colonne). ⚠️ **Une colonne, un seul
+  bord** : bouton, deux champs et valeurs prennent toute la largeur de leur
+  cellule, au même rembourrage, et se centrent. Un clic sur une ligne, ou sur
   son rang au clavier, ouvre la carte telle quelle dans une `Modale`
   (« Build n° 3 », croix) : « Comparer » et « Valider » y sont. Les places
   « Vérification… » sont des lignes. La vue demande alors les onze valeurs
@@ -483,15 +490,28 @@ ce choix.
   `<table>` ; un en-tête de deux mots passe sur deux lignes ; chaque borne a
   la largeur de la plus grande valeur de sa colonne (`CHIFFRES_MAX_COLONNE`,
   en `ch` de la police du champ : PV à 5 chiffres, PV effectifs et dégâts à
-  6). **Largeur minimale mesurée : 637 px** dans l'app construite, polices
-  chargées, chaque valeur remplacée par la plus large de sa colonne et les
-  bornes « 150000 » posées ; c'est le seuil (`SEUIL_TABLEAU_PX`), lu par
-  une requête de conteneur sur la zone des résultats (`@container/resultats`) :
-  en dessous, les cartes, avec la ligne « Le tableau demande 637 px de
-  large : cartes affichées. » Zones relevées : 716 px à 1920 avec une
+  6, Efficience à « 118.6 »). **Largeur minimale mesurée : 661 px** dans
+  l'app construite, polices chargées, chaque valeur remplacée par la plus
+  large de sa colonne et les bornes « 150000 » posées ; c'est le seuil
+  (`SEUIL_TABLEAU_PX`), lu par une requête de conteneur sur la zone des
+  résultats (`@container/resultats`) : en dessous, les cartes, avec la ligne
+  « Trop étroit pour le tableau : cartes affichées ». Zones relevées : 716 px à 1920 avec une
   colonne insérée, 1 052 colonnes fermées, 1 356 à 2560 en pleine page
   (tableau) ; 516 à 2560 scindé et 358 au téléphone (cartes). Vérifié sans rognage au seuil
   (tests/rendu/optimizer-tableau-navigateur.test.ts).
+- **« Bonus »** (interrupteur de l'en-tête, forme tableau seulement, visible
+  avec le tableau) : un réglage d'**affichage**, distinct de « Stats de base
+  exclues » des conditions, qui reste un réglage de recherche. Il part de la
+  valeur de celui-ci **photographiée au lancement**, puis ne change que par
+  l'utilisateur. En Bonus, PV, ATQ, DEF et VIT montrent total − base du
+  monstre (la base du contexte de la recherche) ; Taux Crit, Dmg Crit, RES et
+  Précision restent en total, PV effectifs, Dégâts réels et Efficience ne
+  changent pas. **Les bornes se convertissent** : le classeur les garde en
+  total, le tableau les écrit et les saisit dans le mode courant
+  (`versAffichage`, `depuisAffichage`, filtresAffichage.ts) ; à 900 d'ATQ de
+  base, un minimum de 3500 s'écrit 2600 en Bonus, et basculer ne masque ni ne
+  révèle aucun build. Le tri ne change pas. Les cartes gardent leur bascule
+  propre (clic sur la fiche).
 
 ## Valeur d'objectif affichée sur les cartes
 

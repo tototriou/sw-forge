@@ -321,7 +321,7 @@ import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerIdentiteEn
   testRenduMemoireOptimizerClicValiderFiche, testRenduMemoireOptimizerClicValiderInclut,
   testRenduTelephoneMemoireOptimizerClicAjouter, testRenduTelephoneMemoireOptimizerClicValiderFiche,
   testRenduRattachementOptimizer, testRenduTelephoneRattachementOptimizer, testRenduRattachementOptimizerDemonte } from './rendu/optimizer-memoire.test';
-import { testRenduBestiaire, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
+import { testRenduBestiaire, testRenduFicheFormes, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
 import { testAlignementVersion } from './alignement-version.test';
 import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi, testRenduTelephoneRtaFiltre } from './rendu/telephone-accueil-rta.test';
 import { testRenduTelephoneSiege, testRenduTelephoneRecos } from './rendu/telephone-siege.test';
@@ -471,6 +471,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduOptimizerReglages', testRenduOptimizerReglages],
   ['testRenduTelephoneOptimizer', testRenduTelephoneOptimizer],
   ['testRenduBestiaire', testRenduBestiaire],
+  ['testRenduFicheFormes', testRenduFicheFormes],
   ['testRenduMecaniques', testRenduMecaniques],
   ['testRenduNouveautes', testRenduNouveautes],
   ['testAlignementVersion', testAlignementVersion],

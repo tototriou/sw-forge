@@ -20,7 +20,7 @@ import AncientFilter, {
   normFiltreAntique,
 } from './AncientFilter';
 import Bouton from '../../ui/Bouton';
-import Segmented from '../../ui/Segmented';
+import Onglets from '../../ui/Onglets';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -101,22 +101,12 @@ export default function RunesCompare({ runes }: Props) {
 
   return (
     <div>
-      <div className="mb-3 flex items-center gap-2 flex-wrap lg:gap-3">
-        {/* ⚠️ **À la SOURIS, le titre de la vue en tête de la rangée** (la maquette :
-            « Comparaison » puis ses deux
-            sources). Au doigt, la barre du haut dit déjà la vue. */}
+      {/* Au doigt, sans rien d'importé, la rangée n'a rien à porter (le titre
+          est réservé à la souris) : elle ne laisse pas de marge vide. */}
+      <div className={`mb-3 items-center gap-2 flex-wrap lg:flex lg:gap-3 ${importes > 0 ? 'flex' : 'hidden'}`}>
+        {/* ⚠️ **À la SOURIS, le titre de la vue en tête de la rangée** (la maquette).
+            Au doigt, la barre du haut dit déjà la vue. */}
         <h1 className="hidden font-display text-xl tracking-wide text-ink lg:block">Comparaison</h1>
-        <Segmented
-          value={onglet}
-          onChange={(k) => {
-            setOnglet(k);
-            setMsg(null);
-          }}
-          options={[
-            { key: 'courbes', label: 'Courbes partagées', icon: <LineChart size={13} /> },
-            { key: 'comptes', label: 'Fichiers de compte', icon: <Boxes size={13} /> },
-          ]}
-        />
 
         {importes > 0 && (
           <Bouton
@@ -131,6 +121,22 @@ export default function RunesCompare({ runes }: Props) {
           />
         )}
       </div>
+
+      {/* Les deux sources en ONGLETS (`Onglets`) : chacune affiche un écran à
+          part, et l'onglet ouvert le coiffe. */}
+      <Onglets
+        aria-label="Source de la comparaison"
+        className="mb-3"
+        valeur={onglet}
+        onChange={(k) => {
+          setOnglet(k);
+          setMsg(null);
+        }}
+        options={[
+          { cle: 'courbes', libelle: 'Courbes partagées', icone: <LineChart size={14} /> },
+          { cle: 'comptes', libelle: 'Fichiers de compte', icone: <Boxes size={14} /> },
+        ]}
+      />
 
       {msg && <p className={`text-xs mb-3 ${msg.ok ? 'text-good' : 'text-bad'}`}>{msg.text}</p>}
 

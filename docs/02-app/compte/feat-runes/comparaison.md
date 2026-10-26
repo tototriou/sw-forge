@@ -6,8 +6,14 @@ Partie de [Mon compte — Runes](README.md).
 
 Se comparer entre amis en superposant plusieurs courbes.
 
+Les deux sources sont de **vrais onglets** (`Onglets`, la librairie UI),
+« Courbes partagées » · « Fichiers de compte » : chacune affiche un écran à
+part, et l'onglet ouvert le coiffe. « Tout retirer » reste au-dessus, sur la
+rangée du titre ; au doigt, cette rangée n'apparaît que s'il y a quelque chose
+à retirer.
+
 ⚠️ **À la SOURIS** :
-- le titre « Comparaison » en tête de la rangée des sous-onglets ;
+- le titre « Comparaison » en tête de page, au-dessus des sous-onglets ;
 - dans les deux sous-onglets, le graphe et sa légende côte à côte, la
   légende dans une carte « Séries », comme l'onglet Courbes.
 

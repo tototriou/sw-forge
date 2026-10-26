@@ -29,8 +29,7 @@ import MonsterGear from '../components/MonsterGear';
 import TurnOrder, { TurnItem } from '../components/rta/TurnOrder';
 import CreateMonster from '../components/CreateMonster';
 import { CustomLead } from '../hooks/useCustomMonsters';
-import { Bouton, Selecteur } from '../ui';
-import Pastille from '../ui/Pastille';
+import { Bouton, Onglets, Selecteur } from '../ui';
 import RuneIcon from '../components/RuneIcon';
 import IndicateurSauvegarde from '../components/rta/IndicateurSauvegarde';
 import { useNotifier } from '../ui/Notification';
@@ -505,26 +504,25 @@ export default function RtaPage({
 
       {/* ⚠️ **Filtre par section, au TÉLÉPHONE** (la
           maquette) : « Tous », « Non classé », puis chaque section, avec son
-          nombre de monstres. Une rangée qui DÉFILE en largeur, jamais à la
-          ligne — elle ne pousse pas les sections vers le bas. */}
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-1 lg:hidden" role="group" aria-label="Afficher une section">
-        <Pastille
-          actif={sectionFiltree === null}
-          onClick={() => setFiltreSection(null)}
-          libelle={`Tous ${allItems.length}`}
-          className="flex-none"
-        />
-        {[RTA_UNASSIGNED, ...runeSections].map((key) => (
-          <Pastille
-            key={key}
-            actif={sectionFiltree === key}
-            onClick={() => setFiltreSection(key)}
-            icone={RUNE_SETS.some((s) => s.key === key) ? <RuneIcon setKey={key} size={15} /> : undefined}
-            libelle={`${key === RTA_UNASSIGNED ? 'Non classé' : sectionLabel(key)} ${groups[key]?.length ?? 0}`}
-            className="flex-none"
-          />
-        ))}
-      </div>
+          nombre de monstres. De VRAIS onglets (`Onglets`) : une seule section
+          ouverte, coiffée par son onglet. La rangée DÉFILE en largeur, jamais
+          à la ligne — elle ne pousse pas les sections vers le bas.
+          « Tous » a la clé `''` (aucune section ne la porte) : l'état, lui,
+          garde `null`. */}
+      <Onglets
+        aria-label="Afficher une section"
+        className="mt-4 lg:hidden"
+        valeur={sectionFiltree ?? ''}
+        onChange={(cle) => setFiltreSection(cle === '' ? null : cle)}
+        options={[
+          { cle: '', libelle: `Tous ${allItems.length}` },
+          ...[RTA_UNASSIGNED, ...runeSections].map((key) => ({
+            cle: key,
+            icone: RUNE_SETS.some((s) => s.key === key) ? <RuneIcon setKey={key} size={15} /> : undefined,
+            libelle: `${key === RTA_UNASSIGNED ? 'Non classé' : sectionLabel(key)} ${groups[key]?.length ?? 0}`,
+          })),
+        ]}
+      />
 
       {/* Zone tampon : les monstres ajoutés y arrivent avant classement */}
       <div className={`mt-5 ${horsFiltre(RTA_UNASSIGNED)}`}>

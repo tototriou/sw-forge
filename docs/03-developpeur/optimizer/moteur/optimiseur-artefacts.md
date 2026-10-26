@@ -488,6 +488,35 @@ vue, comme avant.
 natifs stables sur indices JavaScript, avec les expressions de la référence,
 sans normalisation ni comparateur composite.
 
+**Aperçu d'un geste de vue.** Un tri, un sens, une mesure ou des bornes
+publient leur page avant l'ordre complet, dans la même tâche, mêmes
+tranches et mêmes versions ; l'ordre de base, `rangBase` et l'arbre se
+terminent ensuite. Ce que la page lit ne demande pas l'ordre complet : avec
+une file, les seules confirmées de la vue (après un tri ou des bornes, la
+page ne passe plus devant le fond) ; des comptes qui ne dépendent pas de
+l'ordre ; le reste de la file, qui suit l'ordre du FOND (objectif lancé),
+compté sur lui ; sans file, la tête de l'ordre de base restreint à la vue.
+L'aperçu (`ClassementCompact.apercuEtapes`) juge la catégorie de chaque ligne
+sous les bornes de la vue (reprises telles quelles quand ni bornes ni mesure
+ne changent), note les seules confirmées et les range par le comparateur de
+l'arbre, sauf la position dans l'ordre de base à venir, qu'il lit comme
+« note de base décroissante, puis ordinal » : c'est le tri stable de ces
+notes, et l'ordre au fil des blocs est ce même tri. Sans file, une
+sélection des premières lignes de la vue sur les notes de base, sans trier
+les autres. Des bornes seules reprennent les notes et l'ordre courants. Il
+ne publie rien, et le geste attend la fin de sa tâche comme avant, dès que
+l'équivalence n'est pas établie : note de base non finie, note de ligne
+résolue non finie, note absente parmi des présentes (le comparateur n'est
+plus symétrique, l'arbre dépend de l'ordre d'insertion), relique hors
+contrat, cache écrit depuis la dernière actualisation, ingestion
+interrompue, index en construction, page qui attend des non vérifiées
+(priorité de page). Un aperçu ne vaut que pour l'index et la clé de vue
+(critère, sens, mesure, bornes) qui l'ont produit, quelle que soit la page ;
+un nouveau geste l'efface avant de programmer sa tâche, la fin de tâche
+aussi : aucune vue quittée ne repart. L'aperçu publié est exactement
+l'instantané de fin de tâche (`tests/classement-apercu.test.ts`,
+différentiel pas à pas contre le même corps sans tâche différée).
+
 **Notes de base gardées.** Les notes et l'ordre de base d'un critère
 (`tri|mesure|sens`) ne lisent que les candidats collectés et le contexte
 photographié : `CorpsClassement` les garde par population, l'objectif lancé

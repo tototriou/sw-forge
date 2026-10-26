@@ -112,7 +112,8 @@ export function testClassementNotesDeBaseGardees() {
     };
     const quitter = geste({ ...vue, tri: 'hp' }, 2);
     egal(quitter.notes, n, 'quitter l’objectif lancé : N notes du nouveau critère, l’ordre du fond n’est pas recalculé');
-    ok(quitter.candidats <= 400 && quitter.ingestions === 0,
+    // Les 300 confirmées sont notées par l'aperçu de la page, puis par l'index ; vingt cartes publiées.
+    ok(quitter.candidats <= 700 && quitter.ingestions === 0,
       `tri PV : ${quitter.candidats} candidats lus (les confirmées renotées), aucun pour les ${n} notes de base ; ${quitter.ingestions} ingestion à cache inchangé`);
     egal(geste({ ...vue }, 3).notes, 0, 'revenir à l’objectif lancé : aucune note');
     egal(geste({ ...vue, tri: 'hp' }, 4).notes, 0, 'revenir à un critère déjà noté : aucune note');

@@ -308,6 +308,20 @@ export interface TravailClassementCompact {
 /** Un score est produit par le même adaptateur que le classement objet. */
 export type NoterCompact = (c: BuildCandidate) => number | null;
 
+/** Les notes d'un critère nouveau pour l'aperçu : ses notes de base (`nonFini` : l'une d'elles ne l'est pas) et la note d'une ligne résolue. */
+export interface NotesDeLApercu { notes: Float64Array; calculable: boolean; nonFini: boolean; score: NoterCompact }
+/** Ce que l'index publiera une fois sa tâche finie : comptes et confirmées de la vue dans l'ordre. */
+export interface ApercuClassement {
+  parCategorie: number[][];
+  total: number;
+  confirmes: number;
+  /** Toutes les confirmées de la vue, dans l'ordre de l'arbre. */
+  confirmees: number[];
+  categories: Uint8Array;
+  cacheVide: boolean;
+  cleFiltre: string;
+}
+
 export class ClassementCompact {
   readonly magasin: CandidatsCompacts;
   readonly travail: TravailClassementCompact = { controlees: 0, notes: 0, reprises: 0, comparaisons: 0, complet: true, repliNonFini: false };
@@ -338,11 +352,13 @@ export class ClassementCompact {
   // L'ordre de base restreint à la vue, pour le cache vide, refait quand la vue change.
   private baseDeLaVue: { version: number; source: Uint32Array; ordre: Uint32Array } | null = null;
   private versionVue = 0;
-  // Le magasin reflète le cache de la dernière actualisation (aucune
-  // ingestion interrompue), et les catégories celles de `filtre` sur toutes
-  // les lignes.
+  // Ce qu'un aperçu peut lire sans attendre la tâche en cours : le magasin
+  // reflète le cache de la dernière actualisation (aucune ingestion
+  // interrompue), les catégories celles de `filtre` sur toutes les lignes, et
+  // notes, `rangBase` et arbre ceux de la dernière actualisation terminée.
   private ingestionEnCours = false;
   private categoriesFiables = false;
+  private notesFiables = false;
 
   constructor(base: ArrayLike<BuildCandidate>, ordreBase?: Uint32Array, differe = false) {
     this.magasin = new CandidatsCompacts(base, differe);
@@ -453,6 +469,7 @@ export class ClassementCompact {
     const renoter = complet && this.memeCache(cache, journal) && !this.ingestionEnCours && categoriesDuFiltre;
     const etaitNonFini = this.nonFinis > 0;
     this.ordreDeReference = undefined; this.referenceComplete = undefined;
+    this.notesFiables = false;
     if (renoter) {
       // Les catégories ne changent pas : elles restent fiables pendant toute la renotation.
       this.categoriesFiables = true;
@@ -500,6 +517,7 @@ export class ClassementCompact {
     this.generation = journal?.generation; this.version = journal?.version ?? 0;
     this.tailleCache = cache.size; this.contexte = contexte;
     this.publicationCourante = new WeakSet([cache]);
+    this.notesFiables = true;
   }
   /** Le magasin porte ce cache : aucune écriture depuis la dernière actualisation terminée, aucune ingestion interrompue. */
   aJour(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined): boolean {
@@ -517,19 +535,120 @@ export class ClassementCompact {
    * seules celles qui entrent dans la vue ou en sortent passent par l'arbre.
    * Les notes ne changent pas, donc les places des autres non plus.
    */
-  *refiltrerEtapes(filtre: FiltreLignes): Generator<void> {
+  *refiltrerEtapes(filtre: FiltreLignes, categories?: Uint8Array): Generator<void> {
+    // `categories` : celles qu'un aperçu a déjà jugées sous ce même filtre, sur ce même magasin.
     this.filtre = filtre; this.categoriesFiables = false;
     const arbre = this.ordreDeReference === undefined;
     for (let i = 0; i < this.magasin.longueur; i++) {
       if (this.categories[i] === NON_JUGEE) continue;
       const avant = this.membre(i);
-      this.classer(i);
+      this.classer(i, categories?.[i]);
       const apres = this.membre(i);
       if (arbre && avant !== apres) { if (avant) this.ordre.retirer(i); else this.ordre.inserer(i); }
       if ((i & 63) === 0) yield;
     }
     if (this.referenceComplete) this.ordreDeReference = this.referenceComplete.filter((i) => this.membre(i));
     this.categoriesFiables = true;
+  }
+  /**
+   * La vue que l'index publiera une fois sa tâche finie, sans toucher à
+   * l'arbre : catégories et comptes sous `filtre`, et les confirmées de la vue
+   * dans l'ordre de l'arbre. `nouvelles` : les notes d'un autre critère (notes
+   * de base de ce critère, note d'une ligne résolue) ; `null` : les notes et
+   * l'ordre de base actuels. `null` rendu : l'équivalence n'est pas établie
+   * (cache écrit depuis la dernière actualisation, ingestion interrompue,
+   * note non finie ou absente parmi des présentes, relique hors contrat), la
+   * vue attend la fin de la tâche.
+   */
+  *apercuEtapes(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined, filtre: FiltreLignes,
+    nouvelles: NotesDeLApercu | null): Generator<void, ApercuClassement | null> {
+    if (this.ingestionEnCours || !this.memeCache(cache, journal)) return null;
+    if (nouvelles === null ? !this.notesFiables || this.nonFinis > 0 || this.ordreDeReference !== undefined : nouvelles.nonFini) return null;
+    const n = this.magasin.longueur;
+    let categories: Uint8Array, compteurs: Float64Array;
+    if (filtre.cle === this.filtre.cle && this.categoriesFiables) {
+      categories = this.categories.slice(); compteurs = this.compteurs.slice();
+    } else {
+      categories = new Uint8Array(n); compteurs = new Float64Array(3 * NOMBRE_CATEGORIES);
+      for (let i = 0; i < n; i++) {
+        const etat = this.magasin.etat(i);
+        const c = etat === 2 ? CATEGORIE_LIGNE.ecartee : filtre.juger(i, etat as 0 | 1);
+        categories[i] = c; compteurs[etat * NOMBRE_CATEGORIES + c]++;
+        if ((i & 63) === 0) yield;
+      }
+    }
+    // La note de chaque ligne résolue sous le nouveau critère : celle que `noter` lui donnera.
+    const notesResolues = new Map<number, number | null>();
+    const confirmees: number[] = [];
+    let total = 0, presentes = 0, absentes = 0;
+    for (let i = 0; i < n; i++) {
+      const etat = this.magasin.etat(i);
+      let present: boolean;
+      if (nouvelles === null) present = this.notesPresentes[i] === 1;
+      else if (etat === 1) {
+        // Comme `nonFini` : toute ligne non écartée compte, dans la vue ou non.
+        const note = nouvelles.score(this.magasin.candidat(i)), rid = this.magasin.rid(i);
+        if ((note !== null && !Number.isFinite(note)) || (rid !== undefined && (!Number.isSafeInteger(rid) || rid < 0))) return null;
+        notesResolues.set(i, note); present = note !== null;
+        yield;
+      } else present = nouvelles.calculable;
+      if (dansLaVue(categories[i])) {
+        total++;
+        if (present) presentes++; else absentes++;
+        if (etat === 1) confirmees.push(i);
+      }
+      if ((i & 63) === 0) yield;
+    }
+    // Des notes présentes et absentes ensemble : le comparateur n'est plus symétrique, l'arbre dépend de l'ordre d'insertion.
+    if (presentes && absentes) return null;
+    const avecNote = presentes > 0;
+    const comparer = nouvelles === null ? (a: number, b: number) => this.comparer(a, b) : (a: number, b: number) => {
+      this.travail.comparaisons++;
+      const note = avecNote ? notesResolues.get(b)! - notesResolues.get(a)! : 0;
+      if (note) return note;
+      const ra = this.magasin.rid(a) ?? Infinity, rb = this.magasin.rid(b) ?? Infinity;
+      if (ra !== rb) return ra - rb;
+      // La position dans l'ordre de base à venir : le tri stable de ces notes de base, note décroissante puis ordinal.
+      return this.magasin.rangCle(a) - this.magasin.rangCle(b) || nouvelles.notes[b] - nouvelles.notes[a] || a - b;
+    };
+    const ordre = yield* trierIndicesEtapes(Uint32Array.from(confirmees), comparer);
+    return { parCategorie: [0, 1, 2].map((etat) => Array.from(compteurs.subarray(etat * NOMBRE_CATEGORIES, (etat + 1) * NOMBRE_CATEGORIES))),
+      total, confirmes: confirmees.length, confirmees: Array.from(ordre), categories, cacheVide: cache.size === 0, cleFiltre: filtre.cle };
+  }
+  /**
+   * Cache vide : les lignes de la vue de l'aperçu de rang `debut` à
+   * `debut + taille − 1` dans l'ordre de base — l'actuel (`notes` nul), ou
+   * celui de ces notes de base (finies), note décroissante puis ordinal, par
+   * une sélection des `debut + taille` premières sans trier les autres.
+   */
+  teteDeLApercu(apercu: ApercuClassement, notes: Float64Array | null, debut: number, taille: number): number[] {
+    const k = debut + taille, membre = (i: number) => dansLaVue(apercu.categories[i]);
+    if (notes === null) {
+      const tete: number[] = [];
+      for (let r = 0; r < this.ordreBase.length && tete.length < k; r++) if (membre(this.ordreBase[r])) tete.push(this.ordreBase[r]);
+      return tete.slice(debut);
+    }
+    // Tas des k meilleures, la moins bonne à la racine.
+    const avant = (a: number, b: number) => notes[a] > notes[b] || (notes[a] === notes[b] && a < b);
+    const tas: number[] = [];
+    const descendre = (p: number) => {
+      for (;;) {
+        const g = 2 * p + 1, d = g + 1;
+        let pire = p;
+        if (g < tas.length && avant(tas[pire], tas[g])) pire = g;
+        if (d < tas.length && avant(tas[pire], tas[d])) pire = d;
+        if (pire === p) return;
+        [tas[p], tas[pire]] = [tas[pire], tas[p]]; p = pire;
+      }
+    };
+    for (let i = 0; i < this.magasin.longueur && k > 0; i++) {
+      if (!membre(i)) continue;
+      if (tas.length < k) {
+        tas.push(i);
+        for (let p = tas.length - 1; p > 0;) { const q = (p - 1) >> 1; if (!avant(tas[q], tas[p])) break; [tas[p], tas[q]] = [tas[q], tas[p]]; p = q; }
+      } else if (avant(i, tas[0])) { tas[0] = i; descendre(0); }
+    }
+    return tas.sort((a, b) => (avant(a, b) ? -1 : 1)).slice(debut);
   }
   /** Le filtre que l'index applique (sa clé dit si une vue doit reclasser). */
   get cleFiltre(): string { return this.filtre.cle; }
@@ -543,7 +662,7 @@ export class ClassementCompact {
     }
     return this.baseDeLaVue.ordre;
   }
-  invalider(): void { this.contexte = {}; }
+  invalider(): void { this.contexte = {}; this.notesFiables = false; }
   page(debut: number, taille: number): number[] {
     if (this.cacheVide) return Array.from(this.ordreBaseDeLaVue().slice(debut, debut + taille));
     return this.ordreDeReference?.slice(debut, debut + taille) ?? this.ordre.page(debut, taille);
@@ -574,6 +693,8 @@ export class ClassementCompact {
     terminerEtapes(this.definirOrdreBaseEtapes(ordre));
   }
   *definirOrdreBaseEtapes(ordre: Uint32Array): Generator<void> {
+    // `rangBase` départage l'arbre : jusqu'à la prochaine actualisation, il ne vaut plus.
+    this.notesFiables = false;
     this.ordreBase = ordre;
     for (let rang = 0; rang < ordre.length; rang++) { this.rangBase[ordre[rang]] = rang; if ((rang & 63) === 0) yield; }
     this.contexte = Symbol('ordre de base remplacé');
@@ -776,6 +897,10 @@ export class CorpsClassement {
   // contexte photographié, sans cache. L'objectif lancé (l'ordre du fond) et
   // la vue courante sont toujours gardés, avec les derniers critères quittés.
   private ordresDeBase: { index: ClassementCompact | null; entrees: EntreeDeBase[] } = { index: null, entrees: [] };
+  // La page d'un geste de tri ou de bornes, publiable avant la fin de sa
+  // tâche : valable pour l'index et la clé de vue (critère et bornes) qui
+  // l'ont produite, quelle que soit la page.
+  private apercu: { index: ClassementCompact; cle: string; donnees: ApercuClassement; notes: Float64Array | null; enAttente: number } | null = null;
 
   constructor(private readonly sorties: {
     publier: (p: InstantaneClassement) => void;
@@ -805,7 +930,7 @@ export class CorpsClassement {
     this.contexte = contexte; this.vue = null; this.flux = new RecepteurCandidats(0); this.lots = [];
     this.index = null; this.fileExhaustive = null; this.base = new Uint32Array(); this.fondPropre = null; this.bilan = null; this.collecteScellee = false;
     this.auFil = []; this.auFilEnAttente = false; this.travail.notes = 0; this.travail.comparaisons = 0;
-    this.ordresDeBase = { index: null, entrees: [] };
+    this.ordresDeBase = { index: null, entrees: [] }; this.apercu = null;
     this.versions = { versionSchema: 1, idRecherche, idInventaire: contexte.idInventaire,
       idContexteResolution: this.versions.idContexteResolution, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande };
     this.entrees = null;
@@ -950,6 +1075,7 @@ export class CorpsClassement {
   }
   private trierBase(): void {
     if (!this.contexte || !this.vue) return;
+    this.apercu = null;
     this.index?.invalider();
     this.programmer(this.trierBaseEtapes());
   }
@@ -964,11 +1090,54 @@ export class CorpsClassement {
     const index = this.index;
     if (this.tache || (index && !index.aJour(this.cacheLecture(), this.cache.journal))) { this.trierBase(); return; }
     if (!index) return;
+    this.apercu = null;
     this.programmer(this.refiltrerEtapes(index));
   }
   private *refiltrerEtapes(index: ClassementCompact): Generator<void> {
-    yield* index.refiltrerEtapes(this.filtreLignes(index));
+    const filtre = this.filtreLignes(index);
+    // La page sous les nouvelles bornes, dans l'ordre courant, avant de toucher à l'arbre.
+    const donnees = this.differe ? yield* this.apercuEtapes(index, filtre, null, null) : null;
+    yield* index.refiltrerEtapes(filtre, donnees?.categories);
+    this.apercu = null;
     this.sale = true;
+  }
+  /** La clé qui dit si un aperçu vaut pour cette vue : critère, sens, mesure et bornes, jamais la page. */
+  private cleDeLaVue(vue: VueClassement): string {
+    return JSON.stringify([vue.tri, vue.metric, sensDe(vue), cleDesBornes(this.bornes, depassementDe(vue))]);
+  }
+  /**
+   * L'aperçu de la vue courante : la page qu'elle publiera, calculée sans
+   * l'ordre complet. `deLaVue` : les notes de base d'un nouveau critère ;
+   * `null` : celles de l'index. Rien quand l'équivalence n'est pas établie.
+   */
+  private *apercuEtapes(index: ClassementCompact, filtre: FiltreLignes, deLaVue: EntreeDeBase | null, notes: NotesDeLApercu | null): Generator<void, ApercuClassement | null> {
+    const contexte = this.contexte!, vue = this.vue!;
+    const lance = this.entreeDeBase(index, cleCritere(this.triDuLancement(), contexte.recherche.metric, SENS_PAR_DEFAUT));
+    if (!lance?.ordre) return null;
+    const donnees = yield* index.apercuEtapes(this.cacheLecture(), this.cache.journal, filtre, notes);
+    if (donnees) this.apercu = { index, cle: this.cleDeLaVue(vue), donnees, notes: deLaVue?.notes ?? null, enAttente: this.enAttenteDuFond(index, lance.ordre) };
+    return donnees;
+  }
+  /**
+   * Ce que `restants` comptera après la tâche, sans page demandée : le fond
+   * (l'ordre de l'objectif lancé) jusqu'à K confirmées et à vérifier, groupes
+   * distincts ; en vérification exhaustive, les groupes non vérifiés.
+   */
+  private enAttenteDuFond(index: ClassementCompact, fond: Uint32Array): number {
+    if (!this.entrees || !this.contexte) return 0;
+    const K = cibleDeLaFile({ relicContext: this.contexte.recherche.relicContext, toutVerifier: this.contexte.toutVerifier });
+    if (K === Infinity) {
+      let n = 0;
+      for (const g of index.magasin.chefs()) if (index.magasin.etat(g) === 0) n++;
+      return n;
+    }
+    const groupes = new Set<number>();
+    let confirmees = 0, aVerifier = 0;
+    for (let j = 0; j < fond.length && confirmees + aVerifier < K; j++) {
+      const i = fond[j], etat = index.magasin.etat(i);
+      if (etat === 0) { aVerifier++; groupes.add(index.magasin.groupe(i)); } else if (etat === 1) confirmees++;
+    }
+    return groupes.size;
   }
   /** L'entrée gardée d'un critère sur cet index, remise en dernier (la plus récente). */
   private entreeDeBase(index: ClassementCompact, cle: string): EntreeDeBase | undefined {
@@ -1048,6 +1217,12 @@ export class CorpsClassement {
     const source = candidatsParIndice(index.magasin.longueur, (i) => indexTrie.magasin.candidat(i, false));
     const vue = this.vue, contexte = this.contexte, sens = sensDe(vue);
     const deLaVue = yield* this.notesDeBaseEtapes(index, source, vue.tri, vue.metric, sens);
+    // La page d'abord, sur ces notes : l'ordre complet suit, dans la même tâche.
+    if (this.differe && !neuf) {
+      const options = optionsDuContexte(contexte, this.cache, vue.metric), tri = vue.tri;
+      yield* this.apercuEtapes(index, this.filtreLignes(index), deLaVue.entree, { notes: deLaVue.entree.notes, calculable: deLaVue.entree.calculable,
+        nonFini: deLaVue.entree.nonFini, score: (c) => noteDansLeSens(scoreDuCandidat(c, tri, options), sens) });
+    }
     const base = yield* this.ordreDeBaseEtapes(deLaVue.entree, deLaVue.connues);
     index.definirNotesDeBase(cleCritere(vue.tri, vue.metric, sens), deLaVue.entree.notes, deLaVue.entree.calculable);
     yield* index.definirOrdreBaseEtapes(base);
@@ -1061,6 +1236,7 @@ export class CorpsClassement {
     yield* this.actualiserEtapes(index, fond);
     this.index = index; this.base = base;
     this.visites = new Uint32Array(index.magasin.longueur); this.passage = 0;
+    this.apercu = null;
     this.sale = true;
   }
   private cacheLecture(): ReadonlyMap<string, ResultatArtefacts> {
@@ -1175,7 +1351,8 @@ export class CorpsClassement {
       enAttente: () => {}, repli: (raison, detail) => this.panneResolution(raison, detail) };
   }
   pomper(maintenant: number): void {
-    if (this.tache) return;
+    // Pendant la tâche d'un geste, seule sa page déjà prête peut partir.
+    if (this.tache) { this.publierApercu(maintenant); return; }
     this.libererSourceScellee();
     const reponse = this.reponsesEnAttente.shift();
     if (reponse) { this.recevoirResolution(reponse, maintenant); if (this.tache) return; }
@@ -1223,7 +1400,7 @@ export class CorpsClassement {
     this.tache = null; this.nombreCible = 0; this.plages = []; this.reponsesEnAttente = [];
     this.contexte = null; this.vue = null; this.index = null; this.fileExhaustive = null; this.flux.liberer(); this.lots = [];
     this.auFil = []; this.auFilEnAttente = false;
-    this.ordresDeBase = { index: null, entrees: [] };
+    this.ordresDeBase = { index: null, entrees: [] }; this.apercu = null;
     this.cache.clear(); this.generationCache = compteurSuivant(this.generationCache); this.entrees = null; this.sale = false;
     for (const m of this.pilote.invalider()) {
       if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m);
@@ -1243,11 +1420,45 @@ export class CorpsClassement {
     this.sorties.publier(this.instantane(enAttente));
     return true;
   }
+  /**
+   * La page de l'aperçu, pendant la tâche de son geste : la même
+   * publication que celle de fin de tâche (même cadence, même révision).
+   */
+  private publierApercu(maintenant: number): void {
+    if (!this.contexte || !this.vue || !this.sale) return;
+    if (!this.publicationForcee && maintenant - this.dernierePublication < 400) return;
+    const instantane = this.instantaneDeLApercu();
+    if (!instantane) return;
+    this.dernierePublication = maintenant; this.sale = false; this.publicationForcee = false;
+    this.versions.revisionPubliee = compteurSuivant(this.versions.revisionPubliee);
+    this.sorties.publier({ ...instantane, versions: { ...this.versions } });
+  }
+  /**
+   * L'instantané que la vue aura en fin de tâche, lu dans l'aperçu : rien
+   * quand il ne vaut pas pour cette vue, ou quand la page demandée attend des
+   * non vérifiées (priorité de page), dont l'aperçu ne connaît pas l'ordre.
+   */
+  private instantaneDeLApercu(): InstantaneClassement | null {
+    const a = this.apercu, vue = this.vue, index = this.index;
+    if (!a || !vue || !this.contexte || !index || a.index !== index || a.cle !== this.cleDeLaVue(vue)) return null;
+    const debut = (vue.page - 1) * TAILLE_PAGE_CLASSEMENT, avecFile = this.entrees !== null, d = a.donnees;
+    if (avecFile && this.pagePrioritaire) {
+      if (vue.pageImprimee) return null;
+      const attendues = Math.min(20, Math.max(0, d.total - debut)), cartes = Math.max(0, Math.min(20, d.confirmes - debut));
+      if (attendues > cartes) return null;
+    }
+    let ordinaux: number[], places = 0;
+    if (avecFile) {
+      ordinaux = d.cacheVide ? [] : d.confirmees.slice(debut, debut + TAILLE_PAGE_CLASSEMENT);
+      places = Math.min(TAILLE_PAGE_CLASSEMENT, Math.max(0, d.total - debut)) - ordinaux.length;
+    } else if (d.cacheVide) ordinaux = index.teteDeLApercu(d, a.notes, debut, TAILLE_PAGE_CLASSEMENT);
+    else return null;
+    return this.composer(index, d.total, d.confirmes, d.parCategorie, ordinaux, places, a.enAttente);
+  }
   /** Comptes de l'arbre, confirmées du rang demandé, places attendues : O(log N + 20). */
   private instantane(enAttente: number): InstantaneClassement {
-    const contexte = this.contexte!, vue = this.vue!, index = this.index;
+    const vue = this.vue!, index = this.index;
     const debut = (vue.page - 1) * TAILLE_PAGE_CLASSEMENT;
-    const recus = index?.magasin.longueur ?? 0;
     const { total, confirmes } = index?.comptes() ?? { total: 0, confirmes: 0 };
     const avecFile = this.entrees !== null;
     let ordinaux: number[] = [], places = 0;
@@ -1255,6 +1466,16 @@ export class CorpsClassement {
       ordinaux = index.pageConfirmees(debut, TAILLE_PAGE_CLASSEMENT);
       places = Math.min(TAILLE_PAGE_CLASSEMENT, Math.max(0, total - debut)) - ordinaux.length;
     } else if (index) ordinaux = index.page(debut, TAILLE_PAGE_CLASSEMENT);
+    const parCategorie = index?.comptesParCategorie() ?? [0, 1, 2].map(() => new Array<number>(NOMBRE_CATEGORIES).fill(0));
+    return this.composer(index, total, confirmes, parCategorie, ordinaux, places, enAttente);
+  }
+  /** L'instantané d'une page : ses cartes, ses comptes et ceux de la recherche, une seule écriture. */
+  private composer(index: ClassementCompact | null, total: number, confirmes: number, parCategorie: number[][], ordinaux: number[],
+    places: number, enAttente: number): InstantaneClassement {
+    const contexte = this.contexte!, vue = this.vue!;
+    const debut = (vue.page - 1) * TAILLE_PAGE_CLASSEMENT;
+    const recus = index?.magasin.longueur ?? 0;
+    const avecFile = this.entrees !== null;
     const objectif = contexte.recherche.objective;
     const options = optionsDuContexte(contexte, this.cache, vue.metric);
     // La carte écrit la valeur qui la classe (objectif, tri) ou qu'une borne
@@ -1269,7 +1490,6 @@ export class CorpsClassement {
         degatsReels: avecDegats ? scoreDuCandidat(candidat, 'degats_reels', options) : null };
     });
     // Les comptes de la recherche ne suivent pas les bornes : ceux de la vue vont dans `filtre`.
-    const parCategorie = index?.comptesParCategorie() ?? [0, 1, 2].map(() => new Array<number>(NOMBRE_CATEGORIES).fill(0));
     const [, confirmees, ecartes] = parCategorie.map((ligne) => ligne.reduce((s, n) => s + n, 0));
     return { versions: { ...this.versions }, vue: { ...vue },
       comptes: { recus, affichables: recus - ecartes, resolus: confirmees + ecartes, confirmees, avecFile },

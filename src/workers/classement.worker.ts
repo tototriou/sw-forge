@@ -30,11 +30,18 @@ function creerCorps(): CorpsClassement {
 // enchaînés sont bridés à ~4 ms par Chromium, le classeur passait la moitié
 // de son temps à attendre. La relance prend son tour derrière les messages
 // déjà reçus (annulation, crédits, réponses du résolveur).
+// Pendant la recherche, les notes et l'ordre de base se préparent au fil des
+// blocs reçus, après la tâche et la file, en tranche d'au plus 1 ms : une
+// réponse du résolveur ou un bloc n'attend pas davantage.
 const relance = new Relance(() => proteger(() => {
   const limite = performance.now() + 4;
   do { corps.avancer(); } while (corps.travailEnCours && performance.now() < limite);
   corps.pomper(performance.now());
-  if (corps.travailEnCours || corps.travailEnRepli) relance.programmer();
+  if (!corps.travailEnCours) {
+    const fin = Math.min(limite, performance.now() + 1);
+    while (corps.avancerAuFil() && performance.now() < fin) { /* tranche au fil des blocs */ }
+  }
+  if (corps.travailEnCours || corps.travailEnRepli || corps.travailAuFil) relance.programmer();
 }));
 function proteger(f: () => void): void {
   try { f(); } catch (e) {
@@ -59,7 +66,8 @@ self.onmessage = (e: MessageEvent<MessageVersClassement | Branchement>) => prote
     port.onmessage = (e: MessageEvent<MessageRechercheClassement>) => proteger(() => {
       const r = e.data;
       if (r.idRecherche !== generation) return;
-      if (r.type === 'candidats') { corps.ajouter(r.idRecherche, r.sequence, r.bloc); port.postMessage({ credit: true }); return; }
+      // Le crédit part avant tout travail sur le bloc : la recherche n'attend jamais la notation.
+      if (r.type === 'candidats') { corps.ajouter(r.idRecherche, r.sequence, r.bloc); port.postMessage({ credit: true }); if (corps.travailAuFil) programmer(); return; }
       if (r.type === 'activer') corps.activer(r.idRecherche);
       else corps.sceller(r.idRecherche, r.nombre, r.derniereSequence, r.bilan);
       programmer();

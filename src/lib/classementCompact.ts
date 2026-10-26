@@ -24,22 +24,132 @@ export function candidatsParIndice(nombre: number, lire: (i: number) => BuildCan
 
 /** Le tri porte sur les ordinaux ; même soustraction et stabilité que sortCandidates. */
 export function ordreCollecte(candidats: ArrayLike<BuildCandidate>, critere: StatKey | Objective, options: OptionsDeClassement): Uint32Array {
-  return terminerEtapes(ordreCollecteEtapes(candidats, critere, options));
+  return terminerEtapes(ordreCollecteEtapes(candidats, critere, options)).ordre;
 }
 
-function* ordreCollecteEtapes(candidats: ArrayLike<BuildCandidate>, critere: StatKey | Objective, options: OptionsDeClassement): Generator<void, Uint32Array> {
-  const notes = new Float64Array(candidats.length);
+/** Notes et appels de comparaison de l'ordre de base, au fil des blocs et au scellé. */
+export interface CompteOrdreDeBase { notes: number; comparaisons: number }
+/** Le préfixe déjà noté au fil des blocs, et l'ordre complet quand il est rangé. */
+interface NotesConnues { nombre: number; note(i: number): number | null; ordre: Uint32Array | null }
+interface OrdreDeBase { ordre: Uint32Array; notes: Float64Array; calculable: boolean }
+
+function* ordreCollecteEtapes(candidats: ArrayLike<BuildCandidate>, critere: StatKey | Objective, options: OptionsDeClassement,
+  compte?: CompteOrdreDeBase, connues?: NotesConnues): Generator<void, OrdreDeBase> {
+  const n = candidats.length, notes = new Float64Array(n);
   let calculable = false, nonFini = false;
-  for (let i = 0; i < candidats.length; i++) {
-    const note = scoreDuCandidat(candidats[i], critere, options);
+  for (let i = 0; i < n; i++) {
+    // Une note connue ne relit pas le candidat : seule la lecture coûte encore.
+    const connue = connues !== undefined && i < connues.nombre;
+    const note = connue ? connues.note(i) : scoreDuCandidat(candidats[i], critere, options);
+    if (!connue && compte) compte.notes++;
     calculable ||= note !== null;
     notes[i] = note ?? 0; nonFini ||= note !== null && !Number.isFinite(note);
-    yield;
+    if (!connue || (i & 63) === 0) yield;
   }
-  const ordre = Uint32Array.from({ length: candidats.length }, (_, i) => i);
-  if (!calculable) return ordre;
-  if (nonFini) return Uint32Array.from(Array.from(ordre).sort((a, b) => notes[b] - notes[a]));
-  return yield* trierIndicesEtapes(ordre, (a, b) => notes[b] - notes[a]);
+  const ordre = Uint32Array.from({ length: n }, (_, i) => i);
+  if (!calculable) return { ordre, notes, calculable };
+  if (nonFini) return { ordre: Uint32Array.from(Array.from(ordre).sort((a, b) => notes[b] - notes[a])), notes, calculable };
+  // Rangé au fil des blocs sur ces mêmes notes, toutes finies : le même ordre stable.
+  if (connues?.ordre && connues.nombre === n && connues.ordre.length === n) return { ordre: connues.ordre, notes, calculable };
+  return { ordre: yield* trierIndicesEtapes(ordre, (a, b) => { if (compte) compte.comparaisons++; return notes[b] - notes[a]; }), notes, calculable };
+}
+
+/** Une plage triée couvre des ordinaux contigus ; les plages fusionnent comme un compteur binaire. */
+const PLAGE_AU_FIL = 4096;
+
+/**
+ * Les notes de base d'un critère, et leur ordre, préparés pendant la recherche
+ * bloc par bloc. La note de base ne lit que le candidat collecté et le contexte
+ * figé, sans cache : la calculer à l'arrivée ne change pas sa valeur. Sous des
+ * notes finies, « note décroissante, puis ordinal » est un préordre total : des
+ * plages triées de façon stable puis fusionnées de façon stable, gauche avant
+ * droite à égalité, donnent exactement le tri stable du scellé. Une note non
+ * finie ou absente laisse l'ordre au tri du scellé.
+ */
+class OrdreAuFil {
+  private valeurs = new Float64Array(PLAGE_AU_FIL);
+  private nombre = 0;
+  private nulles = 0;
+  private nonFinies = 0;
+  private plages: { ordre: Uint32Array; niveau: number }[] = [];
+  private rangees = 0;
+  private enCours: Generator<void> | null = null;
+  private final = false;
+  private abandonne = false;
+
+  constructor(readonly cle: string, private readonly critere: StatKey | Objective, private readonly options: OptionsDeClassement,
+    private readonly flux: RecepteurCandidats, private readonly compte: CompteOrdreDeBase) {}
+
+  /** Un pas : une note, ou au plus 64 lignes triées ou fusionnées ; faux quand tout le reçu est traité. */
+  avancer(): boolean {
+    if (this.abandonne) return false;
+    this.enCours ??= this.travailler();
+    try {
+      if (!this.enCours.next().done) return true;
+    } catch {
+      // Une note qui lève lèvera aussi au scellé, qui recalcule tout sans ce travail.
+      this.abandonne = true;
+    }
+    this.enCours = null;
+    return false;
+  }
+  private comparer(a: number, b: number): number {
+    this.compte.comparaisons++;
+    return this.valeurs[b] - this.valeurs[a];
+  }
+  private *travailler(): Generator<void> {
+    for (;;) {
+      if (this.nombre < this.flux.longueur) {
+        const i = this.nombre;
+        if (i === this.valeurs.length) { const plus = new Float64Array(2 * i); plus.set(this.valeurs); this.valeurs = plus; }
+        const note = scoreDuCandidat(this.flux.lire(i), this.critere, this.options);
+        this.compte.notes++;
+        this.valeurs[i] = note ?? 0;
+        if (note === null) this.nulles++; else if (!Number.isFinite(note)) this.nonFinies++;
+        this.nombre++;
+        yield; continue;
+      }
+      if (this.nulles || this.nonFinies) return;
+      const reste = this.nombre - this.rangees;
+      if (reste >= PLAGE_AU_FIL || (this.final && reste > 0)) {
+        const debut = this.rangees, longueur = this.final ? reste : PLAGE_AU_FIL;
+        const ordre = yield* trierIndicesEtapes(Uint32Array.from({ length: longueur }, (_, k) => debut + k), (a, b) => this.comparer(a, b));
+        this.rangees = debut + longueur;
+        this.plages.push({ ordre, niveau: 0 });
+        while (this.plages.length > 1 && (this.final || this.plages[this.plages.length - 2].niveau === this.plages[this.plages.length - 1].niveau)) yield* this.fusionner();
+        continue;
+      }
+      if (this.final && this.plages.length > 1) { yield* this.fusionner(); continue; }
+      return;
+    }
+  }
+  /** Deux plages voisines, la plus ancienne à gauche ; à égalité, la gauche d'abord. */
+  private *fusionner(): Generator<void> {
+    const droite = this.plages.pop()!.ordre, plage = this.plages.pop()!, gauche = plage.ordre;
+    const sortie = new Uint32Array(gauche.length + droite.length);
+    let g = 0, d = 0;
+    for (let k = 0; k < sortie.length; k++) {
+      sortie[k] = g < gauche.length && (d === droite.length || this.comparer(gauche[g], droite[d]) <= 0) ? gauche[g++] : droite[d++];
+      if ((k & 63) === 0) yield;
+    }
+    this.plages.push({ ordre: sortie, niveau: plage.niveau + 1 });
+  }
+  /** Le préfixe noté, sans ordre : pour l'aperçu, qui ne couvre pas tout le reçu. */
+  connues(n: number): NotesConnues | undefined {
+    // Une note absente parmi d'autres présentes ne se relit pas : tout est recalculé.
+    if (this.abandonne || (this.nulles && this.nulles !== this.nombre)) return undefined;
+    const nulle = this.nulles > 0;
+    return { nombre: Math.min(n, this.nombre), note: (i) => nulle ? null : this.valeurs[i], ordre: null };
+  }
+  /** Au scellé : noter et ranger le reste, puis rendre notes et ordre complet. */
+  *finir(n: number): Generator<void, NotesConnues | undefined> {
+    this.final = true;
+    while (this.avancer()) yield;
+    const connues = this.connues(n);
+    if (!connues || this.nombre !== n) return undefined;
+    const ordre = this.nulles || this.nonFinies ? null : n === 0 ? new Uint32Array(0) : this.plages.length === 1 && this.plages[0].ordre.length === n ? this.plages[0].ordre : null;
+    return { ...connues, ordre };
+  }
 }
 
 /** AVL par ordinal ; les liens codent ordinal + 1, jamais un objet par nœud. */
@@ -149,6 +259,8 @@ class OrdreCompact {
 export interface TravailClassementCompact {
   controlees: number;
   notes: number;
+  /** Lignes non résolues notées par leur note de base, sans recalcul. */
+  reprises: number;
   comparaisons: number;
   complet: boolean;
   repliNonFini: boolean;
@@ -159,7 +271,8 @@ export type NoterCompact = (c: BuildCandidate) => number | null;
 
 export class ClassementCompact {
   readonly magasin: CandidatsCompacts;
-  readonly travail: TravailClassementCompact = { controlees: 0, notes: 0, comparaisons: 0, complet: true, repliNonFini: false };
+  readonly travail: TravailClassementCompact = { controlees: 0, notes: 0, reprises: 0, comparaisons: 0, complet: true, repliNonFini: false };
+  private notesDeBase: { critere: string; notes: Float64Array; calculable: boolean } | null = null;
   private readonly notes: Float64Array;
   private readonly notesPresentes: Uint8Array;
   private readonly versionsNotes: Uint32Array;
@@ -197,21 +310,34 @@ export class ClassementCompact {
     const rid = this.magasin.rid(i);
     return (this.notesPresentes[i] === 1 && !Number.isFinite(this.notes[i])) || (rid !== undefined && (!Number.isSafeInteger(rid) || rid < 0));
   }
-  private noter(i: number, score: NoterCompact): void {
+  private noter(i: number, score: NoterCompact, base: { notes: Float64Array; calculable: boolean } | null): void {
     this.travail.controlees++;
-    const note = this.magasin.etat(i) === 2 ? null : score(this.magasin.candidat(i));
+    const etat = this.magasin.etat(i);
+    // Non résolue, la ligne n'a ni paire, ni relique, ni stats résolues dans le
+    // cache : sa note est exactement sa note de base, pour le même critère.
+    const reprise = etat === 0 && base !== null;
+    const note = etat === 2 ? null : reprise ? (base.calculable ? base.notes[i] : null) : score(this.magasin.candidat(i));
     this.notesPresentes[i] = Number(note !== null);
     this.notes[i] = note ?? 0;
     this.versionsNotes[i] = this.magasin.version(i);
-    if (note !== null) this.travail.notes++;
-    if (this.magasin.etat(i) !== 2 && this.nonFini(i)) this.nonFinis++;
+    if (reprise) this.travail.reprises++;
+    else if (note !== null) this.travail.notes++;
+    if (etat !== 2 && this.nonFini(i)) this.nonFinis++;
+  }
+  /** Les notes de l'ordre de base, sans cache, pour ce critère (tri et mesure). */
+  definirNotesDeBase(critere: string, notes: Float64Array, calculable: boolean): void {
+    if (notes.length !== this.magasin.longueur) throw new Error('Notes de base d’une autre population');
+    this.notesDeBase = { critere, notes, calculable };
   }
 
   actualiser(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined, contexte: unknown, score: NoterCompact): void {
     terminerEtapes(this.actualiserEtapes(cache, journal, contexte, score));
   }
-  *actualiserEtapes(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined, contexte: unknown, score: NoterCompact): Generator<void> {
-    Object.assign(this.travail, { controlees: 0, notes: 0, comparaisons: 0, complet: false, repliNonFini: false });
+  /** `critere` désigne le critère de `score` : ses notes de base servent aux lignes non résolues. */
+  *actualiserEtapes(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined, contexte: unknown, score: NoterCompact,
+    critere?: string): Generator<void> {
+    Object.assign(this.travail, { controlees: 0, notes: 0, reprises: 0, comparaisons: 0, complet: false, repliNonFini: false });
+    const base = critere !== undefined && this.notesDeBase?.critere === critere ? this.notesDeBase : null;
     const consecutif = journal && journal.generation === this.generation && journal.version === this.version + 1
       && journal.tailleAvant === this.tailleCache && journal.tailleApres === cache.size;
     const memePublication = journal && this.publicationCourante.has(cache) && journal.generation === this.generation
@@ -232,7 +358,7 @@ export class ClassementCompact {
     if (complet) {
       this.travail.complet = true; this.ordre.vider(); this.nonFinis = 0;
       for (const g of this.magasin.chefs()) { this.magasin.ingerer(g, cache.get(this.magasin.cle(g))); yield; }
-      for (let i = 0; i < this.magasin.longueur; i++) { this.noter(i, score); yield; }
+      for (let i = 0; i < this.magasin.longueur; i++) { this.noter(i, score, base); yield; }
     } else if (consecutif) {
       // Retirer sous les anciennes clés avant toute ingestion de groupe.
       for (const c of journal.changements) {
@@ -245,7 +371,7 @@ export class ClassementCompact {
           yield;
         }
         this.magasin.ingerer(g, c.apres);
-        for (const i of this.magasin.lignesDuGroupe(g)) { this.noter(i, score); yield; }
+        for (const i of this.magasin.lignesDuGroupe(g)) { this.noter(i, score, base); yield; }
       }
     }
     this.cacheVide = cache.size === 0;
@@ -414,6 +540,12 @@ export class CorpsClassement {
   } | null = null;
   private generationCache = 0;
   private incident: string | null = null;
+  // Notes et ordre de base préparés pendant la recherche : la vue et l'objectif
+  // lancé, deux critères au plus (un seul quand la vue suit le lancement).
+  private auFil: OrdreAuFil[] = [];
+  private auFilEnAttente = false;
+  /** Notes et comparaisons de l'ordre de base de cette recherche, au fil des blocs et au scellé. */
+  readonly travail: CompteOrdreDeBase = { notes: 0, comparaisons: 0 };
 
   constructor(private readonly sorties: {
     publier: (p: InstantaneClassement) => void;
@@ -442,6 +574,7 @@ export class CorpsClassement {
     this.tache = null; this.nombreCible = 0; this.plages = [];
     this.contexte = contexte; this.vue = null; this.flux = new RecepteurCandidats(0); this.lots = [];
     this.index = null; this.fileExhaustive = null; this.base = new Uint32Array(); this.fondPropre = null; this.bilan = null; this.collecteScellee = false;
+    this.auFil = []; this.auFilEnAttente = false; this.travail.notes = 0; this.travail.comparaisons = 0;
     this.versions = { versionSchema: 1, idRecherche, idInventaire: contexte.idInventaire,
       idContexteResolution: this.versions.idContexteResolution, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande };
     this.entrees = null;
@@ -457,6 +590,38 @@ export class CorpsClassement {
     return vue.tri === (this.contexte?.recherche.objective ?? 'efficience') && vue.metric === this.contexte?.recherche.metric;
   }
   private courant(idRecherche: number) { return this.contexte !== null && idRecherche === this.versions.idRecherche; }
+  private criteresDeBase(): [StatKey | Objective, OptimMetric][] {
+    if (!this.contexte || !this.vue) return [];
+    const lance: [StatKey | Objective, OptimMetric] = [this.contexte.recherche.objective ?? 'efficience', this.contexte.recherche.metric];
+    return this.vueSuitLeLancement(this.vue) ? [lance] : [[this.vue.tri, this.vue.metric], lance];
+  }
+  private ordreAuFil(critere: StatKey | Objective, metric: OptimMetric): OrdreAuFil {
+    const cle = `${critere}|${metric}`;
+    let ordre = this.auFil.find((o) => o.cle === cle);
+    if (!ordre) {
+      ordre = new OrdreAuFil(cle, critere, optionsDuContexte(this.contexte!, null, metric), this.flux, this.travail);
+      this.auFil.push(ordre);
+    }
+    return ordre;
+  }
+  /** Du travail reste à faire au fil des blocs reçus (recherche non scellée). */
+  get travailAuFil(): boolean { return this.auFilEnAttente && !this.collecteScellee && this.contexte !== null && this.vue !== null; }
+  /**
+   * Un pas de travail au fil des blocs : noter et ranger le reçu pour la vue et
+   * l'objectif lancé. Faux quand tout est à jour. Le Worker ne l'appelle
+   * qu'après sa tâche et sa file, dans le temps qui reste.
+   */
+  avancerAuFil(): boolean {
+    if (!this.travailAuFil) return this.auFilEnAttente = false;
+    for (const [critere, metric] of this.criteresDeBase()) if (this.ordreAuFil(critere, metric).avancer()) return true;
+    return this.auFilEnAttente = false;
+  }
+  private *notesConnues(critere: StatKey | Objective, metric: OptimMetric, n: number): Generator<void, NotesConnues | undefined> {
+    // Source libérée après le scellé : l'ordre se refait sur le magasin, comme avant.
+    if (this.collecteScellee && !this.lots.length) return undefined;
+    const ordre = this.ordreAuFil(critere, metric);
+    return this.collecteScellee && n === this.flux.longueur ? yield* ordre.finir(n) : ordre.connues(n);
+  }
   ajouter(idRecherche: number, sequence: number, bloc: BlocCandidats): void {
     if (!this.courant(idRecherche)) return;
     if (!Number.isSafeInteger(sequence) || sequence < 0) throw new Error('Séquence de candidats invalide');
@@ -486,6 +651,7 @@ export class CorpsClassement {
     }
     if (this.collecteScellee || sequence !== this.lots.length) throw new Error('Séquence de candidats manquante ou flux scellé');
     this.flux.recevoir([bloc]); this.lots.push(bloc); this.plages.push({ debut: bloc.debut, longueur: bloc.longueur }); this.versions.revisionDonnees = compteurSuivant(this.versions.revisionDonnees);
+    this.auFilEnAttente = true;
   }
   activer(idRecherche: number): void {
     if (!this.courant(idRecherche)) return;
@@ -505,7 +671,8 @@ export class CorpsClassement {
   }
   private libererSourceScellee(): void {
     // Le magasin n'adopte la source qu'une fois sa construction terminée.
-    if (this.collecteScellee && this.index?.magasin.longueur === this.nombreCible && !this.tache) { this.flux.liberer(); this.lots = []; }
+    // Le travail au fil des blocs a servi : l'index porte désormais notes et ordre de base.
+    if (this.collecteScellee && this.index?.magasin.longueur === this.nombreCible && !this.tache) { this.flux.liberer(); this.lots = []; this.auFil = []; }
   }
   changerVue(vue: VueClassement, idVue: number, idDemande: number): void {
     if (!this.contexte || idVue <= this.versions.idVue) return;
@@ -521,6 +688,11 @@ export class CorpsClassement {
     else if (avant.tri !== vue.tri || avant.metric !== vue.metric) this.pagePrioritaire = false;
     else if (avant.page !== vue.page || avant.pageImprimee !== vue.pageImprimee) this.pagePrioritaire = true;
     this.vue = { ...vue }; this.versions.idVue = idVue; this.versions.idDemande = idDemande;
+    if (!avant || avant.tri !== vue.tri || avant.metric !== vue.metric) {
+      // Le critère quitté ne sert plus ; le nouveau se prépare sur tout le reçu.
+      const cles = new Set(this.criteresDeBase().map(([c, m]) => `${c}|${m}`));
+      this.auFil = this.auFil.filter((o) => cles.has(o.cle)); this.auFilEnAttente = this.flux.longueur > 0;
+    }
     if (!this.contexte.toutVerifier) this.fileExhaustive = null;
     if (!avant || avant.tri !== vue.tri || avant.metric !== vue.metric) this.trierBase();
     this.sale = true;
@@ -539,12 +711,18 @@ export class CorpsClassement {
       yield* index.magasin.initialiser(source);
     }
     const source = candidatsParIndice(index.magasin.longueur, (i) => index.magasin.candidat(i, false));
-    const base = yield* ordreCollecteEtapes(source, this.vue.tri, optionsDuContexte(this.contexte, null, this.vue.metric));
+    const n = index.magasin.longueur;
+    const deBase = yield* ordreCollecteEtapes(source, this.vue.tri, optionsDuContexte(this.contexte, null, this.vue.metric), this.travail,
+      yield* this.notesConnues(this.vue.tri, this.vue.metric, n));
+    const base = deBase.ordre;
+    index.definirNotesDeBase(`${this.vue.tri}|${this.vue.metric}`, deBase.notes, deBase.calculable);
     yield* index.definirOrdreBaseEtapes(base);
     let fond = base;
     if (!this.vueSuitLeLancement(this.vue)) {
+      const objectif = this.contexte.recherche.objective ?? 'efficience', metric = this.contexte.recherche.metric;
       fond = this.fondPropre?.index === index ? this.fondPropre.ordre
-        : yield* ordreCollecteEtapes(source, this.contexte.recherche.objective ?? 'efficience', optionsDuContexte(this.contexte, null, this.contexte.recherche.metric));
+        : (yield* ordreCollecteEtapes(source, objectif, optionsDuContexte(this.contexte, null, metric), this.travail,
+          yield* this.notesConnues(objectif, metric, n))).ordre;
       this.fondPropre = { index, ordre: fond };
     } else this.fondPropre = null;
     yield* this.actualiserEtapes(index, fond);
@@ -563,8 +741,10 @@ export class CorpsClassement {
   private *actualiserEtapes(index: ClassementCompact, fond = this.fond): Generator<void> {
     if (!this.contexte || !this.vue) return;
     const options = optionsDuContexte(this.contexte, this.cache, this.vue.metric);
-    yield* index.actualiserEtapes(this.cacheLecture(), this.cache.journal, `${this.versions.idRecherche}:${this.vue.tri}:${this.vue.metric}:${this.versions.idContexteResolution}`,
-      (c) => scoreDuCandidat(c, this.vue!.tri, options));
+    // Un changement de tri ou de mesure remplace cette tâche : le critère capturé reste celui de la vue.
+    const { tri, metric } = this.vue;
+    yield* index.actualiserEtapes(this.cacheLecture(), this.cache.journal, `${this.versions.idRecherche}:${tri}:${metric}:${this.versions.idContexteResolution}`,
+      (c) => scoreDuCandidat(c, tri, options), `${tri}|${metric}`);
     yield* this.actualiserSelectionEtapes(index, fond);
     this.versionLue = this.cache.journal?.version ?? -1;
   }
@@ -709,6 +889,7 @@ export class CorpsClassement {
     this.collecteScellee = false;
     this.tache = null; this.nombreCible = 0; this.plages = []; this.reponsesEnAttente = [];
     this.contexte = null; this.vue = null; this.index = null; this.fileExhaustive = null; this.flux.liberer(); this.lots = [];
+    this.auFil = []; this.auFilEnAttente = false;
     this.cache.clear(); this.generationCache = compteurSuivant(this.generationCache); this.entrees = null; this.sale = false;
     for (const m of this.pilote.invalider()) {
       if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m);

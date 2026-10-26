@@ -511,6 +511,16 @@ reçus : une annulation, un crédit du flux de candidats ou une réponse du
 résolveur arrivés pendant une tranche passent avant la suivante. Une seule
 relance est en attente à la fois ; la libérer l'annule.
 
+Pendant l'appariement, le classeur prépare au fil des blocs reçus les notes et
+l'ordre de base de la vue et de l'objectif lancé (`avancerAuFil`,
+[optimiseur-artefacts.md § Magasin compact et publications versionnées](optimiseur-artefacts.md#magasin-compact-et-publications-versionnées)),
+pour qu'il ne reste presque rien à faire au scellé. Ce travail ne passe
+qu'après la tâche courante et la file, en tranche d'au plus 1 ms : une
+réponse du résolveur ou un bloc n'attend pas davantage. Le crédit d'un bloc
+part dès son ingestion, avant tout travail sur lui : la recherche n'attend
+jamais la notation. Aucun message ni aucune copie de plus n'est demandé aux
+Workers : le classeur note les blocs qu'il garde déjà jusqu'au scellé.
+
 Le résolveur reste séparé. Sa panne termine son canal et fait reprendre la
 résolution par les mêmes producteurs dans le fil du classeur ; l'instantané
 porte alors l'incident. La perte ou l'impossibilité de créer le classeur

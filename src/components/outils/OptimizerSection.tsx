@@ -3036,6 +3036,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // quelle, dans une modale. Retenu par les runes du build : une nouvelle page
   // sans lui la ferme.
   const indexDetail = detailTableau ? composition.cartes.findIndex((c) => c.runeIds.join('-') === detailTableau) : -1;
+  // Un build sorti de la page ferme son détail pour de bon : il ne se rouvrira
+  // pas de lui-même s'il y revient.
+  useEffect(() => { if (detailTableau && indexDetail < 0) setDetailTableau(null); }, [detailTableau, indexDetail]);
   const proprietesGrille = {
     runeById: runesDesCartes,
     relicUsageById,

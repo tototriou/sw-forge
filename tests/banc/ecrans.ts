@@ -393,6 +393,18 @@ export const ECRANS: Ecran[] = [
         preparation: OPT_RESULTATS, atteint: OPT_CARTES,
       },
       {
+        // Le tableau à partir de sa largeur minimale, les cartes en dessous :
+        // la ligne de comptes est présente dans les deux formes.
+        id: 'resultats-tableau', libelle: 'résultats en tableau (cartes sous la largeur du tableau)', tailles: OPT_BUREAU,
+        preparation: [...OPT_RESULTATS, { cliquer: bouton('Tableau') }],
+        atteint: [...OPT_MEMBRES, repere('[data-ligne-comptes]'), repere('[data-forme-resultats="tableau"]')],
+      },
+      {
+        id: 'resultats-filtres', libelle: 'résultats, flottant « Filtrer l’affichage » ouvert', tailles: OPT_BUREAU,
+        preparation: [...OPT_RESULTATS, { cliquer: bouton("Filtrer l'affichage") }],
+        atteint: [...OPT_CARTES, { role: 'dialog', nom: "Filtrer l'affichage" }],
+      },
+      {
         id: 'artefacts', libelle: 'résultats et colonne Artéfacts et relique ouverte', tailles: OPT_BUREAU,
         preparation: [...OPT_RESULTATS, { cliquer: onglet('Artéfacts et relique'), siPresse: false }],
         atteint: [...OPT_CARTES, repere('[data-colonne="artefacts"]')],

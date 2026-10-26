@@ -200,10 +200,10 @@ export function testRenduOptimizerLigneFile() {
       result={{ nombre: 3, explored: 10, truncated: false, nearMissByCondition: [], globalNearMiss: null }}
       compteConfirmes={{ confirmees: 1, nonVerifies: 2, pages: 1, aucune: false }}
       avecFile={avecFile}
-      sortBy="atk"
-      setSortBy={() => {}}
-      setResultsPage={() => {}}
-      realDamage={null}
+      tri={{ tri: 'atk', sens: 'desc' }}
+      trier={() => {}}
+      metric="eff"
+      disponible={(c) => c !== 'degats_reels'}
       enAttente={enAttente}
       compteAffiche={{ compte: 3, ecartes: 0, raison: null }}
     />,

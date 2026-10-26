@@ -14,7 +14,8 @@ import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactC
 import { contexteResultat, runesDuContexte } from '../../lib/contexteResultat';
 import { TAILLE_PAGE_CLASSEMENT, type CarteClassement } from '../../lib/classementCompact';
 import { triDesResultats } from '../../lib/colonnesResultats';
-import { objectifsMontres } from '../../lib/filtresResultats';
+import { colonneDisponible, objectifsMontres } from '../../lib/filtresResultats';
+import type { ColonneResultat } from '../../lib/colonnesResultats';
 import {
   bornesArtefacts,
   chercherPaires,
@@ -158,6 +159,12 @@ import SelecteurListes from './optimizer/SelecteurListes';
 import EnteteResultats from './optimizer/EnteteResultats';
 import DiagnosticsSansResultat from './optimizer/DiagnosticsSansResultat';
 import GrilleResultats from './optimizer/GrilleResultats';
+import BandeDeTri, { type TriResultats } from './optimizer/TetesDeTri';
+import TableauResultats, { CARTES_SOUS_LE_SEUIL, SEUIL_TABLEAU_PX, TABLEAU_VISIBLE } from './optimizer/TableauResultats';
+import BuildCandidateCard from './BuildCandidateCard';
+import { setFormeResultats, useFormeResultats, type FormeResultats } from '../../hooks/useFormeResultats';
+import { libelleColonne } from '../../lib/filtresAffichage';
+import { Modale } from '../../ui';
 import MessageImportRecette from './optimizer/MessageImportRecette';
 import PageBureau from './optimizer/bureau/PageBureau';
 import ListeDeTravailBureau from './optimizer/bureau/ListeDeTravailBureau';
@@ -1922,6 +1929,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // jamais mettre à jour l'état, donc le champ contrôlé revenait TOUJOURS
   // à l'ancien chiffre, rendant impossible de le vider avant de retaper.
   const [pageDraft, setPageDraft] = useState<string | null>(null);
+  // Le build ouvert en détail depuis le tableau des résultats (ses runes).
+  const [detailTableau, setDetailTableau] = useState<string | null>(null);
   const [importMsg, setImportMsg] = useState<MessageImport | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -2169,9 +2178,15 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // plus, comptes, versions. Aucun de ces réglages ne résout d'équipement,
   // sauf la page demandée en naviguant (le classeur le distingue d'un
   // changement de tri ou de borne).
+  // Cartes ou tableau : un réglage du bureau ; le téléphone garde les cartes.
+  // Le tableau demande les onze valeurs de chaque build (`colonnesCompletes`).
+  const formeChoisie = useFormeResultats();
+  const formeResultats: FormeResultats = sousLg ? 'cartes' : formeChoisie;
   const { changerVue } = search;
-  useEffect(() => { changerVue({ tri: sortBy, sens: sensTri, bornes: bornesResultats, metric, page: resultsPage, afficherDepassement }); },
-    [changerVue, sortBy, sensTri, bornesResultats, metric, resultsPage, afficherDepassement]);
+  useEffect(() => {
+    changerVue({ tri: sortBy, sens: sensTri, bornes: bornesResultats, metric, page: resultsPage, afficherDepassement,
+      ...(formeResultats === 'tableau' ? { colonnesCompletes: true } : {}) });
+  }, [changerVue, sortBy, sensTri, bornesResultats, metric, resultsPage, afficherDepassement, formeResultats]);
   const instantane = search.classement;
   const interrompu = search.classementInterrompu;
 
@@ -2302,7 +2317,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     taillePage: RESULTS_PAGE_SIZE,
     termine: result != null,
   });
-  const totalResultsPages = compteConfirmes.pages;
+  // Sous une borne active, les pages sont celles de la vue filtrée (même
+  // règle des confirmées, sur les visibles et les potentiels) ; sans borne,
+  // celles de la recherche, comme avant.
+  const filtreActif = (instantane?.filtre.bornes.actives.length ?? 0) > 0;
+  const totalResultsPages = filtreActif ? instantane!.filtre.pages : compteConfirmes.pages;
 
   // ⚠️ CORRIGE la page courante, ne la remet PAS à 1 : un aperçu EN DIRECT
   // (pendant la phase d'appariement) grandit au fil de la recherche sans
@@ -2967,6 +2986,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         artefactsDeLaCarte.map((a) => a.id)
       ),
       inactif: interrompu,
+      // La valeur triée, mise en avant sur la carte (le tri publié).
+      colonneTriee: triDesCartes,
       conflit: (() => {
         const conflits = conflitsDeRunes(c.runeIds);
         if (conflits.length === 0) return null;
@@ -2979,22 +3000,74 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // Ce que les deux formats partagent hors des réglages : les résultats et
   // les fenêtres (modales, dialogues), écrits une fois.
   const resultatsPresents = result != null || recus > 0;
+
+  // ── Tri, filtres d'affichage, forme ────────────────────────────────────
+  // Changer de tri, de sens ou de borne repart de la page 1, sans demander de
+  // page : le classeur ne résout rien pour un changement de vue.
+  const triAffiche: TriResultats = { tri: sortBy, sens: sensTri };
+  const trier = (t: TriResultats) => { setSortBy(t.tri); setSensTri(t.sens); setResultsPage(1); };
+  const poserBorne = (colonne: ColonneResultat, cote: 'min' | 'max', valeur: number | null) => {
+    setBornesResultats((prev) => {
+      const suivante = { ...(prev[colonne] ?? { min: null, max: null }), [cote]: valeur };
+      const next = { ...prev };
+      if (suivante.min === null && suivante.max === null) delete next[colonne];
+      else next[colonne] = suivante;
+      return next;
+    });
+    setResultsPage(1);
+  };
+  const effacerFiltres = () => { setBornesResultats({}); setResultsPage(1); };
+  // « Dégâts réels » n'a de valeur qu'avec un sort calculable pour le résultat affiché.
+  const degatsDuResultat = contexteResultatAffiche ? contexteResultatAffiche.realDamage : realDamage;
+  const colonneLibre = (c: ColonneResultat) => colonneDisponible(c, degatsDuResultat);
+  // La vue vide sous les filtres, dite à la place des cartes ou des lignes :
+  // ni corrigée en silence (minimum > maximum), ni confondue avec « Aucune
+  // combinaison… », qui reste le constat sur la recherche entière.
+  const vueVide = (() => {
+    const f = instantane?.filtre;
+    if (!f?.vide) return null;
+    if (f.vide === 'bornes-contradictoires') {
+      const c = f.bornes.contradictoires[0], b = instantane!.vue.bornes?.[c];
+      return `Vue vide : le minimum de ${libelleColonne(c, mesureDesCartes)} (${b?.min?.toLocaleString('fr-FR')}) dépasse son maximum (${b?.max?.toLocaleString('fr-FR')}).`;
+    }
+    return 'Aucune combinaison confirmée ne passe ces filtres.';
+  })();
+  // Le détail d'une ligne du tableau (`detailTableau`) : la carte telle
+  // quelle, dans une modale. Retenu par les runes du build : une nouvelle page
+  // sans lui la ferme.
+  const indexDetail = detailTableau ? composition.cartes.findIndex((c) => c.runeIds.join('-') === detailTableau) : -1;
+  const proprietesGrille = {
+    runeById: runesDesCartes,
+    relicUsageById,
+    metric: mesureDesCartes,
+    openDetailKey,
+    onToggleDetail: (key: string) => {
+      const versions = instantane?.versions, courantes = publicationCouranteRef.current;
+      if (!versions || versions.idRecherche !== courantes?.idRecherche || versions.revisionPubliee !== courantes.revisionPubliee) return;
+      setOpenDetailKey((cur) => (cur === key ? null : key));
+    },
+  };
+
   const blocResultats = (
     <>
       {resultatsPresents && (
-        <div>
+        // Le conteneur nommé `resultats` : le tableau ne paraît qu'à partir de
+        // sa largeur minimale mesurée (`TABLEAU_VISIBLE`), les cartes dessous.
+        <div className="@container/resultats" data-forme-resultats={formeResultats}>
           <EnteteResultats
             result={result}
             compteConfirmes={compteConfirmes}
             avecFile={avecFile}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            setResultsPage={setResultsPage}
-            realDamage={contexteResultatAffiche ? contexteResultatAffiche.realDamage : realDamage}
+            tri={triAffiche}
+            trier={trier}
+            metric={mesureDesCartes}
+            disponible={colonneLibre}
             enAttente={instantane?.enAttente ?? 0}
             interrompu={interrompu}
             compteAffiche={compteAffiche}
             bureau={!sousLg}
+            filtres={{ bornes: bornesResultats, poserBorne, effacer: effacerFiltres, filtre: instantane?.filtre ?? null }}
+            {...(sousLg ? {} : { forme: formeResultats, setForme: setFormeResultats })}
           />
   
           <DiagnosticsSansResultat
@@ -3026,22 +3099,68 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               recherche comme après. Une place a la hauteur d'une carte
               (`useHauteurDesCartes`), pour que rien ne saute quand la carte
               arrive. */}
-          <GrilleResultats
-            bureau={!sousLg}
-            grilleResultatsRef={grilleResultatsRef}
-            composition={composition}
-            runeById={runesDesCartes}
-            relicUsageById={relicUsageById}
-            metric={mesureDesCartes}
-            openDetailKey={openDetailKey}
-            onToggleDetail={(key: string) => {
-              const versions = instantane?.versions, courantes = publicationCouranteRef.current;
-              if (!versions || versions.idRecherche !== courantes?.idRecherche || versions.revisionPubliee !== courantes.revisionPubliee) return;
-              setOpenDetailKey((cur) => (cur === key ? null : key));
-            }}
-            proprietesCarte={proprietesCarte}
-            hauteurCarte={hauteurCarte}
-          />
+          {/* Les cartes : au bureau, la bande de onze têtes de tri au-dessus
+              (le téléphone trie par sa liste, dans l'en-tête). En forme
+              tableau, elles ne paraissent que sous la largeur du tableau. */}
+          {!compteConfirmes.aucune && (
+            <div className={formeResultats === 'tableau' ? CARTES_SOUS_LE_SEUIL : undefined}>
+              {/* Le tableau choisi, mais la zone est plus étroite que lui :
+                  on le dit, plutôt que de laisser « Tableau » sans effet visible. */}
+              {formeResultats === 'tableau' && (
+                <p className="mb-2 text-xs text-ink-dim" data-tableau-trop-etroit="">
+                  Le tableau demande {SEUIL_TABLEAU_PX} px de large : cartes affichées.
+                </p>
+              )}
+              {!sousLg && (
+                <BandeDeTri courant={triAffiche} trier={trier} metric={mesureDesCartes} disponible={colonneLibre}
+                  bornee={(c) => bornesResultats[c]?.min != null || bornesResultats[c]?.max != null} inactif={interrompu} />
+              )}
+              {vueVide ? (
+                <p className="mb-3 rounded-lg border border-dashed border-border-soft px-3 py-6 text-center text-xs text-ink-dim" data-vue-vide="">{vueVide}</p>
+              ) : (
+                <GrilleResultats
+                  bureau={!sousLg}
+                  grilleResultatsRef={grilleResultatsRef}
+                  composition={composition}
+                  {...proprietesGrille}
+                  proprietesCarte={proprietesCarte}
+                  hauteurCarte={hauteurCarte}
+                />
+              )}
+            </div>
+          )}
+          {formeResultats === 'tableau' && !compteConfirmes.aucune && (
+            <div className={TABLEAU_VISIBLE}>
+              <TableauResultats
+                cartes={cartes}
+                premierRang={composition.premierRang}
+                placesEnAttente={composition.placesEnAttente}
+                runeById={runesDesCartes}
+                metric={mesureDesCartes}
+                afficherDepassement={instantane?.vue.afficherDepassement ?? afficherDepassement}
+                tri={triAffiche}
+                trier={trier}
+                bornes={bornesResultats}
+                poserBorne={poserBorne}
+                disponible={colonneLibre}
+                ouvrirDetail={(i) => { if (!interrompu) setDetailTableau(composition.cartes[i].runeIds.join('-')); }}
+                vide={vueVide}
+                inactif={interrompu}
+              />
+            </div>
+          )}
+          {indexDetail >= 0 && (
+            <Modale onClose={() => setDetailTableau(null)} labelledBy="optimizer-detail-build" croix largeur="max-w-[420px]"
+              titre={`Build n° ${composition.premierRang + indexDetail}`}>
+              <BuildCandidateCard
+                rank={composition.premierRang + indexDetail}
+                candidate={composition.cartes[indexDetail]}
+                bureau
+                {...proprietesGrille}
+                {...proprietesCarte(composition.cartes[indexDetail], indexDetail)}
+              />
+            </Modale>
+          )}
   
           {/* Pagination — remplace l'ancienne troncature dure à 20 : la
               liste complète (jusqu'à MAX_COLLECTED, voir runeBuildOptim.ts)

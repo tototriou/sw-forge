@@ -299,7 +299,10 @@ efface cette page, comme toute nouvelle recherche, et lance la suivante.
 
 ## Tri des résultats
 
-Un sélecteur **« Trier par »** re-trie **côté
+Le tri se choisit **par les têtes de colonne** au bureau (bande de onze
+têtes au-dessus des cartes, en-têtes du tableau ; § Cartes ou tableau), et
+par un sélecteur **« Trier par »** suivi du bouton de sens au téléphone. Il
+re-trie **côté
 client, dans le Worker de classement**, sans relancer la recherche : le moteur a déjà
 calculé les stats complètes de chaque combinaison retenue. Le tri porte
 sur une des **onze colonnes des résultats** (`COLONNES_RESULTATS`,
@@ -321,8 +324,13 @@ vue envoyée au classeur le porte (`sens`). En croissant, seule la note
 s'inverse ; à note égale, les builds gardent l'ordre du décroissant
 (relique, clé, ordre de base). Changer de sens est un changement de tri :
 la page revient à 1 sans demander de page, rien n'est résolu et le cache
-reste. La forme du contrôle à l'écran n'est pas encore posée ; « Trier
-par » trie en décroissant.
+reste. Un clic sur une tête trie sa colonne en décroissant, un second clic
+sur la même passe en croissant, et retour ; une autre tête repart en
+décroissant (au téléphone : une autre colonne de « Trier par » repart en
+décroissant, `BoutonSensTri` bascule le sens). La valeur triée est mise en
+avant sur chaque carte : la ligne de la fiche de stats pour les huit stats
+(`StatPanel`, `ligneMiseEnAvant`), la valeur moyenne en accent pour
+Efficience ; PV effectifs et Dégâts ont leur rangée.
 
 ⚠️ **Le tri ne résout aucun équipement.** Les artéfacts et la relique de
 chaque build sont ceux qui servent l'**objectif de la recherche** : changer
@@ -407,6 +415,83 @@ tri ; ../feat-listes-equipes-et-sauvegarde.md § Mémoires des membres).
   changement de tri, il ne donne pas la priorité à la page affichée : seule
   une page demandée en naviguant la reprend, et le fond continue dans
   l'ordre de l'objectif lancé.
+
+### À l'écran : « Filtrer l'affichage »
+
+Une grille calquée sur « Conditions » (libellé, Min, Max, `NumberField`,
+`FiltresResultats.tsx`), sous la phrase fixe « Masque des builds déjà
+trouvés ; ne relance pas la recherche. » : la grille ressemble trait pour
+trait aux conditions de recherche, elle vit donc dans l'en-tête des
+résultats, jamais dans « Critères de recherche ». **Un seul JSX, deux
+contenants** : un `Flottant` ancré au bouton « Filtrer l'affichage (n) »
+au bureau (fermé au clic dehors et à Échap), un `MobileSheet` au
+téléphone. `n` compte les colonnes bornées. « Effacer les filtres » vide
+toutes les bornes (dans l'en-tête au bureau, au pied de la grille aux deux
+formats). Les libellés et unités viennent de `filtresAffichage.ts` ;
+« Efficience » devient « Score SW » avec le réglage.
+
+- **Ligne de comptes, toujours présente** sous l'en-tête dès qu'il y a des
+  résultats : « Aucun filtre » sans borne, sinon « Filtres : 12 visibles ·
+  30 masquées · 8 à vérifier · 2 indéterminées » (comptes de la vue
+  publiés par le classeur ; les deux derniers seulement s'ils ne sont pas
+  nuls), suivie au bureau du **résumé des bornes** (« VIT ≥ 220 · 30% ≤
+  Taux Crit ≤ 100% », tronqué sur une ligne, entier au survol), sur sa
+  propre ligne au téléphone. Toujours là : poser une borne n'ajoute aucune
+  ligne au-dessus des cartes.
+- **Minimum > maximum** : les deux champs de la colonne en `ton="bad"`, et à
+  la place des cartes (ou des lignes du tableau) « Vue vide : le minimum de
+  VIT (220) dépasse son maximum (200). » Rien n'est corrigé.
+- **Plus rien sous les filtres** (`aucune-sous-filtre`) : « Aucune
+  combinaison confirmée ne passe ces filtres. », distinct de « Aucune
+  combinaison… », qui reste le constat sur la recherche entière.
+- **Dégâts réels sans sort calculable** : tête grisée (« Aucun sort
+  calculable pour ce monstre » au survol), champs désactivés qui gardent
+  leur valeur, borne dite « (inactive) » dans le résumé, colonne grisée
+  sans valeur dans le tableau.
+- **Pages** : sous une borne active, le nombre de pages est celui de la vue
+  filtrée (`filtre.pages`) ; sans borne, celui de la recherche.
+- Un champ de borne n'accepte que des entiers (`NumberField`) : une borne
+  d'Efficience se pose à l'unité.
+- **Page interrompue** : têtes, choix de forme, « Filtrer » et « Effacer »
+  désactivés, comme « Comparer » et « Valider ».
+
+### Cartes ou tableau
+
+Au bureau, un `Segmented` « Cartes / Tableau » au-dessus des résultats
+(décision de l'utilisateur, les deux formes au choix), mémorisé comme un
+réglage : `useFormeResultats`, clé `swblacksmith-optimizer-resultats-forme-v1`,
+écrite même sans l'accord de conservation (persistance.md, « Un seul
+interrupteur »), dans la session. **Le téléphone garde les cartes**, sans
+ce choix.
+
+- **Cartes** : au bureau, la bande des onze têtes de tri (`TetesDeTri.tsx`)
+  au-dessus de la grille. Chaque tête réserve la place de son icône de sens
+  (`ArrowUpDown` estompée tant qu'elle ne trie pas) et du point « borne
+  posée » : rien ne change de largeur au clic. Des `Bouton`, pas des
+  `Pastille` : elles trient, elles ne filtrent pas. L'état à trois valeurs
+  passe par `actif` et le nom accessible (« VIT, tri décroissant, borne
+  posée ») : `aria-sort` n'est valide que sur un en-tête de colonne.
+- **Tableau** (`TableauResultats.tsx`) : une ligne par build, rang puis les
+  onze colonnes ; en-têtes triables (`ZoneCliquable`, `aria-sort` sur le
+  `<th>`), deux lignes de bornes Min / Max dessous (`NumberField
+  sansBoutons`), la colonne triée en accent. Un clic sur une ligne, ou sur
+  son rang au clavier, ouvre la carte telle quelle dans une `Modale`
+  (« Build n° 3 », croix) : « Comparer » et « Valider » y sont. Les places
+  « Vérification… » sont des lignes. La vue demande alors les onze valeurs
+  de chaque build (`colonnesCompletes`).
+- ⚠️ **Largeurs selon le contenu** : la mise en page automatique du
+  `<table>` ; un en-tête de deux mots passe sur deux lignes ; chaque borne a
+  la largeur de la plus grande valeur de sa colonne (`CHIFFRES_MAX_COLONNE`,
+  en `ch` de la police du champ : PV à 5 chiffres, PV effectifs et dégâts à
+  6). **Largeur minimale mesurée : 637 px** dans l'app construite, polices
+  chargées, chaque valeur remplacée par la plus large de sa colonne et les
+  bornes « 150000 » posées ; c'est le seuil (`SEUIL_TABLEAU_PX`), lu par
+  une requête de conteneur sur la zone des résultats (`@container/resultats`) :
+  en dessous, les cartes, avec la ligne « Le tableau demande 637 px de
+  large : cartes affichées. » Zones relevées : 716 px à 1920 avec une
+  colonne insérée, 1 052 colonnes fermées, 1 356 à 2560 en pleine page
+  (tableau) ; 516 à 2560 scindé et 358 au téléphone (cartes). Vérifié sans rognage au seuil
+  (tests/rendu/optimizer-tableau-navigateur.test.ts).
 
 ## Valeur d'objectif affichée sur les cartes
 

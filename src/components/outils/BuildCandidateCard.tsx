@@ -6,6 +6,7 @@ import { activeSets } from '../../lib/effects';
 import { EtatRelique } from '../../lib/relicQueue';
 import { RuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import { entierAffiche, moyenneParRune } from '../../lib/valeursAffichees';
+import type { ColonneResultat } from '../../lib/colonnesResultats';
 import { ArtifactDetailBox, RuneDetailBox } from '../PieceDetail';
 import RuneWheel from '../RuneWheel';
 import ArtifactSlots from '../ArtifactSlots';
@@ -123,6 +124,11 @@ interface Props {
   // sections »). Ses rangées « Dégâts », « PV effectifs » et ses écarts
   // gardent leur contour fin aux deux formats (décision de l'utilisateur).
   bureau?: boolean;
+  // La colonne qui trie les résultats : sa valeur est mise en avant sur la
+  // carte (la ligne de la fiche de stats, ou la valeur moyenne en accent ;
+  // PV effectifs et dégâts ont déjà leur rangée). La couleur seulement :
+  // rien ne change de taille quand le tri change.
+  colonneTriee?: ColonneResultat | null;
 }
 
 // ⚠️ Même FORME que l'affichage de l'équipement actuellement équipé (RTA/
@@ -200,6 +206,7 @@ export default function BuildCandidateCard({
   pvEffectifs,
   metricDelta,
   bureau = false,
+  colonneTriee = null,
 }: Props) {
   const runes = candidate.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => !!r);
   const sets = activeSets(runes.map((r) => r.set));
@@ -305,7 +312,7 @@ export default function BuildCandidateCard({
   // Une phrase : police du texte (la mono ne sert qu'aux chiffres seuls) ;
   // `tabular-nums` aligne la valeur d'une carte à l'autre.
   const texteMoyen = (
-    <span className="text-xs tabular-nums text-ink-dim">
+    <span className={`text-xs tabular-nums ${colonneTriee === 'efficience' ? 'text-accent' : 'text-ink-dim'}`}>
       {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(moyenneParRune(liveTotal), metric)}
     </span>
   );
@@ -504,7 +511,8 @@ export default function BuildCandidateCard({
           dessous — les trois blocs s'y écrasaient jusqu'à devenir illisibles.
           Empilés, chacun garde sa taille de lecture. */}
       <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
-        <StatPanel stats={candidate.stats} serre={bureau} />
+        <StatPanel stats={candidate.stats} serre={bureau}
+          ligneMiseEnAvant={colonneTriee && colonneTriee !== 'efficience' && colonneTriee !== 'ehp' && colonneTriee !== 'degats_reels' ? colonneTriee : null} />
         {/* ⚠️ À LA SOURIS, la relique est TOUJOURS SOUS LA ROUE (carte de résultat seulement) :
             fiche 200 px + artéfacts 26 px + roue 94 px (échelle 0,45) et leurs
             écarts font 332 px, ce qu'une carte de 360 px contient tout juste

@@ -1,22 +1,40 @@
+import { useEffect, useRef, useState } from 'react';
+import { Filter } from 'lucide-react';
 import HelpPopover from '../../HelpPopover';
-import { Selecteur } from '../../../ui';
-import { OptimizerSortKey } from '../../../hooks/useOptimizerState';
-import { RECO_STATS } from '../../../types';
-import { OBJECTIVE_LABELS, type RealDamageContext } from '../../../lib/runeBuildOptim';
-import { estColonneResultat } from '../../../lib/colonnesResultats';
+import BoutonSensTri from '../../BoutonSensTri';
+import { Bouton, Flottant, MobileSheet, Segmented, Selecteur } from '../../../ui';
+import { COLONNES_RESULTATS, type ColonneResultat } from '../../../lib/colonnesResultats';
+import type { BornesResultats } from '../../../lib/filtresResultats';
+import type { FiltrePublie } from '../../../lib/classementCompact';
+import type { OptimMetric } from '../../../lib/runeOptim';
+import { colonnesBornees, libelleColonne, ligneDesComptes, resumeDesBornes } from '../../../lib/filtresAffichage';
 import { type CompteConfirme, type CompteAffichable } from '../../../lib/artifactQueue';
-import { type Dispatch, type SetStateAction } from 'react';
 import { type BilanRecherche } from '../../../hooks/useBuildOptimSearch';
+import type { FormeResultats } from '../../../hooks/useFormeResultats';
+import FiltresResultats, { BoutonEffacerFiltres } from './FiltresResultats';
+import type { TriResultats } from './TetesDeTri';
+import { CARTES_SOUS_LE_SEUIL } from './TableauResultats';
+
+/** Les filtres d'affichage tels que l'en-tête les pose et les dit. */
+export interface FiltresEntete {
+  bornes: BornesResultats;
+  poserBorne: (colonne: ColonneResultat, cote: 'min' | 'max', valeur: number | null) => void;
+  effacer: () => void;
+  // Ce que le classeur a publié : comptes de la vue, bornes actives.
+  filtre: FiltrePublie | null;
+}
 
 export interface EnteteResultatsProps {
   result: BilanRecherche | null;
   compteConfirmes: CompteConfirme;
   // Une file vérifie l'équipement (optimisation d'artéfacts active).
   avecFile: boolean;
-  sortBy: OptimizerSortKey;
-  setSortBy: Dispatch<SetStateAction<OptimizerSortKey>>;
-  setResultsPage: Dispatch<SetStateAction<number>>;
-  realDamage: RealDamageContext | null;
+  // Le tri affiché (colonne et sens) ; `trier` repart de la page 1.
+  tri: TriResultats;
+  trier: (suivant: TriResultats) => void;
+  metric: OptimMetric;
+  // Une colonne a-t-elle une valeur ? « Dégâts réels » exige un sort calculable.
+  disponible: (colonne: ColonneResultat) => boolean;
   // Le reste de la file du classeur (instantané).
   enAttente: number;
   // Le classeur est perdu : la page affichée est la dernière reçue, sans geste possible.
@@ -24,14 +42,19 @@ export interface EnteteResultatsProps {
   compteAffiche: CompteAffichable;
   // L'en-tête resserré du bureau (voir plus bas) ; le téléphone garde le sien.
   bureau?: boolean;
+  filtres?: FiltresEntete;
+  // Cartes ou tableau, au bureau seulement (le téléphone garde les cartes).
+  forme?: FormeResultats;
+  setForme?: (forme: FormeResultats) => void;
 }
 
-export default function EnteteResultats({ result, compteConfirmes, avecFile, sortBy, setSortBy, setResultsPage, realDamage, enAttente, interrompu = false, compteAffiche, bureau = false }: EnteteResultatsProps) {
+export default function EnteteResultats({ result, compteConfirmes, avecFile, tri, trier, metric, disponible, enAttente, interrompu = false,
+  compteAffiche, bureau = false, filtres, forme = 'cartes', setForme }: EnteteResultatsProps) {
   // ⚠️ Le compte des CONFIRMÉES (`compteConfirmes`) : seulement les builds
   // vérifiés (résolus et conformes), un compte qui ne baisse jamais pendant
-  // une recherche. « Aucune combinaison… » seulement quand tout est vérifié
-  // sans aucune confirmée. La ligne de progression garde les trouvées :
-  // l'infobulle dit la différence.
+  // une recherche — les filtres d'affichage ne le changent pas, ils répartissent
+  // les confirmées entre visibles et masquées. « Aucune combinaison… »
+  // seulement quand tout est vérifié sans aucune confirmée.
   const compte = (
     <p className="label">
       {result
@@ -58,44 +81,47 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, sor
       les combinaisons trouvées », dans les réglages avancés, va jusqu'au bout.
     </HelpPopover>
   );
-  // Masqué seulement quand tout est vérifié sans aucune confirmée. Le tri
-  // réordonne les combinaisons confirmées ; il ne résout aucun équipement.
-  const tri = !compteConfirmes.aucune && (
-    <Selecteur
-      value={sortBy}
-      onChange={(e) => {
-        setSortBy(e.target.value as OptimizerSortKey);
-        // Classement entièrement différent : la page courante
-        // n'a plus le même sens, on repart du meilleur résultat.
-        setResultsPage(1);
-      }}
-      disabled={interrompu}
-      taille="sm"
-      surface="panel"
-      pleineLargeur={false}
-    >
-      <optgroup label="Stats">
-        {RECO_STATS.map((st) => (
-          <option key={st.key} value={st.key}>
-            Trier par {st.label}
-          </option>
-        ))}
-      </optgroup>
-      <optgroup label="Objectifs">
-        {/* ⚠️ « Dégâts réels » n'est proposé que si un sort est
-            réellement calculable pour ce monstre : sans sort, ce
-            tri n'aurait aucune formule à appliquer et laisserait la
-            liste dans son ordre précédent, sans rien dire. */}
-        {/* Seuls les objectifs qui sont des colonnes : Vitesse se trie
-            par VIT, dans le groupe « Stats ». */}
-        {OBJECTIVE_LABELS.filter((o) => estColonneResultat(o.key) && (o.key !== 'degats_reels' || realDamage)).map((o) => (
-          <option key={o.key} value={o.key}>
-            {o.label}
-          </option>
-        ))}
-      </optgroup>
-    </Selecteur>
+  // Masqués seulement quand tout est vérifié sans aucune confirmée : le tri et
+  // les filtres réordonnent et masquent les combinaisons confirmées ; ils ne
+  // résolvent aucun équipement.
+  const reglable = !compteConfirmes.aucune;
+
+  // Au téléphone, le tri garde sa liste et prend le sens à côté : la bande de
+  // onze têtes y ferait quatre lignes de 40 px. Une autre colonne repart en
+  // décroissant, comme une autre tête au bureau.
+  const triTelephone = reglable && (
+    <div className="flex items-center gap-1.5">
+      <Selecteur
+        value={tri.tri}
+        onChange={(e) => trier({ tri: e.target.value as ColonneResultat, sens: 'desc' })}
+        disabled={interrompu}
+        taille="sm"
+        surface="panel"
+        pleineLargeur={false}
+        aria-label="Trier les résultats"
+      >
+        <optgroup label="Stats">
+          {COLONNES_RESULTATS.slice(0, 8).map((c) => (
+            <option key={c} value={c}>
+              Trier par {libelleColonne(c, metric)}
+            </option>
+          ))}
+        </optgroup>
+        <optgroup label="Objectifs">
+          {/* ⚠️ « Dégâts réels » n'est proposé que si un sort est
+              réellement calculable pour ce monstre. Vitesse n'est pas un
+              tri : la colonne VIT, dans le groupe « Stats ». */}
+          {COLONNES_RESULTATS.slice(8).filter(disponible).map((c) => (
+            <option key={c} value={c}>
+              {libelleColonne(c, metric)}
+            </option>
+          ))}
+        </optgroup>
+      </Selecteur>
+      <BoutonSensTri sens={tri.sens} onChange={(sens) => trier({ tri: tri.tri, sens })} />
+    </div>
   );
+
   // Combien la file doit encore vérifier : les builds des places en attente
   // de la page, puis l'avance de fond vers K confirmées — le compte ci-dessus
   // les inclut, la page ne les montre qu'une fois vérifiés. `enAttente` est le
@@ -110,7 +136,52 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, sor
     ? 'Classement interrompu : relance la recherche pour agir sur ces résultats.'
     : enAttente > 0
       ? `${enAttente.toLocaleString('fr-FR')} combinaison(s) en vérification…`
-      : ' ';
+      : ' ';
+
+  // ── Filtres d'affichage ────────────────────────────────────────────────
+  const [ouvert, setOuvert] = useState(false);
+  const ancre = useRef<HTMLDivElement>(null);
+  // Le flottant du bureau se ferme au clic dehors et à Échap, comme les autres
+  // surfaces ancrées de l'Optimizer ; le panneau du téléphone porte sa croix.
+  useEffect(() => {
+    if (!ouvert || !bureau) return;
+    const dehors = (e: MouseEvent) => { if (!ancre.current?.contains(e.target as Node)) setOuvert(false); };
+    const clavier = (e: KeyboardEvent) => { if (e.key === 'Escape') setOuvert(false); };
+    document.addEventListener('mousedown', dehors); document.addEventListener('keydown', clavier);
+    return () => { document.removeEventListener('mousedown', dehors); document.removeEventListener('keydown', clavier); };
+  }, [ouvert, bureau]);
+  const posees = filtres ? colonnesBornees(filtres.bornes).length : 0;
+  const libelleFiltrer = `Filtrer l'affichage${posees ? ` (${posees})` : ''}`;
+  const grille = filtres && (
+    <FiltresResultats bornes={filtres.bornes} poserBorne={filtres.poserBorne} effacer={filtres.effacer} metric={metric} disponible={disponible} />
+  );
+  // Ligne de comptes TOUJOURS présente (« Aucun filtre » sans borne) : poser
+  // une borne n'ajoute pas de ligne au-dessus des cartes, et rien ne descend.
+  const actives = filtres?.filtre?.bornes.actives.length ?? 0;
+  const resume = filtres ? resumeDesBornes(filtres.bornes, metric, disponible) : '';
+  const comptes = ligneDesComptes(filtres?.filtre?.comptes ?? null, actives, !bureau);
+
+  const boutonFiltrerBureau = filtres && reglable && (
+    // Sous le tableau large, sa ligne de bornes remplace le flottant : le
+    // bouton ne sert qu'aux cartes (`CARTES_SOUS_LE_SEUIL`).
+    <div className={`relative ${forme === 'tableau' ? CARTES_SOUS_LE_SEUIL : ''}`} ref={ancre}>
+      <Bouton
+        taille="sm"
+        icone={<Filter size={13} />}
+        libelle={libelleFiltrer}
+        disabled={interrompu}
+        aria-expanded={ouvert}
+        aria-haspopup="dialog"
+        onClick={() => setOuvert((o) => !o)}
+      />
+      {ouvert && (
+        <Flottant rembourrage="md" ancrage="dessous" cote="droite" largeur="w-auto" role="dialog" aria-label="Filtrer l'affichage">
+          <p className="label mb-1">Filtrer l&apos;affichage</p>
+          {grille}
+        </Flottant>
+      )}
+    </div>
+  );
 
   return (
     <>
@@ -118,21 +189,41 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, sor
         // ⚠️ **Au bureau, l'en-tête tient sur une rangée** (décision de
         // l'utilisateur : la première carte remonte) : à gauche le compte et,
         // SOUS lui, la ligne « en vérification » (sa place reste réservée,
-        // même vide), l'aide à leur droite ; à droite le tri.
+        // même vide), l'aide à leur droite ; à droite la forme (cartes ou
+        // tableau), « Filtrer l'affichage » et « Effacer les filtres ».
         // Quand la colonne est étroite, la rangée passe à la ligne d'elle-même :
         // ce passage ne dépend que de la largeur, jamais d'un clic.
-        <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          <div className="flex items-center gap-1.5">
-            <div className="flex flex-col">
-              {compte}
-              {ligneFile && <p className={`text-xs leading-4 ${tonLigne}`}>{enVerification}</p>}
+        <>
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <div className="flex items-center gap-1.5">
+              <div className="flex flex-col">
+                {compte}
+                {ligneFile && <p className={`text-xs leading-4 ${tonLigne}`}>{enVerification}</p>}
+              </div>
+              {aide}
             </div>
-            {aide}
+            {reglable && (
+              <div className="ml-auto flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+                {setForme && (
+                  <Segmented<FormeResultats>
+                    options={[{ key: 'cartes', label: 'Cartes' }, { key: 'tableau', label: 'Tableau' }]}
+                    value={forme}
+                    onChange={setForme}
+                    disabled={interrompu}
+                  />
+                )}
+                {boutonFiltrerBureau}
+                {filtres && <BoutonEffacerFiltres effacer={filtres.effacer} actif={posees > 0 && !interrompu} />}
+              </div>
+            )}
           </div>
-          <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-            {tri}
-          </div>
-        </div>
+          {filtres && reglable && (
+            <p className="mb-2 truncate text-xs leading-4 text-ink-dim" title={resume || undefined} data-ligne-comptes="">
+              <span className="text-ink">{comptes}</span>
+              {resume && <> — {resume}</>}
+            </p>
+          )}
+        </>
       ) : (
         <>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
@@ -140,9 +231,24 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, sor
               {compte}
               {aide}
             </div>
-            {tri}
+            {triTelephone}
           </div>
           {ligneFile && <p className={`mb-2 text-xs ${tonLigne}`}>{enVerification}</p>}
+          {filtres && reglable && (
+            <>
+              <div className="mb-2 text-xs leading-4 text-ink-dim" data-ligne-comptes="">
+                <p className="text-ink">{comptes}</p>
+                {resume && <p className="truncate" title={resume}>{resume}</p>}
+              </div>
+              <div className="mb-3">
+                <Bouton taille="md" pleineLargeur icone={<Filter size={15} />} libelle={libelleFiltrer}
+                  disabled={interrompu} onClick={() => setOuvert(true)} />
+              </div>
+              <MobileSheet ouvert={ouvert} onFermer={() => setOuvert(false)} titre="Filtrer l'affichage">
+                {grille}
+              </MobileSheet>
+            </>
+          )}
         </>
       )}
 

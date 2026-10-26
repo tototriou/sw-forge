@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { StatRow } from '../lib/stats';
-import { CAPPED_STATS } from '../lib/effects';
+import { CAPPED_STATS, type StatKey } from '../lib/effects';
 import { displayedTotal, useOvercapDisplay } from '../hooks/useOvercapDisplay';
 import { ZoneCliquable } from '../ui';
 
@@ -42,6 +42,11 @@ interface Props {
   // décision de l'utilisateur) : pas de 27 à 22 px, taille du texte
   // inchangée — interligne `snug` et 2 px de rembourrage au lieu de 4.
   serre?: boolean;
+  // La ligne de la stat qui TRIE les résultats de l'Optimizer, mise en avant
+  // (fond d'accent léger, libellé et base en accent) : on compare vingt cartes
+  // sur elle d'un coup d'œil. Le fond et la couleur seulement, jamais une
+  // graisse ou un contour : la ligne garde sa hauteur et sa largeur.
+  ligneMiseEnAvant?: StatKey | null;
 }
 
 // Le rembourrage vertical d'une cellule : 4 px (2 px au doigt), ou 2 px et
@@ -49,7 +54,7 @@ interface Props {
 const PAS_NORMAL = 'py-1 compact:py-0.5';
 const PAS_SERRE = 'py-0.5 leading-snug';
 
-export default function StatPanel({ stats, spdCible = null, serre = false }: Props) {
+export default function StatPanel({ stats, spdCible = null, serre = false, ligneMiseEnAvant = null }: Props) {
   const pasLigne = serre ? PAS_SERRE : PAS_NORMAL;
   // ⚠️ État LOCAL à l'instance : chaque panneau (fiche pleine page, ou
   // chacune des cartes de résultat de l'Optimizer) bascule indépendamment
@@ -86,9 +91,11 @@ export default function StatPanel({ stats, spdCible = null, serre = false }: Pro
             // plafond » en soi, c'est la somme avec la base qui peut l'être.
             const atCap = CAPPED_STATS.has(row.key) && row.total >= 100;
             const greenOrRed = atCap ? 'text-red-500' : 'text-good';
+            const enAvant = row.key === ligneMiseEnAvant;
             return (
-              <tr key={row.key} className="border-b border-border/40 last:border-0">
-                <td className={`${pasLigne} pr-2 text-ink-dim`}>{row.label}</td>
+              <tr key={row.key} className={`border-b border-border/40 last:border-0 ${enAvant ? 'bg-accent-soft' : ''}`}
+                data-ligne-mise-en-avant={enAvant ? '' : undefined}>
+                <td className={`${pasLigne} pr-2 ${enAvant ? 'text-accent' : 'text-ink-dim'}`}>{row.label}</td>
                 {showTotal ? (
                   <td
                     colSpan={2}
@@ -99,7 +106,7 @@ export default function StatPanel({ stats, spdCible = null, serre = false }: Pro
                   </td>
                 ) : (
                   <>
-                    <td className={`${pasLigne} pr-3 text-right font-mono font-semibold text-ink tabular-nums`}>
+                    <td className={`${pasLigne} pr-3 text-right font-mono font-semibold tabular-nums ${enAvant ? 'text-accent' : 'text-ink'}`}>
                       {fmt(row.base)}
                       {row.suffix}
                     </td>

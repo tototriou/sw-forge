@@ -161,7 +161,7 @@ const AUCUNE_AURA: Readonly<Record<SetAura, number>> = { fight: 0, determination
 function ResultatsGabarit({ ctx, mode }: { ctx: ContexteGabarits; mode: AttenteResultats | 'vingt' | 'zero' }) {
   const metric = useRuneMetric();
   const grille = useRef<HTMLDivElement>(null);
-  const [tri, setTri] = useState<OptimizerSortKey>(ctx.optimizer.sortBy);
+  const [tri, setTri] = useState<{ tri: OptimizerSortKey; sens: 'desc' | 'asc' }>({ tri: ctx.optimizer.sortBy, sens: 'desc' });
   const [page, setPage] = useState(1);
   const [brouillon, setBrouillon] = useState<string | null>(null);
   const { candidats, runeById } = useMemo(() => buildsDuCompte(ctx, mode === 'vingt' ? 20 : 0), [ctx, mode]);
@@ -172,7 +172,7 @@ function ResultatsGabarit({ ctx, mode }: { ctx: ContexteGabarits; mode: AttenteR
   return (
     <ResultatsBureau attente={null}>
       <EnteteResultats result={result} compteConfirmes={{ confirmees, nonVerifies: 0, pages: 3, aucune: confirmees === 0 }} avecFile={false}
-        sortBy={tri} setSortBy={setTri} setResultsPage={setPage} realDamage={null} enAttente={0}
+        tri={tri} trier={(t) => { setTri(t); setPage(1); }} metric={metric} disponible={(c) => c !== 'degats_reels'} enAttente={0}
         compteAffiche={{ compte: confirmees, ecartes: 0, raison: null }} bureau />
       <DiagnosticsSansResultat bureau result={result}
         feasibilityDiagnosis={mode === 'zero' ? [{ key: 'spd', kind: 'min', requested: 0, bound: 0, satisfiable: true }] : []}

@@ -205,8 +205,11 @@ Sous la grille, même dossier, même règle : « Objectif de recherche » et les
 (`ObjectifEtActions` : Rechercher, Exporter, Importer, Arrêter), la progression, l'échec et le
 refus, avec la barre d'appariement (`ProgressionRecherche`), le message d'import d'une recette
 (`MessageImportRecette`), l'en-tête des résultats — compte confirmé,
-tri, ligne de la file de vérification ou avis de page interrompue, ligne de raison — (`EnteteResultats`),
-les blocs de 0 résultat (`DiagnosticsSansResultat` : `DiagnosticFaisabilite`,
+tri, ligne de la file de vérification ou avis de page interrompue, choix cartes / tableau,
+« Filtrer l'affichage », ligne de comptes, ligne de raison — (`EnteteResultats`), la grille
+Min / Max des filtres d'affichage (`FiltresResultats`, flottant au bureau, panneau au
+téléphone), la bande des têtes de tri (`TetesDeTri`), le tableau des résultats
+(`TableauResultats`), les blocs de 0 résultat (`DiagnosticsSansResultat` : `DiagnosticFaisabilite`,
 `DiagnosticApprofondi`, `QuasiSucces`), `AvisRechercheTronquee`, la grille des cartes
 (`GrilleResultats`), `PaginationResultats` et les confirmations de libération
 (`ConfirmationsLiberation`). Ce que reçoit chaque carte (`proprietesCarte`) et la création
@@ -296,6 +299,7 @@ exemptés.
 | `useDonneesKit` | charge kits, sorts et passifs d'une poignée de monstres (outil **et** siège, un seul chemin) |
 | `useAdversaireReference` | réglage global : toujours poser l'adversaire de référence en face |
 | `useBuildsRapides` | réglage global : les combinaisons et le nombre de builds du bloc « Builds les plus rapides » (Résumé des runes) |
+| `useFormeResultats` | réglage : les résultats de l'Optimizer en cartes ou en tableau (bureau) |
 | `useEtatSwex` | l'état du dossier SW Exporter au bureau, lu par les Réglages et par `SidebarCompte` |
 
 ## Calcul — `src/lib/`
@@ -307,7 +311,7 @@ Fonctions **pures**, testables sans rendu. C'est ici que va toute logique, jamai
 | Vitesse & stats | `speed.ts` (source de vérité), `stats.ts` |
 | Speed tuning | `speedTune.ts` (moteur de ticks), `speedTuneLignes.ts` (modèle de l'écran), `speedTuneAuto.ts` (analyse partagée outil/siège), `speedTuneKit.ts` + `speedTunePassif.ts` (lecture des kits), `speedTuneDeck.ts` (import d'un deck), `siegeStatut.ts` (statut d'une équipe de siège) |
 | Runes | `runeOptim.ts`, `runeBuildOptim.ts` (moteur, référence), `rechercheRunes.ts` (orchestration : `searchBuilds`, `construireMoitie`, `apparier`), `constructionRapide.ts`, `appariementRapide.ts` et `validationRapide.ts` (noyaux sur tableaux typés), `retentionEmboitee.ts` (union des rétentions des préréglages emboîtés) et `constructionEmboitee.ts` (un Worker de construction par moitié et par préréglage), `appariementRapideParallele.ts` (appariement parallèle) et `travailleurAppariement.ts` (ce que fait chacun de ses Workers), `runeSort.ts`, `runeCurveShare.ts` |
-| Résultats Optimizer | `contexteResultat.ts` (photographie pure partagée Node), `candidatsCompacts.ts` (stockage), `classementCompact.ts` (index et corps propriétaire), `cacheResolutionCompact.ts` (cache typé), `cession.ts` (cession entre deux tranches), `colonnesResultats.ts` (les onze colonnes des résultats, et la lecture d'un objectif ou d'un tri enregistré comme colonne), `filtresResultats.ts` (bornes min/max par colonne : validation, valeur comparée, catégorie de chaque ligne), `valeursAffichees.ts` (ce qu'une carte de résultat écrit d'une valeur, en nombre : la moyenne par rune et ses chiffres, l'entier des PV effectifs et des dégâts) ; `classement.worker.ts` et `classementDistant.ts` (transport, versions et instantané de la page) ; `useBuildOptimSearch` garde les Workers vivants pendant la navigation et reçoit l'instantané de la vue |
+| Résultats Optimizer | `contexteResultat.ts` (photographie pure partagée Node), `candidatsCompacts.ts` (stockage), `classementCompact.ts` (index et corps propriétaire), `cacheResolutionCompact.ts` (cache typé), `cession.ts` (cession entre deux tranches), `colonnesResultats.ts` (les onze colonnes des résultats, et la lecture d'un objectif ou d'un tri enregistré comme colonne), `filtresResultats.ts` (bornes min/max par colonne : validation, valeur comparée, catégorie de chaque ligne), `valeursAffichees.ts` (ce qu'une carte de résultat écrit d'une valeur, en nombre : la moyenne par rune et ses chiffres, l'entier des PV effectifs et des dégâts), `filtresAffichage.ts` (ce que l'écran écrit des onze colonnes : libellés, unités, résumé des bornes, ligne de comptes) ; `classement.worker.ts` et `classementDistant.ts` (transport, versions et instantané de la page) ; `useBuildOptimSearch` garde les Workers vivants pendant la navigation et reçoit l'instantané de la vue |
 | Reliques | `relicOptim.ts` (choix de la meilleure relique pour un build, pertinence et dominance structurelle) ; `relicQueue.ts` (résolution EXACTE de l'équipement d'un build — paire d'artéfacts ET relique, ensemble — la partie pure de la file du classeur, et l'état de la relique d'un candidat pour l'écran) ; `resolutionRapide.ts` (la résolution de l'app, appelée par `relicQueue.ts` : elle ne note que les paires faisables) ; `resolutionExhaustive.ts` (la même résolution, toutes les paires notées : référence des tests et diagnostic d'un build rejeté, à la demande) |
 | Tri | `tri.ts` (le SENS d'un tri, partagé par toutes les listes) |
 | Artéfacts | `artifacts.ts` |

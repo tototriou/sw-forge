@@ -916,6 +916,25 @@ export class CorpsClassement {
   }
 
   get travailEnCours() { return this.tache !== null; }
+  /**
+   * Une tranche du Worker : la tâche par pas, visée 4 ms, puis la pompe
+   * (file et publication) ; la tâche finie, le travail au fil des blocs, puis
+   * le temps mort, dans ce qui reste d'au plus 1 ms. Vrai s'il reste du
+   * travail : le Worker relance une tranche par message de canal, derrière
+   * les messages déjà reçus (annulation, crédits, réponses du résolveur).
+   * `maintenant` : l'horloge, `performance.now` dans le Worker.
+   */
+  tranche(maintenant: () => number): boolean {
+    const limite = maintenant() + 4;
+    do { this.avancer(); } while (this.travailEnCours && maintenant() < limite);
+    this.pomper(maintenant());
+    if (!this.travailEnCours) {
+      const fin = Math.min(limite, maintenant() + 1);
+      while (this.avancerAuFil() && maintenant() < fin) { /* tranche au fil des blocs */ }
+      while (maintenant() < fin && this.avancerAuRepos()) { /* tranche du temps mort */ }
+    }
+    return this.travailEnCours || this.travailEnRepli || this.travailAuFil || this.travailAuRepos;
+  }
   avancer(): void {
     if (this.tache?.next().done) this.tache = null;
   }

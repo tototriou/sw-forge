@@ -77,7 +77,7 @@ function criteresValides(v: unknown): v is CriteresOptimizer {
   if (REGLAGES_RETIRES.some((k) => k in v && typeof v[k] !== 'boolean')) return false;
   if (typeof v.critereArtefacts !== 'string' || !['brut', 'reel'].includes(v.critereArtefacts)) return false;
   // `vitesse` : tri historique, admis puis relu VIT (`sansReglagesRetires`).
-  if (typeof v.sortBy !== 'string' || !['hp','atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc', 'efficience', 'ehp', 'vitesse', 'degats_reels'].includes(v.sortBy)) return false;
+  if (typeof v.sortBy !== 'string' || !['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc', 'efficience', 'ehp', 'vitesse', 'degats_reels'].includes(v.sortBy)) return false;
   if (!objet(v.damageSetup) || !objet(v.maxStats) || !objet(v.mainStatsBySlot) || !objet(v.lockedRunes) || !Array.isArray(v.lignesVerrouillees)) return false;
   // La validation des critères partagés réutilise le lecteur de recette, jamais une deuxième règle.
   const lu = parseOptimizerRecipe(JSON.stringify({

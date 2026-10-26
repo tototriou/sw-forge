@@ -1,6 +1,7 @@
 import { baseCompleteCriteres, CLASSEMENT_CHAMPS_OPTIMIZER, criteresApresChangementEspece, photoCriteres } from '../src/lib/criteresOptimizer';
 import { CHAMPS_OPTIMIZER_SESSION } from '../src/lib/sessionOptimizer';
-import { composerSession, ecrireSession, lireSession } from '../src/lib/session';
+import { CLES_SESSION, composerSession, ecrireSession, lireSession, valeurStockageValide } from '../src/lib/session';
+import { CLE_FORME_RESULTATS, lireFormeResultats } from '../src/hooks/useFormeResultats';
 import { cleMemoireMembre, ecrireMembresOptimizer, lireMembresOptimizer } from '../src/lib/optimizerMemberStorage';
 import type { ExclusionSelector } from '../src/lib/optimizerExclusion';
 import { egal, ok, titre } from './outils';
@@ -54,6 +55,11 @@ export function testFiltresResultatsMemoire() {
   const photo = photoCriteres({ ...base, bornesResultats: bornes }, { type: 'personnel' });
   ok(photo.bornesResultats !== bornes && photo.bornesResultats.spd !== bornes.spd && photo.bornesResultats.spd?.min === 200,
     'photo des critères : bornes copiées, aucune référence partagée');
+
+  egal(['tableau', 'cartes', null, 'autre'].map((v) => lireFormeResultats(v)), ['tableau', 'cartes', 'cartes', 'cartes'],
+    'forme des résultats : « tableau » relu, tout le reste retombe sur les cartes');
+  ok(CLES_SESSION.includes(CLE_FORME_RESULTATS) && valeurStockageValide(CLE_FORME_RESULTATS, 'tableau') && !valeurStockageValide(CLE_FORME_RESULTATS, 'liste'),
+    'forme des résultats : un réglage de la session, aux seules valeurs « cartes » et « tableau »');
 
   const session = composerSession({ maintenant: new Date('2026-10-26T10:00:00Z'), versionApp: 'test', stockage: {}, compte: null, memoire: {},
     optimizer: { sortBy: 'spd', sensTri: 'asc', bornesResultats: bornes } });

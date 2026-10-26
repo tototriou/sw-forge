@@ -52,6 +52,7 @@ export const CLES_SESSION = [
   'swblacksmith-adversaire-reference-v1',
   // Du JSON, relu et validé par son hook (`lireReglageBuildsRapides`).
   'swblacksmith-builds-rapides-v1',
+  'swblacksmith-optimizer-resultats-forme-v1',
 ] as const;
 
 // La forme de chaque valeur, telle que son hook l'ÉCRIT. ⚠️ Pas toutes du
@@ -61,6 +62,7 @@ const VALEURS_PERMISES: Partial<Record<(typeof CLES_SESSION)[number], readonly s
   'swblacksmith-rune-metric-v1': ['eff', 'score'],
   'swblacksmith-overcap-display-v1': ['0', '1'],
   'swblacksmith-adversaire-reference-v1': ['0', '1'],
+  'swblacksmith-optimizer-resultats-forme-v1': ['cartes', 'tableau'],
 };
 
 // Une valeur du stockage est-elle de la forme que son hook relit ? Les

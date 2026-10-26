@@ -444,8 +444,8 @@ lève abandonne le travail au fil et le scellé recalcule tout. Changer de tri
 ou de mesure pendant la recherche abandonne le critère quitté ; l'aperçu ne
 reprend que les notes déjà prêtes. Le travail au fil s'arrête au scellé et
 disparaît quand la source est libérée ; un changement de vue ultérieur se
-classe sur le magasin comme avant. À l'actualisation complète de l'index,
-une ligne non résolue (aucune entrée de cache, donc ni paire, ni relique, ni
+classe sur le magasin comme avant. À chaque notation de l'index, complète
+ou par différence (un équipement retiré du cache), une ligne non résolue (aucune entrée de cache, donc ni paire, ni relique, ni
 stats résolues) reprend sa note de base du même critère au lieu de la
 recalculer ; seules les lignes résolues sont renotées.
 

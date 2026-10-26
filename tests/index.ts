@@ -229,6 +229,7 @@ import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidat
   testFluxCandidatsRefusRecevoir, testFluxCandidatsRefusSceller, testFluxCandidatsRefusResultat, testFluxCandidatsLanceurCommun } from './flux-candidats.test';
 import { testClassementCreditsRelance, testClassementCadenceDifferee, testClassementVueSansAutreMessage, testClassementInstantaneBorne, testClassementMortInactive } from './classement-publication.test';
 import { testClassementAuFilDifferentiel, testClassementAuFilTravail } from './classement-au-fil.test';
+import { testClassementNotesDeBaseGardees } from './classement-notes-de-base.test';
 import { testClassementComparerApresValidation } from './classement-comparer.test';
 import { testClassementSelectionExhaustiveBorne, testClassementSelectionExhaustiveTransitions, testClassementSelectionExhaustiveDifferee } from './classement-selection-exhaustive.test';
 import testRetentionEmboitee from './retention-emboitee.test';
@@ -898,6 +899,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testClassementMortInactive', testClassementMortInactive],
   ['testClassementAuFilDifferentiel', testClassementAuFilDifferentiel],
   ['testClassementAuFilTravail', testClassementAuFilTravail],
+  ['testClassementNotesDeBaseGardees', testClassementNotesDeBaseGardees],
   ['testClassementComparerApresValidation', testClassementComparerApresValidation],
   ['testClassementSelectionExhaustiveBorne', testClassementSelectionExhaustiveBorne],
   ['testClassementSelectionExhaustiveTransitions', testClassementSelectionExhaustiveTransitions],

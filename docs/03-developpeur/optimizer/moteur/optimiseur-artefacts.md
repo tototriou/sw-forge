@@ -488,6 +488,21 @@ vue, comme avant.
 natifs stables sur indices JavaScript, avec les expressions de la référence,
 sans normalisation ni comparateur composite.
 
+**Notes de base gardées.** Les notes et l'ordre de base d'un critère
+(`tri|mesure|sens`) ne lisent que les candidats collectés et le contexte
+photographié : `CorpsClassement` les garde par population, l'objectif lancé
+(l'ordre du fond) et la vue courante toujours, avec les quatre derniers
+critères quittés (~12 octets par candidat chacun). Quitter puis retrouver
+l'objectif lancé, revenir à une colonne déjà triée, ne renote rien ;
+inverser le sens prend les notes opposées (la note croissante est la note
+décroissante × −1, `noteDansLeSens`) quand aucune n'est absente, et range
+seulement. Une colonne de stat se note par lecture de sa colonne du
+magasin (`totalDeLaStat`, le nombre que `statTotal` lit sur le candidat),
+sans matérialiser de candidat, et une borne sur une stat se juge de même
+(`valeurAfficheeDeStat`, la seule écriture de cette valeur). À cache
+inchangé, un changement de critère ne réingère plus le magasin ni ne rejuge
+les catégories : seules les notes et l'arbre se refont.
+
 Une publication pour l'écran est l'instantané de sa page : comptes de
 l'arbre, extraction des confirmées du rang demandé, places attendues, soit
 O(log N + 20) ; aucun objet ni ordinal par ligne ne la traverse. Seul

@@ -11,7 +11,8 @@ import { CorpsResolution, type MessageVersResolution, type ReponseResolution, ty
 import type { SearchResult } from './runeBuildOptim';
 import { triDesResultats, type ColonneResultat } from './colonnesResultats';
 import { SENS_PAR_DEFAUT, signeTri, type SensTri } from './tri';
-import { CATEGORIE_LIGNE, NOMBRE_CATEGORIES, SANS_FILTRE, colonneDisponible, copierBornes, dansLaVue, etatDesBornes, filtreDesLignes, valeurAffichee,
+import { CATEGORIE_LIGNE, NOMBRE_CATEGORIES, SANS_FILTRE, colonneDisponible, copierBornes, dansLaVue, estColonneDeStat, etatDesBornes, filtreDesLignes,
+  valeurAffichee, valeurAfficheeDeStat,
   AUCUNE_BORNE, objectifsMontres, type BornesResultats, type EtatBornes, type FiltreLignes } from './filtresResultats';
 
 /** Une ligne pas encore notée : aucune catégorie, hors des comptes. */
@@ -53,24 +54,43 @@ export function noteDansLeSens(note: number | null, sens: SensTri): number | nul
 
 function* ordreCollecteEtapes(candidats: ArrayLike<BuildCandidate>, critere: StatKey | Objective, options: OptionsDeClassement,
   compte?: CompteOrdreDeBase, connues?: NotesConnues, sens: SensTri = SENS_PAR_DEFAUT): Generator<void, OrdreDeBase> {
+  const notes = yield* notesDeCollecteEtapes(candidats, critere, options, compte, connues, sens);
+  return { ordre: yield* rangerNotesEtapes(notes, compte, connues), notes: notes.notes, calculable: notes.calculable };
+}
+
+/** Les notes de base d'un critère ; `nulles` : une note au moins est absente (rangée 0). */
+interface NotesDeCritere { notes: Float64Array; calculable: boolean; nonFini: boolean; nulles: boolean }
+
+/**
+ * `lireStat` : sur un critère de stat, le total que `scoreDuCandidat` lirait
+ * sur ce candidat (`statTotal`), pris dans la colonne au lieu du candidat.
+ */
+function* notesDeCollecteEtapes(candidats: ArrayLike<BuildCandidate>, critere: StatKey | Objective, options: OptionsDeClassement,
+  compte?: CompteOrdreDeBase, connues?: NotesConnues, sens: SensTri = SENS_PAR_DEFAUT, lireStat?: (i: number) => number): Generator<void, NotesDeCritere> {
   const n = candidats.length, notes = new Float64Array(n);
-  let calculable = false, nonFini = false;
+  let calculable = false, nonFini = false, nulles = false;
   for (let i = 0; i < n; i++) {
     // Une note connue ne relit pas le candidat : seule la lecture coûte encore.
     // Elle est déjà dans le sens de la vue (`OrdreAuFil`).
     const connue = connues !== undefined && i < connues.nombre;
-    const note = connue ? connues.note(i) : noteDansLeSens(scoreDuCandidat(candidats[i], critere, options), sens);
+    const note = connue ? connues.note(i) : noteDansLeSens(lireStat ? lireStat(i) : scoreDuCandidat(candidats[i], critere, options), sens);
     if (!connue && compte) compte.notes++;
-    calculable ||= note !== null;
+    calculable ||= note !== null; nulles ||= note === null;
     notes[i] = note ?? 0; nonFini ||= note !== null && !Number.isFinite(note);
     if (!connue || (i & 63) === 0) yield;
   }
+  return { notes, calculable, nonFini, nulles };
+}
+
+/** L'ordre de base de ces notes : tri stable décroissant, ou les tris natifs sous une note non finie. */
+function* rangerNotesEtapes({ notes, calculable, nonFini }: NotesDeCritere, compte?: CompteOrdreDeBase, connues?: NotesConnues): Generator<void, Uint32Array> {
+  const n = notes.length;
   const ordre = Uint32Array.from({ length: n }, (_, i) => i);
-  if (!calculable) return { ordre, notes, calculable };
-  if (nonFini) return { ordre: Uint32Array.from(Array.from(ordre).sort((a, b) => notes[b] - notes[a])), notes, calculable };
+  if (!calculable) return ordre;
+  if (nonFini) return Uint32Array.from(Array.from(ordre).sort((a, b) => notes[b] - notes[a]));
   // Rangé au fil des blocs sur ces mêmes notes, toutes finies : le même ordre stable.
-  if (connues?.ordre && connues.nombre === n && connues.ordre.length === n) return { ordre: connues.ordre, notes, calculable };
-  return { ordre: yield* trierIndicesEtapes(ordre, (a, b) => { if (compte) compte.comparaisons++; return notes[b] - notes[a]; }), notes, calculable };
+  if (connues?.ordre && connues.nombre === n && connues.ordre.length === n) return connues.ordre;
+  return yield* trierIndicesEtapes(ordre, (a, b) => { if (compte) compte.comparaisons++; return notes[b] - notes[a]; });
 }
 
 /** Une plage triée couvre des ordinaux contigus ; les plages fusionnent comme un compteur binaire. */
@@ -318,6 +338,11 @@ export class ClassementCompact {
   // L'ordre de base restreint à la vue, pour le cache vide, refait quand la vue change.
   private baseDeLaVue: { version: number; source: Uint32Array; ordre: Uint32Array } | null = null;
   private versionVue = 0;
+  // Le magasin reflète le cache de la dernière actualisation (aucune
+  // ingestion interrompue), et les catégories celles de `filtre` sur toutes
+  // les lignes.
+  private ingestionEnCours = false;
+  private categoriesFiables = false;
 
   constructor(base: ArrayLike<BuildCandidate>, ordreBase?: Uint32Array, differe = false) {
     this.magasin = new CandidatsCompacts(base, differe);
@@ -343,7 +368,7 @@ export class ClassementCompact {
     const rid = this.magasin.rid(i);
     return (this.notesPresentes[i] === 1 && !Number.isFinite(this.notes[i])) || (rid !== undefined && (!Number.isSafeInteger(rid) || rid < 0));
   }
-  private noter(i: number, score: NoterCompact, base: { notes: Float64Array; calculable: boolean } | null): void {
+  private noter(i: number, score: NoterCompact, base: { notes: Float64Array; calculable: boolean } | null, reclasser = true): void {
     this.travail.controlees++;
     const etat = this.magasin.etat(i);
     // Non résolue, la ligne n'a ni paire, ni relique, ni stats résolues dans le
@@ -356,12 +381,12 @@ export class ClassementCompact {
     if (reprise) this.travail.reprises++;
     else if (note !== null) this.travail.notes++;
     if (etat !== 2 && this.nonFini(i)) this.nonFinis++;
-    this.classer(i);
+    if (reclasser) this.classer(i);
   }
-  /** La catégorie de la ligne sous le filtre courant, et ses comptes. */
-  private classer(i: number): void {
+  /** La catégorie de la ligne sous le filtre courant (ou celle déjà jugée sous ce filtre), et ses comptes. */
+  private classer(i: number, connue?: number): void {
     const etat = this.magasin.etat(i);
-    const categorie = etat === 2 ? CATEGORIE_LIGNE.ecartee : this.filtre.juger(i, etat as 0 | 1);
+    const categorie = connue ?? (etat === 2 ? CATEGORIE_LIGNE.ecartee : this.filtre.juger(i, etat as 0 | 1));
     const avant = this.categories[i];
     if (avant !== NON_JUGEE) this.compteurs[this.etatsJuges[i] * NOMBRE_CATEGORIES + avant]--;
     this.categories[i] = categorie; this.etatsJuges[i] = etat;
@@ -402,7 +427,9 @@ export class ClassementCompact {
     critere?: string, filtre: FiltreLignes = SANS_FILTRE): Generator<void> {
     Object.assign(this.travail, { controlees: 0, notes: 0, reprises: 0, comparaisons: 0, complet: false, repliNonFini: false });
     const autreFiltre = filtre.cle !== this.filtre.cle;
-    this.filtre = filtre;
+    // Les catégories ne valent plus pour ce filtre tant qu'elles ne sont pas rejugées.
+    const categoriesDuFiltre = this.categoriesFiables && !autreFiltre;
+    this.filtre = filtre; this.categoriesFiables = false;
     const base = critere !== undefined && this.notesDeBase?.critere === critere ? this.notesDeBase : null;
     const consecutif = journal && journal.generation === this.generation && journal.version === this.version + 1
       && journal.tailleAvant === this.tailleCache && journal.tailleApres === cache.size;
@@ -419,14 +446,26 @@ export class ClassementCompact {
       if (taille !== cache.size) coherent = false;
     }
     const complet = !coherent || !Object.is(this.contexte, contexte) || this.cacheVide !== (cache.size === 0);
+    // Seul le contexte de notation change (tri, sens, mesure, ordre de base) :
+    // le magasin porte déjà ce cache et chaque ligne sa catégorie sous ce
+    // filtre. L'ingestion rendrait le même état et le jugement la même
+    // catégorie : seules les notes et l'arbre se refont.
+    const renoter = complet && this.memeCache(cache, journal) && !this.ingestionEnCours && categoriesDuFiltre;
     const etaitNonFini = this.nonFinis > 0;
     this.ordreDeReference = undefined; this.referenceComplete = undefined;
-    if (complet) {
+    if (renoter) {
+      // Les catégories ne changent pas : elles restent fiables pendant toute la renotation.
+      this.categoriesFiables = true;
+      this.travail.complet = true; this.ordre.vider(); this.nonFinis = 0;
+      for (let i = 0; i < this.magasin.longueur; i++) { this.noter(i, score, base, false); yield; }
+    } else if (complet) {
+      this.ingestionEnCours = true;
       this.travail.complet = true; this.ordre.vider(); this.nonFinis = 0;
       this.categories.fill(NON_JUGEE); this.compteurs.fill(0); this.versionVue++;
       for (const g of this.magasin.chefs()) { this.magasin.ingerer(g, cache.get(this.magasin.cle(g))); yield; }
       for (let i = 0; i < this.magasin.longueur; i++) { this.noter(i, score, base); yield; }
     } else if (consecutif) {
+      this.ingestionEnCours = true;
       // Retirer sous les anciennes clés avant toute ingestion de groupe.
       for (const c of journal.changements) {
         const g = this.magasin.groupeDeCle(c.cle);
@@ -442,8 +481,10 @@ export class ClassementCompact {
         for (const i of this.magasin.lignesDuGroupe(g)) { this.noter(i, score, base); yield; }
       }
     }
+    this.ingestionEnCours = false;
     // Un autre filtre : les lignes non renotées prennent aussi leur catégorie, et l'arbre se refait.
     if (autreFiltre && !complet) for (let i = 0; i < this.magasin.longueur; i++) { this.classer(i); if ((i & 63) === 0) yield; }
+    this.categoriesFiables = true;
     this.cacheVide = cache.size === 0;
     if (this.nonFinis) {
       this.rangerReference(); this.travail.repliNonFini = true;
@@ -460,6 +501,16 @@ export class ClassementCompact {
     this.tailleCache = cache.size; this.contexte = contexte;
     this.publicationCourante = new WeakSet([cache]);
   }
+  /** Le magasin porte ce cache : aucune écriture depuis la dernière actualisation terminée, aucune ingestion interrompue. */
+  aJour(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined): boolean {
+    return !this.ingestionEnCours && this.memeCache(cache, journal);
+  }
+  /** Le cache est celui de la dernière actualisation terminée : aucune écriture depuis. */
+  private memeCache(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined): boolean {
+    if (!this.publicationCourante.has(cache) || this.tailleCache !== cache.size) return false;
+    return journal ? journal.generation === this.generation && journal.version === this.version && journal.tailleApres === this.tailleCache
+      : this.generation === undefined && this.version === 0;
+  }
 
   /**
    * D'autres bornes, sans renoter : chaque ligne reprend sa catégorie, et
@@ -467,7 +518,7 @@ export class ClassementCompact {
    * Les notes ne changent pas, donc les places des autres non plus.
    */
   *refiltrerEtapes(filtre: FiltreLignes): Generator<void> {
-    this.filtre = filtre;
+    this.filtre = filtre; this.categoriesFiables = false;
     const arbre = this.ordreDeReference === undefined;
     for (let i = 0; i < this.magasin.longueur; i++) {
       if (this.categories[i] === NON_JUGEE) continue;
@@ -478,6 +529,7 @@ export class ClassementCompact {
       if ((i & 63) === 0) yield;
     }
     if (this.referenceComplete) this.ordreDeReference = this.referenceComplete.filter((i) => this.membre(i));
+    this.categoriesFiables = true;
   }
   /** Le filtre que l'index applique (sa clé dit si une vue doit reclasser). */
   get cleFiltre(): string { return this.filtre.cle; }
@@ -661,6 +713,11 @@ export interface PublicationClassement {
   bilan: Omit<SearchResult, 'candidates'> | null;
 }
 
+/** Un critère déjà noté sur une population : ses notes de base, et son ordre une fois rangé. */
+type EntreeDeBase = NotesDeCritere & { cle: string; ordre: Uint32Array | null };
+/** Critères quittés gardés en plus de l'objectif lancé et de la vue : ~12 octets par candidat chacun. */
+const CRITERES_QUITTES_GARDES = 4;
+
 function compteurSuivant(n: number): number {
   if (!Number.isSafeInteger(n) || n >= Number.MAX_SAFE_INTEGER) throw new Error('Compteur du classeur épuisé ; recréer le propriétaire');
   return n + 1;
@@ -714,6 +771,11 @@ export class CorpsClassement {
   private auFilEnAttente = false;
   /** Notes et comparaisons de l'ordre de base de cette recherche, au fil des blocs et au scellé. */
   readonly travail: CompteOrdreDeBase = { notes: 0, comparaisons: 0 };
+  // Les notes et ordres de base déjà calculés sur l'index courant, par critère
+  // (`tri|mesure|sens`) : ils ne lisent que les candidats collectés et le
+  // contexte photographié, sans cache. L'objectif lancé (l'ordre du fond) et
+  // la vue courante sont toujours gardés, avec les derniers critères quittés.
+  private ordresDeBase: { index: ClassementCompact | null; entrees: EntreeDeBase[] } = { index: null, entrees: [] };
 
   constructor(private readonly sorties: {
     publier: (p: InstantaneClassement) => void;
@@ -743,6 +805,7 @@ export class CorpsClassement {
     this.contexte = contexte; this.vue = null; this.flux = new RecepteurCandidats(0); this.lots = [];
     this.index = null; this.fileExhaustive = null; this.base = new Uint32Array(); this.fondPropre = null; this.bilan = null; this.collecteScellee = false;
     this.auFil = []; this.auFilEnAttente = false; this.travail.notes = 0; this.travail.comparaisons = 0;
+    this.ordresDeBase = { index: null, entrees: [] };
     this.versions = { versionSchema: 1, idRecherche, idInventaire: contexte.idInventaire,
       idContexteResolution: this.versions.idContexteResolution, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande };
     this.entrees = null;
@@ -892,19 +955,67 @@ export class CorpsClassement {
   }
   /**
    * D'autres bornes, mêmes notes : l'index reclasse ses lignes sans rien
-   * renoter ni résoudre. Une tâche en cours (tri, actualisation) est reprise
-   * entière, sous les nouvelles bornes.
+   * renoter ni résoudre. Une tâche en cours (tri, actualisation), ou un cache
+   * écrit depuis la dernière actualisation, fait reprendre la vue entière,
+   * sous les nouvelles bornes.
    */
   private refiltrer(): void {
     if (!this.contexte || !this.vue) return;
-    if (this.tache) { this.trierBase(); return; }
     const index = this.index;
+    if (this.tache || (index && !index.aJour(this.cacheLecture(), this.cache.journal))) { this.trierBase(); return; }
     if (!index) return;
     this.programmer(this.refiltrerEtapes(index));
   }
   private *refiltrerEtapes(index: ClassementCompact): Generator<void> {
     yield* index.refiltrerEtapes(this.filtreLignes(index));
     this.sale = true;
+  }
+  /** L'entrée gardée d'un critère sur cet index, remise en dernier (la plus récente). */
+  private entreeDeBase(index: ClassementCompact, cle: string): EntreeDeBase | undefined {
+    if (this.ordresDeBase.index !== index) return undefined;
+    const entrees = this.ordresDeBase.entrees, k = entrees.findIndex((e) => e.cle === cle);
+    if (k < 0) return undefined;
+    const [entree] = entrees.splice(k, 1);
+    entrees.push(entree);
+    return entree;
+  }
+  private garderEntree(index: ClassementCompact, entree: EntreeDeBase): void {
+    if (this.ordresDeBase.index !== index) this.ordresDeBase = { index, entrees: [] };
+    const entrees = this.ordresDeBase.entrees.filter((e) => e.cle !== entree.cle);
+    entrees.push(entree);
+    const vue = this.vue, lance = this.contexte ? cleCritere(this.triDuLancement(), this.contexte.recherche.metric, SENS_PAR_DEFAUT) : '';
+    const gardees = new Set([lance, vue ? cleCritere(vue.tri, vue.metric, sensDe(vue)) : '']);
+    let quittes = entrees.filter((e) => !gardees.has(e.cle)).length;
+    this.ordresDeBase.entrees = entrees.filter((e) => gardees.has(e.cle) || quittes-- <= CRITERES_QUITTES_GARDES);
+  }
+  /**
+   * Les notes de base d'un critère sur cet index : gardées, opposées depuis
+   * le sens contraire (la note croissante est la note décroissante × −1,
+   * `noteDansLeSens`, quand aucune n'est absente), ou calculées — une stat se
+   * lit dans sa colonne (`statTotal` lit le même nombre), les notes au fil
+   * des blocs servent encore.
+   */
+  private *notesDeBaseEtapes(index: ClassementCompact, source: ArrayLike<BuildCandidate>, critere: StatKey | Objective, metric: OptimMetric,
+    sens: SensTri): Generator<void, { entree: EntreeDeBase; connues: NotesConnues | undefined }> {
+    const cle = cleCritere(critere, metric, sens);
+    const gardee = this.entreeDeBase(index, cle);
+    if (gardee) return { entree: gardee, connues: undefined };
+    const oppose = this.entreeDeBase(index, cleCritere(critere, metric, sens === 'asc' ? 'desc' : 'asc'));
+    if (oppose && (!oppose.calculable || !oppose.nulles)) {
+      const entree: EntreeDeBase = { ...oppose, cle, ordre: null, notes: oppose.calculable ? oppose.notes.map((x) => x * -1) : oppose.notes };
+      this.garderEntree(index, entree);
+      return { entree, connues: undefined };
+    }
+    const connues = yield* this.notesConnues(critere, metric, sens, source.length);
+    const lireStat = estColonneDeStat(critere as ColonneResultat) ? (i: number) => index.magasin.totalDeLaStat(i, critere, false) : undefined;
+    const notes = yield* notesDeCollecteEtapes(source, critere, optionsDuContexte(this.contexte!, null, metric), this.travail, connues, sens, lireStat);
+    const entree: EntreeDeBase = { ...notes, cle, ordre: null };
+    this.garderEntree(index, entree);
+    return { entree, connues };
+  }
+  private *ordreDeBaseEtapes(entree: EntreeDeBase, connues: NotesConnues | undefined): Generator<void, Uint32Array> {
+    entree.ordre ??= yield* rangerNotesEtapes(entree, this.travail, connues);
+    return entree.ordre;
   }
   /** Le candidat tel que sa carte le montre : les stats de sa vraie paire quand la file l'a résolu. */
   private ligneAffichee(index: ClassementCompact, i: number): { candidat: BuildCandidate; resultat: ResultatArtefacts | null } {
@@ -918,30 +1029,33 @@ export class CorpsClassement {
     const options = optionsDuContexte(contexte, this.cache, vue.metric);
     const afficherDepassement = depassementDe(vue);
     return filtreDesLignes({ bornes, avecFile, cle: JSON.stringify([cleDesBornes(bornes, afficherDepassement), avecFile, vue.metric]),
-      candidat: (i) => this.ligneAffichee(index, i).candidat, valeur: (colonne, c) => valeurAffichee(colonne, c, options, afficherDepassement) });
+      candidat: (i) => this.ligneAffichee(index, i).candidat, valeur: (colonne, c) => valeurAffichee(colonne, c, options, afficherDepassement),
+      // Une stat se lit dans le magasin, qui porte les stats de la vraie paire d'une ligne vérifiée (`ligneAffichee`) :
+      // l'index ne juge une ligne qu'une fois son équipement ingéré, et un cache écrit depuis fait reclasser toute la vue.
+      valeurDirecte: (colonne, i) => estColonneDeStat(colonne)
+        ? valeurAfficheeDeStat(colonne, index.magasin.totalDeLaStat(i, colonne, avecFile), afficherDepassement) : undefined });
   }
   private *trierBaseEtapes(): Generator<void> {
     if (!this.contexte || !this.vue) return;
     let index = this.index;
-    if (!index || index.magasin.longueur !== this.nombreCible) {
+    const neuf = !index || index.magasin.longueur !== this.nombreCible;
+    if (!index || neuf) {
       const source = candidatsParIndice(this.nombreCible, (i) => this.flux.lire(i));
       index = new ClassementCompact(source, undefined, true);
       yield* index.magasin.initialiser(source);
     }
-    const source = candidatsParIndice(index.magasin.longueur, (i) => index.magasin.candidat(i, false));
-    const n = index.magasin.longueur;
-    const sens = sensDe(this.vue);
-    const deBase = yield* ordreCollecteEtapes(source, this.vue.tri, optionsDuContexte(this.contexte, null, this.vue.metric), this.travail,
-      yield* this.notesConnues(this.vue.tri, this.vue.metric, sens, n), sens);
-    const base = deBase.ordre;
-    index.definirNotesDeBase(cleCritere(this.vue.tri, this.vue.metric, sens), deBase.notes, deBase.calculable);
+    const indexTrie = index;
+    const source = candidatsParIndice(index.magasin.longueur, (i) => indexTrie.magasin.candidat(i, false));
+    const vue = this.vue, contexte = this.contexte, sens = sensDe(vue);
+    const deLaVue = yield* this.notesDeBaseEtapes(index, source, vue.tri, vue.metric, sens);
+    const base = yield* this.ordreDeBaseEtapes(deLaVue.entree, deLaVue.connues);
+    index.definirNotesDeBase(cleCritere(vue.tri, vue.metric, sens), deLaVue.entree.notes, deLaVue.entree.calculable);
     yield* index.definirOrdreBaseEtapes(base);
     let fond = base;
-    if (!this.vueSuitLeLancement(this.vue)) {
-      const objectif = this.triDuLancement(), metric = this.contexte.recherche.metric;
-      fond = this.fondPropre?.index === index ? this.fondPropre.ordre
-        : (yield* ordreCollecteEtapes(source, objectif, optionsDuContexte(this.contexte, null, metric), this.travail,
-          yield* this.notesConnues(objectif, metric, SENS_PAR_DEFAUT, n))).ordre;
+    if (!this.vueSuitLeLancement(vue)) {
+      // L'objectif lancé déjà rangé sur cet index n'est jamais recalculé.
+      const lance = yield* this.notesDeBaseEtapes(index, source, this.triDuLancement(), contexte.recherche.metric, SENS_PAR_DEFAUT);
+      fond = yield* this.ordreDeBaseEtapes(lance.entree, lance.connues);
       this.fondPropre = { index, ordre: fond };
     } else this.fondPropre = null;
     yield* this.actualiserEtapes(index, fond);
@@ -1109,6 +1223,7 @@ export class CorpsClassement {
     this.tache = null; this.nombreCible = 0; this.plages = []; this.reponsesEnAttente = [];
     this.contexte = null; this.vue = null; this.index = null; this.fileExhaustive = null; this.flux.liberer(); this.lots = [];
     this.auFil = []; this.auFilEnAttente = false;
+    this.ordresDeBase = { index: null, entrees: [] };
     this.cache.clear(); this.generationCache = compteurSuivant(this.generationCache); this.entrees = null; this.sale = false;
     for (const m of this.pilote.invalider()) {
       if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m);

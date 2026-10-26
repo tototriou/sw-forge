@@ -371,6 +371,18 @@ export class CandidatsCompacts {
     this.drapeaux[g] = (resultat.paire ? 1 : 0) | (resultat.meilleurSansVerrous !== null ? 2 : 0) | (resultat.sansEffetSurLeTri ? 4 : 0);
   }
 
+  /**
+   * Le total d'une stat tel que `statTotal(candidat(i, resolu).stats, cle)`
+   * le lit (première ligne de cette clé, 0 sans elle), sans matérialiser le
+   * candidat : la même colonne, le même nombre.
+   */
+  totalDeLaStat(i: number, cle: string, resolu = true): number {
+    const j = this.gabarits.findIndex((g) => g.key === cle);
+    if (j < 0) return 0;
+    const g = this.groupes[i] - 1;
+    return resolu && this.etats[g] === 1 ? this.resolus[j][g] : this.totaux[j][i];
+  }
+
   candidat(i: number, resolu = true): BuildCandidate {
     const g = this.groupes[i] - 1;
     const colonnes = resolu && this.etats[g] === 1 ? this.resolus : this.totaux;

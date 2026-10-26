@@ -95,8 +95,35 @@ function installerWorkers() {
     if (chemin.endsWith('/runeBuildOptim.worker.ts')) return new RechercheSimulee();
     const w = new WorkerNatif(url, options);
     if (chemin.endsWith('/classement.worker.ts')) classeurs.push(w);
+    if (chemin.endsWith('/resolution.worker.ts')) relayerResolveur(w);
     return w;
   } as unknown as typeof Worker;
+}
+
+// Le canal classeur ↔ résolveur passe par la page, sans rien changer aux
+// messages : le test peut y retenir les réponses du vrai résolveur, comme des
+// résolutions longues en vol.
+let reponsesLibres = Infinity, reponsesRetenues: unknown[] = [], versClasseur: MessagePort | null = null;
+function relayerResolveur(w: Worker) {
+  const poster = w.postMessage.bind(w) as (m: unknown, t?: Transferable[]) => void;
+  w.postMessage = ((m: { type?: string; port?: MessagePort }, t?: Transferable[]) => {
+    if (m?.type !== 'port' || !m.port) { poster(m, t); return; }
+    const classeur = m.port, relais = new MessageChannel();
+    versClasseur = classeur; reponsesLibres = Infinity; reponsesRetenues = [];
+    classeur.onmessage = (e) => relais.port1.postMessage(e.data);
+    relais.port1.onmessage = (e) => {
+      if (reponsesLibres > 0) { reponsesLibres--; classeur.postMessage(e.data); } else reponsesRetenues.push(e.data);
+    };
+    poster({ type: 'port', port: relais.port2 }, [relais.port2]);
+  }) as typeof w.postMessage;
+}
+
+/** Les `n` prochaines réponses du résolveur passent, les suivantes sont retenues. */
+export function retenirResolutionsApres(n: number) { reponsesLibres = n; }
+/** Une réponse retenue part vers le classeur ; rend le nombre qui reste retenu. */
+export function relacherUneResolution() {
+  if (reponsesRetenues.length && versClasseur) versClasseur.postMessage(reponsesRetenues.shift());
+  return reponsesRetenues.length;
 }
 
 /** `garder` : la conservation acceptée, pour qu'un rechargement relise listes et réglages. */
@@ -150,6 +177,24 @@ export async function gesteNomme(nom: string) {
 
 /** Le panneau du téléphone, comme le bouton de la barre de l'app l'ouvre et le ferme. */
 export async function menuTelephone(ouvert: boolean) { await geste(() => poserMenu(ouvert)); }
+
+/**
+ * Le Worker de classement tombe en faute juste après avoir publié une page au-delà
+ * de la première, entamée et non pleine (des cartes, des places en attente) :
+ * l'écran a reçu cette page, puis perd son classeur.
+ */
+export function perdreClasseurSurPageEntamee() {
+  const w = classeurs[classeurs.length - 1];
+  if (!w?.onerror) throw new Error('Classeur absent');
+  const surMessage = (e: MessageEvent) => {
+    const p = e.data?.type === 'publication' ? e.data.publication : null;
+    if (!p || p.page.premierRang === 1 || p.page.cartes.length === 0 || p.page.placesEnAttente === 0) return;
+    w.removeEventListener('message', surMessage);
+    (w.onerror as (e: ErrorEvent) => void)(new ErrorEvent('error', { message: 'classeur perdu (banc)' }));
+  };
+  // Après le `onmessage` du hook : la page est déjà reçue quand la faute arrive.
+  w.addEventListener('message', surMessage);
+}
 
 /** Le Worker de classement tombe en faute, comme un plantage réel. */
 export async function perdreClasseur() {

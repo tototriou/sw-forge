@@ -129,6 +129,29 @@ async function interrompue(telephone: boolean) {
     const relance = await appel(page, 'releve');
     ok(relance.status === 'done' && !relance.interrompu && relance.classeurs === 2 && relance.recherches === 2,
       `${format} : seul Rechercher crée un nouveau classeur, la page n’est plus interrompue`);
+
+    // Page au-delà des confirmées, entamée (des cartes et des places « Vérification… »),
+    // puis classeur perdu : plus rien ne remplira ces places.
+    for (let i = 0; i < 1200 && (await appel(page, 'releve')).enAttente !== 0; i++) await page.waitForTimeout(25);
+    await appel(page, 'retenirResolutionsApres', 3);
+    await appel(page, 'perdreClasseurSurPageEntamee');
+    const aller = page.getByLabel('Aller à la page');
+    await aller.fill('999'); await aller.press('Tab');
+    // Trois réponses passent sous la cadence de 400 ms ; la suivante, relâchée après, publie la page entamée.
+    await page.waitForTimeout(600);
+    await appel(page, 'relacherUneResolution');
+    for (let i = 0; i < 200 && (await appel(page, 'releve')).status !== 'error'; i++) await page.waitForTimeout(25);
+    const entamee = await appel(page, 'releve');
+    ok(entamee.status === 'error' && entamee.interrompu && (entamee.premierRang ?? 1) > 1 && entamee.cartes.length > 0
+      && entamee.cartes.length < 20 && (entamee.places ?? 0) > 0,
+      `${format} : page ${entamee.resultsPage} interrompue après réception de ${entamee.cartes.length} carte(s) et ${entamee.places} place(s) en attente`);
+    egal(await cartes.count(), entamee.cartes.length, `${format} : la page interrompue non pleine garde ses cartes`);
+    egal([await page.locator('[aria-busy="true"]').count(), await page.getByText('Vérification…', { exact: true }).count()], [0, 0],
+      `${format} : aucune place « Vérification… » sous la page interrompue`);
+    ok(await page.getByText('Classement interrompu : relance la recherche pour agir sur ces résultats.').isVisible(),
+      `${format} : l’avis « Classement interrompu » est visible sur la page non pleine`);
+    ok(await page.getByRole('button', { name: 'Page précédente' }).isDisabled() && await page.getByLabel('Aller à la page').isDisabled(),
+      `${format} : la pagination de la page non pleine est désactivée`);
   } finally { await browser.close(); }
 }
 

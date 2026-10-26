@@ -2300,13 +2300,15 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // `compositionDePage`). Un build reçu de la recherche ne s'affiche pas avec
   // sa paire supposée pour disparaître à la résolution : il apparaît une fois
   // résolu et conforme, ou jamais. Sans file, la tranche du classement.
+  // Classeur perdu : plus rien ne remplira les places, la page interrompue ne
+  // montre que ses cartes.
   const cartes = instantane?.page.cartes ?? AUCUNE_CARTE;
   const composition = useMemo(() => ({
     cartes: cartes.map((c) => c.candidat),
     premierRang: instantane?.page.premierRang ?? 1,
-    placesEnAttente: instantane?.page.placesEnAttente ?? 0,
+    placesEnAttente: interrompu ? 0 : instantane?.page.placesEnAttente ?? 0,
     aVerifier: [],
-  }), [cartes, instantane?.page.premierRang, instantane?.page.placesEnAttente]);
+  }), [cartes, instantane?.page.premierRang, instantane?.page.placesEnAttente, interrompu]);
   const hauteurCarte = useHauteurDesCartes(grilleResultatsRef);
 
   // Base « nue » du monstre choisi pour une stat — 0 tant qu'aucun monstre

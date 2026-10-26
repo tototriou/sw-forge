@@ -256,7 +256,8 @@ page qui revient à 1 parce que le tri ou la mesure a changé n'en demande
 aucune (la mesure, réglage global, remet la page à 1 comme le tri, même
 changée depuis une autre page). Aucune place « Vérification… » ne reste
 sans travail : la page 1 est toujours sous les K confirmées que le fond
-vise, et une page plus loin n'est atteinte qu'en naviguant. Elle montre les confirmées dans le nouvel ordre, puis ses places en
+vise, une page plus loin n'est atteinte qu'en naviguant, et une page
+interrompue n'en montre plus aucune (ci-dessous). Elle montre les confirmées dans le nouvel ordre, puis ses places en
 attente, que le fond (qui vérifie toujours dans l'ordre de l'objectif de la
 recherche) ou une navigation remplissent. Ni l'ordre du fond, ni K, ni la
 résolution ne changent. Le classeur compose la page (cartes, places, builds
@@ -280,8 +281,10 @@ carte remonte de 26 px à 1920 × 940 et 2560 × 1300, de 34 px à la largeur
 minimale de la colonne.
 
 ⚠️ **Page interrompue.** Si le Worker de classement est perdu, le message
-d'échec de recherche s'affiche et la dernière page reçue reste à l'écran,
-telle quelle : la ligne « en vérification » laisse sa place réservée à
+d'échec de recherche s'affiche et la dernière page reçue reste à l'écran :
+ses cartes telles quelles, sans les places « Vérification… » qu'elle
+attendait encore, que plus rien ne remplira — une page non pleine ne montre
+que ses cartes. La ligne « en vérification » laisse sa place réservée à
 l'avis « Classement interrompu : relance la recherche pour agir sur ces
 résultats. », et le tri, la pagination, « Comparer » et « Valider ce
 build » sont désactivés, au bureau comme au téléphone. Le détail d'une

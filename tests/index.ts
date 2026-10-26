@@ -212,6 +212,7 @@ import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testConstructionRapide from './construction-rapide.test';
 import testConstructionColonnes from './construction-colonnes.test';
 import testSerieCoordinateur from './serie-coordinateur.test';
+import testValidationParRune from './validation-par-rune.test';
 import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidatsCredits, testFluxCandidatsApercuFinal, testFluxCandidatsPageLente, testFluxCandidatsReceptionOrdre,
   testFluxCandidatsRefusRecevoir, testFluxCandidatsRefusSceller, testFluxCandidatsRefusResultat, testFluxCandidatsLanceurCommun } from './flux-candidats.test';
 import { testClassementCreditsRelance, testClassementCadenceDifferee, testClassementInstantaneBorne, testClassementMortInactive } from './classement-publication.test';
@@ -732,6 +733,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testConstructionRapide', testConstructionRapide],
   ['testConstructionColonnes', async () => { await testConstructionColonnes(); }],
   ['testSerieCoordinateur', async () => { await testSerieCoordinateur(); }],
+  ['testValidationParRune', testValidationParRune],
   ['testFluxCandidatsCompactOrdre', testFluxCandidatsCompactOrdre],
   ['testFluxCandidatsCoupe', testFluxCandidatsCoupe],
   ['testFluxCandidatsCredits', testFluxCandidatsCredits],

@@ -56,7 +56,13 @@ dont le calcul ignore le pourcentage). Les contributions passent en
 aussi `W`, son tri et sa permutation par compartiment, puis les bornes des
 blocs de 64. Score de rétention, stats non contraintes, comptes et potentiel
 ne sont pas copiés vers les Workers d'appariement. Les tables de validation
-se reconstruisent depuis les identifiants et le pool préparé, sans `HalfCombo`.
+se reconstruisent depuis les identifiants et le pool préparé, sans `HalfCombo`,
+dans chaque Worker : une rune revient dans des centaines de demi-builds, et
+`ValidationTypee` ne lit chaque rune distincte (même objet du pool) qu'une
+fois — contrat, lignes par voie, indice de set, valeur —, puis chaque
+demi-build rejoue les mêmes additions dans le même ordre ; les indices de set
+s'attribuent dans l'ordre de première apparition, comme en lisant chaque
+occurrence (`tests/validation-par-rune.test.ts`).
 
 ## Une stat, un entier
 

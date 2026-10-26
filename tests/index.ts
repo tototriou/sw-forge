@@ -98,6 +98,8 @@ import { testRetraitAdaptationMigrations } from './retrait-adaptation.test';
 import { testTriSansNouvelleResolution, testToutVerifierPhotographie, testPlacesEnAttenteToujoursTravaillees } from './classement-non-relance.test';
 import { testObjectifVitesseMigration } from './objectif-vitesse.test';
 import { testColonnesTriAscendant } from './colonnes-tri.test';
+import { testFiltresResultatsBornes, testFiltresResultatsReversibles, testFiltresResultatsIndetermines, testFiltresResultatsComptesPages,
+  testFiltresResultatsDifferentiel } from './filtres-resultats.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
 import { testOptimizerFormatBig } from './format-big.test';
@@ -895,6 +897,11 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRetraitAdaptationMigrations', testRetraitAdaptationMigrations],
   ['testObjectifVitesseMigration', testObjectifVitesseMigration],
   ['testColonnesTriAscendant', testColonnesTriAscendant],
+  ['testFiltresResultatsBornes', testFiltresResultatsBornes],
+  ['testFiltresResultatsReversibles', testFiltresResultatsReversibles],
+  ['testFiltresResultatsIndetermines', testFiltresResultatsIndetermines],
+  ['testFiltresResultatsComptesPages', testFiltresResultatsComptesPages],
+  ['testFiltresResultatsDifferentiel', testFiltresResultatsDifferentiel],
   ['testTriSansNouvelleResolution', testTriSansNouvelleResolution],
   ['testToutVerifierPhotographie', testToutVerifierPhotographie],
   ['testPlacesEnAttenteToujoursTravaillees', testPlacesEnAttenteToujoursTravaillees],

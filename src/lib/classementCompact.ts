@@ -1,5 +1,5 @@
 import { CandidatsCompacts, RecepteurCandidats, ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs, terminerEtapes, trierIndicesEtapes, type BlocCandidats } from './candidatsCompacts';
-import { candidatAvecSaPaire, cibleDeLaFile, cleBuild, type JournalResolution, type ResultatArtefacts } from './artifactQueue';
+import { candidatAvecSaPaire, cibleDeLaFile, cleBuild, compteConfirmeDesComptes, type JournalResolution, type ResultatArtefacts } from './artifactQueue';
 import { scoreDuCandidat, type BuildCandidate, type Objective, type OptionsDeClassement } from './runeBuildOptim';
 import type { StatKey } from './effects';
 import type { OptimMetric } from './runeOptim';
@@ -11,6 +11,11 @@ import { CorpsResolution, type MessageVersResolution, type ReponseResolution, ty
 import type { SearchResult } from './runeBuildOptim';
 import { triDesResultats, type ColonneResultat } from './colonnesResultats';
 import { SENS_PAR_DEFAUT, signeTri, type SensTri } from './tri';
+import { CATEGORIE_LIGNE, NOMBRE_CATEGORIES, SANS_FILTRE, colonneDisponible, copierBornes, dansLaVue, etatDesBornes, filtreDesLignes, valeurAffichee,
+  AUCUNE_BORNE, type BornesResultats, type EtatBornes, type FiltreLignes } from './filtresResultats';
+
+/** Une ligne pas encore notée : aucune catégorie, hors des comptes. */
+const NON_JUGEE = 255;
 
 /** Adaptation paresseuse : aucun objet par ligne n'est retenu par le propriétaire. */
 export function candidatsParIndice(nombre: number, lire: (i: number) => BuildCandidate): BuildCandidate[] {
@@ -301,12 +306,26 @@ export class ClassementCompact {
   private publicationCourante = new WeakSet<ReadonlyMap<string, ResultatArtefacts>>();
   private ordreBase: Uint32Array;
   private readonly rangBase: Uint32Array;
+  // La catégorie de chaque ligne sous les bornes de la vue (`CATEGORIE_LIGNE`,
+  // NON_JUGEE avant sa première notation) et l'état qu'elle avait alors : les
+  // comptes par état et catégorie se tiennent sans parcours.
+  private readonly categories: Uint8Array;
+  private readonly etatsJuges: Uint8Array;
+  private readonly compteurs = new Float64Array(3 * NOMBRE_CATEGORIES);
+  private filtre: FiltreLignes = SANS_FILTRE;
+  // Le repli des non-finis range toutes les lignes non écartées, la vue en garde une sous-suite.
+  private referenceComplete: number[] | undefined;
+  // L'ordre de base restreint à la vue, pour le cache vide, refait quand la vue change.
+  private baseDeLaVue: { version: number; source: Uint32Array; ordre: Uint32Array } | null = null;
+  private versionVue = 0;
 
   constructor(base: ArrayLike<BuildCandidate>, ordreBase?: Uint32Array, differe = false) {
     this.magasin = new CandidatsCompacts(base, differe);
     this.notes = new Float64Array(base.length);
     this.notesPresentes = new Uint8Array(base.length);
     this.versionsNotes = new Uint32Array(base.length);
+    this.categories = new Uint8Array(base.length).fill(NON_JUGEE);
+    this.etatsJuges = new Uint8Array(base.length);
     this.ordreBase = ordreBase ?? (differe ? new Uint32Array(base.length) : Uint32Array.from({ length: base.length }, (_, i) => i));
     this.rangBase = new Uint32Array(base.length);
     if (!differe) this.ordreBase.forEach((i, rang) => { this.rangBase[i] = rang; });
@@ -337,6 +356,32 @@ export class ClassementCompact {
     if (reprise) this.travail.reprises++;
     else if (note !== null) this.travail.notes++;
     if (etat !== 2 && this.nonFini(i)) this.nonFinis++;
+    this.classer(i);
+  }
+  /** La catégorie de la ligne sous le filtre courant, et ses comptes. */
+  private classer(i: number): void {
+    const etat = this.magasin.etat(i);
+    const categorie = etat === 2 ? CATEGORIE_LIGNE.ecartee : this.filtre.juger(i, etat as 0 | 1);
+    const avant = this.categories[i];
+    if (avant !== NON_JUGEE) this.compteurs[this.etatsJuges[i] * NOMBRE_CATEGORIES + avant]--;
+    this.categories[i] = categorie; this.etatsJuges[i] = etat;
+    this.compteurs[etat * NOMBRE_CATEGORIES + categorie]++;
+    if (dansLaVue(avant) !== dansLaVue(categorie)) this.versionVue++;
+  }
+  /** Dans la vue : visible ou potentielle ; seules ces lignes sont dans l'arbre. */
+  private membre(i: number): boolean { return dansLaVue(this.categories[i]); }
+  private rangerReference(): void {
+    // Même entrée, mêmes expressions, mêmes deux tris natifs que l'oracle, sur
+    // toutes les lignes non écartées ; la vue en garde la sous-suite.
+    const indices = Array.from(this.ordreBase).filter((i) => this.magasin.etat(i) !== 2);
+    indices.sort((a, b) => {
+      const ra = this.magasin.rid(a) ?? Infinity, rb = this.magasin.rid(b) ?? Infinity;
+      if (ra !== rb) return ra - rb;
+      return this.magasin.rangCle(a) - this.magasin.rangCle(b);
+    });
+    if (indices.some((i) => this.notesPresentes[i])) indices.sort((a, b) => this.notes[b] - this.notes[a]);
+    this.referenceComplete = indices;
+    this.ordreDeReference = indices.filter((i) => this.membre(i));
   }
   /** Les notes de l'ordre de base, sans cache, pour ce critère (tri et mesure). */
   definirNotesDeBase(critere: string, notes: Float64Array, calculable: boolean): void {
@@ -344,13 +389,20 @@ export class ClassementCompact {
     this.notesDeBase = { critere, notes, calculable };
   }
 
-  actualiser(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined, contexte: unknown, score: NoterCompact): void {
-    terminerEtapes(this.actualiserEtapes(cache, journal, contexte, score));
+  actualiser(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined, contexte: unknown, score: NoterCompact,
+    filtre: FiltreLignes = SANS_FILTRE): void {
+    terminerEtapes(this.actualiserEtapes(cache, journal, contexte, score, undefined, filtre));
   }
-  /** `critere` désigne le critère de `score` : ses notes de base servent aux lignes non résolues. */
+  /**
+   * `critere` désigne le critère de `score` : ses notes de base servent aux
+   * lignes non résolues. `filtre` classe chaque ligne notée ; un filtre d'une
+   * autre clé reclasse toutes les lignes et refait l'arbre.
+   */
   *actualiserEtapes(cache: ReadonlyMap<string, ResultatArtefacts>, journal: JournalResolution | undefined, contexte: unknown, score: NoterCompact,
-    critere?: string): Generator<void> {
+    critere?: string, filtre: FiltreLignes = SANS_FILTRE): Generator<void> {
     Object.assign(this.travail, { controlees: 0, notes: 0, reprises: 0, comparaisons: 0, complet: false, repliNonFini: false });
+    const autreFiltre = filtre.cle !== this.filtre.cle;
+    this.filtre = filtre;
     const base = critere !== undefined && this.notesDeBase?.critere === critere ? this.notesDeBase : null;
     const consecutif = journal && journal.generation === this.generation && journal.version === this.version + 1
       && journal.tailleAvant === this.tailleCache && journal.tailleApres === cache.size;
@@ -368,9 +420,10 @@ export class ClassementCompact {
     }
     const complet = !coherent || !Object.is(this.contexte, contexte) || this.cacheVide !== (cache.size === 0);
     const etaitNonFini = this.nonFinis > 0;
-    this.ordreDeReference = undefined;
+    this.ordreDeReference = undefined; this.referenceComplete = undefined;
     if (complet) {
       this.travail.complet = true; this.ordre.vider(); this.nonFinis = 0;
+      this.categories.fill(NON_JUGEE); this.compteurs.fill(0); this.versionVue++;
       for (const g of this.magasin.chefs()) { this.magasin.ingerer(g, cache.get(this.magasin.cle(g))); yield; }
       for (let i = 0; i < this.magasin.longueur; i++) { this.noter(i, score, base); yield; }
     } else if (consecutif) {
@@ -381,31 +434,26 @@ export class ClassementCompact {
         for (const i of this.magasin.lignesDuGroupe(g)) {
           if (this.magasin.etat(i) === 2) continue;
           if (this.nonFini(i)) this.nonFinis--;
-          if (!etaitNonFini) this.ordre.retirer(i);
+          // Sous l'ancienne catégorie : l'arbre ne tient que la vue.
+          if (!etaitNonFini && !autreFiltre && this.membre(i)) this.ordre.retirer(i);
           yield;
         }
         this.magasin.ingerer(g, c.apres);
         for (const i of this.magasin.lignesDuGroupe(g)) { this.noter(i, score, base); yield; }
       }
     }
+    // Un autre filtre : les lignes non renotées prennent aussi leur catégorie, et l'arbre se refait.
+    if (autreFiltre && !complet) for (let i = 0; i < this.magasin.longueur; i++) { this.classer(i); if ((i & 63) === 0) yield; }
     this.cacheVide = cache.size === 0;
     if (this.nonFinis) {
-      // Même entrée, mêmes expressions, mêmes deux tris natifs que l'oracle.
-      const indices = Array.from(this.ordreBase).filter((i) => this.magasin.etat(i) !== 2);
-      indices.sort((a, b) => {
-        const ra = this.magasin.rid(a) ?? Infinity, rb = this.magasin.rid(b) ?? Infinity;
-        if (ra !== rb) return ra - rb;
-        return this.magasin.rangCle(a) - this.magasin.rangCle(b);
-      });
-      if (indices.some((i) => this.notesPresentes[i])) indices.sort((a, b) => this.notes[b] - this.notes[a]);
-      this.ordreDeReference = indices; this.travail.repliNonFini = true;
-    } else if (complet || etaitNonFini) {
+      this.rangerReference(); this.travail.repliNonFini = true;
+    } else if (complet || etaitNonFini || autreFiltre) {
       this.ordre.vider();
-      for (let i = 0; i < this.magasin.longueur; i++) { if (this.magasin.etat(i) !== 2) this.ordre.inserer(i); yield; }
+      for (let i = 0; i < this.magasin.longueur; i++) { if (this.membre(i)) this.ordre.inserer(i); yield; }
     } else if (consecutif) {
       for (const c of journal.changements) {
         const g = this.magasin.groupeDeCle(c.cle);
-        if (g !== undefined) for (const i of this.magasin.lignesDuGroupe(g)) { if (this.magasin.etat(i) !== 2) this.ordre.inserer(i); yield; }
+        if (g !== undefined) for (const i of this.magasin.lignesDuGroupe(g)) { if (this.membre(i)) this.ordre.inserer(i); yield; }
       }
     }
     this.generation = journal?.generation; this.version = journal?.version ?? 0;
@@ -413,9 +461,39 @@ export class ClassementCompact {
     this.publicationCourante = new WeakSet([cache]);
   }
 
+  /**
+   * D'autres bornes, sans renoter : chaque ligne reprend sa catégorie, et
+   * seules celles qui entrent dans la vue ou en sortent passent par l'arbre.
+   * Les notes ne changent pas, donc les places des autres non plus.
+   */
+  *refiltrerEtapes(filtre: FiltreLignes): Generator<void> {
+    this.filtre = filtre;
+    const arbre = this.ordreDeReference === undefined;
+    for (let i = 0; i < this.magasin.longueur; i++) {
+      if (this.categories[i] === NON_JUGEE) continue;
+      const avant = this.membre(i);
+      this.classer(i);
+      const apres = this.membre(i);
+      if (arbre && avant !== apres) { if (avant) this.ordre.retirer(i); else this.ordre.inserer(i); }
+      if ((i & 63) === 0) yield;
+    }
+    if (this.referenceComplete) this.ordreDeReference = this.referenceComplete.filter((i) => this.membre(i));
+  }
+  /** Le filtre que l'index applique (sa clé dit si une vue doit reclasser). */
+  get cleFiltre(): string { return this.filtre.cle; }
+  /** L'ordre de base de la vue (cache vide) : les lignes de la vue, dans l'ordre de base. */
+  private ordreBaseDeLaVue(): Uint32Array {
+    let horsDeLaVue = 0;
+    for (let k = 0; k < this.compteurs.length; k++) if (!dansLaVue(k % NOMBRE_CATEGORIES)) horsDeLaVue += this.compteurs[k];
+    if (horsDeLaVue === 0) return this.ordreBase;
+    if (this.baseDeLaVue?.version !== this.versionVue || this.baseDeLaVue.source !== this.ordreBase) {
+      this.baseDeLaVue = { version: this.versionVue, source: this.ordreBase, ordre: this.ordreBase.filter((i) => this.membre(i)) };
+    }
+    return this.baseDeLaVue.ordre;
+  }
   invalider(): void { this.contexte = {}; }
   page(debut: number, taille: number): number[] {
-    if (this.cacheVide) return Array.from(this.ordreBase.slice(debut, debut + taille));
+    if (this.cacheVide) return Array.from(this.ordreBaseDeLaVue().slice(debut, debut + taille));
     return this.ordreDeReference?.slice(debut, debut + taille) ?? this.ordre.page(debut, taille);
   }
   comptes(): { total: number; confirmes: number; potentiels: number } {
@@ -424,6 +502,11 @@ export class ClassementCompact {
     return { total: this.ordreDeReference.length, confirmes, potentiels: this.ordreDeReference.length - confirmes };
   }
   note(i: number): number | null { return this.notesPresentes[i] ? this.notes[i] : null; }
+  categorie(i: number): number { return this.categories[i]; }
+  /** Lignes reçues par état (0 non vérifiée, 1 vérifiée conforme, 2 écartée) et par catégorie : `[état][catégorie]`. */
+  comptesParCategorie(): number[][] {
+    return [0, 1, 2].map((etat) => Array.from(this.compteurs.subarray(etat * NOMBRE_CATEGORIES, (etat + 1) * NOMBRE_CATEGORIES)));
+  }
   /** Les confirmées de rang `debut` à `debut + taille − 1` parmi les confirmées, dans l'ordre du classement. */
   pageConfirmees(debut: number, taille: number): number[] {
     if (this.cacheVide) return [];
@@ -431,7 +514,7 @@ export class ClassementCompact {
     return this.ordre.page(debut, taille, 'confirmes');
   }
   enAttente(taille: number): number[] {
-    if (this.cacheVide) return Array.from(this.ordreBase.slice(0, taille));
+    if (this.cacheVide) return Array.from(this.ordreBaseDeLaVue().slice(0, taille));
     if (this.ordreDeReference) return this.ordreDeReference.filter((i) => this.magasin.etat(i) === 0).slice(0, taille);
     return this.ordre.page(0, taille, 'potentiels');
   }
@@ -458,6 +541,12 @@ export interface VueClassement {
   sens?: SensTri;
   metric: OptimMetric;
   page: number;
+  /**
+   * Les filtres d'affichage : un minimum et un maximum par colonne, `null` ou
+   * absent = sans borne (filtresResultats.ts). Absent = aucune borne. Ils
+   * masquent sans rien perdre : ni note, ni cache, ni résolution.
+   */
+  bornes?: BornesResultats;
 }
 const sensDe = (vue: VueClassement): SensTri => vue.sens ?? SENS_PAR_DEFAUT;
 /** Critère, mesure et sens d'un ordre de base ; leur clé nomme ses notes. */
@@ -496,11 +585,47 @@ export interface ComptesClassement {
   /** Une file vérifie l'équipement (optimisation d'artéfacts active). */
   avecFile: boolean;
 }
+/**
+ * Les comptes sous les bornes de la vue. Globaux : ceux de la recherche, que
+ * les bornes ne changent pas ; sans file, tout reçu non écarté compte comme
+ * confirmé (ses valeurs sont définitives). De la vue : les catégories de
+ * `CATEGORIE_LIGNE`. Identités : visibles + masqués + indéterminés =
+ * confirmés globaux ; potentiels + non vérifiés masqués = non vérifiés
+ * globaux ; confirmés + non vérifiés + écartés = reçus.
+ */
+export interface ComptesDeLaVue {
+  /** Candidats reçus du moteur jusqu'ici (tout le flux, au-delà de l'aperçu). */
+  trouvesMoteur: number;
+  /** Reçus classés par la vue : l'aperçu, puis tous. */
+  recusActifs: number;
+  ecartesResolution: number;
+  confirmesGlobaux: number;
+  nonVerifiesGlobaux: number;
+  visiblesConfirmes: number;
+  masquesConfirmes: number;
+  potentielsNonVerifies: number;
+  /** Non vérifiés en échec démontré sur une colonne que la résolution ne change pas. */
+  masquesNonVerifies: number;
+  indeterminesNumeriques: number;
+}
+export interface FiltrePublie {
+  bornes: { actives: ColonneResultat[]; inactives: ColonneResultat[]; contradictoires: ColonneResultat[] };
+  comptes: ComptesDeLaVue;
+  /** Pages de la vue filtrée, règle des confirmées (`compteConfirmeDesComptes`). */
+  pages: number;
+  /**
+   * `bornes-contradictoires` : un minimum dépasse son maximum ;
+   * `aucune-sous-filtre` : recherche scellée, ni potentiel ni indéterminé,
+   * au moins un build masqué. Jamais « aucune combinaison » de la recherche.
+   */
+  vide: 'bornes-contradictoires' | 'aucune-sous-filtre' | null;
+}
 /** Tout ce que la page reçoit : jamais un objet ni un ordinal par build trouvé. */
 export interface InstantaneClassement {
   versions: VersionsClassement;
   vue: VueClassement;
   comptes: ComptesClassement;
+  filtre: FiltrePublie;
   page: { premierRang: number; cartes: CarteClassement[]; placesEnAttente: number };
   enAttente: number;
   /** Panne du résolveur reprise dans le classeur, s'il y en a eu une. */
@@ -545,6 +670,8 @@ export class CorpsClassement {
   private signature = '';
   private contexte: ContexteResultat | null = null;
   private vue: VueClassement | null = null;
+  // Les bornes de la vue, validées et rangées ; inactives sur une colonne sans valeur.
+  private bornes: EtatBornes = AUCUNE_BORNE;
   private versions: VersionsClassement = { versionSchema: 1, idRecherche: 0, idInventaire: 0, idContexteResolution: 0, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande: 0 };
   private bilan: Omit<SearchResult, 'candidates'> | null = null;
   private collecteScellee = false;
@@ -709,7 +836,10 @@ export class CorpsClassement {
   changerVue(vue: VueClassement, idVue: number, idDemande: number): void {
     if (!this.contexte || idVue <= this.versions.idVue) return;
     if (!Number.isSafeInteger(idVue) || !Number.isSafeInteger(idDemande) || !Number.isSafeInteger(vue.page) || vue.page < 1) throw new Error('Vue de classement invalide');
+    const realDamage = this.contexte.realDamage;
+    const bornes = etatDesBornes(vue.bornes, (c) => colonneDisponible(c, realDamage));
     const avant = this.vue;
+    const autresBornes = avant !== null && JSON.stringify(bornes) !== JSON.stringify(this.bornes);
     // Le régime suit l'objectif photographié : seule l'ouverture le pose.
     const entrees = avant ? this.entrees : resolutionDuContexte(this.contexte);
     if (!avant && entrees) {
@@ -718,10 +848,12 @@ export class CorpsClassement {
     }
     // Tri, sens ou mesure : un autre classement.
     const autreCritere = !avant || avant.tri !== vue.tri || avant.metric !== vue.metric || sensDe(avant) !== sensDe(vue);
+    // Des bornes, comme un tri, ne demandent aucune page : seule la navigation en demande une.
     if (!avant) this.pagePrioritaire = true;
-    else if (autreCritere) this.pagePrioritaire = false;
+    else if (autreCritere || autresBornes) this.pagePrioritaire = false;
     else if (avant.page !== vue.page || avant.pageImprimee !== vue.pageImprimee) this.pagePrioritaire = true;
-    this.vue = { ...vue }; this.versions.idVue = idVue; this.versions.idDemande = idDemande;
+    this.vue = { ...vue, ...(vue.bornes ? { bornes: copierBornes(vue.bornes) } : {}) };
+    this.bornes = bornes; this.versions.idVue = idVue; this.versions.idDemande = idDemande;
     if (autreCritere) {
       // Le critère quitté ne sert plus ; le nouveau se prépare sur tout le reçu.
       const cles = new Set(this.criteresDeBase().map(([c, m, s]) => cleCritere(c, m, s)));
@@ -729,6 +861,7 @@ export class CorpsClassement {
     }
     if (!this.contexte.toutVerifier) this.fileExhaustive = null;
     if (autreCritere) this.trierBase();
+    else if (autresBornes) this.refiltrer();
     // Un geste de vue se publie dès que son instantané est prêt (fin du tri
     // éventuel), sans attendre les 400 ms du fond : retenu, il n'attendrait que
     // le prochain message du résolveur, et l'écran garderait l'ancienne page
@@ -739,6 +872,35 @@ export class CorpsClassement {
     if (!this.contexte || !this.vue) return;
     this.index?.invalider();
     this.programmer(this.trierBaseEtapes());
+  }
+  /**
+   * D'autres bornes, mêmes notes : l'index reclasse ses lignes sans rien
+   * renoter ni résoudre. Une tâche en cours (tri, actualisation) est reprise
+   * entière, sous les nouvelles bornes.
+   */
+  private refiltrer(): void {
+    if (!this.contexte || !this.vue) return;
+    if (this.tache) { this.trierBase(); return; }
+    const index = this.index;
+    if (!index) return;
+    this.programmer(this.refiltrerEtapes(index));
+  }
+  private *refiltrerEtapes(index: ClassementCompact): Generator<void> {
+    yield* index.refiltrerEtapes(this.filtreLignes(index));
+    this.sale = true;
+  }
+  /** Le candidat tel que sa carte le montre : les stats de sa vraie paire quand la file l'a résolu. */
+  private ligneAffichee(index: ClassementCompact, i: number): { candidat: BuildCandidate; resultat: ResultatArtefacts | null } {
+    const brut = index.magasin.candidat(i, false);
+    const resultat = this.entrees !== null ? this.cache.get(cleBuild(brut)) ?? null : null;
+    return { candidat: resultat ? { ...brut, stats: resultat.stats } : brut, resultat };
+  }
+  /** Le filtre des bornes de la vue sur cet index : la valeur que la carte écrit, avec les options du classement affiché. */
+  private filtreLignes(index: ClassementCompact): FiltreLignes {
+    const contexte = this.contexte!, vue = this.vue!, bornes = this.bornes, avecFile = this.entrees !== null;
+    const options = optionsDuContexte(contexte, this.cache, vue.metric);
+    return filtreDesLignes({ bornes, avecFile, cle: JSON.stringify([bornes.actives, bornes.contradictoires, avecFile, vue.metric]),
+      candidat: (i) => this.ligneAffichee(index, i).candidat, valeur: (colonne, c) => valeurAffichee(colonne, c, options) });
   }
   private *trierBaseEtapes(): Generator<void> {
     if (!this.contexte || !this.vue) return;
@@ -783,7 +945,7 @@ export class CorpsClassement {
     // Un changement de tri ou de mesure remplace cette tâche : le critère capturé reste celui de la vue.
     const { tri, metric } = this.vue, sens = sensDe(this.vue);
     yield* index.actualiserEtapes(this.cacheLecture(), this.cache.journal, `${this.versions.idRecherche}:${cleCritere(tri, metric, sens)}:${this.versions.idContexteResolution}`,
-      (c) => noteDansLeSens(scoreDuCandidat(c, tri, options), sens), cleCritere(tri, metric, sens));
+      (c) => noteDansLeSens(scoreDuCandidat(c, tri, options), sens), cleCritere(tri, metric, sens), this.filtreLignes(index));
     yield* this.actualiserSelectionEtapes(index, fond);
     this.versionLue = this.cache.journal?.version ?? -1;
   }
@@ -965,16 +1127,38 @@ export class CorpsClassement {
     const avecEhp = objectif === 'ehp' || vue.tri === 'ehp';
     const avecDegats = contexte.realDamage !== null && (objectif === 'degats_reels' || vue.tri === 'degats_reels');
     const cartes = ordinaux.map((i): CarteClassement => {
-      const brut = index!.magasin.candidat(i, false);
-      const resultat = avecFile ? this.cache.get(cleBuild(brut)) ?? null : null;
-      const candidat = resultat ? { ...brut, stats: resultat.stats } : brut;
+      const { candidat, resultat } = this.ligneAffichee(index!, i);
       return { ordinal: i, candidat, resultat,
         pvEffectifs: avecEhp ? scoreDuCandidat(candidat, 'ehp', options) : null,
         degatsReels: avecDegats ? scoreDuCandidat(candidat, 'degats_reels', options) : null };
     });
+    // Les comptes de la recherche ne suivent pas les bornes : ceux de la vue vont dans `filtre`.
+    const parCategorie = index?.comptesParCategorie() ?? [0, 1, 2].map(() => new Array<number>(NOMBRE_CATEGORIES).fill(0));
+    const [, confirmees, ecartes] = parCategorie.map((ligne) => ligne.reduce((s, n) => s + n, 0));
     return { versions: { ...this.versions }, vue: { ...vue },
-      comptes: { recus, affichables: total, resolus: recus - total + confirmes, confirmees: confirmes, avecFile },
+      comptes: { recus, affichables: recus - ecartes, resolus: confirmees + ecartes, confirmees, avecFile },
+      filtre: this.filtrePublie(parCategorie, total, confirmes, avecFile, recus),
       page: { premierRang: debut + 1, cartes, placesEnAttente: places }, enAttente, incident: this.incident, bilan: this.bilan };
+  }
+  private filtrePublie(parCategorie: number[][], total: number, confirmes: number, avecFile: boolean, recus: number): FiltrePublie {
+    const [nonVerifies, confirmees, ecartes] = parCategorie.map((ligne) => ligne.reduce((s, n) => s + n, 0));
+    const de = (categorie: number) => parCategorie[0][categorie] + parCategorie[1][categorie];
+    const comptes: ComptesDeLaVue = {
+      trouvesMoteur: this.flux.longueur, recusActifs: recus, ecartesResolution: ecartes,
+      // Sans file, l'équipement est celui de la fiche : tout reçu a ses valeurs définitives.
+      confirmesGlobaux: avecFile ? confirmees : confirmees + nonVerifies, nonVerifiesGlobaux: avecFile ? nonVerifies : 0,
+      visiblesConfirmes: de(CATEGORIE_LIGNE.visible), masquesConfirmes: de(CATEGORIE_LIGNE.masquee),
+      potentielsNonVerifies: de(CATEGORIE_LIGNE.potentielle), masquesNonVerifies: de(CATEGORIE_LIGNE.masqueeNonVerifiee),
+      indeterminesNumeriques: de(CATEGORIE_LIGNE.indeterminee),
+    };
+    const b = this.bornes;
+    const vide = b.contradictoires.length ? 'bornes-contradictoires'
+      : b.actives.length && this.collecteScellee && comptes.visiblesConfirmes + comptes.potentielsNonVerifies + comptes.indeterminesNumeriques === 0
+        && comptes.masquesConfirmes + comptes.masquesNonVerifies > 0 ? 'aucune-sous-filtre' : null;
+    // La règle des pages des confirmées, sur la vue filtrée : confirmées visibles et potentiels.
+    const pages = compteConfirmeDesComptes({ recus: total, resolus: confirmes, confirmees: confirmes, avecFile, trouves: total,
+      taillePage: TAILLE_PAGE_CLASSEMENT, termine: false }).pages;
+    return { bornes: { actives: b.actives.map((a) => a.colonne), inactives: [...b.inactives], contradictoires: [...b.contradictoires] }, comptes, pages, vide };
   }
   /**
    * La projection objet complète de l'état courant : candidats, ordre de base,

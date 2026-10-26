@@ -332,6 +332,65 @@ changement de vue deviendrait une nouvelle vérification. Une mémoire de
 membre ou une session qui porte encore ce réglage est relue sans lui, sans
 avertissement.
 
+## Filtres d'affichage par colonne
+
+Les résultats se filtrent **après coup**, colonne par colonne : une borne
+minimum et une borne maximum sur chacune des onze colonnes (PV, ATQ, DEF,
+VIT, Taux Crit, Dmg Crit, RES, Précision, Efficience, Dégâts réels, PV
+effectifs). Ce sont des filtres d'affichage, séparés des conditions de
+recherche : ils ne deviennent jamais une condition, ne relancent rien et ne
+résolvent aucun équipement. La vue envoyée au classeur les porte
+(`VueClassement.bornes`, filtresResultats.ts) ; le classeur filtre **avant
+de paginer**. La forme des contrôles à l'écran n'est pas encore posée :
+l'écran actuel n'envoie aucune borne.
+
+- **Règle.** Bornes inclusives, combinées par ET ; une borne vide
+  (`null`) = sans borne. Un minimum plus grand que le maximum sur une même
+  colonne donne une **vue vide signalée** (`bornes-contradictoires`), sans
+  correction silencieuse. Une borne sur une colonne indisponible — « Dégâts
+  réels » sans sort calculable — est **inactive** : elle reste dans la vue,
+  listée à part, et ne masque rien.
+- **La valeur comparée est celle de la carte, arrondie comme la carte
+  l'écrit**, par la même fonction (valeursAffichees.ts) : une carte qui
+  affiche « 78.8% » passe une borne ≥ 78.8. Les huit stats : le total de la
+  fiche avec la vraie paire et la relique retenue (`row.total`, un entier,
+  que la carte écrit tel quel ; sans les points de combat, comme les
+  conditions). Efficience : la moyenne par rune de la carte, une décimale en
+  Efficience ou un entier en Score SW, suivant la mesure de la vue. Dégâts
+  réels et PV effectifs : le chiffre de la carte (`scoreDuCandidat` du
+  classement), arrondi à l'entier. ⚠️ En mode « total », la carte plafonne
+  Taux Crit, RES et Précision à 100 quand « afficher au-delà du plafond »
+  est coupé ; la borne compare le total brut, comme les conditions.
+- **Un build non vérifié n'est jamais jugé sur ses stats provisoires** :
+  sa paire et sa relique peuvent encore changer PV, ATQ, DEF et les deux
+  objectifs. Il reste « potentiel » (il garde sa place dans la pagination et
+  peut être vérifié), sauf échec démontré sur une colonne que la résolution
+  ne change pas : VIT, Taux Crit, Dmg Crit, RES, Précision et Efficience
+  (`COLONNES_IMMUABLES` : une principale d'artéfact ou de relique ne porte
+  que PV, ATQ ou DEF). Sans optimisation d'artéfacts, pas de file : les
+  valeurs de chaque build reçu sont définitives et jugées toutes.
+- **Une valeur `NaN` sous une borne active** rend le build **indéterminé**
+  — ni affiché, ni masqué, compté à part ; sans borne sur cette colonne, il
+  s'affiche comme avant. Les infinis se comparent normalement.
+- **Comptes** (instantané, `filtre.comptes`) : trouvés par le moteur, reçus,
+  écartés à la résolution, confirmés et non vérifiés (globaux, que les
+  filtres ne changent pas ; sans file, tout reçu compte comme confirmé),
+  puis, pour la vue, confirmés visibles, confirmés masqués, potentiels non
+  vérifiés, non vérifiés masqués (échec démontré) et indéterminés. Les
+  pages suivent la règle des confirmées (§ Compte des combinaisons
+  confirmées et pagination) sur la vue filtrée : confirmées visibles et
+  potentiels (`filtre.pages`). Une **absence définitive sous filtre**
+  (`aucune-sous-filtre`) n'est dite que recherche finie, sans potentiel ni
+  indéterminé, avec au moins un build masqué : ce n'est pas « Aucune
+  combinaison… », qui reste le constat sur la recherche entière.
+- **Un filtre ne perd rien.** Poser, changer ou relâcher une borne ne
+  renote pas, ne vide pas le cache et ne retire aucun équipement : relâcher
+  rend exactement les mêmes builds, dans le même ordre, avec le même
+  équipement ; une borne plus large que la recherche n'ajoute rien. Comme un
+  changement de tri, il ne donne pas la priorité à la page affichée : seule
+  une page demandée en naviguant la reprend, et le fond continue dans
+  l'ordre de l'objectif lancé.
+
 ## Valeur d'objectif affichée sur les cartes
 
 ⚠️ **Objectif « Dégâts réels »** : chaque carte affiche en tête le

@@ -350,7 +350,7 @@ import { testRenduBarreSession } from './rendu/barre-session.test';
 import { testRenduChangementCompte } from './rendu/changement-compte.test';
 import { testRenduIcones } from './rendu/icones.test';
 import { testRenduAttaqueConjointeEcran } from './rendu/attaque-conjointe-ecran.test';
-import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense, testRenduRecosTicks, testRenduRecosAnnulerEdition } from './rendu/recos.test';
+import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense, testRenduRecosTicks, testRenduRecosAnnulerEdition, testRenduRecosStatsEnTotal } from './rendu/recos.test';
 import testAnnulerEdition from './annuler-edition.test';
 import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testRenduRunesComparaison, testRenduRunesOptimisation, testRenduRunesAVenir, testRenduRunesFiltresLigne, testRenduRunesTriOnglets, testRenduRunesResumeSouris, testRenduRunesListeSouris, testRenduRunesVuesSouris } from './rendu/runes.test';
 import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompteArtefactsListe, testRenduCompteSouris, testRenduCompteEffacerFiltres } from './rendu/compte.test';
@@ -510,6 +510,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduRecosEdition', testRenduRecosEdition],
   ['testRenduRecosVueDefense', testRenduRecosVueDefense],
   ['testRenduRecosTicks', testRenduRecosTicks],
+  ['testRenduRecosStatsEnTotal', testRenduRecosStatsEnTotal],
   ['testRenduRecosAnnulerEdition', testRenduRecosAnnulerEdition],
   ['testAnnulerEdition', testAnnulerEdition],
   ['testRenduRunesResume', testRenduRunesResume],

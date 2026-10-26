@@ -2717,6 +2717,7 @@ export function StatEditor({
         return (
           <div
             key={st.key}
+            data-stat-reco={st.key}
             className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/40 py-1 text-micro last:border-0"
           >
             <span className="w-14 flex-none text-ink-dim">{st.label}</span>
@@ -2724,7 +2725,8 @@ export function StatEditor({
               {known != null ? fmtStat(known) : '—'}
             </span>
             <span className="flex flex-none items-center gap-1">
-              <span className="font-mono text-micro text-good/70">+</span>
+              {/* « + » : un bonus qui s'ajoute à la base ; pas pour une stat saisie en total. */}
+              {avecBase && <span className="font-mono text-micro text-good/70">+</span>}
               {/* Champ texte (et non `type=number`) : pas de boutons +/- à
                   droite, qui mangent la largeur d'une colonne déjà étroite.
                   `inputMode=numeric` garde le pavé numérique sur mobile.

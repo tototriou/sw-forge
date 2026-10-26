@@ -61,6 +61,8 @@ import {
 export const TAILLE_BLOC = 64;
 /** La dichotomie est prise quand la stat la plus sélective laisse au plus `n / FACTEUR_DICHOTOMIE` comboB. */
 export const FACTEUR_DICHOTOMIE = 4;
+/** Taille d'un bloc de l'ordre TRIÉ d'une stat (dichotomie), pour le saut par bloc dans cet ordre. */
+export const TAILLE_BLOC_TRI = 16;
 
 // Bornes du contrat numérique : valeurs entières, produits
 // `b × p` exacts en Float64 avec une large marge, `W` dans un Int32.
@@ -192,6 +194,15 @@ export interface MoitieBTypee extends MoitieTypee {
   debutBlocs: Int32Array;
   blocMin: Int32Array;
   blocMax: Int32Array;
+  /**
+   * L'ordre trié de chaque stat `s` (`perm`) découpé en blocs de `TAILLE_BLOC_TRI` :
+   * `debutBlocsTri[i]` est le premier bloc trié du compartiment `i` (`nb` blocs par stat),
+   * `triBlocMin`/`triBlocMax[(m·debutBlocsTri[i] + s·nb + bloc)·m + k]` les bornes de `W_k`
+   * sur les comboB de ce bloc.
+   */
+  debutBlocsTri: Int32Array;
+  triBlocMin: Int32Array;
+  triBlocMax: Int32Array;
 }
 
 export interface CompartimentsTypes {
@@ -205,7 +216,10 @@ export interface CompartimentsTypes {
 /** Les tampons d'un `CompartimentsTypes`, pour un transfert (`Transferable`). */
 export function tamponsDe(ct: CompartimentsTypes): ArrayBuffer[] {
   const { A, B } = ct;
-  return [A.debut, A.ids, A.indicesPct, A.pct, A.flat, B.debut, B.ids, B.indicesPct, B.pct, B.flat, B.W, B.tri, B.perm, B.debutBlocs, B.blocMin, B.blocMax].map(
+  return [
+    A.debut, A.ids, A.indicesPct, A.pct, A.flat, B.debut, B.ids, B.indicesPct, B.pct, B.flat, B.W, B.tri, B.perm, B.debutBlocs, B.blocMin, B.blocMax,
+    B.debutBlocsTri, B.triBlocMin, B.triBlocMax,
+  ].map(
     (t) => t.buffer as ArrayBuffer
   );
 }
@@ -221,6 +235,7 @@ export function copierCompartiments(ct: CompartimentsTypes): CompartimentsTypes 
     B: {
       debut: c(B.debut), ids: B.ids.slice(), pasPct: B.pasPct, indicesPct: B.indicesPct.slice(), pct: c(B.pct), flat: c(B.flat), W: c(B.W), tri: c(B.tri), perm: c(B.perm),
       debutBlocs: c(B.debutBlocs), blocMin: c(B.blocMin), blocMax: c(B.blocMax),
+      debutBlocsTri: c(B.debutBlocsTri), triBlocMin: c(B.triBlocMin), triBlocMax: c(B.triBlocMax),
     },
   };
 }
@@ -396,9 +411,15 @@ export function encoderCompartiments(prepared: PreparedSearch, bucketsA: Compart
   const nBlocs = debutBlocs[bucketsB.length];
   const blocMin = new Int32Array(m * nBlocs);
   const blocMax = new Int32Array(m * nBlocs);
+  const debutBlocsTri = new Int32Array(bucketsB.length + 1);
+  for (let i = 0; i < bucketsB.length; i++) debutBlocsTri[i + 1] = debutBlocsTri[i] + Math.ceil((base.debut[i + 1] - base.debut[i]) / TAILLE_BLOC_TRI);
+  const nBlocsTri = debutBlocsTri[bucketsB.length];
+  const triBlocMin = new Int32Array(m * nBlocsTri * m);
+  const triBlocMax = new Int32Array(m * nBlocsTri * m);
   for (let i = 0; i < bucketsB.length; i++) {
     const off = base.debut[i];
     const n = base.debut[i + 1] - off;
+    const nbTri = debutBlocsTri[i + 1] - debutBlocsTri[i];
     for (let kk = 0; kk < m; kk++) {
       const seg = m * off + kk * n;
       const idx = Array.from({ length: n }, (_, j) => j);
@@ -406,6 +427,22 @@ export function encoderCompartiments(prepared: PreparedSearch, bucketsA: Compart
       for (let p = 0; p < n; p++) {
         perm[seg + p] = idx[p];
         tri[seg + p] = W[(off + idx[p]) * m + kk];
+      }
+      // Bornes de chaque stat sur les blocs de l'ordre trié de `kk`.
+      const segTri = m * debutBlocsTri[i] + kk * nbTri;
+      for (let blk = 0; blk < nbTri; blk++) {
+        const fin = Math.min(n, (blk + 1) * TAILLE_BLOC_TRI);
+        for (let k = 0; k < m; k++) {
+          let lo = Infinity;
+          let hi = -Infinity;
+          for (let p = blk * TAILLE_BLOC_TRI; p < fin; p++) {
+            const w = W[(off + idx[p]) * m + k];
+            if (w < lo) lo = w;
+            if (w > hi) hi = w;
+          }
+          triBlocMin[(segTri + blk) * m + k] = lo;
+          triBlocMax[(segTri + blk) * m + k] = hi;
+        }
       }
       for (let blk = 0; blk * TAILLE_BLOC < n; blk++) {
         let lo = Infinity;
@@ -421,7 +458,7 @@ export function encoderCompartiments(prepared: PreparedSearch, bucketsA: Compart
       }
     }
   }
-  return { cles, m, A, B: { ...base, W, tri, perm, debutBlocs, blocMin, blocMax } };
+  return { cles, m, A, B: { ...base, W, tri, perm, debutBlocs, blocMin, blocMax, debutBlocsTri, triBlocMin, triBlocMax } };
 }
 
 /* --------------------------------------------------------------------------
@@ -475,10 +512,12 @@ export interface CompteursNoyau {
   lignesDichotomie: number;
   lignesLineaires: number;
   blocsSautes: number;
+  /** Blocs de l'ordre trié écartés pendant une dichotomie. */
+  blocsTriesSautes: number;
   gardeRejets: number;
 }
 
-export const compteursVides = (): CompteursNoyau => ({ lignesSautees: 0, lignesDichotomie: 0, lignesLineaires: 0, blocsSautes: 0, gardeRejets: 0 });
+export const compteursVides = (): CompteursNoyau => ({ lignesSautees: 0, lignesDichotomie: 0, lignesLineaires: 0, blocsSautes: 0, blocsTriesSautes: 0, gardeRejets: 0 });
 
 /**
  * Les comboB du compartiment B `ib` qui franchissent les seuils de la ligne,
@@ -546,22 +585,44 @@ export function survivantsLigne(
   if (forcer === 'dichotomie' || (forcer !== 'lineaire' && meilleurCompte * FACTEUR_DICHOTOMIE <= n)) {
     // 2. Dichotomie : seuls les comboB qui passent la stat la plus sélective
     // (elle-même n'est plus à tester), testés sur les autres, puis remis dans
-    // l'ordre d'origine.
+    // l'ordre d'origine. Un bloc de son ordre trié est sauté dès qu'une autre
+    // stat l'exclut tout entier : ses bornes couvrent le bloc entier, donc
+    // aussi la part du bloc qui tombe dans l'intervalle.
     compteurs.lignesDichotomie++;
     const seg = m * off + meilleure * n;
-    for (let p = meilleurDebut; p < meilleurDebut + meilleurCompte; p++) {
-      const j = B.perm[seg + p];
-      const base = (off + j) * m;
-      let passe = true;
+    const nbTri = B.debutBlocsTri[ib + 1] - B.debutBlocsTri[ib];
+    const segTri = m * B.debutBlocsTri[ib] + meilleure * nbTri;
+    const p0 = meilleurDebut;
+    const p1 = meilleurDebut + meilleurCompte;
+    for (let blk = (p0 / TAILLE_BLOC_TRI) | 0; blk * TAILLE_BLOC_TRI < p1; blk++) {
+      const bm = (segTri + blk) * m;
+      let sauter = false;
       for (let o = 1; o < m; o++) {
         const kk = ordre[o];
-        const w = W[base + kk];
-        if (w <= L[kk] || w > H[kk]) {
-          passe = false;
+        if (B.triBlocMax[bm + kk] <= L[kk] || B.triBlocMin[bm + kk] > H[kk]) {
+          sauter = true;
           break;
         }
       }
-      if (passe) sortie[c++] = j;
+      if (sauter) {
+        compteurs.blocsTriesSautes++;
+        continue;
+      }
+      const fin = Math.min(p1, (blk + 1) * TAILLE_BLOC_TRI);
+      for (let p = Math.max(p0, blk * TAILLE_BLOC_TRI); p < fin; p++) {
+        const j = B.perm[seg + p];
+        const base = (off + j) * m;
+        let passe = true;
+        for (let o = 1; o < m; o++) {
+          const kk = ordre[o];
+          const w = W[base + kk];
+          if (w <= L[kk] || w > H[kk]) {
+            passe = false;
+            break;
+          }
+        }
+        if (passe) sortie[c++] = j;
+      }
     }
     if (c > 1) sortie.subarray(0, c).sort();
     return c;

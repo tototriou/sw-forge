@@ -156,7 +156,8 @@ L'initialisation contient seulement les colonnes lues : pour A et B,
 début de chaque compartiment, trois identifiants par demi-build, valeurs
 plates des contraintes, pourcentages des seules contraintes PV/ATQ/DEF
 et leur index ; pour B aussi `W`, tri, permutation, début des blocs,
-minimum et maximum par bloc. Aucun score de rétention, contribution non
+minimum et maximum par bloc, dans l'ordre d'origine et dans l'ordre trié
+de chaque stat. Aucun score de rétention, contribution non
 contrainte, compte de set ni potentiel ne traverse ce message. Les
 identifiants permettent de retrouver les runes complètes dans le pool
 préparé du Worker, pour la validation et son repli de référence.

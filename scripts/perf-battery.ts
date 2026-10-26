@@ -107,7 +107,7 @@ import {
   prepareSearch,
 } from '../src/lib/runeBuildOptim';
 import { construireMoitiesEmboiteesTypees } from '../src/lib/constructionEmboitee';
-import { compterPaires, verifierContrat } from '../src/lib/appariementRapide';
+import { analyserEspace } from '../src/lib/appariementRapide';
 import { identifiantsDesCandidats } from '../src/lib/candidatsCompacts';
 import { nombreDeTravailleurs, regimeAppariement } from '../src/workers/parallelPairing';
 import { availableParallelism } from 'os';
@@ -376,10 +376,11 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
   // Découverte par lecture des ids, sans projection des fiches : point de
   // passage en séquentiel, publication fusionnée en parallèle. C'est un
   // majorant, et sa valeur parallèle dépend de l'arrivée des morceaux.
-  const totalPaires = compterPaires(prepared, bucketsA, bucketsB);
-  const { resultat: res } = await apparierNode({ params, prepared, bucketsA, bucketsB, totalPaires,
+  const espace = analyserEspace(prepared, bucketsA, bucketsB);
+  const totalPaires = espace.releve.total;
+  const { resultat: res } = await apparierNode({ params, prepared, bucketsA, bucketsB, totalPaires, espace,
     travailleurs: nombreDeTravailleurs(availableParallelism(), null), startedAt: prepared.startedAt,
-    regime: regimeAppariement(totalPaires, verifierContrat(prepared, bucketsA, bucketsB)),
+    regime: regimeAppariement(totalPaires, espace.motifContrat),
     cheminBundle: cheminBundleAppariement,
     observer: (explored, candidats) => {
       if (foundMs !== null) return;

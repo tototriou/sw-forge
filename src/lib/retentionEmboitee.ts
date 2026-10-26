@@ -192,13 +192,15 @@ export class UnionDesRetentionsTypees {
     return this.propre.map((b) => {
       const { ajouts, n } = this.parCle.get(bucketKeyOf(b.counts, b.jokers))!;
       if (n === 0) return b;
-      const c = nouvellesColonnes(b.combos.length + n, b.combos.cles);
-      for (let i = 0; i < b.combos.length; i++) copierLigne(c, i, b.combos, i);
-      for (let i = 0; i < n; i++) copierLigne(c, b.combos.length + i, ajouts, i);
-      const complet = { ...b, combos: c };
-      const ordre = ordonnerCombos(Array.from({ length: c.length }, (_, i) => i), ctx, mode, meilleur, (i) => lireCombo(complet, i, vue));
-      const trie = nouvellesColonnes(c.length, c.cles);
-      ordre.forEach((j, i) => copierLigne(trie, i, c, j));
+      // Les demi-builds de la recherche puis les ajouts, lus là où ils sont :
+      // l'indice `i` de l'union désigne `b.combos[i]`, puis `ajouts[i − nPropre]`.
+      // Une seule copie, celle de l'ordre final.
+      const nPropre = b.combos.length;
+      const deAjouts = { ...b, combos: ajouts };
+      const ordre = ordonnerCombos(Array.from({ length: nPropre + n }, (_, i) => i), ctx, mode, meilleur,
+        (i) => (i < nPropre ? lireCombo(b, i, vue) : lireCombo(deAjouts, i - nPropre, vue)));
+      const trie = nouvellesColonnes(nPropre + n, b.combos.cles);
+      ordre.forEach((j, i) => (j < nPropre ? copierLigne(trie, i, b.combos, j) : copierLigne(trie, i, ajouts, j - nPropre)));
       return { ...b, combos: trie };
     });
   }

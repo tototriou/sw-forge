@@ -9,7 +9,7 @@ import {
   SearchResult,
   prepareSearch,
 } from '../../src/lib/runeBuildOptim';
-import { compterPaires, verifierContrat } from '../../src/lib/appariementRapide';
+import { analyserEspace } from '../../src/lib/appariementRapide';
 import { nombreDeTravailleurs, regimeAppariement } from '../../src/workers/parallelPairing';
 import { availableParallelism } from 'os';
 import { construireMoitiesEnParallele, ensureBuildHalfBundle } from './buildHalvesNode';
@@ -37,9 +37,11 @@ export async function runSearchToCompletion(params: SearchParams): Promise<Timed
   const { bucketsA, bucketsB } = await construireMoitiesEnParallele(prepared, params, bundleMoities);
   const tBuild = performance.now();
 
-  const totalPaires = compterPaires(prepared, bucketsA, bucketsB);
-  const { resultat: result } = await apparierNode({ params, prepared, bucketsA, bucketsB, totalPaires,
-    regime: regimeAppariement(totalPaires, verifierContrat(prepared, bucketsA, bucketsB)),
+  // Comme le Worker de recherche : relevé, contrat et encodage une fois, repris par l'appariement.
+  const espace = analyserEspace(prepared, bucketsA, bucketsB);
+  const totalPaires = espace.releve.total;
+  const { resultat: result } = await apparierNode({ params, prepared, bucketsA, bucketsB, totalPaires, espace,
+    regime: regimeAppariement(totalPaires, espace.motifContrat),
     travailleurs: nombreDeTravailleurs(availableParallelism(), null), startedAt: prepared.startedAt, cheminBundle });
   const tEnd = performance.now();
 

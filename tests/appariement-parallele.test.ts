@@ -24,7 +24,7 @@ import {
 } from '../src/lib/runeBuildOptim';
 import { apparier, construireMoitie } from '../src/lib/rechercheRunes';
 import {
-  ContexteTravailleur, InitTravailleur, Morceau, ResultatMorceau, apparierRapide, comboAOuvert, encoderCompartiments, initialiserTravailleur,
+  ContexteTravailleur, InitTravailleur, Morceau, ResultatMorceau, analyserEspace, apparierRapide, comboAOuvert, encoderCompartiments, initialiserTravailleur,
   ordreDesCompartiments, paireDeCompartimentsOuverte, parcourirMorceau, traiterMorceau,
 } from '../src/lib/appariementRapide';
 import { MessageVersTravailleur, resultatVide, servirAppariement } from '../src/lib/travailleurAppariement';
@@ -377,6 +377,9 @@ async function testCoordination(liste: Espace[]): Promise<void> {
       },
     }));
     egal(etat(enResultatDeRecherche(r)), etat(e.reference), `${e.nom} : non tronqué, résultat identique au séquentiel (ordre compris)`);
+    const rEspace = await apparierRapideEnParallele(options(e, lanceurSimule(mulberry32(32), { lances: 0, termines: 0 }), { espace: analyserEspace(e.prepared, e.bucketsA, e.bucketsB) }));
+    egal(etat(enResultatDeRecherche(rEspace)), etat(e.reference), `${e.nom} : avec l'espace de l'appelant (relevé, contrat, encodage repris), même résultat`);
+    egal(compteursDe(rEspace), compteursDe(r), `${e.nom} : avec l'espace de l'appelant, mêmes paires traitées, visitées, sautées`);
     ok(progression.length > 1, `${e.nom} : publications du préfixe fusionné (${progression.length})`);
     ok(progression.every((p, i) => i === 0 || (p.traitees >= progression[i - 1].traitees && p.n >= progression[i - 1].n)) && progression[progression.length - 1].traitees === e.total,
       `${e.nom} : paires traitées et candidats ne reculent jamais, et finissent à totalPairCount`);

@@ -81,7 +81,11 @@ seulement si `W > H`.
 
 ## Le contrat numérique
 
-`verifierContrat`, avant toute paire : base, pourcentages et valeurs plates
+`verifierContrat`, avant toute paire, une fois par recherche : le Worker
+principal le juge pour choisir le régime, et l'appariement reprend son motif
+et son encodage (`analyserEspace`, `verifierEtEncoder` : chaque valeur est
+écrite dans les `Int32Array` juste après sa vérification, dans la même
+lecture des demi-builds ; `encoderCompartiments` lève hors contrat). Base, pourcentages et valeurs plates
 des demi-builds, apports garantis, d'artéfacts et de relique, aura externe,
 tous ENTIERS et bornés ; `|b × pct|` exact en `Float64` ; `W` dans un
 `Int32` ; minimums et maximums finis. Sous ces conditions, l'expression

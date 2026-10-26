@@ -13,7 +13,7 @@ import { type BilanRecherche } from '../../../hooks/useBuildOptimSearch';
 import type { FormeResultats } from '../../../hooks/useFormeResultats';
 import FiltresResultats, { BoutonEffacerFiltres } from './FiltresResultats';
 import type { TriResultats } from './TetesDeTri';
-import { AVEC_LE_TABLEAU, CARTES_SOUS_LE_SEUIL } from './TableauResultats';
+import { INVISIBLE_AVEC_LE_TABLEAU, VISIBLE_AVEC_LE_TABLEAU } from './TableauResultats';
 
 /** Les filtres d'affichage tels que l'en-tête les pose et les dit. */
 export interface FiltresEntete {
@@ -168,8 +168,9 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, tri
 
   const boutonFiltrerBureau = filtres && reglable && (
     // Sous le tableau large, sa ligne de bornes remplace le flottant : le
-    // bouton ne sert qu'aux cartes (`CARTES_SOUS_LE_SEUIL`).
-    <div className={`relative ${forme === 'tableau' ? CARTES_SOUS_LE_SEUIL : ''}`} ref={ancre}>
+    // bouton ne sert qu'aux cartes ; avec le tableau, il s'efface sans rendre
+    // sa place (`INVISIBLE_AVEC_LE_TABLEAU`, voir la place partagée plus bas).
+    <div className={`relative col-start-1 row-start-1 ${forme === 'tableau' ? INVISIBLE_AVEC_LE_TABLEAU : ''}`} ref={ancre}>
       <Bouton
         taille="sm"
         icone={<Filter size={13} />}
@@ -195,7 +196,8 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, tri
         // l'utilisateur : la première carte remonte) : à gauche le compte et,
         // SOUS lui, la ligne « en vérification » (sa place reste réservée,
         // même vide), l'aide à leur droite ; à droite la forme (cartes ou
-        // tableau), « Filtrer l'affichage » et « Effacer les filtres ».
+        // tableau), « Filtrer l'affichage » ou « Stats totales / Stats bonus »
+        // (une seule place pour les deux), et « Effacer les filtres ».
         // Quand la colonne est étroite, la rangée passe à la ligne d'elle-même :
         // ce passage ne dépend que de la largeur, jamais d'un clic.
         <>
@@ -209,21 +211,6 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, tri
             </div>
             {reglable && (
               <div className="ml-auto flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
-                {/* Avec le tableau seulement (forme tableau, assez de place). */}
-                {/* Deux choix exclusifs, de la forme du choix cartes / tableau voisin. */}
-                {setBonus && forme === 'tableau' && (
-                  <div className={`${AVEC_LE_TABLEAU} items-center`}>
-                    <Segmented<'total' | 'bonus'>
-                      options={[
-                        { key: 'total', label: 'Stats totales', hint: 'Les valeurs complètes. Affichage seulement.' },
-                        { key: 'bonus', label: 'Stats bonus', hint: 'PV, ATQ, DEF et VIT sans la base du monstre. Affichage seulement.' },
-                      ]}
-                      value={bonus ? 'bonus' : 'total'}
-                      onChange={(v) => setBonus(v === 'bonus')}
-                      disabled={interrompu}
-                    />
-                  </div>
-                )}
                 {setForme && (
                   <Segmented<FormeResultats>
                     options={[{ key: 'cartes', label: 'Cartes' }, { key: 'tableau', label: 'Tableau' }]}
@@ -232,7 +219,30 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, tri
                     disabled={interrompu}
                   />
                 )}
-                {boutonFiltrerBureau}
+                {/* ⚠️ **Une place partagée, de largeur fixe** : « Filtrer
+                    l'affichage » (les cartes) et « Stats totales / Stats
+                    bonus » (le tableau) y sont TOUS LES DEUX, superposés dans
+                    la même case de grille, l'un invisible. La place vaut la
+                    plus large des deux quelle que soit la forme : choisir
+                    « Cartes » ou « Tableau » ne déplace ni le choix cliqué, ni
+                    rien d'autre, et ne fait jamais passer la rangée à la ligne. */}
+                <div className="grid items-center justify-items-start" data-place-forme="">
+                  {boutonFiltrerBureau}
+                  {setBonus && (
+                    // Deux choix exclusifs, de la forme du choix cartes / tableau voisin.
+                    <div className={`col-start-1 row-start-1 ${forme === 'tableau' ? VISIBLE_AVEC_LE_TABLEAU : 'invisible'}`}>
+                      <Segmented<'total' | 'bonus'>
+                        options={[
+                          { key: 'total', label: 'Stats totales', hint: 'Les valeurs complètes. Affichage seulement.' },
+                          { key: 'bonus', label: 'Stats bonus', hint: 'PV, ATQ, DEF et VIT sans la base du monstre. Affichage seulement.' },
+                        ]}
+                        value={bonus ? 'bonus' : 'total'}
+                        onChange={(v) => setBonus(v === 'bonus')}
+                        disabled={interrompu}
+                      />
+                    </div>
+                  )}
+                </div>
                 {filtres && <BoutonEffacerFiltres effacer={filtres.effacer} actif={posees > 0 && !interrompu} />}
               </div>
             )}

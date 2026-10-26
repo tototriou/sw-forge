@@ -45,8 +45,12 @@ import { RAISON_COLONNE_INDISPONIBLE } from './FiltresResultats';
 export const SEUIL_TABLEAU_PX = 661;
 export const TABLEAU_VISIBLE = 'hidden @[661px]/resultats:block';
 export const CARTES_SOUS_LE_SEUIL = '@[661px]/resultats:hidden';
-// Un contrôle propre au tableau, dans une rangée flexible : visible avec lui seulement.
-export const AVEC_LE_TABLEAU = 'hidden @[661px]/resultats:flex';
+// Deux contrôles qui se partagent une place réservée (l'en-tête des résultats) :
+// présents tous les deux, l'un est invisible — il garde sa largeur, rien ne
+// bouge quand la forme change. Le premier ne se voit qu'avec le tableau, le
+// second se cache quand le tableau est là.
+export const VISIBLE_AVEC_LE_TABLEAU = 'invisible @[661px]/resultats:visible';
+export const INVISIBLE_AVEC_LE_TABLEAU = '@[661px]/resultats:invisible';
 
 // La largeur minimale d'un champ de borne : les chiffres de la plus grande
 // valeur en `ch` de la police du champ (le cadre la porte : `font-mono

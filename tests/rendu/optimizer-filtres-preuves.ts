@@ -134,7 +134,21 @@ export async function preuvesFiltresEcran(b: BancEcran): Promise<Preuves> {
   if (!telephone()) {
     // Le choix de forme : un réglage écrit dans sa clé, relu par la page.
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await attendre(100);
+    // Un clic ne déplace jamais ce qu'on vient de cliquer : « Cartes / Tableau »
+    // garde sa place dans les deux sens, tableau affiché (au-dessus du seuil).
+    const placeForme = () => (['Cartes', 'Tableau'] as const).map((nom) => {
+      const r = bouton(nom)?.getBoundingClientRect();
+      return r ? [r.left, r.top, r.width] : [NaN, NaN, NaN];
+    }).flat();
+    const memePlace = (a: number[], c: number[]) => a.every((v, i) => Math.abs(v - c[i]) < 0.5);
+    const enCartes = placeForme();
     await b.geste(() => bouton('Tableau')!.click());
+    await attendre(100);
+    const enTableau = placeForme();
+    const tableauVu = [...document.querySelectorAll('[data-tableau-resultats]')].some(visible);
+    preuves.push([tableauVu && memePlace(enCartes, enTableau),
+      `bureau : « Tableau » cliqué, le tableau affiché, « Cartes / Tableau » ne bouge pas (${enCartes.map(Math.round)} → ${enTableau.map(Math.round)})`]);
     const racine = document.querySelector('[data-forme-resultats]');
     preuves.push([racine?.getAttribute('data-forme-resultats') === 'tableau' && localStorage.getItem('swblacksmith-optimizer-resultats-forme-v1') === 'tableau',
       `bureau : « Tableau » choisi et mémorisé (${localStorage.getItem('swblacksmith-optimizer-resultats-forme-v1')})`]);
@@ -157,7 +171,12 @@ export async function preuvesFiltresEcran(b: BancEcran): Promise<Preuves> {
     await b.geste(() => bouton('Stats totales')!.click());
     preuves.push([presse('Stats totales') && vitMin() === '220', `bureau, tableau : retour à « Stats totales » (« ${vitMin()} »)`]);
     preuves.push([b.etat().excludeBase === (depart === 'Stats bonus'), 'bureau, tableau : « Stats de base exclues » (recherche) inchangé']);
+    const avantRetour = placeForme();
     await b.geste(() => bouton('Cartes')!.click());
+    await attendre(100);
+    const auRetour = placeForme();
+    preuves.push([memePlace(avantRetour, auRetour) && memePlace(enCartes, auRetour),
+      `bureau : « Cartes » cliqué, « Cartes / Tableau » ne bouge pas (${avantRetour.map(Math.round)} → ${auRetour.map(Math.round)})`]);
     preuves.push([!bouton('Stats totales') && !bouton('Stats bonus'), 'bureau, cartes : pas de choix Stats totales / Stats bonus']);
     preuves.push([localStorage.getItem('swblacksmith-optimizer-resultats-forme-v1') === 'cartes', 'bureau : retour aux cartes, mémorisé']);
   }

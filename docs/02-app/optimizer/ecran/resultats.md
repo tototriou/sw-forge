@@ -465,6 +465,15 @@ réglage : `useFormeResultats`, clé `swblacksmith-optimizer-resultats-forme-v1`
 interrupteur »), dans la session. **Le téléphone garde les cartes**, sans
 ce choix.
 
+⚠️ **Choisir la forme ne déplace rien** (un clic ne déplace jamais ce qu'on
+vient de cliquer) : à droite de « Cartes / Tableau », une place partagée, de
+la largeur du plus large de ses deux occupants, porte « Filtrer
+l'affichage » (cartes, et tableau sous le seuil) ou « Stats totales / Stats
+bonus » (tableau affiché) ; les deux y sont toujours, superposés, l'absent
+invisible (`VISIBLE_AVEC_LE_TABLEAU`, `INVISIBLE_AVEC_LE_TABLEAU`,
+TableauResultats.tsx). Vérifié au navigateur dans les deux sens, tableau
+affiché (`testRenduFiltresResultatsCartes`).
+
 - **Cartes** : au bureau, la bande des onze têtes de tri (`TetesDeTri.tsx`)
   au-dessus de la grille. Chaque tête réserve la place de son icône de sens
   (`ArrowUpDown` estompée tant qu'elle ne trie pas) et du point « borne
@@ -501,7 +510,8 @@ ce choix.
   (tableau) ; 516 à 2560 scindé et 358 au téléphone (cartes). Vérifié sans rognage au seuil
   (tests/rendu/optimizer-tableau-navigateur.test.ts).
 - **« Stats totales / Stats bonus »** (deux choix exclusifs dans l'en-tête,
-  un `Segmented` de la forme de « Cartes / Tableau », à sa gauche ; forme
+  un `Segmented` de la forme de « Cartes / Tableau », à sa droite, à la place
+  de « Filtrer l'affichage » ; forme
   tableau seulement, visible avec le tableau) : un réglage d'**affichage**,
   distinct de « Stats de base exclues » des conditions, qui reste un réglage
   de recherche. Il part de la valeur de celui-ci **photographiée au

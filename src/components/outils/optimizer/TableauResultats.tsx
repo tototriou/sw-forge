@@ -159,7 +159,10 @@ export default function TableauResultats({ cartes, premierRang, placesEnAttente,
                       value={total === null ? null : versAffichage(c, total, base, enBonus)}
                       onChange={(v) => poserBorne(c, cote, v === null ? null : depuisAffichage(c, v, base, enBonus))}
                       allowEmpty
-                      min={0}
+                      // Le plancher est un total de 0, écrit dans le mode affiché
+                      // (−base en Stats bonus) : une borne en total sous la base
+                      // s'écrit négative et n'est jamais réécrite à la sortie du champ.
+                      min={versAffichage(c, 0, base, enBonus)}
                       sansBoutons
                       decimales={decimalesColonne(c, metric)}
                       disabled={!libre}

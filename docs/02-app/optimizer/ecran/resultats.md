@@ -523,7 +523,9 @@ affiché (`testRenduFiltresResultatsCartes`).
   total, le tableau les écrit et les saisit dans le mode courant
   (`versAffichage`, `depuisAffichage`, filtresAffichage.ts) ; à 900 d'ATQ de
   base, un minimum de 3500 s'écrit 2600 en Stats bonus, et basculer ne masque ni ne
-  révèle aucun build. Le tri ne change pas. Les cartes gardent leur bascule
+  révèle aucun build. Une borne en total sous la base s'écrit négative en
+  Stats bonus : le plancher du champ est un total de 0 (−base), rien ne la
+  réécrit à la sortie du champ. Le tri ne change pas. Les cartes gardent leur bascule
   propre (clic sur la fiche).
 
 ## Valeur d'objectif affichée sur les cartes

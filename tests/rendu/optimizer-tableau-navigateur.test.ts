@@ -139,6 +139,27 @@ export async function testRenduOptimizerTableauAlignement() {
   } finally { await browser.close(); }
 }
 
+export async function testRenduOptimizerTableauBonusSousLaBase() {
+  titre('rendu · tableau des résultats — en Stats bonus, une borne sous la base s’écrit négative et ne change pas sans geste');
+  const { browser, page } = await navigateurOptimizer(false, BANC);
+  try {
+    // PV de base 19 755 dans le banc : un maximum de 5 000 en total s'écrit −14 755 en bonus.
+    await monter(page, { largeur: 1356, force: false, bornes: 'aucune', enBonus: true, bornesPosees: { hp: { min: null, max: 5000 } } });
+    const lire = () => page.evaluate(() => ({
+      champ: document.querySelector<HTMLInputElement>('input[aria-label="PV maximum affiché"]')?.value ?? '',
+      bornes: document.querySelector('[data-racine-tableau]')?.getAttribute('data-bornes') ?? '',
+    }));
+    const avant = await lire();
+    ok(avant.champ === '-14755' && avant.bornes === JSON.stringify({ hp: { min: null, max: 5000 } }),
+      `PV ≤ 5 000 en total, écrit « ${avant.champ} » en Stats bonus`);
+    await page.locator('input[aria-label="PV maximum affiché"]').focus();
+    await page.locator('input[aria-label="PV minimum affiché"]').focus();
+    const apres = await lire();
+    ok(apres.champ === '-14755' && apres.bornes === avant.bornes,
+      `sortie du champ sans saisie : la borne garde 5 000 en total (« ${apres.champ} », ${apres.bornes})`);
+  } finally { await browser.close(); }
+}
+
 export async function testRenduOptimizerTableauEtats() {
   titre('rendu · tableau des résultats — tri par en-tête, minimum > maximum, colonne indisponible');
   const { browser, page } = await navigateurOptimizer(false, BANC);

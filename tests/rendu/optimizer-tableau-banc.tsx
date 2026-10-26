@@ -51,20 +51,29 @@ export interface OptionsTableau {
   force: boolean;
   bornes: 'pleines' | 'aucune' | 'contradictoire';
   sansSort?: boolean;
+  // « Stats bonus » : PV, ATQ, DEF et VIT sans la base des stats du banc.
+  enBonus?: boolean;
+  // Des bornes posées telles quelles (en total), à la place du genre.
+  bornesPosees?: BornesResultats;
 }
 
-function Banc({ largeur, force, bornes: genre, sansSort }: OptionsTableau) {
+const BASE = Object.fromEntries(stats.map((s) => [s.key, s.base]));
+
+function Banc({ largeur, force, bornes: genre, sansSort, enBonus = false, bornesPosees }: OptionsTableau) {
   const [tri, setTri] = useState<TriResultats>({ tri: 'spd', sens: 'desc' });
-  const [bornes, setBornes] = useState<BornesResultats>(genre === 'pleines' ? BORNES_PLEINES : genre === 'contradictoire' ? { spd: { min: 220, max: 200 } } : {});
+  const [bornes, setBornes] = useState<BornesResultats>(bornesPosees
+    ?? (genre === 'pleines' ? BORNES_PLEINES : genre === 'contradictoire' ? { spd: { min: 220, max: 200 } } : {}));
   const disponible = (c: ColonneResultat) => !(sansSort && c === 'degats_reels');
   const tableau = (
     <TableauResultats cartes={cartes} premierRang={1} placesEnAttente={0} runeById={runeById} metric="eff" afficherDepassement
       tri={tri} trier={setTri} bornes={bornes} disponible={disponible} ouvrirDetail={() => {}}
       poserBorne={(c, cote, v) => setBornes((b) => ({ ...b, [c]: { ...(b[c] ?? { min: null, max: null }), [cote]: v } }))}
-      vide={genre === 'contradictoire' ? 'Vue vide : le minimum de VIT (220) dépasse son maximum (200).' : null} />
+      vide={genre === 'contradictoire' ? 'Vue vide : le minimum de VIT (220) dépasse son maximum (200).' : null}
+      enBonus={enBonus} base={BASE} />
   );
   return (
-    <div data-racine-tableau="" className="@container/resultats" style={{ width: largeur }}>
+    // `data-bornes` : les bornes que garde le banc (en total), lues par le test.
+    <div data-racine-tableau="" data-bornes={JSON.stringify(bornes)} className="@container/resultats" style={{ width: largeur }}>
       {force ? tableau : (
         <>
           <div className={TABLEAU_VISIBLE}>{tableau}</div>

@@ -1,5 +1,6 @@
 import { COLONNES_RESULTATS } from '../src/lib/colonnesResultats';
 import { decimalesColonne, depuisAffichage, versAffichage } from '../src/lib/filtresAffichage';
+import { CATEGORIE_LIGNE, categorieDeLaLigne, etatDesBornes } from '../src/lib/filtresResultats';
 import { lireFrappe } from '../src/ui/NumberField';
 import { egal, ok, titre } from './outils';
 
@@ -44,4 +45,10 @@ export function testFiltresResultatsDecimales() {
   egal(lireFrappe('78,8', 1), { brouillon: '78,8', valeur: 78.8 }, '« 78,8 » : la virgule est admise');
   egal([lireFrappe('78.88', 1), lireFrappe('78.8', 0), lireFrappe('7a', 1)], [null, null, null], 'trop de décimales, une décimale sur un entier, une lettre : frappe ignorée');
   egal([lireFrappe('', 1, true), lireFrappe('-', 1), lireFrappe('150000', 0)], [{ valeur: null }, { brouillon: '-' }, { valeur: 150000 }], 'vide, signe seul et entier : comme avant');
+  // De la frappe au classeur : « 78.8 » saisi en minimum garde la décimale, et
+  // la borne départage 78.8 de 78.7.
+  const saisie = lireFrappe('78.8', 1)?.valeur ?? null;
+  const borne = etatDesBornes({ efficience: { min: saisie, max: null } }, () => true);
+  egal([78.8, 78.7].map((e) => categorieDeLaLigne(() => e, true, borne)), [CATEGORIE_LIGNE.visible, CATEGORIE_LIGNE.masquee],
+    'Efficience ≥ 78.8 saisie au clavier : 78.8 passe, 78.7 est masquée');
 }

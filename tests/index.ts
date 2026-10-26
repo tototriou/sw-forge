@@ -230,7 +230,8 @@ import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidat
 import { testClassementCreditsRelance, testClassementCadenceDifferee, testClassementVueSansAutreMessage, testClassementInstantaneBorne, testClassementMortInactive } from './classement-publication.test';
 import { testClassementAuFilDifferentiel, testClassementAuFilTravail } from './classement-au-fil.test';
 import { testClassementNotesDeBaseGardees } from './classement-notes-de-base.test';
-import { testClassementApercuDifferentiel, testClassementApercuNonFinis, testClassementApercuSecondGeste, testClassementApercuTravail } from './classement-apercu.test';
+import { testClassementApercuDifferentiel, testClassementApercuNonFinis, testClassementApercuSecondGeste, testClassementApercuPagePrioritaire,
+  testClassementApercuTravail } from './classement-apercu.test';
 import { testClassementComparerApresValidation } from './classement-comparer.test';
 import { testClassementSelectionExhaustiveBorne, testClassementSelectionExhaustiveTransitions, testClassementSelectionExhaustiveDifferee } from './classement-selection-exhaustive.test';
 import testRetentionEmboitee from './retention-emboitee.test';
@@ -904,6 +905,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testClassementApercuDifferentiel', testClassementApercuDifferentiel],
   ['testClassementApercuNonFinis', testClassementApercuNonFinis],
   ['testClassementApercuSecondGeste', testClassementApercuSecondGeste],
+  ['testClassementApercuPagePrioritaire', testClassementApercuPagePrioritaire],
   ['testClassementApercuTravail', testClassementApercuTravail],
   ['testClassementComparerApresValidation', testClassementComparerApresValidation],
   ['testClassementSelectionExhaustiveBorne', testClassementSelectionExhaustiveBorne],

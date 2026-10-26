@@ -8,12 +8,28 @@
 import { isDeepStrictEqual } from 'node:util';
 import type { InstantaneClassement, VueClassement } from '../src/lib/classementCompact';
 import { COLONNES_RESULTATS, type ColonneResultat } from '../src/lib/colonnesResultats';
-import { cleBuild } from '../src/lib/artifactQueue';
-import { statTotal, type BuildCandidate } from '../src/lib/runeBuildOptim';
+import { optionsDuContexte, type ContexteResultat } from '../src/lib/contexteResultat';
+import { scoreDuCandidat, statTotal, type BuildCandidate } from '../src/lib/runeBuildOptim';
 import type { BornesResultats } from '../src/lib/filtresResultats';
 import type { StatKey } from '../src/lib/effects';
 import { avecTotal, classeur, classeurFini, drainer, empreinteCache, generateur, population, resoudre, tic, type Classeur, type Stats } from './classement-notes-de-base.test';
 import { egal, ok, titre } from './outils';
+
+/** Une ligne par ses identifiants dans l'ordre reçu : les doublons (mêmes runes, autre ordre) restent distincts. */
+const ligne = (c: BuildCandidate) => c.runeIds.join();
+
+/**
+ * L'ordre de base d'une vue, recalculé ici sans le classeur : note de la
+ * colonne sur le candidat collecté, sans cache, opposée en croissant, puis le
+ * tri stable de JavaScript (note décroissante, ordre reçu à égalité).
+ */
+function ordreDeBaseDeReference(candidats: readonly BuildCandidate[], photo: ContexteResultat, vue: VueClassement): string[] {
+  const options = optionsDuContexte(photo, null, vue.metric), signe = vue.sens === 'asc' ? -1 : 1;
+  const notes = candidats.map((c) => scoreDuCandidat(c, vue.tri, options));
+  if (notes.every((x) => x === null)) return candidats.map(ligne);
+  const v = notes.map((x) => (x === null ? 0 : x * signe));
+  return candidats.map((_, i) => i).sort((a, b) => v[b] - v[a]).map((i) => ligne(candidats[i]));
+}
 
 /** L'instantané sans ses deux compteurs de cadence, qui suivent le nombre de publications et d'écritures. */
 function sansCadence(p: InstantaneClassement) {
@@ -132,12 +148,15 @@ function scenario(nom: string, graine: number, e: Parameters<typeof population>[
     // Une actualisation après une écriture du cache n'a jamais d'aperçu à publier.
     if (resoudre(d, e.entre)) bilan.ecarts.push(`${nom}, geste ${g} : publication pendant une actualisation de la file (aperçu périmé)`);
     if (empreinteCache(r) !== empreinteCache(d)) throw new Error(`ARRÊT ${nom} : files divergentes après le geste ${g}, banc invalide`);
-    // L'ordre complet, une fois tout fini : la projection objet entière.
+    // L'ordre complet, une fois tout fini : la projection objet entière, et
+    // l'ordre de base contre une référence indépendante (notes gardées, sens opposé, colonnes lues).
     if (g % 5 === 4 || g === e.gestes - 1) {
       const pr = r.corps.projection(), pd = d.corps.projection();
-      if (!isDeepStrictEqual(pr.affichees.map(cleBuild), pd.affichees.map(cleBuild)) || !isDeepStrictEqual(pr.base.map(cleBuild), pd.base.map(cleBuild))) {
+      if (!isDeepStrictEqual(pr.affichees.map(ligne), pd.affichees.map(ligne)) || !isDeepStrictEqual(pr.base.map(ligne), pd.base.map(ligne))) {
         bilan.ecarts.push(`${nom}, geste ${g} : ordre complet différent`);
       }
+      const reference = ordreDeBaseDeReference(candidats, photo, vue);
+      if (!isDeepStrictEqual(pd.base.map(ligne), reference) || !isDeepStrictEqual(pr.base.map(ligne), reference)) bilan.ecarts.push(`${nom}, geste ${g} : ordre de base ≠ référence`);
     }
   }
   return bilan;
@@ -199,6 +218,28 @@ export function testClassementApercuSecondGeste() {
   ok(page3.pendantLaTache && page3.p.versions.idVue === 5 && page3.p.page.premierRang === 41, 'la page 3 part pendant la tâche du tri, depuis son aperçu');
   drainer(d); d.corps.publier(tic(), true);
   egal(sansCadence(d.publications[d.publications.length - 1].p), sansCadence(page3.p), 'la page 3 de fin de tâche est celle de l’aperçu');
+}
+
+export function testClassementApercuPagePrioritaire() {
+  titre('Aperçu d’un geste de vue — une page qui attend des non vérifiées pendant le fond d’un tri attend la fin de la tâche');
+  const { photo, candidats, vue } = population({ nombre: 600, avecFile: true });
+  const r = classeur(photo, candidats, vue, false), d = classeur(photo, candidats, vue, true);
+  resoudre(r, 30); resoudre(d, 30);
+  if (empreinteCache(r) !== empreinteCache(d)) throw new Error('ARRÊT : les deux files n’ont pas résolu les mêmes builds, banc invalide');
+  const tri: VueClassement = { ...vue, tri: 'spd', sens: 'asc' }, page: VueClassement = { ...tri, page: 4 };
+  gesteOracle(r, tri, 2);
+  const attendue = gesteOracle(r, page, 3);
+  const depuis = d.publications.length;
+  d.corps.changerVue(tri, 2, 2);
+  while (d.corps.travailEnCours && d.publications.length === depuis) { d.corps.avancer(); d.corps.pomper(tic()); }
+  ok(d.corps.travailEnCours && d.publications.length === depuis + 1, 'le tri VIT croissant publie son aperçu, l’ordre complet reste à faire');
+  d.corps.changerVue(page, 3, 3);
+  while (d.corps.travailEnCours) { d.corps.avancer(); if (d.corps.travailEnCours) d.corps.pomper(tic()); }
+  const pendant = d.publications.slice(depuis + 1).filter((x) => x.pendantLaTache).length;
+  ok(attendue.page.placesEnAttente > 0 && attendue.enAttente > 0, `la page 4 attend ${attendue.page.placesEnAttente} non vérifiées, que la page fait passer devant le fond`);
+  egal(pendant, 0, 'aucune publication de la page 4 pendant la tâche : l’aperçu ne connaît pas l’ordre des non vérifiées');
+  d.corps.publier(tic(), true);
+  egal(sansCadence(d.publications[d.publications.length - 1].p), sansCadence(attendue), 'la page 4 de fin de tâche est celle du chemin sans tâche différée');
 }
 
 export function testClassementApercuTravail() {

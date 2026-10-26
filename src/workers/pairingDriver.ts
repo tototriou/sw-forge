@@ -34,7 +34,7 @@ export async function lancerAppariement(
     const parallele = await apparierRapideEnParallele({ ...options, collecte, surProgression: publier });
     return { resultat: enResultatDeRecherche(parallele), parallele };
   }
-  const source = apparierRapide(options.prepared, options.bucketsA, options.bucketsB, { collecte });
+  const source = apparierRapide(options.prepared, options.bucketsA, options.bucketsB, { collecte, ...(options.espace ? { espace: options.espace } : {}) });
   const observer = function* () {
     let step = source.next();
     while (!step.done) {

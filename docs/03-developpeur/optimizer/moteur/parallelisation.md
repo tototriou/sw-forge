@@ -32,11 +32,12 @@ casser : [../invariants.md § Workers](../invariants.md).
 
 ## Choix du régime
 
-Les moitiés construites, le Worker principal compare l'espace exact à
-parcourir, `compterPaires(prepared, bucketsA, bucketsB)` (`totalPairCount`
-pour les compartiments objets des outils), au seuil
+Les moitiés construites, le Worker principal analyse une fois l'espace
+(`analyserEspace`, [pipeline.md § Choix du régime](pipeline.md)) : il
+compare l'espace exact à parcourir, le `total` du relevé des lignes
+(`totalPairCount` pour les compartiments objets des outils), au seuil
 `PARALLEL_PAIRING_THRESHOLD` (100 000 000 paires), et vérifie le contrat
-numérique du noyau (`verifierContrat`) : `regimeAppariement` rend le
+numérique du noyau en l'encodant (`verifierEtEncoder`) : `regimeAppariement` rend le
 parallèle à partir du seuil, contrat tenu ; sinon le séquentiel, dans ce
 Worker. Hors contrat (une valeur non entière, un dépassement), le séquentiel
 parcourt les colonnes sans saut (`apparierSansSauts`) ; un traceur de
@@ -106,12 +107,16 @@ combinaison A ouverte face à un compartiment B ouvert, avec les prédicats de
   plus fins que les compartiments : une répartition par compartiments entre
   quatre fils peut laisser à l'un d'eux jusqu'à 63 % des paires (mesuré sur
   une recette réelle). Chaque morceau connaît sa position de départ
-  globale (`offset`). La somme des tailles vaut `totalPairs`, que
-  l'appelant a calculé pour choisir le régime ; un plan qui s'en écarte
-  lève une erreur.
+  globale (`offset`). Le plan se découpe sur le relevé des lignes que
+  l'appelant a fait pour choisir le régime (`OptionsParallele.espace`) :
+  aucun prédicat n'est réévalué, et les drapeaux d'un morceau sont une copie
+  de la tranche du relevé qui couvre ses segments. La somme des tailles vaut
+  `totalPairs`, que l'appelant a calculé pour choisir le régime ; un plan
+  qui s'en écarte lève une erreur. Sans `espace` (tests, outils), le
+  coordinateur fait lui-même le relevé, le contrat et l'encodage.
 - Chaque Worker reçoit UNE fois, à son lancement (`InitTravailleur`), les
   paramètres de la recherche tels quels, l'instant de départ global et sa
-  propre jeu de colonnes (`encoderCompartiments`),
+  propre jeu de colonnes (l'encodage de `verifierEtEncoder`, repris de l'appelant),
   dont les tampons sont TRANSFÉRÉS : rien n'est partagé en mémoire. Les
   premiers Workers reçoivent une copie indépendante ; le dernier reçoit
   l'encodage original, que le coordinateur ne lit plus après le plan.
@@ -156,7 +161,8 @@ L'initialisation contient seulement les colonnes lues : pour A et B,
 début de chaque compartiment, trois identifiants par demi-build, valeurs
 plates des contraintes, pourcentages des seules contraintes PV/ATQ/DEF
 et leur index ; pour B aussi `W`, tri, permutation, début des blocs,
-minimum et maximum par bloc. Aucun score de rétention, contribution non
+minimum et maximum par bloc, dans l'ordre d'origine et dans l'ordre trié
+de chaque stat. Aucun score de rétention, contribution non
 contrainte, compte de set ni potentiel ne traverse ce message. Les
 identifiants permettent de retrouver les runes complètes dans le pool
 préparé du Worker, pour la validation et son repli de référence.

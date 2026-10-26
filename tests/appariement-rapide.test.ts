@@ -324,7 +324,7 @@ function espacesDeProfils(): Espace[] {
 
 function testPaireParPaire(espaces: Espace[]): void {
   titre('Appariement rapide · oracle paire par paire (aucune paire sautée ne passe quickOk)');
-  const exerce = { sautees: 0, lignesSautees: 0, lignesDichotomie: 0, lignesLineaires: 0, blocsSautes: 0 };
+  const exerce = { sautees: 0, lignesSautees: 0, lignesDichotomie: 0, lignesLineaires: 0, blocsSautes: 0, blocsTriesSautes: 0 };
   for (const e of espaces) {
     egal(verifierContrat(e.prepared, e.bucketsA, e.bucketsB), null, `${e.nom} : contrat numérique tenu (chemin du noyau)`);
     const { total, passantes } = enumerer(e.prepared, e.bucketsA, e.bucketsB);
@@ -347,11 +347,12 @@ function testPaireParPaire(espaces: Espace[]): void {
         exerce.lignesDichotomie += r.compteurs.lignesDichotomie;
         exerce.lignesLineaires += r.compteurs.lignesLineaires;
         exerce.blocsSautes += r.compteurs.blocsSautes;
+        exerce.blocsTriesSautes += r.compteurs.blocsTriesSautes;
       }
     }
   }
   // Un oracle qui n'exerce pas un saut ne prouve rien sur lui.
-  ok(Object.values(exerce).every((v) => v > 0), `les trois sauts sont exercés (chemin automatique) : ${JSON.stringify(exerce)}`);
+  ok(Object.values(exerce).every((v) => v > 0), `les trois sauts, blocs de l'ordre trié compris, sont exercés (chemin automatique) :${JSON.stringify(exerce)}`);
 }
 
 /* --------------------------------------------------------------------------

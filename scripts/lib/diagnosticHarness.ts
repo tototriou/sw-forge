@@ -54,7 +54,7 @@ import { activeSets } from '../../src/lib/effects';
 import { missingSets } from '../../src/lib/recoMatch';
 import { availableParallelism } from 'os';
 import { PARALLEL_PAIRING_THRESHOLD, nombreDeTravailleurs, regimeAppariement } from '../../src/workers/parallelPairing';
-import { compterPaires, verifierContrat } from '../../src/lib/appariementRapide';
+import { releverLignes, verifierContrat, verifierEtEncoder } from '../../src/lib/appariementRapide';
 import { ColonnesCandidats, identifiantsDesCandidats } from '../../src/lib/candidatsCompacts';
 import { CompartimentType, objetsDesCompartiments } from '../../src/lib/demiBuildsTypes';
 import { RuneDetail } from '../../src/types';
@@ -980,14 +980,16 @@ async function unPassage(
   passage.msTotal = tBuild - t0;
 
   // ── Le régime, décidé comme la production le déciderait.
-  const totalPairs = compterPaires(prepared, bucketsA, bucketsB);
+  const lignes = releverLignes(prepared, bucketsA, bucketsB);
+  const totalPairs = lignes.total;
   passage.totalPairs = totalPairs;
   // Hors contrat numérique, le parallèle n'existe pas : la production apparie
   // alors en séquentiel, et un régime forcé aussi. ⚠️ Le contrat se juge SANS
   // le traceur, que la production ne pose jamais : suivre une cible ne doit
   // pas changer le régime. En parallèle, l'appariement tourne sans lui (le
   // noyau ne le remplit pas) — la trace d'appariement n'existe qu'en séquentiel.
-  const motifContrat = verifierContrat({ ...prepared, traceur: undefined }, bucketsA, bucketsB);
+  const sansTraceur = { ...prepared, traceur: undefined };
+  const motifContrat = verifierContrat(sansTraceur, bucketsA, bucketsB);
   const regime: RegimeAppariement =
     resolue.regimeForce === 'sequentiel' || motifContrat != null
       ? 'sequentiel'
@@ -1003,10 +1005,14 @@ async function unPassage(
   // ⚠️ L'observateur de découverte n'existe que si une cible COMPLÈTE
   // est suivie : `null` sinon, sans modifier le lanceur ni son protocole.
   const observateur = cibleComplete ? new ObservateurDecouverte(cibleComplete, totalPairs) : null;
+  // Comme la production, le relevé et l'encodage passent à l'appariement
+  // (`espace`) ; sauf en séquentiel avec le traceur, qui sort du contrat et
+  // demande `pairBuckets` : l'appariement juge alors son contrat lui-même.
+  const espace = regime === 'parallele' || !prepared.traceur ? { releve: lignes, ...verifierEtEncoder(sansTraceur, bucketsA, bucketsB) } : undefined;
   const { resultat } = await apparierNode({
     params: regime === 'parallele' ? { ...params, traceur: undefined } : params,
     prepared: regime === 'parallele' ? { ...prepared, traceur: undefined } : prepared,
-    bucketsA, bucketsB, totalPaires: totalPairs, travailleurs: passage.travailleurs,
+    bucketsA, bucketsB, totalPaires: totalPairs, travailleurs: passage.travailleurs, ...(espace ? { espace } : {}),
     startedAt: prepared.startedAt, regime, cheminBundle: cheminBundleTranches!,
     ...(observateur ? { observer: (explored: number, candidats: ColonnesCandidats) => observateur.observer(explored, candidats, candidats.length) } : {}),
   });

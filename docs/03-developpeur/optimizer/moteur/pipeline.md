@@ -21,7 +21,7 @@ avant terme rend. Les contraintes à ne pas casser sont dans
 | Lancement | `src/hooks/useBuildOptimSearch.ts` | `useBuildOptimSearch` (`run`, `stop`, `cancel`) | [02-app/optimizer/feat-interruption.md](../../../02-app/optimizer/feat-interruption.md) |
 | Préparation | `src/workers/prepareForSearch.ts`, `src/lib/runeBuildOptim.ts` | `prepareOrRefuse`, `prepareSearch` | [elagages.md](elagages.md) |
 | Construction des moitiés | `src/workers/runeBuildOptim.worker.ts`, `src/workers/buildHalf.worker.ts`, `src/lib/rechercheRunes.ts`, `src/lib/constructionRapide.ts`, `src/lib/demiBuildsTypes.ts` | `buildHalfInWorker`, `construireMoitieTypee`, `construireMoitieRapideTypee` | [elagages.md](elagages.md) |
-| Choix du régime | `src/workers/runeBuildOptim.worker.ts`, `src/workers/parallelPairing.ts`, `src/lib/appariementRapide.ts` | `compterPaires`, `verifierContrat`, `regimeAppariement`, `nombreDeTravailleurs` | [parallelisation.md](parallelisation.md) |
+| Choix du régime | `src/workers/runeBuildOptim.worker.ts`, `src/workers/parallelPairing.ts`, `src/lib/appariementRapide.ts` | `analyserEspace` (`releverLignes`, `verifierEtEncoder`), `regimeAppariement`, `nombreDeTravailleurs` | [parallelisation.md](parallelisation.md) |
 | Appariement séquentiel | `src/workers/pairingDriver.ts`, `src/lib/rechercheRunes.ts`, `src/lib/appariementRapide.ts` | `lancerAppariement`, `drivePairing`, `apparier`, `apparierRapide` | [elagages.md](elagages.md), [02-app/optimizer/feat-interruption.md](../../../02-app/optimizer/feat-interruption.md) |
 | Appariement parallèle | `src/lib/appariementRapideParallele.ts`, `src/workers/appariementRapide.worker.ts`, `src/lib/travailleurAppariement.ts`, `src/lib/appariementRapide.ts` | `apparierRapideEnParallele`, `servirAppariement`, `parcourirMorceau` | [parallelisation.md](parallelisation.md) |
 | Fin de l'appariement | `src/workers/runeBuildOptim.worker.ts`, `src/hooks/useBuildOptimSearch.ts` | `useBuildOptimSearch` | — |
@@ -217,17 +217,31 @@ statut `error`.
 
 ## Choix du régime
 
-Les deux moitiés construites, le Worker compte une seule fois l'espace exact
-à parcourir, `compterPaires(prepared, bucketsA, bucketsB)` : le nombre de
-paires que l'appariement examinera s'il va au bout, avec les mêmes tests de
-paire de compartiments et de combinaison A que `pairBuckets`
-(`satisfiesSets`, jokers, `bucketPairFeasibleMin`, `comboAFeasible`).
+Les deux moitiés construites, le Worker analyse une seule fois l'espace à
+parcourir, `analyserEspace(prepared, bucketsA, bucketsB)` (`EspaceAppariement`) :
+
+- le relevé des lignes (`releverLignes`) : dans l'ordre de `pairBuckets`,
+  chaque paire de compartiments ouverte et, pour chacun de ses comboA, le
+  verdict de `comboAFeasible`, avec les mêmes tests que `pairBuckets`
+  (`satisfiesSets`, jokers, `bucketPairFeasibleMin`, `comboAFeasible`). Son
+  `total` est le nombre de paires que l'appariement examinera s'il va au bout
+  (`compterPaires` en rend le seul total) ;
+- le contrat numérique du noyau et, s'il tient, l'encodage des compartiments,
+  en une lecture des demi-builds (`verifierEtEncoder`).
+
+L'appariement reprend cette analyse telle quelle (`espace`, passé à
+`lancerAppariement`) : ni le contrat ni l'encodage ne se refont, et le plan
+des morceaux du parallèle se découpe sur le relevé, sans réévaluer un
+prédicat. Le CLI (`runSearchToCompletion`) et `perf-battery` font de même ;
+le harnais aussi, sauf en séquentiel avec un traceur, qui sort du contrat.
 ⚠️ Ce compte, `totalPairCount` sur la référence objet et l'appariement
 doivent rester égaux : leurs prédicats sont partagés, et le différentiel
-`tests/construction-colonnes.test.ts` compare leurs comptes.
+`tests/construction-colonnes.test.ts` compare leurs comptes ;
+`tests/serie-coordinateur.test.ts` compare relevé, plan, contrat et encodage
+aux boucles qui relisaient chaque demi-build.
 
 Ce total sert de dénominateur à la progression et décide du régime, avec le
-contrat numérique du noyau (`verifierContrat`) : `regimeAppariement`
+motif du contrat numérique du noyau : `regimeAppariement`
 (`src/workers/parallelPairing.ts`) rend le séquentiel, dans ce Worker, sous
 `PARALLEL_PAIRING_THRESHOLD` ou hors contrat ; le parallèle à partir du
 seuil, sur `nombreDeTravailleurs(navigator.hardwareConcurrency,

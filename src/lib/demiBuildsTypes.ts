@@ -52,6 +52,16 @@ export function idCombo(b: Compartiment, i: number, r: number): number {
 /** Copie des lignes, sans objets de demi-build. */
 export function copierLigne(cible: ColonnesCombos, i: number, source: ColonnesCombos, j: number): void {
   for (let r = 0; r < 3; r++) cible.ids[3 * i + r] = source.ids[3 * j + r];
+  if (cible.cles === source.cles) {
+    // Mêmes clés, même ordre : la colonne `k` de l'une est celle de l'autre, sans chercher chaque clé.
+    const m = cible.cles.length;
+    for (let k = 0; k < m; k++) {
+      cible.pct[i * m + k] = source.pct[j * m + k];
+      cible.flat[i * m + k] = source.flat[j * m + k];
+    }
+    cible.relevance[i] = source.relevance[j];
+    return;
+  }
   for (let k = 0; k < cible.cles.length; k++) {
     const s = source.cles.indexOf(cible.cles[k]);
     cible.pct[i * cible.cles.length + k] = s < 0 ? 0 : source.pct[j * source.cles.length + s];

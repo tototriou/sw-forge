@@ -1,17 +1,18 @@
 // La validation typée (`ValidationTypee`, validationRapide.ts) lit chaque rune
 // DISTINCTE une fois — ses lignes, son set, sa valeur, son contrat —, alors
-// qu'une rune revient dans des centaines de demi-builds. L'oracle : la même
-// construction sur des runes toutes distinctes (une copie par occurrence),
-// où rien ne peut se partager, c'est-à-dire la lecture occurrence par
-// occurrence. Les deux validations doivent être identiques champ par champ
-// (`Object.is` sur chaque élément des tableaux typés), motif de repli
-// compris ; puis le travail retiré, en lectures de rune comptées.
+// qu'une rune revient dans des centaines de demi-builds. L'oracle : la
+// validation d'avant, qui relisait chaque occurrence, gardée telle quelle
+// (oracle-validation-rapide.ts, copie de 5f35cbc5). Les deux doivent être
+// identiques champ par champ (`Object.is` sur chaque élément des tableaux
+// typés), motif de repli compris ; puis le travail retiré, en lectures de
+// rune comptées.
 
 import { BaseStats, RuneDetail } from '../src/types';
 import { BuildRequirement, PreparedSearch, SearchParams, prepareSearch } from '../src/lib/runeBuildOptim';
 import { construireMoitie } from '../src/lib/rechercheRunes';
 import { runesAPlat } from '../src/lib/appariementRapide';
 import { ValidationTypee } from '../src/lib/validationRapide';
+import { ValidationTypee as ValidationAvant } from './oracle-validation-rapide';
 import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
 import { drain } from '../scripts/lib/drain';
 import { egal, ok, titre } from './outils';
@@ -49,7 +50,9 @@ function cas(): Cas[] {
   const out: Cas[] = [];
   for (let s = 0; out.length < 6 && s < 300; s++) {
     const rng = mulberry32(27_500 + s);
-    const pool = randomPool(rng, 6 + Math.floor(rng() * 5), SETS_JOKER);
+    // `randomPool` ne pose aucune innée : une rune sur deux en reçoit une (VIT, PV %, Taux Crit), pour que la ligne innée compte.
+    const innees = [{ code: 8, value: 4 }, { code: 2, value: 6 }, { code: 9, value: 5 }];
+    const pool = randomPool(rng, 6 + Math.floor(rng() * 5), SETS_JOKER).map((r, i) => (i % 2 === 0 ? { ...r, innate: innees[i % 3] } : r));
     const minStats: BuildRequirement['minStats'] = { spd: 110 + Math.floor(rng() * 50) };
     if (rng() < 0.5) minStats.cr = 30 + Math.floor(rng() * 30);
     if (rng() < 0.5) minStats.res = 20 + Math.floor(rng() * 30);
@@ -94,10 +97,10 @@ export default function testValidationParRune(): void {
   const liste = cas();
   ok(liste.length >= 4, `${liste.length} pools construits par la construction de production`);
   for (const c of liste) {
-    const partagee = new ValidationTypee(c.prepared, c.runesA, c.runesB);
-    const parOccurrence = new ValidationTypee(c.prepared, occurrences(c.runesA), occurrences(c.runesB));
-    egal(partagee.motif, null, `${c.nom} : contrat tenu`);
-    identique(partagee, parOccurrence, `${c.nom} : tous les champs identiques à la lecture par occurrence (tables, sets, conditions, tampons)`);
+    const nouvelle = new ValidationTypee(c.prepared, c.runesA, c.runesB);
+    egal(nouvelle.motif, null, `${c.nom} : contrat tenu`);
+    identique(nouvelle, new ValidationAvant(c.prepared, c.runesA, c.runesB),
+      `${c.nom} : tous les champs identiques à la validation d’avant (tables, sets, conditions, tampons)`);
 
     // Trois lectures des sous-stats par rune jugée : le contrat, les lignes, la valeur (efficience ou score).
     const k = compteur(c.runesA, c.runesB);
@@ -116,5 +119,5 @@ export default function testValidationParRune(): void {
   const runesB = c.runesB.map((r) => (r === cible ? fautive : r));
   const motif = new ValidationTypee(c.prepared, c.runesA, runesB).motif;
   ok(motif !== null && motif.includes(`rune ${cible.id}`), `rune fractionnaire : repli nommé (${motif})`);
-  egal(motif, new ValidationTypee(c.prepared, occurrences(c.runesA), occurrences(runesB)).motif, 'même motif que la lecture par occurrence');
+  egal(motif, new ValidationAvant(c.prepared, c.runesA, runesB).motif, 'même motif que la validation d’avant');
 }

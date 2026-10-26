@@ -62,7 +62,8 @@ dans chaque Worker : une rune revient dans des centaines de demi-builds, et
 fois — contrat, lignes par voie, indice de set, valeur —, puis chaque
 demi-build rejoue les mêmes additions dans le même ordre ; les indices de set
 s'attribuent dans l'ordre de première apparition, comme en lisant chaque
-occurrence (`tests/validation-par-rune.test.ts`).
+occurrence (`tests/validation-par-rune.test.ts`, contre la validation d'avant
+gardée comme oracle).
 
 ## Une stat, un entier
 

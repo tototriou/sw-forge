@@ -153,6 +153,9 @@ export class ResolutionDistante {
 
   // Les voies, par indice : vivante ou retirée après une panne.
   private voies: boolean[];
+  // Combien de voies vivantes reçoivent de nouvelles demandes (les premières
+  // par indice) ; les autres finissent seulement ce qu'elles ont.
+  private actives = Infinity;
 
   /**
    * `parVoie` : les crédits de chaque voie ; `voies` : le nombre de
@@ -166,7 +169,23 @@ export class ResolutionDistante {
 
   /** Les demandes sans réponse permises, toutes voies vivantes confondues. */
   get maxEnVol(): number {
-    return this.parVoie * this.voiesVivantes;
+    return this.parVoie * Math.min(this.actives, this.voiesVivantes);
+  }
+
+  /**
+   * Seules les `n` premières voies vivantes reçoivent de nouvelles demandes
+   * (`Infinity` : toutes). Le classeur n'en active qu'une tant que la
+   * recherche apparie encore : le pool ne prend pas de cœurs aux Workers
+   * d'appariement. Une demande déjà partie sur une autre voie y reste.
+   */
+  activerVoies(n: number): void {
+    if (!(n >= 1)) throw new Error('Nombre de voies actives invalide');
+    this.actives = n;
+  }
+
+  /** Les voies qui reçoivent de nouvelles demandes. */
+  get voiesActives(): number {
+    return Math.min(this.actives, this.voiesVivantes);
   }
 
   get voiesVivantes(): number {
@@ -311,12 +330,14 @@ export class ResolutionDistante {
     const enCours = new Set(this.enVol.filter((d) => !d.annulee && d.idContexte === this.idContexte).map((d) => d.cle));
     const charge = this.demandesParVoie;
     for (const c of restants) {
-      if (this.enVol.length >= this.maxEnVol) break;
       const cle = cleBuild(c);
       if (enCours.has(cle)) continue;
+      // La voie active la moins chargée : chaque voie a ses `parVoie` places.
       let voie = -1;
-      for (let v = 0; v < this.voies.length; v++) {
-        if (this.voies[v] && charge[v] < this.parVoie && (voie < 0 || charge[v] < charge[voie])) voie = v;
+      for (let v = 0, rang = 0; v < this.voies.length && rang < this.actives; v++) {
+        if (!this.voies[v]) continue;
+        rang++;
+        if (charge[v] < this.parVoie && (voie < 0 || charge[v] < charge[voie])) voie = v;
       }
       if (voie < 0) break;
       if (!Number.isSafeInteger(this.prochainIdDemande + 1)) throw new Error('Compteur de demande de résolution épuisé');

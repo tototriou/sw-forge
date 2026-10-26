@@ -328,3 +328,75 @@ export async function testResolutionPoolAnnulation() {
     'même classement et même page que la recherche 2 résolue par un seul résolveur');
   egal((pool.corps as unknown as { pilote: ResolutionDistante }).pilote.demandesEnVol, 0, 'chaque réponse, ancienne comprise, a rendu son crédit');
 }
+
+/**
+ * Le pool ne prend pas de cœurs à l'appariement : tant que la collecte n'est
+ * pas scellée (la recherche apparie et active la file par `activer`), une
+ * seule voie reçoit des demandes ; au scellé, toutes. Vrai classeur, vrais
+ * résolveurs, la file activée comme le Worker de recherche le fait.
+ */
+export async function testResolutionPoolVoiesAvantScelle() {
+  titre('Résolution — une seule voie active pendant l’appariement, tout le pool une fois la collecte scellée');
+  const f = fixturePool(180, { enemyDef: 1200, signature: 'pool', toutVerifier: false });
+  const ref = classerPourLaPage(f.photo, f.candidats, f.vue);
+  const classeur = await fil('classement');
+  const resolveurs = await Promise.all(Array.from({ length: VOIES }, () => fil('resolution')));
+  const AVANT = 8;
+  const avant = resolveurs.map(() => 0), apres = resolveurs.map(() => 0), enVol = resolveurs.map(() => 0), maxEnVol = resolveurs.map(() => 0);
+  let reponses = 0, scelle = false, derniere: InstantaneClassement | null = null;
+  const recherche = new MessageChannel(), ports: MessagePort[] = [];
+  const bs = blocs(f.candidats);
+  try {
+    const fini = new Promise<void>((accepter, refuser) => {
+      const filet = setTimeout(() => refuser(new Error('Voies actives : délai de garde dépassé')), 60000);
+      resolveurs.forEach((w, voie) => {
+        const versClasseur = new MessageChannel(), versResolveur = new MessageChannel();
+        ports.push(versClasseur.port1);
+        versClasseur.port2.on('message', (m: MessageVersResolution) => {
+          if (m.type === 'resoudre') {
+            (scelle ? apres : avant)[voie]++;
+            maxEnVol[voie] = Math.max(maxEnVol[voie], ++enVol[voie]);
+          }
+          versResolveur.port1.postMessage(m);
+        });
+        versResolveur.port1.on('message', (r: ReponseResolution) => {
+          enVol[voie]--;
+          versClasseur.port2.postMessage(r);
+          // Assez de réponses avant le scellé pour qu'un pool actif ait servi les autres voies.
+          if (++reponses === AVANT) {
+            scelle = true;
+            recherche.port2.postMessage({ type: 'sceller', idRecherche: 1, nombre: f.candidats.length, derniereSequence: bs.length - 1, bilan: BILAN });
+          }
+        });
+        w.postMessage({ type: 'port', port: versResolveur.port2 }, [versResolveur.port2]);
+      });
+      classeur.on('error', (e) => { clearTimeout(filet); refuser(e); });
+      classeur.on('message', (m: ReponseClassement) => {
+        try {
+          if (m.type === 'erreur' || m.type === 'incidentResolution') throw new Error(m.type === 'erreur' ? m.message : m.raison);
+          if (m.type === 'ouverte') {
+            classeur.postMessage({ type: 'portRecherche', idRecherche: 1, port: recherche.port1 }, [recherche.port1]);
+            bs.forEach((b, i) => recherche.port2.postMessage({ type: 'candidats', idRecherche: 1, sequence: i, bloc: b }, tamponsCandidats([b])));
+            // La recherche apparie encore : elle active la file, sans sceller.
+            recherche.port2.postMessage({ type: 'activer', idRecherche: 1 });
+          }
+          if (m.type === 'publication') {
+            derniere = m.publication;
+            if (scelle && derniere.bilan && derniere.enAttente === 0) { clearTimeout(filet); accepter(); }
+          }
+        } catch (e) { clearTimeout(filet); refuser(e); }
+      });
+    });
+    classeur.postMessage({ type: 'portsResolution', ports }, ports);
+    classeur.postMessage({ type: 'ouvrir', versionSchema: 1, idRecherche: 1, idDemande: 1, contexte: f.photo, vue: f.vue });
+    await fini;
+    ok(avant[0] >= AVANT && avant.slice(1).every((n) => n === 0),
+      `avant le scellé : ${avant[0]} demandes sur la voie 0, ${avant.slice(1).join('/')} sur les autres — une seule voie pendant l’appariement`);
+    ok(apres.every((n) => n > 0), `après le scellé : ${apres.join('/')} demandes par voie — tout le pool résout`);
+    ok(maxEnVol.every((n) => n <= 2), `au plus deux demandes sans réponse par voie (${maxEnVol.join('/')})`);
+    ok(isDeepStrictEqual(vu(derniere as unknown as InstantaneClassement), vu(ref.instantane)), 'même page, mêmes comptes que le résolveur unique');
+  } finally {
+    recherche.port2.close();
+    await classeur.terminate(); await Promise.all(resolveurs.map((w) => w.terminate()));
+  }
+}

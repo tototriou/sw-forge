@@ -752,6 +752,8 @@ export class CorpsClassement {
     this.versions = { versionSchema: 1, idRecherche, idInventaire: contexte.idInventaire,
       idContexteResolution: this.versions.idContexteResolution, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande };
     this.entrees = null;
+    // Une voie tant que la recherche apparie, toutes au scellé (`sceller`).
+    this.pilote.activerVoies(1);
     for (const { voie, message } of this.pilote.invaliderVoies()) {
       if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(message));
       else this.sorties.resoudre(message, voie);
@@ -846,6 +848,8 @@ export class CorpsClassement {
       return;
     }
     this.flux.scellerColonnes(nombre); this.bilan = bilan; this.collecteScellee = true;
+    // L'appariement est fini : tout le pool résout.
+    this.pilote.activerVoies(Infinity);
     // Le bilan (fin de recherche) part dès que son instantané est prêt : retenu
     // par la cadence, il n'attendrait que la prochaine réponse du résolveur.
     this.activer(idRecherche); this.sale = true; this.publicationForcee = true;

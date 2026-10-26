@@ -523,7 +523,10 @@ canonique, indépendamment de l'ordre d'arrivée.
 contexte (vers chaque voie vivante), annulations (vers la voie de la
 demande), puis demandes prioritaires, chacune vers la voie la moins chargée
 (à égalité, la plus petite) ; deux places au plus par voie, annulées
-comprises. La plus ancienne demande de chaque voie, que son Worker a sans
+comprises. Tant que la collecte n'est pas scellée, seule la première voie
+vivante reçoit des demandes (`activerVoies(1)` à l'ouverture,
+`activerVoies(Infinity)` au scellé) : la recherche active la file pendant
+l'appariement, et le pool ne prend pas de cœurs à ses Workers. La plus ancienne demande de chaque voie, que son Worker a sans
 doute commencée, n'est jamais annulée. Le pool compte
 `nombreDeResolveurs(concurrence, coeursPhysiques)` Workers, la règle de
 l'appariement : les deux ne se chevauchent que sur la fin de l'appariement,
@@ -646,4 +649,6 @@ la relance explicite crée un nouveau Worker, sans secours ni relance automatiqu
   `testResolutionPoolPanne` (vrai classeur, un Worker terminé en cours de
   file : ses builds repris, même page, aucun incident sur la page) et
   `testResolutionPoolAnnulation` (nouvelle recherche pendant que le pool
-  calcule : aucune réponse de l'ancienne écrite, chaque crédit rendu).
+  calcule : aucune réponse de l'ancienne écrite, chaque crédit rendu) et
+  `testResolutionPoolVoiesAvantScelle` (file activée sans scellé : une seule
+  voie servie ; au scellé, toutes).

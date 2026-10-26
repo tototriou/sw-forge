@@ -472,7 +472,10 @@ coquille accepte un MessagePort relié au classeur, une voie par Worker, et
 traite une demande par tâche. `ResolutionDistante` décide, dans le fil du
 classeur, des deux places en vol de chaque voie, de la voie de chaque
 demande, des annulations et de la validité des réponses, quel que soit leur
-ordre d'arrivée. Les identifiants ne repartent
+ordre d'arrivée. **Une seule voie reçoit des demandes tant que la collecte
+n'est pas scellée** : la recherche active la file pendant l'appariement
+(`activer`), et le pool entier prendrait alors des cœurs à ses Workers
+d'appariement ; au scellé (`sceller`), toutes les voies résolvent. Les identifiants ne repartent
 pas à zéro au remplacement d'une recherche : une ancienne réponse ne peut
 pas devenir une nouvelle demande. Le détail du protocole et du repli est dans
 [parallelisation.md § Worker de résolution](parallelisation.md#worker-de-résolution).

@@ -128,6 +128,8 @@ function scenario(nom: string, graine: number, e: Parameters<typeof population>[
   const attendues = new Map<number, InstantaneClassement>();
   let vue = vue0, id = 1;
   for (let g = 0; g < e.gestes; g++) {
+    // Du temps mort, parfois interrompu en cours de note : seul le classeur différé prépare des objectifs à l'avance.
+    if (hasard() < 0.5) for (let k = 0, n = Math.floor(hasard() * 1500); k < n && d.corps.avancerAuRepos(); k++) { /* temps mort */ }
     const depuis = d.publications.length;
     const v1 = vueAuHasard(hasard, vue, candidats), id1 = ++id;
     attendues.set(id1, gesteOracle(r, v1, id1)); bilan.gestes++;

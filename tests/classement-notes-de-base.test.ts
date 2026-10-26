@@ -127,3 +127,33 @@ export function testClassementNotesDeBaseGardees() {
     CandidatsCompacts.prototype.candidat = lire; CandidatsCompacts.prototype.ingerer = ingerer;
   }
 }
+
+export function testClassementNotesAuRepos() {
+  titre('Classeur — temps mort : les objectifs jamais triés se notent à l’avance, après le scellé seulement, et leur tri ne renote rien');
+  const { photo, candidats, vue } = population({ nombre: 600, avecFile: true });
+  const n = candidats.length;
+  // Pendant la recherche : le travail au fil seul, jamais le temps mort.
+  const enCours = new CorpsClassement({ publier: () => {}, resoudre: () => { throw new Error('Résolution distante'); }, incident: (r) => { throw new Error(r); } }, true, 'directe');
+  enCours.ouvrir(photo, 1, vue, 1);
+  const colonnes = creerColonnesCandidats(); candidats.forEach((c) => ajouterObjetCandidat(colonnes, c));
+  extraireBlocs(colonnes).forEach((b, i) => enCours.ajouter(1, i, b));
+  enCours.activer(1); while (enCours.travailEnCours) enCours.avancer();
+  ok(!enCours.travailAuRepos && !enCours.avancerAuRepos(), 'recherche non scellée : aucun temps mort');
+  const d = classeur(photo, candidats, vue, true);
+  resoudre(d, Infinity);
+  ok(d.corps.travailAuRepos, 'scellé, file finie : des objectifs restent à noter en temps mort');
+  const notesAvant = d.corps.travail.notes;
+  let pas = 0;
+  while (d.corps.avancerAuRepos()) pas++;
+  egal(d.corps.travail.notes - notesAvant, 2 * n, `temps mort : PV effectifs et Efficience notés (${pas} pas), Dégâts réels déjà noté comme objectif lancé`);
+  ok(!d.corps.travailAuRepos && !d.corps.avancerAuRepos(), 'plus rien à préparer');
+  const geste = (v: VueClassement, id: number) => {
+    const avant = d.corps.travail.notes;
+    d.corps.changerVue(v, id, id); drainer(d);
+    return d.corps.travail.notes - avant;
+  };
+  egal(geste({ ...vue, tri: 'ehp' }, 2), 0, 'tri PV effectifs après le temps mort : aucune note');
+  egal(geste({ ...vue, tri: 'efficience' }, 3), 0, 'tri Efficience après le temps mort : aucune note');
+  egal(geste({ ...vue, tri: 'efficience', metric: 'score' }, 4), n, 'une autre mesure : sa propre note (la clé d’un critère porte la mesure)');
+  ok(d.corps.travailAuRepos, 'sous la nouvelle mesure, les autres objectifs sont à préparer de nouveau');
+}

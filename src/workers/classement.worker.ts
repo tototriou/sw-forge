@@ -32,7 +32,8 @@ function creerCorps(): CorpsClassement {
 // déjà reçus (annulation, crédits, réponses du résolveur).
 // Pendant la recherche, les notes et l'ordre de base se préparent au fil des
 // blocs reçus, après la tâche et la file, en tranche d'au plus 1 ms : une
-// réponse du résolveur ou un bloc n'attend pas davantage.
+// réponse du résolveur ou un bloc n'attend pas davantage. Après le scellé, la
+// même tranche note en temps mort les objectifs jamais triés.
 const relance = new Relance(() => proteger(() => {
   const limite = performance.now() + 4;
   do { corps.avancer(); } while (corps.travailEnCours && performance.now() < limite);
@@ -40,8 +41,9 @@ const relance = new Relance(() => proteger(() => {
   if (!corps.travailEnCours) {
     const fin = Math.min(limite, performance.now() + 1);
     while (corps.avancerAuFil() && performance.now() < fin) { /* tranche au fil des blocs */ }
+    while (performance.now() < fin && corps.avancerAuRepos()) { /* tranche du temps mort */ }
   }
-  if (corps.travailEnCours || corps.travailEnRepli || corps.travailAuFil) relance.programmer();
+  if (corps.travailEnCours || corps.travailEnRepli || corps.travailAuFil || corps.travailAuRepos) relance.programmer();
 }));
 function proteger(f: () => void): void {
   try { f(); } catch (e) {

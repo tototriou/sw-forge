@@ -229,7 +229,7 @@ import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidat
   testFluxCandidatsRefusRecevoir, testFluxCandidatsRefusSceller, testFluxCandidatsRefusResultat, testFluxCandidatsLanceurCommun } from './flux-candidats.test';
 import { testClassementCreditsRelance, testClassementCadenceDifferee, testClassementVueSansAutreMessage, testClassementInstantaneBorne, testClassementMortInactive } from './classement-publication.test';
 import { testClassementAuFilDifferentiel, testClassementAuFilTravail } from './classement-au-fil.test';
-import { testClassementNotesDeBaseGardees } from './classement-notes-de-base.test';
+import { testClassementNotesDeBaseGardees, testClassementNotesAuRepos } from './classement-notes-de-base.test';
 import { testClassementApercuDifferentiel, testClassementApercuNonFinis, testClassementApercuSecondGeste, testClassementApercuPagePrioritaire,
   testClassementApercuTravail } from './classement-apercu.test';
 import { testClassementComparerApresValidation } from './classement-comparer.test';
@@ -902,6 +902,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testClassementAuFilDifferentiel', testClassementAuFilDifferentiel],
   ['testClassementAuFilTravail', testClassementAuFilTravail],
   ['testClassementNotesDeBaseGardees', testClassementNotesDeBaseGardees],
+  ['testClassementNotesAuRepos', testClassementNotesAuRepos],
   ['testClassementApercuDifferentiel', testClassementApercuDifferentiel],
   ['testClassementApercuNonFinis', testClassementApercuNonFinis],
   ['testClassementApercuSecondGeste', testClassementApercuSecondGeste],

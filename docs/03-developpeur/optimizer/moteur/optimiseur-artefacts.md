@@ -532,6 +532,17 @@ sans matérialiser de candidat, et une borne sur une stat se juge de même
 inchangé, un changement de critère ne réingère plus le magasin ni ne rejuge
 les catégories : seules les notes et l'arbre se refont.
 
+**Temps mort.** Une fois la recherche scellée, Dégâts réels, PV effectifs
+et Efficience (décroissants, sous la mesure de la vue) se notent à l'avance
+quand rien d'autre n'attend (`avancerAuRepos`) : la tranche du Worker qui
+reste après la tâche, la file et le travail au fil, au plus 1 ms. Ce sont
+les seules colonnes chères à noter ; une stat se lit dans sa colonne. Mêmes
+candidats collectés, même contexte photographié, sans cache : les notes que
+la tâche d'un tri calculerait, gardées comme l'objectif lancé (~8 octets
+par candidat chacune) ; une tâche qui a noté le critère entre-temps garde
+les siennes, une note qui lève abandonne ce critère. Le tri d'une de ces
+colonnes ne note alors plus rien avant sa page. Rien pendant la recherche.
+
 Une publication pour l'écran est l'instantané de sa page : comptes de
 l'arbre, extraction des confirmées du rang demandé, places attendues, soit
 O(log N + 20) ; aucun objet ni ordinal par ligne ne la traverse. Seul

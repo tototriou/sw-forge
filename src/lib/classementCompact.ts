@@ -838,6 +838,8 @@ export interface PublicationClassement {
 type EntreeDeBase = NotesDeCritere & { cle: string; ordre: Uint32Array | null };
 /** Critères quittés gardés en plus de l'objectif lancé et de la vue : ~12 octets par candidat chacun. */
 const CRITERES_QUITTES_GARDES = 4;
+/** Les objectifs notés en temps mort, décroissants, sous la mesure de la vue, et gardés comme la vue (~8 octets par candidat chacun). */
+const OBJECTIFS_AU_REPOS: readonly ColonneResultat[] = ['degats_reels', 'ehp', 'efficience'];
 
 function compteurSuivant(n: number): number {
   if (!Number.isSafeInteger(n) || n >= Number.MAX_SAFE_INTEGER) throw new Error('Compteur du classeur épuisé ; recréer le propriétaire');
@@ -901,6 +903,9 @@ export class CorpsClassement {
   // tâche : valable pour l'index et la clé de vue (critère et bornes) qui
   // l'ont produite, quelle que soit la page.
   private apercu: { index: ClassementCompact; cle: string; donnees: ApercuClassement; notes: Float64Array | null; enAttente: number } | null = null;
+  // Les notes d'un objectif en cours de préparation en temps mort, et les critères dont une note a levé.
+  private repos: { index: ClassementCompact; cle: string; etapes: Generator<void, NotesDeCritere> } | null = null;
+  private reposAbandonnes = new Set<string>();
 
   constructor(private readonly sorties: {
     publier: (p: InstantaneClassement) => void;
@@ -930,7 +935,7 @@ export class CorpsClassement {
     this.contexte = contexte; this.vue = null; this.flux = new RecepteurCandidats(0); this.lots = [];
     this.index = null; this.fileExhaustive = null; this.base = new Uint32Array(); this.fondPropre = null; this.bilan = null; this.collecteScellee = false;
     this.auFil = []; this.auFilEnAttente = false; this.travail.notes = 0; this.travail.comparaisons = 0;
-    this.ordresDeBase = { index: null, entrees: [] }; this.apercu = null;
+    this.ordresDeBase = { index: null, entrees: [] }; this.apercu = null; this.repos = null; this.reposAbandonnes = new Set();
     this.versions = { versionSchema: 1, idRecherche, idInventaire: contexte.idInventaire,
       idContexteResolution: this.versions.idContexteResolution, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande };
     this.entrees = null;
@@ -976,6 +981,58 @@ export class CorpsClassement {
     if (!this.travailAuFil) return this.auFilEnAttente = false;
     for (const [critere, metric, sens] of this.criteresDeBase()) if (this.ordreAuFil(critere, metric, sens).avancer()) return true;
     return this.auFilEnAttente = false;
+  }
+  /**
+   * Un objectif à noter en temps mort sur la population scellée : Dégâts
+   * réels, PV effectifs et Efficience, chers à noter, que le tri d'une
+   * colonne jamais notée attendrait avant sa page. Une stat se lit dans sa
+   * colonne, elle n'en a pas besoin.
+   */
+  private critereAuRepos(): { critere: ColonneResultat; cle: string } | null {
+    const index = this.index, vue = this.vue, contexte = this.contexte;
+    if (!index || !vue || !contexte || !this.collecteScellee || this.tache || index.magasin.longueur !== this.nombreCible) return null;
+    for (const critere of OBJECTIFS_AU_REPOS) {
+      if (!colonneDisponible(critere, contexte.realDamage)) continue;
+      const cle = cleCritere(critere, vue.metric, SENS_PAR_DEFAUT);
+      const connue = this.ordresDeBase.index === index && this.ordresDeBase.entrees.some((e) => e.cle === cle);
+      if (!connue && !this.reposAbandonnes.has(cle)) return { critere, cle };
+    }
+    return null;
+  }
+  /** Des notes de base restent à préparer en temps mort. */
+  get travailAuRepos(): boolean { return (this.repos !== null && this.repos.index === this.index) || this.critereAuRepos() !== null; }
+  /**
+   * Un pas du temps mort : une note de base d'un objectif jamais noté, la
+   * même que la tâche d'un tri calculerait (mêmes candidats collectés, même
+   * contexte photographié, sans cache). Faux quand il n'y a rien à faire. Le
+   * Worker ne l'appelle qu'après sa tâche, sa file et le travail au fil.
+   */
+  avancerAuRepos(): boolean {
+    if (this.tache) return false;
+    const index = this.index;
+    if (this.repos && this.repos.index !== index) this.repos = null;
+    if (!this.repos) {
+      const prochain = this.critereAuRepos();
+      if (!prochain || !index) return false;
+      const source = candidatsParIndice(index.magasin.longueur, (i) => index.magasin.candidat(i, false));
+      this.repos = { index, cle: prochain.cle,
+        etapes: notesDeCollecteEtapes(source, prochain.critere, optionsDuContexte(this.contexte!, null, this.vue!.metric), this.travail) };
+    }
+    const repos = this.repos;
+    let pas: IteratorResult<void, NotesDeCritere>;
+    try {
+      pas = repos.etapes.next();
+    } catch {
+      // Une note qui lève lèvera aussi dans la tâche d'un tri, qui la signale : rien n'est gardé.
+      this.reposAbandonnes.add(repos.cle); this.repos = null;
+      return true;
+    }
+    if (pas.done) {
+      this.repos = null;
+      // Une tâche a pu noter ce critère entre-temps : la sienne reste.
+      if (!this.ordresDeBase.entrees.some((e) => e.cle === repos.cle)) this.garderEntree(repos.index, { ...pas.value, cle: repos.cle, ordre: null });
+    }
+    return true;
   }
   private *notesConnues(critere: StatKey | Objective, metric: OptimMetric, sens: SensTri, n: number): Generator<void, NotesConnues | undefined> {
     // Source libérée après le scellé : l'ordre se refait sur le magasin, comme avant.
@@ -1153,7 +1210,9 @@ export class CorpsClassement {
     const entrees = this.ordresDeBase.entrees.filter((e) => e.cle !== entree.cle);
     entrees.push(entree);
     const vue = this.vue, lance = this.contexte ? cleCritere(this.triDuLancement(), this.contexte.recherche.metric, SENS_PAR_DEFAUT) : '';
-    const gardees = new Set([lance, vue ? cleCritere(vue.tri, vue.metric, sensDe(vue)) : '']);
+    // Les objectifs du temps mort aussi : oubliés, ils se reprépareraient aussitôt.
+    const gardees = new Set([lance, vue ? cleCritere(vue.tri, vue.metric, sensDe(vue)) : '',
+      ...(vue ? OBJECTIFS_AU_REPOS.map((c) => cleCritere(c, vue.metric, SENS_PAR_DEFAUT)) : [])]);
     let quittes = entrees.filter((e) => !gardees.has(e.cle)).length;
     this.ordresDeBase.entrees = entrees.filter((e) => gardees.has(e.cle) || quittes-- <= CRITERES_QUITTES_GARDES);
   }
@@ -1400,7 +1459,7 @@ export class CorpsClassement {
     this.tache = null; this.nombreCible = 0; this.plages = []; this.reponsesEnAttente = [];
     this.contexte = null; this.vue = null; this.index = null; this.fileExhaustive = null; this.flux.liberer(); this.lots = [];
     this.auFil = []; this.auFilEnAttente = false;
-    this.ordresDeBase = { index: null, entrees: [] }; this.apercu = null;
+    this.ordresDeBase = { index: null, entrees: [] }; this.apercu = null; this.repos = null; this.reposAbandonnes = new Set();
     this.cache.clear(); this.generationCache = compteurSuivant(this.generationCache); this.entrees = null; this.sale = false;
     for (const m of this.pilote.invalider()) {
       if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m);

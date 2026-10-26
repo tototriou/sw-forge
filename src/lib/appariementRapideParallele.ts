@@ -25,7 +25,7 @@
 // le rejeu redonne l'état séquentiel exact.
 
 import { BuildCandidate, NearMiss, PreparedSearch, SearchParams, SearchResult } from './runeBuildOptim';
-import { ColonnesCandidats, SortieCandidats, creerColonnesCandidats, fusionnerCandidats } from './candidatsCompacts';
+import { ColonnesCandidats, LIGNES_PAR_BLOC, SortieCandidats, creerColonnesCandidats, fusionnerCandidats } from './candidatsCompacts';
 import { Compartiment } from './demiBuildsTypes';
 import {
   CompteursNoyau,
@@ -61,8 +61,20 @@ export const MORCEAUX_PAR_TRAVAILLEUR = 64;
 export const TAILLE_MIN_MORCEAU = 2_000_000;
 /** Morceaux en vol par Worker (le suivant attend déjà quand l'un se termine). */
 export const EN_VOL_PAR_TRAVAILLEUR = 2;
-/** Réception compacte : places réservées par producteur, bilans vides compris. */
-export const BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR = 4;
+/**
+ * Réception compacte, par producteur : lignes de candidats reçues et non
+ * fusionnées, au plus quatre blocs pleins. Le crédit n'est rendu que s'il
+ * reste la place d'un bloc plein de plus : la borne vaut pour le message que
+ * le crédit autorise.
+ */
+export const LIGNES_EN_ATTENTE_PAR_TRAVAILLEUR = 4 * LIGNES_PAR_BLOC;
+/**
+ * Messages reçus et non fusionnés, au plus, par producteur, bilans vides
+ * compris. Un bilan court ne coûte presque rien en lignes : compter les
+ * places en messages laissait quatre petits bilans bloquer un Worker
+ * derrière un morceau de tête lent.
+ */
+export const MESSAGES_EN_ATTENTE_PAR_TRAVAILLEUR = 16;
 
 export interface ResultatParallele<C = BuildCandidate[]> extends ResultatAppariementRapide<C> {
   /**
@@ -269,7 +281,8 @@ export async function apparierRapideEnParallele(o: OptionsParallele<ColonnesCand
   // et chacun s'arrête de lui-même au point de passage `arret`.
   const aDistribuer = arret == null ? plan : plan.filter((m) => m.offset + 1 < arret).map((m) => ({ ...m, limite: arret }));
 
-  const resultats: { r: ResultatMorceau<ColonnesCandidats>; w: number }[][] = Array.from({ length: aDistribuer.length }, () => []);
+  // `lignes` : ce que le message occupe dans la réception de son producteur.
+  const resultats: { r: ResultatMorceau<ColonnesCandidats>; w: number; lignes: number }[][] = Array.from({ length: aDistribuer.length }, () => []);
   const parTravailleur: number[] = new Array(o.travailleurs).fill(0);
   let validationsTypees = 0;
   let validationsReference = 0;
@@ -351,7 +364,11 @@ export async function apparierRapideEnParallele(o: OptionsParallele<ColonnesCand
   const poignees: PoigneeTravailleur<ColonnesCandidats>[] = [];
   const enVolParTravailleur = new Array(nbTravailleurs).fill(0) as number[];
   const enAttenteParTravailleur = new Array(nbTravailleurs).fill(0) as number[];
+  const lignesEnAttente = new Array(nbTravailleurs).fill(0) as number[];
   const creditDiffere = new Array(nbTravailleurs).fill(false) as boolean[];
+  // Place pour un message de plus : au plus un bloc plein de lignes.
+  const placeLibre = (w: number) => enAttenteParTravailleur[w] < MESSAGES_EN_ATTENTE_PAR_TRAVAILLEUR
+    && lignesEnAttente[w] + LIGNES_PAR_BLOC <= LIGNES_EN_ATTENTE_PAR_TRAVAILLEUR;
   let prochainADistribuer = 0;
   // L'erreur d'un Worker termine l'attente comme une fin : l'état fusionné
   // jusque-là est rendu, porté par `ErreurAppariementParallele`.
@@ -384,14 +401,16 @@ export async function apparierRapideEnParallele(o: OptionsParallele<ColonnesCand
       enVolParTravailleur[w]++;
       poignees[w].envoyer(m, [m.segments.buffer as ArrayBuffer, m.drapeaux.buffer as ArrayBuffer]);
     };
-    const libererPlace = (w: number) => {
+    const libererPlace = (w: number, lignes: number) => {
       enAttenteParTravailleur[w]--;
-      if (creditDiffere[w]) {
+      lignesEnAttente[w] -= lignes;
+      if (creditDiffere[w] && placeLibre(w)) {
         creditDiffere[w] = false;
         poignees[w].acquitter!();
       }
     };
     let pompeEnCours = false;
+    let enVolArretes = false;
     let receptionsANotifier = 0;
     const prefixeDisponible = () => prochainAFusionner < resultats.length && resultats[prochainAFusionner].length > 0;
     const programmerFusion = () => {
@@ -406,7 +425,7 @@ export async function apparierRapideEnParallele(o: OptionsParallele<ColonnesCand
             while (!fusionTerminee() && prefixeDisponible() && blocsFusionnes < nbTravailleurs) {
               const entree = resultats[prochainAFusionner].shift()!;
               fusionner(entree.r, aDistribuer[prochainAFusionner]);
-              libererPlace(entree.w);
+              libererPlace(entree.w, entree.lignes);
               blocsFusionnes++;
               if (entree.r.issue === 'suite') continue;
               prochainAFusionner++;
@@ -414,8 +433,15 @@ export async function apparierRapideEnParallele(o: OptionsParallele<ColonnesCand
             }
             if (fusionTerminee()) {
               for (let i = prochainAFusionner; i < resultats.length; i++) {
-                for (const entree of resultats[i]) libererPlace(entree.w);
+                for (const entree of resultats[i]) libererPlace(entree.w, entree.lignes);
                 resultats[i] = [];
+              }
+              // Plus rien ne se fusionnera : les morceaux encore en vol
+              // rendent la main à leur ligne suivante au lieu d'aller au
+              // bout d'un parcours jeté, que le coordinateur attendrait.
+              if (!enVolArretes) {
+                enVolArretes = true;
+                for (const p of poignees) p.arreter();
               }
             }
             // La publication compacte est bornée à W blocs, indépendamment
@@ -465,10 +491,14 @@ export async function apparierRapideEnParallele(o: OptionsParallele<ColonnesCand
             if (r.validationTypee) validationsTypees++;
             else validationsReference++;
           }
-          resultats[r.id].push({ r, w });
+          if (creditDiffere[w] || !placeLibre(w)) throw new Error('Bloc reçu sans place de réception');
+          // Un message du chemin compact porte au plus un bloc plein ; un
+          // résultat de morceau entier (scénarios de test) compte pour un bloc.
+          const lignes = Math.min(r.candidats.length, LIGNES_PAR_BLOC);
+          resultats[r.id].push({ r, w, lignes });
           enAttenteParTravailleur[w]++;
-          if (enAttenteParTravailleur[w] > BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR || creditDiffere[w]) throw new Error('Bloc reçu sans place de réception');
-          if (enAttenteParTravailleur[w] < BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR) p.acquitter!();
+          lignesEnAttente[w] += lignes;
+          if (placeLibre(w)) p.acquitter!();
           else creditDiffere[w] = true;
           if (r.issue === 'temps') tempsEcoule = true;
           receptionsANotifier++;

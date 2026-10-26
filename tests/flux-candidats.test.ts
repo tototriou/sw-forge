@@ -4,7 +4,7 @@ import { ResultatMorceau, apparierRapide, compterPaires, encoderCompartiments, i
 import { construireMoitieTypee } from '../src/lib/rechercheRunes';
 import { objetsDesCompartiments } from '../src/lib/demiBuildsTypes';
 import { BlocCandidats, ColonnesCandidats, LIGNES_PAR_BLOC, RecepteurCandidats, ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs, fusionnerCandidats, objetsDesCandidats, tamponsCandidats } from '../src/lib/candidatsCompacts';
-import { BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR, ErreurAppariementParallele, LancerTravailleur, OptionsParallele, PoigneeTravailleur, ResultatParallele, apparierRapideEnParallele, enResultatDeRecherche, planifierMorceaux } from '../src/lib/appariementRapideParallele';
+import { ErreurAppariementParallele, LIGNES_EN_ATTENTE_PAR_TRAVAILLEUR, MESSAGES_EN_ATTENTE_PAR_TRAVAILLEUR, LancerTravailleur, OptionsParallele, PoigneeTravailleur, ResultatParallele, apparierRapideEnParallele, enResultatDeRecherche, planifierMorceaux } from '../src/lib/appariementRapideParallele';
 import { servirAppariement, tamponsResultatMorceau } from '../src/lib/travailleurAppariement';
 import { BLOCS_EN_VOL_VERS_PAGE, EmetteurCandidats, drivePairing } from '../src/workers/pairingDriver';
 import { assurerBundleAppariementRapide, lancerTravailleurNode } from '../scripts/lib/appariementRapideNode';
@@ -571,7 +571,58 @@ export async function testFluxCandidatsReceptionOrdre() {
   const reference = drain(pairBuckets(e.p, e.A, e.B));
   const chemin = await assurerBundleAppariementRapide();
   for (const saturer of [false, true]) await receptionAvantFusion(e, reference, chemin, saturer);
+  await bilansCourtsAvantFusion(e, reference, chemin);
   await arretApresDerniereReception(e, reference, chemin);
+}
+
+/**
+ * Le plafond se fusionne dans le morceau de tête : le coordinateur arrête les
+ * morceaux encore en vol, dont rien ne serait fusionné, au lieu d'attendre
+ * leur fin. Ceux du second Worker restent retenus jusqu'à cet arrêt : sans
+ * lui, l'attente irait jusqu'au délai de garde.
+ */
+export async function testFluxCandidatsArretApresPlafond() {
+  titre('Flux candidats · plafond fusionné : les morceaux en vol sont arrêtés');
+  const e = espaceDistinct();
+  const maxCollected = 5, cibleMorceau = 1_000;
+  const params = { ...e.params, maxCollected };
+  const prepared = { ...e.p, maxCollected };
+  const reference = drain(pairBuckets(prepared, e.A, e.B));
+  const plan = planifierMorceaux(e.p, e.A, e.B, cibleMorceau);
+  ok(reference.truncated && plan.length >= 4 && reference.explored <= plan[0].offset + plan[0].taille,
+    `précondition : le ${maxCollected}ᵉ candidat tombe dans le premier de ${plan.length} morceaux (position ${reference.explored})`);
+  const brut = lancerTravailleurNode<ColonnesCandidats>(await assurerBundleAppariementRapide());
+  let fils = 0;
+  const arretes: number[] = [];
+  const issuesDuSecond: string[] = [];
+  const lancer: LancerTravailleur<ColonnesCandidats> = (init, transfert) => {
+    const w = fils++, fil = brut(init, transfert);
+    const retenus: (() => void)[] = [];
+    let arrete = false;
+    return { ...fil,
+      envoyer: (m, t) => {
+        if (w === 1 && !arrete) retenus.push(() => fil.envoyer(m, t));
+        else fil.envoyer(m, t);
+      },
+      surMessage: (rappel) => fil.surMessage((r) => {
+        if (w === 1) issuesDuSecond.push(r.issue);
+        rappel(r);
+      }),
+      arreter: () => {
+        arretes.push(w);
+        arrete = true;
+        fil.arreter();
+        for (const partir of retenus.splice(0)) partir();
+      },
+    };
+  };
+  const r = await paralleleBorne({ params, prepared, bucketsA: e.A, bucketsB: e.B, totalPaires: e.total,
+    travailleurs: 2, lancer, startedAt: prepared.startedAt, collecte: creerColonnesCandidats(), cibleMorceau });
+  identiques(etat(reference), etat(objets(r)), 'plafond dans la tête : candidats, comptes et quasi-succès du séquentiel');
+  identiques(r.traitees, reference.explored, 'plafond dans la tête : mêmes paires traitées');
+  identiques(r.motif, 'maxCollected', 'plafond dans la tête : motif du plafond');
+  ok(arretes.slice().sort().join(',') === '0,1' && issuesDuSecond.length > 0 && issuesDuSecond.every((i) => i === 'arret'),
+    `chaque Worker arrêté une fois (${arretes.join(',')}), morceaux en vol rendus sans parcours (${issuesDuSecond.join(',')})`);
 }
 
 async function arretApresDerniereReception(e: ReturnType<typeof espaceDistinct>, reference: SearchResult, chemin: string) {
@@ -597,6 +648,9 @@ async function arretApresDerniereReception(e: ReturnType<typeof espaceDistinct>,
   identiques(r.motif, 'aucun', 'tout le travail achevé reste un épuisement malgré le signal tardif');
   ok(arretDemande, 'arrêt entre dernière réception et fusion : bilan drainé entièrement');
 }
+
+/** Blocs pleins que la réception d'un producteur retient au plus. */
+const BLOCS_PLEINS = LIGNES_EN_ATTENTE_PAR_TRAVAILLEUR / LIGNES_PAR_BLOC;
 
 async function receptionAvantFusion(e: ReturnType<typeof espaceDistinct>, reference: SearchResult, chemin: string, saturer: boolean) {
   const brut = lancerTravailleurNode<ColonnesCandidats>(chemin);
@@ -631,7 +685,7 @@ async function receptionAvantFusion(e: ReturnType<typeof espaceDistinct>, refere
         if (r.id === 1 && !teteLiberee) setImmediate(() => {
           if (r.issue === 'suite') suitesAvantTete++;
           if (!recu.acquitte) {
-            if (saturer && file.length === BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR) saturationVue = true;
+            if (saturer && file.length === BLOCS_PLEINS) saturationVue = true;
             else attentesOrdre++;
             // Le témoin doit terminer aussi : relever le blocage puis relâcher la tête.
             libererTete();
@@ -655,12 +709,62 @@ async function receptionAvantFusion(e: ReturnType<typeof espaceDistinct>, refere
   identiques(r.motif, 'aucun', 'tête lente : même épuisement');
   identiques(credits, retours, 'un crédit par résultat, même lorsque plusieurs blocs précèdent la fusion');
   ok(attentesOrdre === 0, `${attentesOrdre} attente(s) de crédit dues à l'ordre de fusion (attendu : zéro)`);
-  if (saturer) ok(saturationVue && picBlocs === BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR && attendent.size === 0,
+  if (saturer) ok(saturationVue && picBlocs === BLOCS_PLEINS && attendent.size === 0,
     `saturation : ${picBlocs} blocs reçus par Worker au plus, la tête reprend et tout est drainé`);
   else ok(rapideTermineAvantTete && suitesAvantTete >= 1 && attendent.size === 0,
     `morceau suivant entièrement reçu avant le départ de la tête (${suitesAvantTete} bloc suite puis son bilan), tous les crédits rendus`);
-  ok(picBlocs <= BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR && picOctets <= BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR * LIGNES_PAR_BLOC * 136,
+  ok(picBlocs <= MESSAGES_EN_ATTENTE_PAR_TRAVAILLEUR && picOctets <= LIGNES_EN_ATTENTE_PAR_TRAVAILLEUR * 136,
     `réception bornée par Worker : ${picBlocs} blocs et ${picOctets} octets, positions et visites comprises`);
+}
+
+/**
+ * Des bilans courts derrière une tête lente : le producteur qui avance seul
+ * garde son crédit tant que ses lignes retenues laissent la place d'un bloc
+ * plein et qu'il retient moins de `MESSAGES_EN_ATTENTE_PAR_TRAVAILLEUR`
+ * messages. Compter les places en messages le bloquait au quatrième bilan.
+ */
+async function bilansCourtsAvantFusion(e: ReturnType<typeof espaceDistinct>, reference: SearchResult, chemin: string) {
+  const brut = lancerTravailleurNode<ColonnesCandidats>(chemin);
+  const cibleMorceau = 1_000;
+  const plan = planifierMorceaux(e.p, e.A, e.B, cibleMorceau);
+  let fils = 0, teteLiberee = false;
+  let recusAvant = 0, lignesAvant = 0, premierDiffere: { messages: number; lignes: number } | null = null;
+  const departsRetenus: (() => void)[] = [];
+  const libererTete = () => {
+    if (teteLiberee) return;
+    teteLiberee = true;
+    for (const partir of departsRetenus) partir();
+    departsRetenus.length = 0;
+  };
+  const lancer: LancerTravailleur<ColonnesCandidats> = (init, transfert) => {
+    const w = fils++, fil = brut(init, transfert);
+    let acquitteDansRappel = false;
+    return { ...fil,
+      envoyer: (m, t) => {
+        if (w === 0 && !teteLiberee) departsRetenus.push(() => fil.envoyer(m, t));
+        else fil.envoyer(m, t);
+      },
+      surMessage: (rappel) => fil.surMessage((r) => {
+        acquitteDansRappel = false;
+        rappel(r);
+        if (w !== 1 || teteLiberee) return;
+        // La tête retenue, rien de ce Worker n'est fusionné : tout ce qu'il a rendu est retenu.
+        recusAvant++; lignesAvant += r.candidats.length;
+        if (!acquitteDansRappel) { premierDiffere = { messages: recusAvant, lignes: lignesAvant }; setImmediate(libererTete); }
+        else if (r.issue !== 'suite' && recusAvant >= plan.length - 2) setImmediate(libererTete);
+      }),
+      acquitter: () => { acquitteDansRappel = true; fil.acquitter!(); },
+    };
+  };
+  const r = await paralleleBorne({ params: e.params, prepared: e.p, bucketsA: e.A, bucketsB: e.B, totalPaires: e.total,
+    travailleurs: 2, lancer, startedAt: e.p.startedAt, collecte: creerColonnesCandidats(), cibleMorceau });
+  identiques(etat(reference), etat(objets(r)), 'bilans courts derrière une tête lente : candidats, comptes et quasi-succès');
+  identiques(r.traitees, reference.explored, 'bilans courts : mêmes paires traitées');
+  identiques(r.motif, 'aucun', 'bilans courts : même épuisement');
+  const d = premierDiffere as { messages: number; lignes: number } | null;
+  ok(plan.length >= MESSAGES_EN_ATTENTE_PAR_TRAVAILLEUR + 4 && d !== null && d.messages === MESSAGES_EN_ATTENTE_PAR_TRAVAILLEUR
+    && d.lignes + LIGNES_PAR_BLOC <= LIGNES_EN_ATTENTE_PAR_TRAVAILLEUR,
+    `crédit retenu au ${d?.messages ?? '—'}ᵉ message (${d?.lignes ?? '—'} lignes) sur ${plan.length} morceaux : la limite de messages, jamais quatre bilans courts`);
 }
 
 async function fenetrePage(base: BuildCandidate) {

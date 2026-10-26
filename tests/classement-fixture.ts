@@ -22,7 +22,7 @@ export function demandeClassementTest(partiel: Partial<SearchParams> = {}, optim
 }
 
 /** Petit corpus avec de vrais canaux de note : paire, auras et exclusive résolue. */
-export function fixtureClassementCombat(objective: 'degats_reels' | 'ehp') {
+export function fixtureClassementCombat(objective: 'degats_reels' | 'ehp', toutVerifier = true) {
   const setup = { ...DEFAULT_DAMAGE_SETUP, atkBuff: true, enemyDef: 1200 };
   const inventaire: ArtifactDetail[] = [
     { id: 901, kind: 'element', element: 'fire', level: 15, rarity: 5, main: { code: 101, value: 100 }, subs: [{ code: 219, value: 5 }] },
@@ -51,7 +51,7 @@ export function fixtureClassementCombat(objective: 'degats_reels' | 'ehp') {
   const params: SearchParams = { base: BASE, pool, artifacts: inventaire.slice(0, 2), requirement: { sets: [], minStats: {} }, metric: 'eff', objective, relicContext };
   const fiche = { base: BASE, runes: pool.slice(0, 6), artifacts: params.artifacts, relic: reliques[0] };
   const exclusive = { setup, element: 'fire' as const };
-  const photo = contexteResultat({ params, fiche, realDamage, damageSetup: setup, exclusive, signature: 'combat', idInventaire: 1, idEspece: 1, toutVerifier: true,
+  const photo = contexteResultat({ params, fiche, realDamage, damageSetup: setup, exclusive, signature: 'combat', idInventaire: 1, idEspece: 1, toutVerifier,
     resolution: { fiche, artifactParams: { porteur: { element: 'fire', archetype: 'attack' }, inventaire, equipes: params.artifacts, principaleParSorte: {}, lignesVerrouillees: [] },
       regime: objective, degats: realDamage, exclusive, requirement: params.requirement, relicContext } });
   const vue: VueClassement = { tri: objective, metric: 'eff', page: 1 };

@@ -96,6 +96,10 @@ export default function TableauResultats({ cartes, premierRang, placesEnAttente,
   const largeurTotale = COLONNES_RESULTATS.length + 1;
   // La colonne triée, légèrement teintée sur toute sa hauteur.
   const teinte = (c: ColonneResultat) => (tri.tri === c ? 'bg-accent-soft' : '');
+  // ⚠️ `data-colonne-tableau`, jamais `data-colonne` : ce dernier marque les
+  // colonnes repliables de la page (PageBureau), que le banc et les tests de
+  // rendu cherchent dans tout l'agencement ; une cellule qui le porterait y
+  // serait prise pour une colonne de la page.
   return (
     <div className="mb-3 overflow-x-auto rounded-xl border border-border bg-panel" data-tableau-resultats="">
       <table className="w-full border-collapse text-xs tabular-nums">
@@ -106,7 +110,7 @@ export default function TableauResultats({ cartes, premierRang, placesEnAttente,
               const libre = disponible(c);
               const triee = tri.tri === c;
               return (
-                <th key={c} scope="col" className={`px-1 py-1 align-bottom ${teinte(c)}`} data-colonne={c}
+                <th key={c} scope="col" className={`px-1 py-1 align-bottom ${teinte(c)}`} data-colonne-tableau={c}
                   aria-sort={triee ? (tri.sens === 'desc' ? 'descending' : 'ascending') : 'none'}>
                   {/* Le bouton de la bande des cartes, sur toute la largeur de
                       sa colonne ; la colonne triée en accent plein. */}
@@ -145,7 +149,7 @@ export default function TableauResultats({ cartes, premierRang, placesEnAttente,
                 const libre = disponible(c), nom = libelleColonne(c, metric), suffixe = suffixeColonne(c, metric);
                 const total = bornes[c]?.[cote] ?? null;
                 return (
-                  <td key={c} className={`px-1 py-0.5 text-center ${teinte(c)}`} data-colonne={c}>
+                  <td key={c} className={`px-1 py-0.5 text-center ${teinte(c)}`} data-colonne-tableau={c}>
                     <NumberField
                       // Écrite et saisie dans le mode affiché ; le classeur la garde en total.
                       value={total === null ? null : versAffichage(c, total, base, enBonus)}
@@ -195,7 +199,7 @@ export default function TableauResultats({ cartes, premierRang, placesEnAttente,
                     {COLONNES_RESULTATS.map((c) => {
                       const v = disponible(c) ? valeurDeColonne(c, carte, runeById, metric, afficherDepassement) : null;
                       return (
-                        <td key={c} data-colonne={c} className={`whitespace-nowrap px-1 py-1 text-center font-mono ${teinte(c)} ${
+                        <td key={c} data-colonne-tableau={c} className={`whitespace-nowrap px-1 py-1 text-center font-mono ${teinte(c)} ${
                           !disponible(c) ? 'text-ink-dimmer' : tri.tri === c ? 'font-semibold text-ink' : 'text-ink'}`}>
                           {texteValeurColonne(c, v === null ? null : versAffichage(c, v, base, enBonus), metric)}
                         </td>

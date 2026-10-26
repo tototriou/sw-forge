@@ -54,7 +54,10 @@ seules contraintes PV/ATQ/DEF (`pasPct`, `indicesPct` : −1 pour les autres,
 dont le calcul ignore le pourcentage). Les contributions passent en
 `Int32Array` seulement après vérification du contrat. La moitié B porte
 aussi `W`, son tri et sa permutation par compartiment, puis les bornes des
-blocs de 64. Score de rétention, stats non contraintes, comptes et potentiel
+blocs de 64 de l'ordre d'origine et celles des blocs de 16 de l'ordre trié
+de chaque stat (`m` bornes par bloc de 16, par stat triée et par sens :
+`2 m² ⌈n / 16⌉` entiers par compartiment de `n` combinaisons B, quand
+`W`, son tri et sa permutation en font `3 m n`). Score de rétention, stats non contraintes, comptes et potentiel
 ne sont pas copiés vers les Workers d'appariement. Les tables de validation
 se reconstruisent depuis les identifiants et le pool préparé, sans `HalfCombo`,
 dans chaque Worker : une rune revient dans des centaines de demi-builds, et
@@ -111,13 +114,24 @@ Tous fondés sur la même équivalence (`survivantsLigne`) :
 
 1. **Une ligne entière** : pour chaque stat, deux dichotomies sur `W` trié
    comptent les combinaisons B dans `]L, H]` ; une stat à zéro écarte toute
-   la ligne.
+   la ligne. Une borne infinie (stat sans minimum ou sans maximum) se passe
+   de sa dichotomie : son rang est `0` ou `n`.
 2. **Une dichotomie** sur la stat la plus sélective, quand elle laisse au
    plus un quart des combinaisons B : seules celles-là sont testées sur les
    autres stats, puis REMISES dans l'ordre d'origine avant d'être visitées.
+   Leur intervalle se parcourt par blocs de 16 de l'ordre trié de cette
+   stat : un bloc est sauté dès qu'une autre stat l'exclut tout entier
+   (bornes `W` du bloc entier, qui couvrent aussi sa part dans l'intervalle).
 3. **Un balayage par blocs** dans l'ordre d'origine sinon : un bloc de 64
    est sauté dès qu'une stat l'exclut tout entier (`max(W) ≤ L` ou
    `min(W) > H`), chaque combinaison restante est jugée par `L < W ≤ H`.
+
+Les stats se testent dans l'ordre de leur sélectivité sur la ligne : nombre
+croissant de combinaisons B dans `]L, H]` (à compte égal, dans l'ordre des
+stats contraintes), la stat de la dichotomie n'étant plus testée sur celles
+qu'elle a elle-même retenues. Le test est une conjonction sans effet de
+bord : son ordre ne change que le nombre de comparaisons, jamais le verdict
+ni l'ordre des survivants.
 
 ## Ordre, garde et comptes
 

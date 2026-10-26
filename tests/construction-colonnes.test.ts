@@ -138,6 +138,8 @@ export default async function testConstructionColonnes() {
   const transferts = tamponsDe(ct);
   structuredClone(ct, { transfer: transferts });
   ok(transferts.every((t) => t.byteLength === 0), 'tous les tampons d’appariement sont transférables');
+  const colonnes = [...Object.values(ct.A), ...Object.values(ct.B)].filter((v) => ArrayBuffer.isView(v));
+  ok(colonnes.length === transferts.length && colonnes.every((v) => v.byteLength === 0), `chaque colonne de l’encodage (${colonnes.length}) part dans le transfert, aucune n’est clonée à côté`);
   const ref = drain(pairBuckets(p, reference(p, 'A', 'objective'), reference(p, 'B', 'objective')));
   const node = await construireMoitiesEnParallele(p, params, await ensureBuildHalfBundle());
   identiques(parallele.bucketsA, node.bucketsA, 'vrais Workers Node : mêmes colonnes A, crans inclus');

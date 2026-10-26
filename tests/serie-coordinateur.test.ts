@@ -12,7 +12,7 @@ import { StatKey } from '../src/lib/effects';
 import { Bucket, BuildRequirement, PreparedSearch, SearchParams, prepareSearch, totalPairCount } from '../src/lib/runeBuildOptim';
 import { construireMoitie } from '../src/lib/rechercheRunes';
 import {
-  CompartimentsTypes, Morceau, MoitieTypee, TAILLE_BLOC, analyserEspace, apparierRapide, comboAOuvert, compterPaires, constantesNoyau,
+  CompartimentsTypes, Morceau, MoitieTypee, TAILLE_BLOC, TAILLE_BLOC_TRI, analyserEspace, apparierRapide, comboAOuvert, compterPaires, constantesNoyau,
   encoderCompartiments, ordreDesCompartiments, paireDeCompartimentsOuverte, releverLignes, verifierContrat, verifierEtEncoder,
 } from '../src/lib/appariementRapide';
 import { planifierMorceaux } from '../src/lib/appariementRapideParallele';
@@ -24,7 +24,8 @@ import { egal, ok, titre } from './outils';
 const BASE: BaseStats = { hp: 9000, atk: 700, def: 500, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 
 /* --------------------------------------------------------------------------
- * Oracles : les boucles d'avant, recopiées telles quelles
+ * Oracles : les boucles d'avant, recopiées telles quelles (l'encodage, avec
+ * les blocs de l'ordre trié qu'il porte depuis le saut par blocs de la dichotomie)
  * ----------------------------------------------------------------------- */
 
 function planOracle(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[], cible: number): Morceau[] {
@@ -155,9 +156,15 @@ function encodageOracle(prepared: PreparedSearch, bucketsA: Compartiment[], buck
   const nBlocs = debutBlocs[bucketsB.length];
   const blocMin = new Int32Array(m * nBlocs);
   const blocMax = new Int32Array(m * nBlocs);
+  const debutBlocsTri = new Int32Array(bucketsB.length + 1);
+  for (let i = 0; i < bucketsB.length; i++) debutBlocsTri[i + 1] = debutBlocsTri[i] + Math.ceil((base.debut[i + 1] - base.debut[i]) / TAILLE_BLOC_TRI);
+  const nBlocsTri = debutBlocsTri[bucketsB.length];
+  const triBlocMin = new Int32Array(m * nBlocsTri * m);
+  const triBlocMax = new Int32Array(m * nBlocsTri * m);
   for (let i = 0; i < bucketsB.length; i++) {
     const off = base.debut[i];
     const n = base.debut[i + 1] - off;
+    const nbTri = debutBlocsTri[i + 1] - debutBlocsTri[i];
     for (let kk = 0; kk < m; kk++) {
       const seg = m * off + kk * n;
       const idx = Array.from({ length: n }, (_, j) => j);
@@ -165,6 +172,21 @@ function encodageOracle(prepared: PreparedSearch, bucketsA: Compartiment[], buck
       for (let p = 0; p < n; p++) {
         perm[seg + p] = idx[p];
         tri[seg + p] = W[(off + idx[p]) * m + kk];
+      }
+      const segTri = m * debutBlocsTri[i] + kk * nbTri;
+      for (let blk = 0; blk < nbTri; blk++) {
+        const fin = Math.min(n, (blk + 1) * TAILLE_BLOC_TRI);
+        for (let k = 0; k < m; k++) {
+          let lo = Infinity;
+          let hi = -Infinity;
+          for (let p = blk * TAILLE_BLOC_TRI; p < fin; p++) {
+            const w = W[(off + idx[p]) * m + k];
+            if (w < lo) lo = w;
+            if (w > hi) hi = w;
+          }
+          triBlocMin[(segTri + blk) * m + k] = lo;
+          triBlocMax[(segTri + blk) * m + k] = hi;
+        }
       }
       for (let blk = 0; blk * TAILLE_BLOC < n; blk++) {
         let lo = Infinity;
@@ -179,7 +201,7 @@ function encodageOracle(prepared: PreparedSearch, bucketsA: Compartiment[], buck
       }
     }
   }
-  return { cles, m, A, B: { ...base, W, tri, perm, debutBlocs, blocMin, blocMax } };
+  return { cles, m, A, B: { ...base, W, tri, perm, debutBlocs, blocMin, blocMax, debutBlocsTri, triBlocMin, triBlocMax } };
 }
 
 /* --------------------------------------------------------------------------

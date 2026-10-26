@@ -181,6 +181,18 @@ export function testClassementNotesAuRepos() {
   ok(!d.corps.travailAuRepos, 'juste après un geste, pas de temps mort : la file n’a pas encore été pompée');
   d.corps.pomper(tic());
   ok(d.corps.travailAuRepos, 'la pompe trouve la file au repos : sous la nouvelle mesure, les autres objectifs sont à préparer de nouveau');
+  // Une borne sur l'Efficience juge chaque ligne, vérifiée ou non : avec les notes d'Efficience déjà calculées
+  // sous cette mesure, sans lire un seul candidat pour cela.
+  const lireCandidat = CandidatsCompacts.prototype.candidat;
+  let lus = 0;
+  CandidatsCompacts.prototype.candidat = function (this: CandidatsCompacts, ...a: Parameters<typeof lireCandidat>) { lus++; return lireCandidat.apply(this, a); };
+  try {
+    const depuis = d.publications.length;
+    d.corps.changerVue({ ...vue, tri: 'efficience', metric: 'score', bornes: { efficience: { min: 1, max: null } } }, 5, 5);
+    while (d.corps.travailEnCours && d.publications.length === depuis) { d.corps.avancer(); d.corps.pomper(tic()); }
+    ok(d.publications.length === depuis + 1 && lus <= 40, `borne Efficience : ${lus} candidats lus avant la page (ses cartes), aucun pour juger les ${n} lignes`);
+    drainer(d);
+  } finally { CandidatsCompacts.prototype.candidat = lireCandidat; }
   // Lancé sur PV effectifs : le temps mort note Dégâts réels, dont la note avec cache lirait la paire et la relique résolues.
   const pv = population({ nombre: 600, avecFile: true, objectif: 'ehp' });
   const e = classeur(pv.photo, pv.candidats, pv.vue, true);

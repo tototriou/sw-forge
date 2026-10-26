@@ -6,6 +6,7 @@
 
 import { COLONNES_RESULTATS, type ColonneResultat } from './colonnesResultats';
 import type { StatKey } from './effects';
+import type { OptimMetric } from './runeOptim';
 import { scoreDuCandidat, statTotal, type BuildCandidate, type OptionsDeClassement } from './runeBuildOptim';
 import { chiffresMesureRune, displayedTotal, entierAffiche, moyenneParRune } from './valeursAffichees';
 
@@ -135,7 +136,7 @@ export function etatDesBornes(bornes: BornesResultats | undefined, disponible: (
 export function valeurAffichee(colonne: ColonneResultat, candidat: BuildCandidate, options: OptionsDeClassement, afficherDepassement = true): number | null {
   if (colonne === 'efficience') {
     const total = scoreDuCandidat(candidat, 'efficience', options);
-    return total === null || !options.metric ? null : Number(chiffresMesureRune(moyenneParRune(total), options.metric));
+    return total === null || !options.metric ? null : valeurAfficheeDEfficience(total, options.metric);
   }
   if (colonne === 'ehp' || colonne === 'degats_reels') {
     const note = scoreDuCandidat(candidat, colonne, options);
@@ -151,6 +152,16 @@ export function valeurAffichee(colonne: ColonneResultat, candidat: BuildCandidat
  */
 export function valeurAfficheeDeStat(colonne: StatKey, total: number, afficherDepassement = true): number {
   return displayedTotal(colonne, total, afficherDepassement);
+}
+
+/**
+ * La valeur qu'une carte écrit pour l'Efficience, à partir de la mesure des
+ * six runes (`candidateMetricTotal`, qui ne lit que les runes) : moyenne par
+ * rune, arrondie comme l'affichage. La seule écriture, que le total vienne du
+ * candidat ou d'une note de base déjà calculée.
+ */
+export function valeurAfficheeDEfficience(total: number, metric: OptimMetric): number {
+  return Number(chiffresMesureRune(moyenneParRune(total), metric));
 }
 
 /** Les huit colonnes de la fiche, celles qui ne sont pas un objectif : leur valeur ne dépend que d'un total de stat. */

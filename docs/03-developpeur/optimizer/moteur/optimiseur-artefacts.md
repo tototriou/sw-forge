@@ -535,7 +535,12 @@ décroissante × −1, `noteDansLeSens`) quand aucune n'est absente, et range
 seulement. Une colonne de stat se note par lecture de sa colonne du
 magasin (`totalDeLaStat`, le nombre que `statTotal` lit sur le candidat),
 sans matérialiser de candidat, et une borne sur une stat se juge de même
-(`valeurAfficheeDeStat`, la seule écriture de cette valeur). À cache
+(`valeurAfficheeDeStat`, la seule écriture de cette valeur). Une borne sur
+l'Efficience lit les notes d'Efficience déjà calculées sur cette population
+sous la mesure de la vue (temps mort ou tri), quand elles le sont et toutes
+présentes : la mesure ne lit que les runes du build, que la résolution ne
+change pas, et `valeurAfficheeDEfficience` (moyenne par rune, arrondie comme
+l'affichage) est la seule écriture de sa valeur ; sinon, le candidat. À cache
 inchangé, un changement de critère ne réingère plus le magasin ni ne rejuge
 les catégories : seules les notes et l'arbre se refont.
 

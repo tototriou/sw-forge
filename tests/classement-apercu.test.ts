@@ -9,7 +9,8 @@ import { isDeepStrictEqual } from 'node:util';
 import type { InstantaneClassement, VueClassement } from '../src/lib/classementCompact';
 import { COLONNES_RESULTATS, type ColonneResultat } from '../src/lib/colonnesResultats';
 import { statTotal, type BuildCandidate } from '../src/lib/runeBuildOptim';
-import type { BornesResultats } from '../src/lib/filtresResultats';
+import { valeurAffichee, type BornesResultats } from '../src/lib/filtresResultats';
+import { optionsDuContexte, type ContexteResultat } from '../src/lib/contexteResultat';
 import type { StatKey } from '../src/lib/effects';
 import { avecTotal, classeur, classeurFini, drainer, empreinteCache, generateur, ligne, ordreDeBaseDeReference, population, resoudre, tic,
   type Classeur, type Stats } from './classement-notes-de-base.test';
@@ -79,24 +80,31 @@ function comparerPublications(d: Classeur, depuis: number, attendues: Map<number
   }
 }
 
-/** Des bornes tirées sur les valeurs de la population : une ou deux colonnes de stat, min et/ou max, parfois Dégâts réels. */
-function bornesAuHasard(hasard: () => number, candidats: readonly BuildCandidate[]): BornesResultats {
+/** La valeur d'Efficience qu'une carte écrit, sans file : celle des bornes tirées. */
+type ValeurEfficience = (c: BuildCandidate) => number | null;
+const efficienceDe = (photo: ContexteResultat, metric: VueClassement['metric']): ValeurEfficience =>
+  (c) => valeurAffichee('efficience', c, optionsDuContexte(photo, null, metric));
+
+/** Des bornes tirées sur les valeurs de la population : une ou deux colonnes de stat, min et/ou max, parfois Efficience ou Dégâts réels. */
+function bornesAuHasard(hasard: () => number, candidats: readonly BuildCandidate[], efficience: ValeurEfficience): BornesResultats {
   const bornes: BornesResultats = {};
+  const tirer = () => candidats[Math.floor(hasard() * candidats.length)];
   for (let k = 0, n = 1 + Math.floor(hasard() * 2); k < n; k++) {
     const colonne = COLONNES_RESULTATS[Math.floor(hasard() * 8)] as StatKey;
-    const v = () => statTotal(candidats[Math.floor(hasard() * candidats.length)].stats, colonne);
+    const v = () => statTotal(tirer().stats, colonne);
     bornes[colonne] = { min: hasard() < 0.8 ? v() : null, max: hasard() < 0.3 ? v() : null };
   }
+  if (hasard() < 0.3) bornes.efficience = { min: efficience(tirer()), max: hasard() < 0.3 ? efficience(tirer()) : null };
   if (hasard() < 0.15) bornes.degats_reels = { min: 1, max: null };
   return bornes;
 }
 
-function vueAuHasard(hasard: () => number, vue: VueClassement, candidats: readonly BuildCandidate[]): VueClassement {
+function vueAuHasard(hasard: () => number, vue: VueClassement, candidats: readonly BuildCandidate[], photo: ContexteResultat): VueClassement {
   const x = hasard();
   if (x < 0.35) return { ...vue, tri: COLONNES_RESULTATS[Math.floor(hasard() * COLONNES_RESULTATS.length)] as ColonneResultat, page: 1 };
   if (x < 0.5) return { ...vue, sens: vue.sens === 'asc' ? 'desc' : 'asc', page: 1 };
   if (x < 0.6) return { ...vue, metric: vue.metric === 'eff' ? 'score' : 'eff', page: 1 };
-  if (x < 0.8) return { ...vue, bornes: hasard() < 0.2 ? {} : bornesAuHasard(hasard, candidats), page: 1 };
+  if (x < 0.8) return { ...vue, bornes: hasard() < 0.2 ? {} : bornesAuHasard(hasard, candidats, efficienceDe(photo, vue.metric)), page: 1 };
   if (x < 0.93) return { ...vue, page: 1 + Math.floor(hasard() * 3) };
   return { ...vue, colonnesCompletes: !vue.colonnesCompletes };
 }
@@ -125,12 +133,12 @@ function scenario(nom: string, graine: number, e: Parameters<typeof population>[
       drainer(d);
     }
     const depuis = d.publications.length;
-    const v1 = vueAuHasard(hasard, vue, candidats), id1 = ++id;
+    const v1 = vueAuHasard(hasard, vue, candidats, photo), id1 = ++id;
     attendues.set(id1, gesteOracle(r, v1, id1)); bilan.gestes++;
     let courant = id1, coupure = Infinity;
     if (hasard() < 0.35) {
       // Un second geste avant la fin du premier : la vue quittée ne doit plus jamais partir.
-      const v2 = vueAuHasard(hasard, v1, candidats), id2 = ++id;
+      const v2 = vueAuHasard(hasard, v1, candidats, photo), id2 = ++id;
       attendues.set(id2, gesteOracle(r, v2, id2)); bilan.gestes++;
       gesteDiffere(d, v1, id1, { pas: Math.floor(hasard() * 3000), faire: () => {
         coupure = d.publications.length; d.corps.changerVue(v2, id2, id2); courant = id2;
@@ -188,10 +196,10 @@ function scenarioPendantActualisation(nom: string, graine: number, e: Parameters
     const pendant = d.corps.travailEnCours;
     if (pendant) bilan.pendantActualisation++;
     const depuis = d.publications.length;
-    const v1 = vueAuHasard(hasard, vue, candidats), id1 = ++id;
+    const v1 = vueAuHasard(hasard, vue, candidats, photo), id1 = ++id;
     let courant = id1, coupure = Infinity;
     if (hasard() < 0.3) {
-      const v2 = vueAuHasard(hasard, v1, candidats), id2 = ++id;
+      const v2 = vueAuHasard(hasard, v1, candidats, photo), id2 = ++id;
       gesteDiffere(d, v1, id1, { pas: Math.floor(hasard() * 3000), faire: () => { coupure = d.publications.length; d.corps.changerVue(v2, id2, id2); courant = id2; } });
       vue = v2;
     } else { gesteDiffere(d, v1, id1); vue = v1; }

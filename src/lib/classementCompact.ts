@@ -12,7 +12,7 @@ import type { SearchResult } from './runeBuildOptim';
 import { triDesResultats, type ColonneResultat } from './colonnesResultats';
 import { SENS_PAR_DEFAUT, signeTri, type SensTri } from './tri';
 import { CATEGORIE_LIGNE, NOMBRE_CATEGORIES, SANS_FILTRE, colonneDisponible, copierBornes, dansLaVue, estColonneDeStat, etatDesBornes, filtreDesLignes,
-  valeurAffichee, valeurAfficheeDeStat,
+  valeurAffichee, valeurAfficheeDEfficience, valeurAfficheeDeStat,
   AUCUNE_BORNE, objectifsMontres, type BornesResultats, type EtatBornes, type FiltreLignes } from './filtresResultats';
 
 /** Une ligne pas encore notée : aucune catégorie, hors des comptes. */
@@ -1326,13 +1326,23 @@ export class CorpsClassement {
   private filtreLignes(index: ClassementCompact): FiltreLignes {
     const contexte = this.contexte!, vue = this.vue!, bornes = this.bornes, avecFile = this.entrees !== null;
     const options = optionsDuContexte(contexte, this.cache, vue.metric);
-    const afficherDepassement = depassementDe(vue);
+    const afficherDepassement = depassementDe(vue), efficience = this.notesEfficience(index, vue.metric);
     return filtreDesLignes({ bornes, avecFile, cle: JSON.stringify([cleDesBornes(bornes, afficherDepassement), avecFile, vue.metric]),
       candidat: (i) => this.ligneAffichee(index, i).candidat, valeur: (colonne, c) => valeurAffichee(colonne, c, options, afficherDepassement),
       // Une stat se lit dans le magasin, qui porte les stats de la vraie paire d'une ligne vérifiée (`ligneAffichee`) :
       // l'index ne juge une ligne qu'une fois son équipement ingéré, et un cache écrit depuis fait reclasser toute la vue.
+      // L'Efficience ne lit que les runes du build, que la résolution ne change pas : sa note de base, déjà calculée
+      // sur cette population sous cette mesure (temps mort ou tri), est le total que la carte mesure.
       valeurDirecte: (colonne, i) => estColonneDeStat(colonne)
-        ? valeurAfficheeDeStat(colonne, index.magasin.totalDeLaStat(i, colonne, avecFile), afficherDepassement) : undefined });
+        ? valeurAfficheeDeStat(colonne, index.magasin.totalDeLaStat(i, colonne, avecFile), afficherDepassement)
+        : colonne === 'efficience' && efficience ? valeurAfficheeDEfficience(efficience[i], vue.metric) : undefined });
+  }
+  /** Les notes de base d'Efficience déjà calculées sur cet index sous cette mesure, toutes présentes ; sinon rien. */
+  private notesEfficience(index: ClassementCompact, metric: OptimMetric): Float64Array | null {
+    if (this.ordresDeBase.index !== index) return null;
+    const cle = cleCritere('efficience', metric, SENS_PAR_DEFAUT);
+    const e = this.ordresDeBase.entrees.find((x) => x.cle === cle);
+    return e && e.calculable && !e.nulles && e.notes.length === index.magasin.longueur ? e.notes : null;
   }
   private *trierBaseEtapes(): Generator<void> {
     if (!this.contexte || !this.vue) return;

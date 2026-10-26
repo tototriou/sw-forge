@@ -141,7 +141,7 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, tri
     ? 'Classement interrompu : relance la recherche pour agir sur ces résultats.'
     : enAttente > 0
       ? `${enAttente.toLocaleString('fr-FR')} combinaison(s) en vérification…`
-      : ' ';
+      : ' ';
 
   // ── Filtres d'affichage ────────────────────────────────────────────────
   const [ouvert, setOuvert] = useState(false);

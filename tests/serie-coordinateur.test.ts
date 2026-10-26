@@ -12,10 +12,11 @@ import { StatKey } from '../src/lib/effects';
 import { Bucket, BuildRequirement, PreparedSearch, SearchParams, prepareSearch, totalPairCount } from '../src/lib/runeBuildOptim';
 import { construireMoitie } from '../src/lib/rechercheRunes';
 import {
-  CompartimentsTypes, Morceau, MoitieTypee, TAILLE_BLOC, TAILLE_BLOC_TRI, analyserEspace, apparierRapide, comboAOuvert, compterPaires, constantesNoyau,
+  CompartimentsTypes, EspaceAppariement, Morceau, MoitieTypee, TAILLE_BLOC, TAILLE_BLOC_TRI, analyserEspace, apparierRapide, comboAOuvert, compterPaires, constantesNoyau,
   encoderCompartiments, ordreDesCompartiments, paireDeCompartimentsOuverte, releverLignes, verifierContrat, verifierEtEncoder,
 } from '../src/lib/appariementRapide';
 import { planifierMorceaux } from '../src/lib/appariementRapideParallele';
+import { BlocCandidats, creerColonnesCandidats, extraireBlocs } from '../src/lib/candidatsCompacts';
 import { Compartiment, CompartimentType, idCombo, lireCombo, nouvelleVueCombo, typerCompartiments } from '../src/lib/demiBuildsTypes';
 import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
 import { drain } from '../scripts/lib/drain';
@@ -284,6 +285,58 @@ function avecValeurB(b: CompartimentType[], cle: StatKey, valeur: number): Compa
   return null;
 }
 
+/**
+ * Empreinte ordonnée d'un flux de candidats en colonnes : deux hachages 32 bits
+ * de chaque valeur, ligne après ligne (six identifiants, huit totaux,
+ * efficience), et les gabarits. Échanger deux candidats la change ; les blocs
+ * se lisent puis se retirent, comme le Worker les transfère.
+ */
+class EmpreinteCandidats {
+  private h1 = 0x811c9dc5;
+  private h2 = 0x9747b28c;
+  private lignes = 0;
+  private gabarits: string | null = null;
+  private readonly f = new Float64Array(1);
+  private readonly u = new Uint32Array(this.f.buffer);
+  private melanger(v: number): void {
+    this.f[0] = v;
+    for (let k = 0; k < 2; k++) {
+      const x = this.u[k];
+      this.h1 = Math.imul(this.h1 ^ x, 0x01000193);
+      this.h2 = Math.imul(this.h2 ^ x, 0x5bd1e995);
+      this.h2 ^= this.h2 >>> 15;
+    }
+  }
+  ajouter(blocs: BlocCandidats[]): void {
+    for (const b of blocs) {
+      if (b.debut !== this.lignes) throw new Error(`Bloc de candidats hors séquence (${b.debut} ≠ ${this.lignes})`);
+      const gabarits = JSON.stringify(b.gabarits);
+      if (this.gabarits !== null && gabarits !== this.gabarits) throw new Error('Gabarits de candidats changés en cours de flux');
+      this.gabarits = gabarits;
+      for (let i = 0; i < b.longueur; i++) {
+        for (const c of b.ids) this.melanger(c[i]);
+        for (const c of b.totaux) this.melanger(c[i]);
+        this.melanger(b.efficience[i]);
+      }
+      this.lignes += b.longueur;
+    }
+  }
+  valeur() { return { lignes: this.lignes, hachage: `${(this.h1 >>> 0).toString(16)}:${(this.h2 >>> 0).toString(16)}`, gabarits: this.gabarits }; }
+}
+
+/** `apparierRapide` drainé en colonnes : empreinte des candidats et comptes, sans retenir la liste. */
+function resumeEnEmpreinte(prepared: PreparedSearch, bucketsA: Compartiment[], bucketsB: Compartiment[], espace?: EspaceAppariement) {
+  const collecte = creerColonnesCandidats();
+  const empreinte = new EmpreinteCandidats();
+  const gen = apparierRapide(prepared, bucketsA, bucketsB, { collecte, ...(espace ? { espace } : {}) });
+  let pas = gen.next();
+  while (!pas.done) { empreinte.ajouter(extraireBlocs(collecte)); pas = gen.next(); }
+  empreinte.ajouter(extraireBlocs(collecte));
+  const x = pas.value;
+  return { nombre: x.candidates.length, empreinte: empreinte.valeur(), explored: x.explored, truncated: x.truncated,
+    nearMissByCondition: x.nearMissByCondition, globalNearMiss: x.globalNearMiss, traitees: x.traitees, visitees: x.visitees, compteurs: x.compteurs };
+}
+
 export default async function testSerieCoordinateur(): Promise<void> {
   titre('Série du coordinateur · relevé des lignes, plan, contrat et encodage contre les boucles d’avant');
   const liste = espaces();
@@ -308,10 +361,11 @@ export default async function testSerieCoordinateur(): Promise<void> {
     identique(encoderCompartiments(e.prepared, e.bucketsA, e.bucketsB), r.compartiments, `${e.nom} : encoderCompartiments = verifierEtEncoder`);
 
     // L'appariement séquentiel, avec l'espace analysé ou sans : même résultat, mêmes comptes.
-    const sans = drain(apparierRapide(e.prepared, e.bucketsA, e.bucketsB));
-    const avec = drain(apparierRapide(e.prepared, e.bucketsA, e.bucketsB, { espace: analyserEspace(e.prepared, e.bucketsA, e.bucketsB) }));
-    const resume = (x: typeof sans) => [x.candidates.map((c) => c.runeIds.join(',') + ':' + c.effTotal), x.explored, x.truncated, x.nearMissByCondition, x.globalNearMiss, x.traitees, x.visitees, x.compteurs];
-    identique(resume(avec), resume(sans), `${e.nom} : apparierRapide avec l’espace analysé = sans (${sans.candidates.length} candidats)`);
+    // Les candidats passent par une empreinte ordonnée, bloc après bloc : les
+    // deux listes entières (jusqu'à 679 000 candidats) dépassaient le tas par défaut.
+    const sans = resumeEnEmpreinte(e.prepared, e.bucketsA, e.bucketsB);
+    const avec = resumeEnEmpreinte(e.prepared, e.bucketsA, e.bucketsB, analyserEspace(e.prepared, e.bucketsA, e.bucketsB));
+    identique(avec, sans, `${e.nom} : apparierRapide avec l’espace analysé = sans (${sans.nombre} candidats)`);
   }
 
   titre('Série du coordinateur · motifs de repli identiques hors contrat');

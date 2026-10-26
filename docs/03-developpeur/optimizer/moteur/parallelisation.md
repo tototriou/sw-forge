@@ -535,7 +535,8 @@ bilan. Elle ne transporte ni candidat ni ordinal par ligne et n'attend aucun
 acquittement ; le récepteur vérifie recherche, inventaire, vue, demande et
 révision publiée avant de la montrer.
 La cadence reste de 400 ms ; dernière attente de page et file réellement
-vide forcent la dernière publication. Une tâche d'actualisation n'est pas
+vide forcent la dernière publication, le scellement (bilan) et un geste de
+vue (page, tri, mesure) la leur, dès que leur instantané est prêt. Une tâche d'actualisation n'est pas
 une fin de file : la décision attend son résultat et tout forçage reste dû.
 
 Une erreur du résolveur ferme son canal et le termine. Le classeur garde

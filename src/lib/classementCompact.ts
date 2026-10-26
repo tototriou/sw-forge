@@ -667,7 +667,9 @@ export class CorpsClassement {
       return;
     }
     this.flux.scellerColonnes(nombre); this.bilan = bilan; this.collecteScellee = true;
-    this.activer(idRecherche); this.sale = true;
+    // Le bilan (fin de recherche) part dès que son instantané est prêt : retenu
+    // par la cadence, il n'attendrait que la prochaine réponse du résolveur.
+    this.activer(idRecherche); this.sale = true; this.publicationForcee = true;
   }
   private libererSourceScellee(): void {
     // Le magasin n'adopte la source qu'une fois sa construction terminée.
@@ -695,7 +697,11 @@ export class CorpsClassement {
     }
     if (!this.contexte.toutVerifier) this.fileExhaustive = null;
     if (!avant || avant.tri !== vue.tri || avant.metric !== vue.metric) this.trierBase();
-    this.sale = true;
+    // Un geste de vue se publie dès que son instantané est prêt (fin du tri
+    // éventuel), sans attendre les 400 ms du fond : retenu, il n'attendrait que
+    // le prochain message du résolveur, et l'écran garderait l'ancienne page
+    // sous le nouveau numéro. Une publication par geste, que la cadence suit.
+    this.sale = true; this.publicationForcee = true;
   }
   private trierBase(): void {
     if (!this.contexte || !this.vue) return;

@@ -199,6 +199,8 @@ function saisirChamp(i: HTMLInputElement, valeur: string) {
   i.dispatchEvent(new Event('input', { bubbles: true }));
 }
 const cartesVisibles = () => [...document.querySelectorAll('[data-carte-resultat]')].filter(visible).length;
+const interrupteurNomme = (nom: string) => [...document.querySelectorAll<HTMLButtonElement>('button[role="switch"]')]
+  .find((e) => visible(e) && e.getAttribute('aria-label') === nom);
 
 /**
  * testFiltresBranchementApp : la vraie recherche est observée, le vrai
@@ -212,6 +214,14 @@ export async function preuvesFiltresBranchement(b: BancEcran & { fiche: () => Ge
   await b.geste(() => b.etat().choisirMembre('a', b.second));
   await b.geste(() => b.etat().setComboSets(['energy']));
   await b.geste(() => b.etat().setOptimiserArtefacts(false));
+  // « Stats totales / Stats bonus » part de « Stats de base exclues » tel qu'il
+  // est AU LANCEMENT : basculé avant la recherche, le choix du tableau suit.
+  const EXCLURE = 'Stats de base exclues des conditions PV/ATQ/DEF/VIT';
+  const excluAuMontage = b.etat().excludeBase;
+  if (!telephone()) {
+    await b.geste(() => interrupteurNomme(EXCLURE)!.click());
+    preuves.push([b.etat().excludeBase === !excluAuMontage, `bureau : « Stats de base exclues » basculé avant la recherche (${excluAuMontage} → ${b.etat().excludeBase})`]);
+  }
   const envois: DemandeDeRecherche[] = [], restaurer = observerRechercheTest(envois);
   try {
     await b.geste(() => bouton('Rechercher')!.click());
@@ -246,6 +256,20 @@ export async function preuvesFiltresBranchement(b: BancEcran & { fiche: () => Ge
     for (let t = 0; t < 100 && cartesVisibles() === 0; t++) await attendre(100);
     preuves.push([cartesVisibles() === 1 && cle() === avant, `${format} : borne relâchée, le même build revient, identique`]);
     preuves.push([envois.length === 1, `${format} : aucun filtre n'a relancé de recherche (${envois.length} demande)`]);
+
+    if (!telephone()) {
+      const presse = (nom: string) => bouton(nom)?.getAttribute('aria-pressed') === 'true';
+      const attendu = excluAuMontage ? 'Stats totales' : 'Stats bonus';
+      await b.geste(() => bouton('Tableau')!.click());
+      await attendre(100);
+      preuves.push([presse(attendu) && !presse(attendu === 'Stats bonus' ? 'Stats totales' : 'Stats bonus'),
+        `bureau, tableau : « ${attendu} », comme « Stats de base exclues » au lancement (${!excluAuMontage}), pas comme au montage`]);
+      // Rebasculé sans relancer : le choix ne bouge pas (une photographie du lancement).
+      await b.geste(() => interrupteurNomme(EXCLURE)!.click());
+      preuves.push([b.etat().excludeBase === excluAuMontage && presse(attendu),
+        `bureau, tableau : « Stats de base exclues » rebasculé sans recherche, « ${attendu} » reste`]);
+      await b.geste(() => bouton('Cartes')!.click());
+    }
   } finally {
     await b.geste(() => b.etat().effacerResultats());
     restaurer();

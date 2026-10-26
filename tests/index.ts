@@ -213,7 +213,7 @@ import testConstructionRapide from './construction-rapide.test';
 import testConstructionColonnes from './construction-colonnes.test';
 import testSerieCoordinateur from './serie-coordinateur.test';
 import testValidationParRune from './validation-par-rune.test';
-import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidatsCredits, testFluxCandidatsApercuFinal, testFluxCandidatsPageLente, testFluxCandidatsReceptionOrdre,
+import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidatsCredits, testFluxCandidatsApercuFinal, testFluxCandidatsPageLente, testFluxCandidatsReceptionOrdre, testFluxCandidatsArretApresPlafond,
   testFluxCandidatsRefusRecevoir, testFluxCandidatsRefusSceller, testFluxCandidatsRefusResultat, testFluxCandidatsLanceurCommun } from './flux-candidats.test';
 import { testClassementCreditsRelance, testClassementCadenceDifferee, testClassementInstantaneBorne, testClassementMortInactive } from './classement-publication.test';
 import { testClassementAuFilDifferentiel, testClassementAuFilTravail } from './classement-au-fil.test';
@@ -741,6 +741,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testFluxCandidatsApercuFinal', testFluxCandidatsApercuFinal],
   ['testFluxCandidatsPageLente', testFluxCandidatsPageLente],
   ['testFluxCandidatsReceptionOrdre', testFluxCandidatsReceptionOrdre],
+  ['testFluxCandidatsArretApresPlafond', testFluxCandidatsArretApresPlafond],
   ['testFluxCandidatsRefusRecevoir', testFluxCandidatsRefusRecevoir],
   ['testFluxCandidatsRefusSceller', testFluxCandidatsRefusSceller],
   ['testFluxCandidatsRefusResultat', testFluxCandidatsRefusResultat],

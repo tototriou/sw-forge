@@ -123,8 +123,8 @@ combinaison A ouverte face à un compartiment B ouvert, avec les prédicats de
 - Les morceaux partent ensuite à la demande, `EN_VOL_PAR_TRAVAILLEUR` (2)
   en vol par Worker : le suivant attend déjà quand l'un se termine, et un
   Worker rapide en prend davantage. Leur distribution ne dépend pas de
-  l'ordre de fusion ; les quatre places de réception par producteur bornent
-  les retours en attente. Un morceau voyage avec ses segments de lignes
+  l'ordre de fusion ; la réception de chaque producteur (quatre blocs pleins
+  de lignes, seize messages) borne les retours en attente. Un morceau voyage avec ses segments de lignes
   et le verdict de `comboAFeasible` de chacune.
 - Le plafond de candidats est GLOBAL : aucune part par Worker. Un morceau
   s'arrête de lui-même dès qu'il a `maxCollected` candidats (la fusion
@@ -334,11 +334,23 @@ voyagent avec le même préfixe. La fusion conserve le même morceau courant
 jusqu'à son bilan, et coupe avant toute émission au candidat du plafond.
 
 Un Worker attend l'acquittement de son bloc avant de produire le suivant.
-Le coordinateur réserve `BLOCS_EN_ATTENTE_PAR_TRAVAILLEUR` (4) places par
-Worker, bilans vides compris. Il acquitte dès la réception, avant toute
-fusion, tant que moins de quatre messages attendent pour ce producteur.
-Le quatrième reste sans crédit jusqu'à la libération d'une place : seule
-la saturation de cette fenêtre impose une contre-pression. Les places
+Le coordinateur réserve à chaque Worker une réception comptée en LIGNES de
+candidats, `LIGNES_EN_ATTENTE_PAR_TRAVAILLEUR` (quatre blocs pleins,
+16 384 lignes), et au plus `MESSAGES_EN_ATTENTE_PAR_TRAVAILLEUR` (16)
+messages reçus non fusionnés, bilans vides compris ; un message compte
+pour ses lignes, au plus un bloc plein (le chemin compact n'en envoie
+jamais davantage). Il acquitte dès la
+réception, avant toute fusion, tant que la réception de ce producteur
+garde la place d'un bloc plein de plus et retient moins de seize messages :
+la borne vaut donc aussi pour le message que le crédit autorise. Sinon le
+crédit attend la libération d'une place : seule la saturation de cette
+fenêtre impose une contre-pression. Quatre blocs `suite` pleins la
+saturent, comme avant ; des bilans courts, non. Compter les places en
+messages laissait quatre petits bilans bloquer un Worker derrière un
+morceau de tête lent : compté sur de vrais Workers, sur une recette réelle
+aux préréglages Moyen et Extrême, ce crédit différé faisait 91 % et 83 % de
+l'inactivité des six Workers, sans aucun bloc `suite` dans les places
+retenues. Les places
 d'un autre producteur ne peuvent pas la consommer ; le morceau de tête
 peut donc toujours avancer. Les files sont des FIFO par morceau et la
 fusion ne passe au suivant qu'après le bilan terminal, même lorsque
@@ -349,9 +361,9 @@ promesse conservant chaque réponse après son adoption. Une publication
 adopte au plus W blocs, où W est le nombre de Workers ; la pompe recommence
 si le préfixe reçu permet encore d'avancer. En compact, la distribution
 garde deux morceaux en vol par Worker, sans attendre la fusion des morceaux
-terminés ; les quatre places de réception bornent aussi leurs bilans en
-attente. Au plus 6W morceaux distribués ne sont pas encore fusionnés
-(4W bilans reçus, 2W morceaux en vol). Cette distribution est unique pour
+terminés ; la réception de chaque producteur borne aussi leurs bilans en
+attente. Au plus 18W morceaux distribués ne sont pas encore fusionnés
+(16W bilans reçus, 2W morceaux en vol). Cette distribution est unique pour
 l'écran et les outils ; aucun chemin objet parallèle ne la remplace.
 L'attente cède la main aux messages et
 compte dans le filet global. L'arrêt coopératif draine les blocs et bilans
@@ -365,10 +377,11 @@ scellement pour que tous les blocs soient reçus. Une page complètement
 arrêtée impose donc encore une contre-pression ; aucune file illimitée ne
 la masque. Avec W Workers, la collecte compacte en transit occupe au plus
 16 + 5W blocs de colonnes : seize vers la page, W dans la publication
-courante et 4W chez les producteurs ou reçus en attente de fusion. Les
+courante et, en lignes, 4W blocs chez les producteurs ou reçus en attente
+de fusion. Les
 colonnes transférées restent ajustées aux lignes ; les positions et visites
 reçues occupent au plus `4W × 4096 × 16` octets, hors publication courante.
-Les quatre places limitent l'anticipation sans allouer un morceau entier.
+La réception bornée limite l'anticipation sans allouer un morceau entier.
 Cette borne décrit le chemin de production, qui retire chaque publication ;
 elle exclut les candidats déjà reçus par la page, qui constituent le
 résultat, les positions de coupe et les métadonnées des morceaux.

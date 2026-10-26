@@ -225,9 +225,12 @@ crédits. Les tampons partiels restent ajustés aux lignes.
 avec une barrière logique, pendant que le suivant tourne dans un vrai
 Worker Node. Il compte les crédits encore attendus après réception : le
 suivant doit livrer son bloc `suite` puis son bilan, crédités avant le
-départ de la tête, sans attente liée à l'ordre. Le second scénario remplit
-les quatre places d'un producteur ; cette saturation retient son crédit,
-puis la tête doit encore avancer et tout se drainer. Les candidats
+départ de la tête, sans attente liée à l'ordre. Le deuxième scénario remplit
+de quatre blocs pleins la réception d'un producteur ; cette saturation
+retient son crédit, puis la tête doit encore avancer et tout se drainer. Le
+troisième fait rendre des bilans courts, tête retenue, sur des morceaux de
+mille paires : le crédit n'est retenu qu'au seizième message, jamais au
+quatrième bilan. Les candidats
 distincts, les quasi-succès, les comptes et le motif sont comparés à
 `pairBuckets` ; les octets des colonnes, positions et visites en attente
 sont contrôlés contre la borne par Worker. Un arrêt demandé immédiatement

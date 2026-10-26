@@ -656,4 +656,8 @@ la relance explicite crée un nouveau Worker, sans secours ni relance automatiqu
   `testResolutionPoolAnnulation` (nouvelle recherche pendant que le pool
   calcule : aucune réponse de l'ancienne écrite, chaque crédit rendu) et
   `testResolutionPoolVoiesAvantScelle` (file activée sans scellé : une seule
-  voie servie ; au scellé, toutes).
+  voie servie ; au scellé, toutes). `testResolutionPoolGestes` (relance,
+  navigation et tri en cours de file) ne compare que des invariants,
+  l'ensemble résolu dépendant alors du moment : aucune réponse périmée
+  écrite, cache égal à la résolution directe build par build, page égale à
+  la composition de ce cache.

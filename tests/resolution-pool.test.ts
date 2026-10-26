@@ -10,18 +10,19 @@
 import { isDeepStrictEqual } from 'node:util';
 import { MessageChannel, type MessagePort } from 'node:worker_threads';
 import { CorpsClassement, type InstantaneClassement, type PublicationClassement, type VueClassement } from '../src/lib/classementCompact';
-import { contexteResultat } from '../src/lib/contexteResultat';
+import { contexteResultat, resolutionDuContexte } from '../src/lib/contexteResultat';
 import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs, tamponsCandidats } from '../src/lib/candidatsCompacts';
 import { DEFAULT_DAMAGE_SETUP, artifactDamageProfile, estPrisEnCharge, skillDamageProfile } from '../src/lib/damage';
 import { computeStats } from '../src/lib/stats';
 import type { BuildCandidate, RealDamageContext, SearchParams } from '../src/lib/runeBuildOptim';
-import type { ResultatArtefacts } from '../src/lib/artifactQueue';
+import { cleBuild, type ResultatArtefacts } from '../src/lib/artifactQueue';
+import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild } from '../src/lib/relicQueue';
 import { ResolutionDistante } from '../src/workers/resolutionDistante';
 import type { MessageVersResolution, ReponseResolution } from '../src/workers/resolutionBody';
 import type { ReponseClassement } from '../src/workers/classementDistant';
 import type { ArtifactDetail, RuneDetail } from '../src/types';
 import { classerPourLaPage } from './classement-fixture';
-import { fil } from './classement-distant.test';
+import { fil, verifierInstantane } from './classement-distant.test';
 import { BASE } from './relic-search.test';
 import { egal, ok, titre } from './outils';
 
@@ -430,4 +431,43 @@ export async function testResolutionPoolVoiesAvantScelle() {
     recherche.port2.close();
     await classeur.terminate(); await Promise.all(resolveurs.map((w) => w.terminate()));
   }
+}
+
+/**
+ * Gestes en cours de file : l'ensemble résolu dépend alors du moment du geste
+ * (déjà avec un seul résolveur), si bien que seuls des INVARIANTS se
+ * comparent, jamais un ensemble exact. Nouvelle recherche (autre inventaire)
+ * pendant que le pool calcule, puis navigation vers la page 3, puis autre
+ * tri ; à la fin : chaque équipement du cache est celui que la résolution
+ * directe donne dans le contexte courant (aucune réponse périmée écrite), et
+ * la page publiée est la composition exacte de ce cache.
+ */
+export async function testResolutionPoolGestes() {
+  titre('Résolution — gestes en cours de file (relance, page, tri) : aucune réponse périmée écrite, page faite de builds bien résolus');
+  const a = fixturePool(180, { enemyDef: 1200, signature: 'pool-a', toutVerifier: false });
+  const b = fixturePool(180, { enemyDef: 300, signature: 'pool-b', toutVerifier: false, sans904: true });
+  let etape = 0, anciennes: ReponseResolution[] = [];
+  const pool = await classerAvecPool(VOIES, 13, [{ f: a, id: 1 }], ({ corps, recues, retenues }) => {
+    const enAttente = retenues.splice(0);
+    if (etape === 0 && recues >= 2 && enAttente.length === VOIES) {
+      corps.ouvrir(b.photo, 2, b.vue, 2);
+      const bs = blocs(b.candidats); bs.forEach((bloc, i) => corps.ajouter(2, i, bloc));
+      corps.sceller(2, b.candidats.length, bs.length - 1, BILAN);
+      corps.pomper(0); anciennes = enAttente.map((x) => x.r); etape = 1;
+    } else if (etape === 1 && recues >= 14) { corps.changerVue({ ...b.vue, page: 3 }, 2, 3); corps.pomper(0); etape = 2; }
+    else if (etape === 2 && recues >= 24) { corps.changerVue({ ...b.vue, tri: 'atk', page: 1 }, 3, 4); corps.pomper(0); etape = 3; }
+    for (const { livrer } of enAttente) livrer();
+    return etape === 3;
+  });
+  const entrees = resolutionDuContexte(b.photo)!, runeById = new Map(b.photo.recherche.pool.map((r) => [r.id, r]));
+  const parCle = new Map(b.candidats.map((c) => [cleBuild(c), c]));
+  const direct = (cle: string) => resoudreEquipementDuBuild(entreeResolutionDuBuild({ ...entrees, runes: runesDuBuild(parCle.get(cle)!, runeById), caches: nouveauxCachesResolution() }));
+  const differentes = anciennes.filter((r) => r.type === 'resultat' && !isDeepStrictEqual(r.resultat, direct(r.cle)));
+  ok(etape === 3 && differentes.length > 0 && pool.observation.inversions > 0,
+    `précondition — trois gestes faits, ${anciennes.length} réponse(s) de l’ancienne recherche livrées après la relance dont ${differentes.length} différente(s), ${pool.observation.inversions} réponse(s) dans le désordre`);
+  const fausses = [...pool.projection.parBuild].filter(([cle, r]) => !isDeepStrictEqual(r, direct(cle))).map(([cle]) => cle);
+  egal(fausses, [], `les ${pool.projection.parBuild.size} équipements du cache sont ceux de la résolution directe dans le contexte courant : aucune réponse périmée écrite`);
+  verifierInstantane(pool.instantane, pool.projection, b.photo);
+  ok(pool.instantane.page.cartes.every((c) => c.resultat?.conforme === true) && pool.instantane.enAttente === 0,
+    `page finale (tri ATQ) : ${pool.instantane.page.cartes.length} cartes, toutes résolues et conformes, file vide`);
 }

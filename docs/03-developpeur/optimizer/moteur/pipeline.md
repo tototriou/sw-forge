@@ -625,17 +625,24 @@ la vie d'un résultat.
 vivante.
 
 **Ordre d'arrivée et état final.** Les réponses du pool arrivent dans
-n'importe quel ordre ; chacune retrouve sa demande par `idDemande`. L'état
-final n'en dépend pas : le fond ne demande jamais un build au-delà du plus
-court préfixe qui contient K conformes (avant le K-ième conforme final, au
-moins K lignes ne sont pas connues comme rejetées), la file ne se vide que
-lorsque ce préfixe est résolu, et la page d'ouverture, quand la vue suit
-l'objectif lancé sans borne, demande parmi les 40 premières lignes non
+n'importe quel ordre ; chacune retrouve sa demande par `idDemande`.
+L'ensemble résolu final n'en dépend pas **sur une file née après le scellé,
+pour une vue qui suit l'objectif lancé sans borne, sans geste** : le fond ne
+demande jamais un build au-delà du plus court préfixe qui contient K
+conformes (avant le K-ième conforme final, au moins K lignes ne sont pas
+connues comme rejetées), la file ne se vide que lorsque ce préfixe est
+résolu, et la page d'ouverture demande parmi les 40 premières lignes non
 rejetées (K vaut 100 ou 300). Ce préfixe ne dépend que du verdict de chaque
 build, identique sur tout Worker (les mémos ne changent aucun résultat).
-Hors de ces conditions — page demandée par un geste, bornes qui masquent
-des confirmées —, une demande hors du préfixe dépend du moment du geste,
-comme avec un seul résolveur.
+Hors de ces conditions, l'ensemble résolu dépend du moment, déjà avec un
+seul résolveur, et davantage avec le pool, qui a plus de demandes en vol :
+avant le scellé, la file travaille sur l'ordre des candidats déjà reçus,
+qu'un meilleur build arrivé ensuite déplace ; une page demandée par un geste
+ou des bornes qui masquent des confirmées peuvent faire résoudre un build
+hors du préfixe. Ce qui reste vrai dans tous les cas : aucune réponse
+périmée n'est écrite, chaque équipement écrit est celui de la résolution
+directe dans le contexte courant, et la page publiée est la composition
+exacte du cache (`testResolutionPoolGestes`).
 Le repli exécute une demande par tâche du classeur ; il utilise les mêmes
 entrées sérialisables et le même corps de résolution.
 

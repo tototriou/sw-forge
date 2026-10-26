@@ -144,6 +144,24 @@ testé).
   `sauvegarderSous` rendent `enregistree` (avec l'état), `annulee` ou
   `echec` (avec le message).
 
+## Changements non enregistrés (application de bureau)
+
+Avant un changement de compte — choisir un autre invocateur du dossier SW
+Exporter, ou un dossier —, l'app propose « Sauvegarder ta session ? » si le
+travail a changé depuis la dernière sauvegarde ; « Sauvegarder et changer »
+passe par `sauvegarderSession`, et ne change de compte que si la session
+est écrite. Détail : [feat-import-compte/bouton-import.md](feat-import-compte/bouton-import.md), § « Le dossier SW
+Exporter ».
+
+- Chaque sauvegarde réussie (écrite dans l'app, téléchargée sur le site)
+  retient l'**empreinte** de la session (`empreinteTravail`,
+  `src/lib/session.ts`) : le stockage et les outils, sans la date, la
+  version de l'app ni le compte. Elle n'est retenue qu'en mémoire, pour la
+  durée de l'ouverture.
+- Le travail a changé (`travailNonSauvegarde`) quand l'empreinte du moment
+  diffère de la retenue ; sans sauvegarde depuis le lancement, dès qu'il y
+  a une prépa RTA ou des équipes de siège.
+
 ## Ce que contient le fichier
 
 **Ce que l'app garde quand on passe d'une page à l'autre, tel qu'il est au
@@ -212,7 +230,7 @@ la valeur `combat` en `normal`, comme les recettes et mémoires de membres.
 ## Vérifier
 
 ```
-node tests/run.mjs session persistance optimizerexemplairemontage renduparametres rendubureautextes rendubarresession bureausession
+node tests/run.mjs session persistance optimizerexemplairemontage renduparametres rendubureautextes rendubarresession renduchangementcompte bureausession bureauswex
 npm run bureau:preuve -- --session       # l'app, conservation refusée (après vite build et bureau:construire)
 npm run bureau:preuve -- --conservation  # l'app, conservation activée : la session en cours survit à la fermeture
 node scripts/preuve-session-site.mjs     # le site, conservation acceptée, exemplaire compris (après npm run build)

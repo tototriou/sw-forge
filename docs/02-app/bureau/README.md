@@ -164,9 +164,13 @@ change pas. Ce qui en dépend aujourd'hui :
   `swex.json` (dossier des données de l'app) **même sans « Garder mes
   données »** : c'est un réglage. Relu avec méfiance — un nom de fichier,
   jamais un chemin.
-- **Ce qui est mis à jour : « Mon compte » seulement** — jamais la prépa RTA
-  ni le siège (voir [transverse/feat-import-compte/bouton-import.md](../transverse/feat-import-compte/bouton-import.md), § « Le dossier SW
-  Exporter »).
+- **Ce qui est importé** : **tout** (prépa RTA, siège, « Mon compte »)
+  pour l'export qui suit le choix d'un invocateur — ou d'un dossier qui en
+  désigne un d'office —, après la proposition de sauvegarder la session si
+  le travail a changé ; puis **« Mon compte » seulement** pour chaque export
+  suivant, jamais la prépa RTA ni le siège (voir [transverse/feat-import-compte/bouton-import.md](../transverse/feat-import-compte/bouton-import.md), § « Le dossier SW
+  Exporter »). Le processus principal marque `complet` l'export qui suit un
+  choix (`bureau:swex-export`), jusqu'au `bureau:swex-lu` de la page.
 - **Quand** : au chargement de la page, si l'export est plus récent que le
   dernier appliqué (annoncé), ou si la page n'a pas de compte (conservation
   refusée : relu en silence) ; puis à chaque changement du dossier, **1,5 s
@@ -287,7 +291,7 @@ boutons restent affichés, désactivés quand il n'y a rien à faire.
 ```
 npm run bureau:preuve                  # l'app se contrôle elle-même (resultats.json)
 npm run bureau:preuve -- --conservation  # les données et la session en cours survivent à la fermeture
-npm run bureau:preuve -- --swex        # le dossier SW Exporter, sur des fixtures
+npm run bureau:preuve -- --swex        # le dossier SW Exporter, sur des fixtures : choix, sauvegarde proposée, import complet, exports suivants
 npm run bureau:preuve -- --session     # « Sauvegarder », « Sauvegarder sous… », conservation refusée
 npm run bureau:preuve -- <dossier> --exe "<app installée>"  # la même chose, sur l'app installée
 npm run bureau:local                   # la regarder

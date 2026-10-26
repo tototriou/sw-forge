@@ -160,10 +160,12 @@ export async function lancerPreuveConservation(fenetre: BrowserWindow, dossier: 
 // ── Le dossier SW Exporter ─────────────────────────────────────
 // `npm run bureau:preuve -- --swex` : un dossier de fixtures (deux
 // invocateurs, un sous-dossier `live`), « choisi » sans boîte de dialogue (main.ts). Un
-// import MANUEL d'abord (prépa RTA et siège remplis), puis, depuis les
-// Réglages, le dossier et l'invocateur ; l'export réécrit pendant que l'app
-// tourne ; un rechargement ; une écriture dans `live`. À chaque étape : le
-// compte affiché, la notification, et la prépa RTA et le siège INCHANGÉS.
+// import MANUEL d'abord (prépa RTA et siège remplis), puis le dossier depuis
+// les Réglages et l'invocateur depuis la carte du compte — chaque choix
+// propose d'abord de sauvegarder ; le choix de l'invocateur importe TOUT.
+// Puis l'export réécrit pendant que l'app tourne, l'invocateur déjà suivi
+// rechoisi, un rechargement, une écriture dans `live` : « Mon compte »
+// seulement, la prépa RTA et le siège INCHANGÉS.
 export async function lancerPreuveSwex(fenetre: BrowserWindow, dossier: string, fixtures: string, compte: string) {
   mkdirSync(dossier, { recursive: true });
   const resultats: Record<string, unknown> = {};
@@ -178,13 +180,6 @@ export async function lancerPreuveSwex(fenetre: BrowserWindow, dossier: string, 
   const compteAffiche = () =>
     js(`document.querySelector('aside button[aria-label="Changer de compte"], aside button[aria-label="Importer un compte"]')?.querySelector('.font-semibold')?.textContent.trim() ?? 'aucun'`);
   const reglage = () => js(`document.querySelector('[data-reglage-swex]')?.innerText.replace(/\\s+/g, ' ').trim() ?? 'aucun bloc'`);
-  const cliquer = (libelle: string) =>
-    js(`(() => {
-      const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === ${JSON.stringify(libelle)});
-      if (!b) return 'pas de bouton « ${libelle} »';
-      b.click();
-      return 'cliqué';
-    })()`);
   try {
     if (fenetre.webContents.isLoading()) {
       await new Promise<void>((r) => fenetre.webContents.once('did-finish-load', () => r()));
@@ -206,55 +201,132 @@ export async function lancerPreuveSwex(fenetre: BrowserWindow, dossier: string, 
     resultats.travailRempli = JSON.parse(avant).every((v: string | null) => v !== null && v.length > 50);
     resultats.compteApresImport = await compteAffiche();
 
-    // 2. Les Réglages : choisir le dossier, puis l'invocateur « Autre ».
+    // La modale du changement de compte est-elle ouverte ? Ses boutons se
+    // cherchent DANS elle : la page peut porter un autre « Annuler ».
+    const modale = () => js(`[...document.querySelectorAll('[role="dialog"]')].some((d) => d.innerText.includes('Sauvegarder ta session ?'))`);
+    const cliquerDansModale = (libelle: string) =>
+      js(`(() => {
+        const b = [...document.querySelectorAll('[role="dialog"] button')].find((x) => x.textContent.trim() === ${JSON.stringify(libelle)});
+        if (!b) return 'pas de bouton « ${libelle} » dans la modale';
+        b.click();
+        return 'cliqué';
+      })()`);
+    // Le récapitulatif d'un import complet (« Import : … »), ou `aucun`.
+    const recapitulatif = () =>
+      js(`[...document.querySelectorAll('[role="status"] > p')].map((p) => p.textContent.trim()).find((t) => t.startsWith('Import :')) ?? 'aucun'`);
+    const menuCarte = () =>
+      js(`(() => {
+        const carte = document.querySelector('aside button[aria-label="Changer de compte"]');
+        if (!carte) return 'pas de menu sur la carte du compte';
+        carte.click();
+        return [...document.querySelectorAll('aside [role="menuitemcheckbox"], aside [role="menuitem"]')]
+          .map((e) => e.textContent.trim() + (e.getAttribute('aria-checked') === 'true' ? ' ✓' : ''));
+      })()`);
+    const choisirAuMenu = (nom: string) =>
+      js(`(() => {
+        const e = [...document.querySelectorAll('aside [role="menuitemcheckbox"]')].find((x) => x.textContent.trim() === ${JSON.stringify(nom)});
+        if (!e) return 'pas d’entrée « ${nom} »';
+        e.click();
+        return 'cliqué';
+      })()`);
+
+    // 2. Les Réglages : choisir le dossier — il peut désigner un invocateur
+    // d'office, donc la sauvegarde est proposée d'abord.
     await js(`location.hash = '#/parametres'`);
     await attendre(1200);
     resultats.reglageAvant = await reglage();
-    resultats.choisirDossier = await cliquer('Choisir…');
+    // ⚠️ DANS le bloc : « Dossier SW Blacksmith », plus haut, a aussi son
+    // « Choisir… ».
+    resultats.choisirDossier = await js(`(() => {
+      const b = [...document.querySelectorAll('[data-reglage-swex] button')].find((x) => x.textContent.trim() === 'Choisir…');
+      if (!b) return 'pas de bouton « Choisir… » dans le bloc SW Exporter';
+      b.click();
+      return 'cliqué';
+    })()`);
+    await attendre(500);
+    resultats.modaleDossier = await modale();
+    resultats.changerSansSauvegarderDossier = await cliquerDansModale('Changer sans sauvegarder');
     await attendre(1200);
     resultats.reglageDossier = await reglage();
     resultats.options = await js(`[...document.querySelectorAll('[data-reglage-swex] select option')].map((o) => o.textContent)`);
     await fermerNotification();
-    // L'invocateur se choisit depuis la CARTE DU COMPTE : la carte ouvre le
-    // menu des invocateurs.
-    resultats.menuCompte = await js(`(() => {
-      const carte = document.querySelector('aside button[aria-label="Changer de compte"]');
-      if (!carte) return 'pas de menu sur la carte du compte';
-      carte.click();
-      return [...document.querySelectorAll('aside [role="menuitemcheckbox"], aside [role="menuitem"]')]
-        .map((e) => e.textContent.trim() + (e.getAttribute('aria-checked') === 'true' ? ' ✓' : ''));
-    })()`);
+
+    // 3. L'invocateur « Autre », depuis la CARTE DU COMPTE : la modale
+    // d'abord. « Annuler » ne change rien.
+    resultats.menuCompte = await menuCarte();
     await attendre(300);
-    resultats.choisirInvocateur = await js(`(() => {
-      const e = [...document.querySelectorAll('aside [role="menuitemcheckbox"]')].find((x) => x.textContent.trim() === 'Autre');
-      if (!e) return 'pas d’entrée « Autre »';
-      e.click();
-      return 'cliqué';
-    })()`);
+    resultats.choisirInvocateur = await choisirAuMenu('Autre');
+    await attendre(500);
+    resultats.modaleInvocateur = await modale();
+    resultats.annuler = await cliquerDansModale('Annuler');
+    await attendre(1500);
+    resultats.apresAnnuler = {
+      modale: await modale(),
+      compte: await compteAffiche(),
+      selecteur: await js(`document.querySelector('[data-reglage-swex] select')?.value`),
+      travailInchange: (await travail()) === avant,
+    };
+
+    // 4. « Changer sans sauvegarder » : TOUT s'importe — annoncé « chargé »,
+    // avec le récapitulatif de l'import.
+    await menuCarte();
+    await attendre(300);
+    await choisirAuMenu('Autre');
+    await attendre(500);
+    resultats.changerSansSauvegarder = await cliquerDansModale('Changer sans sauvegarder');
     await attendre(2500);
     resultats.selecteurReglages = await js(`document.querySelector('[data-reglage-swex] select')?.value`);
-    resultats.apresChoix = { compte: await compteAffiche(), notification: await notification(), reglage: await reglage(), travailInchange: (await travail()) === avant };
+    resultats.apresChoix = { compte: await compteAffiche(), notification: await notification(), recapitulatif: await recapitulatif(), reglage: await reglage() };
+    const apresChoix = await travail();
 
-    // 3. SW Exporter réécrit l'export pendant que l'app tourne.
+    // 5. SW Exporter réécrit l'export pendant que l'app tourne : « Mon
+    // compte » seulement.
     await fermerNotification();
     const autre = JSON.parse(compte);
     autre.wizard_info = { ...autre.wizard_info, wizard_id: 2, wizard_name: 'Autre-bis' };
     writeFileSync(join(fixtures, 'Autre-2.json'), JSON.stringify(autre));
     await attendre(4500);
-    resultats.apresReecriture = { compte: await compteAffiche(), notification: await notification(), travailInchange: (await travail()) === avant };
+    resultats.apresReecriture = { compte: await compteAffiche(), notification: await notification(), travailInchange: (await travail()) === apresChoix };
 
-    // 4. Un rechargement (comme un relancement, compte conservé) : rien de
-    // nouveau, rien d'annoncé.
+    // 6. L'invocateur déjà suivi, rechoisi : rien — ni modale, ni import.
     await fermerNotification();
+    await menuCarte();
+    await attendre(300);
+    await choisirAuMenu('Autre');
+    await attendre(2000);
+    resultats.memeInvocateur = { modale: await modale(), notification: await notification(), travailInchange: (await travail()) === apresChoix };
+    await js(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+
+    // 7. Un rechargement (comme un relancement, compte conservé) : rien de
+    // nouveau, rien d'annoncé.
     fenetre.webContents.reload();
     await new Promise<void>((r) => fenetre.webContents.once('did-finish-load', () => r()));
     await attendre(3500);
-    resultats.apresRechargement = { compte: await compteAffiche(), notification: await notification(), travailInchange: (await travail()) === avant };
+    resultats.apresRechargement = { compte: await compteAffiche(), notification: await notification(), travailInchange: (await travail()) === apresChoix };
 
-    // 5. Une écriture dans `live` (SW Exporter en partie) : ignorée.
+    // 8. Une écriture dans `live` (SW Exporter en partie) : ignorée.
     writeFileSync(join(fixtures, 'live', 'partie.json'), '{}');
     await attendre(3500);
     resultats.apresLive = { notification: await notification() };
+
+    // 9. Retour à « Testeur » par « Sauvegarder et changer » : la session
+    // s'écrit (dossier SW Blacksmith du mode preuve), PUIS le compte change.
+    const sessions = () => {
+      try {
+        return readdirSync(join(dossier, 'swblacksmith', 'sessions')).filter((f) => f.endsWith('.json'));
+      } catch {
+        return [];
+      }
+    };
+    const sessionsAvant = sessions().length;
+    await menuCarte();
+    await attendre(300);
+    await choisirAuMenu('Testeur');
+    await attendre(500);
+    resultats.modaleRetour = await modale();
+    resultats.sauvegarderEtChanger = await cliquerDansModale('Sauvegarder et changer');
+    await attendre(3000);
+    resultats.apresSauvegarde = { sessionsEcrites: sessions().length - sessionsAvant, compte: await compteAffiche(), recapitulatif: await recapitulatif() };
 
     resultats.reglageRetenu = JSON.parse(readFileSync(join(dossier, 'donnees', 'swex.json'), 'utf8'));
   } catch (e) {

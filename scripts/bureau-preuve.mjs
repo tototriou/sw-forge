@@ -12,9 +12,9 @@
 // « Garder mes données » et choisit une session en cours, le second relit et
 // la réécrit par Ctrl+S — puis compare ; code de sortie 1 si quelque chose
 // s'est perdu.
-// `--swex` : le dossier SW Exporter sur des fixtures — choix, export
-// réécrit, rechargement, sous-dossier `live` ; prépa RTA et siège jamais
-// touchés.
+// `--swex` : le dossier SW Exporter sur des fixtures — choix (sauvegarde
+// proposée, puis import complet), export réécrit, rechargement,
+// sous-dossier `live` ; après le choix, prépa RTA et siège jamais touchés.
 // `--session` (docs/02-app/transverse/) : conservation refusée,
 // « Sauvegarder » depuis les Paramètres, Ctrl K, Ctrl+S et la barre du haut,
 // puis « Sauvegarder sous… » ; chaque fichier relu par `lireSession`.
@@ -141,15 +141,30 @@ if (session) {
   const verdicts = {
     'import manuel : prépa RTA et siège remplis': res.travailRempli === true,
     'deux invocateurs proposés, live/ ignoré': JSON.stringify(res.options) === JSON.stringify(['Choisir…', 'Autre', 'Testeur']),
+    'choix du dossier : la sauvegarde proposée d’abord': res.modaleDossier === true && res.changerSansSauvegarderDossier === 'cliqué',
     'carte du compte : menu des invocateurs, puis l’import': JSON.stringify(res.menuCompte) === JSON.stringify(['Autre', 'Testeur', 'Importer un fichier…']),
-    'invocateur choisi au menu : son compte, annoncé': res.choisirInvocateur === 'cliqué' && res.apresChoix?.compte === 'Autre' && res.apresChoix?.notification === 'Compte de Autre mis à jour depuis SW Exporter',
+    'invocateur choisi au menu : la sauvegarde proposée d’abord': res.choisirInvocateur === 'cliqué' && res.modaleInvocateur === true,
+    '« Annuler » : ni compte, ni réglage, ni travail changés':
+      res.annuler === 'cliqué' && res.apresAnnuler?.modale === false && res.apresAnnuler?.compte === 'Testeur' && res.apresAnnuler?.selecteur === '' && res.apresAnnuler?.travailInchange === true,
+    '« Changer sans sauvegarder » : tout importé, annoncé « chargé »':
+      res.changerSansSauvegarder === 'cliqué' &&
+      res.apresChoix?.compte === 'Autre' &&
+      res.apresChoix?.notification === 'Compte de Autre chargé depuis SW Exporter' &&
+      /^Import : .*monstres 6★.*monstres RTA/.test(res.apresChoix?.recapitulatif ?? ''),
     'les Réglages suivent le même choix': res.selecteurReglages === 'Autre-2.json',
-    'export réécrit : relu, annoncé': res.apresReecriture?.compte === 'Autre-bis' && res.apresReecriture?.notification === 'Compte de Autre-bis mis à jour depuis SW Exporter',
+    'export réécrit : « Mon compte » relu, annoncé « mis à jour »': res.apresReecriture?.compte === 'Autre-bis' && res.apresReecriture?.notification === 'Compte de Autre-bis mis à jour depuis SW Exporter',
+    'invocateur déjà suivi, rechoisi : ni modale, ni import': res.memeInvocateur?.modale === false && res.memeInvocateur?.notification === 'aucune',
     'rechargement : rien de réannoncé, compte gardé': res.apresRechargement?.notification === 'aucune' && res.apresRechargement?.compte === 'Autre-bis',
     'écriture dans live/ : ignorée': res.apresLive?.notification === 'aucune',
-    'prépa RTA et siège INCHANGÉS à chaque étape':
-      res.apresChoix?.travailInchange === true && res.apresReecriture?.travailInchange === true && res.apresRechargement?.travailInchange === true,
-    'réglage retenu (dossier, invocateur, dernier lu)': res.reglageRetenu?.fichier === 'Autre-2.json' && typeof res.reglageRetenu?.dernierLu === 'number',
+    'après le choix, prépa RTA et siège INCHANGÉS par les exports suivants':
+      res.apresReecriture?.travailInchange === true && res.memeInvocateur?.travailInchange === true && res.apresRechargement?.travailInchange === true,
+    '« Sauvegarder et changer » : la session écrite, puis tout importé':
+      res.modaleRetour === true &&
+      res.sauvegarderEtChanger === 'cliqué' &&
+      res.apresSauvegarde?.sessionsEcrites === 1 &&
+      res.apresSauvegarde?.compte === 'Testeur' &&
+      /^Import : /.test(res.apresSauvegarde?.recapitulatif ?? ''),
+    'réglage retenu (dossier, invocateur, dernier lu)': res.reglageRetenu?.fichier === 'Testeur-1.json' && typeof res.reglageRetenu?.dernierLu === 'number',
     'aucune erreur': !res.erreur,
   };
   for (const [quoi, bon] of Object.entries(verdicts)) console.log(`${bon ? 'ok' : 'KO'}  ${quoi}`);

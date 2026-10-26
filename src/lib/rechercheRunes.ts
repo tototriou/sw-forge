@@ -23,7 +23,7 @@ import {
   prepareSearch,
 } from './runeBuildOptim';
 import { RuneDetail } from '../types';
-import { OrdreCombos, construireMoitieRapide, construireMoitieRapideTypee } from './constructionRapide';
+import { OptionsConstruction, OrdreCombos, construireMoitieRapide, construireMoitieRapideTypee } from './constructionRapide';
 import { apparierRapide } from './appariementRapide';
 import { UnionDesRetentions, UnionDesRetentionsTypees } from './retentionEmboitee';
 import { Compartiment, CompartimentType, typerCompartiments } from './demiBuildsTypes';
@@ -185,14 +185,18 @@ export function* construireMoitie(
   return buckets;
 }
 
-/** Chemin en colonnes de la recherche ; seul le traceur demande la référence objet. */
+/**
+ * Chemin en colonnes de la recherche ; seul le traceur demande la référence
+ * objet. `options` va à chaque préréglage construit (`elaguer: false` : la
+ * référence du différentiel de l'élagage, jamais un appel de production).
+ */
 export function* construireMoitieTypee(
   half: 'A' | 'B', slotIdxs: readonly [number, number, number], ctx: ContexteMoitie,
-  otherHalfMaxSets: number[], mode: OrdreCombos = 'objective'
+  otherHalfMaxSets: number[], mode: OrdreCombos = 'objective', options: OptionsConstruction = {}
 ): Generator<BuildingProgress, CompartimentType[], void> {
   if (ctx.traceur) return typerCompartiments(yield* construireMoitie(half, slotIdxs, ctx, otherHalfMaxSets, mode));
   const un = function* (c: BuildBucketsContext, autre: number[]): Generator<BuildingProgress, CompartimentType[], void> {
-    return yield* construireMoitieRapideTypee(half, slotIdxs, c, autre, mode);
+    return yield* construireMoitieRapideTypee(half, slotIdxs, c, autre, mode, options);
   };
   if (ctx.cransEmboites.length === 0) return yield* un(ctx, otherHalfMaxSets);
   const total = totalConstruction(ctx, slotIdxs);

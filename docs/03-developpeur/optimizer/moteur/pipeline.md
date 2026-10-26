@@ -182,6 +182,25 @@ qui rend exactement les compartiments de `buildBuckets`, la référence :
 - le code d'un triplet, `(idx0 × n1 + idx1) × n2 + idx2`, croît dans l'ordre
   d'énumération de `buildBuckets` : il donne l'ordre de création des
   compartiments et celui des clés de `maxPct`/`maxFlat` ;
+- les triplets qu'aucun tas n'accepterait ne sont ni sommés, ni notés, ni
+  poussés : sur une recherche réelle, 90 à 96 % de ceux que les filtres de
+  set laissent passer (Kinki Moyen, Eivor, Kinki Extrême). Un tas plein
+  refuse une note `≤` sa racine sans rien changer, et sa racine ne fait que
+  croître : pour chaque ligne `(idx0, idx1)`, `candidatsDeLaLigne` majore la
+  note de chaque tranche par une expression linéaire en la troisième rune
+  (`ceil(x) < x + 1`, marge relative de 1e-9 pour l'arrondi ; efficience et
+  stats sans pourcentage bornées exactement), triée d'avance par classe
+  (set, joker) de la troisième rune, et ne garde que les runes qui peuvent
+  battre la racine d'au moins une tranche de leur compartiment. Les triplets
+  écartés étendent quand même `maxPct`/`maxFlat`, d'un coup par classe
+  (`fl(a + max c) = max fl(a + c)`, l'addition flottante étant monotone).
+  Une classe se traite triplet par triplet si son compartiment n'existe
+  pas encore, si un de ses tas n'est pas plein, ou si elle poserait la
+  première borne non nulle d'une stat ; l'élagage s'abstient sur une
+  contribution non finie ou au-delà de 1e12. Les candidats gardent l'ordre
+  des codes : mêmes tas, mêmes ex æquo, mêmes bornes
+  (`tests/construction-elagage.test.ts`, contre la même construction sans
+  élagage) ;
 - le même point de passage, une fois par rune du premier emplacement.
 
 L'union conserve aussi des colonnes : elle copie seulement les lignes

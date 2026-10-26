@@ -73,6 +73,10 @@ export async function testRenduOptimizerTableauSansRognage() {
     ok(Number.isFinite(largeur) && largeur <= SEUIL_TABLEAU_PX,
       `largeur minimale du tableau : ${largeur} px, valeurs et bornes au plus large (seuil retenu ${SEUIL_TABLEAU_PX} px ; à ${largeur - 1} px : ${avant.slice(0, 3).join(' ; ')})`);
     ok(largeur <= 716, `objectif : le tableau tient dans 716 px (1920 en pleine page) — ${largeur} px`);
+    // La largeur de chaque champ (`MIN_CHAMP`) borne celle du tableau : trop
+    // serré, il déborde de son cadre, il ne rogne jamais une saisie ni un nombre.
+    ok(avant.length > 0 && avant.every((d) => d.startsWith('tableau plus large que son cadre')),
+      `sous la largeur minimale (${largeur - 1} px), le tableau déborde sans rien rogner (${avant.slice(0, 3).join(' ; ')})`);
 
     await monter(page, { largeur: SEUIL_TABLEAU_PX, force: false, bornes: 'pleines' });
     const auSeuil = await visibles(page), pb = await defauts(page);

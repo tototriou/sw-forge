@@ -86,6 +86,55 @@ export async function testRenduOptimizerTableauSansRognage() {
   } finally { await browser.close(); }
 }
 
+/**
+ * Les colonnes dont les bords ne coïncident pas (vide : toutes alignées) : pour
+ * chaque colonne (`data-colonne-tableau`), la tête de tri, le cadre du champ
+ * Min, celui du champ Max et la zone de contenu de chaque cellule de valeur
+ * (la cellule moins son rembourrage, où la valeur se centre) ont les mêmes
+ * bords gauche et droit, au demi-pixel près.
+ */
+const desalignements = (page: Page) => page.evaluate(() => {
+  const table = document.querySelector('[data-tableau-resultats] table');
+  if (!table || table.getBoundingClientRect().width === 0) return ['tableau absent'];
+  const contenu = (el: Element) => {
+    const r = el.getBoundingClientRect(), s = getComputedStyle(el);
+    return { gauche: r.left + parseFloat(s.paddingLeft) + parseFloat(s.borderLeftWidth),
+      droite: r.right - parseFloat(s.paddingRight) - parseFloat(s.borderRightWidth) };
+  };
+  const bords = (el: Element) => { const r = el.getBoundingClientRect(); return { gauche: r.left, droite: r.right }; };
+  const colonnes = [...new Set([...table.querySelectorAll('[data-colonne-tableau]')].map((e) => e.getAttribute('data-colonne-tableau')!))];
+  const pb: string[] = [];
+  for (const c of colonnes) {
+    const cellules = [...table.querySelectorAll(`[data-colonne-tableau="${c}"]`)];
+    const tete = cellules.find((e) => e.tagName === 'TH')?.querySelector('button');
+    const champs = cellules.filter((e) => e.tagName === 'TD' && e.querySelector('input')).map((td) => td.querySelector('input')!.closest('div')!);
+    const valeurs = cellules.filter((e) => e.tagName === 'TD' && !e.querySelector('input'));
+    if (!tete || champs.length !== 2 || valeurs.length === 0) { pb.push(`${c} : tête, deux champs et valeurs attendus`); continue; }
+    const ref = bords(tete);
+    const ecart = [['Min', bords(champs[0])], ['Max', bords(champs[1])], ...valeurs.map((v, i) => [`valeur ${i + 1}`, contenu(v)] as const)]
+      .filter(([, b]) => Math.abs((b as typeof ref).gauche - ref.gauche) > 0.5 || Math.abs((b as typeof ref).droite - ref.droite) > 0.5);
+    if (ecart.length) {
+      const [nom, b] = ecart[0] as [string, typeof ref];
+      pb.push(`${c} : ${nom} ${b.gauche.toFixed(1)}–${b.droite.toFixed(1)} contre la tête ${ref.gauche.toFixed(1)}–${ref.droite.toFixed(1)}`);
+    }
+  }
+  if (colonnes.length !== 11) pb.push(`${colonnes.length} colonnes marquées, 11 attendues`);
+  return pb;
+});
+
+export async function testRenduOptimizerTableauAlignement() {
+  titre('rendu · tableau des résultats — une colonne, un seul bord : tête de tri, Min, Max et valeurs alignés');
+  const { browser, page } = await navigateurOptimizer(false, BANC);
+  try {
+    for (const [largeur, bornes, nom] of [[SEUIL_TABLEAU_PX, 'pleines', `au seuil (${SEUIL_TABLEAU_PX} px), toutes les bornes posées`],
+      [1356, 'pleines', '2560 pleine page (1356 px), toutes les bornes posées'], [1356, 'aucune', '2560 pleine page (1356 px), sans borne']] as const) {
+      await monter(page, { largeur, force: false, bornes });
+      const pb = await desalignements(page);
+      ok(pb.length === 0, `${nom} : chaque colonne a les mêmes bords gauche et droit (${pb.slice(0, 3).join(' ; ') || 'onze colonnes alignées'})`);
+    }
+  } finally { await browser.close(); }
+}
+
 export async function testRenduOptimizerTableauEtats() {
   titre('rendu · tableau des résultats — tri par en-tête, minimum > maximum, colonne indisponible');
   const { browser, page } = await navigateurOptimizer(false, BANC);

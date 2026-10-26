@@ -481,7 +481,8 @@ ce choix.
   (`bg-accent-soft`). Deux lignes de bornes Min / Max dessous (`NumberField
   sansBoutons`, toute la largeur de la colonne). ⚠️ **Une colonne, un seul
   bord** : bouton, deux champs et valeurs prennent toute la largeur de leur
-  cellule, au même rembourrage, et se centrent. Un clic sur une ligne, ou sur
+  cellule, au même rembourrage, et se centrent (bords vérifiés au navigateur,
+  au seuil et à pleine largeur : `testRenduOptimizerTableauAlignement`). Un clic sur une ligne, ou sur
   son rang au clavier, ouvre la carte telle quelle dans une `Modale`
   (« Build n° 3 », croix) : « Comparer » et « Valider » y sont. Les places
   « Vérification… » sont des lignes. La vue demande alors les onze valeurs

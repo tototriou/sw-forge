@@ -104,7 +104,7 @@ import { testFiltresResultatsDoublonsTaches } from './filtres-resultats-doublons
 import { testFiltresResultatsMemoire } from './filtres-memoire.test';
 import { testFiltresResultatsValeurBornee } from './filtres-carte.test';
 import { testFiltresResultatsBonus, testFiltresResultatsDecimales } from './filtres-bonus.test';
-import { testRenduOptimizerTableauSansRognage, testRenduOptimizerTableauEtats } from './rendu/optimizer-tableau-navigateur.test';
+import { testRenduOptimizerTableauSansRognage, testRenduOptimizerTableauEtats, testRenduOptimizerTableauAlignement } from './rendu/optimizer-tableau-navigateur.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
 import { testOptimizerFormatBig } from './format-big.test';
@@ -923,6 +923,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testFiltresResultatsDecimales', testFiltresResultatsDecimales],
   ['testRenduOptimizerTableauSansRognage', testRenduOptimizerTableauSansRognage],
   ['testRenduOptimizerTableauEtats', testRenduOptimizerTableauEtats],
+  ['testRenduOptimizerTableauAlignement', testRenduOptimizerTableauAlignement],
   ['testTriSansNouvelleResolution', testTriSansNouvelleResolution],
   ['testToutVerifierPhotographie', testToutVerifierPhotographie],
   ['testPlacesEnAttenteToujoursTravaillees', testPlacesEnAttenteToujoursTravaillees],

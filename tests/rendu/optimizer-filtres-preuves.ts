@@ -168,6 +168,15 @@ export async function preuvesFiltresEcran(b: BancEcran): Promise<Preuves> {
     preuves.push([presse('Stats bonus') && !presse('Stats totales') && enBonus !== '' && Number(enBonus) < 220,
       `bureau, tableau : « Stats bonus » choisi, la même borne écrite sans la base (« ${enBonus} »)`]);
     preuves.push([json(b.etat().bornesResultats.spd) === json({ min: 220, max: 200 }), 'bureau, tableau : la borne du classeur reste en total']);
+    // Une saisie au clavier en Stats bonus : le classeur reçoit la saisie + la base.
+    const baseVit = 220 - Number(enBonus);
+    await b.geste(() => saisirChamp(champ('VIT minimum affiché')!, '130'));
+    await attendre(100);
+    preuves.push([baseVit > 0 && json(b.etat().bornesResultats.spd) === json({ min: 130 + baseVit, max: 200 }),
+      `bureau, tableau : 130 saisi en Stats bonus, le classeur garde ${130 + baseVit} (130 + base ${baseVit}) — ${json(b.etat().bornesResultats.spd)}`]);
+    await b.geste(() => saisirChamp(champ('VIT minimum affiché')!, enBonus));
+    await attendre(100);
+    preuves.push([json(b.etat().bornesResultats.spd) === json({ min: 220, max: 200 }), `bureau, tableau : ${enBonus} ressaisi, la borne revient à 220`]);
     await b.geste(() => bouton('Stats totales')!.click());
     preuves.push([presse('Stats totales') && vitMin() === '220', `bureau, tableau : retour à « Stats totales » (« ${vitMin()} »)`]);
     preuves.push([b.etat().excludeBase === (depart === 'Stats bonus'), 'bureau, tableau : « Stats de base exclues » (recherche) inchangé']);

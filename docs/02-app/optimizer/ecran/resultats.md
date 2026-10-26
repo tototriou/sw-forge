@@ -310,6 +310,13 @@ session) se relit VIT ; une seule fonction fait cette lecture
 (`triDesResultats`), appelée par l'écran au lancement, le CLI, le harnais,
 le lecteur de mémoires et celui de session. L'objectif de recherche
 Vitesse, lui, reste.
+**Le tri a un sens**, décroissant par défaut, croissant sur demande : la
+vue envoyée au classeur le porte (`sens`). En croissant, seule la note
+s'inverse ; à note égale, les builds gardent l'ordre du décroissant
+(relique, clé, ordre de base). Changer de sens est un changement de tri :
+la page revient à 1 sans demander de page, rien n'est résolu et le cache
+reste. La forme du contrôle à l'écran n'est pas encore posée ; « Trier
+par » trie en décroissant.
 
 ⚠️ **Le tri ne résout aucun équipement.** Les artéfacts et la relique de
 chaque build sont ceux qui servent l'**objectif de la recherche** : changer

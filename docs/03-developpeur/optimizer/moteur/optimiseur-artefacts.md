@@ -390,7 +390,7 @@ Une seule primitive, `chercherPaires`, sert deux entrées.
   d'artéfacts, l'écran impose « Comme équipé » des deux côtés ;
   avec, `'libre'` et les principales deviennent des filtres de candidats.
 - Le Worker de classement possède la file et son cache compact. L'écran lui
-  envoie sa vue (tri, mesure, page) et n'en reçoit que l'instantané de la
+  envoie sa vue (tri et son sens, mesure, page) et n'en reçoit que l'instantané de la
   page affichée ; aucune résolution n'y tourne.
 
 ### Classement incrémental
@@ -452,6 +452,16 @@ recalculer ; seules les lignes résolues sont renotées.
 Cache vide : ordre de base inchangé. Cache non vide : note décroissante,
 relique croissante (absente en dernier), clé lexicographique, puis position
 dans l'ordre de base. Sans note calculable, seul le départage s'applique.
+**Sens croissant** (`VueClassement.sens: 'asc'`, absent = décroissant) :
+toutes les notes de la vue, de base, au fil des blocs et de l'index, sont
+prises opposées (`noteDansLeSens`, `signeTri` de tri.ts), et les mêmes tris
+décroissants stables rangent alors par note croissante : seul le comparateur
+de note s'inverse ; relique, clé et position dans l'ordre de base de CETTE
+vue départagent comme avant, et les égalités ne sont jamais renversées (pas
+de `reverse()`). Le sens fait partie du critère : il nomme les notes
+(`tri|mesure|sens`) et renote l'index comme un changement de tri. Le fond de
+la file garde l'objectif lancé, décroissant ; une vue croissante a donc son
+propre ordre de base.
 `NaN`, infinis et identifiants de relique hors contrat prennent deux tris
 natifs stables sur indices JavaScript, avec les expressions de la référence,
 sans normalisation ni comparateur composite.

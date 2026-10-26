@@ -97,6 +97,7 @@ import { testClassementCessionOrdre, testClassementCessionSansAffamement, testCl
 import { testRetraitAdaptationMigrations } from './retrait-adaptation.test';
 import { testTriSansNouvelleResolution, testToutVerifierPhotographie, testPlacesEnAttenteToujoursTravaillees } from './classement-non-relance.test';
 import { testObjectifVitesseMigration } from './objectif-vitesse.test';
+import { testColonnesTriAscendant } from './colonnes-tri.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
 import { testOptimizerFormatBig } from './format-big.test';
@@ -893,6 +894,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testClassementCessionCanal', testClassementCessionCanal],
   ['testRetraitAdaptationMigrations', testRetraitAdaptationMigrations],
   ['testObjectifVitesseMigration', testObjectifVitesseMigration],
+  ['testColonnesTriAscendant', testColonnesTriAscendant],
   ['testTriSansNouvelleResolution', testTriSansNouvelleResolution],
   ['testToutVerifierPhotographie', testToutVerifierPhotographie],
   ['testPlacesEnAttenteToujoursTravaillees', testPlacesEnAttenteToujoursTravaillees],

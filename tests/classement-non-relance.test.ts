@@ -66,7 +66,8 @@ export function testTriSansNouvelleResolution() {
   const derniere = Math.ceil(confirmees / 20) + 1;
   // L'écran remet la page à 1 sur un changement de tri comme de mesure (useOptimizerState.ts) :
   // ce sont les seules vues qu'il envoie après un tel changement.
-  for (const geste of [{ tri: 'atk', page: 1 }, { tri: 'hp', page: 1 }, { metric: 'score', page: 1 }, { tri: 'ehp', metric: 'eff', page: 1 }] as Partial<VueClassement>[]) {
+  for (const geste of [{ tri: 'atk', page: 1 }, { sens: 'asc', page: 1 }, { tri: 'hp', sens: 'desc', page: 1 }, { metric: 'score', page: 1 },
+    { tri: 'ehp', metric: 'eff', page: 1 }] as Partial<VueClassement>[]) {
     b.changer(geste);
     egal([b.demandes(), b.cache().size, b.generation()], [apresLancement, resolus.size, generation],
       `${JSON.stringify(geste)} : aucune demande, aucun équipement nouveau, cache intact`);

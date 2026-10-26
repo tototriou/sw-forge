@@ -10,6 +10,7 @@ import { ResolutionDistante, repliSurErreur, type PortsResolutionDistante } from
 import { CorpsResolution, type MessageVersResolution, type ReponseResolution, type EntreesResolutionSerialisables } from '../workers/resolutionBody';
 import type { SearchResult } from './runeBuildOptim';
 import { triDesResultats, type ColonneResultat } from './colonnesResultats';
+import { SENS_PAR_DEFAUT, signeTri, type SensTri } from './tri';
 
 /** Adaptation paresseuse : aucun objet par ligne n'est retenu par le propriétaire. */
 export function candidatsParIndice(nombre: number, lire: (i: number) => BuildCandidate): BuildCandidate[] {
@@ -34,14 +35,26 @@ export interface CompteOrdreDeBase { notes: number; comparaisons: number }
 interface NotesConnues { nombre: number; note(i: number): number | null; ordre: Uint32Array | null }
 interface OrdreDeBase { ordre: Uint32Array; notes: Float64Array; calculable: boolean }
 
+/**
+ * La note d'une vue dans son sens. En croissant, la note opposée : les mêmes
+ * tris décroissants stables rangent alors par note croissante — le seul
+ * comparateur de note inversé —, sans toucher au départage (relique, clé,
+ * rang de base) ni renverser les égalités, ce que ferait un `reverse()`.
+ * En décroissant, la note telle quelle, au bit près.
+ */
+export function noteDansLeSens(note: number | null, sens: SensTri): number | null {
+  return note === null || sens === 'desc' ? note : note * signeTri(sens);
+}
+
 function* ordreCollecteEtapes(candidats: ArrayLike<BuildCandidate>, critere: StatKey | Objective, options: OptionsDeClassement,
-  compte?: CompteOrdreDeBase, connues?: NotesConnues): Generator<void, OrdreDeBase> {
+  compte?: CompteOrdreDeBase, connues?: NotesConnues, sens: SensTri = SENS_PAR_DEFAUT): Generator<void, OrdreDeBase> {
   const n = candidats.length, notes = new Float64Array(n);
   let calculable = false, nonFini = false;
   for (let i = 0; i < n; i++) {
     // Une note connue ne relit pas le candidat : seule la lecture coûte encore.
+    // Elle est déjà dans le sens de la vue (`OrdreAuFil`).
     const connue = connues !== undefined && i < connues.nombre;
-    const note = connue ? connues.note(i) : scoreDuCandidat(candidats[i], critere, options);
+    const note = connue ? connues.note(i) : noteDansLeSens(scoreDuCandidat(candidats[i], critere, options), sens);
     if (!connue && compte) compte.notes++;
     calculable ||= note !== null;
     notes[i] = note ?? 0; nonFini ||= note !== null && !Number.isFinite(note);
@@ -79,7 +92,7 @@ class OrdreAuFil {
   private abandonne = false;
 
   constructor(readonly cle: string, private readonly critere: StatKey | Objective, private readonly options: OptionsDeClassement,
-    private readonly flux: RecepteurCandidats, private readonly compte: CompteOrdreDeBase) {}
+    private readonly flux: RecepteurCandidats, private readonly compte: CompteOrdreDeBase, private readonly sens: SensTri = SENS_PAR_DEFAUT) {}
 
   /** Un pas : une note, ou au plus 64 lignes triées ou fusionnées ; faux quand tout le reçu est traité. */
   avancer(): boolean {
@@ -103,7 +116,7 @@ class OrdreAuFil {
       if (this.nombre < this.flux.longueur) {
         const i = this.nombre;
         if (i === this.valeurs.length) { const plus = new Float64Array(2 * i); plus.set(this.valeurs); this.valeurs = plus; }
-        const note = scoreDuCandidat(this.flux.lire(i), this.critere, this.options);
+        const note = noteDansLeSens(scoreDuCandidat(this.flux.lire(i), this.critere, this.options), this.sens);
         this.compte.notes++;
         this.valeurs[i] = note ?? 0;
         if (note === null) this.nulles++; else if (!Number.isFinite(note)) this.nonFinies++;
@@ -437,9 +450,19 @@ export interface VueClassement {
   pageImprimee?: boolean;
   /** Une des onze colonnes ; l'objectif de recherche Vitesse se trie par VIT (`triDesResultats`). */
   tri: ColonneResultat;
+  /**
+   * Le sens du tri ; absent = décroissant. Croissant : seul le comparateur
+   * de note s'inverse (`noteDansLeSens`), le départage reste le même. Le fond
+   * de la file garde l'objectif lancé, décroissant.
+   */
+  sens?: SensTri;
   metric: OptimMetric;
   page: number;
 }
+const sensDe = (vue: VueClassement): SensTri => vue.sens ?? SENS_PAR_DEFAUT;
+/** Critère, mesure et sens d'un ordre de base ; leur clé nomme ses notes. */
+type CritereDeBase = [StatKey | Objective, OptimMetric, SensTri];
+const cleCritere = (critere: StatKey | Objective, metric: OptimMetric, sens: SensTri) => `${critere}|${metric}|${sens}`;
 export interface VersionsClassement {
   versionSchema: 1;
   idRecherche: number;
@@ -592,20 +615,21 @@ export class CorpsClassement {
   private triDuLancement(): ColonneResultat {
     return triDesResultats(this.contexte?.recherche.objective ?? 'efficience');
   }
+  /** Le fond suit l'objectif lancé, décroissant ; une vue croissante a son propre ordre de base. */
   private vueSuitLeLancement(vue: VueClassement): boolean {
-    return vue.tri === this.triDuLancement() && vue.metric === this.contexte?.recherche.metric;
+    return vue.tri === this.triDuLancement() && vue.metric === this.contexte?.recherche.metric && sensDe(vue) === SENS_PAR_DEFAUT;
   }
   private courant(idRecherche: number) { return this.contexte !== null && idRecherche === this.versions.idRecherche; }
-  private criteresDeBase(): [StatKey | Objective, OptimMetric][] {
+  private criteresDeBase(): CritereDeBase[] {
     if (!this.contexte || !this.vue) return [];
-    const lance: [StatKey | Objective, OptimMetric] = [this.triDuLancement(), this.contexte.recherche.metric];
-    return this.vueSuitLeLancement(this.vue) ? [lance] : [[this.vue.tri, this.vue.metric], lance];
+    const lance: CritereDeBase = [this.triDuLancement(), this.contexte.recherche.metric, SENS_PAR_DEFAUT];
+    return this.vueSuitLeLancement(this.vue) ? [lance] : [[this.vue.tri, this.vue.metric, sensDe(this.vue)], lance];
   }
-  private ordreAuFil(critere: StatKey | Objective, metric: OptimMetric): OrdreAuFil {
-    const cle = `${critere}|${metric}`;
+  private ordreAuFil(critere: StatKey | Objective, metric: OptimMetric, sens: SensTri): OrdreAuFil {
+    const cle = cleCritere(critere, metric, sens);
     let ordre = this.auFil.find((o) => o.cle === cle);
     if (!ordre) {
-      ordre = new OrdreAuFil(cle, critere, optionsDuContexte(this.contexte!, null, metric), this.flux, this.travail);
+      ordre = new OrdreAuFil(cle, critere, optionsDuContexte(this.contexte!, null, metric), this.flux, this.travail, sens);
       this.auFil.push(ordre);
     }
     return ordre;
@@ -619,13 +643,13 @@ export class CorpsClassement {
    */
   avancerAuFil(): boolean {
     if (!this.travailAuFil) return this.auFilEnAttente = false;
-    for (const [critere, metric] of this.criteresDeBase()) if (this.ordreAuFil(critere, metric).avancer()) return true;
+    for (const [critere, metric, sens] of this.criteresDeBase()) if (this.ordreAuFil(critere, metric, sens).avancer()) return true;
     return this.auFilEnAttente = false;
   }
-  private *notesConnues(critere: StatKey | Objective, metric: OptimMetric, n: number): Generator<void, NotesConnues | undefined> {
+  private *notesConnues(critere: StatKey | Objective, metric: OptimMetric, sens: SensTri, n: number): Generator<void, NotesConnues | undefined> {
     // Source libérée après le scellé : l'ordre se refait sur le magasin, comme avant.
     if (this.collecteScellee && !this.lots.length) return undefined;
-    const ordre = this.ordreAuFil(critere, metric);
+    const ordre = this.ordreAuFil(critere, metric, sens);
     return this.collecteScellee && n === this.flux.longueur ? yield* ordre.finir(n) : ordre.connues(n);
   }
   ajouter(idRecherche: number, sequence: number, bloc: BlocCandidats): void {
@@ -692,17 +716,19 @@ export class CorpsClassement {
       this.entrees = entrees; this.versions.idContexteResolution = compteurSuivant(this.versions.idContexteResolution);
       this.signature = JSON.stringify([this.contexte.idInventaire, this.contexte.idEspece, this.contexte.signature, this.contexte.recherche.relicContext?.empreinte, entrees?.regime]);
     }
+    // Tri, sens ou mesure : un autre classement.
+    const autreCritere = !avant || avant.tri !== vue.tri || avant.metric !== vue.metric || sensDe(avant) !== sensDe(vue);
     if (!avant) this.pagePrioritaire = true;
-    else if (avant.tri !== vue.tri || avant.metric !== vue.metric) this.pagePrioritaire = false;
+    else if (autreCritere) this.pagePrioritaire = false;
     else if (avant.page !== vue.page || avant.pageImprimee !== vue.pageImprimee) this.pagePrioritaire = true;
     this.vue = { ...vue }; this.versions.idVue = idVue; this.versions.idDemande = idDemande;
-    if (!avant || avant.tri !== vue.tri || avant.metric !== vue.metric) {
+    if (autreCritere) {
       // Le critère quitté ne sert plus ; le nouveau se prépare sur tout le reçu.
-      const cles = new Set(this.criteresDeBase().map(([c, m]) => `${c}|${m}`));
+      const cles = new Set(this.criteresDeBase().map(([c, m, s]) => cleCritere(c, m, s)));
       this.auFil = this.auFil.filter((o) => cles.has(o.cle)); this.auFilEnAttente = this.flux.longueur > 0;
     }
     if (!this.contexte.toutVerifier) this.fileExhaustive = null;
-    if (!avant || avant.tri !== vue.tri || avant.metric !== vue.metric) this.trierBase();
+    if (autreCritere) this.trierBase();
     // Un geste de vue se publie dès que son instantané est prêt (fin du tri
     // éventuel), sans attendre les 400 ms du fond : retenu, il n'attendrait que
     // le prochain message du résolveur, et l'écran garderait l'ancienne page
@@ -724,17 +750,18 @@ export class CorpsClassement {
     }
     const source = candidatsParIndice(index.magasin.longueur, (i) => index.magasin.candidat(i, false));
     const n = index.magasin.longueur;
+    const sens = sensDe(this.vue);
     const deBase = yield* ordreCollecteEtapes(source, this.vue.tri, optionsDuContexte(this.contexte, null, this.vue.metric), this.travail,
-      yield* this.notesConnues(this.vue.tri, this.vue.metric, n));
+      yield* this.notesConnues(this.vue.tri, this.vue.metric, sens, n), sens);
     const base = deBase.ordre;
-    index.definirNotesDeBase(`${this.vue.tri}|${this.vue.metric}`, deBase.notes, deBase.calculable);
+    index.definirNotesDeBase(cleCritere(this.vue.tri, this.vue.metric, sens), deBase.notes, deBase.calculable);
     yield* index.definirOrdreBaseEtapes(base);
     let fond = base;
     if (!this.vueSuitLeLancement(this.vue)) {
       const objectif = this.triDuLancement(), metric = this.contexte.recherche.metric;
       fond = this.fondPropre?.index === index ? this.fondPropre.ordre
         : (yield* ordreCollecteEtapes(source, objectif, optionsDuContexte(this.contexte, null, metric), this.travail,
-          yield* this.notesConnues(objectif, metric, n))).ordre;
+          yield* this.notesConnues(objectif, metric, SENS_PAR_DEFAUT, n))).ordre;
       this.fondPropre = { index, ordre: fond };
     } else this.fondPropre = null;
     yield* this.actualiserEtapes(index, fond);
@@ -754,9 +781,9 @@ export class CorpsClassement {
     if (!this.contexte || !this.vue) return;
     const options = optionsDuContexte(this.contexte, this.cache, this.vue.metric);
     // Un changement de tri ou de mesure remplace cette tâche : le critère capturé reste celui de la vue.
-    const { tri, metric } = this.vue;
-    yield* index.actualiserEtapes(this.cacheLecture(), this.cache.journal, `${this.versions.idRecherche}:${tri}:${metric}:${this.versions.idContexteResolution}`,
-      (c) => scoreDuCandidat(c, tri, options), `${tri}|${metric}`);
+    const { tri, metric } = this.vue, sens = sensDe(this.vue);
+    yield* index.actualiserEtapes(this.cacheLecture(), this.cache.journal, `${this.versions.idRecherche}:${cleCritere(tri, metric, sens)}:${this.versions.idContexteResolution}`,
+      (c) => noteDansLeSens(scoreDuCandidat(c, tri, options), sens), cleCritere(tri, metric, sens));
     yield* this.actualiserSelectionEtapes(index, fond);
     this.versionLue = this.cache.journal?.version ?? -1;
   }

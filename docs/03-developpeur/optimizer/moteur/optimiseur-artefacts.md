@@ -541,7 +541,14 @@ candidats collectés, même contexte photographié, sans cache : les notes que
 la tâche d'un tri calculerait, gardées comme l'objectif lancé (~8 octets
 par candidat chacune) ; une tâche qui a noté le critère entre-temps garde
 les siennes, une note qui lève abandonne ce critère. Le tri d'une de ces
-colonnes ne note alors plus rien avant sa page. Rien pendant la recherche.
+colonnes ne note alors plus rien avant sa page. Rien pendant la recherche,
+ni tant que la file de résolution travaille : le temps mort ne commence
+qu'une fois qu'une pompe a trouvé la file au repos (plus rien à vérifier,
+aucune demande en vol, aucune réponse retenue), et une réponse ou un geste
+l'arrête jusqu'à la pompe suivante. Une réponse du résolveur n'attend donc
+jamais derrière une tranche de temps mort (`CorpsClassement.tranche`, la
+boucle du Worker, menée sur une horloge virtuelle par
+`tests/classement-temps-mort.test.ts`).
 
 Une publication pour l'écran est l'instantané de sa page : comptes de
 l'arbre, extraction des confirmées du rang demandé, places attendues, soit

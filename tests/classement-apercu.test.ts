@@ -113,7 +113,13 @@ function scenario(nom: string, graine: number, e: Parameters<typeof population>[
   let vue = vue0, id = 1;
   for (let g = 0; g < e.gestes; g++) {
     // Du temps mort, parfois interrompu en cours de note : seul le classeur différé prépare des objectifs à l'avance.
-    if (hasard() < 0.5) for (let k = 0, n = Math.floor(hasard() * 1500); k < n && d.corps.avancerAuRepos(); k++) { /* temps mort */ }
+    // Le temps mort attend la file au repos, que seule une pompe constate : la même pompe sur les deux
+    // classeurs (elle peut faire un pas de file), puis le temps mort du seul classeur différé.
+    if (hasard() < 0.5) {
+      r.corps.pomper(tic()); drainer(d); d.corps.pomper(tic());
+      for (let k = 0, n = Math.floor(hasard() * 1500); k < n && d.corps.avancerAuRepos(); k++) { /* temps mort */ }
+      drainer(d);
+    }
     const depuis = d.publications.length;
     const v1 = vueAuHasard(hasard, vue, candidats), id1 = ++id;
     attendues.set(id1, gesteOracle(r, v1, id1)); bilan.gestes++;

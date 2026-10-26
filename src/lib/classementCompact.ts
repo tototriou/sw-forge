@@ -906,6 +906,8 @@ export class CorpsClassement {
   // Les notes d'un objectif en cours de préparation en temps mort, et les critères dont une note a levé.
   private repos: { index: ClassementCompact; cle: string; etapes: Generator<void, NotesDeCritere> } | null = null;
   private reposAbandonnes = new Set<string>();
+  // Vrai seulement entre la pompe qui trouve la file au repos et le prochain message ou geste.
+  private fileAuRepos = false;
 
   constructor(private readonly sorties: {
     publier: (p: InstantaneClassement) => void;
@@ -954,7 +956,7 @@ export class CorpsClassement {
     this.contexte = contexte; this.vue = null; this.flux = new RecepteurCandidats(0); this.lots = [];
     this.index = null; this.fileExhaustive = null; this.base = new Uint32Array(); this.fondPropre = null; this.bilan = null; this.collecteScellee = false;
     this.auFil = []; this.auFilEnAttente = false; this.travail.notes = 0; this.travail.comparaisons = 0;
-    this.ordresDeBase = { index: null, entrees: [] }; this.apercu = null; this.repos = null; this.reposAbandonnes = new Set();
+    this.ordresDeBase = { index: null, entrees: [] }; this.apercu = null; this.repos = null; this.reposAbandonnes = new Set(); this.fileAuRepos = false;
     this.versions = { versionSchema: 1, idRecherche, idInventaire: contexte.idInventaire,
       idContexteResolution: this.versions.idContexteResolution, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande };
     this.entrees = null;
@@ -1019,7 +1021,9 @@ export class CorpsClassement {
     return null;
   }
   /** Des notes de base restent à préparer en temps mort. */
-  get travailAuRepos(): boolean { return (this.repos !== null && this.repos.index === this.index) || this.critereAuRepos() !== null; }
+  get travailAuRepos(): boolean {
+    return this.fileAuRepos && ((this.repos !== null && this.repos.index === this.index) || this.critereAuRepos() !== null);
+  }
   /**
    * Un pas du temps mort : une note de base d'un objectif jamais noté, la
    * même que la tâche d'un tri calculerait (mêmes candidats collectés, même
@@ -1027,7 +1031,8 @@ export class CorpsClassement {
    * Worker ne l'appelle qu'après sa tâche, sa file et le travail au fil.
    */
   avancerAuRepos(): boolean {
-    if (this.tache) return false;
+    // La file d'abord : réponses traitées, crédits rendus, plus rien à vérifier.
+    if (this.tache || !this.fileAuRepos) return false;
     const index = this.index;
     if (this.repos && this.repos.index !== index) this.repos = null;
     if (!this.repos) {
@@ -1147,7 +1152,8 @@ export class CorpsClassement {
     // éventuel), sans attendre les 400 ms du fond : retenu, il n'attendrait que
     // le prochain message du résolveur, et l'écran garderait l'ancienne page
     // sous le nouveau numéro. Une publication par geste, que la cadence suit.
-    this.sale = true; this.publicationForcee = true;
+    // Une page demandée peut remettre la file au travail : la prochaine pompe en juge.
+    this.sale = true; this.publicationForcee = true; this.fileAuRepos = false;
   }
   private trierBase(): void {
     if (!this.contexte || !this.vue) return;
@@ -1429,6 +1435,7 @@ export class CorpsClassement {
       enAttente: () => {}, repli: (raison, detail) => this.panneResolution(raison, detail) };
   }
   pomper(maintenant: number): void {
+    this.fileAuRepos = false;
     // Pendant la tâche d'un geste, seule sa page déjà prête peut partir.
     if (this.tache) { this.publierApercu(maintenant); return; }
     this.libererSourceScellee();
@@ -1445,8 +1452,13 @@ export class CorpsClassement {
     }
     const restants = this.restants();
     this.publier(maintenant, !this.tache && restants.length === 0);
+    // Le temps mort attend la file au repos : rien à vérifier, aucune demande en vol, aucune réponse retenue.
+    this.fileAuRepos = !this.tache && restants.length === 0 && this.pilote.demandesEnVol === 0
+      && this.reponsesEnAttente.length === 0 && this.reponsesDirectes.length === 0;
   }
   recevoirResolution(r: ReponseResolution, maintenant: number): void {
+    // Une réponse arrivée remet la file au travail jusqu'à la prochaine pompe.
+    this.fileAuRepos = false;
     if (this.tache) { this.reponsesEnAttente.push(r); return; }
     this.pilote.surReponse(r, this.ports(maintenant));
   }
@@ -1456,7 +1468,7 @@ export class CorpsClassement {
     this.incident = raison;
     this.reponsesEnAttente = []; this.reponsesDirectes = [];
     this.pilote.renoncer(); this.pilote = new ResolutionDistante(); this.direct = new CorpsResolution(); this.repli = true;
-    this.sale = true; this.publicationForcee = true;
+    this.sale = true; this.publicationForcee = true; this.fileAuRepos = false;
   }
   get travailEnRepli() { return this.reponsesEnAttente.length > 0 || (this.repli && this.restants().length > 0); }
   private abandonnerReponses(): void {
@@ -1478,7 +1490,7 @@ export class CorpsClassement {
     this.tache = null; this.nombreCible = 0; this.plages = []; this.reponsesEnAttente = [];
     this.contexte = null; this.vue = null; this.index = null; this.fileExhaustive = null; this.flux.liberer(); this.lots = [];
     this.auFil = []; this.auFilEnAttente = false;
-    this.ordresDeBase = { index: null, entrees: [] }; this.apercu = null; this.repos = null; this.reposAbandonnes = new Set();
+    this.ordresDeBase = { index: null, entrees: [] }; this.apercu = null; this.repos = null; this.reposAbandonnes = new Set(); this.fileAuRepos = false;
     this.cache.clear(); this.generationCache = compteurSuivant(this.generationCache); this.entrees = null; this.sale = false;
     for (const m of this.pilote.invalider()) {
       if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m);

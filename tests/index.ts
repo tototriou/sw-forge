@@ -230,6 +230,7 @@ import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidat
 import { testClassementCreditsRelance, testClassementCadenceDifferee, testClassementVueSansAutreMessage, testClassementInstantaneBorne, testClassementMortInactive } from './classement-publication.test';
 import { testClassementAuFilDifferentiel, testClassementAuFilTravail } from './classement-au-fil.test';
 import { testClassementNotesDeBaseGardees, testClassementNotesAuRepos } from './classement-notes-de-base.test';
+import { testClassementTempsMortApresLaFile } from './classement-temps-mort.test';
 import { testClassementApercuDifferentiel, testClassementApercuNonFinis, testClassementApercuSecondGeste, testClassementApercuPagePrioritaire,
   testClassementApercuTravail } from './classement-apercu.test';
 import { testClassementComparerApresValidation } from './classement-comparer.test';
@@ -903,6 +904,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testClassementAuFilTravail', testClassementAuFilTravail],
   ['testClassementNotesDeBaseGardees', testClassementNotesDeBaseGardees],
   ['testClassementNotesAuRepos', testClassementNotesAuRepos],
+  ['testClassementTempsMortApresLaFile', testClassementTempsMortApresLaFile],
   ['testClassementApercuDifferentiel', testClassementApercuDifferentiel],
   ['testClassementApercuNonFinis', testClassementApercuNonFinis],
   ['testClassementApercuSecondGeste', testClassementApercuSecondGeste],

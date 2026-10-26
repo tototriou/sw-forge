@@ -178,7 +178,9 @@ export function testClassementNotesAuRepos() {
   egal(d.corps.projection().base.map(ligne), ordreDeBaseDeReference(candidats, photo, { ...vue, tri: 'efficience' }),
     'tri Efficience : l’ordre de base est celui de la référence sans cache');
   egal(geste({ ...vue, tri: 'efficience', metric: 'score' }, 4), n, 'une autre mesure : sa propre note (la clé d’un critère porte la mesure)');
-  ok(d.corps.travailAuRepos, 'sous la nouvelle mesure, les autres objectifs sont à préparer de nouveau');
+  ok(!d.corps.travailAuRepos, 'juste après un geste, pas de temps mort : la file n’a pas encore été pompée');
+  d.corps.pomper(tic());
+  ok(d.corps.travailAuRepos, 'la pompe trouve la file au repos : sous la nouvelle mesure, les autres objectifs sont à préparer de nouveau');
   // Lancé sur PV effectifs : le temps mort note Dégâts réels, dont la note avec cache lirait la paire et la relique résolues.
   const pv = population({ nombre: 600, avecFile: true, objectif: 'ehp' });
   const e = classeur(pv.photo, pv.candidats, pv.vue, true);

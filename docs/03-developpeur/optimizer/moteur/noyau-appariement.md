@@ -237,6 +237,13 @@ sont contrôlés contre la borne par Worker. Un arrêt demandé immédiatement
 après réception du dernier bilan ne doit pas précéder sa fusion. Aucun
 chronomètre n'intervient dans ces barrières ou ces compteurs.
 
+`testFluxCandidatsArretApresPlafond` fait tomber le plafond dans le morceau
+de tête et retient les morceaux du second Worker jusqu'à ce qu'il soit
+arrêté : le coordinateur doit arrêter chaque Worker une fois, recevoir ces
+morceaux rendus sans parcours (`arret`) et rendre le résultat du
+séquentiel au même plafond. Sans cet arrêt, l'attente va jusqu'au délai de
+garde.
+
 Chaque appel parallèle explicite de ces tests a un délai de garde de
 15 secondes, qui signale une erreur et ferme les Workers encore vivants ;
 ce délai détecte un interblocage, il n'est pas un budget de performance.

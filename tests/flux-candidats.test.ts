@@ -575,6 +575,56 @@ export async function testFluxCandidatsReceptionOrdre() {
   await arretApresDerniereReception(e, reference, chemin);
 }
 
+/**
+ * Le plafond se fusionne dans le morceau de tête : le coordinateur arrête les
+ * morceaux encore en vol, dont rien ne serait fusionné, au lieu d'attendre
+ * leur fin. Ceux du second Worker restent retenus jusqu'à cet arrêt : sans
+ * lui, l'attente irait jusqu'au délai de garde.
+ */
+export async function testFluxCandidatsArretApresPlafond() {
+  titre('Flux candidats · plafond fusionné : les morceaux en vol sont arrêtés');
+  const e = espaceDistinct();
+  const maxCollected = 5, cibleMorceau = 1_000;
+  const params = { ...e.params, maxCollected };
+  const prepared = { ...e.p, maxCollected };
+  const reference = drain(pairBuckets(prepared, e.A, e.B));
+  const plan = planifierMorceaux(e.p, e.A, e.B, cibleMorceau);
+  ok(reference.truncated && plan.length >= 4 && reference.explored <= plan[0].offset + plan[0].taille,
+    `précondition : le ${maxCollected}ᵉ candidat tombe dans le premier de ${plan.length} morceaux (position ${reference.explored})`);
+  const brut = lancerTravailleurNode<ColonnesCandidats>(await assurerBundleAppariementRapide());
+  let fils = 0;
+  const arretes: number[] = [];
+  const issuesDuSecond: string[] = [];
+  const lancer: LancerTravailleur<ColonnesCandidats> = (init, transfert) => {
+    const w = fils++, fil = brut(init, transfert);
+    const retenus: (() => void)[] = [];
+    let arrete = false;
+    return { ...fil,
+      envoyer: (m, t) => {
+        if (w === 1 && !arrete) retenus.push(() => fil.envoyer(m, t));
+        else fil.envoyer(m, t);
+      },
+      surMessage: (rappel) => fil.surMessage((r) => {
+        if (w === 1) issuesDuSecond.push(r.issue);
+        rappel(r);
+      }),
+      arreter: () => {
+        arretes.push(w);
+        arrete = true;
+        fil.arreter();
+        for (const partir of retenus.splice(0)) partir();
+      },
+    };
+  };
+  const r = await paralleleBorne({ params, prepared, bucketsA: e.A, bucketsB: e.B, totalPaires: e.total,
+    travailleurs: 2, lancer, startedAt: prepared.startedAt, collecte: creerColonnesCandidats(), cibleMorceau });
+  identiques(etat(reference), etat(objets(r)), 'plafond dans la tête : candidats, comptes et quasi-succès du séquentiel');
+  identiques(r.traitees, reference.explored, 'plafond dans la tête : mêmes paires traitées');
+  identiques(r.motif, 'maxCollected', 'plafond dans la tête : motif du plafond');
+  ok(arretes.slice().sort().join(',') === '0,1' && issuesDuSecond.length > 0 && issuesDuSecond.every((i) => i === 'arret'),
+    `chaque Worker arrêté une fois (${arretes.join(',')}), morceaux en vol rendus sans parcours (${issuesDuSecond.join(',')})`);
+}
+
 async function arretApresDerniereReception(e: ReturnType<typeof espaceDistinct>, reference: SearchResult, chemin: string) {
   const brut = lancerTravailleurNode<ColonnesCandidats>(chemin);
   let arreter: (() => void) | undefined;

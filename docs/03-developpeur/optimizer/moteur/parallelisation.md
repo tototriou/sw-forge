@@ -129,7 +129,13 @@ combinaison A ouverte face à un compartiment B ouvert, avec les prédicats de
 - Le plafond de candidats est GLOBAL : aucune part par Worker. Un morceau
   s'arrête de lui-même dès qu'il a `maxCollected` candidats (la fusion
   aurait de toute façon coupé avant), et la fusion coupe au
-  `maxCollected`-ième dans l'ordre séquentiel.
+  `maxCollected`-ième dans l'ordre séquentiel. Dès que la fusion est
+  terminée (plafond, arrêt déterministe), le coordinateur envoie `arret` à
+  chaque Worker : les morceaux encore en vol, dont rien ne serait fusionné,
+  rendent la main à leur ligne suivante au lieu d'aller au bout. Sans cet
+  arrêt, une recherche coupée au plafond attendait la fin de ces morceaux
+  (une dizaine en vol, jusqu'à plusieurs secondes chacun sur une recherche
+  au préréglage Extrême) pour les jeter.
 
 Ce que le plafond global change :
 
@@ -416,7 +422,8 @@ résultat, les positions de coupe et les métadonnées des morceaux.
   résultat garde tout ce qui a été trouvé, ses paires traitées sont un
   compte et non une position, et il peut rendre davantage que le
   séquentiel, jamais moins de ce qui a été parcouru. Seuls le plafond et
-  l'arrêt déterministe arrêtent la fusion.
+  l'arrêt déterministe arrêtent la fusion ; ils arrêtent alors aussi les
+  morceaux en vol, dont les retours sont drainés et jetés.
 - Aucune trace de diagnostic : le noyau ne remplit pas le traceur, et un
   traceur fait sortir l'appariement du contrat numérique (séquentiel, par
   `pairBuckets`).

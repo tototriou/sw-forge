@@ -410,6 +410,7 @@ export async function apparierRapideEnParallele(o: OptionsParallele<ColonnesCand
       }
     };
     let pompeEnCours = false;
+    let enVolArretes = false;
     let receptionsANotifier = 0;
     const prefixeDisponible = () => prochainAFusionner < resultats.length && resultats[prochainAFusionner].length > 0;
     const programmerFusion = () => {
@@ -434,6 +435,13 @@ export async function apparierRapideEnParallele(o: OptionsParallele<ColonnesCand
               for (let i = prochainAFusionner; i < resultats.length; i++) {
                 for (const entree of resultats[i]) libererPlace(entree.w, entree.lignes);
                 resultats[i] = [];
+              }
+              // Plus rien ne se fusionnera : les morceaux encore en vol
+              // rendent la main à leur ligne suivante au lieu d'aller au
+              // bout d'un parcours jeté, que le coordinateur attendrait.
+              if (!enVolArretes) {
+                enVolArretes = true;
+                for (const p of poignees) p.arreter();
               }
             }
             // La publication compacte est bornée à W blocs, indépendamment

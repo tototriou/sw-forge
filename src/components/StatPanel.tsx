@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
-import { StatRow } from '../lib/stats';
+import { STATS_AVEC_BASE, StatRow } from '../lib/stats';
 import { CAPPED_STATS, type StatKey } from '../lib/effects';
 import { displayedTotal, useOvercapDisplay } from '../hooks/useOvercapDisplay';
 import { ZoneCliquable } from '../ui';
@@ -96,7 +96,19 @@ export default function StatPanel({ stats, spdCible = null, serre = false, ligne
               <tr key={row.key} className={`border-b border-border/40 last:border-0 ${enAvant ? 'bg-accent-soft' : ''}`}
                 data-ligne-mise-en-avant={enAvant ? '' : undefined}>
                 <td className={`${pasLigne} pr-2 ${enAvant ? 'text-accent' : 'text-ink-dim'}`}>{row.label}</td>
-                {showTotal ? (
+                {!showTotal && !STATS_AVEC_BASE.has(row.key) ? (
+                  // ⚠️ Taux Crit, Dmg Crit, RES et Précision s'affichent
+                  // TOUJOURS en total (`STATS_AVEC_BASE`, décision de
+                  // l'utilisateur) : à la place de la base, colonne de droite vide.
+                  <>
+                    <td className={`${pasLigne} pr-3 text-right font-mono font-semibold tabular-nums ${
+                      atCap ? greenOrRed : enAvant ? 'text-accent' : 'text-ink'}`}>
+                      {fmt(displayedTotal(row.key, row.total, showOvercap))}
+                      {row.suffix}
+                    </td>
+                    <td className={pasLigne} />
+                  </>
+                ) : showTotal ? (
                   <td
                     colSpan={2}
                     className={`${pasLigne} text-right font-mono font-semibold tabular-nums ${greenOrRed}`}

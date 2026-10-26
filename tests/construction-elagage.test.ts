@@ -108,8 +108,57 @@ function comptes(p: PreparedSearch, half: 'A' | 'B', slots: readonly [number, nu
   return { avec, sans };
 }
 
+/**
+ * Balayage sur de petits pools, plafonds de 1, 2 et 4, contre la référence
+ * non élaguée ; rend le nombre de cas et la première divergence.
+ * - `pvRare` : PV% retiré de 95 % des runes et un minimum sur les PV. Une
+ *   classe de la troisième rune pose alors souvent la PREMIÈRE borne non
+ *   nulle de `maxPct` dans un compartiment déjà plein : sans la garde qui la
+ *   traite triplet par triplet, l'ordre des clés de `maxPct` diverge.
+ * - `platFractionnaire` : PV, ATQ et DEF plats des sous-stats décalés de
+ *   0,25. Avec des apports plats entiers, la note `ceil(y) + f` dépasse une
+ *   racine entière exactement quand `y + f` la dépasse, et le `+ 1` des
+ *   bornes en pourcentage et combinée ne se voit pas ; une racine
+ *   fractionnaire le rend nécessaire.
+ */
+function balayage(variante: 'pvRare' | 'platFractionnaire'): { cas: number; divergence: string | null } {
+  let cas = 0;
+  for (let seed = 1; seed <= 30; seed++) {
+    const rng = mulberry32(seed);
+    const pool = randomPool(rng, 18, SETS_JOKER);
+    for (const r of pool) {
+      if (variante === 'pvRare') {
+        if (rng() < 0.05) continue;
+        if (r.main.code === 2) r.main = { code: 8, value: r.main.value };
+        r.subs = r.subs.map((l) => (l.code === 2 ? { code: 8, value: l.value } : l));
+      } else {
+        r.subs = r.subs.map((l) => (l.code === 1 || l.code === 3 || l.code === 5 ? { code: l.code, value: l.value + 0.25 } : l));
+      }
+    }
+    const minStats = variante === 'pvRare' ? { hp: 1 } : { hp: 12000, atk: 900, def: 600 };
+    for (const bucketCap of [1, 2, 4]) {
+      const p = prepareSearch({
+        base: IMPAIRE, artifacts: [], pool, metric: 'eff', requirement: { sets: [], minStats },
+        objective: 'efficience', slotFilterCap: 80, bucketCap, combosOrderMode: 'objective',
+      });
+      if (!p) continue;
+      for (const { half, slots } of MOITIES) {
+        cas++;
+        const { divergence } = comparer(p, half, slots, 'objective');
+        if (divergence) return { cas, divergence: `graine ${seed}, bucketCap ${bucketCap}, moitié ${half} : ${divergence}` };
+      }
+    }
+  }
+  return { cas, divergence: null };
+}
+
 export default function testConstructionElagage() {
   titre('Optimizer · construction des moitiés : l’élagage des triplets refusés par tous les tas ne change rien');
+
+  for (const variante of ['pvRare', 'platFractionnaire'] as const) {
+    const { cas, divergence } = balayage(variante);
+    ok(divergence === null && cas >= 150, `balayage ${variante} : ${divergence ?? `${cas} cas identiques`}`);
+  }
 
   for (const s of SCENARIOS) {
     const pool = randomPool(mulberry32(s.seed), s.parEmplacement, s.sets);

@@ -463,11 +463,16 @@ relique : [reliques.md § Résolution exacte par build, file, classement](reliqu
 
 ## Worker de résolution
 
-Le résolveur conserve son corps neutre `CorpsResolution` et les producteurs
-`entreeResolutionDuBuild` / `resoudreEquipementDuBuild`. Sa coquille accepte
-un MessagePort relié au classeur ; elle traite une demande par tâche.
-`ResolutionDistante` décide des deux places en vol, des annulations et de la
-validité des réponses dans le fil du classeur. Les identifiants ne repartent
+La résolution tourne sur un POOL de résolveurs : autant de Workers que
+l'appariement (`nombreDeResolveurs`, la règle « cœurs − 2 » de
+`nombreDeTravailleurs`), créés avec le classeur et réutilisés d'une
+recherche à l'autre. Chacun garde son corps neutre `CorpsResolution` et les
+producteurs `entreeResolutionDuBuild` / `resoudreEquipementDuBuild` ; sa
+coquille accepte un MessagePort relié au classeur, une voie par Worker, et
+traite une demande par tâche. `ResolutionDistante` décide, dans le fil du
+classeur, des deux places en vol de chaque voie, de la voie de chaque
+demande, des annulations et de la validité des réponses, quel que soit leur
+ordre d'arrivée. Les identifiants ne repartent
 pas à zéro au remplacement d'une recherche : une ancienne réponse ne peut
 pas devenir une nouvelle demande. Le détail du protocole et du repli est dans
 [parallelisation.md § Worker de résolution](parallelisation.md#worker-de-résolution).
@@ -523,7 +528,8 @@ incidents, le fond respecte les 400 ms.
 Une réponse déjà reçue et retenue pendant une tâche rend son crédit avant
 d'être abandonnée par une ouverture ou une libération ; son équipement
 n'entre jamais dans la nouvelle génération. Une demande réellement sans
-réponse conserve sa place, annulée comprise, dans la limite de deux.
+réponse conserve sa place, annulée comprise, dans la limite de deux par
+voie.
 Un arrêt demandé
 avant l'acquittement d'ouverture est retenu et transmis dès le lancement
 du Worker de recherche. Un incident du résolveur termine ce Worker même
@@ -549,9 +555,11 @@ part dès son ingestion, avant tout travail sur lui : la recherche n'attend
 jamais la notation. Aucun message ni aucune copie de plus n'est demandé aux
 Workers : le classeur note les blocs qu'il garde déjà jusqu'au scellé.
 
-Le résolveur reste séparé. Sa panne termine son canal et fait reprendre la
-résolution par les mêmes producteurs dans le fil du classeur ; l'instantané
-porte alors l'incident. La perte ou l'impossibilité de créer le classeur
+Le résolveur reste séparé. La panne d'un Worker du pool termine ce Worker
+et son canal ; ses demandes en vol redeviennent à faire sur les autres
+voies, sans incident dans l'instantané. La panne du dernier, ou une
+réponse `erreur`, fait reprendre la résolution par les mêmes producteurs
+dans le fil du classeur ; l'instantané porte alors l'incident. La perte ou l'impossibilité de créer le classeur
 passe par le statut `error` de la recherche et son message existant : aucune
 relance automatique ni copie de secours. Le magasin perdu n'est jamais
 reconstitué : la page garde le dernier instantané reçu, marqué interrompu,
@@ -584,7 +592,8 @@ remplit. Le fond conserve la règle de `prochainsATraiter` : K compte les
 confirmées et les lignes non résolues rencontrées dans l'ordre du fond,
 jamais les rejets. Les doublons comptent comme lignes, mais ne partent pas deux fois en
 résolution. La sélection de la file travaille sur les ordinaux et les états
-typés ; seuls les deux builds envoyés sont matérialisés.
+typés ; seuls les builds des places en vol, plus un, sont matérialisés
+(`maxEnVol + 1`).
 
 Pour K infini, une liste doublement chaînée de groupes inconnus suit l'ordre
 du fond, en trois colonnes Uint32 : suivant, précédent, premier ordinal du
@@ -592,8 +601,9 @@ groupe. Une construction parcourt N lignes ; le journal retire un groupe
 seulement lorsque son cache est commis, conforme ou rejeté. Lire, envoyer,
 annuler ou acquitter ne consomme rien ; un groupe encore en vol reste inconnu.
 La sélection lit les ordinaux fournis par la page (au plus vingt), puis
-trois maillons au plus, sauts de doublons compris, pour TROIS choix au total.
-Le compte total des inconnus est conservé séparément des trois choix.
+des maillons jusqu'à `maxEnVol + 1` choix au total, sauts de doublons
+compris (trois avec un seul résolveur). Le compte total des inconnus est
+conservé séparément de ces choix.
 
 À base et génération stables, avec un journal consécutif, le travail de
 sélection est O(N + R + Q) pour R écritures et Q lectures, en O(N) mémoire
@@ -608,7 +618,21 @@ fond, qui peut s'allonger avec les rejets.
 K vient toujours de `cibleDeLaFile`, avec le contexte relique et « Vérifier
 toutes les combinaisons trouvées » photographiés : K ne change pas pendant
 la vie d'un résultat.
-`ResolutionDistante` conserve sa limite de deux demandes sans réponse.
+`ResolutionDistante` limite les demandes sans réponse à deux par voie
+vivante.
+
+**Ordre d'arrivée et état final.** Les réponses du pool arrivent dans
+n'importe quel ordre ; chacune retrouve sa demande par `idDemande`. L'état
+final n'en dépend pas : le fond ne demande jamais un build au-delà du plus
+court préfixe qui contient K conformes (avant le K-ième conforme final, au
+moins K lignes ne sont pas connues comme rejetées), la file ne se vide que
+lorsque ce préfixe est résolu, et la page d'ouverture, quand la vue suit
+l'objectif lancé sans borne, demande parmi les 40 premières lignes non
+rejetées (K vaut 100 ou 300). Ce préfixe ne dépend que du verdict de chaque
+build, identique sur tout Worker (les mémos ne changent aucun résultat).
+Hors de ces conditions — page demandée par un geste, bornes qui masquent
+des confirmées —, une demande hors du préfixe dépend du moment du geste,
+comme avec un seul résolveur.
 Le repli exécute une demande par tâche du classeur ; il utilise les mêmes
 entrées sérialisables et le même corps de résolution.
 

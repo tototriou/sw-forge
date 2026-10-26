@@ -9,9 +9,9 @@
 // le corps.
 //
 // Branchée par le classeur (`useBuildOptimSearch` lui transfère un port,
-// docs/03-developpeur/optimizer/ § Worker de résolution) : un Worker pour la vie du propriétaire, piloté par `ResolutionDistante`
-// (resolutionDistante.ts) — au plus deux demandes à la fois, réponses périmées
-// ignorées, chemin direct en repli. Comme pour les autres coquilles, son
+// docs/03-developpeur/optimizer/ § Worker de résolution) : un Worker du pool, pour la vie du propriétaire, piloté par `ResolutionDistante`
+// (resolutionDistante.ts) — au plus deux demandes à la fois par Worker,
+// réponses périmées ignorées, chemin direct en repli. Comme pour les autres coquilles, son
 // comportement réel (messages, arrêt, absence de fuite) ne se vérifie qu'au
 // navigateur.
 

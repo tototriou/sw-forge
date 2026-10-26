@@ -5,13 +5,15 @@ export type MessageVersClassement =
   | { type: 'ouvrir'; versionSchema: 1; idRecherche: number; idDemande: number; contexte: ContexteResultat; vue: VueClassement }
   | { type: 'vue'; versionSchema: 1; idRecherche: number; idDemande: number; idVue: number; vue: VueClassement }
   | { type: 'liberer'; versionSchema: 1; idRecherche: number; idDemande: number }
-  | { type: 'panneResolution'; versionSchema: 1; idRecherche: number; raison: string; detail: unknown };
+  // `voie` : le Worker du pool en panne ; absente, tout le pool.
+  | { type: 'panneResolution'; versionSchema: 1; idRecherche: number; raison: string; detail: unknown; voie?: number };
 export type ReponseClassement =
   | { type: 'ouverte'; versionSchema: 1; idRecherche: number; idDemande: number }
   | { type: 'vueRecue'; versionSchema: 1; idRecherche: number; idDemande: number; idVue: number }
   | { type: 'publication'; versionSchema: 1; publication: InstantaneClassement }
   | { type: 'liberee'; versionSchema: 1; idRecherche: number; idDemande: number }
-  | { type: 'incidentResolution'; versionSchema: 1; idRecherche: number; raison: string; detail: unknown }
+  // `voie` : un Worker retiré du pool, les autres continuent ; absente, repli dans le classeur.
+  | { type: 'incidentResolution'; versionSchema: 1; idRecherche: number; raison: string; detail: unknown; voie?: number }
   | { type: 'erreur'; versionSchema: 1; idRecherche: number; message: string };
 
 function suivant(n: number): number {
@@ -37,7 +39,7 @@ export class ClassementDistant {
     ouverte: (idRecherche: number) => void;
     /** Propriétaire perdu : la page garde son dernier instantané, marqué interrompu. */
     erreur: (erreur: unknown) => void;
-    incident: (raison: string, detail: unknown) => void;
+    incident: (raison: string, detail: unknown, voie?: number) => void;
   }) {}
 
   get idRecherche() { return this.generation; }
@@ -66,7 +68,7 @@ export class ClassementDistant {
   recevoir(r: ReponseClassement): void {
     if (!r || r.versionSchema !== 1) { this.panne(new Error('Schéma de réponse de classement inconnu')); return; }
     // L'incident concerne le résolveur du propriétaire vivant, même après libération de sa recherche.
-    if (r.type === 'incidentResolution') { this.ports.incident(r.raison, r.detail); return; }
+    if (r.type === 'incidentResolution') { this.ports.incident(r.raison, r.detail, r.voie); return; }
     // Une faute concerne le propriétaire, même sans recherche active.
     if (r.type === 'erreur') { this.panne(new Error(r.message)); return; }
     if (!this.actif) return;

@@ -21,8 +21,9 @@ plus. Le tri, la mesure et la page ne font que choisir ce qui est montré :
 ils ne résolvent aucun équipement, sauf la page demandée en naviguant
 (ci-dessous). Le classement et la file vivent dans un Worker dédié,
 conservé pendant la navigation ; l'écran n'en reçoit que la page affichée,
-ses comptes et ses versions. Une panne du résolveur seul est reprise dans
-le classeur. Perte du classeur : le message d'échec de recherche existant
+ses comptes et ses versions. L'équipement se vérifie sur plusieurs Workers
+à la fois (autant que la machine en accorde à la recherche) ; la panne de
+l'un est reprise par les autres, celle de tous dans le classeur. Perte du classeur : le message d'échec de recherche existant
 s'affiche et la dernière page reçue reste visible, marquée interrompue, ses
 actions désactivées (§ Compte des combinaisons confirmées et pagination),
 sans relance automatique ni reconstruction d'un résultat depuis l'écran.

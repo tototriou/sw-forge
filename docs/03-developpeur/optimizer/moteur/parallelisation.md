@@ -519,9 +519,17 @@ est acquittée, un contenu différent est refusé. Le scellement vérifie le
 dernier numéro et le nombre de lignes. La fusion des morceaux reste
 canonique, indépendamment de l'ordre d'arrivée.
 
-`ResolutionDistante` pilote le résolveur depuis le classeur :
-contexte, annulations, puis demandes prioritaires ; deux places au plus,
-annulées comprises. Le corps `CorpsResolution` reconstruit les entrées
+`ResolutionDistante` pilote le pool de résolveurs depuis le classeur :
+contexte (vers chaque voie vivante), annulations (vers la voie de la
+demande), puis demandes prioritaires, chacune vers la voie la moins chargée
+(à égalité, la plus petite) ; deux places au plus par voie, annulées
+comprises. La plus ancienne demande de chaque voie, que son Worker a sans
+doute commencée, n'est jamais annulée. Le pool compte
+`nombreDeResolveurs(concurrence, coeursPhysiques)` Workers, la règle de
+l'appariement : les deux ne se chevauchent que sur la fin de l'appariement,
+une seconde au plus, quand la résolution dure ensuite des dizaines de
+secondes. Ses canaux partent ensemble au classeur (`portsResolution`) ;
+une voie est l'indice de son canal. Le corps `CorpsResolution` reconstruit les entrées
 par `entreeResolutionDuBuild`, puis appelle `resoudreEquipementDuBuild`.
 Il répond exactement une fois par demande : résultat, annulation ou erreur.
 Le couple contexte/demande et l'identité courante sont vérifiés avant
@@ -539,7 +547,12 @@ vide forcent la dernière publication, le scellement (bilan) et un geste de
 vue (page, tri, mesure) la leur, dès que leur instantané est prêt. Une tâche d'actualisation n'est pas
 une fin de file : la décision attend son résultat et tout forçage reste dû.
 
-Une erreur du résolveur ferme son canal et le termine. Le classeur garde
+La panne d'un Worker du pool (`onerror`, réponse illisible) le termine et
+retire sa voie (`retirerVoie`) : ses demandes en vol sont oubliées, leurs
+crédits rendus, leurs builds repartent sur les autres voies ; une réponse
+tardive ne correspond plus à aucune demande. L'incident nomme la voie, la
+page n'en porte aucun. La panne du dernier Worker, ou une réponse `erreur`,
+ferme tout le pool. Le classeur garde
 les candidats et son cache, recrée les caches de calcul et reprend dans
 son propre fil par `CorpsResolution`, une demande par tâche. Une erreur
 métier levée également dans ce repli termine la recherche en erreur.
@@ -549,7 +562,8 @@ La perte ou la création impossible du classeur utilise le statut
 `error` et le message existant de la recherche. Les projections de
 compatibilité sont jetées ; aucun résultat n'est reconstitué, aucune
 relance n'est automatique. Démonter l'écran laisse le contrôleur vivant ;
-détruire l'état applicatif termine les Workers et leurs ports. Une faute du
+détruire l'état applicatif termine les Workers et leurs ports, tout le pool
+de résolution compris. Une faute du
 classeur après libération ou refus termine aussi ce propriétaire inactif ;
 la relance explicite crée un nouveau Worker, sans secours ni relance automatique.
 
@@ -622,3 +636,14 @@ la relance explicite crée un nouveau Worker, sans secours ni relance automatiqu
   branchement du hook gardé par des contrôles de source. La coquille
   `resolution.worker.ts` est aussi exécutée avec `classement.worker.ts` par
   `testClassementDistantPanne` : vrais ports transférés et panne du résolveur.
+- Pool de résolution (`tests/resolution-pool.test.ts`) :
+  `testResolutionDistanteVoies` — crédits par voie, contexte sur chaque voie,
+  plus ancienne de chaque voie gardée, voie retirée ; puis, sur de VRAIS
+  `worker_threads` (coquilles de production), réponses retardées au hasard
+  pour mélanger leur ordre d'arrivée : `testResolutionPoolDifferentiel`
+  (même cache build par build, même classement et même page que la
+  résolution directe, K = 100 avec écartés et « tout vérifier »),
+  `testResolutionPoolPanne` (vrai classeur, un Worker terminé en cours de
+  file : ses builds repris, même page, aucun incident sur la page) et
+  `testResolutionPoolAnnulation` (nouvelle recherche pendant que le pool
+  calcule : aucune réponse de l'ancienne écrite, chaque crédit rendu).

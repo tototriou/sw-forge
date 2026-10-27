@@ -77,6 +77,7 @@ import {
   pointsAuraResPrePropres,
   MonsterWideDamageModifiers,
   PassifOffensifProfile,
+  PreparationReglage,
   STAT_DE_L_AURA,
   SetAura,
   SkillDamageProfile,
@@ -814,7 +815,11 @@ export function objectiveScore(
   propres: AurasPropres,
   realDamage?: RealDamageContext,
   apport: ApportExclusive = APPORT_NEUTRE,
-  damageSetup?: DamageSetup
+  damageSetup?: DamageSetup,
+  // « Dégâts réels » : ce que le calcul lit du seul réglage, préparé une fois
+  // pour tous les candidats notés avec elle (`PreparationReglage`, celle des
+  // options du classement). Absente : recalculé à chaque note ; même valeur.
+  reglage?: PreparationReglage
 ): number {
   if (objective === 'efficience') return candidate.effTotal;
   // Les points d'ATQ/DEF/PV des groupes Bravoure/Éternité/Origine entrent
@@ -849,7 +854,8 @@ export function objectiveScore(
       realDamage.bonusDegatsSelonDef,
       realDamage.bonusSiAtqSeuil,
       // Conquête — additive dans le bracket `DMG%` (relevé en jeu).
-      apport.dmgPct
+      apport.dmgPct,
+      reglage
     );
   }
   // Filet de sécurité : tout objectif futur sans branche dédiée ci-dessus
@@ -968,6 +974,16 @@ export function sortCandidates(
      * relique) : apport neutre, exactement l'ordre sans effet unique.
      */
     exclusiveDuBuild?: (c: BuildCandidate) => ApportExclusive | null;
+    /**
+     * « Dégâts réels » : ce que le calcul lit du seul réglage, préparé une
+     * fois pour tous les candidats notés avec ces options
+     * (`PreparationReglage`, damage.ts), reconnu à l'identité du sort, du
+     * réglage et des modificateurs de `realDamage`, qui ne doit donc jamais
+     * être modifié en place pendant sa vie. Posée par `optionsDuContexte`
+     * (contexte de résultat gelé) ; absente, recalculé à chaque note — même
+     * valeur, au bit près.
+     */
+    reglage?: PreparationReglage;
     /**
      * Les activations d'aura PROPRES aux six runes d'un candidat,
      * lues par « Dégâts réels » et « PV effectifs ». ⚠️ **Obligatoire**,
@@ -1142,8 +1158,16 @@ export function optionsDeClassement(e: {
   artefactsDuBuild: (c: BuildCandidate) => ArtifactDamageProfile | null;
   etatReliqueDe: (c: BuildCandidate) => EtatRelique;
   contexteExclusive: { setup: DamageSetup; element: ElementKey | null };
+  // La préparation du réglage, partagée par les options d'un même contexte
+  // (`optionsDuContexte` : une par contexte de résultat, gelé par
+  // `copierDonnees`, donc jamais modifié pendant sa vie). ⚠️ Seulement pour
+  // un `realDamage` immuable : l'API directe peut modifier sort ou réglage en
+  // place sur les mêmes objets, qu'une préparation relirait périmés ; absente,
+  // chaque note recalcule tout.
+  reglage?: PreparationReglage;
 }): OptionsDeClassement {
   const options: OptionsDeClassement = {
+    reglage: e.reglage,
     realDamage: e.realDamage,
     damageSetup: e.damageSetup,
     runeById: e.runeById,
@@ -1211,6 +1235,7 @@ function scorerPour(
     metric?: OptimMetric;
     artefactsDuBuild?: (c: BuildCandidate) => ArtifactDamageProfile | null;
     exclusiveDuBuild?: (c: BuildCandidate) => ApportExclusive | null;
+    reglage?: PreparationReglage;
     aurasPropresDe: (c: BuildCandidate) => AurasPropres;
   }
 ): ((c: BuildCandidate) => number) | null {
@@ -1228,7 +1253,9 @@ function scorerPour(
     if (!ctx) return null;
     return (c) => {
       const propre = opts.artefactsDuBuild?.(c);
-      return objectiveScore(c, sortBy, opts.aurasPropresDe(c), propre ? { ...ctx, artefacts: propre } : ctx, apportDe(c));
+      // `{ ...ctx, artefacts }` garde le sort, le réglage et les modificateurs
+      // de `ctx` : la préparation les reconnaît d'un candidat à l'autre.
+      return objectiveScore(c, sortBy, opts.aurasPropresDe(c), propre ? { ...ctx, artefacts: propre } : ctx, apportDe(c), undefined, opts.reglage);
     };
 
   }

@@ -1,6 +1,6 @@
 import type { GearSet } from '../types';
 import { aurasPropresParRunes, optionsDeClassement, type SearchParams, type RealDamageContext } from './runeBuildOptim';
-import { artifactDamageProfile, type DamageSetup } from './damage';
+import { PreparationReglage, artifactDamageProfile, type DamageSetup } from './damage';
 import { regimeArtefacts, regimeEquipementDe } from './artifactEvaluation';
 import { cleBuild, type ResultatArtefacts } from './artifactQueue';
 import { etatReliqueDuBuild } from './relicQueue';
@@ -79,9 +79,21 @@ export function runesDuContexte(c: ContexteResultat) {
   return runes;
 }
 
+// La préparation du réglage d'un contexte (`PreparationReglage`) : ses notes
+// « Dégâts réels » lisent toutes le même `c.realDamage`, gelé par
+// `copierDonnees` — la précondition de la préparation (entrées jamais
+// modifiées) tient par construction ; une par contexte, partagée par toutes
+// ses options, comme les runes.
+const PREPARATIONS = new WeakMap<ContexteResultat, PreparationReglage>();
+function preparationDuContexte(c: ContexteResultat) {
+  let p = PREPARATIONS.get(c);
+  if (!p) { p = new PreparationReglage(); PREPARATIONS.set(c, p); }
+  return p;
+}
+
 export function optionsDuContexte(c: ContexteResultat, cache: ReadonlyMap<string, ResultatArtefacts> | null, metric: OptimMetric) {
   const runeById = runesDuContexte(c);
-  return optionsDeClassement({ realDamage: c.realDamage, damageSetup: c.damageSetup, runeById, metric,
+  return optionsDeClassement({ realDamage: c.realDamage, damageSetup: c.damageSetup, runeById, metric, reglage: preparationDuContexte(c),
     aurasPropresDe: aurasPropresParRunes(runeById),
     artefactsDuBuild: (b) => { const r = cache?.get(cleBuild(b)); return r ? artifactDamageProfile(r.artefacts) : null; },
     etatReliqueDe: (b) => etatReliqueDuBuild(cache?.get(cleBuild(b)), c.recherche.relicContext, c.fiche.relic),

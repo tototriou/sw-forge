@@ -77,10 +77,13 @@ function entreeResolutionAvant(p: SearchParams, c: BuildCandidate, ctx: RelicCon
     respecteConditions: conditionsPosees ? (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), p.requirement, aurasPropresDesRunes(gear.runes)) : null,
     requirement: p.requirement,
     regimeAucun: regime === 'aucun',
-    // Seul ajout à la copie : le champ obligatoire du départage
+    // Premier ajout à la copie : le champ obligatoire du départage
     // des régimes de stat, qui n'existait pas au commit 7905df36.
     regimeDeStat: regime === 'hp' || regime === 'atk' || regime === 'def',
     relicContext: ctx,
+    // Second ajout : la dominance des reliques, absente au même commit. Sans
+    // elle, cette copie est l'oracle du producteur qui la porte (même résultat).
+    dominanceReliques: null,
   };
 }
 

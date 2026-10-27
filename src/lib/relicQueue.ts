@@ -44,6 +44,7 @@ import { RelicContext } from './relicOptim';
 import { ResultatArtefacts } from './artifactQueue';
 import { CacheProfilsParPaire, DegatsContext, RegimeArtefacts, evaluerPourRegime } from './artifactEvaluation';
 import { DamageSetup, PreparationReglage, aurasPropresDesRunes } from './damage';
+import type { ContexteExclusive } from './relicExclusive';
 import { CachesResolutionRapide, resoudreEquipementDuBuildRapide } from './resolutionRapide';
 
 /**
@@ -120,6 +121,16 @@ export interface EntreeResolution {
   // Le contexte canonique de la recherche dont ce build est issu (garantie
   // G) — jamais recalculé ici. Absent : la relique portée reste fixe, rien n'est résolu.
   relicContext: RelicContext | undefined;
+  /**
+   * La dominance des reliques (resolutionRapide.ts, `reliquesDominees`) : le
+   * contexte de l'apport des exclusives (`apportExclusive`) quand
+   * `faireParams` note en « Dégâts réels » (`evaluerPourRegime('degats_reels')`),
+   * le seul régime dont elle connaît les canaux ; `null` sinon, ou quand
+   * `faireParams` porte un autre `evaluer` : aucune relique n'est alors
+   * écartée sans note. Obligatoire, pour que `tsc` signale un constructeur
+   * qui n'a pas choisi.
+   */
+  dominanceReliques: ContexteExclusive | null;
   // Les caches partagés entre builds : le memo du préfiltre sert
   // à chaque `chercherPaires` de la résolution. Absent : tout se recalcule.
   caches?: CachesResolution | null;
@@ -267,6 +278,8 @@ export function entreeResolutionDuBuild(e: {
     regimeAucun: e.regime === 'aucun',
     regimeDeStat: e.regime === 'hp' || e.regime === 'atk' || e.regime === 'def',
     relicContext: e.relicContext,
+    // `faireParams` note ci-dessus par `evaluerPourRegime` avec CE contexte.
+    dominanceReliques: e.regime === 'degats_reels' ? e.exclusive : null,
     caches: e.caches,
   };
 }

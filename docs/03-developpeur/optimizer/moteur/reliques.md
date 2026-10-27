@@ -401,6 +401,54 @@ L'en-tête de `resolutionRapide.ts` dit ses préconditions. Vérification :
 recette réelle, `scripts/banc-resolution-rapide.ts` compare le chemin de
 l'app au calcul exhaustif, build par build.
 
+### Dominance des reliques dans la résolution
+
+En « Dégâts réels », avant toute note, la résolution rapide écarte les
+reliques DOMINÉES pour ce build (`reliquesDominees`,
+`src/lib/resolutionRapide.ts`). Le producteur de l'entrée la demande
+(`EntreeResolution.dominanceReliques`, posé par `entreeResolutionDuBuild`
+en « Dégâts réels » seulement, `null` sinon).
+
+Une relique n'agit sur la note d'une paire que par quatre CANAUX : les PV,
+l'ATQ et la DEF que l'évaluateur passe à `computeTotalDamage` (principale
+en %, plus les points de Bravoure, Éternité ou Origine, `statsAvecApport`)
+et les dégâts infligés de Conquête (`apportExclusive`, `dmgPct`).
+Ténacité et Régénération n'y apportent rien. Ces quatre valeurs ne lisent
+des artéfacts que leurs principales : elles sont constantes sur une forme
+de paire. La relique `a` domine `b` quand :
+
+- sur chaque forme où `b` est faisable, `a` l'est aussi ;
+- sur chacune de ces formes, chaque canal de `a` est au moins celui de `b`,
+  sans tolérance (comparaison point par point, jamais par intervalles) ;
+- `a` gagne l'égalité dans `bestRelicForBuild` (`prefereeALEgalite`,
+  `src/lib/relicOptim.ts`, source unique du départage : la portée d'abord en
+  régime de stat, puis l'`id` le plus petit).
+
+⚠️ **Exacte par la règle de jeu R, confirmée par l'utilisateur le
+2026-10-27** : les dégâts ne baissent jamais quand l'ATQ, les PV, la DEF,
+une ligne d'artéfact ou l'effet unique d'une relique (conversions comprises)
+augmentent. La note de `a` vaut alors au moins celle de `b` sur toute paire
+que `b` peut porter, et `b` ne peut pas être choisie. R n'est pas un relevé
+en jeu : un écart du modèle à R serait un défaut de modélisation, que
+l'oracle paire par paire du test révèle.
+
+Une relique dominée reste sans note tant qu'une de celles qui la dominent a
+un couple faisable ; sinon (les candidats de paires d'une relique sont
+filtrés selon SA note), elle est notée à un tour de plus, les notes déjà
+calculées reprises. Le résultat est celui de la résolution sans dominance,
+champ pour champ. ⚠️ Une note NaN d'une relique dominée n'est jamais vue,
+donc ne déclenche pas le repli sur le calcul exhaustif.
+
+Sur deux recettes réelles en relique `recherche` (300 builds chacune), la
+dominance écarte de 45 à 50 % des notes. La dominance par classe de paires
+(un canal qu'aucun lecteur de la paire ne lit) n'est pas faite.
+
+Vérification : `testResolutionDominanceReliques`
+(`tests/resolution-dominance-reliques.test.ts`) — même résultat qu'avec
+`dominanceReliques: null`, et, pour chaque relique écartée, une relique
+notée qui gagne l'égalité et note au moins autant sur chaque paire où
+l'écartée est faisable.
+
 ### Confirmation sans note
 
 `confirmerEquipementDuBuild` (`src/lib/resolutionRapide.ts`) répond à une
@@ -544,9 +592,12 @@ Relevé en jeu, `src/lib/relicExclusive.ts` :
 ## Pertinence et dominance — écrites, non appelées en production
 
 `dimensionsRetenues` et `relicDominates` (`src/lib/relicOptim.ts`) ne sont
-appelées que par `tests/relic-optim.test.ts`. Aucune dominance de reliques
+appelées que par `tests/relic-optim.test.ts`. Aucune de ces deux dominances
 ne réduit le pool en production : la résolution essaie toute relique
-éligible, et la dominance des runes protège l'effet unique de toutes.
+éligible, et la dominance des runes protège l'effet unique de toutes. La
+seule dominance de reliques en production est celle de la résolution, par
+build et sur les valeurs de ce build (§ Dominance des reliques dans la
+résolution) : elle ne retire rien du pool, elle évite des notes.
 
 - **`dimensionsRetenues(objectif, sort, minimums, maximums)`** rend une
   `RelicDimensions` :

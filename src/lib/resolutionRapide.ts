@@ -61,7 +61,14 @@
 // compare, relique `recherche` comme relique fixe.
 //
 // ⚠️ **Aucune borne ni heuristique** : aucune paire faisable n'est écartée sur
-// une note. Le choix entre reliques reste `bestRelicForBuild` ; les caches
+// une note. En « Dégâts réels », une relique DOMINÉE (`reliquesDominees` :
+// une autre, faisable sur chacune de ses formes, a sur chacune au moins ses
+// PV, son ATQ, sa DEF et ses dégâts infligés, et gagne l'égalité) n'est pas
+// notée — exact par la règle de jeu R (dégâts non décroissants en ces
+// canaux, confirmée par l'utilisateur), jamais par une note ; elle l'est à un
+// tour de plus si aucune de ses dominantes n'a de couple faisable. ⚠️ Une
+// note NaN d'une relique dominée n'est alors jamais vue (pas de repli).
+// Le choix entre reliques reste `bestRelicForBuild` ; les caches
 // partagés sont ceux de la file (`CachesResolution`), représentants des
 // formes compris (`caches.rapide`).
 //
@@ -86,7 +93,8 @@ import {
 import { artifactPairAllowed } from './artifacts';
 import { BuildRequirement, RechercheRefusee, conditionsPaireFixe, respecteConditionsAvecRelique, respecteMinEtMax } from './runeBuildOptim';
 import { aurasPropresDesRunes } from './damage';
-import { bestRelicForBuild } from './relicOptim';
+import { MeilleureRelique, RelicEvaluation, bestRelicForBuild, prefereeALEgalite } from './relicOptim';
+import { ContexteExclusive, apportExclusive, statsAvecApport } from './relicExclusive';
 import type { ResultatArtefacts } from './artifactQueue';
 // Type seul : relicQueue.ts importe ce module (son point d'entrée et ses
 // caches), un import de valeur ferait un cycle.
@@ -113,10 +121,14 @@ export interface CompteursResolutionRapide {
   replisNaN: number;
   // `computeStats` de faisabilité : formes jugées (sur-ensemble).
   formesJugees: number;
+  // Reliques écartées sans note par la dominance (`reliquesDominees`) ;
+  // elles ne comptent pas dans `reliques`.
+  reliquesDominees: number;
 }
 
 export function compteursVides(): CompteursResolutionRapide {
   return {
+    reliquesDominees: 0,
     builds: 0, reliques: 0, reliquesSansFormeFaisable: 0, reliquesNotees: 0, reliquesNoteesSansCouple: 0,
     noteesEntieres: 0, notesFaisables: 0, diagnostics: 0, replisNaN: 0, formesJugees: 0,
   };
@@ -309,6 +321,77 @@ function meilleurePaireFaisable(
   return meilleure;
 }
 
+/**
+ * Dominance des reliques d'UN build, avant toute note (« Dégâts réels »
+ * seulement, `EntreeResolution.dominanceReliques`).
+ *
+ * Une relique n'agit sur la note d'une paire que par quatre CANAUX : les PV,
+ * l'ATQ et la DEF des stats que `evaluerPourRegime('degats_reels')` passe à
+ * `computeTotalDamage` (principale en %, plus les points de Bravoure,
+ * Éternité ou Origine, `statsAvecApport`) et les dégâts infligés de Conquête
+ * (`apport.dmgPct`) ; Ténacité et Régénération n'y apportent rien
+ * (`apportExclusive`). Ces quatre valeurs ne lisent des artéfacts que leurs
+ * principales (`statsParPaire`) : elles sont constantes sur une FORME de
+ * paire (`FormesDePaire`).
+ *
+ * `a` domine `b` quand, sur chaque forme où `b` est faisable, `a` l'est aussi
+ * et a chaque canal au moins égal, et que `a` gagne l'égalité
+ * (`prefereeALEgalite`). ⚠️ **Repose sur la règle de jeu R, confirmée par
+ * l'utilisateur** (docs/03-developpeur/optimizer/invariants.md) : les dégâts
+ * ne baissent jamais quand PV, ATQ, DEF ou les dégâts infligés augmentent ;
+ * alors la note de `a` vaut au moins celle de `b` sur toute paire que `b`
+ * peut porter, et `bestRelicForBuild` ne choisit jamais `b`. Comparaison
+ * EXACTE (aucune tolérance), point par point sur les formes.
+ *
+ * Rend chaque relique dominée avec la liste de TOUTES celles qui la dominent
+ * (la relation est transitive : une dominante dominée a ses propres
+ * dominantes dans la liste). Une relique sans forme faisable n'y entre
+ * jamais : elle est déjà écartée sans note.
+ */
+function reliquesDominees(
+  candidates: readonly RelicDetail[],
+  formesDe: (relique: RelicDetail) => { verdicts: boolean[]; stats: StatRow[][] },
+  exclusive: ContexteExclusive,
+  propres: ReturnType<typeof aurasPropresDesRunes>,
+  departage: { equipee?: RelicDetail; departagePortee?: boolean }
+): Map<RelicDetail, RelicDetail[]> {
+  const dominees = new Map<RelicDetail, RelicDetail[]>();
+  if (candidates.length < 2) return dominees;
+  // Par relique : verdict et canaux (PV, ATQ, DEF, dégâts infligés) de chaque forme.
+  const canaux = candidates.map((relique) => {
+    const { verdicts, stats } = formesDe(relique);
+    const valeurs = new Float64Array(verdicts.length * 4);
+    for (let f = 0; f < verdicts.length; f++) {
+      const apport = apportExclusive(relique, stats[f]!, exclusive.setup, propres, exclusive.element);
+      const avec = statsAvecApport(stats[f]!, apport);
+      // `total` = base + bonus, base sans relique : comparer `total` suffit.
+      valeurs[4 * f] = avec.find((r) => r.key === 'hp')!.total;
+      valeurs[4 * f + 1] = avec.find((r) => r.key === 'atk')!.total;
+      valeurs[4 * f + 2] = avec.find((r) => r.key === 'def')!.total;
+      valeurs[4 * f + 3] = apport.dmgPct;
+    }
+    return { verdicts, valeurs, faisable: verdicts.some(Boolean) };
+  });
+  for (let j = 0; j < candidates.length; j++) {
+    const b = canaux[j]!;
+    if (!b.faisable) continue;
+    const dominantes: RelicDetail[] = [];
+    for (let i = 0; i < candidates.length; i++) {
+      if (i === j || !prefereeALEgalite(candidates[i]!, candidates[j]!, departage)) continue;
+      const a = canaux[i]!;
+      let domine = true;
+      for (let f = 0; domine && f < b.verdicts.length; f++) {
+        if (!b.verdicts[f]) continue;
+        if (!a.verdicts[f]) domine = false;
+        for (let c = 4 * f; domine && c < 4 * f + 4; c++) if (a.valeurs[c]! < b.valeurs[c]!) domine = false;
+      }
+      if (domine) dominantes.push(candidates[i]!);
+    }
+    if (dominantes.length > 0) dominees.set(candidates[j]!, dominantes);
+  }
+  return dominees;
+}
+
 function avertirNaN(e: EntreeResolution, compteurs: CompteursResolutionRapide | undefined): ResultatArtefacts {
   if (compteurs) compteurs.replisNaN++;
   console.warn(
@@ -437,17 +520,21 @@ export function resoudreEquipementDuBuildRapide(
   // sans artéfact par principale de relique (`statsParPaire`, qui rend au bit
   // près le `computeStats` de chaque paire, testé).
   const propres = aurasPropresDesRunes(e.gear.runes);
-  const tables = new Map<string, boolean[]>();
-  const tableDe = (relique: RelicDetail) => {
+  // Par principale de relique : le verdict de chaque forme et ses stats (sans
+  // apport d'exclusive), que la dominance relit.
+  const tables = new Map<string, { verdicts: boolean[]; stats: StatRow[][] }>();
+  const formesDe = (relique: RelicDetail) => {
     const cle = `${relique.main.code}:${relique.main.value}`;
     let t = tables.get(cle);
     if (!t) {
-      t = [];
+      t = { verdicts: [], stats: [] };
       const statsAvec = statsParPaire({ ...e.gear, relic: relique });
       for (const pe of formes.element) {
         for (const pa of formes.archetype) {
           const arts = [pe, pa].filter((a): a is ArtifactDetail => a != null);
-          t.push(respecteMinEtMax(statsAvec(arts), e.requirement, propres));
+          const stats = statsAvec(arts);
+          t.verdicts.push(respecteMinEtMax(stats, e.requirement, propres));
+          t.stats.push(stats);
           if (compteurs) compteurs.formesJugees++;
         }
       }
@@ -455,6 +542,12 @@ export function resoudreEquipementDuBuildRapide(
     }
     return t;
   };
+  const tableDe = (relique: RelicDetail) => formesDe(relique).verdicts;
+  const departage = { equipee: ctx.equipee, departagePortee: e.regimeDeStat };
+  // Les reliques écartées sans note, chacune avec celles qui la dominent.
+  const dominees = e.dominanceReliques && !e.regimeAucun
+    ? reliquesDominees(candidates, formesDe, e.dominanceReliques, propres, departage)
+    : new Map<RelicDetail, RelicDetail[]>();
   // Une paire hors du sur-ensemble invaliderait l'écart des reliques sans
   // forme faisable : c'est un bug, jamais un cas à absorber.
   const verdict = (table: boolean[], ie: number, ia: number, element: ArtifactDetail | null, archetype: ArtifactDetail | null) => {
@@ -467,53 +560,83 @@ export function resoudreEquipementDuBuildRapide(
   const parRelique = new Map<number, CoupleFaisable>();
   let nanVu = false;
 
-  const meilleure = bestRelicForBuild(
-    candidates,
-    (relique) => {
-      // Une note NaN déjà vue : le build part au calcul exhaustif, rien de plus à noter.
-      if (nanVu) return 'infaisable';
-      if (compteurs) compteurs.reliques++;
-      const table = tableDe(relique);
-      let uneFaisable = false;
-      for (const v of table) if (v) uneFaisable = true;
-      if (!uneFaisable) {
-        if (compteurs) compteurs.reliquesSansFormeFaisable++;
+  // La note de chaque relique, calculée au plus une fois (une relique dominée
+  // peut devoir être notée à un second tour, ci-dessous).
+  const notes = new Map<RelicDetail, RelicEvaluation>();
+  const noter = (relique: RelicDetail): RelicEvaluation => {
+    // Une note NaN déjà vue : le build part au calcul exhaustif, rien de plus à noter.
+    if (nanVu) return 'infaisable';
+    if (compteurs) compteurs.reliques++;
+    const table = tableDe(relique);
+    let uneFaisable = false;
+    for (const v of table) if (v) uneFaisable = true;
+    if (!uneFaisable) {
+      if (compteurs) compteurs.reliquesSansFormeFaisable++;
+      return 'infaisable';
+    }
+    if (compteurs) compteurs.reliquesNotees++;
+    const params = paramsDe(relique);
+    let p: PaireArtefacts | null = null;
+    let meilleurSansVerrous: number | null = null;
+    if (coutDesVerrous(params)) {
+      // Toutes les notes (`meilleurSansVerrous`) : le parcours du calcul exhaustif.
+      if (compteurs) compteurs.noteesEntieres++;
+      const r = pairesParScore(params, e.caches?.preFiltre);
+      meilleurSansVerrous = r.meilleurSansVerrous;
+      for (const q of r.paires) {
+        if (verdict(table, indiceDe(formes.indiceElement, q.element), indiceDe(formes.indiceArchetype, q.archetype), q.element, q.archetype)) {
+          p = q;
+          break;
+        }
+      }
+    } else {
+      const q = meilleurePaireFaisable(params, e.caches?.preFiltre, formes, (ie, ia, el, ar) => verdict(table, ie, ia, el, ar), compteurs);
+      if (q === NAN) {
+        nanVu = true;
         return 'infaisable';
       }
-      if (compteurs) compteurs.reliquesNotees++;
-      const params = paramsDe(relique);
-      let p: PaireArtefacts | null = null;
-      let meilleurSansVerrous: number | null = null;
-      if (coutDesVerrous(params)) {
-        // Toutes les notes (`meilleurSansVerrous`) : le parcours du calcul exhaustif.
-        if (compteurs) compteurs.noteesEntieres++;
-        const r = pairesParScore(params, e.caches?.preFiltre);
-        meilleurSansVerrous = r.meilleurSansVerrous;
-        for (const q of r.paires) {
-          if (verdict(table, indiceDe(formes.indiceElement, q.element), indiceDe(formes.indiceArchetype, q.archetype), q.element, q.archetype)) {
-            p = q;
-            break;
-          }
+      p = q;
+    }
+    if (!p) {
+      if (compteurs) compteurs.reliquesNoteesSansCouple++;
+      return 'infaisable';
+    }
+    const arts = artefactsDe(p);
+    const { stats } = respecteConditionsAvecRelique({ ...e.gear, artifacts: arts }, relique, e.requirement);
+    parRelique.set(relique.id, { paire: p, artefacts: arts, stats, meilleurSansVerrous });
+    return p.score;
+  };
+
+  // Une relique dominée reste sans note tant qu'une de celles qui la dominent
+  // a un couple faisable : sinon (les candidats de paires de la dominante,
+  // filtrés selon SA note, ne lui ont laissé aucun couple), elle est notée à
+  // un tour de plus, les notes déjà calculées reprises telles quelles.
+  let meilleure: MeilleureRelique | undefined;
+  for (;;) {
+    meilleure = bestRelicForBuild(
+      candidates,
+      (relique) => {
+        if (dominees.has(relique)) return 'infaisable';
+        let n = notes.get(relique);
+        if (n === undefined) {
+          n = noter(relique);
+          notes.set(relique, n);
         }
-      } else {
-        const q = meilleurePaireFaisable(params, e.caches?.preFiltre, formes, (ie, ia, el, ar) => verdict(table, ie, ia, el, ar), compteurs);
-        if (q === NAN) {
-          nanVu = true;
-          return 'infaisable';
-        }
-        p = q;
+        return n;
+      },
+      { regimeAucun: e.regimeAucun, ...departage }
+    );
+    if (nanVu) break;
+    let relachee = false;
+    for (const [b, dominantes] of dominees) {
+      if (!dominantes.some((a) => parRelique.has(a.id))) {
+        dominees.delete(b);
+        relachee = true;
       }
-      if (!p) {
-        if (compteurs) compteurs.reliquesNoteesSansCouple++;
-        return 'infaisable';
-      }
-      const arts = artefactsDe(p);
-      const { stats } = respecteConditionsAvecRelique({ ...e.gear, artifacts: arts }, relique, e.requirement);
-      parRelique.set(relique.id, { paire: p, artefacts: arts, stats, meilleurSansVerrous });
-      return p.score;
-    },
-    { regimeAucun: e.regimeAucun, equipee: ctx.equipee, departagePortee: e.regimeDeStat }
-  );
+    }
+    if (!relachee) break;
+  }
+  if (compteurs) compteurs.reliquesDominees += dominees.size;
 
   if (nanVu) return avertirNaN(e, compteurs);
 

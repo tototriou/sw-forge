@@ -735,11 +735,14 @@ export interface CompteConfirme {
    */
   pages: number;
   /**
-   * Il reste des combinaisons trouvées non vérifiées — reçues non résolues, ou
-   * trouvées par le moteur et pas encore reçues : le nombre de pages n'est pas
-   * définitif (« / N+ »). Toujours faux sans file : rien n'y reste à vérifier.
+   * D'autres pages peuvent encore apparaître (« / N+ ») : le plafond « une
+   * page au-delà des confirmées » coupe des non vérifiés
+   * (`⌈(confirmées + non vérifiés) / taille⌉ > pages`), ou le moteur a trouvé
+   * plus qu'il n'a été reçu. Des non vérifiés qui tiennent déjà dans les pages
+   * écrites ne peuvent que les faire baisser : pas de « + ». Toujours faux sans
+   * file.
    */
-  resteAVerifier: boolean;
+  pagesPeuventMonter: boolean;
   // Recherche finie, tout vérifié, aucune confirmée : « Aucune combinaison ne
   // répond à ces critères ».
   aucune: boolean;
@@ -807,7 +810,7 @@ export function compteConfirmeDesComptes(e: {
       confirmees: e.trouves,
       nonVerifies: 0,
       pages: Math.max(1, Math.ceil(e.recus / e.taillePage)),
-      resteAVerifier: false,
+      pagesPeuventMonter: false,
       aucune: e.termine && e.trouves === 0,
     };
   }
@@ -815,26 +818,35 @@ export function compteConfirmeDesComptes(e: {
   const nonVerifies = e.recus - e.resolus;
   const pagesConfirmees = Math.ceil(confirmees / e.taillePage);
   const pages = Math.max(1, Math.min(Math.ceil((confirmees + nonVerifies) / e.taillePage), pagesConfirmees + 1));
-  return { confirmees, nonVerifies, pages, resteAVerifier: nonVerifies > 0 || e.trouves > e.recus,
+  return { confirmees, nonVerifies, pages, pagesPeuventMonter: pagesCoupees(confirmees, nonVerifies, pages, e.taillePage) || e.trouves > e.recus,
     aucune: e.termine && confirmees === 0 && nonVerifies === 0 };
+}
+
+/** Le plafond « une page au-delà des confirmées » coupe-t-il des non vérifiés ? */
+function pagesCoupees(confirmees: number, nonVerifies: number, pages: number, taillePage: number): boolean {
+  return Math.ceil((confirmees + nonVerifies) / taillePage) > pages;
 }
 
 /**
  * Les pages que la pagination écrit : celles de la recherche, ou, sous une
  * borne active, celles de la vue filtrée (`filtre.pages`, même règle des
- * confirmées). `resteAVerifier` dit si le nombre n'est pas définitif
- * (« / N+ ») : sous filtre, des non vérifiés peuvent encore entrer dans la
- * vue (`potentielsNonVerifies`), ou des trouvées pas encore reçues
+ * confirmées). `pagesPeuventMonter` (« / N+ »), même règle sur la vue : le
+ * classeur forme `filtre.pages` sur ses membres (visibles et potentiels,
+ * `dansLaVue`), dont les confirmés sont les visibles (avec file, une ligne
+ * non vérifiée n'est jamais « visible ») ; donc confirmées = `visiblesConfirmes`,
+ * non vérifiés = `potentielsNonVerifies`. Ou des trouvées pas encore reçues
  * (`trouvesMoteur` au-delà de `recusActifs`). Sans file, jamais.
  */
 export function pagesDesResultats(
-  compte: Pick<CompteConfirme, 'pages' | 'resteAVerifier'>,
-  filtre: { pages: number; comptes: { potentielsNonVerifies: number; trouvesMoteur: number; recusActifs: number } } | null,
+  compte: Pick<CompteConfirme, 'pages' | 'pagesPeuventMonter'>,
+  filtre: { pages: number; comptes: { visiblesConfirmes: number; potentielsNonVerifies: number; trouvesMoteur: number; recusActifs: number } } | null,
   avecFile: boolean,
-): { pages: number; resteAVerifier: boolean } {
-  if (!filtre) return { pages: compte.pages, resteAVerifier: compte.resteAVerifier };
-  const { potentielsNonVerifies, trouvesMoteur, recusActifs } = filtre.comptes;
-  return { pages: filtre.pages, resteAVerifier: avecFile && (potentielsNonVerifies > 0 || trouvesMoteur > recusActifs) };
+  taillePage: number,
+): { pages: number; pagesPeuventMonter: boolean } {
+  if (!filtre) return { pages: compte.pages, pagesPeuventMonter: compte.pagesPeuventMonter };
+  const { visiblesConfirmes, potentielsNonVerifies, trouvesMoteur, recusActifs } = filtre.comptes;
+  return { pages: filtre.pages, pagesPeuventMonter: avecFile
+    && (pagesCoupees(visiblesConfirmes, potentielsNonVerifies, filtre.pages, taillePage) || trouvesMoteur > recusActifs) };
 }
 
 export interface CompositionDePage {

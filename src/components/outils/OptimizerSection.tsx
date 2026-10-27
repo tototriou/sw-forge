@@ -2331,10 +2331,10 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   });
   // Sous une borne active, les pages sont celles de la vue filtrée (même
   // règle des confirmées, sur les visibles et les potentiels) ; sans borne,
-  // celles de la recherche, comme avant. « / N+ » tant qu'il en reste à
-  // vérifier, dans l'un comme dans l'autre (`pagesDesResultats`).
+  // celles de la recherche, comme avant. « / N+ » tant que d'autres pages
+  // peuvent encore apparaître, dans l'un comme dans l'autre (`pagesDesResultats`).
   const filtreActif = (instantane?.filtre.bornes.actives.length ?? 0) > 0;
-  const pagesResultats = pagesDesResultats(compteConfirmes, filtreActif ? instantane!.filtre : null, avecFile);
+  const pagesResultats = pagesDesResultats(compteConfirmes, filtreActif ? instantane!.filtre : null, avecFile, RESULTS_PAGE_SIZE);
   const totalResultsPages = pagesResultats.pages;
 
   // ⚠️ CORRIGE la page courante, ne la remet PAS à 1 : un aperçu EN DIRECT
@@ -3190,7 +3190,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               pageDraft={pageDraft}
               setPageDraft={setPageDraft}
               totalResultsPages={totalResultsPages}
-              resteAVerifier={pagesResultats.resteAVerifier}
+              pagesPeuventMonter={pagesResultats.pagesPeuventMonter}
             />
           )}
         </div>

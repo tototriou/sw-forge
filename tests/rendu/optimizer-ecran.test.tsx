@@ -196,9 +196,9 @@ export function testRenduOptimizerResultatsEntete() {
   // « + » garde sa place, invisible, une fois tout vérifié. L'écran entier ne
   // la montre pas en rendu serveur (rien n'y est vérifié, une seule page) :
   // elle est rendue seule.
-  const pagination = (resteAVerifier: boolean) => rendre(
+  const pagination = (pagesPeuventMonter: boolean) => rendre(
     <PaginationResultats setResultsPage={() => {}} resultsPage={1} pageDraft={null} setPageDraft={() => {}} totalResultsPages={16}
-      resteAVerifier={resteAVerifier} />,
+      pagesPeuventMonter={pagesPeuventMonter} />,
   );
   const plus = (html: string) => html.match(/<span\b([^>]*)>\+<\/span>/)?.[1] ?? null;
   const ouverte = pagination(true), exacte = pagination(false);
@@ -216,7 +216,7 @@ export function testRenduOptimizerLigneFile() {
   const entete = (avecFile: boolean, enAttente: number) => rendre(
     <EnteteResultats
       result={{ nombre: 3, explored: 10, truncated: false, nearMissByCondition: [], globalNearMiss: null }}
-      compteConfirmes={{ confirmees: 1, nonVerifies: 2, pages: 1, resteAVerifier: true, aucune: false }}
+      compteConfirmes={{ confirmees: 1, nonVerifies: 2, pages: 1, pagesPeuventMonter: true, aucune: false }}
       avecFile={avecFile}
       tri={{ tri: 'atk', sens: 'desc' }}
       trier={() => {}}

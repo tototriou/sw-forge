@@ -361,6 +361,13 @@ autour de son ancre : vers la gauche si l'ancre est près du bord droit, vers le
 haut si elle est près du bas. Puis il **borne sa position au viewport**, en
 gardant la surface ancrée à ce qui l'a ouverte.
 
+> **`onFermer`** : fourni, un appui (`pointerdown`) n'importe où hors de la
+> surface la referme — c'est ainsi que se ferme le détail d'une rune, d'un
+> artéfact ou d'une relique, partout dans l'app. ⚠️ **L'ancre est exclue** :
+> la pièce qui a ouvert la surface garde sa propre bascule (sinon l'appui
+> fermerait, puis le clic rouvrirait). Une autre pièce est dehors : l'appui
+> ferme le détail ouvert, le clic ouvre le sien.
+
 > ⚠️ **Sans rembourrage par défaut** (`rembourrage="aucun"`), à la différence
 > de `Flottant` : il sert aussi aux LISTES, dont les entrées touchent le bord.
 > Un TEXTE posé dedans demande donc `rembourrage="md"`, sans quoi il colle au

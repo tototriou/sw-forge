@@ -1,4 +1,4 @@
-import { ReactNode, RefObject, useLayoutEffect, useRef, useState } from 'react';
+import { ReactNode, RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Flottant from './Flottant';
 
 // [Flottant](Flottant.tsx) qui CHOISIT SON CÔTÉ en mesurant la place autour de
@@ -52,6 +52,19 @@ export interface FlottantAutoProps {
    */
   largeurAncre?: boolean;
   rembourrage?: 'aucun' | 'sm' | 'md';
+  /**
+   * Fourni, un appui N'IMPORTE OÙ hors de la surface la referme — le détail
+   * d'une rune, d'un artéfact ou d'une relique ne se refermait qu'en recliquant
+   * la pièce.
+   *
+   * ⚠️ **L'ancre est exclue** : la pièce qui a ouvert la surface garde sa
+   * propre bascule. Sans cette exclusion, l'appui la fermerait ici, puis le
+   * clic qui suit la rouvrirait aussitôt. Une AUTRE pièce, elle, est dehors :
+   * l'appui ferme celle-ci, le clic ouvre la nouvelle.
+   * ⚠️ `pointerdown` et non `click` : l'appui qui commence un geste ailleurs
+   * (un défilement, un glisser) referme aussi, comme le `Menu`.
+   */
+  onFermer?: () => void;
   // Sert surtout à teinter la BORDURE quand le flottant porte un sens (une
   // alerte). ⚠️ Le contenu ne doit pas poser son propre cadre : deux traits
   // concentriques à 1 px l'un de l'autre se lisent comme un contour flou.
@@ -70,10 +83,22 @@ export default function FlottantAuto({
   hauteur = 320,
   largeurAncre = false,
   rembourrage = 'aucun',
+  onFermer,
   className = '',
   children,
 }: FlottantAutoProps) {
   const boiteRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!ouvert || !onFermer) return;
+    const dehors = (e: PointerEvent) => {
+      const cible = e.target as Node;
+      if (ancre.current?.contains(cible) || boiteRef.current?.contains(cible)) return;
+      onFermer();
+    };
+    document.addEventListener('pointerdown', dehors);
+    return () => document.removeEventListener('pointerdown', dehors);
+  }, [ouvert, onFermer, ancre]);
   const [place, setPlace] = useState<{
     cote: 'gauche' | 'droite';
     ancrage: 'dessus' | 'dessous';

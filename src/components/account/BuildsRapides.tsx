@@ -62,7 +62,16 @@ function CarteBuild({
             detailEnLigne
               ? undefined
               : (r, _i, ancre) => (
-                  <FlottantAuto ouvert={ouverte === cleRune(r.slot)} ancre={ancre} largeur={260} hauteur={320} rembourrage="md">
+                  <FlottantAuto
+                    ouvert={ouverte === cleRune(r.slot)}
+                    ancre={ancre}
+                    largeur={260}
+                    hauteur={320}
+                    rembourrage="md"
+                    // Appelé seulement quand ce détail est ouvert : basculer sa
+                    // clé le referme.
+                    onFermer={() => onBasculer(cleRune(r.slot))}
+                  >
                     <RuneDetailBox rune={r} encadre={false} />
                   </FlottantAuto>
                 )

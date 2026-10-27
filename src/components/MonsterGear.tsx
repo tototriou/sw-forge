@@ -315,6 +315,7 @@ export default function MonsterGear({
                   largeur={260}
                   hauteur={320}
                   rembourrage="md"
+                  onFermer={() => setSel(null)}
                 >
                   <ArtifactDetailBox artifact={a} encadre={false} />
                 </FlottantAuto>
@@ -346,6 +347,7 @@ export default function MonsterGear({
                   largeur={260}
                   hauteur={320}
                   rembourrage="md"
+                  onFermer={() => setSel(null)}
                 >
                   {/* Pleine taille : ce flottant n'existe qu'à la souris, où
                       la carte ne se resserre pas d'elle-même.
@@ -388,6 +390,7 @@ export default function MonsterGear({
                   largeur={220}
                   hauteur={120}
                   rembourrage="md"
+                  onFermer={() => setSel(null)}
                 >
                   {/* Non-null : `RelicSlot` n'invoque `renderOverlay` que dans
                       sa branche « relique présente ». */}

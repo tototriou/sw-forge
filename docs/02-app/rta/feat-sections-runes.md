@@ -230,6 +230,9 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   l'élément cliqué ; la relique (pas de composant partagé, un seul
   emplacement) porte le même dispositif posé à la main dans `MonsterGear.tsx`.
   Le cadre entier ne bouge donc jamais, sur RTA, Siège et l'Optimizer.
+  Le détail se referme en recliquant la pièce, ou par un appui n'importe où
+  hors de lui (`onFermer` de `FlottantAuto`) ; une autre pièce cliquée ouvre
+  directement la sienne.
 
 ## Pré-classement à l'import
 

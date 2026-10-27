@@ -971,9 +971,10 @@ export function sortCandidates(
      * « Dégâts réels » : ce que le calcul lit du seul réglage, préparé une
      * fois pour tous les candidats notés avec ces options
      * (`PreparationReglage`, damage.ts), reconnu à l'identité du sort, du
-     * réglage et des modificateurs de `realDamage`. Posée par
-     * `optionsDeClassement` ; absente, recalculé à chaque note — même valeur,
-     * au bit près.
+     * réglage et des modificateurs de `realDamage`, qui ne doit donc jamais
+     * être modifié en place pendant sa vie. Posée par `optionsDuContexte`
+     * (contexte de résultat gelé) ; absente, recalculé à chaque note — même
+     * valeur, au bit près.
      */
     reglage?: PreparationReglage;
     /**
@@ -1150,13 +1151,16 @@ export function optionsDeClassement(e: {
   artefactsDuBuild: (c: BuildCandidate) => ArtifactDamageProfile | null;
   etatReliqueDe: (c: BuildCandidate) => EtatRelique;
   contexteExclusive: { setup: DamageSetup; element: ElementKey | null };
-  // La préparation du réglage à partager entre ces options et d'autres du
-  // même contexte (`optionsDuContexte` : une par contexte de résultat) ;
-  // absente, une neuve pour ces options.
+  // La préparation du réglage, partagée par les options d'un même contexte
+  // (`optionsDuContexte` : une par contexte de résultat, gelé par
+  // `copierDonnees`, donc jamais modifié pendant sa vie). ⚠️ Seulement pour
+  // un `realDamage` immuable : l'API directe peut modifier sort ou réglage en
+  // place sur les mêmes objets, qu'une préparation relirait périmés ; absente,
+  // chaque note recalcule tout.
   reglage?: PreparationReglage;
 }): OptionsDeClassement {
   const options: OptionsDeClassement = {
-    reglage: e.reglage ?? new PreparationReglage(),
+    reglage: e.reglage,
     realDamage: e.realDamage,
     damageSetup: e.damageSetup,
     runeById: e.runeById,

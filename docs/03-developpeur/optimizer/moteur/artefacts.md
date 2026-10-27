@@ -422,11 +422,15 @@ dans sa **préparation du réglage** (`PreparationReglage`), que la file
 partage entre tous ses builds et reliques (`CachesResolution.reglage`,
 passée par `entreeResolutionDuBuild` à `evaluerPourRegime`) : elle se
 calcule donc une fois par recherche, et non plus une fois par build et par
-relique. Le classement en a une aussi : les options de
-`optionsDeClassement` portent leur `reglage`, une par contexte de résultat
-(`optionsDuContexte`), que `scorerPour` passe à `objectiveScore` puis à
+relique. Le classement en a une aussi : `optionsDuContexte` pose sur les
+options de `optionsDeClassement` (champ `reglage`) celle de son contexte de
+résultat, une par contexte, que `scorerPour` passe à `objectiveScore` puis à
 `computeTotalDamage` sans memo de stats (une note par candidat) ; les notes
-de base, du tri et des cartes la partagent. Elle retient :
+de base, du tri et des cartes la partagent. Le contexte est gelé
+(`copierDonnees`) : la précondition (entrées jamais modifiées) tient par
+construction. `optionsDeClassement` appelé directement n'en pose aucune,
+parce que l'API directe peut modifier sort ou réglage en place. Elle
+retient :
 
 - la chronologie des poses entre les coups (le sort et le réglage seuls) ;
 - la préparation du sort de `computeTotalDamage` : contexte d'attaque

@@ -80,8 +80,10 @@ export function runesDuContexte(c: ContexteResultat) {
 }
 
 // La préparation du réglage d'un contexte (`PreparationReglage`) : ses notes
-// « Dégâts réels » lisent toutes le même `c.realDamage`, figé ; une par
-// contexte, partagée par toutes ses options, comme les runes.
+// « Dégâts réels » lisent toutes le même `c.realDamage`, gelé par
+// `copierDonnees` — la précondition de la préparation (entrées jamais
+// modifiées) tient par construction ; une par contexte, partagée par toutes
+// ses options, comme les runes.
 const PREPARATIONS = new WeakMap<ContexteResultat, PreparationReglage>();
 function preparationDuContexte(c: ContexteResultat) {
   let p = PREPARATIONS.get(c);

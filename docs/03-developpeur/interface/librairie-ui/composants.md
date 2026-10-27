@@ -41,6 +41,11 @@ focus au bouton), Tab referme ; un clic dehors aussi.
 ⚠️ **Les entrées restent dans le DOM, menu fermé** (`hidden`) : un bouton ne
 quitte jamais le DOM selon l'état de l'écran, et c'est ce qui laisse les tests
 de rendu retrouver chaque action, son état et sa raison.
+⚠️ **La liste défile au-delà de `min(70dvh, 480px)`** : les invocateurs d'un
+dossier SW Exporter peuvent être des dizaines, et une liste sans plafond
+sortait de l'écran. Le rembourrage est sur la zone qui défile, pas sur le
+`Flottant` : le filet des entrées `danger` reste dedans, sans défilement
+horizontal.
 ⚠️ **Monté à son PREMIER usage**, contre la règle du deuxième (« Quand ajouter
 quelque chose ») : l'écrire dans l'écran en ferait un contrôle MAISON — ce que
 la règle qui gouverne tout le reste interdit — et plusieurs écrans en posent

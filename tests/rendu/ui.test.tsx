@@ -125,6 +125,9 @@ export function testRenduUiMenu() {
   // L'entrée destructrice vient APRÈS les autres, derrière un filet.
   const ordre = boutons(html).filter((b) => ['Sauvegarder', 'Reprendre', 'Tout effacer'].includes(b.texte)).map((b) => b.texte);
   egal(ordre, ['Sauvegarder', 'Reprendre', 'Tout effacer'], 'l\'entrée destructrice est rangée en dernier');
+  // Des dizaines d'invocateurs dans un dossier SW Exporter : la liste a un
+  // plafond et défile, au lieu de sortir de l'écran.
+  ok(/<div[^>]*class="[^"]*max-h-\[min\(70dvh,480px\)\][^"]*overflow-y-auto/.test(html), 'la liste est plafonnée et défile');
 
   // Application de bureau : un déclencheur fourni (la carte du compte)
   // et l'ancrage à gauche.

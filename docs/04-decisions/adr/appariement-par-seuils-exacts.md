@@ -18,14 +18,16 @@ ainsi :
 - **avec une validation typée** des paires qui passent le test rapide :
   sets comptés par indices, stats en sommes d'entiers, puis les mêmes
   expressions que le calcul de référence, opérande par opérande ;
-- **en entiers 32 bits pour les stats, en flottants 64 bits pour les
-  identifiants de runes**, deux domaines où le calcul est exact. Hors de ce
-  contrat numérique, vérifié avant toute paire, le parcours de référence
-  prend l'appariement ;
-- **au-delà de 100 millions de paires, en parallèle sur un nombre de
+- **en entiers 32 bits pour les apports de stats que jugent les seuils,
+  en sommes d'entiers exactes en flottants 64 bits pour la validation, en
+  flottants 64 bits pour les identifiants de runes**, domaines où le calcul
+  est exact. Hors de ce contrat numérique, vérifié avant toute paire,
+  l'appariement parcourt les mêmes paires dans le même ordre, sans saut ni
+  conversion en entiers, avec la validation de référence ;
+- **à partir de 100 millions de paires, en parallèle sur un nombre de
   Workers qui suit la machine** : ses cœurs physiques moins deux, au moins
-  deux, au plus huit. L'application de bureau les lit par une commande du
-  système ; le navigateur ne les connaît pas, et ils s'y déduisent des fils
+  deux, au plus huit. L'application de bureau les lit auprès du système ;
+  le navigateur ne les connaît pas, et ils s'y déduisent des fils
   logiques (la moitié, deux fils par cœur) ; quand la machine ne dit rien,
   quatre. Le travail part en morceaux de lignes consécutives,
   distribués à la demande ;
@@ -99,10 +101,11 @@ ainsi :
   tests les comparent paire par paire, et l'appariement entier au parcours
   de référence.
 - **Une recherche hors contrat numérique, ou avec une trace de diagnostic,
-  reste séquentielle**, par le parcours de référence.
-- **Seule une recherche coupée par le temps ou arrêtée diffère du parcours
-  sur un seul fil** : le parallèle a pu aller plus loin dans le même délai,
-  et garde tout ce qu'il a trouvé.
+  reste séquentielle** : hors contrat, par le parcours sans saut ; avec une
+  trace, par le parcours de référence lui-même.
+- **Seule une recherche coupée par le temps, arrêtée ou interrompue par
+  l'erreur d'un Worker diffère du parcours sur un seul fil** : le parallèle
+  a pu aller plus loin dans le même délai, et garde tout ce qu'il a fusionné.
 - **Un Worker travaille par tranches de 100 ms** et lit ses messages entre
   deux : l'arrêt manuel lui parvient en cours de morceau.
 - Le noyau, son contrat et ses sauts :

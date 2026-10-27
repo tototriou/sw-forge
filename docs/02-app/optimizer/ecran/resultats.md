@@ -220,9 +220,8 @@ vérifie) dit la différence avec les trouvées :
 une combinaison confirmée tient vraiment toutes les conditions avec les
 pièces de l'inventaire ; « trouvée(s) » est une estimation optimiste,
 retenue stat par stat, dont une partie est écartée à la vérification ;
-la vérification s'arrête à 100 confirmées (300 quand la relique est
-cherchée), et « Vérifier toutes les combinaisons trouvées » (Réglages
-avancés) va jusqu'au bout.
+les combinaisons affichées sont vérifiées en premier, avec leur meilleur
+équipement, et toutes les autres sont ensuite confirmées en fond.
 **« Aucune combinaison ne répond à ces critères »** ne s'affiche qu'une
 fois la recherche finie et tout vérifié sans aucune confirmée — la file
 va jusqu'au dernier build trouvé faute de K confirmées (voir

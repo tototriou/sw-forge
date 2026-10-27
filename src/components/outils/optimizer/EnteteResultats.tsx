@@ -86,8 +86,8 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, tri
       écartée à la vérification.
       <br />
       <br />
-      La vérification s'arrête à 100 confirmées (300 quand la relique est cherchée) ; « Vérifier toutes
-      les combinaisons trouvées », dans les réglages avancés, va jusqu'au bout.
+      Les combinaisons affichées sont vérifiées en premier, avec leur meilleur équipement ; toutes
+      les autres sont ensuite confirmées en fond.
     </HelpPopover>
   );
   // Masqués seulement quand tout est vérifié sans aucune confirmée : le tri et

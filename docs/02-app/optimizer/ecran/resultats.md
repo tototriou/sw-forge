@@ -183,8 +183,8 @@ ci-dessous. Le compte suit chaque publication du cache de la file
 (400 ms), en pleine recherche comme après sa fin ; un build pas encore
 résolu reste compté : c'est une borne optimiste, qui baisse à mesure que
 la vérification écarte des builds. Sans optimisation d'artéfacts, pas de
-file : rien ne change. L'en-tête des résultats et le nombre de pages ne
-lisent pas ce compte, mais celui des confirmées (ci-dessous). **Sous « Aucune combinaison ne répond à ces critères »**
+file : rien ne change. Le nombre de pages ne lit pas ce compte, mais celui
+des confirmées ; l'en-tête des résultats écrit les deux (ci-dessous). **Sous « Aucune combinaison ne répond à ces critères »**
 (tout vérifié, aucune confirmée), une ligne de raison : « 1 combinaison
 trouvée par la recherche a été écartée : aucune paire d'artéfacts ni
 relique réelles ne tient toutes les conditions. » (pluriel : « N
@@ -198,14 +198,18 @@ s'affichent pas sous un tel zéro.
 
 ⚠️ **L'en-tête compte les combinaisons confirmées**, un nombre stable,
 compté après vérification. Pendant la recherche, « XX combinaison(s)
-confirmée(s) pour l'instant — recherche en cours… », puis « XX
-combinaison(s) confirmée(s) » : seulement les builds de cette recherche
-vérifiés (résolus ET conformes), lus dans le cache publié de la file. Le
+confirmée(s) sur YY trouvée(s) pour l'instant — recherche en cours… »,
+puis « XX combinaison(s) confirmée(s) sur YY trouvée(s) » : XX, seulement
+les builds de cette recherche vérifiés (résolus ET conformes), lus dans le
+cache publié de la file ; YY, le compte des trouvées de la ligne de
+progression (`compteAffichable`, ci-dessus), qui peut baisser à mesure que
+la vérification écarte des builds. Sans file, l'en-tête ne dit que « XX
+combinaison(s) confirmée(s) » : les deux nombres sont égaux. Le
 compte **ne baisse jamais pendant une recherche** : le cache ne fait que
 grandir, l'aperçu des reçus aussi ; ni le tri ni la page ne vident le
 cache, dont la signature est photographiée au lancement. Une petite infobulle
 (« Combinaisons confirmées », à droite de l'en-tête, quand une file
-vérifie) dit la différence avec les trouvées de la ligne de progression :
+vérifie) dit la différence avec les trouvées :
 une combinaison confirmée tient vraiment toutes les conditions avec les
 pièces de l'inventaire ; « trouvée(s) » est une estimation optimiste,
 retenue stat par stat, dont une partie est écartée à la vérification ;

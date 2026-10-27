@@ -172,8 +172,8 @@ export function testRenduOptimizerResultatsEntete() {
 
   const un = recherche({ status: 'done', result: resultat(1) });
   const tUn = texteVisible(un);
-  ok(tUn.includes('0 combinaison(s) confirmée(s)') && !tUn.includes("pour l'instant") && !tUn.includes('Aucune combinaison'),
-    'recherche finie, file active, rien de vérifié : « 0 combinaison(s) confirmée(s) », jamais « Aucune »');
+  ok(tUn.includes('0 combinaison(s) confirmée(s) sur 1 trouvée(s)') && !tUn.includes("pour l'instant") && !tUn.includes('Aucune combinaison'),
+    'recherche finie, file active, rien de vérifié : « 0 combinaison(s) confirmée(s) sur 1 trouvée(s) », jamais « Aucune »');
   ok(!!bouton(un, 'Combinaisons confirmées'), 'file active : l’infobulle « Combinaisons confirmées » à côté de l’en-tête');
   ok(!interrupteurs(un).some((x) => x.nom === 'Adapter les artéfacts et reliques au tri') && !tUn.includes('Adapter les artéfacts'),
     'réglage retiré : aucun « Adapter les artéfacts et reliques au tri », le tri ne résout aucun équipement');
@@ -182,13 +182,14 @@ export function testRenduOptimizerResultatsEntete() {
 
   const live = texteVisible(recherche({ status: 'running', result: null,
     progress: { phase: 'pairing', explored: 10, found: 1, pct: 0.1, totalPairs: 100, candidates: [candidat(1)] } }));
-  ok(live.includes("0 combinaison(s) confirmée(s) pour l'instant — recherche en cours…"), 'pendant la recherche : « … pour l’instant — recherche en cours… »');
+  ok(live.includes("0 combinaison(s) confirmée(s) sur 1 trouvée(s) pour l'instant — recherche en cours…"),
+    'pendant la recherche : « … sur M trouvée(s) pour l’instant — recherche en cours… »');
 
   const sansFile = recherche({ status: 'done', result: resultat(1) }, { optimiserArtefacts: false });
   const tSans = texteVisible(sansFile);
-  ok(tSans.includes('1 combinaison(s) confirmée(s)') && !bouton(sansFile, 'Combinaisons confirmées')
+  ok(tSans.includes('1 combinaison(s) confirmée(s)') && !tSans.includes('confirmée(s) sur') && !bouton(sansFile, 'Combinaisons confirmées')
     && !interrupteurs(sansFile).some((x) => x.nom === 'Adapter les artéfacts et reliques au tri') && selecteurTri(sansFile),
-  'sans file : les trouvées sont les confirmées, sans infobulle ni « Adapter… », « Trier par » gardé');
+  'sans file : les trouvées sont les confirmées, sans le « sur M trouvée(s) », sans infobulle ni « Adapter… », « Trier par » gardé');
 }
 
 // La ligne de la file, sous l'en-tête : le reste de la file en vérification,

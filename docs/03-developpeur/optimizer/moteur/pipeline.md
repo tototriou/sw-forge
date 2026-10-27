@@ -479,6 +479,8 @@ d'appariement ; au scellé (`sceller`), toutes les voies résolvent. Les identif
 pas à zéro au remplacement d'une recherche : une ancienne réponse ne peut
 pas devenir une nouvelle demande. Le détail du protocole et du repli est dans
 [parallelisation.md § Worker de résolution](parallelisation.md#worker-de-résolution).
+Pourquoi un pool, une seule voie pendant l'appariement et des pannes
+silencieuses à l'écran : [ADR](../../../04-decisions/adr/pool-de-resolveurs.md).
 
 ## File de résolution
 

@@ -564,7 +564,10 @@ boucle du Worker, menée sur une horloge virtuelle par
 
 Une publication pour l'écran est l'instantané de sa page : comptes de
 l'arbre, extraction des confirmées du rang demandé, places attendues, soit
-O(log N + 20) ; aucun objet ni ordinal par ligne ne la traverse. Seul
+O(log N + 20) ; aucun objet ni ordinal par ligne ne la traverse. Seule
+exception, l'aperçu d'un geste sans file (`teteDeLApercu`) : il choisit les
+premières lignes de la vue en parcourant toutes les lignes, d'un seul bloc,
+soit O(N log k) pour k lignes jusqu'à la fin de la page. Seul
 `classerEnLocal` (CLI, harnais, tests) lit la projection objet complète
 (`CorpsClassement.projection`), une fois, à la fin de sa file. Le stockage
 vivant n'est jamais transféré pour servir une vue.

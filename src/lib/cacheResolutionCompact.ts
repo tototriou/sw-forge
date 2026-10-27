@@ -66,11 +66,13 @@ export class CacheResolutionCompact extends Map<string, ResultatArtefacts> {
     const p = this.emplacement(ids);
     let i = this.table[p] - 1;
     if (i < 0) {
-      i = this.nombre++;
-      this.table[p] = i + 1;
-      if (i % TAILLE === 0) this.blocs.push({ ids: Array.from({ length: 6 }, () => new Float64Array(TAILLE)),
+      // Le bloc s'alloue AVANT que l'entrée ne compte : une allocation refusée
+      // (arrêt sur la mémoire du classeur) laisse le cache cohérent.
+      if (this.nombre % TAILLE === 0) this.blocs.push({ ids: Array.from({ length: 6 }, () => new Float64Array(TAILLE)),
         stats: Array.from({ length: 8 }, () => new Float64Array(TAILLE)), pieces: Array.from({ length: 5 }, () => new Uint32Array(TAILLE)),
         nombres: [new Float64Array(TAILLE), new Float64Array(TAILLE)], flags: new Uint8Array(TAILLE) });
+      i = this.nombre++;
+      this.table[p] = i + 1;
     }
     const b = this.bloc(i), j = i % TAILLE;
     ids.forEach((id, k) => { b.ids[k][j] = id; });

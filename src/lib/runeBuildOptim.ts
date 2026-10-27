@@ -1290,8 +1290,18 @@ function scorerPour(
 // plus. (Le budget de paires d'alors avait été relevé dans la même
 // proportion pour ne pas redevenir, lui, le facteur limitant à la place —
 // il n'existe plus, voir ci-dessus.)
+// ⚠️ Puis relevé à 1 000 000 : tous les builds valides se gardent, en
+// colonnes compactes, jusqu'au million — jamais un top K sous ce plafond. Au
+// million, le classeur tient ~295 octets par build (~464 avec « Vérifier
+// toutes les combinaisons trouvées », cache des notés plein), compté par
+// `byteLength` sur le vrai propriétaire (test `testPlafondCompactMillion`),
+// et les blocs reçus (120 octets par build) jusqu'à la fin de la
+// construction de l'index. Une allocation qui échoue dans le classeur
+// arrête proprement (« arrêt : mémoire », `ArretMemoire` de
+// classementCompact.ts), sans relance. Décision et options écartées :
+// docs/04-decisions/adr/plafond-de-builds.md.
 // Surchargeable via SearchParams.maxCollected.
-export const MAX_COLLECTED = 100_000;
+export const MAX_COLLECTED = 1_000_000;
 // Filet de sécurité indépendant de `maxCollected` : sur les scénarios
 // mesurés (500 à 5000 runes, scripts/benchmark-optim.ts), le pire cas était
 // sous ~4 s — 15 s laisse une marge large avant de considérer qu'une

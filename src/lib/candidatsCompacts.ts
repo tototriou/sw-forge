@@ -29,6 +29,14 @@ export interface ColonnesCandidats { length: number; blocs: BlocCandidats[] }
 export type SortieCandidats = BuildCandidate[] | ColonnesCandidats;
 export const creerColonnesCandidats = (): ColonnesCandidats => ({ length: 0, blocs: [] });
 
+/** Le message que le classeur poste à la recherche pour l'arrêter sur sa mémoire (`arreterSurMemoire`). */
+export const ARRET_MEMOIRE = { arret: 'memoire' } as const;
+/** Un message du classeur vers la recherche : l'arrêt sur sa mémoire, ou un crédit de bloc. */
+export function routerMessageDuClasseur(data: unknown, recherche: { acquitter: () => void; arreter: () => void }): void {
+  if (typeof data === 'object' && data !== null && (data as { arret?: unknown }).arret === ARRET_MEMOIRE.arret) recherche.arreter();
+  else recherche.acquitter();
+}
+
 /** Fusion stable sur ordinaux, avec points de reprise indépendants de la plateforme. */
 export function* trierIndicesEtapes(ordre: Uint32Array, comparer: (a: number, b: number) => number): Generator<void, Uint32Array> {
   let source: Uint32Array = ordre, destination: Uint32Array = new Uint32Array(ordre.length);

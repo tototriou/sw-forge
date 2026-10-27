@@ -44,7 +44,7 @@ import { RelicContext } from './relicOptim';
 import { ResultatArtefacts } from './artifactQueue';
 import { CacheProfilsParPaire, DegatsContext, RegimeArtefacts, evaluerPourRegime } from './artifactEvaluation';
 import { DamageSetup, PreparationReglage, aurasPropresDesRunes, statsDuLanceurLuesParLaNote } from './damage';
-import { CachesResolutionRapide, DominanceReliques, resoudreEquipementDuBuildRapide } from './resolutionRapide';
+import { CachesResolutionRapide, DominanceReliques, estExceptionRegleR, resoudreEquipementDuBuildRapide } from './resolutionRapide';
 
 /**
  * Ce que la résolution de PLUSIEURS builds peut partager sans changer un
@@ -128,7 +128,8 @@ export interface EntreeResolution {
    * quand `faireParams` note en « Dégâts réels »
    * (`evaluerPourRegime('degats_reels')`), le seul régime dont elle connaît
    * les canaux ; `null` sinon, ou quand `faireParams` porte un autre
-   * `evaluer` : aucune relique ni paire n'est alors écartée sans note.
+   * `evaluer` : aucune relique ni paire n'est alors écartée sans note. Aussi
+   * `null` pour un sort en exception à la règle R (`EXCEPTIONS_REGLE_R`).
    * Obligatoire, pour que `tsc` signale un constructeur qui n'a pas choisi.
    */
   dominanceReliques: DominanceReliques | null;
@@ -281,7 +282,11 @@ export function entreeResolutionDuBuild(e: {
     relicContext: e.relicContext,
     // `faireParams` note ci-dessus par `evaluerPourRegime` avec CE contexte et
     // CE contexte de dégâts, dont la table des lecteurs est tirée.
-    dominanceReliques: e.regime === 'degats_reels' ? { ...e.exclusive, lues: statsDuLanceurLuesParLaNote(e.degats!) } : null,
+    // Un sort en exception à la règle R (`EXCEPTIONS_REGLE_R`) n'a aucune
+    // dominance : toutes ses reliques sont notées.
+    dominanceReliques: e.regime === 'degats_reels' && !estExceptionRegleR(e.degats!.profile.skillCom2usId)
+      ? { ...e.exclusive, lues: statsDuLanceurLuesParLaNote(e.degats!) }
+      : null,
     caches: e.caches,
   };
 }

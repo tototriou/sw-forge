@@ -35,7 +35,7 @@ import { BuildRequirement, respecteConditionsAvecRelique } from '../src/lib/rune
 import { prefereeALEgalite, resoudreContexteRelique } from '../src/lib/relicOptim';
 import { ArtifactSearchParams, candidatsParSorte } from '../src/lib/artifactOptim';
 import { EntreeResolution, entreeResolutionDuBuild, nouveauxCachesResolution } from '../src/lib/relicQueue';
-import { compteursVides, resoudreEquipementDuBuildRapide } from '../src/lib/resolutionRapide';
+import { EXCEPTIONS_REGLE_R, compteursVides, resoudreEquipementDuBuildRapide } from '../src/lib/resolutionRapide';
 import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
 import { mulberry32, randomRune, SETS_VARIES } from '../scripts/lib/randomPool';
 import { DEGATS_FICHE } from './artifact-fiche.test';
@@ -267,6 +267,21 @@ export default function testResolutionDominanceReliques() {
   egal(parId.relique?.id, 300, 'égalité en « Dégâts réels » : la plus petite `id` gagne, même portée par l’autre');
   egal(c1.reliquesDominees, 1, 'égalité : la relique d’`id` plus grand est écartée sans note');
   ok(isDeepStrictEqual(parId, resoudreEquipementDuBuildRapide({ ...e, dominanceReliques: null })), 'égalité par `id` : même résultat que sans dominance');
+  // Un sort en exception à la règle R (Ceres, Last Shot) : le producteur ne pose
+  // aucune dominance, ni au niveau build ni par paire ; les deux reliques sont
+  // notées, et le résultat est celui de la même entrée sans dominance.
+  const idExceptionR = [...EXCEPTIONS_REGLE_R.keys()][0]!;
+  const eException = entreeResolutionDuBuild({
+    fiche: { base: BASE, runes: [], artifacts: [], relic: grande }, runes,
+    artifactParams: { porteur: PORTEUR, inventaire: inv, equipes: [], principaleParSorte: {}, lignesVerrouillees: [], maxStatsActifs: [] },
+    regime: 'degats_reels', degats: { ...DEGATS, profile: { ...DEGATS.profile, skillCom2usId: idExceptionR } }, exclusive: EXCLUSIVE,
+    requirement: { sets: [], minStats: {}, maxStats: {}, auraResPre: { res: 0, acc: 0, compter: true } }, relicContext: ctxEgalite, caches: null,
+  });
+  egal(eException.dominanceReliques, null, `sort en exception à la règle R (${idExceptionR}) : aucune dominance posée par le producteur`);
+  const cException = compteursVides();
+  const rException = resoudreEquipementDuBuildRapide(eException, cException);
+  egal(cException.reliquesDominees + cException.pairesDominees, 0, 'sort en exception : aucune relique ni paire écartée sans note');
+  ok(isDeepStrictEqual(rException, parId), 'sort en exception : même résultat que le sort témoin, dont la relique d’`id` plus grand est écartée sans note');
   // Départage par la portée (celui des régimes de stat, `departagePortee`) : la
   // dominance suit le même départage que `bestRelicForBuild`.
   const parPortee: EntreeResolution = { ...e, regimeDeStat: true };

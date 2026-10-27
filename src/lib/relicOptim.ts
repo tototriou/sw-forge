@@ -506,12 +506,30 @@ export function bestRelicForBuild(
 
   const maxScore = Math.max(...faisables.map(([, s]) => s));
   const exAequo = faisables.filter(([, s]) => s === maxScore);
-  const portee = options?.departagePortee && options.equipee != null
-    ? exAequo.find(([r]) => r.id === options.equipee!.id)
-    : undefined;
-  if (portee) return { relique: portee[0] };
-  // Ex æquo → première par `id` croissant, ÉCRIT (trié), jamais l'ordre
-  // d'itération de `candidates`.
-  const meilleure = exAequo.sort((x, y) => x[0].id - y[0].id)[0]![0];
+  // Ex æquo → la portée si le départage la retient, sinon la première par
+  // `id` croissant, ÉCRIT (`prefereeALEgalite`), jamais l'ordre d'itération
+  // de `candidates`.
+  let meilleure = exAequo[0]![0];
+  for (const [r] of exAequo) if (prefereeALEgalite(r, meilleure, options)) meilleure = r;
   return { relique: meilleure };
+}
+
+/**
+ * `a` l'emporte-t-elle sur `b` à note égale, dans `bestRelicForBuild` ? La
+ * relique PORTÉE d'abord (régimes de stat seulement, `departagePortee`), puis
+ * l'`id` le plus petit. Source unique du départage : la dominance des
+ * reliques de la résolution rapide (`resolutionRapide.ts`) ne retire une
+ * relique que devant une relique qui gagnerait l'égalité.
+ */
+export function prefereeALEgalite(
+  a: RelicDetail,
+  b: RelicDetail,
+  options?: { equipee?: RelicDetail; departagePortee?: boolean }
+): boolean {
+  const portee = options?.departagePortee ? options.equipee?.id : undefined;
+  if (portee != null && a.id !== b.id) {
+    if (a.id === portee) return true;
+    if (b.id === portee) return false;
+  }
+  return a.id < b.id;
 }

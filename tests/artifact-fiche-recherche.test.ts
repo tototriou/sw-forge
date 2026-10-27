@@ -36,6 +36,8 @@ export function classerFicheCollectee(params: SearchParams, resultat: SearchResu
           degats, { relique, setup: degats.setup, element: degats.element }) }),
       respecteConditions: (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), params.requirement, propres),
       requirement: params.requirement, regimeAucun: false, regimeDeStat: false, relicContext: params.relicContext,
+      // « Dégâts réels » : la dominance des reliques, comme le producteur de l'app.
+      dominanceReliques: { setup: degats.setup, element: degats.element },
     }));
   }
   const opts = optionsDeClassement({

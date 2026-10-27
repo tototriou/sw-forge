@@ -306,6 +306,7 @@ import testReliqueOu from './relique-ou.test';
 import testTestConjointExact from './test-conjoint-exact.test';
 import testRelicQueue from './relic-queue.test';
 import testResolutionRapide, { testResolutionConfirmation, testResolutionRapideNaN } from './resolution-rapide.test';
+import testResolutionDominanceReliques from './resolution-dominance-reliques.test';
 import testMemoCombat from './memo-combat.test';
 import testPerfRelicOptions from './perf-relic-options.test';
 import testRelicDifferentiel from './relic-differentiel.test';
@@ -860,6 +861,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testResolutionRapide', testResolutionRapide],
   ['testResolutionRapideNaN', testResolutionRapideNaN],
   ['testResolutionConfirmation', testResolutionConfirmation],
+  ['testResolutionDominanceReliques', testResolutionDominanceReliques],
   ['testMemoCombat', testMemoCombat],
   ['testPerfRelicOptions', testPerfRelicOptions],
   ['testRelicDifferentiel', testRelicDifferentiel],

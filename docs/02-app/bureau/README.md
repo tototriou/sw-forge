@@ -92,7 +92,7 @@ change pas. Ce qui en dépend aujourd'hui :
 | — | bloc « Application » des Réglages : version, mise à jour, dossier SW Exporter |
 | — | ligne « Dossier SW Blacksmith » du bloc « Mes données » ([transverse/](../transverse/) (sauvegarde de session)) |
 | « Se déconnecter », barre du haut (ordinateur) | absent : sans compte ni ordinateur partagé, il n'a pas de sens ; « Sauvegarder sous… » à sa place, « Tout supprimer » (Paramètres) reste le moyen de tout effacer |
-| « Sauvegarder » télécharge un fichier daté | « Sauvegarder » réécrit la session en cours ; « Sauvegarder sous… » dans la barre du haut et la palette ([transverse/](../transverse/) (sauvegarde de session)) |
+| — | la sauvegarde de session : « Sauvegarder » (barre du haut aux deux formats, ligne « Session » des Paramètres, palette, Ctrl+S) réécrit la session en cours ; « Sauvegarder sous… » dans la barre du haut et la palette ([transverse/](../transverse/) (sauvegarde de session)) |
 | Textes qui parlent du navigateur (« dans ton navigateur », « en fermant l'onglet », « ta prochaine visite », thème « Auto », « un autre navigateur ») | leur variante : « sur ta machine », « en fermant l'application »… (`selonSupport(site, app)`) |
 
 ## La coquille

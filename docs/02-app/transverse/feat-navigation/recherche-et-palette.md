@@ -41,8 +41,8 @@ Composant `src/components/Palette.tsx`, monté une fois par `App.tsx`.
   ouvre la **fiche** du monstre, sans changer de page), **Actions**.
 - **Actions** — aucune destructrice : **Importer mon compte**
   (le choix de fichier des Paramètres) ; **Sauvegarder la session** (le
-  bouton des Paramètres, [feat-sauvegarde-session.md](../feat-sauvegarde-session.md)) ;
-  **Sauvegarder sous…**, dans l'application de bureau seulement ;
+  bouton des Paramètres, [feat-sauvegarde-session.md](../feat-sauvegarde-session.md))
+  et **Sauvegarder sous…**, dans l'application de bureau seulement ;
   **Thème auto / clair / sombre** ;
   **Créer une recommandation** (ouvre les Recommandations et en crée une) ;
   **Mesure : efficience / score SW** (le réglage du menu ⚙) ; **Speed tuning

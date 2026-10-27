@@ -205,14 +205,12 @@ export function SettingsList({
       <AccountFreshness exportedAt={accountExportedAt ?? null} className="pb-2.5" />
 
       {/* La sauvegarde de session (docs/02-app/transverse/) :
-          avant la suppression, qui reste la dernière ligne du bloc. */}
+          avant la suppression, qui reste la dernière ligne du bloc. L'app ne
+          la fournit que dans l'application de bureau. */}
       {onSauvegarderSession && (
         <Setting
           title="Session"
-          hint={selonSupport(
-            'Tout l’état de l’app dans un fichier, à garder où tu veux : le compte, ton travail, les réglages et l’état des outils.',
-            'Tout l’état de l’app dans un fichier, enregistré où tu veux : le compte, ton travail, les réglages et l’état des outils.'
-          )}
+          hint="Tout l’état de l’app dans un fichier, enregistré où tu veux : le compte, ton travail, les réglages et l’état des outils."
         >
           <Bouton
             taille="sm"

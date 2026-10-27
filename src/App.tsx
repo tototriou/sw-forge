@@ -71,7 +71,6 @@ import {
   travailNonSauvegarde,
 } from './lib/session';
 import { photoOptimizer } from './lib/sessionOptimizer';
-import { telechargerTexte } from './lib/telechargement';
 import {
   dialogueMasque,
   lireTravail,
@@ -689,10 +688,10 @@ function Application() {
         e.preventDefault();
         setPaletteOuverte(true);
       }
-      // Ctrl/⌘ S : « Sauvegarder » la session — sur le site aussi, à la place
-      // de « Enregistrer la page » du navigateur. Une touche tenue ne
-      // sauvegarde qu'une fois.
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
+      // Ctrl/⌘ S : « Sauvegarder » la session, dans l'app de bureau seulement
+      // — le site garde « Enregistrer la page » du navigateur. Une touche
+      // tenue ne sauvegarde qu'une fois.
+      if (estBureau() && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
         if (!e.repeat) sauvegarderSessionRef.current();
       }
@@ -1043,27 +1042,23 @@ function Application() {
   // « Sauvegarder la session » (docs/02-app/transverse/) : tout
   // l'état de l'app dans un fichier. Le compte est celui EN MÉMOIRE, pas celui
   // d'IndexedDB — conservation refusée, il n'est que là.
-  // Sur le site, un fichier daté se télécharge, toujours. Dans l'app,
-  // « Sauvegarder » réécrit la session en cours (sans session en cours, il
-  // demande le dossier SW Blacksmith s'il manque, puis écrit le nom daté dans
-  // son sous-dossier `sessions`) et « Sauvegarder sous… » en choisit une autre.
+  // ⚠️ **Dans l'app de bureau seulement** : sur le site, aucun accès n'est
+  // branché. « Sauvegarder » réécrit la session en cours (sans session en
+  // cours, il demande le dossier SW Blacksmith s'il manque, puis écrit le nom
+  // daté dans son sous-dossier `sessions`) et « Sauvegarder sous… » en choisit
+  // une autre.
   // ⚠️ Rien tant que le compte conservé se relit (`sauvegardeIndisponible`) :
-  // la session écrite n'aurait pas de compte, et dans l'app elle remplacerait
-  // la session en cours, que le bureau a déjà reprise.
-  // `true` si la session est écrite (ou téléchargée, sur le site) : son
-  // empreinte devient celle de la dernière sauvegarde.
+  // la session écrite n'aurait pas de compte, et elle remplacerait la session
+  // en cours, que le bureau a déjà reprise.
+  // `true` si la session est écrite : son empreinte devient celle de la
+  // dernière sauvegarde.
   async function enregistrerSession(sous: boolean): Promise<boolean> {
-    if (sauvegardeIndisponible) return false;
+    const pont = sessionBureau();
+    if (sauvegardeIndisponible || !pont) return false;
     const maintenant = new Date();
     const session = sessionCourante(maintenant);
     const texte = ecrireSession(session);
     const nom = nomFichierSession(maintenant);
-    const pont = sessionBureau();
-    if (!pont) {
-      telechargerTexte(nom, texte);
-      empreinteSauvegardeRef.current = empreinteTravail(session);
-      return true;
-    }
     const r = await (sous ? pont.sauvegarderSous(texte, nom) : pont.sauvegarder(texte, nom));
     if (r?.issue === 'enregistree') {
       empreinteSauvegardeRef.current = empreinteTravail(session);
@@ -1649,10 +1644,12 @@ function Application() {
       pages: pagesPalette,
       actions: [
         { cle: 'a-import', libelle: 'Importer mon compte', icone: <Download size={16} />, faire: () => fichierCompte.current?.click() },
-        { cle: 'a-session-sauver', libelle: 'Sauvegarder la session', contexte: 'Tout l’état de l’app dans un fichier', icone: <Save size={16} />, faire: sauvegarderSession },
-        // Dans l'app seulement : le site télécharge toujours un fichier daté.
+        // Dans l'app de bureau seulement, comme tous les accès à la session.
         ...(estBureau()
-          ? [{ cle: 'a-session-sous', libelle: 'Sauvegarder sous…', contexte: 'Un autre fichier, qui devient la session en cours', icone: <FilePlus size={16} />, faire: sauvegarderSessionSous }]
+          ? [
+              { cle: 'a-session-sauver', libelle: 'Sauvegarder la session', contexte: 'Tout l’état de l’app dans un fichier', icone: <Save size={16} />, faire: sauvegarderSession },
+              { cle: 'a-session-sous', libelle: 'Sauvegarder sous…', contexte: 'Un autre fichier, qui devient la session en cours', icone: <FilePlus size={16} />, faire: sauvegarderSessionSous },
+            ]
           : []),
         ...THEME_CHOICES.map((t) => ({
           cle: `a-theme-${t.key}`,
@@ -1838,7 +1835,7 @@ function Application() {
     ) : n.route === 'parametres' ? (
       <SettingsPage
         onClearData={() => setPurgeGlobale(true)}
-        onSauvegarderSession={sauvegarderSession}
+        onSauvegarderSession={estBureau() ? sauvegarderSession : undefined}
         sauvegardeIndisponible={sauvegardeIndisponible}
         onKeepAccount={persistCurrentAccount}
         onImport={importAccount}
@@ -2015,7 +2012,8 @@ function Application() {
         fil={voletsVisibles ? [] : filBureau}
         ecranPartage={{ actif: voletsVisibles, disponible: partagePossible, onBasculer: basculerEcranPartage }}
         onRecherche={() => setPaletteOuverte(true)}
-        onSauvegarder={sauvegarderSession}
+        // La sauvegarde de session : dans l'app de bureau seulement.
+        onSauvegarder={estBureau() ? sauvegarderSession : undefined}
         sauvegardeIndisponible={sauvegardeIndisponible}
         onSauvegarderSous={estBureau() ? sauvegarderSessionSous : undefined}
         sessionEnCours={sessionEnCours?.nom ?? null}

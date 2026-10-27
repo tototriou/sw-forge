@@ -97,7 +97,7 @@ export default tseslint.config(
   },
   {
     // Pilotes Playwright : une partie de leur code s'exécute DANS la page.
-    files: ['.claude/skills/**/*.mjs', 'scripts/preuve-session-site.mjs'],
+    files: ['.claude/skills/**/*.mjs'],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   {

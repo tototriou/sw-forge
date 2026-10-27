@@ -3,7 +3,7 @@
 // le pool brut ; sa NOTE est scoreDeReference, indépendante du nouveau
 // producteur et vérifiée contre des attentes chiffrées dans artifact-fiche.
 import type { ArtifactDetail, GearSet, RuneDetail } from '../src/types';
-import { artifactDamageProfile, aurasPropresDesRunes } from '../src/lib/damage';
+import { artifactDamageProfile, aurasPropresDesRunes, statsDuLanceurLuesParLaNote } from '../src/lib/damage';
 import { activeSets } from '../src/lib/effects';
 import { computeStats, statsParPaire } from '../src/lib/stats';
 import { evaluerPourRegime, type DegatsContext } from '../src/lib/artifactEvaluation';
@@ -37,7 +37,7 @@ export function classerFicheCollectee(params: SearchParams, resultat: SearchResu
       respecteConditions: (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), params.requirement, propres),
       requirement: params.requirement, regimeAucun: false, regimeDeStat: false, relicContext: params.relicContext,
       // « Dégâts réels » : la dominance des reliques, comme le producteur de l'app.
-      dominanceReliques: { setup: degats.setup, element: degats.element },
+      dominanceReliques: { setup: degats.setup, element: degats.element, lues: statsDuLanceurLuesParLaNote(degats) },
     }));
   }
   const opts = optionsDeClassement({

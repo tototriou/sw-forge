@@ -1,19 +1,27 @@
 // Dominance des reliques dans la résolution rapide (src/lib/resolutionRapide.ts,
-// `reliquesDominees`) : en « Dégâts réels », une relique dominée sur ses quatre
-// canaux (PV, ATQ, DEF, dégâts infligés) n'est pas notée.
+// `reliquesDominees`, `DominanceParPaire`) : en « Dégâts réels », une relique
+// dominée sur ses quatre canaux (PV, ATQ, DEF, dégâts infligés) n'est pas
+// notée ; puis, sur les autres, une paire dominée sur ses seuls canaux ACTIFS
+// (stats lues par la note, `statsDuLanceurLuesParLaNote`, lignes 218-220 de la
+// paire, dégâts infligés) n'est pas notée.
 //
 // ⚠️ La dominance REPOSE sur la règle de jeu R — les dégâts ne baissent jamais
 // quand PV, ATQ, DEF, une ligne d'artéfact ou l'effet unique d'une relique
-// augmentent —, confirmée par l'utilisateur, jamais relevée en jeu. Ce test
-// le dit dans son titre : il vérifie que le CODE suit R sur ses fixtures
-// (oracle paire par paire), il ne prouve pas R.
+// augmentent — et, par classe de paires, sur la table des lecteurs ; règles
+// confirmées par l'utilisateur, jamais relevées en jeu. Ce test le dit dans
+// son titre : il vérifie que le CODE les suit sur ses fixtures (oracle paire
+// par paire), il ne les prouve pas.
 //
 // Références de contrôle (`algo-verify`) :
-// - la résolution SANS dominance (`dominanceReliques: null`), même entrée :
-//   résultat entier identique (relique, paire, note au bit, stats, verdict) ;
+// - la résolution SANS dominance (`dominanceReliques: null`) et celle du
+//   niveau build seul (`lues: null`), même entrée : résultat entier identique
+//   (relique, paire, note au bit, stats, verdict) ;
 // - paire par paire : pour chaque relique écartée, une relique notée qui gagne
 //   l'égalité a, sur CHAQUE paire autorisée où l'écartée est faisable, une
-//   note au moins égale (le vrai `evaluer` de `faireParams`).
+//   note au moins égale (le vrai `evaluer` de `faireParams`) ; pour chaque
+//   paire évitée par classe, une relique notée qui gagne l'égalité, faisable
+//   sur elle, y note au moins autant. Sort témoin `1.0*{ATK}` : PV et DEF
+//   inertes hors des lignes 218 et 220.
 // Pools à graine fixe : runes tirées au hasard, inventaire d'artéfacts à
 // principales et lignes variées, reliques de principales et d'effets variés
 // dont des équivalentes sur les quatre canaux (Ténacité, Régénération).
@@ -90,6 +98,20 @@ function suivie(e: EntreeResolution, notees: Set<number>): EntreeResolution {
   } };
 }
 
+// Les paires notées, par relique (les sondes de pertinence, pièces d'`id` ≤ 0, exclues).
+function pairesNotees(e: EntreeResolution, parRelique: Map<number, ArtifactDetail[][]>): EntreeResolution {
+  return { ...e, faireParams: (r) => {
+    const p = e.faireParams(r);
+    const liste = parRelique.get(r?.id ?? -1) ?? [];
+    parRelique.set(r?.id ?? -1, liste);
+    return { ...p, evaluer: (arts) => {
+      if (!arts.some((x) => x.id <= 0)) liste.push([...arts]);
+      return p.evaluer(arts);
+    } };
+  } };
+}
+const clePaire = (p: ArtifactDetail[]) => p.map((x) => x.id).join('+');
+
 // Les paires autorisées de l'inventaire (emplacement vide compris).
 function pairesAutorisees(p: Omit<ArtifactSearchParams, 'evaluer'>): ArtifactDetail[][] {
   const el = [null, ...candidatsParSorte(p, 'element').filter((x) => x)];
@@ -102,10 +124,10 @@ function pairesAutorisees(p: Omit<ArtifactSearchParams, 'evaluer'>): ArtifactDet
 }
 
 export default function testResolutionDominanceReliques() {
-  titre('Dominance des reliques (résolution rapide, « Dégâts réels ») — repose sur la règle de jeu R confirmée par l’utilisateur (non relevée en jeu) : même résultat que sans dominance, oracle paire par paire');
+  titre('Dominance des reliques (résolution rapide, « Dégâts réels »), au niveau build et par classe de paires — repose sur la règle de jeu R et sur la table des lecteurs, règles de jeu confirmées par l’utilisateur (non relevées en jeu) : même résultat que sans dominance et qu’au niveau build seul, oracle paire par paire');
 
   const ecarts: string[] = [];
-  let builds = 0, ecartees = 0, pairesComparees = 0, conformes = 0;
+  let builds = 0, ecartees = 0, pairesComparees = 0, conformes = 0, pairesEvitees = 0, pairesVerifiees = 0, renotees = 0;
   for (let graine = 0; graine < 6; graine++) {
     const rng = mulberry32(4200 + graine);
     const inv = inventaire(rng, 6);
@@ -134,15 +156,42 @@ export default function testResolutionDominanceReliques() {
         exclusive: EXCLUSIVE, requirement, relicContext: ctx, caches,
       });
       if (!e.dominanceReliques) ecarts.push('le producteur ne pose pas la dominance en « Dégâts réels »');
+      if (!isDeepStrictEqual(e.dominanceReliques?.lues, ['atk'])) ecarts.push(`table des lecteurs du sort témoin (\`1.0*{ATK}\`) : ${e.dominanceReliques?.lues}`);
       const notees = new Set<number>();
       const c = compteursVides();
-      const avec = resoudreEquipementDuBuildRapide(suivie(e, notees), c);
-      const sans = resoudreEquipementDuBuildRapide({ ...e, dominanceReliques: null });
-      if (!isDeepStrictEqual(avec, sans)) {
-        ecarts.push(`graine ${graine}, build ${builds} : avec dominance relique ${avec.relique?.id} note ${avec.paire?.score}, sans ${sans.relique?.id} note ${sans.paire?.score}`);
+      const avecPaires = new Map<number, ArtifactDetail[][]>();
+      const sansPaires = new Map<number, ArtifactDetail[][]>();
+      const avec = resoudreEquipementDuBuildRapide(pairesNotees(suivie(e, notees), avecPaires), c);
+      const sans = resoudreEquipementDuBuildRapide(pairesNotees({ ...e, dominanceReliques: null }, sansPaires));
+      const niveauBuildPaires = new Map<number, ArtifactDetail[][]>();
+      const niveauBuild = resoudreEquipementDuBuildRapide(pairesNotees({ ...e, dominanceReliques: { ...e.dominanceReliques!, lues: null } }, niveauBuildPaires));
+      if (!isDeepStrictEqual(avec, sans) || !isDeepStrictEqual(avec, niveauBuild)) {
+        ecarts.push(`graine ${graine}, build ${builds} : avec dominance relique ${avec.relique?.id} note ${avec.paire?.score}, niveau build seul ${niveauBuild.relique?.id} note ${niveauBuild.paire?.score}, sans ${sans.relique?.id} note ${sans.paire?.score}`);
       }
       if (avec.conforme) conformes++;
       ecartees += c.reliquesDominees;
+      pairesEvitees += c.pairesDominees;
+      renotees += c.reliquesRenotees;
+      // Oracle paire par paire du second niveau : chaque paire d'une relique
+      // notée (une paire au moins, avec les classes de paires ou au niveau
+      // build seul), notée sans dominance mais pas avec, a une dominante
+      // notée, qui gagne l'égalité, est faisable sur elle et y note au moins
+      // autant. (`faireParams` de la première éligible sert aussi aux formes :
+      // l'avoir appelé ne dit pas qu'elle est notée.)
+      for (const [idB, pairesB] of sansPaires) {
+        if (!(avecPaires.get(idB)?.length || niveauBuildPaires.get(idB)?.length)) continue;
+        const gardees = new Set((avecPaires.get(idB) ?? []).map(clePaire));
+        const b = pool.find((r) => r.id === idB)!;
+        const noteB = e.faireParams(b).evaluer;
+        for (const p of pairesB) {
+          if (gardees.has(clePaire(p))) continue;
+          pairesVerifiees++;
+          const vB = noteB(p);
+          const dominante = pool.find((a) => a !== b && notees.has(a.id) && prefereeALEgalite(a, b, { equipee: ctx.equipee })
+            && respecteConditionsAvecRelique({ ...e.gear, artifacts: p }, a, requirement).respecte && e.faireParams(a).evaluer(p) >= vB);
+          if (!dominante) ecarts.push(`graine ${graine}, build ${builds} : paire ${clePaire(p)} de la relique ${idB} (note ${vB}) évitée sans dominante notée`);
+        }
+      }
       // Oracle paire par paire, sur chaque relique non notée qui a une paire faisable.
       for (const b of pool) {
         if (notees.has(b.id)) continue;
@@ -159,6 +208,39 @@ export default function testResolutionDominanceReliques() {
   }
   egal(ecarts.length, 0, `${builds} builds (${conformes} conformes), ${ecartees} reliques écartées, ${pairesComparees} paires comparées : ${ecarts.slice(0, 3).join(' ; ')}`);
   ok(ecartees > 0 && pairesComparees > 0, `au moins une relique écartée et vérifiée paire par paire (${ecartees}, ${pairesComparees})`);
+  ok(pairesEvitees > 0 && pairesVerifiees === pairesEvitees,
+    `classes de paires (PV et DEF inertes hors lignes 218 et 220) : ${pairesEvitees} paires évitées, ${pairesVerifiees} vérifiées contre une dominante notée (${renotees} relique(s) notée(s) à nouveau)`);
+
+  // ── Repli : une paire évitée dont la seule dominante n'a aucun couple ──
+  // La dominante (ATQ % en principale, `id` plus petit) est faisable sur les
+  // formes à principale de PV, mais ses candidats de paires sont vidés : seul
+  // l'emplacement vide lui reste, infaisable (minimum de PV). Les paires de
+  // l'autre relique (PV % en principale) qu'elle domine sur l'ATQ et les
+  // dégâts infligés sont d'abord évitées, puis la relique est notée en entier.
+  {
+    const rngR = mulberry32(91);
+    const runesR = runesAuHasard(rngR, 0);
+    // Sans lignes 218 ni 220 : les PV et la DEF restent inertes sur toute paire.
+    const invR = inventaire(rngR, 6).map((a) => ({ ...a, subs: a.subs.filter((s) => s.code !== 218 && s.code !== 220) }));
+    const dominante: RelicDetail = { id: 10, upgrade: 9, main: { code: 101, value: 15 }, unique: { type: 5, tranche: 1000, percent: 1 } };
+    const dominee: RelicDetail = { id: 20, upgrade: 9, main: { code: 100, value: 8 }, unique: { type: 5, tranche: 1000, percent: 1 } };
+    const pvSansArtefact = computeStats({ base: BASE, runes: runesR, artifacts: [], relic: dominante }).find((s) => s.key === 'hp')!.total;
+    const ctxR = resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 0 }, undefined, [dominee, dominante]);
+    const artifactParams: Omit<ArtifactSearchParams, 'evaluer'> = { porteur: PORTEUR, inventaire: invR, equipes: [], principaleParSorte: {}, lignesVerrouillees: [], maxStatsActifs: [] };
+    const e0 = entreeResolutionDuBuild({
+      fiche: { base: BASE, runes: [], artifacts: [], relic: undefined }, runes: runesR, artifactParams, regime: 'degats_reels', degats: DEGATS,
+      exclusive: EXCLUSIVE, requirement: { sets: [], minStats: { hp: pvSansArtefact + 1 }, maxStats: {}, auraResPre: { res: 0, acc: 0, compter: true } },
+      relicContext: ctxR, caches: null,
+    });
+    const eR: EntreeResolution = { ...e0, faireParams: (r) => (r?.id === dominante.id ? { ...e0.faireParams(r), inventaire: [] } : e0.faireParams(r)) };
+    egal(ctxR.eligibles[0]?.id, dominee.id, 'repli : la première éligible (formes de la file) garde l’inventaire entier');
+    const cR = compteursVides();
+    const rR = resoudreEquipementDuBuildRapide(eR, cR);
+    egal(cR.reliquesRenotees, 1, 'repli : la relique dont une paire évitée n’a aucune dominante avec un couple est notée à nouveau');
+    egal(cR.pairesDominees, 0, 'repli : ses paires évitées au premier tour ne restent pas comptées');
+    ok(isDeepStrictEqual(rR, resoudreEquipementDuBuildRapide({ ...eR, dominanceReliques: null })) && rR.relique?.id === dominee.id,
+      `repli : même résultat que sans dominance (relique ${rR.relique?.id}, note ${rR.paire?.score})`);
+  }
 
   // ── Égalité : départage par `id`, puis par la relique portée ──
   // Deux reliques égales sur les quatre canaux (même principale ; Ténacité et

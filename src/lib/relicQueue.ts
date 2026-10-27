@@ -43,9 +43,8 @@ import {
 import { RelicContext } from './relicOptim';
 import { ResultatArtefacts } from './artifactQueue';
 import { CacheProfilsParPaire, DegatsContext, RegimeArtefacts, evaluerPourRegime } from './artifactEvaluation';
-import { DamageSetup, PreparationReglage, aurasPropresDesRunes } from './damage';
-import type { ContexteExclusive } from './relicExclusive';
-import { CachesResolutionRapide, resoudreEquipementDuBuildRapide } from './resolutionRapide';
+import { DamageSetup, PreparationReglage, aurasPropresDesRunes, statsDuLanceurLuesParLaNote } from './damage';
+import { CachesResolutionRapide, DominanceReliques, resoudreEquipementDuBuildRapide } from './resolutionRapide';
 
 /**
  * Ce que la résolution de PLUSIEURS builds peut partager sans changer un
@@ -122,15 +121,17 @@ export interface EntreeResolution {
   // G) — jamais recalculé ici. Absent : la relique portée reste fixe, rien n'est résolu.
   relicContext: RelicContext | undefined;
   /**
-   * La dominance des reliques (resolutionRapide.ts, `reliquesDominees`) : le
-   * contexte de l'apport des exclusives (`apportExclusive`) quand
-   * `faireParams` note en « Dégâts réels » (`evaluerPourRegime('degats_reels')`),
-   * le seul régime dont elle connaît les canaux ; `null` sinon, ou quand
-   * `faireParams` porte un autre `evaluer` : aucune relique n'est alors
-   * écartée sans note. Obligatoire, pour que `tsc` signale un constructeur
-   * qui n'a pas choisi.
+   * La dominance des reliques (resolutionRapide.ts, `reliquesDominees` et
+   * `DominanceParPaire`) : le contexte de l'apport des exclusives
+   * (`apportExclusive`) et les stats que la note lit hors des lignes de la
+   * paire (`lues`, `statsDuLanceurLuesParLaNote` sur le contexte de dégâts),
+   * quand `faireParams` note en « Dégâts réels »
+   * (`evaluerPourRegime('degats_reels')`), le seul régime dont elle connaît
+   * les canaux ; `null` sinon, ou quand `faireParams` porte un autre
+   * `evaluer` : aucune relique ni paire n'est alors écartée sans note.
+   * Obligatoire, pour que `tsc` signale un constructeur qui n'a pas choisi.
    */
-  dominanceReliques: ContexteExclusive | null;
+  dominanceReliques: DominanceReliques | null;
   // Les caches partagés entre builds : le memo du préfiltre sert
   // à chaque `chercherPaires` de la résolution. Absent : tout se recalcule.
   caches?: CachesResolution | null;
@@ -278,8 +279,9 @@ export function entreeResolutionDuBuild(e: {
     regimeAucun: e.regime === 'aucun',
     regimeDeStat: e.regime === 'hp' || e.regime === 'atk' || e.regime === 'def',
     relicContext: e.relicContext,
-    // `faireParams` note ci-dessus par `evaluerPourRegime` avec CE contexte.
-    dominanceReliques: e.regime === 'degats_reels' ? e.exclusive : null,
+    // `faireParams` note ci-dessus par `evaluerPourRegime` avec CE contexte et
+    // CE contexte de dégâts, dont la table des lecteurs est tirée.
+    dominanceReliques: e.regime === 'degats_reels' ? { ...e.exclusive, lues: statsDuLanceurLuesParLaNote(e.degats!) } : null,
     caches: e.caches,
   };
 }

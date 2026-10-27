@@ -53,11 +53,24 @@ ici.
   candidats l'interrompt, la part non explorée peut contenir mieux que ce
   qui est affiché ([feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel](feat-interruption.md)).
 - **Le plafond de candidats collectés n'a pas de réglage.**
-  `MAX_COLLECTED` (100 000) s'applique toujours ; « Rechercher jusqu'à
+  `MAX_COLLECTED` (1 000 000) s'applique toujours ; « Rechercher jusqu'à
   épuisement complet » ne retire que le filet de temps. Atteint, il arrête
   la recherche : le résultat est le meilleur des candidats collectés
   jusque-là, et l'écran dit « resserre tes critères pour un résultat
-  exhaustif ».
+  exhaustif ». Sous le plafond, tous les builds trouvés sont gardés, jamais
+  un top K : [ADR](../../04-decisions/adr/plafond-de-builds.md).
+- **La mémoire peut arrêter une recherche avant le plafond.** Au million,
+  les résultats occupent environ 281 Mio (443 Mio avec « Vérifier toutes
+  les combinaisons trouvées »), plus 114 Mio le temps de construire le
+  classement à la fin de la recherche. Si l'appareil refuse une de ces
+  allocations, le classement garde ce qu'il avait déjà classé (l'aperçu
+  des 3 000 premiers trouvés, quand le refus tombe à la fin de la
+  recherche), cesse de vérifier en fond, arrête la
+  recherche si elle collecte encore, et l'écran dit « Arrêt : mémoire — N
+  builds gardés sur M trouvés ». Rien n'est retenté ; une nouvelle
+  recherche repart entière. Un appareil qui manque de mémoire peut aussi
+  fermer l'onglet sans que l'app puisse l'en empêcher : ce cas-là n'a pas
+  de reprise.
 - **Aucun bonus de set ne pèse au pré-filtrage ni à la rétention.** Une
   rune y vaut par sa principale, son innée et ses sous-propriétés
   (`runeContribution`), plus, pour RES et PRÉ, la part EXTERNE d'aura

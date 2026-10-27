@@ -848,3 +848,30 @@ motif : l'écran ne lit que `truncated`.
 résultat posté, tronqué ou non, et continue vers `K` confirmées. `cancel`, au
 démontage et par `run` avant une nouvelle recherche, termine le Worker de
 recherche sans rien récupérer (§ Lancement).
+
+### Arrêt sur la mémoire du classeur
+
+Le plafond `MAX_COLLECTED` vaut un million de builds, tous gardés en colonnes
+compactes (pourquoi, et ce qui est écarté :
+[ADR](../../../04-decisions/adr/plafond-de-builds.md)). Ce qui croît avec le
+nombre de builds vit dans le classeur : l'index (≈ 286 octets par build, plus
+le hachage des groupes ; `testPlafondCompactMillion` le compte au million),
+les blocs reçus (120 octets par build) jusqu'à la fin de sa construction au
+scellé, le cache des notés (149 octets par build noté) et les notes au fil
+des blocs. La recherche, elle, ne tient que des blocs en vol bornés par les
+crédits.
+
+Une allocation que le moteur JavaScript refuse dans le classeur
+(`estEchecAllocation` : `RangeError` d'allocation, pas une longueur invalide)
+passe par `reprendreSurMemoire` au lieu de perdre le propriétaire.
+`CorpsClassement.arreterSurMemoire` abandonne la tâche qui allouait, garde
+l'index déjà construit (l'aperçu des 3 000 premiers quand le refus tombe au
+scellé), ne l'agrandit plus (`activer`, `sceller`), arrête la fenêtre de fond,
+la confirmation en fond et « Vérifier toutes les combinaisons trouvées » ; la
+page demandée se vérifie encore. Pendant la collecte, le classeur poste
+`ARRET_MEMOIRE` à la recherche, qui s'arrête comme sur « Arrêter »
+(`routerMessageDuClasseur`) et scelle ce qu'elle a. L'instantané porte
+`arretMemoire` (`gardes`, `trouves`), que l'écran annonce. L'arrêt vaut pour
+une recherche ; une seconde panne pendant la même recherche n'est pas
+reprise (propriétaire perdu). Rien ne devine la mémoire de l'appareil. Un
+onglet tué par le système pour manque de mémoire n'a pas de reprise.

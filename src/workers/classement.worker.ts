@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
-import { CorpsClassement } from '../lib/classementCompact';
+import { CorpsClassement, reprendreSurMemoire } from '../lib/classementCompact';
+import { ARRET_MEMOIRE } from '../lib/candidatsCompacts';
 import { Relance } from '../lib/cession';
 import type { BlocCandidats } from '../lib/candidatsCompacts';
 import type { SearchResult } from '../lib/runeBuildOptim';
@@ -52,6 +53,16 @@ const relance = new Relance(() => proteger(() => {
 }));
 function proteger(f: () => void): void {
   try { f(); } catch (e) {
+    // Une allocation refusée : arrêt propre, une fois par recherche (l'index
+    // déjà construit reste servi) ; la recherche, si elle collecte encore, est
+    // priée de s'arrêter et de sceller ce qu'elle a. Une seconde panne, ou
+    // toute autre erreur, perd le propriétaire.
+    const arret = reprendreSurMemoire(corps, e);
+    if (arret) {
+      if (arret.collecteEnCours) recherche?.postMessage(ARRET_MEMOIRE);
+      programmer();
+      return;
+    }
     relance.annuler(); recherche?.close(); recherche = null;
     poster({ type: 'erreur', versionSchema: 1, idRecherche: generation, message: e instanceof Error ? e.message : String(e) });
   }

@@ -122,7 +122,7 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
             Retire la limite de temps de 10 minutes : la recherche continue tant qu'il reste des combinaisons
             à examiner. Peut prendre très longtemps sur une recherche avec peu de conditions — le bouton{' '}
             <b className="text-ink">« Arrêter »</b> reste disponible et garde le meilleur trouvé jusque-là.
-            Le plafond de 100 000 résultats collectés, lui, reste actif.
+            Le plafond d'un million de résultats collectés, lui, reste actif.
           </HelpPopover>
           }
         />

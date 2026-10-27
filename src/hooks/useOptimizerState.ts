@@ -276,7 +276,7 @@ export interface OptimizerState {
   // lu par `handleSearch` au moment du clic sur « Rechercher », pas un bouton
   // séparé qui lance sa propre recherche. Retire
   // la limite de temps de 10 minutes (`maxMs: Infinity`, déjà supporté par le
-  // moteur — voir OptimizerSection.tsx) ; ne touche PAS au plafond de 100 000
+  // moteur — voir OptimizerSection.tsx) ; ne touche PAS au plafond d'un million de
   // candidats collectés, qui reste une limite indépendante.
   exhaustiveSearch: boolean;
   setExhaustiveSearch: Dispatch<SetStateAction<boolean>>;

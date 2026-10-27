@@ -1803,7 +1803,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // déjà un budget-temps VALIDE pour le moteur, pas un cas spécial ajouté ici
   // (le Worker sait déjà ignorer un `maxMs` non fini, voir `estimatePct` dans
   // runeBuildOptim.worker.ts). ⚠️ Ne retire QUE la limite de temps : le
-  // plafond de `maxCollected` (100 000 candidats, non exposé dans l'UI) reste
+  // plafond de `maxCollected` (1 000 000 candidats, non exposé dans l'UI) reste
   // actif — une recherche assez lâche pour en trouver plus s'arrêtera quand
   // même avant d'avoir visité tout l'espace. Désactivé par défaut : sans lui,
   // une recherche mal contrainte peut tourner très longtemps (le bouton
@@ -3095,8 +3095,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             damageSetup={contexteResultatAffiche?.damageSetup ?? damageSetup}
           />
   
-          {result?.truncated && (
-            <AvisRechercheTronquee result={result} stoppedManually={stoppedManually} />
+          {(result?.truncated || instantane?.arretMemoire) && (
+            <AvisRechercheTronquee result={result} stoppedManually={stoppedManually} arretMemoire={instantane?.arretMemoire} />
           )}
   
           {/* ⚠️ minmax calibré à 360px pour que DEUX cartes tiennent par
@@ -3176,7 +3176,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           )}
   
           {/* Pagination — remplace l'ancienne troncature dure à 20 : la
-              liste complète (jusqu'à MAX_COLLECTED, voir runeBuildOptim.ts)
+              liste complète (jusqu'à MAX_COLLECTED, un million, voir runeBuildOptim.ts)
               reste consultable, 20 par page. Flèches précédent/suivant +
               saisie directe du numéro de page (même convention que les
               champs numériques de l'app : `type="text"` + `inputMode=

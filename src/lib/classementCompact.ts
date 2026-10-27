@@ -863,7 +863,33 @@ export interface InstantaneClassement {
   enAttente: number;
   /** Panne du résolveur reprise dans le classeur, s'il y en a eu une. */
   incident: string | null;
+  /** L'arrêt sur une allocation refusée dans le classeur, s'il a eu lieu. */
+  arretMemoire: ArretMemoire | null;
   bilan: Omit<SearchResult, 'candidates'> | null;
+}
+/**
+ * « Arrêt : mémoire » : une allocation du classeur (index au scellé, cache des
+ * notés, notes au fil des blocs) a été refusée. `gardes` : les lignes de
+ * l'index déjà construit, que la page continue de montrer et de trier ;
+ * `trouves` : ce que le moteur a envoyé (les blocs déjà partis arrivent
+ * encore après l'arrêt, ils se comptent sans être gardés).
+ */
+export interface ArretMemoire { gardes: number; trouves: number }
+/**
+ * Une allocation refusée par le moteur JavaScript (`RangeError: Array buffer
+ * allocation failed` dans V8), distincte d'une longueur invalide, qui est un
+ * défaut du code et reste une erreur.
+ */
+export function estEchecAllocation(e: unknown): boolean {
+  return e instanceof RangeError && /allocation failed|out of memory/i.test(e.message);
+}
+/**
+ * La reprise d'une faute du Worker de classement : un échec d'allocation pose
+ * l'arrêt sur la mémoire (une fois par recherche) ; tout le reste, et une
+ * seconde panne, rend `null` (le propriétaire est alors perdu).
+ */
+export function reprendreSurMemoire(corps: Pick<CorpsClassement, 'arreterSurMemoire'>, e: unknown): { collecteEnCours: boolean } | null {
+  return estEchecAllocation(e) ? corps.arreterSurMemoire() : null;
 }
 export const TAILLE_PAGE_CLASSEMENT = 20;
 /** Projection objet complète, pour Node seulement (CLI, harnais, tests) : jamais envoyée à la page. */
@@ -958,6 +984,9 @@ export class CorpsClassement {
   // précède est jugé (noté, rejeté ou confirmé) ou appartient à la fenêtre
   // des notes, qui ne fait que s'allonger.
   private curseurConfirmation: { fond: Uint32Array; position: number } | null = null;
+  // Posé une fois par recherche (`arreterSurMemoire`) : plus de file, plus
+  // d'index agrandi ; levé seulement par une nouvelle recherche ou `liberer`.
+  private memoire: ArretMemoire | null = null;
 
   constructor(private readonly sorties: {
     publier: (p: InstantaneClassement) => void;
@@ -1013,7 +1042,7 @@ export class CorpsClassement {
     this.index = null; this.fileExhaustive = null; this.base = new Uint32Array(); this.fondPropre = null; this.bilan = null; this.collecteScellee = false;
     this.auFil = []; this.auFilEnAttente = false; this.travail.notes = 0; this.travail.comparaisons = 0;
     this.ordresDeBase = { index: null, entrees: [] }; this.apercu = null; this.repos = null; this.reposAbandonnes = new Set(); this.fileAuRepos = false;
-    this.curseurConfirmation = null;
+    this.curseurConfirmation = null; this.memoire = null;
     this.versions = { versionSchema: 1, idRecherche, idInventaire: contexte.idInventaire,
       idContexteResolution: this.versions.idContexteResolution, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande };
     this.entrees = null;
@@ -1156,6 +1185,8 @@ export class CorpsClassement {
   }
   activer(idRecherche: number): void {
     if (!this.courant(idRecherche)) return;
+    // Après un arrêt sur la mémoire, l'index ne s'agrandit plus : aucune allocation refusée ne se retente.
+    if (this.memoire) { this.libererSourceScellee(); return; }
     const nombre = this.collecteScellee ? this.flux.longueur : Math.min(3000, this.flux.longueur);
     if (this.nombreCible !== nombre) { this.nombreCible = nombre; this.trierBase(); this.sale = true; }
     this.libererSourceScellee();
@@ -1420,7 +1451,7 @@ export class CorpsClassement {
       && f.generationJournal === this.cache.journal?.generation && f.version === (this.cache.journal?.version ?? -1);
   }
   private *actualiserSelectionEtapes(index: ClassementCompact, base: Uint32Array): Generator<void> {
-    if (!this.contexte?.toutVerifier) { this.fileExhaustive = null; return; }
+    if (!this.contexte?.toutVerifier || this.memoire) { this.fileExhaustive = null; return; }
     const journal = this.cache.journal, version = journal?.version ?? -1;
     let f = this.fileExhaustive;
     // Un repli complet ne peut pas se déduire du seul dernier delta du journal.
@@ -1471,7 +1502,7 @@ export class CorpsClassement {
   private restants(): BuildCandidate[] {
     if (this.tache) return [];
     if (!this.entrees || !this.index || !this.vue || !this.contexte) return [];
-    if ((this.cache.journal?.version ?? -1) !== this.versionLue || (this.contexte.toutVerifier && !this.selectionExhaustiveCourante())) { this.actualiser(); if (this.tache) return []; }
+    if ((this.cache.journal?.version ?? -1) !== this.versionLue || (this.contexte.toutVerifier && !this.memoire && !this.selectionExhaustiveCourante())) { this.actualiser(); if (this.tache) return []; }
     if (this.passage === 0xffffffff) { this.visites.fill(0); this.passage = 0; }
     const passage = ++this.passage, premiers: number[] = [], choix = this.pilote.maxEnVol + 1;
     let nombre = 0;
@@ -1483,6 +1514,8 @@ export class CorpsClassement {
       if (premiers.length < choix) premiers.push(i);
     };
     for (const i of this.pageIndices()) ajouter(i);
+    // Après un arrêt sur la mémoire, seule la page demandée se vérifie encore (ses cartes en dépendent) ; le fond s'arrête.
+    if (this.memoire) return candidatsParIndice(nombre, (i) => premiers[i] === undefined ? undefined as unknown as BuildCandidate : this.index!.magasin.candidat(premiers[i], false));
     const K = cibleDeLaFile({ relicContext: this.contexte.recherche.relicContext, toutVerifier: this.contexte.toutVerifier });
     if (K === Infinity) {
       const f = this.fileExhaustive!;
@@ -1507,7 +1540,7 @@ export class CorpsClassement {
    * jugé (noté, rejeté, confirmé), ni deux lignes du même groupe.
    */
   private aConfirmer(): BuildCandidate[] {
-    if (this.tache || !this.entrees || !this.index || !this.vue || !this.contexte || !this.collecteScellee) return [];
+    if (this.tache || this.memoire || !this.entrees || !this.index || !this.vue || !this.contexte || !this.collecteScellee) return [];
     const K = cibleDeLaFile({ relicContext: this.contexte.recherche.relicContext, toutVerifier: this.contexte.toutVerifier });
     if (K === Infinity) return [];
     const m = this.index.magasin, fond = this.fond;
@@ -1621,8 +1654,31 @@ export class CorpsClassement {
     }
     this.reponsesEnAttente = [];
   }
+  /**
+   * Une allocation du classeur a été refusée (`estEchecAllocation`) : la
+   * tâche qui allouait est abandonnée, l'index déjà construit est gardé (la
+   * page le montre, le trie et le filtre encore), la file et la confirmation
+   * en fond s'arrêtent, et rien ne se retente (ni index agrandi, ni
+   * résolution). Vrai si la collecte n'est pas encore scellée : au Worker de
+   * demander l'arrêt de la recherche. Une seconde panne pendant la même
+   * recherche n'est plus reprise : `null`, l'appelant la traite en erreur.
+   */
+  arreterSurMemoire(): { collecteEnCours: boolean } | null {
+    if (this.memoire || !this.contexte || !this.vue) return null;
+    this.tache = null; this.auFil = []; this.auFilEnAttente = false; this.repos = null; this.apercu = null;
+    this.reponsesEnAttente = []; this.fileExhaustive = null;
+    const gardes = this.index?.magasin.longueur ?? 0;
+    this.memoire = { gardes, trouves: this.flux.longueur };
+    this.nombreCible = gardes;
+    // L'index gardé se reclasse sur lui-même (aucune ligne ajoutée) ; les blocs au-delà sont rendus.
+    if (this.index) this.trierBase();
+    this.libererSourceScellee();
+    this.sale = true; this.publicationForcee = true;
+    return { collecteEnCours: !this.collecteScellee };
+  }
   liberer(): void {
     this.abandonnerReponses();
+    this.memoire = null;
     this.publicationForcee = false;
     this.collecteScellee = false;
     this.tache = null; this.nombreCible = 0; this.plages = []; this.reponsesEnAttente = [];
@@ -1724,7 +1780,8 @@ export class CorpsClassement {
     return { versions: { ...this.versions }, vue: { ...vue },
       comptes: { recus, affichables: recus - ecartes, resolus: confirmees + ecartes, confirmees, avecFile },
       filtre: this.filtrePublie(parCategorie, total, confirmes, avecFile, recus),
-      page: { premierRang: debut + 1, cartes, placesEnAttente: places }, enAttente, incident: this.incident, bilan: this.bilan };
+      page: { premierRang: debut + 1, cartes, placesEnAttente: places }, enAttente, incident: this.incident,
+      arretMemoire: this.memoire ? { gardes: this.memoire.gardes, trouves: this.flux.longueur } : null, bilan: this.bilan };
   }
   private filtrePublie(parCategorie: number[][], total: number, confirmes: number, avecFile: boolean, recus: number): FiltrePublie {
     const [nonVerifies, confirmees, ecartes] = parCategorie.map((ligne) => ligne.reduce((s, n) => s + n, 0));

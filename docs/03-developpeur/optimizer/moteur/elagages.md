@@ -462,7 +462,7 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
 - **Élagage de faisabilité MIN et MAX, pas d'optimisation vers un seul
   critère** : la recherche collecte un ensemble large mais borné de
   combinaisons valides (au plus `maxCollected`, défaut `MAX_COLLECTED`,
-  100 000), pour permettre le tri après coup sur n'importe quel critère
+  1 000 000), pour permettre le tri après coup sur n'importe quel critère
   sans recalcul. Le maximum se prête à un élagage plus simple que le
   minimum : compléter les 6 runes ne peut qu'ajouter, donc dès qu'une
   combinaison de la moitié A dépasse seule un maximum (plus le contexte

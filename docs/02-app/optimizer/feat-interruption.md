@@ -26,7 +26,17 @@ plus du plafond de candidats collectés :
 
 Les cas de troncature se distinguent dans le message affiché : un arrêt
 manuel dit « voici le meilleur trouvé jusque-là » (un choix assumé), un
-plafond atteint dit « resserre tes critères » (une limite subie).
+plafond atteint dit « resserre tes critères » (une limite subie). Le
+plafond de candidats collectés est d'un million de builds, tous gardés.
+
+Un quatrième arrêt est subi : la **mémoire**. Si l'appareil refuse une
+allocation pendant le classement des résultats, la recherche s'arrête si
+elle collecte encore, le classement garde ce qu'il avait déjà classé, et le
+message devient « Arrêt : mémoire — N builds gardés sur M trouvés. Resserre
+tes critères pour un résultat complet. », à la place des deux autres. Rien
+n'est retenté ; une nouvelle recherche repart entière (voir
+limites-connues.md et
+../../03-developpeur/optimizer/moteur/pipeline.md § Arrêt sur la mémoire du classeur).
 
 Sur une grosse recherche (appariement parallèle, au-delà de 100 M de
 combinaisons), le plafond de candidats reste **global** : les combinaisons

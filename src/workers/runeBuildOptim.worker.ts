@@ -21,7 +21,7 @@
 // d'elle-même entre deux messages.
 
 import { PreparedSearch, SearchParams, SearchResult } from '../lib/runeBuildOptim';
-import { BlocCandidats, ColonnesCandidats, creerColonnesCandidats } from '../lib/candidatsCompacts';
+import { BlocCandidats, ColonnesCandidats, creerColonnesCandidats, routerMessageDuClasseur } from '../lib/candidatsCompacts';
 import { CompartimentType } from '../lib/demiBuildsTypes';
 import { RelicVide } from '../lib/relicOptim';
 import { analyserEspace } from '../lib/appariementRapide';
@@ -203,20 +203,27 @@ function buildHalfInWorker(request: BuildHalfRequest, onProgress: (scanned: numb
   });
 }
 
+function arreterRecherche() {
+  stopped = true;
+  terminerMoitiesEnCours();
+  if (stopBuildReject) stopBuildReject();
+  arreterAppariement?.();
+}
+
 async function traiterMessage(e: MessageEvent<WorkerRequest>) {
   if ('credit' in e.data) { emetteur?.acquitter(); return; }
   if ('stop' in e.data) {
-    stopped = true;
-    terminerMoitiesEnCours();
-    if (stopBuildReject) stopBuildReject();
-    arreterAppariement?.();
+    arreterRecherche();
     return;
   }
   stopped = false;
   const { params, coeursPhysiques, classement } = e.data;
   let sequence = 0;
   if (classement) {
-    classement.port.onmessage = () => emetteur?.acquitter();
+    // Du classeur : un crédit par bloc reçu, ou l'arrêt sur sa mémoire, qui
+    // s'applique comme « Arrêter » (ce qui est trouvé se scelle et reste).
+    classement.port.onmessage = (m: MessageEvent<unknown>) => routerMessageDuClasseur(m.data, {
+      acquitter: () => emetteur?.acquitter(), arreter: arreterRecherche });
     classement.port.start();
   }
   const startedAt = Date.now();

@@ -240,7 +240,9 @@ async function chargerTs(): Promise<TsModule> {
  * Relevé des sites de lecture, par l'API du compilateur TypeScript
  * ----------------------------------------------------------------------- */
 
-interface Site { file: string; ligne: number; fn: string; genre: string; appel: string; cible: string[] | null; argv?: string[][]; chargement?: boolean }
+// `cibleNavigateur` (Worker seulement) : la cible quand le module tourne dans le
+// navigateur (chargeur maison des bancs), où `import.meta.url` est sa propre URL.
+interface Site { file: string; ligne: number; fn: string; genre: string; appel: string; cible: string[] | null; argv?: string[][]; chargement?: boolean; cibleNavigateur?: string[] | null }
 // Les arguments d'un appel ne s'évaluent qu'à la demande : la plupart des
 // appels ne servent jamais à résoudre un paramètre.
 interface Appel { file: string; nom: string; noeuds: ts.Expression[]; valeurs: (string[] | undefined)[] }
@@ -258,6 +260,8 @@ class Analyseur {
   readonly appelsParNom = new Map<string, Appel[]>();
   readonly fns = new Map<string, Fn>();
   private readonly racine: string;
+  // Vrai pendant l'évaluation d'une cible vue du navigateur (`cibleNavigateur`).
+  private urlPropre = false;
 
   constructor(racine: string, fichiers: Set<string>, principal: Set<string>) {
     this.racine = racine;
@@ -423,8 +427,9 @@ class Analyseur {
     if (T.isPropertyAccessExpression(node)) {
       const p = node.name.text;
       if (p === 'pathname' || p === 'href') return this.eval(node.expression, file, prof + 1);
-      // La construction principale définit `import.meta.url` comme `tests/index.ts`.
-      if (node.expression.getText() === 'import.meta' && p === 'url') return [this.principal.has(file) ? 'tests/index.ts' : file];
+      // La construction principale définit `import.meta.url` comme `tests/index.ts` ;
+      // le navigateur, comme l'URL du module.
+      if (node.expression.getText() === 'import.meta' && p === 'url') return [this.principal.has(file) && !this.urlPropre ? 'tests/index.ts' : file];
       if (node.expression.getText() === 'process' && p === 'execPath') return ['<node>'];
       return [INCONNU];
     }
@@ -517,7 +522,13 @@ class Analyseur {
         }
       } else if (T.isNewExpression(n)) {
         const nom = n.expression.getText();
-        if (nom === 'Worker' || nom.endsWith('.Worker')) site('worker', 'new Worker', n.arguments?.[0] ? this.eval(n.arguments[0], file) : null);
+        if (nom === 'Worker' || nom.endsWith('.Worker')) {
+          const a0 = n.arguments?.[0];
+          let cibleNavigateur: string[] | null;
+          this.urlPropre = true;
+          try { cibleNavigateur = a0 ? this.eval(a0, file) : null; } finally { this.urlPropre = false; }
+          site('worker', 'new Worker', a0 ? this.eval(a0, file) : null, { cibleNavigateur });
+        }
       } else if ((T.isStringLiteral(n) || T.isNoSubstitutionTemplateLiteral(n)) && /ls-files/.test(n.text)) {
         site('ls-files', 'git ls-files', [n.text]);
       }
@@ -802,14 +813,18 @@ export async function inventaire(racine0: string, metafichier?: Metafile): Promi
       const S = new Set(graphes.get(ft));
       const racines: Racine[] = [];
       const vus = new Set<string>();
-      const ajouter = async (r: string, type: string, via: string) => {
+      // Les modules que le navigateur charge : un banc du chargeur maison, et
+      // les Workers que ces modules démarrent. Leurs `new Worker(new URL(…,
+      // import.meta.url))` se résolvent depuis le module lui-même.
+      const navigateur = new Set<string>();
+      const ajouter = async (r: string, type: string, via: string, dansNavigateur = false) => {
         if (vus.has(r) || !fichiers.has(r)) return;
         vus.add(r);
         const p = graphesRacines.get(r);
         if (!p) { demandes.push({ ft, racine: r, type, via }); return; }
         const g = await p;
         racines.push({ racine: r, type, via, fichiers: g.fichiers, erreur: g.erreur });
-        for (const f of g.fichiers) if (fichiers.has(f)) { S.add(f); an.sites(f); }
+        for (const f of g.fichiers) if (fichiers.has(f)) { S.add(f); an.sites(f); if (dansNavigateur) navigateur.add(f); }
       };
       for (let passe = 0; passe < 6; passe++) {
         const avant = vus.size;
@@ -818,13 +833,15 @@ export async function inventaire(racine0: string, metafichier?: Metafile): Promi
           const fn = an.fnParNom(ch.fichier, ch.fonction);
           const idx = fn ? fn.params.indexOf(ch.parametre) : -1;
           if (!fn || idx < 0 || !an.fnParNom(ch.fichier, ch.chargement)) { incoherences.push(`chargeur ${ch.fichier} : ${ch.fonction}(…${ch.parametre}) ou ${ch.chargement} introuvable`); continue; }
-          for (const v of an.resoudre([jetonParam(fn.id, idx)], S)) if (!v.includes(INCONNU) && !v.includes(JETON) && v !== SANS_APPELANT) await ajouter(posix.normalize(v), 'chargeur-maison', ch.fichier);
+          for (const v of an.resoudre([jetonParam(fn.id, idx)], S)) if (!v.includes(INCONNU) && !v.includes(JETON) && v !== SANS_APPELANT) await ajouter(posix.normalize(v), 'chargeur-maison', ch.fichier, true);
         }
         for (const f of [...S]) for (const s of an.sites(f)) {
-          const cibles = an.resoudre(s.cible ?? [], S).filter((x) => x !== SANS_APPELANT && !x.includes(INCONNU) && !x.includes(JETON));
+          const vueNavigateur = s.genre === 'worker' && navigateur.has(f);
+          const brutes = vueNavigateur ? [...(s.cible ?? []), ...(s.cibleNavigateur ?? [])] : s.cible ?? [];
+          const cibles = an.resoudre(brutes, S).filter((x) => x !== SANS_APPELANT && !x.includes(INCONNU) && !x.includes(JETON));
           const via = `${s.file}:${s.ligne}`;
           if (s.genre === 'esbuild-build') for (const c of cibles) await ajouter(posix.normalize(c), 'esbuild-entryPoints', via);
-          if (s.genre === 'worker' || s.genre === 'import-dynamique') for (const c of cibles) await ajouter(posix.normalize(c), s.genre, via);
+          if (s.genre === 'worker' || s.genre === 'import-dynamique') for (const c of cibles) await ajouter(posix.normalize(c), s.genre, via, vueNavigateur);
           if (s.genre === 'spawn') {
             const toutes = [...cibles];
             for (const a of s.argv ?? []) toutes.push(...an.resoudre(a, S).filter((x) => x !== SANS_APPELANT && !x.includes(INCONNU) && !x.includes(JETON)));

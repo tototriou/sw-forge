@@ -23,8 +23,9 @@ const monstres: Monster[] = [
 ];
 const base = { hp: 10000, atk: 800, def: 700, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 // Trois runes Énergie par emplacement, VIT, ATQ % ou PV % : aucune ne domine
-// les autres, 3⁶ = 729 builds, bien au-delà des K confirmées que la file vise
-// (un geste qui relirait un réglage en direct y demanderait des résolutions).
+// les autres, 3⁶ = 729 builds, bien au-delà des K que la file note (le fond
+// confirme les autres sans note ; un geste qui relirait un réglage en direct y
+// demanderait des notes ou des confirmations).
 const SOUS = [{ code: 8, base: 4 }, { code: 4, base: 5 }, { code: 2, base: 6 }];
 const runes: RuneDetail[] = Array.from({ length: 18 }, (_, i) => ({
   id: 101 + i, slot: (i % 6) + 1, set: 'energy', rank: 6, rarity: 5, level: 15,
@@ -104,14 +105,23 @@ function installerWorkers() {
 // changer aux messages : le test peut y retenir les réponses des vrais
 // résolveurs, comme des résolutions longues en vol. Le compte des réponses
 // libres est commun au pool ; une réponse retenue repart par son canal.
+// Le relais compte aussi les demandes que les classeurs envoient au pool, par
+// nature : une note (`resoudre`) ou une confirmation en fond (`confirmer`).
+// Une fois tout jugé, `resolus` ne bouge plus : seules ces demandes disent
+// qu'un geste a relancé une résolution.
 let reponsesLibres = Infinity, reponsesRetenues: { classeur: MessagePort; data: unknown }[] = [];
+let demandes = { resoudre: 0, confirmer: 0 };
 function relayerResolveur(w: Worker) {
   const poster = w.postMessage.bind(w) as (m: unknown, t?: Transferable[]) => void;
   w.postMessage = ((m: { type?: string; port?: MessagePort }, t?: Transferable[]) => {
     if (m?.type !== 'port' || !m.port) { poster(m, t); return; }
     const classeur = m.port, relais = new MessageChannel();
     reponsesLibres = Infinity; reponsesRetenues = reponsesRetenues.filter((r) => r.classeur !== classeur);
-    classeur.onmessage = (e) => relais.port1.postMessage(e.data);
+    classeur.onmessage = (e) => {
+      const type = (e.data as { type?: string } | null)?.type;
+      if (type === 'resoudre' || type === 'confirmer') demandes[type]++;
+      relais.port1.postMessage(e.data);
+    };
     relais.port1.onmessage = (e) => {
       if (reponsesLibres > 0) { reponsesLibres--; classeur.postMessage(e.data); } else reponsesRetenues.push({ classeur, data: e.data });
     };
@@ -134,7 +144,7 @@ export async function monter(garder = false) {
   setPersistence(garder);
   globalThis.fetch = async () => new Response('{}', { status: 404 });
   installerWorkers();
-  recherches = 0; classeurs = [];
+  recherches = 0; classeurs = []; demandes = { resoudre: 0, confirmer: 0 };
   root = createRoot(document.getElementById('racine')!);
   await geste(() => root!.render(<Banc />));
   let listId = '';
@@ -161,7 +171,7 @@ export function releve() {
     confirmees: c?.comptes.confirmees ?? null, premierRang: c?.page.premierRang ?? null, places: c?.page.placesEnAttente ?? null,
     resultsPage: etat.resultsPage, metric: c?.vue.metric ?? null, tri: c?.vue.tri ?? null,
     listes: listes.lists.length, membre: etat.selectedId ?? null,
-    recus: c?.comptes.recus ?? null, cartes: c?.page.cartes.map(x => x.candidat.runeIds.join('-')) ?? [],
+    demandes: { ...demandes }, recus: c?.comptes.recus ?? null, cartes: c?.page.cartes.map(x => x.candidat.runeIds.join('-')) ?? [],
     contexte: JSON.stringify(etat.search.contexte), toutVerifierPhoto: etat.search.contexte?.toutVerifier ?? null,
     minStatsPhoto: etat.search.contexte?.recherche.requirement.minStats ?? null,
   };

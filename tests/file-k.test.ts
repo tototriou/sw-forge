@@ -46,15 +46,21 @@ export function testKDeLaFile() {
   const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
   ok(/relicContext: relicContextRecherche, run, stop \} = search;/.test(ecran),
     'écran : `relicContextRecherche` est le contexte de la recherche lancée (`useBuildOptimSearch`)');
-  const appelFile = ecran.match(/useEffect\(\(\) => \{ changerVue\(\{[^}]*\}\); \}/)?.[0] ?? '';
+  // L'effet qui pousse la vue au propriétaire, jusqu'à ses dépendances.
+  const effetVue = ecran.match(/useEffect\(\(\) => \{\s*changerVue\(\{([\s\S]*?)\}\);\s*\}, \[changerVue,[^\]]*\]\);/);
+  const appelFile = effetVue?.[0] ?? '';
   // Via `cibleDeLaFile`, qui rend `kDeLaFile` du même contexte
   // sans l'interrupteur « Vérifier toutes les combinaisons trouvées »
   // (tests/verifier-toutes.test.ts).
   ok(appelFile !== '' && !appelFile.includes('toutVerifier') && /contexteResultat\(\{[\s\S]*?toutVerifier: verifierToutesLesCombinaisons \}\);/.test(ecran),
     'écran : la cible de vérification est photographiée au lancement, jamais envoyée avec la vue');
   egal((ecran.match(/kDeLaFile\(/g) ?? []).length, 0, 'écran : aucun K recopié');
-  ok(appelFile.includes('changerVue({ tri: sortBy, metric, page: resultsPage, afficherDepassement })'),
-    'écran : seuls tri, mesure, page et réglage d’affichage du dépassement parviennent au propriétaire');
+  // Les clés de la vue : réglages d'affichage seuls (tri et son sens, bornes
+  // d'affichage, mesure, page, dépassement, colonnes du tableau), jamais un
+  // réglage de recherche.
+  const clesVue = [...(effetVue?.[1] ?? '').matchAll(/(?:^|[{,])\s*(\w+)(?=\s*[:,}]|\s*$)/g)].map((m) => m[1]).sort();
+  egal(clesVue, ['afficherDepassement', 'bornes', 'colonnesCompletes', 'metric', 'page', 'sens', 'tri'],
+    'écran : seuls tri, sens, bornes d’affichage, mesure, page, dépassement et colonnes du tableau parviennent au propriétaire');
 
   // Le CLI : le contexte de la recherche lancée (`params.relicContext`).
   const cli = readFileSync('scripts/lib/classementCli.ts', 'utf8');

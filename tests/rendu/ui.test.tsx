@@ -9,6 +9,7 @@ import Pastille from '../../src/ui/Pastille';
 import Interrupteur from '../../src/ui/Interrupteur';
 import Case from '../../src/ui/Case';
 import Segmented from '../../src/ui/Segmented';
+import Onglets from '../../src/ui/Onglets';
 import Option from '../../src/ui/Option';
 import Jeton from '../../src/ui/Jeton';
 import Selecteur from '../../src/ui/Selecteur';
@@ -17,7 +18,7 @@ import { BandeauNotification } from '../../src/ui/Notification';
 import Palette from '../../src/components/Palette';
 import type { GroupePalette } from '../../src/components/palette/recherchePalette';
 import { egal, ok, titre } from '../outils';
-import { auTelephone, bouton, boutons, rendre, texteVisible } from './outils-rendu';
+import { auTelephone, bouton, boutons, onglets, rendre, texteVisible } from './outils-rendu';
 
 const rien = () => {};
 
@@ -182,4 +183,30 @@ export function testRenduUiNotification() {
   const maj = rendre(<BandeauNotification annonce={{ message: 'Mise à jour prête', action: rien, libelleAction: 'Redémarrer' }} onFermer={rien} />);
   ok(texteVisible(maj).startsWith('Mise à jour prête Redémarrer'), 'libellé donné : « Redémarrer »');
   ok(!!bouton(maj, 'Redémarrer') && !bouton(maj, 'Annuler'), '« Redémarrer » remplace « Annuler », pas les deux');
+}
+
+// Les onglets — ajoutés pour le Top 10 des artéfacts.
+export function testRenduUiOnglets() {
+  titre('rendu · src/ui — Onglets');
+  const rien = () => {};
+  const html = rendre(
+    <Onglets
+      aria-label="Attribut des artéfacts"
+      valeur="feu"
+      onChange={rien}
+      options={[
+        { cle: 'eau', libelle: 'Eau' },
+        { cle: 'feu', libelle: 'Feu' },
+        { cle: 'vent', libelle: 'Vent', desactive: true, title: 'Aucun artéfact de ce groupe' },
+      ]}
+    />
+  );
+  ok(/role="tablist"[^>]*aria-label="Attribut des artéfacts"|aria-label="Attribut des artéfacts"[^>]*role="tablist"/.test(html), 'une rangée d’onglets nommée (tablist)');
+  const lus = onglets(html);
+  egal(lus.map((o) => o.texte), ['Eau', 'Feu', 'Vent'], 'chaque option est un onglet, dans l’ordre');
+  ok(lus.length === boutons(html).length, 'role="tab" sur chaque bouton');
+  egal(lus.filter((o) => o.ouvert).map((o) => o.texte), ['Feu'], 'un seul ouvert (aria-selected)');
+  egal(lus.filter((o) => o.focusable).map((o) => o.texte), ['Feu'], 'seul l’onglet ouvert est dans l’ordre de tabulation');
+  ok(lus[2].desactive && lus[2].title === 'Aucun artéfact de ce groupe', 'un onglet indisponible : affiché, désactivé, avec sa raison');
+  ok(!/border-2|ring-/.test(html), 'contour unique de 1 px : ni bordure double, ni anneau');
 }

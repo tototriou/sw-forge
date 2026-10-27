@@ -12,7 +12,7 @@ import type { AccountView } from '../../src/App';
 import type { CraftLine, EffectLine, RuneDetail } from '../../src/types';
 import { egal, faussLocalStorage, ok, titre } from '../outils';
 import { runesUtiliseesVides } from '../../src/lib/importAccount';
-import { boutons, rendre, texteVisible, valeurs } from './outils-rendu';
+import { boutons, onglets, rendre, texteVisible, valeurs } from './outils-rendu';
 
 // Une réserve courte mais variée : six slots, six sets, une antique, une rune
 // gemmée, une meulée, une innée, des niveaux et des raretés différents — de
@@ -150,8 +150,9 @@ export function testRenduRunesComparaison() {
   const html = rendreVue('comparaison');
   const t = texteVisible(html);
   const b = boutons(html);
-  ok(b.some((x) => x.texte === 'Courbes partagées' && x.presse === true), 'sous-onglet « Courbes partagées », enclenché');
-  ok(b.some((x) => x.texte === 'Fichiers de compte' && x.presse === false), 'sous-onglet « Fichiers de compte »');
+  const sousOnglets = onglets(html);
+  egal(sousOnglets.map((o) => o.texte), ['Courbes partagées', 'Fichiers de compte'], 'deux vrais onglets (`Onglets`) : les deux sources');
+  egal(sousOnglets.filter((o) => o.ouvert).map((o) => o.texte), ['Courbes partagées'], '« Courbes partagées » ouvert par défaut');
   ok(b.some((x) => x.texte === 'Exporter ma courbe'), '« Exporter ma courbe »');
   ok(b.some((x) => x.texte === 'Importer une courbe'), '« Importer une courbe »');
   ok(t.includes('Cet onglet montre tout ce que tu as importé'), 'ce que montre l\'onglet');

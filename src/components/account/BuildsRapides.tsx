@@ -4,7 +4,7 @@ import { BuildRapide, VIT_BASE_REFERENCE, buildsLesPlusRapides, cleCombo } from 
 import { useBuildsRapides } from '../../hooks/useBuildsRapides';
 import { COMPACT, useMediaQuery } from '../../hooks/useMediaQuery';
 import { useStickyState } from '../../hooks/useStickyState';
-import { Bouton, FlottantAuto } from '../../ui';
+import { Bouton, FlottantAuto, Onglets } from '../../ui';
 import RuneWheel from '../RuneWheel';
 import { RuneDetailBox } from '../PieceDetail';
 import SymbolesCombo, { nomCombo } from '../SymbolesCombo';
@@ -112,10 +112,10 @@ export default function BuildsRapides({ runes, className = '' }: { runes: RuneDe
 
   // ⚠️ **À partir de `xl`, TOUTES les combinaisons**, l'une sous l'autre, chacune
   // sous son titre : la largeur porte 4 à 5 cartes par ligne. **Sous `xl`, UN
-  // ONGLET PAR COMBINAISON**, et seuls les builds de l'onglet choisi : 9
-  // combinaisons × 5 builds à la suite y feraient trop de cartes. Jamais une
-  // bande qui défile à l'horizontale (demande explicite) : la rangée d'onglets
-  // passe à la ligne.
+  // ONGLET PAR COMBINAISON** (`Onglets`, la librairie UI), et seuls les builds
+  // de l'onglet ouvert : 9 combinaisons × 5 builds à la suite y feraient trop
+  // de cartes. La rangée d'onglets défile de côté quand elle ne tient pas,
+  // comme partout où l'app pose des onglets.
   // Un seul rendu pour les deux, basculé en CSS : chaque combinaison est écrite
   // une fois, et seules les autres que l'onglet choisi portent `hidden xl:block`.
   // L'onglet choisi survit à la navigation (`useStickyState`) ; une combinaison
@@ -154,32 +154,27 @@ export default function BuildsRapides({ runes, className = '' }: { runes: RuneDe
         <p className="text-sm text-ink-dim">Aucune combinaison choisie : ajoute-en avec « Choisir les combinaisons ».</p>
       ) : (
         <>
-          {/* Des boutons À ÉTAT et non un `Segmented` : celui-ci ne passe pas à
-              la ligne, et neuf combinaisons ne tiennent pas sur une rangée au
-              téléphone. Chaque onglet porte la VIT de son #1 : on compare les
+          {/* De VRAIS onglets (`Onglets`) : l'onglet ouvert coiffe les builds du
+              dessous. Chacun porte la VIT de son #1 : on compare les
               combinaisons sans les ouvrir une à une. */}
-          <div className="mb-3 flex flex-wrap gap-2 xl:hidden" role="group" aria-label="Combinaison affichée">
-            {groupes.map(({ combo, builds }) => {
-              const cle = cleCombo(combo);
-              return (
-                <Bouton
-                  key={cle}
-                  taille="sm"
-                  actif={cle === cleCombo(courant.combo)}
-                  onClick={() => setChoisi(cle)}
-                  icone={<SymbolesCombo combo={combo} taille={14} />}
-                  libelle={
-                    <>
-                      {nomCombo(combo)}
-                      {/* La VIT du #1 se détache du nom : collée, elle se lisait
-                          comme la fin du libellé. */}
-                      <span className="ml-2 font-mono tabular-nums opacity-70">{builds[0]?.total ?? '—'}</span>
-                    </>
-                  }
-                />
-              );
-            })}
-          </div>
+          <Onglets
+            aria-label="Combinaison affichée"
+            className="mb-3 xl:hidden"
+            valeur={cleCombo(courant.combo)}
+            onChange={setChoisi}
+            options={groupes.map(({ combo, builds }) => ({
+              cle: cleCombo(combo),
+              icone: <SymbolesCombo combo={combo} taille={14} />,
+              libelle: (
+                <>
+                  {nomCombo(combo)}
+                  {/* La VIT du #1 se détache du nom : collée, elle se lisait
+                      comme la fin du libellé. */}
+                  <span className="ml-1 font-mono tabular-nums opacity-70">{builds[0]?.total ?? '—'}</span>
+                </>
+              ),
+            }))}
+          />
           <div className="flex flex-col xl:gap-4">
             {groupes.map(({ combo, builds }) => {
               const cleGroupe = cleCombo(combo);

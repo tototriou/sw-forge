@@ -15,10 +15,11 @@ import ReleasesPage from '../../src/pages/ReleasesPage';
 import SettingsPage from '../../src/pages/SettingsPage';
 import ComingSoon from '../../src/pages/ComingSoon';
 import { RELEASES, libelleVersion } from '../../src/data/releases';
-import { filtrerFormesBestiaire, sansDoublonDeCollab, sansDoublonDeTransformation } from '../../src/lib/monsterForms';
+import { autreForme, filtrerFormesBestiaire, sansDoublonDeCollab, sansDoublonDeTransformation } from '../../src/lib/monsterForms';
+import MonsterDetailDialog from '../../src/components/MonsterDetailDialog';
 import type { Monster } from '../../src/types';
 import { egal, faussLocalStorage, monstersJson, ok, titre } from '../outils';
-import { boutons, rendre, texteVisible, valeurs } from './outils-rendu';
+import { auTelephone, boutons, onglets, rendre, texteVisible, valeurs } from './outils-rendu';
 
 const MONSTRES = monstersJson() as Monster[];
 const rien = () => {};
@@ -63,6 +64,27 @@ export function testRenduBestiaire() {
   ok(t.includes('Feu 60 monstres'), 'la première page groupe par élément, avec son compte');
   ok(valeurs(html, 'title').includes('Voir la fiche de Bellenus'), 'chaque carte ouvre la fiche du monstre');
   ok(t.includes('Aragorn, Night Fang'), 'une carte de collaboration porte ses deux noms');
+}
+
+// La fiche d'un monstre TRANSFORMABLE : ses deux formes en onglets, avec
+// l'autre forme trouvée comme l'app la trouve (`autreForme`, bestiaire
+// complet). Un monstre sans autre forme n'a pas d'onglets.
+export function testRenduFicheFormes() {
+  titre('rendu · fiche d’un monstre — les formes en onglets');
+  const bellenus = MONSTRES.find((m) => m.name === 'Bellenus' && autreForme(m, MONSTRES));
+  ok(!!bellenus, 'témoin : Bellenus a une seconde forme dans le bestiaire');
+  if (!bellenus) return;
+  const html = auTelephone(() =>
+    rendre(<MonsterDetailDialog monster={bellenus} autre={autreForme(bellenus, MONSTRES)} onClose={rien} />)
+  );
+  const formes = onglets(html);
+  egal(formes.map((o) => o.texte), ['Forme de base', 'Forme transformée'], 'deux vrais onglets (`Onglets`) : base, puis transformée');
+  egal(formes.filter((o) => o.ouvert).map((o) => o.texte), ['Forme de base'], 'la forme de base ouverte à l’ouverture');
+  ok(formes[1].title === 'Compétences de la forme transformée', 'chaque onglet dit ce qu’il montre');
+  ok(/role="tablist"[^>]*aria-label="Forme du monstre"|aria-label="Forme du monstre"[^>]*role="tablist"/.test(html), 'la rangée est nommée');
+
+  const simple = MONSTRES.find((m) => m.name === 'Lushen' && !autreForme(m, MONSTRES))!;
+  egal(onglets(auTelephone(() => rendre(<MonsterDetailDialog monster={simple} autre={null} onClose={rien} />))).length, 0, 'sans autre forme : aucun onglet');
 }
 
 export function testRenduMecaniques() {

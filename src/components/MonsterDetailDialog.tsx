@@ -3,7 +3,7 @@ import { Sword, Shield, Star, Hourglass, ArrowRight } from 'lucide-react';
 import { Monster } from '../types';
 import { Modale } from '../ui/Dialogs';
 import ElementIcon from './ElementIcon';
-import Segmented from '../ui/Segmented';
+import Onglets from '../ui/Onglets';
 import LeadPill from './siege/LeadPill';
 import CollabPortrait from './CollabPortrait';
 import { libelleCollab } from '../lib/collabPairs';
@@ -158,25 +158,25 @@ export default function MonsterDetailDialog({
           leurs compétences DIFFÈRENT : Bellenus voit son S2 passer de 3.0 à
           2.0 × ATQ et son passif changer entièrement. Sans ce sélecteur, la
           déduplication ferait perdre la moitié de l'information.
-          Un contrôle à cran (`Segmented`) : les deux formes s'excluent. */}
+          De VRAIS onglets (`Onglets`) : la forme ouverte coiffe la fiche du
+          dessous, qui change avec elle. */}
       {formes.length > 1 && (
-        <div className="mb-3">
-          <Segmented
-            value={String(forme.com2usId)}
-            onChange={(v) => {
-              const cible = formes.find((f) => String(f.com2usId) === v);
-              if (cible) setForme(cible);
-            }}
-            options={formes.map((f, i) => ({
-              key: String(f.com2usId),
-              // Le nom est le MÊME des deux côtés : c'est le rang qui les
-              // distingue, comme dans le jeu où l'une se transforme en l'autre.
-              label: i === 0 ? 'Forme de base' : 'Forme transformée',
-              hint: `Compétences de la ${i === 0 ? 'forme de base' : 'forme transformée'}`,
-            }))}
-            size="lg"
-          />
-        </div>
+        <Onglets
+          aria-label="Forme du monstre"
+          className="mb-3"
+          valeur={String(forme.com2usId)}
+          onChange={(v) => {
+            const cible = formes.find((f) => String(f.com2usId) === v);
+            if (cible) setForme(cible);
+          }}
+          options={formes.map((f, i) => ({
+            cle: String(f.com2usId),
+            // Le nom est le MÊME des deux côtés : c'est le rang qui les
+            // distingue, comme dans le jeu où l'une se transforme en l'autre.
+            libelle: i === 0 ? 'Forme de base' : 'Forme transformée',
+            title: `Compétences de la ${i === 0 ? 'forme de base' : 'forme transformée'}`,
+          }))}
+        />
       )}
 
       {/* ⚠️ DEUX COLONNES : ce que le monstre EST à gauche (stats, lead), ce

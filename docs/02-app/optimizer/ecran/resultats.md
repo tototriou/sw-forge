@@ -359,7 +359,9 @@ résolvent aucun équipement. La vue envoyée au classeur les porte
 de paginer**. Les bornes et le sens du tri sont des critères personnels de
 l'écran (`bornesResultats`, `sensTri`, useOptimizerState.ts), comme le
 tri : **mémorisés par membre** (rétablis au retour sur lui), effacés au
-changement de monstre, conservés par une nouvelle recherche, qui remet
+changement de monstre — y compris par l'import d'une recette d'une autre
+espèce, qui passe par le même `resetSearch` (même espèce : gardés) —,
+conservés par une nouvelle recherche, qui remet
 seulement le sens en décroissant avec le tri de son objectif ; dans la
 session, jamais dans la recette ni le CLI (réglages d'affichage, comme le
 tri ; ../feat-listes-equipes-et-sauvegarde.md § Mémoires des membres).

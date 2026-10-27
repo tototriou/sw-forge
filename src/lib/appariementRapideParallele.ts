@@ -28,6 +28,7 @@ import { BuildCandidate, NearMiss, PreparedSearch, SearchParams, SearchResult } 
 import { ColonnesCandidats, LIGNES_PAR_BLOC, SortieCandidats, creerColonnesCandidats, fusionnerCandidats } from './candidatsCompacts';
 import { Compartiment } from './demiBuildsTypes';
 import {
+  AvancementMorceau,
   CompteursNoyau,
   EntreeQuasiSucces,
   EspaceAppariement,
@@ -46,7 +47,14 @@ import {
 /** Un Worker lancé, vu par le coordinateur. */
 export interface PoigneeTravailleur<C = BuildCandidate[]> {
   envoyer(message: Morceau, transfert: ArrayBuffer[]): void;
+  /** Les blocs et bilans des morceaux, jamais un avancement : celui-ci passe par `surAvancement`. */
   surMessage(rappel: (message: ResultatMorceau<C>) => void): void;
+  /**
+   * L'avancement d'un morceau en cours, pour l'affichage seul (sans crédit).
+   * Absent (Workers simulés des tests), la progression affichée n'avance
+   * qu'avec les morceaux reçus.
+   */
+  surAvancement?(rappel: (avancement: AvancementMorceau) => void): void;
   acquitter?(): void;
   surErreur(rappel: (erreur: unknown) => void): void;
   /** L'arrêt manuel : le morceau en cours rend ce qu'il a trouvé, les suivants rien (`servirAppariement`). */
@@ -243,8 +251,15 @@ export interface OptionsParallele<C extends SortieCandidats = BuildCandidate[]> 
    * résultat, dont la dernière progression est l'état final. La liste ne fait
    * que grandir : un aperçu en est toujours un préfixe du résultat. À
    * l'appelant d'espacer ses messages et de ne transmettre que les nouveaux.
+   *
+   * `avancement`, pour l'AFFICHAGE seul : les paires parcourues par tous les
+   * morceaux, fusionnés ou non (reçus, ou en cours d'après leur dernier
+   * avancement). Il ne recule jamais, vaut au moins `traitees`, au plus
+   * `totalPaires`, et finit à `traitees` sur une recherche menée au bout ;
+   * après un plafond ou un arrêt déterministe, il reste figé, et peut
+   * dépasser les paires traitées du résultat. Rien ne se décide dessus.
    */
-  surProgression?: (traitees: number, candidats: C) => void | Promise<void>;
+  surProgression?: (traitees: number, candidats: C, avancement: number) => void | Promise<void>;
 }
 
 /**
@@ -310,6 +325,25 @@ export async function apparierRapideEnParallele(o: OptionsParallele<ColonnesCand
   let tempsEcoule = false;
   let morceauxComplets = 0;
   const fusionTerminee = () => plafond || limiteAtteinte;
+
+  // La progression AFFICHÉE, distincte de `traitees` : la fusion attend le
+  // morceau de tête, alors que les suivants sont souvent déjà reçus. `vus`
+  // garde, par morceau, le plus grand compte de paires parcourues connu (bloc,
+  // bilan ou avancement en cours, tous cumulés dans leur morceau), et
+  // `vusTotal` leur somme. Rien ne se décide dessus : seul `traitees` coupe.
+  const vus = new Float64Array(aDistribuer.length);
+  let vusTotal = 0;
+  let avancementAffiche = 0;
+  const voir = (id: number, parcourues: number) => {
+    if (id < 0 || id >= vus.length || parcourues <= vus[id]) return;
+    vusTotal += parcourues - vus[id];
+    vus[id] = parcourues;
+  };
+  // Figé dès que la fusion est terminée : ce qui arrive ensuite est jeté.
+  const avancement = () => {
+    avancementAffiche = Math.max(avancementAffiche, traitees, fusionTerminee() ? 0 : Math.min(totalPlan, vusTotal));
+    return avancementAffiche;
+  };
 
   let traiteesMorceau = 0, visitesMorceau = 0;
   let compteursMorceau = compteursVides();
@@ -446,7 +480,7 @@ export async function apparierRapideEnParallele(o: OptionsParallele<ColonnesCand
             }
             // La publication compacte est bornée à W blocs, indépendamment
             // des réponses reçues pendant l'attente de la page.
-            await o.surProgression?.(traitees, candidates);
+            await o.surProgression?.(traitees, candidates, avancement());
             if (termine) return;
             for (let k = 0; k < EN_VOL_PAR_TRAVAILLEUR; k++) for (let t = 0; t < nbTravailleurs; t++) distribuer(t);
             if ((distributionTerminee() || prochainADistribuer >= aDistribuer.length) && enVol === 0 && !prefixeDisponible()) finir();
@@ -496,6 +530,7 @@ export async function apparierRapideEnParallele(o: OptionsParallele<ColonnesCand
           // résultat de morceau entier (scénarios de test) compte pour un bloc.
           const lignes = Math.min(r.candidats.length, LIGNES_PAR_BLOC);
           resultats[r.id].push({ r, w, lignes });
+          voir(r.id, r.traitees);
           enAttenteParTravailleur[w]++;
           lignesEnAttente[w] += lignes;
           if (placeLibre(w)) p.acquitter!();
@@ -504,6 +539,14 @@ export async function apparierRapideEnParallele(o: OptionsParallele<ColonnesCand
           receptionsANotifier++;
           programmerFusion();
         } catch (erreur: unknown) { enErreur = { erreur }; finir(); }
+      });
+      // L'avancement d'un morceau en cours : affiché, jamais fusionné, sans
+      // crédit ni place de réception. Il réveille la pompe pour être publié.
+      p.surAvancement?.((a) => {
+        if (termine || fusionTerminee()) return;
+        voir(a.id, a.traitees);
+        receptionsANotifier++;
+        programmerFusion();
       });
     }
     for (let k = 0; k < EN_VOL_PAR_TRAVAILLEUR; k++) for (let w = 0; w < nbTravailleurs; w++) distribuer(w);

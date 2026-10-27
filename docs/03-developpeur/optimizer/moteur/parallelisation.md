@@ -209,6 +209,12 @@ préparé du Worker, pour la validation et son repli de référence.
    message est donc lu au plus `TRANCHE_MS` plus une ligne après son
    arrivée, même quand des morceaux s'enchaînent. Le test est synchrone :
    rien n'est attendu par ligne, seulement pour rendre la main.
+   Avant de rendre la main au milieu d'un morceau, il signale l'avancement
+   de ce morceau (`{ type: 'avancement', id, traitees }` : ses paires
+   traitées à la dernière ligne achevée, que `parcourirMorceau` lui
+   tient à jour), s'il a changé depuis le précédent : au plus un par tranche
+   et par Worker, avant le bilan du morceau, hors des crédits, sans
+   candidat. Il ne sert qu'à l'affichage (§ Orchestration et progression).
    Un `{ type: 'arret' }` reçu arrête le morceau en cours à la ligne
    suivante, rendu avec ce qu'il a trouvé (issue `arret`), et chaque
    morceau qui attendait est rendu aussitôt, vide (`resultatVide`). Un
@@ -232,7 +238,9 @@ Seul le lancement d'un Worker dépend de la plateforme.
 `apparierRapideEnParallele` reçoit un lanceur (`LancerTravailleur`) qui
 démarre un Worker avec son initialisation et ses tampons à transférer, et
 rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
-`surMessage`, `surErreur`, `arreter`, `terminer`.
+`surMessage`, `surAvancement`, `surErreur`, `arreter`, `terminer`.
+`surAvancement` est facultatif : les Workers simulés des tests n'en ont pas,
+et la progression affichée n'avance alors qu'avec les morceaux reçus.
 
 | | Navigateur | Node |
 | --- | --- | --- |
@@ -240,6 +248,7 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
 | Lanceur | `lancerTravailleurNavigateur` (`runeBuildOptim.worker.ts`) | `lancerTravailleurNode` (`scripts/lib/appariementRapideNode.ts`) |
 | Initialisation | `new Worker(new URL('./appariementRapide.worker.ts', import.meta.url), { type: 'module' })`, puis un message `{ type: 'init', init }`, tampons transférés | `new Worker(chemin du paquet, { workerData: init, transferList })` : l'initialisation arrive à la construction |
 | Morceaux | un message par morceau, un résultat par morceau | idem |
+| Avancement | message `{ type: 'avancement', id, traitees }`, aiguillé vers `surAvancement`, jamais vers `surMessage` | idem |
 | Arrêt manuel | message `{ type: 'arret' }` | idem |
 | Fin | `terminate()` | message `{ type: 'fin' }` : le serveur s'arrête, puis le fil ferme son port et sort de lui-même |
 | Erreur | `onerror`, `onmessageerror` | événement `error`, sortie de code non nul |
@@ -248,7 +257,7 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
   message reçu au même `servirAppariement` et postent ce qu'il rend ; une
   exception du serveur est relancée hors de sa promesse, pour atteindre
   `onerror` (navigateur) ou l'événement `error` (Node). Les types du
-  protocole (`InitTravailleur`, `Morceau`, `ResultatMorceau`) vivent dans
+  protocole (`InitTravailleur`, `Morceau`, `ResultatMorceau`, `AvancementMorceau`) vivent dans
   `appariementRapide.ts`, `MessageVersTravailleur` dans
   `travailleurAppariement.ts` ; les deux coquilles les importent de là,
   jamais l'une de l'autre.
@@ -316,9 +325,27 @@ L'adaptation objet est explicite pour les consommateurs d'outillage
    dès réception tant que la fenêtre du producteur a une place libre ;
    une pompe unique fusionne ce qui suit le préfixe déjà fusionné
    (§ Fusion des résultats) et rappelle `surProgression(traitees,
-   candidats)` : les paires traitées et les colonnes des candidats
+   candidats, avancement)` : les paires traitées et les colonnes des candidats
    FUSIONNÉS, dans l'ordre séquentiel — les comptes du résultat, dont la
-   dernière progression est l'état final. Le Worker principal transmet ces
+   dernière progression est l'état final —, et l'avancement à AFFICHER.
+   Celui-ci compte les paires parcourues par tous les morceaux, fusionnés
+   ou non : pour chacun, le plus grand compte connu, bloc, bilan ou
+   avancement d'un morceau en cours (§ Le corps d'un Worker). La fusion,
+   elle, attend le morceau de tête : `traitees` restait figé tant qu'un
+   morceau lent était en tête, puis sautait de tous les morceaux reçus
+   derrière lui (relevé sur une recherche au préréglage Extrême, 116 G
+   paires, six Workers : 72 valeurs distinctes sur 186 messages, un saut de
+   38 morceaux ; avec l'avancement, 186 valeurs distinctes, un saut d'au
+   plus 9 morceaux). Un avancement réveille la pompe comme une réception,
+   pour être publié. L'avancement ne recule jamais, vaut au moins
+   `traitees` et au plus `totalPairs`, et finit à `traitees` sur une
+   recherche menée au bout ou coupée par le temps ou l'arrêt manuel ; la
+   fusion terminée (plafond, arrêt déterministe), il reste figé, et peut
+   alors dépasser les paires traitées du résultat. Rien ne se décide
+   dessus : coupe, plafond et `explored` du résultat lisent `traitees`.
+   Le Worker principal affiche l'avancement (`explored` du message de
+   progression, et son `pct`) ; les outils (`observer`) lisent les paires
+   traitées. Le Worker principal transmet ces
    blocs puis les retire ; le crédit du producteur est indépendant de cette
    publication. La transmission admet jusqu'à seize
    blocs sans attendre la page ; seul le remplissage de cette fenêtre
@@ -606,6 +633,16 @@ la relance explicite crée un nouveau Worker, sans secours ni relance automatiqu
     rend le début de ses candidats, et le résultat est une sous-suite du
     séquentiel, préfixe exact jusqu'au premier morceau coupé ; l'horloge n'y
     sert qu'à couper, aucun temps n'est jugé ;
+  - `testAppariementParalleleProgressionWorkers` : sur de vrais
+    `worker_threads`, deux Workers et huit morceaux allongés par la
+    validation de référence ; précondition vérifiée (des avancements de
+    morceaux en cours reçus), résultat identique au séquentiel, avancement
+    qui ne recule jamais, encadré par les paires traitées et `totalPairs`,
+    dernière publication égale aux paires du résultat, et plus de valeurs
+    distinctes publiées que par les seules paires fusionnées. Les Workers
+    simulés de `testAppariementParallele` vérifient les mêmes bornes, sous
+    plafond compris, et que l'affichage devance la fusion quand les
+    résultats arrivent dans le désordre ;
   - `testAppariementRapide` (`tests/appariement-rapide.test.ts`) : l'oracle
     du noyau et le différentiel contre `pairBuckets`, morceaux simulés
     compris ;

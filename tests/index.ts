@@ -217,6 +217,7 @@ import testDiagnosticDecouverte from './diagnostic-decouverte.test';
 import testRuneOptimScaleMonotonicity from './rune-optim-scale-monotonicity.test';
 import {
   testAppariementParallele, testAppariementParalleleWorkers, testAppariementParalleleCoupeWorkers, testAppariementParalleleBranchement, testAppariementParalleleCession,
+  testAppariementParalleleProgressionWorkers,
 } from './appariement-parallele.test';
 import testAppariementRapide, { testAppariementHorloge } from './appariement-rapide.test';
 import testValidationRapide from './validation-rapide.test';
@@ -755,6 +756,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testAppariementParallele', async () => { await testAppariementParallele(); }],
   ['testAppariementParalleleWorkers', async () => { await testAppariementParalleleWorkers(); }],
   ['testAppariementParalleleCoupeWorkers', async () => { await testAppariementParalleleCoupeWorkers(); }],
+  ['testAppariementParalleleProgressionWorkers', async () => { await testAppariementParalleleProgressionWorkers(); }],
   ['testAppariementParalleleBranchement', async () => { await testAppariementParalleleBranchement(); }],
   ['testAppariementParalleleCession', async () => { await testAppariementParalleleCession(); }],
   ['testAppariementRapide', async () => { await testAppariementRapide(); }],

@@ -1257,6 +1257,17 @@ export interface ResultatMorceau<C = BuildCandidate[]> {
   compteurs: CompteursNoyau;
 }
 
+/**
+ * Où en est un morceau EN COURS : ses paires traitées à la dernière ligne
+ * achevée. Un relevé pour l'affichage, hors du protocole de crédits ; il ne
+ * porte aucun candidat et la fusion ne le lit jamais.
+ */
+export interface AvancementMorceau {
+  type: 'avancement';
+  id: number;
+  traitees: number;
+}
+
 export interface ContexteTravailleur {
   prepared: PreparedSearch;
   ct: CompartimentsTypes;
@@ -1315,8 +1326,12 @@ export function traiterMorceau(ctx: ContexteTravailleur, morceau: Morceau): Resu
  * dans `apparierRapide`, un saut de lignes entières ne le contourne pas.
  * Les points de passage franchis par un saut le sont au même instant ; un
  * seul test les couvre, et la troncature tombe sur le premier d'entre eux.
+ *
+ * `suivi`, s'il est fourni, reçoit les paires traitées du morceau à chaque
+ * ligne achevée : `servirAppariement` en tire l'avancement qu'il signale
+ * entre deux tranches, sans rien changer à ce qui est jugé.
  */
-export function* parcourirMorceau<C extends SortieCandidats = BuildCandidate[]>(ctx: ContexteTravailleur, morceau: Morceau, collecte: C = [] as unknown as C): Generator<ResultatMorceau<C> | void, ResultatMorceau<C>, boolean | undefined> {
+export function* parcourirMorceau<C extends SortieCandidats = BuildCandidate[]>(ctx: ContexteTravailleur, morceau: Morceau, collecte: C = [] as unknown as C, suivi?: { traitees: number }): Generator<ResultatMorceau<C> | void, ResultatMorceau<C>, boolean | undefined> {
   const { prepared, ct, c, runeParId, L, H, sortie, comptes, ordre, validation } = ctx;
   const { maxCollected, maxMs, startedAt } = prepared;
   const overBudget = () => Date.now() - startedAt > maxMs;
@@ -1433,6 +1448,7 @@ export function* parcourirMorceau<C extends SortieCandidats = BuildCandidate[]>(
         break boucle;
       }
       pos = fin;
+      if (suivi) suivi.traitees = pos - morceau.offset;
       if (yield) {
         issue = 'arret';
         break boucle;

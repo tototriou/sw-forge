@@ -362,17 +362,19 @@ async function testCoordination(liste: Espace[]): Promise<void> {
   titre('Appariement parallèle · coordinateur, Workers simulés dans le désordre');
   ok(liste.length >= 4, `${liste.length} espaces construits par la construction de production`);
   const rng = mulberry32(31);
+  // Publications où l'affichage devance la fusion : des morceaux reçus après un morceau de tête encore attendu.
+  let avanceesSurLaFusion = 0;
   for (const e of liste) {
     egal(etat(e.reference), etat(drain(pairBuckets(e.prepared, e.bucketsA, e.bucketsB))), `${e.nom} : la référence séquentielle (apparier) = pairBuckets`);
     egal(planifierMorceaux(e.prepared, e.bucketsA, e.bucketsB, Math.ceil(e.total / 29)).reduce((s, m) => s + m.taille, 0), e.total, `${e.nom} : le plan couvre totalPairCount`);
 
     // Résultat, progression.
     const journal = { lances: 0, termines: 0 };
-    const progression: { traitees: number; n: number; prefixe: boolean }[] = [];
+    const progression: { traitees: number; n: number; prefixe: boolean; avancement: number }[] = [];
     let precedente: readonly BuildCandidate[] = [];
     const r = await apparierRapideEnParallele(options(e, lanceurSimule(rng, journal), {
-      surProgression: (traitees, candidats) => {
-        progression.push({ traitees, n: candidats.length, prefixe: estPrefixe(precedente, candidats) });
+      surProgression: (traitees, candidats, avancement) => {
+        progression.push({ traitees, n: candidats.length, prefixe: estPrefixe(precedente, candidats), avancement });
         precedente = [...candidats];
       },
     }));
@@ -384,6 +386,10 @@ async function testCoordination(liste: Espace[]): Promise<void> {
     ok(progression.every((p, i) => i === 0 || (p.traitees >= progression[i - 1].traitees && p.n >= progression[i - 1].n)) && progression[progression.length - 1].traitees === e.total,
       `${e.nom} : paires traitées et candidats ne reculent jamais, et finissent à totalPairCount`);
     ok(progression.every((p) => p.prefixe) && estPrefixe(precedente, r.candidates), `${e.nom} : l'aperçu est toujours un préfixe du résultat`);
+    ok(progression.every((p, i) => p.traitees <= p.avancement && p.avancement <= e.total && (i === 0 || p.avancement >= progression[i - 1].avancement))
+      && progression[progression.length - 1].avancement === r.explored,
+      `${e.nom} : l'avancement affiché ne recule jamais, encadré par les paires traitées et totalPairCount, et finit aux paires du résultat`);
+    avanceesSurLaFusion += progression.filter((p) => p.avancement > p.traitees).length;
     egal(journal.termines, journal.lances, `${e.nom} : chaque Worker lancé est terminé (${journal.lances})`);
     const seq = drain(apparierRapide(e.prepared, e.bucketsA, e.bucketsB));
     egal(compteursDe(r), compteursDe(seq), `${e.nom} : traitées, visitées, sautées = celles du noyau séquentiel`);
@@ -391,9 +397,13 @@ async function testCoordination(liste: Espace[]): Promise<void> {
     // Plafond GLOBAL, dans l'ordre séquentiel.
     const petit = 3;
     const refPetit = drain(apparier({ ...e.prepared, maxCollected: petit }, e.bucketsA, e.bucketsB));
+    const avancementsPetit: number[] = [];
     const rPetit = await apparierRapideEnParallele(options(e, lanceurSimule(rng, { lances: 0, termines: 0 }), {
       params: { ...e.params, maxCollected: petit }, prepared: { ...e.prepared, maxCollected: petit },
+      surProgression: (traitees, _c, avancement) => { avancementsPetit.push(avancement - traitees < 0 ? -1 : avancement); },
     }));
+    ok(avancementsPetit.every((a, i) => a >= 0 && a <= e.total && (i === 0 || a >= avancementsPetit[i - 1])),
+      `${e.nom} : maxCollected = ${petit}, l'avancement affiché reste monotone, au moins les paires traitées, au plus totalPairCount (${avancementsPetit.length} publications)`);
     egal(etat(enResultatDeRecherche(rPetit)), etat(refPetit), `${e.nom} : maxCollected = ${petit}, les ${petit} premiers de l'ordre séquentiel (aucune part par Worker)`);
     egal(rPetit.motif, 'maxCollected', `${e.nom} : motif maxCollected`);
     egal(compteursDe(rPetit), compteursDe(drain(apparierRapide({ ...e.prepared, maxCollected: petit }, e.bucketsA, e.bucketsB))),
@@ -428,6 +438,7 @@ async function testCoordination(liste: Espace[]): Promise<void> {
     ok(derniere === rArret.explored && rArret.sautees >= 0, `${e.nom} : arrêt manuel → la dernière progression compte ce que compte le résultat (${derniere}), sautées ≥ 0`);
     egal(jArret.termines, jArret.lances, `${e.nom} : arrêt manuel → chaque Worker terminé`);
   }
+  ok(avanceesSurLaFusion > 0, `résultats reçus dans le désordre : l'avancement affiché devance la fusion sans attendre le morceau de tête (${avanceesSurLaFusion} publications)`);
 
   const e = liste[0];
   // Arrêt avant tout travail : aucun Worker lancé, résultat vide, tronqué.
@@ -782,6 +793,55 @@ export async function testAppariementParalleleWorkers(): Promise<void> {
     ok(rArret.truncated && v.sousSuite && v.prefixeExact,
       `${e.nom} : arrêt manuel → ${rArret.candidates.length} candidats gardés, sous-suite du séquentiel, préfixe exact jusqu'au premier morceau coupé (${v.prefixe})`);
   }
+}
+
+/**
+ * La progression AFFICHÉE sur un grand espace, de VRAIS `worker_threads`
+ * (lanceur Node de production) : deux Workers, huit morceaux que la
+ * validation de référence rend assez longs pour qu'un Worker signale
+ * l'avancement de son morceau en cours entre deux tranches. Dans la même
+ * recherche, l'ancien affichage (`traitees`, qui n'avance qu'à la fusion dans
+ * l'ordre des morceaux) et le nouveau (`avancement`) sont comptés : valeurs
+ * distinctes publiées, plus grand saut. La précondition (au moins un
+ * avancement reçu d'un morceau en cours) est vérifiée, jamais supposée ;
+ * aucun temps n'est jugé.
+ */
+export async function testAppariementParalleleProgressionWorkers(): Promise<void> {
+  titre('Appariement parallèle · vrais worker_threads : la progression affichée avance avec les morceaux reçus et en cours');
+  const lancer = lancerTravailleurNode(await assurerBundleAppariementRapide());
+  const pool = randomPool(mulberry32(8100), 12, SETS_JOKER);
+  const params: SearchParams = { base: { ...BASE, spd: 400 }, artifacts: [], pool, requirement: { sets: [], minStats: { spd: 600 }, maxStats: {} }, metric: 'eff', maxMs: Infinity, maxCollected: Infinity, slotFilterCap: 80 };
+  const prepared = prepareSearch(params)!;
+  const bucketsA = drain(construireMoitie('A', [0, 1, 2], prepared, prepared.maxSetsForA));
+  const bucketsB = drain(construireMoitie('B', [3, 4, 5], prepared, prepared.maxSetsForB));
+  const total = totalPairCount(prepared, bucketsA, bucketsB);
+  const reference = drain(apparier(prepared, bucketsA, bucketsB));
+  const e: Espace = { nom: `12 runes par emplacement (${total} paires)`, params, prepared, bucketsA, bucketsB, total, reference };
+  const cible = Math.ceil(total / 8);
+  let avancementsRecus = 0;
+  const compteur: LancerTravailleur = (init, transfert) => {
+    const p = lancer(init, transfert);
+    return { ...p, surAvancement: (rappel) => p.surAvancement?.((a) => { avancementsRecus++; rappel(a); }) };
+  };
+  const publiees: { traitees: number; avancement: number }[] = [];
+  const r = await apparierRapideEnParallele(options(e, compteur, {
+    travailleurs: 2, cibleMorceau: cible, forcerValidation: 'reference',
+    surProgression: (traitees, _c, avancement) => { publiees.push({ traitees, avancement }); },
+  }));
+  egal(etat(enResultatDeRecherche(r)), etat(reference), `${e.nom} : ${r.morceaux} morceaux, résultat identique au séquentiel, explored = ${r.explored} paires traitées`);
+  egal(r.explored, total, `${e.nom} : non tronqué, explored = totalPairCount`);
+  ok(avancementsRecus > 0, `${e.nom} : PRÉCONDITION, des avancements de morceaux en cours reçus (${avancementsRecus})`);
+  const serie = (cle: 'traitees' | 'avancement') => {
+    const valeurs = publiees.map((p) => p[cle]).filter((v, i, t) => i === 0 || v !== t[i - 1]);
+    return { distinctes: valeurs.length, sautMax: Math.max(valeurs[0] ?? 0, ...valeurs.slice(1).map((v, i) => v - valeurs[i])) };
+  };
+  const avant = serie('traitees');
+  const apres = serie('avancement');
+  ok(publiees.every((p, i) => p.traitees <= p.avancement && p.avancement <= total && (i === 0 || p.avancement >= publiees[i - 1].avancement)),
+    `${e.nom} : l'avancement ne recule jamais, encadré par les paires traitées et totalPairCount (${publiees.length} publications)`);
+  egal(publiees[publiees.length - 1], { traitees: r.explored, avancement: r.explored }, `${e.nom} : la dernière publication compte les paires du résultat, des deux côtés`);
+  ok(apres.distinctes > avant.distinctes,
+    `${e.nom} : plus de valeurs affichées qu'à la seule fusion (${avant.distinctes} → ${apres.distinctes}), plus grand saut ${avant.sautMax} → ${apres.sautMax} paires (morceau ≈ ${cible})`);
 }
 
 /**

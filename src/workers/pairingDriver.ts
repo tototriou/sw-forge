@@ -25,10 +25,11 @@ export async function lancerAppariement(
   }
 ): Promise<{ resultat: SearchResult<ColonnesCandidats>; parallele?: ResultatParallele<ColonnesCandidats> }> {
   const collecte = options.collecte ?? creerColonnesCandidats();
-  const publier = async (explored: number, candidats: ColonnesCandidats) => {
+  // `observer` (outils) lit les paires traitées ; `surProgression` reçoit aussi l'avancement affichable.
+  const publier = async (explored: number, candidats: ColonnesCandidats, avancement: number) => {
     options.observer?.(explored, candidats);
     await options.flux.transmettre(candidats);
-    await options.surProgression?.(explored, candidats);
+    await options.surProgression?.(explored, candidats, avancement);
   };
   if (options.regime === 'parallele') {
     const parallele = await apparierRapideEnParallele({ ...options, collecte, surProgression: publier });
@@ -46,7 +47,8 @@ export async function lancerAppariement(
   };
   const resultat = await drivePairing(options.observer ? observer() : source, options.estArrete ?? (() => false), async (explored, candidats) => {
     await options.flux.transmettre(candidats);
-    await options.surProgression?.(explored, candidats);
+    // En séquentiel, tout ce qui est parcouru est déjà traité : l'avancement est `explored`.
+    await options.surProgression?.(explored, candidats, explored);
   });
   return { resultat };
 }

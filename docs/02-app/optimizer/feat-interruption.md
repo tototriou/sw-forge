@@ -70,7 +70,13 @@ une grosse recherche : il ne ralentit rien, il borne le nombre de
 `postMessage`, dont chacun clone les nouveaux candidats ; plus long, il
 n'en économiserait que quelques-uns par seconde, pour une barre moins
 vivante. Chaque message porte `explored`, `found`
-et un `pct` approximatif : le plus avancé des trois budgets qui peuvent
+et un `pct` approximatif. En appariement parallèle, `explored` est
+l'avancement : les paires déjà parcourues par tous les Workers, y compris
+les morceaux finis que la fusion, faite dans l'ordre, n'a pas encore
+rejoints et ceux en cours ; sans lui, le compteur restait figé derrière un
+morceau lent puis sautait d'un coup
+([moteur/parallelisation.md § Orchestration et progression](../../03-developpeur/optimizer/moteur/parallelisation.md#orchestration-et-progression)).
+Le résultat, lui, compte les paires traitées. `pct` est le plus avancé des trois budgets qui peuvent
 chacun terminer la recherche — et les seuls qui existent (pas de plafond
 de nœuds : une borne qui grandit en cours de route ferait RECULER la
 barre) :

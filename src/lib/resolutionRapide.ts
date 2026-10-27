@@ -416,6 +416,28 @@ function reliquesDominees(
 }
 
 /**
+ * Les sorts (`skillCom2usId`) dont la note BAISSE quand une stat que la
+ * dominance des reliques suppose croissante augmente : ils contredisent la
+ * règle de jeu R (dégâts non décroissants en PV, ATQ, DEF, dégâts infligés de
+ * relique et lignes d'artéfact, confirmée par l'utilisateur le 2026-10-27).
+ * Leurs reliques sont toutes notées (`dominanceReliques` absent, `relicQueue.ts`),
+ * au niveau build comme par paire. La liste est dressée par
+ * `tests/monotonie-degats-corpus.test.ts` sur le corpus de l'Optimizer, qui
+ * échoue si un sort hors liste baisse ou si un sort de la liste ne baisse plus.
+ * ⚠️ Une exception se signale, elle ne se corrige pas ici : la valeur est la
+ * raison, pour chaque sort.
+ */
+export const EXCEPTIONS_REGLE_R: ReadonlyMap<number, string> = new Map<number, string>([
+  // Ceres, Last Shot : +50 % si les PV de la cible dépassent 2 fois les PV
+  // propres (`pvCibleSuperieursPvPropre`, damage.ts) ; monter les PV propres
+  // peut éteindre ce bonus et baisser la note.
+  [5812, 'PV : le bonus « PV de la cible supérieurs à 2 × les PV propres » s\'éteint quand les PV montent'],
+]);
+
+/** Le sort de ce contexte contredit-il la règle R (`EXCEPTIONS_REGLE_R`) ? */
+export const estExceptionRegleR = (skillCom2usId: number): boolean => EXCEPTIONS_REGLE_R.has(skillCom2usId);
+
+/**
  * Ce que la dominance des reliques demande à l'entrée (« Dégâts réels »
  * seulement, `EntreeResolution.dominanceReliques`) : le contexte de l'apport
  * des exclusives, et les stats que la note lit hors des lignes de la paire.

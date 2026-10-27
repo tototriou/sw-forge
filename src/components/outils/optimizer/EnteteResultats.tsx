@@ -87,7 +87,8 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, tri
       <br />
       <br />
       Les combinaisons affichées sont vérifiées en premier, avec leur meilleur équipement ; toutes
-      les autres sont ensuite confirmées en fond.
+      les autres sont ensuite confirmées en fond. « Vérifier toutes les combinaisons trouvées », dans
+      les réglages avancés, cherche le meilleur équipement de chacune.
     </HelpPopover>
   );
   // Masqués seulement quand tout est vérifié sans aucune confirmée : le tri et

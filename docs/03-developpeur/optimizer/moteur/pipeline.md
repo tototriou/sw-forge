@@ -739,8 +739,10 @@ résolus et conformes, dans l'ordre du classement ; les places restantes
 attendent, « Vérification… », tant qu'il reste des builds non résolus.
 `compteConfirmeDesComptes` donne l'en-tête, en combinaisons confirmées, et le
 nombre de pages, sur les comptes (`compteConfirme` en est la forme sur une
-liste, pour les tests et le CLI) ; `compteAffichable` donne le compte de la
-ligne de progression. Sans file (optimisation d'artéfacts coupée), la page
+liste, pour les tests et le CLI), et si ce nombre peut encore monter
+(`pagesPeuventMonter`, « / N+ ») ; `compteAffichable` donne le compte des
+trouvées, de la ligne de progression et de l'en-tête (« … sur YY
+trouvée(s) », avec une file). Sans file (optimisation d'artéfacts coupée), la page
 est la tranche du classement. Détail de l'écran :
 [02-app/optimizer/ecran/resultats.md § Compte des combinaisons confirmées et pagination](../../../02-app/optimizer/ecran/resultats.md#compte-des-combinaisons-confirmées-et-pagination).
 

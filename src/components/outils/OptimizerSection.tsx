@@ -7,7 +7,7 @@ import { importerRecoOptimizer } from '../../lib/importRecoOptimizer';
 import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importerPrepaRtaOptimizer, type RapportImportOptimizer } from '../../lib/importEquipes';
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
 import { computeStats } from '../../lib/stats';
-import { compteAffichable, compteConfirmeDesComptes, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
+import { compteAffichable, compteConfirmeDesComptes, pagesDesResultats, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
 import { etatReliqueDuBuild } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
@@ -2041,6 +2041,19 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         return;
       }
       optimizer.effacerProprietaireCriteres();
+      // ⚠️ Résolu dans TOUT le bestiaire (`allMonsters`), pas seulement les
+      // monstres possédés — la recherche « Monstre à optimiser » couvre
+      // tout le bestiaire, donc une
+      // recette reçue d'un autre joueur pour un monstre qu'on ne possède pas
+      // reste sélectionnable (repli sur ses stats de base 6★, voir
+      // `selected`) au lieu d'échouer.
+      const match = allMonsters.find((m) => m.com2usId === recipe.monsterCom2usId);
+      // Une recette d'une AUTRE espèce change de monstre : même chemin que
+      // `pickSpecies` et `choisirExemplaire` (`resetSearch`), AVANT les valeurs
+      // de la recette, qui l'emportent. Les filtres d'affichage (tri, sens,
+      // bornes) et les résultats appartiennent au monstre : ils tombent avec
+      // lui. Même espèce : rien n'est remis à zéro.
+      if (match && String(match.id) !== selectedId) resetSearch();
       optimizer.poserCriteresAutomatiques({ comboSets: recipe.requirement.sets, minStats: recipe.requirement.minStats,
         maxStats: recipe.requirement.maxStats ?? {}, mainStatsBySlot: recipe.requirement.mainStats ?? {} });
       // ⚠️ **Runes imposées : gardées SEULEMENT si elles existent dans CET
@@ -2137,13 +2150,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // Un avertissement de conversion change le TON et la DURÉE du message :
       // token `warn`, sans effacement automatique (`messageImport.ts`).
       const avecAvertissement = (avertissements ?? []).length > 0;
-      // ⚠️ Résolu dans TOUT le bestiaire (`allMonsters`), pas seulement les
-      // monstres possédés — la recherche « Monstre à optimiser » couvre
-      // tout le bestiaire, donc une
-      // recette reçue d'un autre joueur pour un monstre qu'on ne possède pas
-      // reste sélectionnable (repli sur ses stats de base 6★, voir
-      // `selected`) au lieu d'échouer.
-      const match = allMonsters.find((m) => m.com2usId === recipe.monsterCom2usId);
       if (match) {
         // ⚠️ Une recette ne porte que l'ESPÈCE (`monsterCom2usId`), jamais un
         // exemplaire précis (voir le commentaire de `gearSource` plus haut) —
@@ -2325,9 +2331,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   });
   // Sous une borne active, les pages sont celles de la vue filtrée (même
   // règle des confirmées, sur les visibles et les potentiels) ; sans borne,
-  // celles de la recherche, comme avant.
+  // celles de la recherche, comme avant. « / N+ » tant que d'autres pages
+  // peuvent encore apparaître, dans l'un comme dans l'autre (`pagesDesResultats`).
   const filtreActif = (instantane?.filtre.bornes.actives.length ?? 0) > 0;
-  const totalResultsPages = filtreActif ? instantane!.filtre.pages : compteConfirmes.pages;
+  const pagesResultats = pagesDesResultats(compteConfirmes, filtreActif ? instantane!.filtre : null, avecFile, RESULTS_PAGE_SIZE);
+  const totalResultsPages = pagesResultats.pages;
 
   // ⚠️ CORRIGE la page courante, ne la remet PAS à 1 : un aperçu EN DIRECT
   // (pendant la phase d'appariement) grandit au fil de la recherche sans
@@ -3182,6 +3190,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               pageDraft={pageDraft}
               setPageDraft={setPageDraft}
               totalResultsPages={totalResultsPages}
+              pagesPeuventMonter={pagesResultats.pagesPeuventMonter}
             />
           )}
         </div>

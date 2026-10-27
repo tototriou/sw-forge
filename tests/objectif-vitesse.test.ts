@@ -50,7 +50,7 @@ export function testObjectifVitesseMigration() {
   // « Trier par » : VIT dans les stats, plus d'option « Vitesse » parmi les objectifs.
   const html = rendre(createElement(EnteteResultats, {
     result: { nombre: 3, explored: 10, truncated: false, nearMissByCondition: [], globalNearMiss: null },
-    compteConfirmes: { confirmees: 3, nonVerifies: 0, pages: 1, aucune: false }, avecFile: false, tri: { tri: 'spd', sens: 'desc' },
+    compteConfirmes: { confirmees: 3, nonVerifies: 0, pages: 1, pagesPeuventMonter: false, aucune: false }, avecFile: false, tri: { tri: 'spd', sens: 'desc' },
     trier: () => {}, metric: 'eff', disponible: (c: string) => c !== 'degats_reels', enAttente: 0, compteAffiche: { compte: 3, ecartes: 0, raison: null },
   }));
   ok(/<option[^>]*value="spd"/.test(html) && !/<option[^>]*value="vitesse"/.test(html), '« Trier par » : VIT proposé, l’objectif Vitesse absent');

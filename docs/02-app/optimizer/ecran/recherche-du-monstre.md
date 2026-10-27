@@ -153,7 +153,7 @@ l’import d’une recette. Cette dérivation ne réécrit aucune mémoire.
 | Navigation entre listes sans choisir un autre monstre | Mémoire valide du membre affiché dans la destination ; sinon conservés sans propriétaire | Même règle | Même règle |
 | Création ou suppression de la liste active sans inclusion | Conservés sans propriétaire | Conservés sans propriétaire | Conservés sans propriétaire |
 | Choix d'un membre de liste, par sa carte, la recherche ou un exemplaire déjà membre | Mémoire valide, sinon base complète | Mémoire valide, sinon base complète | Mémoire valide, sinon base complète |
-| Import de recette | Valeurs de la recette | Valeurs de la recette | Valeurs de la recette |
+| Import de recette | Valeurs de la recette | Valeurs de la recette | Valeurs de la recette ; autre espèce : `resetSearch` habituel d'abord (tri, sens, bornes, résultats) |
 | Import de compte sans propriétaire valide | Défauts | Défauts | `resetSearch` habituel |
 | Réimport avec propriétaire valide après rattachement | Conservés | Conservés | Conservés ; runes imposées absentes retirées de l'affichage et dites, cohérence de relique conservée |
 
@@ -182,7 +182,12 @@ re-sélection de la même espèce dans le bestiaire, ou d'un exemplaire par
 les puces de source et la zone D, ne vide rien, et n'efface pas non plus
 les résultats affichés. L'import de
 recette écrit directement ses valeurs après validation ; aucun effet
-différé de changement d'espèce ne les écrase.
+différé de changement d'espèce ne les écrase. Une recette d'une **autre
+espèce** que le monstre sélectionné passe d'abord par `resetSearch`, comme
+le bestiaire : le tri, son sens et les bornes des résultats reviennent à
+leurs défauts et les résultats affichés s'effacent, puis les valeurs de la
+recette s'écrivent par-dessus. Même espèce, ou monstre introuvable : rien
+n'est remis à zéro.
 
 ## Au bureau : la liste de travail et « Exemplaire »
 

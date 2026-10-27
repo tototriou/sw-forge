@@ -14,6 +14,7 @@ import { auTelephone, bouton, boutons, rendre, texteVisible } from './outils-ren
 import { egal, ok, titre } from '../outils';
 import type { BuildCandidate, BuildRequirement } from '../../src/lib/runeBuildOptim';
 import EnteteResultats from '../../src/components/outils/optimizer/EnteteResultats';
+import PaginationResultats from '../../src/components/outils/optimizer/PaginationResultats';
 import { rechercheClasseeTest } from './optimizer-classement-banc';
 
 const EPUISEMENT = "Rechercher jusqu'à épuisement complet";
@@ -172,8 +173,8 @@ export function testRenduOptimizerResultatsEntete() {
 
   const un = recherche({ status: 'done', result: resultat(1) });
   const tUn = texteVisible(un);
-  ok(tUn.includes('0 combinaison(s) confirmée(s)') && !tUn.includes("pour l'instant") && !tUn.includes('Aucune combinaison'),
-    'recherche finie, file active, rien de vérifié : « 0 combinaison(s) confirmée(s) », jamais « Aucune »');
+  ok(tUn.includes('0 combinaison(s) confirmée(s) sur 1 trouvée(s)') && !tUn.includes("pour l'instant") && !tUn.includes('Aucune combinaison'),
+    'recherche finie, file active, rien de vérifié : « 0 combinaison(s) confirmée(s) sur 1 trouvée(s) », jamais « Aucune »');
   ok(!!bouton(un, 'Combinaisons confirmées'), 'file active : l’infobulle « Combinaisons confirmées » à côté de l’en-tête');
   ok(!interrupteurs(un).some((x) => x.nom === 'Adapter les artéfacts et reliques au tri') && !tUn.includes('Adapter les artéfacts'),
     'réglage retiré : aucun « Adapter les artéfacts et reliques au tri », le tri ne résout aucun équipement');
@@ -182,13 +183,28 @@ export function testRenduOptimizerResultatsEntete() {
 
   const live = texteVisible(recherche({ status: 'running', result: null,
     progress: { phase: 'pairing', explored: 10, found: 1, pct: 0.1, totalPairs: 100, candidates: [candidat(1)] } }));
-  ok(live.includes("0 combinaison(s) confirmée(s) pour l'instant — recherche en cours…"), 'pendant la recherche : « … pour l’instant — recherche en cours… »');
+  ok(live.includes("0 combinaison(s) confirmée(s) sur 1 trouvée(s) pour l'instant — recherche en cours…"),
+    'pendant la recherche : « … sur M trouvée(s) pour l’instant — recherche en cours… »');
 
   const sansFile = recherche({ status: 'done', result: resultat(1) }, { optimiserArtefacts: false });
   const tSans = texteVisible(sansFile);
-  ok(tSans.includes('1 combinaison(s) confirmée(s)') && !bouton(sansFile, 'Combinaisons confirmées')
+  ok(tSans.includes('1 combinaison(s) confirmée(s)') && !tSans.includes('confirmée(s) sur') && !bouton(sansFile, 'Combinaisons confirmées')
     && !interrupteurs(sansFile).some((x) => x.nom === 'Adapter les artéfacts et reliques au tri') && selecteurTri(sansFile),
-  'sans file : les trouvées sont les confirmées, sans infobulle ni « Adapter… », « Trier par » gardé');
+  'sans file : les trouvées sont les confirmées, sans le « sur M trouvée(s) », sans infobulle ni « Adapter… », « Trier par » gardé');
+
+  // La pagination : « / N+ » tant qu'il reste des trouvées non vérifiées ; le
+  // « + » garde sa place, invisible, une fois tout vérifié. L'écran entier ne
+  // la montre pas en rendu serveur (rien n'y est vérifié, une seule page) :
+  // elle est rendue seule.
+  const pagination = (pagesPeuventMonter: boolean) => rendre(
+    <PaginationResultats setResultsPage={() => {}} resultsPage={1} pageDraft={null} setPageDraft={() => {}} totalResultsPages={16}
+      pagesPeuventMonter={pagesPeuventMonter} />,
+  );
+  const plus = (html: string) => html.match(/<span\b([^>]*)>\+<\/span>/)?.[1] ?? null;
+  const ouverte = pagination(true), exacte = pagination(false);
+  ok(/\/ 16<span\b[^>]*>\+<\/span>/.test(ouverte) && !/invisible/.test(plus(ouverte) ?? 'invisible'), 'il reste des non vérifiées : « / 16+ », collé au nombre');
+  ok(/class="invisible"/.test(plus(exacte) ?? '') && /aria-hidden="true"/.test(plus(exacte) ?? ''),
+    'tout vérifié : « / 16 », le « + » garde sa place, invisible et tu (la flèche suivante ne bouge pas)');
 }
 
 // La ligne de la file, sous l'en-tête : le reste de la file en vérification,
@@ -200,7 +216,7 @@ export function testRenduOptimizerLigneFile() {
   const entete = (avecFile: boolean, enAttente: number) => rendre(
     <EnteteResultats
       result={{ nombre: 3, explored: 10, truncated: false, nearMissByCondition: [], globalNearMiss: null }}
-      compteConfirmes={{ confirmees: 1, nonVerifies: 2, pages: 1, aucune: false }}
+      compteConfirmes={{ confirmees: 1, nonVerifies: 2, pages: 1, pagesPeuventMonter: true, aucune: false }}
       avecFile={avecFile}
       tri={{ tri: 'atk', sens: 'desc' }}
       trier={() => {}}

@@ -59,14 +59,18 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, tri
   // vérifiés (résolus et conformes), un compte qui ne baisse jamais pendant
   // une recherche — les filtres d'affichage ne le changent pas, ils répartissent
   // les confirmées entre visibles et masquées. « Aucune combinaison… »
-  // seulement quand tout est vérifié sans aucune confirmée.
+  // seulement quand tout est vérifié sans aucune confirmée. Avec une file, le
+  // compte des trouvées (`compteAffiche`, celui de la ligne de progression)
+  // suit : sans elle, les deux nombres sont égaux.
+  const confirmees = `${compteConfirmes.confirmees.toLocaleString('fr-FR')} combinaison(s) confirmée(s)`
+    + (avecFile ? ` sur ${compteAffiche.compte.toLocaleString('fr-FR')} trouvée(s)` : '');
   const compte = (
     <p className="label">
       {result
         ? compteConfirmes.aucune
           ? 'Aucune combinaison ne répond à ces critères'
-          : `${compteConfirmes.confirmees.toLocaleString('fr-FR')} combinaison(s) confirmée(s)`
-        : `${compteConfirmes.confirmees.toLocaleString('fr-FR')} combinaison(s) confirmée(s) pour l'instant — recherche en cours…`}
+          : confirmees
+        : `${confirmees} pour l'instant — recherche en cours…`}
     </p>
   );
   // Seulement quand une file vérifie : sans elle, confirmées et trouvées sont
@@ -77,8 +81,8 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, tri
       été vérifiés avec les pièces de ton inventaire : elle tient vraiment toutes les conditions.
       <br />
       <br />
-      Le nombre « trouvée(s) » de la barre de progression compte tout ce que la recherche a retenu stat
-      par stat : une estimation optimiste, pas encore vérifiée. Une partie de ces combinaisons est
+      Le nombre « trouvée(s) » compte tout ce que la recherche a retenu stat par stat : une
+      estimation optimiste, pas encore vérifiée. Une partie de ces combinaisons est
       écartée à la vérification.
       <br />
       <br />

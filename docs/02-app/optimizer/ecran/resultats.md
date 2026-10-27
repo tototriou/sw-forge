@@ -183,8 +183,8 @@ ci-dessous. Le compte suit chaque publication du cache de la file
 (400 ms), en pleine recherche comme après sa fin ; un build pas encore
 résolu reste compté : c'est une borne optimiste, qui baisse à mesure que
 la vérification écarte des builds. Sans optimisation d'artéfacts, pas de
-file : rien ne change. L'en-tête des résultats et le nombre de pages ne
-lisent pas ce compte, mais celui des confirmées (ci-dessous). **Sous « Aucune combinaison ne répond à ces critères »**
+file : rien ne change. Le nombre de pages ne lit pas ce compte, mais celui
+des confirmées ; l'en-tête des résultats écrit les deux (ci-dessous). **Sous « Aucune combinaison ne répond à ces critères »**
 (tout vérifié, aucune confirmée), une ligne de raison : « 1 combinaison
 trouvée par la recherche a été écartée : aucune paire d'artéfacts ni
 relique réelles ne tient toutes les conditions. » (pluriel : « N
@@ -198,14 +198,18 @@ s'affichent pas sous un tel zéro.
 
 ⚠️ **L'en-tête compte les combinaisons confirmées**, un nombre stable,
 compté après vérification. Pendant la recherche, « XX combinaison(s)
-confirmée(s) pour l'instant — recherche en cours… », puis « XX
-combinaison(s) confirmée(s) » : seulement les builds de cette recherche
-vérifiés (résolus ET conformes), lus dans le cache publié de la file. Le
+confirmée(s) sur YY trouvée(s) pour l'instant — recherche en cours… »,
+puis « XX combinaison(s) confirmée(s) sur YY trouvée(s) » : XX, seulement
+les builds de cette recherche vérifiés (résolus ET conformes), lus dans le
+cache publié de la file ; YY, le compte des trouvées de la ligne de
+progression (`compteAffichable`, ci-dessus), qui peut baisser à mesure que
+la vérification écarte des builds. Sans file, l'en-tête ne dit que « XX
+combinaison(s) confirmée(s) » : les deux nombres sont égaux. Le
 compte **ne baisse jamais pendant une recherche** : le cache ne fait que
 grandir, l'aperçu des reçus aussi ; ni le tri ni la page ne vident le
 cache, dont la signature est photographiée au lancement. Une petite infobulle
 (« Combinaisons confirmées », à droite de l'en-tête, quand une file
-vérifie) dit la différence avec les trouvées de la ligne de progression :
+vérifie) dit la différence avec les trouvées :
 une combinaison confirmée tient vraiment toutes les conditions avec les
 pièces de l'inventaire ; « trouvée(s) » est une estimation optimiste,
 retenue stat par stat, dont une partie est écartée à la vérification ;
@@ -224,14 +228,27 @@ l'ouvre (ci-dessous) —, soit `min(⌈(confirmées + non vérifiés) / 20⌉,
 ⌈confirmées / 20⌉ + 1)`, au moins 1 : jamais une page vide. Par exemple,
 5 100 trouvées et 300 confirmées donnent 16 pages, et non 255. Si le nombre de pages diminue (la page au-delà des
 confirmées perd ses derniers non vérifiés, ou la vérification
-recommence), la page courante revient sur la dernière. Une seule
-fonction pure, `compteConfirme` (artifactQueue.ts), donne le compte, les
-non vérifiés, les pages et l'état « Aucune combinaison… » ; l'écran l'appelle
+recommence), la page courante revient sur la dernière. **Le « + » dit
+seulement que d'autres pages peuvent encore apparaître** : « / 16+ »
+quand le plafond « une page au-delà des confirmées » coupe des non
+vérifiés (`⌈(confirmées + non vérifiés) / 20⌉` dépasse les pages
+écrites, par exemple 300 confirmées et 1 000 non vérifiées, la
+vérification s'étant arrêtée à K confirmées), ou quand le moteur a trouvé
+plus de combinaisons qu'il n'en a été reçu ; sinon le nombre exact, même
+s'il reste des non vérifiés qui ne peuvent que le faire baisser (45
+confirmées et 10 non vérifiées : « / 3 », 3 est déjà le maximum). Le
+« + » garde sa place, invisible, quand il disparaît : la vérification
+déclenchée par « Page suivante » ne déplace pas la flèche cliquée. Une
+seule fonction pure, `compteConfirme` (artifactQueue.ts), donne le compte,
+les non vérifiés, les pages, si elles peuvent encore monter
+(`pagesPeuventMonter`) et
+l'état « Aucune combinaison… » ; l'écran l'appelle
 sur les comptes de l'instantané du classeur (`compteConfirmeDesComptes`),
-sans jamais recevoir la liste des reçus. Sans optimisation d'artéfacts, pas de file :
+sans jamais recevoir la liste des reçus, et n'écrit que ce que
+`pagesDesResultats` en retient. Sans optimisation d'artéfacts, pas de file :
 l'équipement est celui de la fiche, déjà jugé exactement par le moteur —
-les confirmées sont les trouvées, les pages celles des reçus, et
-l'infobulle ne s'affiche pas.
+les confirmées sont les trouvées, les pages celles des reçus, toujours
+exactes (jamais « + »), et l'infobulle ne s'affiche pas.
 ⚠️ **Une carte n'apparaît qu'une fois vérifiée** : une carte qui
 apparaîtrait avec sa paire supposée puis se retirerait à la vérification
 rendrait la liste illisible. Dès qu'une file tourne (optimisation d'artéfacts
@@ -360,7 +377,9 @@ résolvent aucun équipement. La vue envoyée au classeur les porte
 de paginer**. Les bornes et le sens du tri sont des critères personnels de
 l'écran (`bornesResultats`, `sensTri`, useOptimizerState.ts), comme le
 tri : **mémorisés par membre** (rétablis au retour sur lui), effacés au
-changement de monstre, conservés par une nouvelle recherche, qui remet
+changement de monstre — y compris par l'import d'une recette d'une autre
+espèce, qui passe par le même `resetSearch` (même espèce : gardés) —,
+conservés par une nouvelle recherche, qui remet
 seulement le sens en décroissant avec le tri de son objectif ; dans la
 session, jamais dans la recette ni le CLI (réglages d'affichage, comme le
 tri ; ../feat-listes-equipes-et-sauvegarde.md § Mémoires des membres).
@@ -451,7 +470,12 @@ formats). Les libellés et unités viennent de `filtresAffichage.ts` ;
   leur valeur, borne dite « (inactive) » dans le résumé, colonne grisée
   sans valeur dans le tableau.
 - **Pages** : sous une borne active, le nombre de pages est celui de la vue
-  filtrée (`filtre.pages`) ; sans borne, celui de la recherche.
+  filtrée (`filtre.pages`) ; sans borne, celui de la recherche. « / N+ »
+  sous la même règle, appliquée à la vue : ses confirmées sont les
+  visibles (`filtre.comptes.visiblesConfirmes`), ses non vérifiés les
+  potentiels (`potentielsNonVerifies`) — un non vérifié déjà masqué
+  (échec démontré) ne compte pas — ; ou une trouvée pas encore reçue
+  (`trouvesMoteur` au-delà de `recusActifs`).
 - **Décimales** : une borne d'Efficience admet une décimale (« 78.8 »,
   point ou virgule), comme la carte l'écrit (`NumberField decimales`,
   `decimalesColonne`) ; Score SW et les autres colonnes, des entiers.

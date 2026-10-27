@@ -492,7 +492,7 @@ export function preFiltrerCandidats(
 
 // Candidats d'un emplacement, une fois l'éligibilité ET le filtre de
 // principale appliqués. `null` y figure quand l'emplacement peut rester vide.
-export function candidatsParSorte(params: ArtifactSearchParams, kind: ArtifactKind): (ArtifactDetail | null)[] {
+export function candidatsParSorte(params: Omit<ArtifactSearchParams, 'evaluer'>, kind: ArtifactKind): (ArtifactDetail | null)[] {
   const choix = params.principaleParSorte[kind] ?? 'libre';
   if (choix === 'equipped') {
     const porte = params.equipes.find((a) => a.kind === kind) ?? null;

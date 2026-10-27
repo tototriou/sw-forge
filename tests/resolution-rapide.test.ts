@@ -31,13 +31,13 @@ import { isDeepStrictEqual } from 'node:util';
 import { ArtifactArchetype, ArtifactDetail, ArtifactKind, BaseStats, ElementKey, RelicDetail, RuneDetail } from '../src/types';
 import { ARTIFACT_SUB_MAX } from '../src/lib/artifacts';
 import { artifactSubKinds } from '../src/lib/effects';
-import { computeStats } from '../src/lib/stats';
+import { computeStats, statsSelonRelique } from '../src/lib/stats';
 import { BuildRequirement, respecteConditionsAvecRelique } from '../src/lib/runeBuildOptim';
 import { RelicContext, resoudreContexteRelique } from '../src/lib/relicOptim';
 import { RegimeArtefacts } from '../src/lib/artifactEvaluation';
 import { ArtifactSearchParams, LigneVerrouillee } from '../src/lib/artifactOptim';
 import { CachesResolution, EntreeResolution, entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
-import { CompteursResolutionRapide, compteursVides, confirmerEquipementDuBuild, resoudreEquipementDuBuildRapide } from '../src/lib/resolutionRapide';
+import { CompteursResolutionRapide, ConfirmationEquipement, compteursVides, confirmerEquipementDuBuild, resoudreEquipementDuBuildRapide } from '../src/lib/resolutionRapide';
 import { resoudreEquipementDuBuildExhaustif } from '../src/lib/resolutionExhaustive';
 import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
 import { ResultatArtefacts } from '../src/lib/artifactQueue';
@@ -420,10 +420,23 @@ export function testResolutionRapideNaN() {
  * lignes verrouillées (obligation), coût des verrous (délégué), maximums
  * (dominance gelée sous `maxStatsActifs`), Intangibles.
  */
-export function testResolutionConfirmation() {
-  titre('Résolution — confirmation sans note : même verdict que la résolution complète, même rejet, aucune note');
+/**
+ * Les confirmations de toute la matrice, par `confirmer`, contre la résolution
+ * complète ; compte aussi le TRAVAIL de chaque confirmation : les calculs de
+ * stats complets (`computeStats`, comptés par la lecture des PV de base du
+ * monstre, qu'il fait une fois par appel) et les appels à `evaluer`.
+ * Exporté pour comparer une autre version de la confirmation sur les mêmes
+ * entrées.
+ */
+export function confirmationsSurLaMatrice(confirmer: (e: EntreeResolution) => ConfirmationEquipement) {
   const ecarts: string[] = [];
-  let conformes = 0, rejetes = 0, notes = 0, compares = 0;
+  // Le travail se compte hors coût des verrous, délégué à la résolution complète (l'app ne le pose jamais).
+  let conformes = 0, rejetes = 0, notes = 0, compares = 0, statsCompletes = 0, maxStatsCompletes = 0, comptees = 0, selonEcarts = 0;
+  let compter = false, lectures = 0;
+  const base = new Proxy(BASE, { get: (cible, cle, recepteur) => {
+    if (cle === 'hp' && compter) lectures++;
+    return Reflect.get(cible, cle, recepteur);
+  } });
   SCENARIOS.forEach((sc, iScenario) => {
     const rng = mulberry32(8300 + iScenario);
     const inv = inventaire(rng, 7);
@@ -450,9 +463,14 @@ export function testResolutionConfirmation() {
     const ctx: RelicContext | undefined = sc.intention
       ? resoudreContexteRelique({ mode: sc.intention, principale: 'libre', type: 'libre', seuil: 0 }, portee, reliquesInv)
       : undefined;
-    const fiche = { base: BASE, runes: [], artifacts: [element], relic: portee };
+    const fiche = { base, runes: [], artifacts: [element], relic: portee };
     const caches = nouveauxCachesResolution();
     for (const [i, runes] of builds.entries()) {
+      // `statsSelonRelique` : au bit près `computeStats`, pour chaque relique et sans relique.
+      const selon = statsSelonRelique({ ...fiche, runes, artifacts: [] });
+      for (const r of [undefined, ...reliquesInv]) {
+        if (!isDeepStrictEqual(selon(r), computeStats({ ...fiche, runes, artifacts: [], relic: r }))) selonEcarts++;
+      }
       const e = entreeResolutionDuBuild({ fiche, runes, artifactParams, regime: sc.regime, degats: sc.regime === 'degats_reels' ? DEGATS : null,
         exclusive: EXCLUSIVE, requirement, relicContext: ctx, caches });
       const ref = resoudre(() => resoudreEquipementDuBuild(e));
@@ -463,13 +481,15 @@ export function testResolutionConfirmation() {
         return { ...p, evaluer: (arts) => { appels++; return p.evaluer(arts); } };
       } };
       let proto: Issue;
+      lectures = 0; compter = true;
       try {
-        const v = confirmerEquipementDuBuild(compte);
+        const v = confirmer(compte);
         proto = { r: v.conforme ? ({ conforme: true } as ResultatArtefacts) : v.rejet };
       } catch (err) {
         proto = { erreur: `${(err as Error).name} ${(err as Error).message}` };
-      }
+      } finally { compter = false; }
       compares++;
+      if (sc.artefacts !== 'cout-verrous') { comptees++; statsCompletes += lectures; maxStatsCompletes = Math.max(maxStatsCompletes, lectures); }
       if (sc.artefacts !== 'cout-verrous') notes += appels;
       const attendu: Issue = 'r' in ref && ref.r.conforme ? { r: { conforme: true } as ResultatArtefacts } : ref;
       if (!memes(proto, attendu)) ecarts.push(`${sc.nom} · build ${i} : ${apercu(proto)} ≠ ${apercu(attendu)}`);
@@ -477,9 +497,18 @@ export function testResolutionConfirmation() {
       else if (conformeDe(ref) === false) rejetes++;
     }
   });
+  return { ecarts, conformes, rejetes, notes, compares, comptees, statsCompletes, maxStatsCompletes, selonEcarts };
+}
+
+export function testResolutionConfirmation() {
+  titre('Résolution — confirmation sans note : même verdict que la résolution complète, même rejet, aucune note');
+  const { ecarts, conformes, rejetes, notes, compares, comptees, statsCompletes, maxStatsCompletes, selonEcarts } = confirmationsSurLaMatrice(confirmerEquipementDuBuild);
+  egal(selonEcarts, 0, 'statsSelonRelique rend computeStats au bit près, pour chaque relique de l’inventaire et sans relique');
   egal(ecarts.slice(0, 5), [], `${compares} confirmations sur ${SCENARIOS.length} scénarios : verdict de la résolution complète, rejet identique champ pour champ`);
   ok(conformes > 50 && rejetes > 50, `des builds conformes (${conformes}) et rejetés (${rejetes}) dans l’oracle`);
   egal(notes, 0, 'aucun appel à evaluer hors coût des verrous (ni note, ni sonde de pertinence)');
+  // Un calcul des runes par build ; un second pour le rejet en relique `recherche` (stats avec les artéfacts portés).
+  ok(maxStatsCompletes <= 2, `travail hors coût des verrous (${comptees} confirmations) : ${(statsCompletes / comptees).toFixed(2)} calcul(s) de stats complet(s) par confirmation en moyenne, ${maxStatsCompletes} au plus (borne : 2)`);
   // Pool de reliques vide en mode `recherche` : la même erreur.
   const ctxVide = resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 99 }, undefined, reliques(mulberry32(5), 3));
   const e = entreeResolutionDuBuild({

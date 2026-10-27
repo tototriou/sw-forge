@@ -103,6 +103,20 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
   n'existent pas ; le chantier le plus lourd et le plus risqué, jamais
   commencé.
 
+### Changement de page des résultats
+
+- **Constat** : passer à la page suivante prend ~80 ms en médiane et
+  110 à 130 ms au 95e centile, sur toutes les recettes mesurées, pendant la
+  file de résolution comme après. Le classeur compose la page en
+  O(log N + 20) ([03-developpeur/optimizer/moteur/optimiseur-artefacts.md](../03-developpeur/optimizer/moteur/optimiseur-artefacts.md)) :
+  le temps se passe après lui, dans l'envoi de l'instantané à l'écran
+  (`src/hooks/useBuildOptimSearch.ts`) et le rendu des vingt cartes. Le
+  budget visé pour un clic sur les résultats est de 100 ms au 95e centile ;
+  le dépassement est accepté pour l'instant.
+- **Idée** : profiler le geste dans l'app pour situer ces ~100 ms (transfert,
+  rendu, effets), puis réduire la part qui domine.
+- **Bloque** : aucun profil du geste ; changement de code à décider après.
+
 ## Mesurer la recherche
 
 ### Une batterie au plus près de l'usage réel

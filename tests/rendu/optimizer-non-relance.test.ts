@@ -9,18 +9,24 @@ const appel = <K extends keyof B>(page: Page, nom: K, ...args: Parameters<B[K]>)
   ([n, a]) => (globalThis as unknown as { bancOptimizer: Record<string, (...x: unknown[]) => unknown> }).bancOptimizer[n](...a),
   [nom, args] as [string, unknown[]]) as Promise<Awaited<ReturnType<B[K]>>>;
 
-/** Rechercher (le vrai bouton), puis attendre la page vérifiée et la file vide. */
+/**
+ * Rechercher (le vrai bouton), puis attendre la page vérifiée, la file vide et
+ * chaque reçu jugé : noté par la file, ou confirmé en fond au-delà.
+ */
 const journaux = new WeakMap<Page, string[]>();
 async function rechercher(page: Page) {
   if (!journaux.has(page)) { const j: string[] = []; journaux.set(page, j); page.on('console', m => { if (m.type() === 'error') j.push(m.text()); }); }
   await page.getByRole('button', { name: 'Rechercher', exact: true }).first().click();
-  // Jusqu'à 30 s : avec « Vérifier toutes les combinaisons », la file résout les 729 builds.
+  return await toutJuge(page);
+}
+/** Jusqu'à 30 s : la confirmation en fond, ou avec « Vérifier toutes les combinaisons » la note, des 729 builds. */
+async function toutJuge(page: Page) {
   for (let i = 0; i < 1200; i++) {
     const r = await appel(page, 'releve');
-    if (r.status === 'done' && r.enAttente === 0 && r.cartes.length > 0) return r;
+    if (r.status === 'done' && r.enAttente === 0 && r.cartes.length > 0 && r.recus !== null && r.resolus === r.recus) return r;
     await page.waitForTimeout(25);
   }
-  throw new Error(`Recherche sans page vérifiée : ${JSON.stringify(await appel(page, 'releve')).slice(0, 300)} — console : ${journaux.get(page)?.join(' | ')}`);
+  throw new Error(`Recherche sans page vérifiée ni reçus tous jugés : ${JSON.stringify(await appel(page, 'releve')).slice(0, 300)} — console : ${journaux.get(page)?.join(' | ')}`);
 }
 
 async function nonRelance(telephone: boolean) {
@@ -30,14 +36,17 @@ async function nonRelance(telephone: boolean) {
   try {
     await appel(page, 'monter', true);
     const lance = await rechercher(page);
+    // La file note les K premiers, le fond confirme tous les autres sans note.
+    const notes = lance.demandes.resoudre;
     ok(lance.recherches === 1 && lance.idRecherche === 1 && lance.cartes.length === 20 && lance.recus === 729
-      && lance.resolus !== null && lance.resolus < 729,
-      `${format} : un vrai clic sur Rechercher lance une recherche, 729 builds, page de vingt cartes, file arrêtée à K (${lance.resolus} résolus)`);
+      && lance.resolus === 729 && lance.confirmees === 729 && notes >= 100 && notes < 729 && lance.demandes.confirmer > 0,
+      `${format} : un vrai clic sur Rechercher lance une recherche, 729 builds, page de vingt cartes, notes arrêtées à K, le reste confirmé en fond (${notes} notes, ${lance.demandes.confirmer} confirmations, ${lance.confirmees} confirmées)`);
     const cartesAvant = [...lance.cartes].sort();
     const inchange = async (nom: string, memesCartes = true) => {
       await page.waitForTimeout(600);
       const r = await appel(page, 'releve');
-      egal([r.recherches, r.idRecherche, r.resolus, r.status], [1, 1, lance.resolus, 'done'], `${format} — ${nom} : aucune recherche ni résolution relancée`);
+      egal([r.recherches, r.idRecherche, r.demandes, r.resolus, r.status], [1, 1, lance.demandes, lance.resolus, 'done'],
+        `${format} — ${nom} : aucune recherche ni résolution relancée (ni note ni confirmation demandée)`);
       ok(r.contexte === lance.contexte, `${format} — ${nom} : contexte et équipement du résultat conservés`);
       if (memesCartes) egal([...r.cartes].sort(), cartesAvant, `${format} — ${nom} : mêmes cartes affichées`);
       return r;
@@ -73,12 +82,14 @@ async function nonRelance(telephone: boolean) {
     egal([...relache.cartes].sort(), [...tri.cartes].sort(), `${format} — borne relâchée : les mêmes cartes reviennent`);
     if (telephone) await page.getByRole('button', { name: 'Fermer', exact: true }).filter({ visible: true }).first().click();
     else await page.keyboard.press('Escape');
-    // Mesure changée pendant la vérification d'une page au-delà des confirmées : la page revient à 1.
+    // Mesure changée pendant la vérification d'une page au-delà des builds notés : la page revient à 1.
+    // Toutes confirmées en fond, le nombre de pages est exact : 999 mène à la dernière, rangs 721 à 729.
     const aller = page.getByLabel('Aller à la page');
     await aller.fill('999'); await aller.press('Tab');
-    const loin = await appel(page, 'releve');
-    ok(loin.resultsPage > 1 && loin.resultsPage > Math.ceil((loin.confirmees ?? 0) / 20),
-      `${format} — navigation (vrai champ « Aller à la page ») : page ${loin.resultsPage}, au-delà des ${loin.confirmees} confirmées`);
+    let loin = await appel(page, 'releve');
+    for (let i = 0; i < 80 && loin.premierRang !== (loin.resultsPage - 1) * 20 + 1; i++) { await page.waitForTimeout(25); loin = await appel(page, 'releve'); }
+    ok(loin.resultsPage === Math.ceil(729 / 20) && (loin.premierRang ?? 0) > notes,
+      `${format} — navigation (vrai champ « Aller à la page ») : page ${loin.resultsPage}, la dernière, au-delà des ${notes} builds notés (premier rang ${loin.premierRang})`);
     await page.getByRole('button', { name: 'Score SW', exact: true }).click();
     await page.waitForTimeout(600);
     const mesure = await appel(page, 'releve');
@@ -146,13 +157,18 @@ async function interrompue(telephone: boolean) {
     ok(relance.status === 'done' && !relance.interrompu && relance.classeurs === 2 && relance.recherches === 2,
       `${format} : seul Rechercher crée un nouveau classeur, la page n’est plus interrompue`);
 
-    // Page au-delà des confirmées, entamée (des cartes et des places « Vérification… »),
-    // puis classeur perdu : plus rien ne remplira ces places.
-    for (let i = 0; i < 1200 && (await appel(page, 'releve')).enAttente !== 0; i++) await page.waitForTimeout(25);
+    // Page au-delà des builds notés, entamée (des cartes et des places « Vérification… »),
+    // puis classeur perdu : plus rien ne remplira ces places. La confirmation en fond
+    // finit d'abord : les réponses retenues ensuite sont celles des notes de la page.
+    await toutJuge(page);
     await appel(page, 'retenirResolutionsApres', 3);
     await appel(page, 'perdreClasseurSurPageEntamee');
+    // La file a noté les K = 100 premiers : la page 6 (rangs 101 à 120) est la première
+    // au-delà des notés, et ce sont ses builds que la navigation fait noter. Plus loin, une
+    // page attendrait que tous les rangs avant elle soient notés (les cartes sont les notés
+    // conformes, dans l'ordre réel) : la dernière ne s'entamerait qu'après 720 notes.
     const aller = page.getByLabel('Aller à la page');
-    await aller.fill('999'); await aller.press('Tab');
+    await aller.fill('6'); await aller.press('Tab');
     // Trois réponses passent sous la cadence de 400 ms ; la suivante, relâchée après, publie la page entamée.
     await page.waitForTimeout(600);
     await appel(page, 'relacherUneResolution');
@@ -160,7 +176,7 @@ async function interrompue(telephone: boolean) {
     const entamee = await appel(page, 'releve');
     ok(entamee.status === 'error' && entamee.interrompu && (entamee.premierRang ?? 1) > 1 && entamee.cartes.length > 0
       && entamee.cartes.length < 20 && (entamee.places ?? 0) > 0,
-      `${format} : page ${entamee.resultsPage} interrompue après réception de ${entamee.cartes.length} carte(s) et ${entamee.places} place(s) en attente`);
+      `${format} : page ${entamee.resultsPage} interrompue après réception de ${entamee.cartes.length} carte(s) et ${entamee.places} place(s) en attente (statut ${entamee.status}${entamee.interrompu ? ', interrompu' : ''}, ${entamee.resolus}/${entamee.recus} jugés)`);
     egal(await cartes.count(), entamee.cartes.length, `${format} : la page interrompue non pleine garde ses cartes`);
     egal([await page.locator('[aria-busy="true"]').count(), await page.getByText('Vérification…', { exact: true }).count()], [0, 0],
       `${format} : aucune place « Vérification… » sous la page interrompue`);

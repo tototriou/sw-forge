@@ -507,6 +507,23 @@ le réglage par défaut et un réglage riche (scénario d'effets entre les coups
 compris), chaque classe de paires : une stat inerte augmentée seule ne
 change pas la note, au bit près.
 
+**Exceptions à la règle R** (`EXCEPTIONS_REGLE_R`,
+`src/lib/resolutionRapide.ts`, par `skillCom2usId`, une raison par sort) : les
+sorts dont la note BAISSE quand l'un des canaux ci-dessus ou une ligne
+d'artéfact augmente seul. Le producteur ne pose aucune dominance pour eux
+(`dominanceReliques` à `null`, `relicQueue.ts`) : toutes leurs reliques sont
+notées, au niveau build comme par paire. Aujourd'hui, Ceres, Last Shot
+(5812) : son bonus de +50 % quand les PV de la cible dépassent 2 fois ses PV
+propres s'éteint quand ses PV montent. La liste est dressée sur le corpus
+des monstres que propose l'Optimizer (`formesJouables`) par
+`testMonotonieDegatsCorpus` (`tests/monotonie-degats-corpus.test.ts`) : PV,
+ATQ, DEF, dégâts infligés de relique et chaque ligne du profil d'artéfacts
+augmentés seuls, sous les deux réglages de `testMemoCombat` et trois jeux de
+stats de base ; il échoue si un sort hors liste baisse, ou si un sort de la
+liste ne baisse plus. Une exception se signale à l'utilisateur, elle ne se
+corrige pas dans ce test. La règle R est une règle de jeu confirmée par
+l'utilisateur (non relevée en jeu) : le test vérifie que le code la suit.
+
 ### Confirmation sans note
 
 `confirmerEquipementDuBuild` (`src/lib/resolutionRapide.ts`) répond à une

@@ -68,6 +68,14 @@ export interface PortsResolutionDistante {
   runesDe(c: BuildCandidate): RuneDetail[];
   /** Les builds à traiter, dans l'ordre de priorité : `prochainsATraiter` sur le cache courant. */
   restants(): readonly BuildCandidate[];
+  /**
+   * Les builds à CONFIRMER en fond (verdict sans note), au plus bas niveau de
+   * priorité : servis après `restants`, avec les crédits qu'il laisse. Jamais
+   * un build de `restants`. Au plus `maxEnVol` lus. Absent : aucune confirmation.
+   */
+  aConfirmer?(): readonly BuildCandidate[];
+  /** Un build confirmé conforme, sans note : le propriétaire le range à part du cache des notés. */
+  confirmer?(cle: string): void;
   /** Le classement doit terminer son actualisation avant de connaître la file. */
   actualisationEnCours?(): boolean;
   /** La page RÉELLEMENT affichée. */
@@ -90,10 +98,15 @@ export interface PortsResolutionDistante {
 
 /** Ce qu'il advient d'une réponse du Worker. */
 export type IssueReponse =
-  | { issue: 'ecrite'; cle: string }
+  // `confirmation` : le rejet d'une confirmation, écrit comme un résultat noté.
+  | { issue: 'ecrite'; cle: string; confirmation?: true }
+  // Une confirmation conforme : rien n'est écrit dans le cache, l'appelant la range (`confirmer`).
+  | { issue: 'confirmee'; cle: string }
   | {
       issue: 'ignoree';
-      motif: 'contexte-perime' | 'demande-annulee' | 'annulee-par-le-corps' | 'demande-inconnue' | 'cle-differente' | 'repli';
+      // `deja-notee` : le rejet d'une confirmation arrivé quand le build a déjà
+      // son résultat noté — jamais écrit par-dessus.
+      motif: 'contexte-perime' | 'demande-annulee' | 'annulee-par-le-corps' | 'demande-inconnue' | 'cle-differente' | 'repli' | 'deja-notee';
     }
   | { issue: 'erreur'; nom: string; message: string; vide?: RelicVide };
 
@@ -124,7 +137,14 @@ interface DemandeEnVol {
   // Annulée par l'écran (ou rendue caduque par un nouveau contexte) : sa
   // réponse, quelle qu'elle soit, ne sera pas écrite.
   annulee: boolean;
+  // Une résolution (note) ou une confirmation (verdict sans note) : une même
+  // clé peut avoir les deux en vol, ce sont deux demandes distinctes.
+  nature: NatureDemande;
 }
+
+type NatureDemande = 'noter' | 'confirmer';
+// La clé de planification : la nature ET le build.
+const cleDemande = (nature: NatureDemande, cle: string) => `${nature === 'noter' ? 'n' : 'c'}:${cle}`;
 
 /**
  * La publication est-elle FORCÉE après ce build ? Même règle que la tranche du
@@ -149,6 +169,9 @@ export class ResolutionDistante {
   // retenue (`publier` a rendu faux). Remis à faux par toute publication
   // effective, et par `renoncer`, qui la rend à l'appelant.
   private nonPubliee = false;
+  // Parmi elles, une écriture NOTÉE : la file des notes qui se vide la publie
+  // de force, même si des confirmations restent (elles suivent la cadence).
+  private noteNonPubliee = false;
   private voieAvantActualisation: VoieDeLaFile | null = null;
 
   // Les voies, par indice : vivante ou retirée après une panne.
@@ -199,6 +222,13 @@ export class ResolutionDistante {
 
   get demandesEnVol(): number {
     return this.enVol.length;
+  }
+
+  /** Les résolutions (notes) sans réponse, confirmations exclues. */
+  get demandesDeNoteEnVol(): number {
+    let n = 0;
+    for (const d of this.enVol) if (d.nature === 'noter') n++;
+    return n;
   }
 
   /** Les demandes sans réponse de chaque voie (une voie retirée n'en a aucune). */
@@ -254,6 +284,7 @@ export class ResolutionDistante {
     this.contexte = null;
     this.voieAvantActualisation = null;
     this.nonPubliee = false;
+    this.noteNonPubliee = false;
     return this.enVol.filter((d) => !d.annulee).map((d) => {
       d.annulee = true;
       return { voie: d.voie, message: { type: 'annuler' as const, idDemande: d.idDemande } };
@@ -261,7 +292,7 @@ export class ResolutionDistante {
   }
 
   private publier(p: PortsResolutionDistante, forcer: boolean): void {
-    if (p.publier(forcer)) this.nonPubliee = false;
+    if (p.publier(forcer)) { this.nonPubliee = false; this.noteNonPubliee = false; }
   }
 
   private estCourant(courant: ContexteCourant | null): boolean {
@@ -290,6 +321,14 @@ export class ResolutionDistante {
    *    qui en a le moins sans réponse (à égalité, la plus petite), jusqu'à
    *    `parVoie` par voie.
    *
+   * `aConfirmer` (confirmations en fond, verdict sans note) suit `restants`
+   * dans cette même file, au plus bas niveau : une confirmation ne prend
+   * qu'un crédit que les restants laissent, et une confirmation en vol qui
+   * n'est plus parmi les `maxEnVol` premiers de la file (une page demandée,
+   * par exemple) s'annule comme une résolution. Nature et build forment la
+   * clé d'une demande : une confirmation et une résolution du même build sont
+   * deux demandes.
+   *
    * Une voie : exactement le pilote d'un seul résolveur.
    *
    * Idempotent : appelé deux fois de suite sans réponse entre les deux, le
@@ -298,20 +337,22 @@ export class ResolutionDistante {
   planifier(
     courant: ContexteCourant | null,
     restants: readonly BuildCandidate[],
-    runesDe: (c: BuildCandidate) => RuneDetail[]
+    runesDe: (c: BuildCandidate) => RuneDetail[],
+    aConfirmer: readonly BuildCandidate[] = []
   ): MessageVersResolution[] {
-    return this.planifierVoies(courant, restants, runesDe).map((e) => e.message);
+    return this.planifierVoies(courant, restants, runesDe, aConfirmer).map((e) => e.message);
   }
 
   /** `planifier`, chaque message adressé à sa voie. */
   planifierVoies(
     courant: ContexteCourant | null,
     restants: readonly BuildCandidate[],
-    runesDe: (c: BuildCandidate) => RuneDetail[]
+    runesDe: (c: BuildCandidate) => RuneDetail[],
+    aConfirmer: readonly BuildCandidate[] = []
   ): EnvoiResolution[] {
     if (this.renonce) return [];
     const sorties: EnvoiResolution[] = [];
-    if (courant !== null && restants.length > 0 && !this.estCourant(courant)) {
+    if (courant !== null && (restants.length > 0 || aConfirmer.length > 0) && !this.estCourant(courant)) {
       if (!Number.isSafeInteger(this.idContexte + 1)) throw new Error('Compteur de contexte de résolution épuisé');
       this.idContexte++;
       this.contexte = courant;
@@ -321,22 +362,26 @@ export class ResolutionDistante {
       });
     }
     const actif = this.estCourant(courant);
-    const voulues = new Set(restants.slice(0, this.maxEnVol).map(cleBuild));
+    // Les `maxEnVol` premières places de la file : les restants, puis les confirmations.
+    const nNotes = Math.min(restants.length, this.maxEnVol);
+    const voulues = new Set(restants.slice(0, nNotes).map((c) => cleDemande('noter', cleBuild(c))));
+    for (const c of aConfirmer.slice(0, this.maxEnVol - nNotes)) voulues.add(cleDemande('confirmer', cleBuild(c)));
     const premiere = new Set<number>();
     for (const d of this.enVol) {
       // La plus ancienne de chaque voie, annulée ou non, garde sa place.
       if (!premiere.has(d.voie)) { premiere.add(d.voie); continue; }
       if (d.annulee) continue;
-      if (actif && d.idContexte === this.idContexte && voulues.has(d.cle)) continue;
+      if (actif && d.idContexte === this.idContexte && voulues.has(cleDemande(d.nature, d.cle))) continue;
       d.annulee = true;
       sorties.push({ voie: d.voie, message: { type: 'annuler', idDemande: d.idDemande } });
     }
     if (!actif) return sorties;
-    const enCours = new Set(this.enVol.filter((d) => !d.annulee && d.idContexte === this.idContexte).map((d) => d.cle));
+    const enCours = new Set(this.enVol.filter((d) => !d.annulee && d.idContexte === this.idContexte).map((d) => cleDemande(d.nature, d.cle)));
     const charge = this.demandesParVoie;
-    for (const c of restants) {
+    // Rend faux quand aucune voie n'a plus de crédit.
+    const demander = (c: BuildCandidate, nature: NatureDemande): boolean => {
       const cle = cleBuild(c);
-      if (enCours.has(cle)) continue;
+      if (enCours.has(cleDemande(nature, cle))) return true;
       // La voie active la moins chargée : chaque voie a ses `parVoie` places.
       let voie = -1;
       for (let v = 0, rang = 0; v < this.voies.length && rang < this.actives; v++) {
@@ -344,14 +389,18 @@ export class ResolutionDistante {
         rang++;
         if (charge[v] < this.parVoie && (voie < 0 || charge[v] < charge[voie])) voie = v;
       }
-      if (voie < 0) break;
+      if (voie < 0) return false;
       if (!Number.isSafeInteger(this.prochainIdDemande + 1)) throw new Error('Compteur de demande de résolution épuisé');
       const idDemande = this.prochainIdDemande++;
-      this.enVol.push({ idDemande, idContexte: this.idContexte, cle, voie, annulee: false });
+      this.enVol.push({ idDemande, idContexte: this.idContexte, cle, voie, annulee: false, nature });
       charge[voie]++;
-      enCours.add(cle);
-      sorties.push({ voie, message: { type: 'resoudre', idContexte: this.idContexte, idDemande, cle, runes: runesDe(c) } });
-    }
+      enCours.add(cleDemande(nature, cle));
+      const type = nature === 'noter' ? 'resoudre' as const : 'confirmer' as const;
+      sorties.push({ voie, message: { type, idContexte: this.idContexte, idDemande, cle, runes: runesDe(c) } });
+      return true;
+    };
+    for (const c of restants) if (!demander(c, 'noter')) return sorties;
+    for (const c of aConfirmer) if (!demander(c, 'confirmer')) return sorties;
     return sorties;
   }
 
@@ -379,6 +428,19 @@ export class ResolutionDistante {
       return { issue: 'ignoree', motif: 'contexte-perime' };
     }
     if (r.cle !== d.cle) return { issue: 'ignoree', motif: 'cle-differente' };
+    // Une réponse qui ne correspond pas à la nature de sa demande est un défaut
+    // du protocole, jamais absorbé.
+    if ((r.type === 'confirme') !== (d.nature === 'confirmer' && r.type !== 'resultat') || (d.nature === 'confirmer' && r.type === 'resultat' && r.resultat.conforme)) {
+      throw new Error(`Réponse « ${r.type} » à une demande de nature « ${d.nature} » — défaut du protocole de résolution.`);
+    }
+    if (r.type === 'confirme') return { issue: 'confirmee', cle: d.cle };
+    // Le rejet d'une confirmation est le résultat même d'une résolution : il
+    // s'écrit comme lui, jamais par-dessus un résultat déjà noté.
+    if (d.nature === 'confirmer') {
+      if (cache.has(d.cle)) return { issue: 'ignoree', motif: 'deja-notee' };
+      cache.set(d.cle, r.resultat);
+      return { issue: 'ecrite', cle: d.cle, confirmation: true };
+    }
     cache.set(d.cle, r.resultat);
     return { issue: 'ecrite', cle: d.cle };
   }
@@ -397,6 +459,7 @@ export class ResolutionDistante {
     this.enVol = [];
     const nonPubliee = this.nonPubliee;
     this.nonPubliee = false;
+    this.noteNonPubliee = false;
     this.voieAvantActualisation = null;
     return nonPubliee;
   }
@@ -418,8 +481,11 @@ export class ResolutionDistante {
     // la dernière : publication FORCÉE. Sans elle, ce résultat
     // resterait dans le cache sans jamais atteindre l'écran, puisque plus
     // rien ne publierait. Le chemin direct fait de même quand il s'endort.
-    if (restants.length === 0 && this.nonPubliee) this.publier(p, true);
-    for (const { voie, message } of this.planifierVoies(p.courant(), restants, (c) => p.runesDe(c))) {
+    // Des confirmations en fond restent : seule une écriture notée retenue
+    // force, la confirmation suit la cadence jusqu'à la dernière.
+    const aConfirmer = p.aConfirmer?.() ?? [];
+    if (restants.length === 0 && this.nonPubliee && (aConfirmer.length === 0 || this.noteNonPubliee)) this.publier(p, true);
+    for (const { voie, message } of this.planifierVoies(p.courant(), restants, (c) => p.runesDe(c), aConfirmer)) {
       try {
         p.envoyer(message, voie);
       } catch (err) {
@@ -448,8 +514,15 @@ export class ResolutionDistante {
       this.basculer(p, raison, detail);
       return;
     }
-    if (issue.issue === 'ecrite') {
+    if (issue.issue === 'confirmee') p.confirmer?.(issue.cle);
+    if (issue.issue === 'confirmee' || (issue.issue === 'ecrite' && issue.confirmation)) {
+      // Une confirmation : la cadence ; la dernière de la file publie de force
+      // au tour suivant (`pomper`).
       this.nonPubliee = true;
+      this.publier(p, false);
+    } else if (issue.issue === 'ecrite') {
+      this.nonPubliee = true;
+      this.noteNonPubliee = true;
       const apres = p.restants();
       if (p.actualisationEnCours?.()) {
         // Le tableau vide provisoire ne dit rien de la page ni du fond.

@@ -629,6 +629,64 @@ fond, qui peut s'allonger avec les rejets.
 K vient toujours de `cibleDeLaFile`, avec le contexte relique et « Vérifier
 toutes les combinaisons trouvées » photographiés : K ne change pas pendant
 la vie d'un résultat.
+
+**Confirmation en fond.** Une fois la collecte scellée, chaque build reçu que
+la file ne note pas est CONFIRMÉ, au plus bas niveau de priorité : une
+demande `confirmer` (même protocole qu'une résolution : contexte, voie,
+crédits, annulation, `idDemande`), que le résolveur traite par
+`confirmerEquipementDuBuild` ([reliques.md § Confirmation sans note](reliques.md#confirmation-sans-note)) :
+il s'arrête au premier couple faisable, sans note. Réponse `confirme`
+(conforme) ou `resultat` portant le rejet, le même que celui de la
+résolution. Ce qui en découle :
+
+- **Ce qui part.** `aConfirmer` (classementCompact.ts) parcourt l'ordre du
+  fond au-delà de la fenêtre des notes (la même boucle que la file, vers K
+  confirmées), hors de la page demandée, sans groupe déjà jugé ni doublon,
+  et ne matérialise que `maxEnVol` builds. Un curseur garde la position
+  au-delà de laquelle il reste à juger : la fenêtre ne fait que s'allonger
+  et un groupe jugé le reste, si bien que le parcours total est O(N) par
+  ordre du fond. Le pilote sert d'abord les builds à noter (`restants`),
+  puis les confirmations avec les crédits laissés ; une confirmation en
+  vol qui n'est plus parmi les `maxEnVol` premiers de cette file (une page
+  demandée) s'annule comme une résolution. La clé d'une demande est sa
+  nature et son build : confirmation et résolution du même build sont
+  deux demandes. Rien avant le scellé (le pool garde alors une voie, la
+  collecte change l'ordre), rien sous « Vérifier toutes les combinaisons
+  trouvées », où tout est noté.
+- **Où le verdict va.** Un rejet s'écrit dans le cache des notés, comme le
+  rejet d'une résolution (jamais par-dessus un résultat déjà noté). Une
+  confirmation conforme n'y entre pas : elle pose un drapeau sur le groupe
+  dans le magasin compact (`CandidatsCompacts.confirmer`, un octet par
+  groupe), qui garde le compte des lignes confirmées sans note, tenu à
+  jour à la confirmation et à l'ingestion d'un résultat noté. Le groupe
+  reste « non résolu » pour la page, la file et les filtres : la page se
+  compose toujours des builds NOTÉS dans l'ordre réel, et une page au-delà
+  des notés fait noter ses builds à la demande. Un groupe confirmé puis
+  noté rejeté contredit la confirmation : `console.error`, le noté fait foi.
+  Les drapeaux vivent avec l'index de la recherche : une relance aux mêmes
+  réglages garde les équipements notés, pas les confirmations, refaites.
+- **Comptes.** `ComptesClassement.confirmees` compte les notées conformes
+  et les confirmées sans note, `resolus` les deux et les rejets : en fin de
+  fond, chaque reçu est jugé, il ne reste aucun non vérifié, le nombre de
+  pages est exact (`compteConfirmeDesComptes`) et la pagination n'a plus de
+  « + ». Les comptes sous des bornes d'affichage (`ComptesDeLaVue`) restent
+  ceux des notés : la valeur affichée d'un build dépend de sa vraie paire,
+  qu'une confirmation ne choisit pas.
+- **Publication et temps mort.** Une confirmation suit la cadence de 400 ms
+  ; la file entièrement vide, confirmations comprises, force la dernière
+  publication. Une écriture notée garde ses forçages (dernier build de la
+  page, file des notes vide). Le temps mort n'attend que la file des notes
+  (`demandesDeNoteEnVol`) : une réponse de confirmation peut attendre une
+  tranche de temps mort (1 ms au plus), jamais une réponse notée.
+- **CLI et harnais.** `classerEnLocal` confirme aussi, dans le fil
+  (`travailEnRepli` compte les confirmations) ; la projection porte
+  `confirmeesSansNote`, et la ligne de résolution du CLI les compte.
+
+Vérification : `testConfirmationEnFond` (`tests/resolution-pool.test.ts` :
+oracle par la résolution directe de chaque build, comptes exacts, aucun non
+vérifié, pages notées identiques à la file sans confirmation, ouvertes l'une
+après l'autre), `testResolutionPoolDifferentiel` (le pool de vrais Workers :
+mêmes confirmées que le résolveur unique), `testClassementTempsMortApresLaFile`.
 `ResolutionDistante` limite les demandes sans réponse à deux par voie
 vivante.
 
@@ -670,7 +728,8 @@ classementCompact.ts), jamais un candidat ni un ordinal par build trouvé :
 - les versions (recherche, inventaire, contexte de résolution, données, vue,
   publication, demande) et la vue réellement rendue ;
 - les comptes de la vue : candidats reçus de la recherche, affichables (reçus
-  moins les écartés de la résolution), résolus, confirmées, et si une file
+  moins les écartés de la résolution), résolus et confirmées (notés ou
+  confirmés en fond sans note, § File de résolution), et si une file
   vérifie ;
 - la page : son premier rang, ses vingt cartes au plus et ses places en
   attente. Une carte porte son ordinal, le candidat avec les statistiques de

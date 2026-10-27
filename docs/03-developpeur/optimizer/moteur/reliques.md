@@ -401,6 +401,60 @@ L'en-tête de `resolutionRapide.ts` dit ses préconditions. Vérification :
 recette réelle, `scripts/banc-resolution-rapide.ts` compare le chemin de
 l'app au calcul exhaustif, build par build.
 
+### Confirmation sans note
+
+`confirmerEquipementDuBuild` (`src/lib/resolutionRapide.ts`) répond à une
+seule question : ce build a-t-il au moins un couple (paire, relique)
+faisable ? Même entrée que la résolution, même verdict, et pour un build
+rejeté le MÊME résultat, champ pour champ (une seule écriture du rejet pour
+les deux) ; mêmes erreurs. Elle s'arrête au premier couple faisable et ne
+note rien : ni paire, ni sonde de pertinence, donc aucun calcul de dégâts.
+La file de l'écran s'en sert pour confirmer en fond les builds qu'elle ne
+note pas ([pipeline.md § File de résolution](pipeline.md#file-de-résolution)).
+
+- **Par réglage, une fois par file** (`CachesResolutionRapide.apportsRealisables`,
+  mémoïsé sur les entrées qu'il lit, par identité) : les formes de paire
+  qu'au moins un couple autorisé réalise (contrainte de paire, lignes
+  verrouillées), réduites à leurs apports de principales (PV, ATQ, DEF)
+  distincts — deux formes de même apport ont les mêmes stats, donc le même
+  verdict. Les principales de relique distinctes des éligibles aussi
+  (`reliquesDistinctes`). Rien de cela ne dépend du build.
+- **Par build, un seul calcul de stats** : `statsSelonRelique`
+  (`src/lib/stats.ts`) accumule les runes une fois, puis rend, pour chaque
+  principale de relique, la fin même de `computeStats` (relique, sets,
+  lignes) : `computeStats` est écrit avec les mêmes étapes, les deux
+  rendent les mêmes nombres au bit près, aucune opération réassociée. Les
+  conditions hors PV/ATQ/DEF, que ni la relique ni la paire ne touchent,
+  se jugent une fois ; puis, par (principale de relique, apport), les
+  totaux de PV/ATQ/DEF plus l'apport — l'expression de `statsParPaire`,
+  `total + d` —, jugés par `respecteMinEtMax` (relique `recherche`, comme
+  les tables de la résolution) ou par les conditions de
+  `respecteConditionsPaireFixe` (`conditionsPaireFixe`, relique fixe),
+  jusqu'au premier faisable. Un rejet en relique `recherche` coûte un
+  second calcul (ses stats portent les artéfacts portés). Sur la matrice de
+  `testResolutionConfirmation` : 1,28 calcul de stats par confirmation, 2 au
+  plus (14,05 et 51 quand chaque relique et chaque forme refaisaient leurs
+  stats).
+- Les paires parcourues sont celles de la résolution SANS la dominance des
+  artéfacts (`preFiltrerCandidats` sans pertinence : même vue complète,
+  même obligation des lignes verrouillées, vide aux mêmes conditions), la
+  dominance demandant la pertinence, sondée contre `evaluer`. La liste est un
+  sur-ensemble ; elle ne confirme rien de plus, parce qu'un artéfact n'est
+  dominé que par un autre de même principale au moins aussi forte (égale
+  sous un maximum actif sur sa stat), aux lignes verrouillées au moins aussi
+  fortes, jamais un ordinaire par un Intangible : le dominant tient toute
+  paire que le dominé tenait.
+- Sous le coût des verrous (`avecCoutDesVerrous`, qu'aucune résolution de
+  l'app ne pose), elle délègue à la résolution complète.
+- ⚠️ Écart accepté : une note NaN ne se voit pas sans note. La résolution
+  replie sur le calcul exhaustif (même verdict) ou lève quand toutes les
+  notes faisables sont NaN ; la confirmation confirme.
+
+Vérification : `testResolutionConfirmation`
+(`tests/resolution-rapide.test.ts`), dont l'oracle est la résolution
+complète, sur toute la matrice de `testResolutionRapide` : même verdict,
+même rejet, aucun appel à `evaluer`.
+
 ## Régimes : ce qui note la relique
 
 - **Un seul régime pour la paire et la relique** : `regimeEquipement =

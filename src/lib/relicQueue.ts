@@ -85,6 +85,11 @@ export interface EntreeResolution {
   // (celle que le moteur a appliquée, `SearchParams.relic`).
   gear: GearSet;
   faireParams: (relique: RelicDetail | undefined) => ArtifactSearchParams;
+  // Les paramètres de paires que `faireParams` complète de son `evaluer`, les
+  // mêmes pour toute relique : la confirmation sans note
+  // (`confirmerEquipementDuBuild`) en tire ses mémoires de file sans calculer
+  // de stats. Absent (entrée construite à la main) : elle les relit par `faireParams`.
+  artifactParams?: Omit<ArtifactSearchParams, 'evaluer'>;
   /**
    * Le prédicat de conformité hors mode `recherche` —
    * `respecteConditionsPaireFixe` : les minimums, plus les seuls maximums
@@ -247,6 +252,7 @@ export function entreeResolutionDuBuild(e: {
           : evaluerPourRegime(e.regime, statsAvec, propres, exclusive);
       return { ...e.artifactParams, evaluer };
     },
+    artifactParams: e.artifactParams,
     respecteConditions: conditionsPosees
       ? (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), e.requirement, propres)
       : null,

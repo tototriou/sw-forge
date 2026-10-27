@@ -90,7 +90,7 @@ import { testCandidatsCompactsAllerRetour, testClassementCompactPublications, te
 import { testResolutionCaches } from './resolution-caches.test';
 import { testResolutionWorker } from './resolution-worker.test';
 import { testResolutionDistante } from './resolution-distante.test';
-import { testResolutionDistanteVoies, testResolutionPoolAnnulation, testResolutionPoolDifferentiel, testResolutionPoolPanne, testResolutionPoolVoiesAvantScelle, testResolutionPoolGestes } from './resolution-pool.test';
+import { testResolutionDistanteVoies, testResolutionPoolAnnulation, testResolutionPoolDifferentiel, testResolutionPoolPanne, testResolutionPoolVoiesAvantScelle, testResolutionPoolGestes, testConfirmationEnFond } from './resolution-pool.test';
 import { testClassementDistantVersions, testClassementDistantPanne, testContexteResultatFige, testClassementBranchementApp,
   testClassementArretAvantOuverture, testClassementPublicationForceeDifferee, testClassementIncidentInactif, testClassementBilanStable, testClassementDifferentielCombat, testClassementBancResultats } from './classement-distant.test';
 import { testCliClassementParMode, testCliClassementDifferentiel } from './cli-classement.test';
@@ -305,7 +305,7 @@ import testRelicSearch from './relic-search.test';
 import testReliqueOu from './relique-ou.test';
 import testTestConjointExact from './test-conjoint-exact.test';
 import testRelicQueue from './relic-queue.test';
-import testResolutionRapide, { testResolutionRapideNaN } from './resolution-rapide.test';
+import testResolutionRapide, { testResolutionConfirmation, testResolutionRapideNaN } from './resolution-rapide.test';
 import testMemoCombat from './memo-combat.test';
 import testPerfRelicOptions from './perf-relic-options.test';
 import testRelicDifferentiel from './relic-differentiel.test';
@@ -859,6 +859,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRelicQueue', testRelicQueue],
   ['testResolutionRapide', testResolutionRapide],
   ['testResolutionRapideNaN', testResolutionRapideNaN],
+  ['testResolutionConfirmation', testResolutionConfirmation],
   ['testMemoCombat', testMemoCombat],
   ['testPerfRelicOptions', testPerfRelicOptions],
   ['testRelicDifferentiel', testRelicDifferentiel],
@@ -900,6 +901,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testResolutionPoolAnnulation', testResolutionPoolAnnulation],
   ['testResolutionPoolVoiesAvantScelle', testResolutionPoolVoiesAvantScelle],
   ['testResolutionPoolGestes', testResolutionPoolGestes],
+  ['testConfirmationEnFond', testConfirmationEnFond],
   ['testContexteResultatFige', testContexteResultatFige],
   ['testClassementArretAvantOuverture', testClassementArretAvantOuverture],
   ['testClassementPublicationForceeDifferee', testClassementPublicationForceeDifferee],

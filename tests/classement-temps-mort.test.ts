@@ -1,9 +1,11 @@
-// Le temps mort du classeur ne passe jamais devant la file de résolution :
+// Le temps mort du classeur ne passe jamais devant les NOTES de la file :
 // la vraie tranche du Worker (`CorpsClassement.tranche`) et un résolveur
 // séparé, sur une horloge virtuelle. Une réponse qui arrive pendant une
 // tranche attend la fin de cette tranche ; aucune tranche ne doit alors
-// contenir de temps mort, ni pendant qu'une demande est en vol, qu'une
-// réponse attend ou que la file a encore à vérifier.
+// contenir de temps mort, ni pendant qu'une note est en vol, qu'une réponse
+// notée attend ou que la file a encore à noter. La confirmation en fond
+// (verdict sans note), au plus bas niveau, ne le retient pas : sa réponse
+// attend au plus une tranche de temps mort (1 ms).
 import { CorpsClassement, type VueClassement } from '../src/lib/classementCompact';
 import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs } from '../src/lib/candidatsCompacts';
 import type { ContexteResultat } from '../src/lib/contexteResultat';
@@ -13,8 +15,12 @@ import { population } from './classement-notes-de-base.test';
 import { egal, ok, titre } from './outils';
 
 interface Bilan {
-  /** Pas de temps mort faits pendant que la file avait du travail. */
+  /** Pas de temps mort faits pendant que la file avait des notes à faire. */
   pasPendantLaFile: number;
+  /** Confirmations demandées, et leurs réponses retenues derrière du temps mort, au plus longtemps (ms). */
+  confirmations: number;
+  confirmationsRetenues: number;
+  attenteMaxConfirmation: number;
   /** Pas de temps mort faits en tout. */
   pasDeTempsMort: number;
   /** Réponses arrivées pendant une tranche qui a fait du temps mort après leur arrivée. */
@@ -34,13 +40,19 @@ interface Bilan {
 function simuler(photo: ContexteResultat, candidats: readonly BuildCandidate[], vue: VueClassement, e: { duree: number; pas: number }): Bilan {
   const resolution = new CorpsResolution();
   const versClasseur: { pret: number; r: ReponseResolution }[] = [];
+  const confirmations = new Set<number>();
+  const estConfirmation = (r: ReponseResolution) => confirmations.has(r.idDemande);
   let t = 0, resolveurLibre = 0, tranchePrevue = true;
   const corps = new CorpsClassement({ publier: () => {},
-    resoudre: (m) => { for (const r of resolution.recevoir(m)) versClasseur.push({ pret: t, r }); },
+    resoudre: (m) => {
+      if (m.type === 'confirmer') confirmations.add(m.idDemande);
+      for (const r of resolution.recevoir(m)) versClasseur.push({ pret: t, r });
+    },
     incident: (raison) => { throw new Error(raison); } }, true, 'distante');
-  const pilote = () => (corps as unknown as { pilote: { demandesEnVol: number } }).pilote;
-  const enAttente = () => (corps as unknown as { reponsesEnAttente: unknown[] }).reponsesEnAttente.length;
-  const bilan: Bilan = { pasPendantLaFile: 0, pasDeTempsMort: 0, reponsesRetenues: 0, attenteDerriereLeTempsMort: 0, reponses: 0, fin: 0 };
+  const pilote = () => (corps as unknown as { pilote: { demandesEnVol: number; demandesDeNoteEnVol: number } }).pilote;
+  const notesEnAttente = () => (corps as unknown as { reponsesEnAttente: ReponseResolution[] }).reponsesEnAttente.filter((r) => !estConfirmation(r)).length;
+  const bilan: Bilan = { pasPendantLaFile: 0, confirmations: 0, confirmationsRetenues: 0, attenteMaxConfirmation: 0,
+    pasDeTempsMort: 0, reponsesRetenues: 0, attenteDerriereLeTempsMort: 0, reponses: 0, fin: 0 };
   // Le compte des pas de temps mort, sur la méthode même que la tranche appelle.
   const avancerAuRepos = corps.avancerAuRepos.bind(corps);
   let reposDeLaTranche: number[] = [];
@@ -48,7 +60,7 @@ function simuler(photo: ContexteResultat, candidats: readonly BuildCandidate[], 
     const fait = avancerAuRepos();
     if (fait) {
       bilan.pasDeTempsMort++; reposDeLaTranche.push(t);
-      if (pilote().demandesEnVol > 0 || enAttente() > 0 || versClasseur.length > 0) bilan.pasPendantLaFile++;
+      if (pilote().demandesDeNoteEnVol > 0 || notesEnAttente() > 0 || versClasseur.some((x) => !estConfirmation(x.r))) bilan.pasPendantLaFile++;
     }
     return fait;
   };
@@ -69,10 +81,13 @@ function simuler(photo: ContexteResultat, candidats: readonly BuildCandidate[], 
       reposDeLaTranche = [];
       tranchePrevue = corps.tranche(() => (t += e.pas));
       // Les réponses arrivées pendant la tranche ont attendu sa fin ; derrière son temps mort, s'il en a fait après elles.
-      for (const { pret } of versClasseur) {
+      for (const { pret, r } of versClasseur) {
         if (pret <= debut || pret > t) continue;
         const apres = reposDeLaTranche.filter((x) => x > pret);
-        if (apres.length) { bilan.reponsesRetenues++; bilan.attenteDerriereLeTempsMort += t - Math.max(pret, apres[0] - e.pas); }
+        if (!apres.length) continue;
+        const attente = t - Math.max(pret, apres[0] - e.pas);
+        if (estConfirmation(r)) { bilan.confirmationsRetenues++; bilan.attenteMaxConfirmation = Math.max(bilan.attenteMaxConfirmation, attente); }
+        else { bilan.reponsesRetenues++; bilan.attenteDerriereLeTempsMort += attente; }
       }
     }
     // Les demandes envoyées pendant la tranche : le résolveur libre s'y met aussitôt.
@@ -89,6 +104,7 @@ function simuler(photo: ContexteResultat, candidats: readonly BuildCandidate[], 
     t = Math.max(t, versClasseur[0].pret);
   }
   bilan.fin = t;
+  bilan.confirmations = confirmations.size;
   ok(!corps.travailEnCours && pilote().demandesEnVol === 0, `simulation finie à ${t.toFixed(0)} ms virtuelles, ${bilan.reponses} réponses reçues`);
   return bilan;
 }
@@ -101,5 +117,7 @@ export function testClassementTempsMortApresLaFile() {
   ok(b.reponses >= 250, `${b.reponses} réponses : la file a vérifié ses builds jusqu'à K`);
   ok(b.pasDeTempsMort > 0, `${b.pasDeTempsMort} pas de temps mort une fois la file finie`);
   egal({ pendantLaFile: b.pasPendantLaFile, retenues: b.reponsesRetenues, attente: Math.round(b.attenteDerriereLeTempsMort) }, { pendantLaFile: 0, retenues: 0, attente: 0 },
-    'aucun pas de temps mort pendant la file, aucune réponse retenue derrière lui');
+    'aucun pas de temps mort pendant les notes de la file, aucune réponse notée retenue derrière lui');
+  ok(b.confirmations > 0 && b.attenteMaxConfirmation <= 1 + 0.01,
+    `confirmation en fond : ${b.confirmations} demandes, ${b.confirmationsRetenues} réponse(s) derrière du temps mort, ${b.attenteMaxConfirmation.toFixed(2)} ms au plus (une tranche de temps mort, 1 ms)`);
 }

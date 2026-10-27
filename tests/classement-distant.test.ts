@@ -139,11 +139,24 @@ export function verifierOracle(p: PublicationClassement, photo: ReturnType<typeo
  * projection complète : comptes de `compteConfirme`/`compteAffichable`, page
  * de `compositionDePage`, équipement et valeurs de chaque carte.
  */
+/**
+ * La file a fini, confirmation en fond comprise : plus rien à noter, et
+ * chaque reçu jugé (noté, rejeté ou confirmé) — avec une file, résolus = reçus.
+ */
+export function fileFinie(i: InstantaneClassement): boolean {
+  return i.enAttente === 0 && (!i.comptes.avecFile || i.comptes.resolus === i.comptes.recus);
+}
+
 export function verifierInstantane(i: InstantaneClassement, p: PublicationClassement, photo: ReturnType<typeof fixture>['photo']) {
   verifierOracle(p, photo);
   const avecFile = photo.resolution !== null;
   let resolus = 0, confirmees = 0;
-  for (const c of p.candidats) { const r = p.parBuild.get(cleBuild(c)); if (r) { resolus++; if (r.conforme) confirmees++; } }
+  // Confirmées : les notées conformes et celles que la confirmation en fond a jugées sans les noter.
+  const sansNote = new Set(p.confirmeesSansNote);
+  for (const c of p.candidats) {
+    const r = p.parBuild.get(cleBuild(c));
+    if (r) { resolus++; if (r.conforme) confirmees++; } else if (sansNote.has(cleBuild(c))) { resolus++; confirmees++; }
+  }
   const comptes = { recus: p.candidats.length, affichables: p.affichees.length, resolus: avecFile ? resolus : 0, confirmees: avecFile ? confirmees : 0, avecFile };
   const page = compositionDePage({ classement: p.affichees, parBuild: avecFile ? p.parBuild : null, page: p.vue.page, taillePage: TAILLE_PAGE_CLASSEMENT });
   const options = optionsDuContexte(photo, p.parBuild, p.vue.metric), objectif = photo.recherche.objective;
@@ -344,7 +357,7 @@ export async function testClassementDistantPanne() {
           }
           if (m.type === 'publication') {
             derniere = m.publication; longueurMax = Math.max(longueurMax, longueur(m));
-            if (derniere.bilan && derniere.enAttente === 0) { clearTimeout(filet); accepter(); }
+            if (derniere.bilan && fileFinie(derniere)) { clearTimeout(filet); accepter(); }
           }
         } catch (e) { clearTimeout(filet); refuser(e); }
       });

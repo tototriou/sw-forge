@@ -874,6 +874,8 @@ export interface PublicationClassement {
   base: BuildCandidate[];
   affichees: BuildCandidate[];
   parBuild: Map<string, ResultatArtefacts>;
+  /** Les builds confirmés conformes en fond et pas notés (clés `cleBuild`), hors de `parBuild`. */
+  confirmeesSansNote: string[];
   enAttente: number;
   bilan: Omit<SearchResult, 'candidates'> | null;
 }
@@ -952,6 +954,10 @@ export class CorpsClassement {
   private reposAbandonnes = new Set<string>();
   // Vrai seulement entre la pompe qui trouve la file au repos et le prochain message ou geste.
   private fileAuRepos = false;
+  // Où la confirmation en fond reprend dans l'ordre du fond : tout ce qui
+  // précède est jugé (noté, rejeté ou confirmé) ou appartient à la fenêtre
+  // des notes, qui ne fait que s'allonger.
+  private curseurConfirmation: { fond: Uint32Array; position: number } | null = null;
 
   constructor(private readonly sorties: {
     publier: (p: InstantaneClassement) => void;
@@ -1007,6 +1013,7 @@ export class CorpsClassement {
     this.index = null; this.fileExhaustive = null; this.base = new Uint32Array(); this.fondPropre = null; this.bilan = null; this.collecteScellee = false;
     this.auFil = []; this.auFilEnAttente = false; this.travail.notes = 0; this.travail.comparaisons = 0;
     this.ordresDeBase = { index: null, entrees: [] }; this.apercu = null; this.repos = null; this.reposAbandonnes = new Set(); this.fileAuRepos = false;
+    this.curseurConfirmation = null;
     this.versions = { versionSchema: 1, idRecherche, idInventaire: contexte.idInventaire,
       idContexteResolution: this.versions.idContexteResolution, revisionDonnees: 0, idVue: 0, revisionPubliee: 0, idDemande };
     this.entrees = null;
@@ -1492,9 +1499,48 @@ export class CorpsClassement {
     }
     return candidatsParIndice(nombre, (i) => premiers[i] === undefined ? undefined as unknown as BuildCandidate : this.index!.magasin.candidat(premiers[i], false));
   }
+  /**
+   * Les builds à CONFIRMER en fond (verdict sans note), au plus `maxEnVol` :
+   * après le scellé seulement, hors de « Vérifier toutes les combinaisons »
+   * (tout y est noté), dans l'ordre du fond, au-delà de la fenêtre que la file
+   * note (vers K confirmées) et hors de la page demandée ; ni un groupe déjà
+   * jugé (noté, rejeté, confirmé), ni deux lignes du même groupe.
+   */
+  private aConfirmer(): BuildCandidate[] {
+    if (this.tache || !this.entrees || !this.index || !this.vue || !this.contexte || !this.collecteScellee) return [];
+    const K = cibleDeLaFile({ relicContext: this.contexte.recherche.relicContext, toutVerifier: this.contexte.toutVerifier });
+    if (K === Infinity) return [];
+    const m = this.index.magasin, fond = this.fond;
+    // La fenêtre des notes : la même boucle que `restants`.
+    let confirmees = 0, aVerifier = 0, fin = 0;
+    for (; fin < fond.length && confirmees + aVerifier < K; fin++) {
+      const etat = m.etat(fond[fin]);
+      if (etat === 0) aVerifier++; else if (etat === 1) confirmees++;
+    }
+    if (this.curseurConfirmation?.fond !== fond) this.curseurConfirmation = { fond, position: 0 };
+    const curseur = this.curseurConfirmation;
+    const juge = (i: number) => m.etat(i) !== 0 || m.confirme(i);
+    curseur.position = Math.max(curseur.position, fin);
+    while (curseur.position < fond.length && juge(fond[curseur.position])) curseur.position++;
+    const page = new Set(this.pageIndices().map((i) => m.groupe(i)));
+    const vus = new Set<number>(), sortie: BuildCandidate[] = [], n = this.pilote.maxEnVol;
+    for (let j = curseur.position; j < fond.length && sortie.length < n; j++) {
+      const i = fond[j], g = m.groupe(i);
+      if (juge(i) || page.has(g) || vus.has(g)) continue;
+      vus.add(g);
+      sortie.push(m.candidat(i, false));
+    }
+    return sortie;
+  }
+  /** Un build confirmé conforme en fond : un drapeau de son groupe, jamais une entrée du cache des notés. */
+  private confirmer(cle: string): void {
+    const g = this.index?.magasin.groupeDeCle(cle);
+    if (g !== undefined) this.index!.magasin.confirmer(g);
+  }
   private ports(maintenant: number): PortsResolutionDistante {
     return { courant: () => this.entrees ? { entrees: this.entrees, signature: `${this.signature}:${this.entrees.regime}` } : null,
       runesDe: (c) => runesDuBuild(c, runesDuContexte(this.contexte!)), restants: () => this.restants(), page: () => this.page(), cache: () => this.cache,
+      aConfirmer: () => this.aConfirmer(), confirmer: (cle) => this.confirmer(cle),
       actualisationEnCours: () => this.travailEnCours,
       envoyer: (m, voie) => { if (this.repli) this.reponsesDirectes.push(...this.direct.recevoir(m)); else this.sorties.resoudre(m, voie); },
       publier: (forcer) => { this.actualiser(); this.versions.revisionDonnees = compteurSuivant(this.versions.revisionDonnees); this.sale = true; return this.publier(maintenant, forcer); },
@@ -1517,9 +1563,12 @@ export class CorpsClassement {
       }
     }
     const restants = this.restants();
-    this.publier(maintenant, !this.tache && restants.length === 0);
-    // Le temps mort attend la file au repos : rien à vérifier, aucune demande en vol, aucune réponse retenue.
-    this.fileAuRepos = !this.tache && restants.length === 0 && this.pilote.demandesEnVol === 0
+    // Forcée quand toute la file est vide, confirmations en fond comprises : elles suivent la cadence.
+    this.publier(maintenant, !this.tache && restants.length === 0 && this.aConfirmer().length === 0);
+    // Le temps mort attend la file des notes au repos : rien à noter, aucune note en vol, aucune réponse
+    // retenue. La confirmation en fond, au plus bas niveau, ne le retient pas : ses réponses attendent au
+    // plus une tranche de temps mort.
+    this.fileAuRepos = !this.tache && restants.length === 0 && this.pilote.demandesDeNoteEnVol === 0
       && this.reponsesEnAttente.length === 0 && this.reponsesDirectes.length === 0;
   }
   recevoirResolution(r: ReponseResolution, maintenant: number): void {
@@ -1559,7 +1608,7 @@ export class CorpsClassement {
     this.pilote.renoncer(); this.pilote = new ResolutionDistante(); this.direct = new CorpsResolution(); this.repli = true;
     this.sale = true; this.publicationForcee = true; this.fileAuRepos = false;
   }
-  get travailEnRepli() { return this.reponsesEnAttente.length > 0 || (this.repli && this.restants().length > 0); }
+  get travailEnRepli() { return this.reponsesEnAttente.length > 0 || (this.repli && (this.restants().length > 0 || this.aConfirmer().length > 0)); }
   private abandonnerReponses(): void {
     // Ces réponses ont déjà rendu leur crédit dans le résolveur. Les jeter
     // sans passer par le pilote conserverait à jamais des demandes en vol.
@@ -1669,7 +1718,9 @@ export class CorpsClassement {
         degatsReels: avecDegats ? scoreDuCandidat(candidat, 'degats_reels', options) : null };
     });
     // Les comptes de la recherche ne suivent pas les bornes : ceux de la vue vont dans `filtre`.
-    const [, confirmees, ecartes] = parCategorie.map((ligne) => ligne.reduce((s, n) => s + n, 0));
+    const [, notees, ecartes] = parCategorie.map((ligne) => ligne.reduce((s, n) => s + n, 0));
+    // Confirmées : notées conformes, plus celles que la confirmation en fond a jugées conformes sans les noter.
+    const confirmees = notees + (avecFile ? index?.magasin.confirmeesSansNote ?? 0 : 0);
     return { versions: { ...this.versions }, vue: { ...vue },
       comptes: { recus, affichables: recus - ecartes, resolus: confirmees + ecartes, confirmees, avecFile },
       filtre: this.filtrePublie(parCategorie, total, confirmes, avecFile, recus),
@@ -1705,8 +1756,10 @@ export class CorpsClassement {
     const index = this.index, n = index?.magasin.longueur ?? 0;
     const candidats = Array.from({ length: n }, (_, i) => index!.magasin.candidat(i, false));
     const parBuild = new Map(this.cache);
+    const confirmeesSansNote: string[] = [];
+    if (index) for (const g of index.magasin.chefs()) if (index.magasin.confirme(g) && index.magasin.etat(g) === 0) confirmeesSansNote.push(index.magasin.cle(g));
     return { versions: { ...this.versions }, vue: { ...this.vue }, candidats, base: Array.from(this.base, (i) => candidats[i]),
-      affichees: (index?.page(0, n) ?? []).map((i) => candidatAvecSaPaire(candidats[i], parBuild)), parBuild,
+      affichees: (index?.page(0, n) ?? []).map((i) => candidatAvecSaPaire(candidats[i], parBuild)), parBuild, confirmeesSansNote,
       enAttente: this.restants().length, bilan: this.bilan };
   }
 }

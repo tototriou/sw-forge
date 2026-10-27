@@ -31,7 +31,10 @@ export interface ClassementResoluCli {
   parBuild: Map<string, ResultatArtefacts>;
   classes: BuildCandidate[];
   options: OptionsDeClassement;
+  // Rejetés : notés, ou jugés par la confirmation en fond (le même résultat).
   rejetes: number;
+  // Builds confirmés conformes en fond, sans note : hors de `parBuild`.
+  confirmeesSansNote: number;
   // Lots d'une résolution, comme les tâches de la file du propriétaire.
   lots: number;
   ms: number;
@@ -69,7 +72,7 @@ export function classerCommeLEcran(e: {
     let rejetes = 0;
     for (const r of publication.parBuild.values()) if (!r.conforme) rejetes++;
     resolu = { mode: e.toutResoudre ? 'tout' : 'file', K, parBuild: publication.parBuild,
-      classes: publication.affichees, options, rejetes, lots: publication.parBuild.size, ms };
+      classes: publication.affichees, options, rejetes, confirmeesSansNote: publication.confirmeesSansNote.length, lots: publication.parBuild.size, ms };
   }
   return { base: publication.base, optionsBase, resolu, classes: publication.affichees, options: resolu ? options : optionsBase };
 }

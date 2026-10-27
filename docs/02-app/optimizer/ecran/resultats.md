@@ -200,8 +200,15 @@ s'affichent pas sous un tel zéro.
 compté après vérification. Pendant la recherche, « XX combinaison(s)
 confirmée(s) sur YY trouvée(s) pour l'instant — recherche en cours… »,
 puis « XX combinaison(s) confirmée(s) sur YY trouvée(s) » : XX, seulement
-les builds de cette recherche vérifiés (résolus ET conformes), lus dans le
-cache publié de la file ; YY, le compte des trouvées de la ligne de
+les builds de cette recherche vérifiés conformes, lus dans l'instantané de
+la file — **une combinaison confirmée a au moins un équipement
+(paire d'artéfacts, relique) qui tient toutes les conditions** : soit
+notée (son meilleur équipement résolu, ce que montre une carte), soit
+confirmée en fond sans note (la file s'arrête au premier équipement qui
+tient, sans en chercher le meilleur, une fois les builds à noter servis :
+../../../03-developpeur/optimizer/moteur/pipeline.md § File de résolution) ;
+en fin de fond, chaque trouvée est jugée, et XX est le vrai total des
+valides ; YY, le compte des trouvées de la ligne de
 progression (`compteAffichable`, ci-dessus), qui peut baisser à mesure que
 la vérification écarte des builds. Sans file, l'en-tête ne dit que « XX
 combinaison(s) confirmée(s) » : les deux nombres sont égaux. Le
@@ -213,9 +220,8 @@ vérifie) dit la différence avec les trouvées :
 une combinaison confirmée tient vraiment toutes les conditions avec les
 pièces de l'inventaire ; « trouvée(s) » est une estimation optimiste,
 retenue stat par stat, dont une partie est écartée à la vérification ;
-la vérification s'arrête à 100 confirmées (300 quand la relique est
-cherchée), et « Vérifier toutes les combinaisons trouvées » (Réglages
-avancés) va jusqu'au bout.
+les combinaisons affichées sont vérifiées en premier, avec leur meilleur
+équipement, et toutes les autres sont ensuite confirmées en fond.
 **« Aucune combinaison ne répond à ces critères »** ne s'affiche qu'une
 fois la recherche finie et tout vérifié sans aucune confirmée — la file
 va jusqu'au dernier build trouvé faute de K confirmées (voir
@@ -236,7 +242,12 @@ vérifiés (`⌈(confirmées + non vérifiés) / 20⌉` dépasse les pages
 vérification s'étant arrêtée à K confirmées), ou quand le moteur a trouvé
 plus de combinaisons qu'il n'en a été reçu ; sinon le nombre exact, même
 s'il reste des non vérifiés qui ne peuvent que le faire baisser (45
-confirmées et 10 non vérifiées : « / 3 », 3 est déjà le maximum). Le
+confirmées et 10 non vérifiées : « / 3 », 3 est déjà le maximum). La
+confirmation en fond juge ensuite toutes les trouvées : en fin de fond,
+plus aucun non vérifié, le nombre de pages est exact et le « + » tombe ;
+une page au-delà des builds notés montre ses places « Vérification… » et
+fait noter ses builds à la demande, comme avant. Sous « Vérifier toutes
+les combinaisons trouvées », tout est noté, sans confirmation. Le
 « + » garde sa place, invisible, quand il disparaît : la vérification
 déclenchée par « Page suivante » ne déplace pas la flèche cliquée. Une
 seule fonction pure, `compteConfirme` (artifactQueue.ts), donne le compte,

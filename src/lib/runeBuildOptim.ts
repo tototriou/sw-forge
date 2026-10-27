@@ -427,11 +427,18 @@ export function respecteConditionsPaireFixe(
   requirement: Pick<BuildRequirement, 'minStats' | 'maxStats' | 'auraResPre'>,
   propres: AurasPropres
 ): boolean {
-  return respecteMinEtMax(stats, {
+  return respecteMinEtMax(stats, conditionsPaireFixe(requirement), propres);
+}
+
+/** Les conditions que juge `respecteConditionsPaireFixe` : les minimums, et des maximums les seuls RES/PRE. */
+export function conditionsPaireFixe(
+  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats' | 'auraResPre'>
+): Pick<BuildRequirement, 'minStats' | 'maxStats' | 'auraResPre'> {
+  return {
     minStats: requirement.minStats,
     maxStats: { res: requirement.maxStats?.res, acc: requirement.maxStats?.acc },
     auraResPre: requirement.auraResPre,
-  }, propres);
+  };
 }
 
 /**

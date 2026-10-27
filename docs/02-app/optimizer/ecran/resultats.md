@@ -199,7 +199,9 @@ s'affichent pas sous un tel zéro.
 ⚠️ **L'en-tête compte les combinaisons confirmées**, un nombre stable,
 compté après vérification. Pendant la recherche, « XX combinaison(s)
 confirmée(s) sur YY trouvée(s) pour l'instant — recherche en cours… »,
-puis « XX combinaison(s) confirmée(s) sur YY trouvée(s) » : XX, seulement
+puis « XX combinaison(s) confirmée(s) sur YY trouvée(s) » tant qu'il en
+reste à vérifier, et « XX combinaison(s) confirmée(s) » une fois tout
+vérifié (les deux nombres sont alors égaux) : XX, seulement
 les builds de cette recherche vérifiés conformes, lus dans l'instantané de
 la file — **une combinaison confirmée a au moins un équipement
 (paire d'artéfacts, relique) qui tient toutes les conditions** : soit

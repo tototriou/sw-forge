@@ -61,9 +61,11 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, tri
   // les confirmées entre visibles et masquées. « Aucune combinaison… »
   // seulement quand tout est vérifié sans aucune confirmée. Avec une file, le
   // compte des trouvées (`compteAffiche`, celui de la ligne de progression)
-  // suit : sans elle, les deux nombres sont égaux.
+  // suit tant qu'il en reste à vérifier : une fois tout vérifié, les deux
+  // nombres sont égaux et le « sur M » se retire, comme sans file.
+  const resteAVerifier = !result || compteConfirmes.nonVerifies > 0;
   const confirmees = `${compteConfirmes.confirmees.toLocaleString('fr-FR')} combinaison(s) confirmée(s)`
-    + (avecFile ? ` sur ${compteAffiche.compte.toLocaleString('fr-FR')} trouvée(s)` : '');
+    + (avecFile && resteAVerifier ? ` sur ${compteAffiche.compte.toLocaleString('fr-FR')} trouvée(s)` : '');
   const compte = (
     <p className="label">
       {result

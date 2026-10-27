@@ -342,10 +342,10 @@ export async function preuvesResultats(b: BancEcran): Promise<Preuves> {
   await b.geste(() => b.forcerRecherche({ status: 'done', progress: null,
     result: { candidates: [candidat], explored: 1, truncated: false, nearMissByCondition: [], globalNearMiss: null } }));
   const entete = () => [...document.querySelectorAll<HTMLElement>('p')]
-    .find((e) => visible(e) && /^\d[\d\s ]* combinaison\(s\) confirmée\(s\) sur \d[\d\s ]* trouvée\(s\)$/.test(e.textContent?.trim() ?? ''));
+    .find((e) => visible(e) && /^\d[\d\s ]* combinaison\(s\) confirmée\(s\)(?: sur \d[\d\s ]* trouvée\(s\))?$/.test(e.textContent?.trim() ?? ''));
   for (let t = 0; t < 100 && !/^[1-9]/.test(entete()?.textContent?.trim() ?? ''); t++) await attendre(100);
-  preuves.push([/^1 combinaison\(s\) confirmée\(s\) sur 1 trouvée\(s\)$/.test(entete()?.textContent?.trim() ?? ''),
-    `résultat vérifié, file active : « 1 combinaison(s) confirmée(s) sur 1 trouvée(s) » (${entete()?.textContent})`]);
+  preuves.push([/^1 combinaison\(s\) confirmée\(s\)$/.test(entete()?.textContent?.trim() ?? ''),
+    `tout vérifié, file active : « 1 combinaison(s) confirmée(s) », le « sur M trouvée(s) » retiré (${entete()?.textContent})`]);
   const aide = bouton('Combinaisons confirmées');
   preuves.push([!!aide, 'file active : l’infobulle « Combinaisons confirmées »']);
   if (!aide) return preuves;

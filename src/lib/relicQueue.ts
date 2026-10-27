@@ -105,6 +105,11 @@ export interface EntreeResolution {
   // principale sont ex æquo, et la PORTÉE l'emporte si elle est parmi les
   // meilleures (`bestRelicForBuild`, `departagePortee`). Obligatoire, pour que `tsc` signale un constructeur oublié.
   regimeDeStat: boolean;
+  // Le régime effectif est-il `degats_reels` ? Seul régime où la résolution
+  // rapide coupe une relique par sa borne (règle de jeu : les dégâts ne
+  // baissent jamais quand ATQ, PV, DEF ou une ligne d'artéfact augmente —
+  // resolutionRapide.ts, en-tête). Obligatoire, comme `regimeDeStat`.
+  regimeDegatsReels: boolean;
   // Le contexte canonique de la recherche dont ce build est issu (garantie
   // G) — jamais recalculé ici. Absent : la relique portée reste fixe, rien n'est résolu.
   relicContext: RelicContext | undefined;
@@ -125,7 +130,9 @@ export interface EntreeResolution {
  * Par la résolution rapide (`resoudreEquipementDuBuildRapide`,
  * resolutionRapide.ts), avec les représentants de formes de la file
  * (`caches.rapide`) : une relique qu'aucune forme de paire ne rend faisable
- * est écartée sans note, et seules les paires faisables sont notées. Pour un
+ * est écartée sans note, et seules les paires faisables sont notées ; en
+ * Dégâts réels, une relique dont la borne est sous la meilleure note déjà
+ * trouvée est écartée sans note (coupe, en-tête de resolutionRapide.ts). Pour un
  * build conforme, le résultat est celui du calcul exhaustif
  * (`resoudreEquipementDuBuildExhaustif`, resolutionExhaustive.ts), champ
  * pour champ ; une note NaN vue sur une paire faisable fait résoudre le
@@ -253,6 +260,7 @@ export function entreeResolutionDuBuild(e: {
     requirement: e.requirement,
     regimeAucun: e.regime === 'aucun',
     regimeDeStat: e.regime === 'hp' || e.regime === 'atk' || e.regime === 'def',
+    regimeDegatsReels: e.regime === 'degats_reels',
     relicContext: e.relicContext,
     caches: e.caches,
   };

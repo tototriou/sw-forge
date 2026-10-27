@@ -394,6 +394,47 @@ n'est construite par paire. La paire retenue repasse
   faisables, la résolution rapide rendant la meilleure faisable —
   seulement sur un build dont la note est déjà incohérente.
 
+**Coupe des reliques (régime Dégâts réels seulement).** Elle repose sur une
+règle de jeu, confirmée par l'utilisateur le 2026-10-27 et non relevée en
+jeu : les dégâts ne baissent jamais quand ATQ, PV, DEF ou une ligne
+d'artéfact augmente. La note de toute paire avec une relique est donc au
+plus la BORNE de cette relique : sa note avec le profil idéal de la file
+(`CachesResolutionRapide.profilIdeal`), des pièces synthétiques qui portent,
+par principale PV/ATQ/DEF et par ligne, le maximum d'une pièce d'attribut
+plus le maximum d'une pièce de type parmi `candidatsParSorte` — la vue
+complète dont sort toute pièce notée. Les contraintes de paire (un seul
+Intangible, lignes verrouillées, minimums et maximums) sont ignorées, ce
+qui ne fait que monter la borne. Une borne coûte une note par relique à
+forme faisable.
+
+Les reliques à forme faisable se notent par borne décroissante (l'ordre
+d'`eligibles` entre bornes égales). Une relique dont la borne est
+strictement sous la meilleure note déjà trouvée n'a aucune paire notée et
+compte comme infaisable pour `bestRelicForBuild` : sa note réelle est sous
+la meilleure, elle ne pouvait être ni retenue ni ex æquo. Une marge
+relative de 1e-9 protège de l'arrondi flottant (borne et note se calculent
+sur des sommes de lignes faites dans un autre ordre) ; elle ne fait que
+couper moins. Le choix (relique, paire, note, verdict, départage des ex
+æquo) est celui de la résolution sans la coupe, et personne ne lit la note
+d'une relique non retenue. Les autres régimes n'ont pas de coupe : la règle
+ne parle que de dégâts. Écart accepté, de même nature que le précédent :
+une note NaN portée par une paire d'une relique coupée n'est jamais
+calculée.
+
+⚠️ La borne est lâche : elle met TOUTES les lignes à leur maximum à la fois,
+quand une vraie paire n'en porte que huit. Sur une recette réelle en Dégâts
+réels (Kinki, 300 builds), elle vaut 1,43 à 1,52 fois la meilleure note,
+quand les reliques notées tiennent entre 0,94 et 1 fois cette note : elle
+n'y coupe aucune relique et coûte ses notes de borne (une par relique à
+forme faisable, moins de 1 % des notes du build).
+
+Un écart de choix entre les deux chemins serait un défaut du modèle de
+dégâts face à la règle, à montrer, jamais à absorber. Vérification :
+`testResolutionCoupeReliques` (`tests/resolution-coupe-reliques.test.ts`),
+contre la résolution sans la coupe (option `sansCoupe`), qui vérifie aussi
+que le code suit la règle sur ses fixtures (aucune paire au-dessus de la
+borne de sa relique).
+
 L'en-tête de `resolutionRapide.ts` dit ses préconditions. Vérification :
 `testResolutionRapide` et `testResolutionRapideNaN`
 (`tests/resolution-rapide.test.ts`), l'option du CLI dans

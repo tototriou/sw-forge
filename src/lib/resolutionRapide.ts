@@ -60,10 +60,36 @@
 // elles, la résolution rapide rendrait `null` à sa place. Le test les
 // compare, relique `recherche` comme relique fixe.
 //
-// ⚠️ **Aucune borne ni heuristique** : aucune paire faisable n'est écartée sur
-// une note. Le choix entre reliques reste `bestRelicForBuild` ; les caches
-// partagés sont ceux de la file (`CachesResolution`), représentants des
-// formes compris (`caches.rapide`).
+// ⚠️ **Aucune heuristique** : aucune paire faisable n'est écartée sur une
+// note, et une relique ne l'est que par une borne EXACTE (coupe ci-dessous).
+// Le choix entre reliques reste `bestRelicForBuild` ; les caches partagés
+// sont ceux de la file (`CachesResolution`), représentants des formes et
+// profil idéal compris (`caches.rapide`).
+//
+// **Coupe des reliques, régime Dégâts réels seulement** (`regimeDegatsReels`).
+// Règle de jeu R, confirmée par l'utilisateur le 2026-10-27 : les dégâts ne
+// baissent jamais quand ATQ, PV, DEF ou une ligne d'artéfact augmente. La
+// note d'une paire avec une relique est donc au plus sa BORNE : la note avec
+// cette relique et le PROFIL IDÉAL de la file (`profilIdeal`) — par
+// principale PV/ATQ/DEF et par ligne, le maximum d'une pièce d'attribut plus
+// le maximum d'une pièce de type parmi `candidatsParSorte` (sur-ensemble des
+// pièces de toute paire notée), contraintes de paire ignorées (Intangibles,
+// lignes verrouillées, minimums et maximums), ce qui ne fait que monter la
+// borne. Les reliques à forme faisable sont notées par borne décroissante ;
+// une relique dont la borne est STRICTEMENT inférieure à la meilleure note
+// déjà trouvée (avec une marge relative `MARGE_COUPE` contre l'arrondi
+// flottant, qui ne fait que couper moins) n'a aucune paire notée et compte
+// pour `bestRelicForBuild` comme infaisable : sa note réelle est sous la
+// meilleure, elle ne pouvait être ni retenue ni ex æquo. Le choix (relique,
+// paire, note, verdict, départage des ex æquo) est donc celui du chemin sans
+// coupe, et les notes des reliques non retenues ne sont lues par personne
+// (`parRelique` ne sert qu'à la retenue). Les autres régimes n'ont pas de
+// coupe : R ne parle que de dégâts. ⚠️ Une note NaN portée par une paire
+// d'une relique COUPÉE n'est jamais calculée (même écart accepté que la note
+// NaN d'une paire infaisable, plus bas). Un écart de choix entre les deux
+// chemins serait un défaut du modèle de dégâts face à R, à montrer, jamais à
+// absorber : `tests/resolution-coupe-reliques.test.ts` compare au chemin sans
+// coupe (`sansCoupe`).
 //
 // Hors mode `recherche` (relique portée fixe) : le prédicat
 // `respecteConditions` est mémoïsé par forme de paire, au premier jugement
@@ -84,7 +110,7 @@ import {
 import { artifactPairAllowed } from './artifacts';
 import { RechercheRefusee, respecteConditionsAvecRelique, respecteMinEtMax } from './runeBuildOptim';
 import { aurasPropresDesRunes } from './damage';
-import { bestRelicForBuild } from './relicOptim';
+import { RelicEvaluation, bestRelicForBuild } from './relicOptim';
 import type { ResultatArtefacts } from './artifactQueue';
 // Type seul : relicQueue.ts importe ce module (son point d'entrée et ses
 // caches), un import de valeur ferait un cycle.
@@ -111,12 +137,16 @@ export interface CompteursResolutionRapide {
   replisNaN: number;
   // `computeStats` de faisabilité : formes jugées (sur-ensemble).
   formesJugees: number;
+  // Coupe des reliques : bornes notées (une par relique à forme faisable),
+  // et reliques écartées par leur borne sans aucune paire notée.
+  bornes: number;
+  reliquesCoupees: number;
 }
 
 export function compteursVides(): CompteursResolutionRapide {
   return {
     builds: 0, reliques: 0, reliquesSansFormeFaisable: 0, reliquesNotees: 0, reliquesNoteesSansCouple: 0,
-    noteesEntieres: 0, notesFaisables: 0, diagnostics: 0, replisNaN: 0, formesJugees: 0,
+    noteesEntieres: 0, notesFaisables: 0, diagnostics: 0, replisNaN: 0, formesJugees: 0, bornes: 0, reliquesCoupees: 0,
   };
 }
 
@@ -125,7 +155,16 @@ export interface OptionsResolutionRapide {
   // CLI `resoudreEquipementCli` sur option, le banc, les tests). Absent ou
   // faux : le chemin de l'app, sans diagnostic.
   diagnostic?: boolean;
+  // Sans la coupe des reliques : l'oracle du test de la coupe et le
+  // différentiel sur recette réelle. Absent ou faux : le chemin de l'app.
+  sansCoupe?: boolean;
 }
+
+// Marge relative de la coupe : la borne et la note se calculent sur des
+// entrées différentes (sommes de lignes dans un autre ordre), l'arrondi
+// flottant pourrait mettre une borne mathématiquement égale à la note un
+// rien en dessous. La marge ne fait que couper moins.
+const MARGE_COUPE = 1e-9;
 
 /**
  * Les formes de paire d'une file : par sorte, les représentants (une pièce par
@@ -151,6 +190,52 @@ export interface FormesDePaire {
 export class CachesResolutionRapide {
   private entrees: unknown[] | null = null;
   private formes: FormesDePaire | null = null;
+  private entreesIdeal: unknown[] | null = null;
+  private ideal: ArtifactDetail[] | null = null;
+
+  /**
+   * Le profil IDÉAL de la file, pour la borne de la coupe des reliques : des
+   * pièces synthétiques (identifiant 0, jamais en cache de profil) qui portent,
+   * par principale PV/ATQ/DEF, le maximum d'une pièce d'attribut plus le
+   * maximum d'une pièce de type, et par ligne, la même somme des maximums
+   * (lignes de même code d'une pièce additionnées, comme le profil de dégâts
+   * les additionne). Tiré de `candidatsParSorte`, la vue complète dont sort
+   * toute pièce notée ; même mémoïsation que les représentants.
+   */
+  profilIdeal(params: ArtifactSearchParams): ArtifactDetail[] {
+    const entrees = [params.inventaire, params.equipes, params.porteur, params.principaleParSorte];
+    if (!this.ideal || !this.entreesIdeal || entrees.some((v, i) => v !== this.entreesIdeal![i])) {
+      const maxParSorte = (kind: ArtifactKind) => {
+        const principales = new Map<number, number>();
+        const lignes = new Map<number, number>();
+        for (const a of candidatsParSorte(params, kind)) {
+          if (!a) continue;
+          principales.set(a.main.code, Math.max(principales.get(a.main.code) ?? 0, a.main.value));
+          const parCode = new Map<number, number>();
+          for (const s of a.subs) parCode.set(s.code, (parCode.get(s.code) ?? 0) + s.value);
+          for (const [code, v] of parCode) lignes.set(code, Math.max(lignes.get(code) ?? 0, v));
+        }
+        return { principales, lignes };
+      };
+      const el = maxParSorte('element');
+      const ar = maxParSorte('archetype');
+      // Attribut puis type : l'ordre où le profil d'une vraie paire les additionne.
+      const somme = (a: Map<number, number>, b: Map<number, number>) => {
+        const s = new Map<number, number>();
+        for (const code of new Set([...a.keys(), ...b.keys()])) s.set(code, (a.get(code) ?? 0) + (b.get(code) ?? 0));
+        return s;
+      };
+      const principales = somme(el.principales, ar.principales);
+      const lignes = [...somme(el.lignes, ar.lignes)].map(([code, value]) => ({ code, value }));
+      const piece = (code: number, subs: { code: number; value: number }[]): ArtifactDetail =>
+        ({ id: 0, kind: 'element', level: 0, rarity: 0, main: { code, value: principales.get(code) ?? 0 }, subs });
+      // Une pièce par principale : `statsParPaire` les additionne toutes ; les
+      // lignes sur la première, le profil de dégâts ne lit que les lignes.
+      this.ideal = [piece(100, lignes), piece(101, []), piece(102, [])];
+      this.entreesIdeal = entrees;
+    }
+    return this.ideal;
+  }
 
   representants(params: ArtifactSearchParams): FormesDePaire {
     const entrees = [params.inventaire, params.equipes, params.porteur, params.principaleParSorte];
@@ -411,53 +496,94 @@ export function resoudreEquipementDuBuildRapide(
   const parRelique = new Map<number, CoupleFaisable>();
   let nanVu = false;
 
-  const meilleure = bestRelicForBuild(
-    candidates,
-    (relique) => {
-      // Une note NaN déjà vue : le build part au calcul exhaustif, rien de plus à noter.
-      if (nanVu) return 'infaisable';
-      if (compteurs) compteurs.reliques++;
-      const table = tableDe(relique);
-      let uneFaisable = false;
-      for (const v of table) if (v) uneFaisable = true;
-      if (!uneFaisable) {
-        if (compteurs) compteurs.reliquesSansFormeFaisable++;
+  // Une relique sans forme faisable est écartée sans aucune note.
+  const formeFaisable = (relique: RelicDetail) => {
+    if (compteurs) compteurs.reliques++;
+    for (const v of tableDe(relique)) if (v) return true;
+    if (compteurs) compteurs.reliquesSansFormeFaisable++;
+    return false;
+  };
+  // La note d'une relique à forme faisable : sa meilleure paire faisable.
+  const noter = (relique: RelicDetail): RelicEvaluation => {
+    const table = tableDe(relique);
+    if (compteurs) compteurs.reliquesNotees++;
+    const params = paramsDe(relique);
+    let p: PaireArtefacts | null = null;
+    let meilleurSansVerrous: number | null = null;
+    if (coutDesVerrous(params)) {
+      // Toutes les notes (`meilleurSansVerrous`) : le parcours du calcul exhaustif.
+      if (compteurs) compteurs.noteesEntieres++;
+      const r = pairesParScore(params, e.caches?.preFiltre);
+      meilleurSansVerrous = r.meilleurSansVerrous;
+      for (const q of r.paires) {
+        if (verdict(table, indiceDe(formes.indiceElement, q.element), indiceDe(formes.indiceArchetype, q.archetype), q.element, q.archetype)) {
+          p = q;
+          break;
+        }
+      }
+    } else {
+      const q = meilleurePaireFaisable(params, e.caches?.preFiltre, formes, (ie, ia, el, ar) => verdict(table, ie, ia, el, ar), compteurs);
+      if (q === NAN) {
+        nanVu = true;
         return 'infaisable';
       }
-      if (compteurs) compteurs.reliquesNotees++;
-      const params = paramsDe(relique);
-      let p: PaireArtefacts | null = null;
-      let meilleurSansVerrous: number | null = null;
-      if (coutDesVerrous(params)) {
-        // Toutes les notes (`meilleurSansVerrous`) : le parcours du calcul exhaustif.
-        if (compteurs) compteurs.noteesEntieres++;
-        const r = pairesParScore(params, e.caches?.preFiltre);
-        meilleurSansVerrous = r.meilleurSansVerrous;
-        for (const q of r.paires) {
-          if (verdict(table, indiceDe(formes.indiceElement, q.element), indiceDe(formes.indiceArchetype, q.archetype), q.element, q.archetype)) {
-            p = q;
-            break;
-          }
-        }
-      } else {
-        const q = meilleurePaireFaisable(params, e.caches?.preFiltre, formes, (ie, ia, el, ar) => verdict(table, ie, ia, el, ar), compteurs);
-        if (q === NAN) {
-          nanVu = true;
-          return 'infaisable';
-        }
-        p = q;
+      p = q;
+    }
+    if (!p) {
+      if (compteurs) compteurs.reliquesNoteesSansCouple++;
+      return 'infaisable';
+    }
+    const arts = artefactsDe(p);
+    const { stats } = respecteConditionsAvecRelique({ ...e.gear, artifacts: arts }, relique, e.requirement);
+    parRelique.set(relique.id, { paire: p, artefacts: arts, stats, meilleurSansVerrous });
+    return p.score;
+  };
+
+  let evaluer: (relique: RelicDetail) => RelicEvaluation = (relique) => {
+    // Une note NaN déjà vue : le build part au calcul exhaustif, rien de plus à noter.
+    if (nanVu) return 'infaisable';
+    return formeFaisable(relique) ? noter(relique) : 'infaisable';
+  };
+  if (e.regimeDegatsReels && !options?.sansCoupe) {
+    // La coupe (en-tête) : bornes des reliques à forme faisable, notées par
+    // borne décroissante (ordre d'`eligibles` entre bornes égales) ; le
+    // jugement de chacune est rendu à `bestRelicForBuild`, qui garde le choix
+    // et le départage des ex æquo.
+    const ideal = (e.caches?.rapide ?? new CachesResolutionRapide()).profilIdeal(paramsDe(candidates[0]!));
+    const jugements = new Map<RelicDetail, RelicEvaluation>();
+    const aNoter: { relique: RelicDetail; borne: number }[] = [];
+    for (const relique of candidates) {
+      if (!formeFaisable(relique)) {
+        jugements.set(relique, 'infaisable');
+        continue;
       }
-      if (!p) {
-        if (compteurs) compteurs.reliquesNoteesSansCouple++;
-        return 'infaisable';
+      const borne = paramsDe(relique).evaluer(ideal);
+      if (compteurs) compteurs.bornes++;
+      // Une borne NaN ne coupe rien : la relique est notée en premier.
+      aNoter.push({ relique, borne: Number.isNaN(borne) ? Infinity : borne });
+    }
+    aNoter.sort((x, y) => (x.borne === y.borne ? 0 : y.borne > x.borne ? 1 : -1));
+    let meilleureNote = -Infinity;
+    for (const { relique, borne } of aNoter) {
+      if (nanVu) {
+        jugements.set(relique, 'infaisable');
+        continue;
       }
-      const arts = artefactsDe(p);
-      const { stats } = respecteConditionsAvecRelique({ ...e.gear, artifacts: arts }, relique, e.requirement);
-      parRelique.set(relique.id, { paire: p, artefacts: arts, stats, meilleurSansVerrous });
-      return p.score;
-    },
-    { regimeAucun: e.regimeAucun, equipee: ctx.equipee, departagePortee: e.regimeDeStat }
-  );
+      if (borne + Math.abs(borne) * MARGE_COUPE < meilleureNote) {
+        if (compteurs) compteurs.reliquesCoupees++;
+        jugements.set(relique, 'infaisable');
+        continue;
+      }
+      const note = noter(relique);
+      jugements.set(relique, note);
+      if (note !== 'infaisable' && note > meilleureNote) meilleureNote = note;
+    }
+    evaluer = (relique) => jugements.get(relique)!;
+  }
+
+  const meilleure = bestRelicForBuild(candidates, evaluer, {
+    regimeAucun: e.regimeAucun, equipee: ctx.equipee, departagePortee: e.regimeDeStat,
+  });
 
   if (nanVu) return avertirNaN(e, compteurs);
 

@@ -80,6 +80,8 @@ function entreeResolutionAvant(p: SearchParams, c: BuildCandidate, ctx: RelicCon
     // Seul ajout à la copie : le champ obligatoire du départage
     // des régimes de stat, qui n'existait pas au commit 7905df36.
     regimeDeStat: regime === 'hp' || regime === 'atk' || regime === 'def',
+    // Et celui de la coupe des reliques, propre au régime Dégâts réels.
+    regimeDegatsReels: regime === 'degats_reels',
     relicContext: ctx,
   };
 }

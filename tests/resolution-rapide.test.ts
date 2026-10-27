@@ -45,15 +45,15 @@ import { mulberry32, randomRune, SETS_VARIES } from '../scripts/lib/randomPool';
 import { DEGATS_FICHE } from './artifact-fiche.test';
 import { egal, ok, titre } from './outils';
 
-const PORTEUR = { element: 'fire' as ElementKey, archetype: 'attack' as ArtifactArchetype };
-const BASE: BaseStats = { hp: 9000, atk: 650, def: 550, spd: 101, cr: 15, cd: 50, res: 15, acc: 0 };
-const DEGATS = { ...DEGATS_FICHE, setup: { ...DEGATS_FICHE.setup, critMode: 'crit' as const } };
-const EXCLUSIVE = { setup: DEFAULT_DAMAGE_SETUP, element: null };
+export const PORTEUR = { element: 'fire' as ElementKey, archetype: 'attack' as ArtifactArchetype };
+export const BASE: BaseStats = { hp: 9000, atk: 650, def: 550, spd: 101, cr: 15, cd: 50, res: 15, acc: 0 };
+export const DEGATS = { ...DEGATS_FICHE, setup: { ...DEGATS_FICHE.setup, critMode: 'crit' as const } };
+export const EXCLUSIVE = { setup: DEFAULT_DAMAGE_SETUP, element: null };
 
 // Inventaire éligible (fire / attack) : principales PV, ATQ ou DEF à des
 // valeurs VARIÉES (plusieurs formes de paire par code), quatre
 // sous-propriétés sous leur plafond, environ un Intangible sur six.
-function inventaire(rng: () => number, parSorte: number): ArtifactDetail[] {
+export function inventaire(rng: () => number, parSorte: number): ArtifactDetail[] {
   const codesDe = (kind: ArtifactKind) => Object.keys(ARTIFACT_SUB_MAX).map(Number).filter((c) => artifactSubKinds(c).includes(kind));
   const pieces: ArtifactDetail[] = [];
   let id = 5000;
@@ -77,7 +77,7 @@ function inventaire(rng: () => number, parSorte: number): ArtifactDetail[] {
 
 // Reliques : principales et effets variés, deux à principale identique, une
 // sans `percent` (neutre), identifiants dans le désordre.
-function reliques(rng: () => number, n: number): RelicDetail[] {
+export function reliques(rng: () => number, n: number): RelicDetail[] {
   const out: RelicDetail[] = [];
   const types = [1, 2, 3, 5, 7, 8, 9, 11, 13, 16];
   for (let i = 0; i < n; i++) {
@@ -94,11 +94,11 @@ function reliques(rng: () => number, n: number): RelicDetail[] {
   return out;
 }
 
-function build(rng: () => number, id0: number): RuneDetail[] {
+export function build(rng: () => number, id0: number): RuneDetail[] {
   return [1, 2, 3, 4, 5, 6].map((slot) => randomRune(id0 + slot, slot, rng, SETS_VARIES));
 }
 
-const total = (runes: RuneDetail[], k: string) => computeStats({ base: BASE, runes, artifacts: [] }).find((s) => s.key === k)!.total;
+export const total = (runes: RuneDetail[], k: string) => computeStats({ base: BASE, runes, artifacts: [] }).find((s) => s.key === k)!.total;
 
 interface Scenario {
   nom: string;
@@ -123,9 +123,9 @@ for (const regime of ['degats_reels', 'aucun', 'hp', 'atk', 'ehp'] as RegimeArte
 }
 
 // Le résultat, ou l'erreur levée (nom et message) : les deux se comparent.
-type Issue = { r: ResultatArtefacts } | { erreur: string };
+export type Issue = { r: ResultatArtefacts } | { erreur: string };
 
-function resoudre(f: () => ResultatArtefacts): Issue {
+export function resoudre(f: () => ResultatArtefacts): Issue {
   try {
     return { r: f() };
   } catch (e) {

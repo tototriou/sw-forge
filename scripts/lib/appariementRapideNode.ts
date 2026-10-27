@@ -9,7 +9,7 @@ import { existsSync, mkdirSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { build } from 'esbuild';
-import { ResultatMorceau } from '../../src/lib/appariementRapide';
+import { AvancementMorceau, ResultatMorceau } from '../../src/lib/appariementRapide';
 import { LancerTravailleur } from '../../src/lib/appariementRapideParallele';
 import { SortieCandidats } from '../../src/lib/candidatsCompacts';
 import { BuildCandidate } from '../../src/lib/runeBuildOptim';
@@ -41,7 +41,13 @@ export function lancerTravailleurNode<C extends SortieCandidats = BuildCandidate
     const worker = new Worker(chemin, { workerData: init, transferList: transfert });
     return {
       envoyer: (message, t) => worker.postMessage(message, t),
-      surMessage: (rappel) => worker.on('message', (m: ResultatMorceau<C>) => rappel(m)),
+      // Deux canaux sur le même port : l'avancement (sans crédit) ne passe jamais par `surMessage`.
+      surMessage: (rappel) => worker.on('message', (m: ResultatMorceau<C> | AvancementMorceau) => {
+        if (m.type !== 'avancement') rappel(m);
+      }),
+      surAvancement: (rappel) => worker.on('message', (m: ResultatMorceau<C> | AvancementMorceau) => {
+        if (m.type === 'avancement') rappel(m);
+      }),
       acquitter: () => worker.postMessage({ type: 'credit' }),
       surErreur: (rappel) => {
         worker.on('error', rappel);

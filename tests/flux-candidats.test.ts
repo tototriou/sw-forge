@@ -67,7 +67,7 @@ export async function apparierObjetPourTest(o: OptionsParallele): Promise<Result
           acquitter: () => fil.acquitter?.(),
         };
       },
-      surProgression: async (n, c) => { adapter(c); await o.surProgression?.(n, candidates); },
+      surProgression: async (n, c, a) => { adapter(c); await o.surProgression?.(n, candidates, a); },
     });
     adapter(r.candidates);
     return { ...r, candidates };

@@ -24,7 +24,7 @@ import { PreparedSearch, SearchParams, SearchResult } from '../lib/runeBuildOpti
 import { BlocCandidats, ColonnesCandidats, creerColonnesCandidats, routerMessageDuClasseur } from '../lib/candidatsCompacts';
 import { CompartimentType } from '../lib/demiBuildsTypes';
 import { RelicVide } from '../lib/relicOptim';
-import { analyserEspace } from '../lib/appariementRapide';
+import { AvancementMorceau, ResultatMorceau, analyserEspace } from '../lib/appariementRapide';
 import {
   ErreurAppariementParallele, PoigneeTravailleur, erreurDeWorkerEnfant, resultatApresErreur, type LancerTravailleur,
 } from '../lib/appariementRapideParallele';
@@ -158,11 +158,21 @@ const lancerTravailleurNavigateur: LancerTravailleur<ColonnesCandidats> = (init,
   const worker = new Worker(new URL('./appariementRapide.worker.ts', import.meta.url), { type: 'module' });
   const message: MessageVersAppariement = { type: 'init', init };
   worker.postMessage(message, transfert);
+  // Deux canaux sur le même `onmessage` : l'avancement (sans crédit) ne passe jamais par `surMessage`.
+  let surResultat: (r: ResultatMorceau<ColonnesCandidats>) => void = () => {};
+  let surAvancement: (a: AvancementMorceau) => void = () => {};
+  worker.onmessage = (e: MessageEvent<ResultatMorceau<ColonnesCandidats> | AvancementMorceau>) => {
+    if (e.data.type === 'avancement') surAvancement(e.data);
+    else surResultat(e.data);
+  };
   return {
     envoyer: (morceau, t) => worker.postMessage(morceau, t),
     acquitter: () => worker.postMessage({ type: 'credit' }),
     surMessage: (rappel) => {
-      worker.onmessage = (e) => rappel(e.data);
+      surResultat = rappel;
+    },
+    surAvancement: (rappel) => {
+      surAvancement = rappel;
     },
     surErreur: (rappel) => {
       // ⚠️ L'événement est annulé (voir `erreurDeWorkerEnfant`) : il ne doit
@@ -341,7 +351,10 @@ async function traiterMessage(e: MessageEvent<WorkerRequest>) {
   {
     const regime = regimeAppariement(totalPairs, espace.motifContrat);
     let dernierMessage = 0;
-    const postProgress = async (explored: number, candidats: ColonnesCandidats) => {
+    // L'écran montre l'AVANCEMENT (paires parcourues, morceaux non fusionnés
+    // compris en parallèle), jamais la seule fusion, qui attend le morceau de
+    // tête ; le résultat garde `explored` = paires traitées.
+    const postProgress = async (_traitees: number, candidats: ColonnesCandidats, avancement: number) => {
       classement?.port.postMessage({ type: 'activer', idRecherche: classement.idRecherche });
       const now = Date.now();
       // drivePairing espace déjà le séquentiel, vidages de blocs compris.
@@ -350,9 +363,9 @@ async function traiterMessage(e: MessageEvent<WorkerRequest>) {
       const message: WorkerPairingMessage = {
         type: 'progress',
         phase: 'pairing',
-        explored,
+        explored: avancement,
         found: candidats.length,
-        pct: estimatePct(prepared, totalPairs, explored, candidats.length, now - startedAt),
+        pct: estimatePct(prepared, totalPairs, avancement, candidats.length, now - startedAt),
         totalPairs,
       };
       (self as unknown as Worker).postMessage(message);

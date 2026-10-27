@@ -16,6 +16,7 @@ import { cederLaMain } from './cession';
 import { BuildCandidate } from './runeBuildOptim';
 import { SortieCandidats, creerColonnesCandidats, tamponsCandidats } from './candidatsCompacts';
 import {
+  AvancementMorceau,
   ContexteTravailleur,
   InitTravailleur,
   Morceau,
@@ -50,15 +51,19 @@ const cederParDefaut = () => cederLaMain();
 /**
  * Le serveur d'un Worker : `recevoir(message)` pour chaque message entrant ;
  * `envoyer` reçoit les blocs puis le bilan de chaque morceau, dans l'ordre de réception.
+ * `avancer`, s'il est fourni, reçoit l'avancement du morceau en cours à
+ * chaque fin de tranche où il a changé, avant de rendre la main : il ne
+ * demande aucun crédit et précède le bilan de son morceau.
  * Une exception (initialisation, morceau) remonte par la promesse rejetée de
  * `recevoir` : la coquille la laisse échapper, son `onerror` la porte au
  * coordinateur.
  */
 export function servirAppariement<C extends SortieCandidats = BuildCandidate[]>(
   envoyer: (resultat: ResultatMorceau<C>) => void,
-  options: { trancheMs?: number; ceder?: () => Promise<void>; maintenant?: () => number } = {}
+  options: { trancheMs?: number; ceder?: () => Promise<void>; maintenant?: () => number; avancer?: (avancement: AvancementMorceau) => void } = {}
 ): { recevoir: (message: MessageVersTravailleur) => Promise<void> } {
   const trancheMs = options.trancheMs ?? TRANCHE_MS;
+  const avancer = options.avancer;
   const ceder = options.ceder ?? cederParDefaut;
   const maintenant = options.maintenant ?? Date.now;
   let contexte: ContexteTravailleur | null = null;
@@ -99,11 +104,17 @@ export function servirAppariement<C extends SortieCandidats = BuildCandidate[]>(
           continue;
         }
         if (!contexte) throw new Error('Worker d’appariement : morceau reçu avant l’initialisation');
-        const gen = parcourirMorceau(contexte, morceau, (compact ? creerColonnesCandidats() : []) as C);
+        const suivi = { traitees: 0 };
+        let signale = 0;
+        const gen = parcourirMorceau(contexte, morceau, (compact ? creerColonnesCandidats() : []) as C, avancer ? suivi : undefined);
         let step = gen.next(false);
         while (!step.done) {
           if (step.value) await transmettre(step.value);
           if (expiree()) {
+            if (avancer && suivi.traitees > signale) {
+              signale = suivi.traitees;
+              avancer({ type: 'avancement', id: morceau.id, traitees: signale });
+            }
             await ceder();
             debut = maintenant();
           }

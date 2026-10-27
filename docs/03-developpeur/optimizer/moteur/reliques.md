@@ -401,6 +401,41 @@ L'en-tête de `resolutionRapide.ts` dit ses préconditions. Vérification :
 recette réelle, `scripts/banc-resolution-rapide.ts` compare le chemin de
 l'app au calcul exhaustif, build par build.
 
+### Confirmation sans note
+
+`confirmerEquipementDuBuild` (`src/lib/resolutionRapide.ts`) répond à une
+seule question : ce build a-t-il au moins un couple (paire, relique)
+faisable ? Même entrée que la résolution, même verdict, et pour un build
+rejeté le MÊME résultat, champ pour champ (une seule écriture du rejet pour
+les deux) ; mêmes erreurs. Elle s'arrête au premier couple faisable et ne
+note rien : ni paire, ni sonde de pertinence, donc aucun calcul de dégâts.
+La file de l'écran s'en sert pour confirmer en fond les builds qu'elle ne
+note pas ([pipeline.md § File de résolution](pipeline.md#file-de-résolution)).
+
+- Relique `recherche` : les mêmes tables de formes par principale de
+  relique que la résolution ; une relique sans forme faisable est passée,
+  sinon la première paire faisable confirme. Relique fixe : le prédicat
+  `respecteConditions`, mémoïsé par forme.
+- Les paires parcourues sont celles de la résolution SANS la dominance des
+  artéfacts (`preFiltrerCandidats` sans pertinence : même vue complète,
+  même obligation des lignes verrouillées, vide aux mêmes conditions), la
+  dominance demandant la pertinence, sondée contre `evaluer`. La liste est un
+  sur-ensemble ; elle ne confirme rien de plus, parce qu'un artéfact n'est
+  dominé que par un autre de même principale au moins aussi forte (égale
+  sous un maximum actif sur sa stat), aux lignes verrouillées au moins aussi
+  fortes, jamais un ordinaire par un Intangible : le dominant tient toute
+  paire que le dominé tenait.
+- Sous le coût des verrous (`avecCoutDesVerrous`, qu'aucune résolution de
+  l'app ne pose), elle délègue à la résolution complète.
+- ⚠️ Écart accepté : une note NaN ne se voit pas sans note. La résolution
+  replie sur le calcul exhaustif (même verdict) ou lève quand toutes les
+  notes faisables sont NaN ; la confirmation confirme.
+
+Vérification : `testResolutionConfirmation`
+(`tests/resolution-rapide.test.ts`), dont l'oracle est la résolution
+complète, sur toute la matrice de `testResolutionRapide` : même verdict,
+même rejet, aucun appel à `evaluer`.
+
 ## Régimes : ce qui note la relique
 
 - **Un seul régime pour la paire et la relique** : `regimeEquipement =

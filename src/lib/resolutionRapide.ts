@@ -80,6 +80,7 @@ import {
   candidatsParSorte,
   paireRespecteLignes,
   pairesParScore,
+  preFiltrerCandidats,
 } from './artifactOptim';
 import { artifactPairAllowed } from './artifacts';
 import { RechercheRefusee, respecteConditionsAvecRelique, respecteMinEtMax } from './runeBuildOptim';
@@ -202,6 +203,19 @@ function coutDesVerrous(params: ArtifactSearchParams): boolean {
 
 const NAN = Symbol('note NaN');
 
+// Le résultat d'un build rejeté, sans diagnostic — une seule écriture pour la
+// résolution et la confirmation (`confirmerEquipementDuBuild`), qui rendent
+// ainsi le MÊME objet, champ pour champ. Relique fixe : ni paire, ni artéfact,
+// stats du build avec la relique portée.
+function rejetReliqueFixe(e: EntreeResolution, relique: RelicDetail | undefined): ResultatArtefacts {
+  return { paire: null, artefacts: [], stats: computeStats({ ...e.gear, artifacts: [], relic: relique }), meilleurSansVerrous: null, conforme: false };
+}
+
+// Relique `recherche` : ce que le calcul exhaustif rend quand aucune éligible n'a de paire.
+function rejetRecherche(e: EntreeResolution): ResultatArtefacts {
+  return { paire: null, artefacts: [], stats: computeStats({ ...e.gear, relic: undefined }), meilleurSansVerrous: null, conforme: false, relique: undefined };
+}
+
 /**
  * La meilleure paire FAISABLE de `collecterPaires(params, memo)`, en ne notant
  * que les faisables : la double boucle de `collecterPaires` (mêmes candidats par
@@ -301,7 +315,7 @@ function resoudreReliqueFixeRapide(
       if (compteurs) compteurs.diagnostics++;
       return resoudreEquipementDuBuildExhaustif(e);
     }
-    return { paire: null, artefacts: [], stats: computeStats({ ...e.gear, artifacts: [], relic: relique }), meilleurSansVerrous: null, conforme: false };
+    return rejetReliqueFixe(e, relique);
   };
 
   if (coutDesVerrous(params)) {
@@ -466,15 +480,7 @@ export function resoudreEquipementDuBuildRapide(
       if (compteurs) compteurs.diagnostics++;
       return resoudreEquipementDuBuildExhaustif(e);
     }
-    // Ce que le calcul exhaustif rend quand aucune éligible n'a de paire.
-    return {
-      paire: null,
-      artefacts: [],
-      stats: computeStats({ ...e.gear, relic: undefined }),
-      meilleurSansVerrous: null,
-      conforme: false,
-      relique: undefined,
-    };
+    return rejetRecherche(e);
   }
 
   const retenu = parRelique.get(meilleure.relique.id)!;
@@ -490,4 +496,142 @@ export function resoudreEquipementDuBuildRapide(
     relique: meilleure.relique,
     ...(meilleure.sansEffetSurLeTri ? { sansEffetSurLeTri: true as const } : {}),
   };
+}
+
+/* --------------------------------------------------------------------------
+ * Confirmation sans note : conforme ou rejeté, au premier couple faisable
+ * ----------------------------------------------------------------------- */
+
+/**
+ * Le verdict d'une CONFIRMATION : conforme, sans note ni équipement ; ou
+ * rejeté, avec le résultat même que la résolution rend pour ce build
+ * (`rejetReliqueFixe`, `rejetRecherche` : une seule écriture pour les deux).
+ */
+export type ConfirmationEquipement = { conforme: true } | { conforme: false; rejet: ResultatArtefacts };
+
+// Les candidats d'une sorte que la résolution parcourt (`candidatsPourRecherche`,
+// artifactOptim.ts), SANS la dominance : la même vue complète, la même
+// obligation des lignes verrouillées, l'emplacement vide aux mêmes conditions.
+// La dominance demande la pertinence, sondée contre `evaluer` (un calcul de
+// dégâts par sonde) : la confirmation n'en fait aucun. Sans elle, la liste est
+// un SUR-ENSEMBLE de celle de la résolution : tout couple faisable de la
+// résolution y figure. Dans l'autre sens, `preFiltrerCandidats` n'élimine un
+// artéfact que devant un autre d'au moins la même principale (même code, valeur
+// au moins égale, égale sous un maximum actif sur sa stat, `maxStatsActifs`),
+// d'au moins les mêmes lignes verrouillées, jamais un ordinaire devant un
+// Intangible : le dominant tient toute paire que l'éliminé tenait (PV, ATQ et
+// DEF ne font que monter, les maximums de PV/ATQ/DEF sont gelés à l'égalité),
+// si bien qu'un couple faisable reste faisable après la dominance. Le
+// verdict est donc celui de la résolution ; l'oracle est la résolution
+// complète (`testResolutionConfirmation`).
+function candidatsSansDominance(params: ArtifactSearchParams, kind: ArtifactKind): (ArtifactDetail | null)[] {
+  const lignes = params.avecCoutDesVerrous ? [] : (params.lignesVerrouillees ?? []);
+  return preFiltrerCandidats(candidatsParSorte(params, kind), kind, lignes, undefined, params.maxStatsActifs);
+}
+
+// Un couple faisable existe-t-il ? La double boucle de `meilleurePaireFaisable`
+// (contrainte de paire, lignes verrouillées), arrêtée au premier couple que
+// `faisable` accepte, sans aucune note.
+function unePaireFaisable(
+  params: ArtifactSearchParams,
+  faisable: (element: ArtifactDetail | null, archetype: ArtifactDetail | null, paire: ArtifactDetail[]) => boolean
+): boolean {
+  const elements = candidatsSansDominance(params, 'element');
+  const archetypes = candidatsSansDominance(params, 'archetype');
+  const verrous = params.lignesVerrouillees?.filter((l) => l.min > 0) ?? [];
+  const paire: ArtifactDetail[] = [];
+  for (const element of elements) {
+    for (const archetype of archetypes) {
+      if (!artifactPairAllowed(element, archetype)) continue;
+      paire.length = 0;
+      if (element) paire.push(element);
+      if (archetype) paire.push(archetype);
+      if (!paireRespecteLignes(paire, verrous)) continue;
+      if (faisable(element, archetype, paire)) return true;
+    }
+  }
+  return false;
+}
+
+// Le verdict d'une résolution complète : sous le coût des verrous, que l'app ne
+// pose jamais dans une résolution, la confirmation la délègue telle quelle.
+function verdictDe(r: ResultatArtefacts): ConfirmationEquipement {
+  return r.conforme ? { conforme: true } : { conforme: false, rejet: r };
+}
+
+/**
+ * La CONFIRMATION de l'équipement d'un build : la résolution s'arrête au
+ * premier couple (paire, relique) faisable, sans noter aucune paire — aucun
+ * appel à `evaluer`, aucune sonde de pertinence. Même entrée que
+ * `resoudreEquipementDuBuild` ; même verdict (`conforme`) ; pour un build
+ * rejeté, le même résultat, champ pour champ ; mêmes erreurs (pool de reliques
+ * vide en mode `recherche`).
+ *
+ * Relique `recherche` : les tables de formes par principale de relique, le
+ * calcul même de la résolution (`respecteMinEtMax` sur `statsParPaire`, auras
+ * propres du build) ; une relique sans forme faisable est passée ; sinon,
+ * la première paire faisable confirme le build. Relique fixe : le prédicat
+ * `respecteConditions`, mémoïsé par forme de paire.
+ *
+ * ⚠️ Écart accepté : une note NaN ne se voit pas sans note. La résolution
+ * replie alors sur le calcul exhaustif (même verdict) ou lève quand toutes les
+ * notes faisables sont NaN ; la confirmation, elle, confirme.
+ */
+export function confirmerEquipementDuBuild(e: EntreeResolution): ConfirmationEquipement {
+  const ctx = e.relicContext;
+  if (ctx?.mode !== 'recherche') {
+    const relique = e.gear.relic;
+    const params = e.faireParams(relique);
+    if (coutDesVerrous(params)) return verdictDe(resoudreEquipementDuBuildRapide(e));
+    const respecte = e.respecteConditions;
+    const verdicts = new Map<string, boolean>();
+    const faisable = (element: ArtifactDetail | null, archetype: ArtifactDetail | null, paire: ArtifactDetail[]) => {
+      if (!respecte) return true;
+      const forme = formeDePaire(element, archetype);
+      let v = verdicts.get(forme);
+      if (v === undefined) {
+        v = respecte(paire);
+        verdicts.set(forme, v);
+      }
+      return v;
+    };
+    return unePaireFaisable(params, faisable) ? { conforme: true } : { conforme: false, rejet: rejetReliqueFixe(e, relique) };
+  }
+
+  const candidates = ctx.eligibles;
+  if (candidates.length === 0) throw new RechercheRefusee(ctx.vide ?? 'inventaire');
+  const premiers = e.faireParams(candidates[0]!);
+  if (coutDesVerrous(premiers)) return verdictDe(resoudreEquipementDuBuildRapide(e));
+  const formes = (e.caches?.rapide ?? new CachesResolutionRapide()).representants(premiers);
+  const nA = formes.archetype.length;
+  const propres = aurasPropresDesRunes(e.gear.runes);
+  // Une table par principale de relique, comme `tableDe` de la résolution.
+  const tables = new Map<string, boolean[]>();
+  for (const relique of candidates) {
+    const cle = `${relique.main.code}:${relique.main.value}`;
+    let table = tables.get(cle);
+    if (!table) {
+      table = [];
+      const statsAvec = statsParPaire({ ...e.gear, relic: relique });
+      for (const pe of formes.element) {
+        for (const pa of formes.archetype) {
+          table.push(respecteMinEtMax(statsAvec([pe, pa].filter((a): a is ArtifactDetail => a != null)), e.requirement, propres));
+        }
+      }
+      tables.set(cle, table);
+    }
+    if (!table.some(Boolean)) continue;
+    const params = relique === candidates[0] ? premiers : e.faireParams(relique);
+    if (coutDesVerrous(params)) return verdictDe(resoudreEquipementDuBuildRapide(e));
+    const t = table;
+    const faisable = (element: ArtifactDetail | null, archetype: ArtifactDetail | null) => {
+      const ie = indiceDe(formes.indiceElement, element), ia = indiceDe(formes.indiceArchetype, archetype);
+      if (ie < 0 || ia < 0) {
+        throw new Error(`confirmerEquipementDuBuild : paire de forme ${formeDePaire(element, archetype)} hors des formes de candidatsParSorte — bug.`);
+      }
+      return t[ie * nA + ia]!;
+    };
+    if (unePaireFaisable(params, faisable)) return { conforme: true };
+  }
+  return { conforme: false, rejet: rejetRecherche(e) };
 }

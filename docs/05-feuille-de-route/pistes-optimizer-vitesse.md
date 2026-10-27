@@ -117,6 +117,23 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
   rendu, effets), puis réduire la part qui domine.
 - **Bloque** : aucun profil du geste ; changement de code à décider après.
 
+### Tri des résultats
+
+- **Constat** : un clic de tri publie la page de son aperçu avant l'ordre
+  complet, mais l'aperçu attend les notes de base du nouveau critère pour
+  toute la population (`trierBaseEtapes`, `src/lib/classementCompact.ts`,
+  appel de `notesDeBaseEtapes` avant `apercuEtapes`) ; seuls les objectifs
+  (Dégâts réels, PV effectifs, Efficience) sont notés d'avance au repos
+  (`OBJECTIFS_AU_REPOS`). Sur la recette mesurée la plus lourde (~63 500
+  builds), un tri pendant la file répond en ~125 ms en médiane et 168 ms au
+  95e centile (tri du tableau : 126 ms) ; le budget visé est 100 ms au
+  95e centile, le maximum de 200 ms est tenu. Accepté pour l'instant.
+- **Idée** : profiler le geste pour savoir si les notes dominent ; si oui,
+  publier l'aperçu sur les seules lignes que la page lit (les confirmées, en
+  file), ou noter aussi les colonnes de stat au repos.
+- **Bloque** : aucun profil du geste ; la mémoire d'une note par colonne et
+  par build au million est à chiffrer avant de noter toutes les colonnes.
+
 ## Mesurer la recherche
 
 ### Une batterie au plus près de l'usage réel

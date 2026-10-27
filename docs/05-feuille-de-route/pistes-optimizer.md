@@ -179,6 +179,28 @@ et celles des tests, du harnais et des scripts de mesure :
 - **Bloque** : jamais explorée. Se juge sur la qualité sous saturation,
   jamais sur les comptes ([03-developpeur/optimizer/moteur/artefacts.md § Mesurer un changement des bornes](../03-developpeur/optimizer/moteur/artefacts.md#mesurer-un-changement-des-bornes)).
 
+### Calcul sur GPU, en flottants 64 bits, dans l'application de bureau
+
+Le calcul sur GPU en flottants 32 bits est écarté : il ne garde pas
+l'exactitude des seuils ni des notes (même raison que pour l'appariement,
+[04-decisions/adr/appariement-par-seuils-exacts.md](../04-decisions/adr/appariement-par-seuils-exacts.md)).
+Seule reste possible une version en flottants 64 bits, pour l'application
+de bureau seulement.
+
+- **Constat** : la recherche (appariement) et la vérification de
+  l'équipement tournent sur CPU, en parallèle sur des Workers ; sur les
+  recettes mesurées, ni l'une ni l'autre ne domine plus le temps au point de
+  justifier une réécriture.
+- **Idée** : porter sur GPU, en flottants 64 bits et dans l'application de
+  bureau seulement, la partie qui redeviendrait le goulot (appariement
+  d'un espace de 10¹¹ paires et plus, ou vérification d'un très grand
+  nombre de builds).
+- **Bloque** : aucun besoin prouvé ; le calcul 64 bits sur GPU n'est pas
+  garanti par WebGPU (extension optionnelle selon le matériel, à vérifier)
+  et un module natif est écarté pour garder un seul code
+  ([04-decisions/adr/trois-plateformes-un-seul-code.md](../04-decisions/adr/trois-plateformes-un-seul-code.md)) ;
+  toute la vérification serait à refaire contre le calcul CPU.
+
 ### Appariement sur GPU
 
 - **Constat** : l'appariement tourne sur CPU, par le noyau sur tableaux

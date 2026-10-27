@@ -308,6 +308,7 @@ import testRelicQueue from './relic-queue.test';
 import testResolutionRapide, { testResolutionConfirmation, testResolutionRapideNaN } from './resolution-rapide.test';
 import testResolutionDominanceReliques from './resolution-dominance-reliques.test';
 import testMemoCombat from './memo-combat.test';
+import testDominanceLecteursCorpus from './dominance-lecteurs-corpus.test';
 import testPerfRelicOptions from './perf-relic-options.test';
 import testRelicDifferentiel from './relic-differentiel.test';
 import testRelicUniqueLabel from './relic-unique-label.test';
@@ -863,6 +864,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testResolutionConfirmation', testResolutionConfirmation],
   ['testResolutionDominanceReliques', testResolutionDominanceReliques],
   ['testMemoCombat', testMemoCombat],
+  ['testDominanceLecteursCorpus', testDominanceLecteursCorpus],
   ['testPerfRelicOptions', testPerfRelicOptions],
   ['testRelicDifferentiel', testRelicDifferentiel],
   ['testRelicUniqueLabel', testRelicUniqueLabel],

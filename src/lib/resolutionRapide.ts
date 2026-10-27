@@ -66,8 +66,12 @@
 // PV, son ATQ, sa DEF et ses dégâts infligés, et gagne l'égalité) n'est pas
 // notée — exact par la règle de jeu R (dégâts non décroissants en ces
 // canaux, confirmée par l'utilisateur), jamais par une note ; elle l'est à un
-// tour de plus si aucune de ses dominantes n'a de couple faisable. ⚠️ Une
-// note NaN d'une relique dominée n'est alors jamais vue (pas de repli).
+// tour de plus si aucune de ses dominantes n'a de couple faisable. Puis, par
+// classe de paires (`DominanceParPaire`), une paire faisable n'est pas notée
+// si une autre relique la domine sur les seuls canaux que la note de cette
+// paire lit (table des lecteurs, `statsDuLanceurLuesParLaNote`). ⚠️ Une note
+// NaN d'une relique ou d'une paire dominée n'est alors jamais vue (pas de
+// repli).
 // Le choix entre reliques reste `bestRelicForBuild` ; les caches
 // partagés sont ceux de la file (`CachesResolution`), représentants des
 // formes compris (`caches.rapide`).
@@ -92,7 +96,7 @@ import {
 } from './artifactOptim';
 import { artifactPairAllowed } from './artifacts';
 import { BuildRequirement, RechercheRefusee, conditionsPaireFixe, respecteConditionsAvecRelique, respecteMinEtMax } from './runeBuildOptim';
-import { aurasPropresDesRunes } from './damage';
+import { artifactDamageProfile, aurasPropresDesRunes, statsDesLignesBrutes } from './damage';
 import { MeilleureRelique, RelicEvaluation, bestRelicForBuild, prefereeALEgalite } from './relicOptim';
 import { ContexteExclusive, apportExclusive, statsAvecApport } from './relicExclusive';
 import type { ResultatArtefacts } from './artifactQueue';
@@ -124,11 +128,17 @@ export interface CompteursResolutionRapide {
   // Reliques écartées sans note par la dominance (`reliquesDominees`) ;
   // elles ne comptent pas dans `reliques`.
   reliquesDominees: number;
+  // Paires faisables non notées par la dominance par classe de paires
+  // (`DominanceParPaire`), et reliques notées à nouveau en entier faute
+  // d'une dominante notée avec un couple faisable (leurs paires évitées au
+  // premier tour ne restent pas comptées).
+  pairesDominees: number;
+  reliquesRenotees: number;
 }
 
 export function compteursVides(): CompteursResolutionRapide {
   return {
-    reliquesDominees: 0,
+    reliquesDominees: 0, pairesDominees: 0, reliquesRenotees: 0,
     builds: 0, reliques: 0, reliquesSansFormeFaisable: 0, reliquesNotees: 0, reliquesNoteesSansCouple: 0,
     noteesEntieres: 0, notesFaisables: 0, diagnostics: 0, replisNaN: 0, formesJugees: 0,
   };
@@ -348,17 +358,21 @@ function meilleurePaireFaisable(
  * dominantes dans la liste). Une relique sans forme faisable n'y entre
  * jamais : elle est déjà écartée sans note.
  */
-function reliquesDominees(
+// Par relique : le verdict de chaque forme et ses quatre canaux (PV, ATQ, DEF,
+// dégâts infligés), `4 × forme + canal`.
+interface CanauxRelique {
+  verdicts: boolean[];
+  valeurs: Float64Array;
+  faisable: boolean;
+}
+
+function canauxDesReliques(
   candidates: readonly RelicDetail[],
   formesDe: (relique: RelicDetail) => { verdicts: boolean[]; stats: StatRow[][] },
   exclusive: ContexteExclusive,
-  propres: ReturnType<typeof aurasPropresDesRunes>,
-  departage: { equipee?: RelicDetail; departagePortee?: boolean }
-): Map<RelicDetail, RelicDetail[]> {
-  const dominees = new Map<RelicDetail, RelicDetail[]>();
-  if (candidates.length < 2) return dominees;
-  // Par relique : verdict et canaux (PV, ATQ, DEF, dégâts infligés) de chaque forme.
-  const canaux = candidates.map((relique) => {
+  propres: ReturnType<typeof aurasPropresDesRunes>
+): CanauxRelique[] {
+  return candidates.map((relique) => {
     const { verdicts, stats } = formesDe(relique);
     const valeurs = new Float64Array(verdicts.length * 4);
     for (let f = 0; f < verdicts.length; f++) {
@@ -372,6 +386,15 @@ function reliquesDominees(
     }
     return { verdicts, valeurs, faisable: verdicts.some(Boolean) };
   });
+}
+
+function reliquesDominees(
+  candidates: readonly RelicDetail[],
+  canaux: readonly CanauxRelique[],
+  departage: { equipee?: RelicDetail; departagePortee?: boolean }
+): Map<RelicDetail, RelicDetail[]> {
+  const dominees = new Map<RelicDetail, RelicDetail[]>();
+  if (candidates.length < 2) return dominees;
   for (let j = 0; j < candidates.length; j++) {
     const b = canaux[j]!;
     if (!b.faisable) continue;
@@ -390,6 +413,142 @@ function reliquesDominees(
     if (dominantes.length > 0) dominees.set(candidates[j]!, dominantes);
   }
   return dominees;
+}
+
+/**
+ * Ce que la dominance des reliques demande à l'entrée (« Dégâts réels »
+ * seulement, `EntreeResolution.dominanceReliques`) : le contexte de l'apport
+ * des exclusives, et les stats que la note lit hors des lignes de la paire.
+ */
+export interface DominanceReliques extends ContexteExclusive {
+  /**
+   * Les PV, ATQ, DEF que la note lit hors des lignes 218-220 de la paire
+   * (`statsDuLanceurLuesParLaNote`, damage.ts) : les canaux ACTIFS de toute
+   * paire, à qui s'ajoutent ceux de ses lignes et les dégâts infligés. `null`
+   * : pas de dominance par classe de paires, le niveau build seul.
+   */
+  lues: readonly ('hp' | 'atk' | 'def')[] | null;
+}
+
+const BIT_CANAL = { hp: 1, atk: 2, def: 4 } as const;
+// Dégâts infligés (Conquête) : toujours actif.
+const BIT_DEGATS = 8;
+
+// Les canaux PV/ATQ/DEF que lisent les lignes 218-220 d'une pièce
+// (`statsDesLignesBrutes`, la table même du calcul). Ceux d'une paire sont
+// l'union de ses pièces : la somme de deux lignes nulles est nulle, l'union
+// est donc un sur-ensemble des lignes non nulles de la paire (sûr).
+const bitsParPiece = new WeakMap<ArtifactDetail, number>();
+function bitsDesLignes(a: ArtifactDetail | null): number {
+  if (!a) return 0;
+  let b = bitsParPiece.get(a);
+  if (b === undefined) {
+    b = 0;
+    for (const k of statsDesLignesBrutes(artifactDamageProfile([a]))) {
+      if (k === 'hp' || k === 'atk' || k === 'def') b |= BIT_CANAL[k];
+    }
+    bitsParPiece.set(a, b);
+  }
+  return b;
+}
+
+/**
+ * Dominance des reliques par CLASSE DE PAIRES, d'un build — le second niveau,
+ * après `reliquesDominees`. Une paire `p` faisable d'une relique `b` n'est pas
+ * notée si une relique `a` gagne l'égalité (`prefereeALEgalite`), n'est pas
+ * écartée au niveau build, est faisable sur la forme de `p`, et a sur cette
+ * forme chaque canal ACTIF pour `p` au moins égal à celui de `b`. Actifs : les
+ * stats que la note lit hors des lignes (`DominanceReliques.lues`), celles des
+ * lignes 218-220 de `p`, et les dégâts infligés ; un canal inerte ne change
+ * pas la note de `p`.
+ *
+ * ⚠️ Repose sur la règle de jeu R et sur la table des lecteurs
+ * (`statsDuLanceurLuesParLaNote`), règles de jeu confirmées par l'utilisateur :
+ * note(a, p) ≥ note(b, p) ; la meilleure note de `a` sur ses propres paires,
+ * qui l'est au moins autant (le préfiltre des artéfacts ne retire que des
+ * paires qu'une autre égale ou bat, pour `a`), et `a` gagne l'égalité : une
+ * paire évitée de `b` n'est jamais celle d'un choix. Le choix final est celui
+ * du niveau build seul, champ pour champ.
+ *
+ * Les dominantes d'une (relique, forme, classe) se calculent au premier
+ * besoin, une fois. `utilisees` retient, par relique, les listes de
+ * dominantes qui ont évité une de ses paires : chacune doit compter une
+ * relique notée avec un couple faisable, sinon la relique est notée à
+ * nouveau en entier (`aRenoter`).
+ */
+class DominanceParPaire {
+  private readonly nF: number;
+  private readonly memo: (number[] | undefined)[] = [];
+  readonly utilisees = new Map<RelicDetail, Set<number>>();
+  readonly evitees = new Map<RelicDetail, number>();
+  private readonly indice: Map<RelicDetail, number>;
+  private readonly base: number;
+
+  constructor(
+    private readonly candidates: readonly RelicDetail[],
+    private readonly canaux: readonly CanauxRelique[],
+    private readonly dominees: ReadonlySet<RelicDetail>,
+    private readonly departage: { equipee?: RelicDetail; departagePortee?: boolean },
+    lues: readonly ('hp' | 'atk' | 'def')[]
+  ) {
+    this.nF = canaux[0]?.verdicts.length ?? 0;
+    this.indice = new Map(candidates.map((r, i) => [r, i]));
+    let base = BIT_DEGATS;
+    for (const k of lues) base |= BIT_CANAL[k];
+    this.base = base;
+  }
+
+  /** La paire (forme `f`, pièces `element`, `archetype`) de `relique` est-elle évitée ? */
+  evitee(relique: RelicDetail, f: number, element: ArtifactDetail | null, archetype: ArtifactDetail | null): boolean {
+    const j = this.indice.get(relique)!;
+    const actif = this.base | bitsDesLignes(element) | bitsDesLignes(archetype);
+    // Clé d'une (relique, forme, classe) : la classe tient en ses trois bits PV/ATQ/DEF.
+    const cle = (j * this.nF + f) * 8 + (actif & 7);
+    let dominantes = this.memo[cle];
+    if (dominantes === undefined) {
+      dominantes = [];
+      const b = this.canaux[j]!;
+      for (let i = 0; i < this.candidates.length; i++) {
+        const a = this.canaux[i]!;
+        if (i === j || !a.verdicts[f] || this.dominees.has(this.candidates[i]!)) continue;
+        if (!prefereeALEgalite(this.candidates[i]!, relique, this.departage)) continue;
+        let domine = true;
+        for (let c = 0; domine && c < 4; c++) {
+          if (actif & (1 << c) && a.valeurs[4 * f + c]! < b.valeurs[4 * f + c]!) domine = false;
+        }
+        if (domine) dominantes.push(i);
+      }
+      this.memo[cle] = dominantes;
+    }
+    if (dominantes.length === 0) return false;
+    let s = this.utilisees.get(relique);
+    if (!s) this.utilisees.set(relique, (s = new Set()));
+    s.add(cle);
+    this.evitees.set(relique, (this.evitees.get(relique) ?? 0) + 1);
+    return true;
+  }
+
+  /** Les reliques dont une paire évitée n'a aucune dominante notée avec un couple faisable. */
+  aRenoter(aUnCouple: (relique: RelicDetail) => boolean): RelicDetail[] {
+    const out: RelicDetail[] = [];
+    for (const [relique, cles] of this.utilisees) {
+      for (const cle of cles) {
+        if (!this.memo[cle]!.some((i) => aUnCouple(this.candidates[i]!))) {
+          out.push(relique);
+          break;
+        }
+      }
+    }
+    return out;
+  }
+
+  /** `relique` sera notée en entier : ses paires évitées ne comptent plus. */
+  oublier(relique: RelicDetail): number {
+    const n = this.evitees.get(relique) ?? 0;
+    this.utilisees.delete(relique);
+    this.evitees.delete(relique);
+    return n;
+  }
 }
 
 function avertirNaN(e: EntreeResolution, compteurs: CompteursResolutionRapide | undefined): ResultatArtefacts {
@@ -544,10 +703,16 @@ export function resoudreEquipementDuBuildRapide(
   };
   const tableDe = (relique: RelicDetail) => formesDe(relique).verdicts;
   const departage = { equipee: ctx.equipee, departagePortee: e.regimeDeStat };
-  // Les reliques écartées sans note, chacune avec celles qui la dominent.
-  const dominees = e.dominanceReliques && !e.regimeAucun
-    ? reliquesDominees(candidates, formesDe, e.dominanceReliques, propres, departage)
-    : new Map<RelicDetail, RelicDetail[]>();
+  // Les reliques écartées sans note, chacune avec celles qui la dominent ;
+  // puis, sur les autres, les paires évitées par classe de paires.
+  const dominance = e.dominanceReliques && !e.regimeAucun && candidates.length > 1 ? e.dominanceReliques : null;
+  const canaux = dominance ? canauxDesReliques(candidates, formesDe, dominance, propres) : null;
+  const dominees = canaux ? reliquesDominees(candidates, canaux, departage) : new Map<RelicDetail, RelicDetail[]>();
+  const parPaire = canaux && dominance?.lues
+    ? new DominanceParPaire(candidates, canaux, new Set(dominees.keys()), departage, dominance.lues)
+    : null;
+  // Reliques notées en entier, sans paire évitée (`DominanceParPaire.aRenoter`).
+  const entieres = new Set<RelicDetail>();
   // Une paire hors du sur-ensemble invaliderait l'écart des reliques sans
   // forme faisable : c'est un bug, jamais un cas à absorber.
   const verdict = (table: boolean[], ie: number, ia: number, element: ArtifactDetail | null, archetype: ArtifactDetail | null) => {
@@ -590,7 +755,15 @@ export function resoudreEquipementDuBuildRapide(
         }
       }
     } else {
-      const q = meilleurePaireFaisable(params, e.caches?.preFiltre, formes, (ie, ia, el, ar) => verdict(table, ie, ia, el, ar), compteurs);
+      const eviter = parPaire && !entieres.has(relique) ? parPaire : null;
+      const q = meilleurePaireFaisable(params, e.caches?.preFiltre, formes, (ie, ia, el, ar) => {
+        if (!verdict(table, ie, ia, el, ar)) return false;
+        if (eviter && eviter.evitee(relique, ie * nA + ia, el, ar)) {
+          if (compteurs) compteurs.pairesDominees++;
+          return false;
+        }
+        return true;
+      }, compteurs);
       if (q === NAN) {
         nanVu = true;
         return 'infaisable';
@@ -610,7 +783,11 @@ export function resoudreEquipementDuBuildRapide(
   // Une relique dominée reste sans note tant qu'une de celles qui la dominent
   // a un couple faisable : sinon (les candidats de paires de la dominante,
   // filtrés selon SA note, ne lui ont laissé aucun couple), elle est notée à
-  // un tour de plus, les notes déjà calculées reprises telles quelles.
+  // un tour de plus, les notes déjà calculées reprises telles quelles. Une
+  // paire évitée par classe est un couple faisable de sa relique (elle sort
+  // de ses candidats et sa forme l'est) : une relique dont toutes les paires
+  // faisables sont évitées en a donc un.
+  const aUnCouple = (a: RelicDetail) => parRelique.has(a.id) || (parPaire?.evitees.has(a) ?? false);
   let meilleure: MeilleureRelique | undefined;
   for (;;) {
     meilleure = bestRelicForBuild(
@@ -629,10 +806,23 @@ export function resoudreEquipementDuBuildRapide(
     if (nanVu) break;
     let relachee = false;
     for (const [b, dominantes] of dominees) {
-      if (!dominantes.some((a) => parRelique.has(a.id))) {
+      if (!dominantes.some(aUnCouple)) {
         dominees.delete(b);
         relachee = true;
       }
+    }
+    // Une paire évitée sans dominante notée avec un couple faisable : la
+    // relique est notée à nouveau, en entier (rien n'est plus évité pour elle).
+    for (const b of parPaire ? parPaire.aRenoter(aUnCouple) : []) {
+      const n = parPaire!.oublier(b);
+      if (compteurs) {
+        compteurs.pairesDominees -= n;
+        compteurs.reliquesRenotees++;
+      }
+      entieres.add(b);
+      notes.delete(b);
+      parRelique.delete(b.id);
+      relachee = true;
     }
     if (!relachee) break;
   }

@@ -8120,6 +8120,91 @@ export function computeTotalDamage(
   return total + totalAdditionnel + totalFixeProtege;
 }
 
+// Les stats PROPRES qu'une condition de combat lit (`conditionCombatActive` :
+// seuils sur l'ATQ, la DEF, les PV ou la VIT du lanceur ; `coupsEnPlusActifs` :
+// tranches d'ATQ), ajoutées à `keys` sans doublon. Source unique de
+// `damageRelevantStats` et de `statsDuLanceurLuesParLaNote`.
+function ajouterStatsPropresDesConditions(conditions: readonly ConditionCombatProfile[], keys: StatKey[]): void {
+  for (const condition of conditions) {
+    if (condition.type === 'atkCibleSousAtkPropre' || condition.type === 'defCibleSousAtkPropre' || condition.type === 'atkParTranche') {
+      if (!keys.includes('atk')) keys.push('atk');
+    }
+    if (condition.type === 'defCibleSousDefPropre' && !keys.includes('def')) keys.push('def');
+    if (
+      (condition.type === 'pvPropreSous' || condition.type === 'pvCibleSuperieursPvPropre') &&
+      !keys.includes('hp')
+    ) keys.push('hp');
+    if (condition.type === 'vitPropreSuperieure' && !keys.includes('spd')) keys.push('spd');
+  }
+}
+
+/** Ce que lit `statsDuLanceurLuesParLaNote` : les champs du contexte de « Dégâts réels » que `computeTotalDamage` reçoit. */
+export interface ContexteLecteursDegats {
+  profile: SkillDamageProfile;
+  passifs: PassifOffensifProfile[];
+  setup: DamageSetup;
+  critSiPlusRapide: boolean;
+  bonusDegatsSelonVit: { ecartMax: number; pctMax: number } | null;
+  monsterWide: MonsterWideDamageModifiers;
+  bonusDegatsSelonCr: { ratio: number } | null;
+  bonusDegatsSelonDef: { defMax: number; pctMax: number } | null;
+  bonusSiAtqSeuil: { seuil: number; pct: number } | null;
+}
+
+/**
+ * La TABLE DES LECTEURS de la note de « Dégâts réels » : parmi les PV, l'ATQ
+ * et la DEF du lanceur, celles que `computeTotalDamage` lit pour ce contexte,
+ * HORS des lignes d'artéfact 218-220 de la paire notée (`statsDesLignesBrutes`,
+ * à joindre paire par paire). Une stat absente est INERTE : l'augmenter seule
+ * ne change pas la note. La dominance des reliques par classe de paires
+ * (`resolutionRapide.ts`) n'y compare pas les reliques.
+ *
+ * Lecteurs, lus du code : les variables de la formule retenue du sort et des
+ * passifs comptés (`VARIABLE_STAT`, composante fixe et séquence de coups
+ * comprises dans `variables`), les modificateurs du monstre qui lisent une
+ * stat (Martial Arts Specialist, PV propres, Gideon, seuil d'ATQ, stats de
+ * combat) et les conditions de combat sur une stat propre — tout ce que
+ * `damageRelevantStats` retient —, plus les conditions des passifs comptés et
+ * la variable d'un compteur de coefficient (Hammer Punch), que celle-ci ne lit
+ * pas. Les effets entre les coups ne lisent aucune stat du lanceur.
+ *
+ * ⚠️ Repose sur des règles de jeu confirmées par l'utilisateur le 2026-10-27
+ * (non relevées en jeu) : seules les lignes 218-220 d'un artéfact lisent ces
+ * totaux ; un modificateur du monstre qui lit une stat est écrit dans ses
+ * passifs. ⚠️ Un modificateur que le code ne modélise pas n'y est pas
+ * (l'équilibrage d'ATQ et de DEF d'Internal Force, Leona ; la conversion des
+ * PV en ATQ de Diana) : le modéliser demande d'y ajouter sa stat, ce que
+ * `tests/dominance-lecteurs-corpus.test.ts` vérifie sur tout le corpus.
+ * Superset sûr : une stat retenue à tort coûte des notes, jamais un résultat.
+ */
+export function statsDuLanceurLuesParLaNote(ctx: ContexteLecteursDegats): ('hp' | 'atk' | 'def')[] {
+  const keys = damageRelevantStats(
+    ctx.profile,
+    ctx.passifs,
+    ctx.setup,
+    ctx.critSiPlusRapide,
+    ctx.bonusDegatsSelonVit,
+    ctx.monsterWide.critRateSelonVit ?? null,
+    ctx.monsterWide.bonusEcartDef ?? null,
+    ctx.monsterWide.bonusFixeMaxHpPropre != null || ctx.monsterWide.bonusSacrifice != null,
+    ctx.bonusDegatsSelonCr,
+    ctx.bonusDegatsSelonDef,
+    ctx.bonusSiAtqSeuil,
+    ctx.monsterWide
+  );
+  const ajouterVariable = (v: DamageVariable | undefined) => {
+    const k = v ? VARIABLE_STAT[v] : undefined;
+    if (k && !keys.includes(k)) keys.push(k);
+  };
+  ajouterVariable(ctx.profile.bonusCoefficientParCompteur?.variable);
+  for (const p of ctx.passifs) {
+    if (!passifCompte(p, ctx.profile, ctx.setup)) continue;
+    ajouterStatsPropresDesConditions(p.profile.conditionsCombat ?? [], keys);
+    ajouterVariable(p.profile.bonusCoefficientParCompteur?.variable);
+  }
+  return (['hp', 'atk', 'def'] as const).filter((k) => keys.includes(k));
+}
+
 /**
  * Les stats du build que ce sort — ET les passifs offensifs actuellement
  * retenus — font RÉELLEMENT travailler — ce que la recherche doit privilégier
@@ -8248,17 +8333,7 @@ export function damageRelevantStats(
     ...(profile.conditionsCombat ?? []),
     ...(monsterWide.conditionsCombat ?? []).map((p) => p.condition),
   ];
-  for (const condition of toutesConditions) {
-    if (condition.type === 'atkCibleSousAtkPropre' || condition.type === 'defCibleSousAtkPropre' || condition.type === 'atkParTranche') {
-      if (!keys.includes('atk')) keys.push('atk');
-    }
-    if (condition.type === 'defCibleSousDefPropre' && !keys.includes('def')) keys.push('def');
-    if (
-      (condition.type === 'pvPropreSous' || condition.type === 'pvCibleSuperieursPvPropre') &&
-      !keys.includes('hp')
-    ) keys.push('hp');
-    if (condition.type === 'vitPropreSuperieure' && !keys.includes('spd')) keys.push('spd');
-  }
+  ajouterStatsPropresDesConditions(toutesConditions, keys);
   // Le critique forcé change la donne — mais SEULEMENT lui : le bonus continu
   // de Sonia multiplie le total quel que soit son mode de critique, il ne le
   // FORCE pas.

@@ -440,14 +440,72 @@ champ pour champ. ⚠️ Une note NaN d'une relique dominée n'est jamais vue,
 donc ne déclenche pas le repli sur le calcul exhaustif.
 
 Sur deux recettes réelles en relique `recherche` (300 builds chacune), la
-dominance écarte de 45 à 50 % des notes. La dominance par classe de paires
-(un canal qu'aucun lecteur de la paire ne lit) n'est pas faite.
+dominance écarte de 45 à 50 % des notes.
+
+#### Second niveau : par classe de paires
+
+Sur les reliques gardées, une paire faisable `p` de `b` n'est pas notée
+(`DominanceParPaire`) si une relique `a` gagne l'égalité, n'est pas écartée
+au niveau build, est faisable sur la forme de `p`, et a sur cette forme
+chaque canal ACTIF pour `p` au moins égal à celui de `b`. Les canaux actifs
+de `p` :
+
+| Canal | Actif quand |
+|---|---|
+| PV, ATQ, DEF | la note les lit hors des lignes de la paire (table ci-dessous), ou `p` porte la ligne 218 (PV), 219 (ATQ) ou 220 (DEF) |
+| Dégâts infligés (Conquête) | toujours |
+
+Un canal inerte ne change pas la note de `p` ; la classe de `p` (les lignes
+218 à 220 qu'elle porte, `statsDesLignesBrutes`) se lit pièce par pièce.
+
+La TABLE DES LECTEURS (`statsDuLanceurLuesParLaNote`, `src/lib/damage.ts`),
+calculée une fois par entrée depuis le contexte de dégâts
+(`DominanceReliques.lues`) : parmi les PV, l'ATQ et la DEF du lanceur, celles
+que lit `computeTotalDamage` hors des lignes de la paire.
+
+| Lecteur | Stat |
+|---|---|
+| variable de la formule retenue du sort ou d'un passif compté (`{ATK}`, `{DEF}`, `{MAX HP}`, PV courants ou manquants ; composante fixe et séquence de coups comprises) | la sienne |
+| modificateur du monstre qui lit une stat : Martial Arts Specialist (écart de DEF), bonus sur les PV max propres ou sacrifice, Gideon (selon sa DEF), seuil d'ATQ (Brita, Eivor), stats de combat | la sienne |
+| condition de combat sur une stat propre, du sort, du monstre ou d'un passif compté (ATQ ou DEF de la cible sous la sienne, tranches d'ATQ, PV propres) | la sienne |
+| variable d'un compteur de coefficient (Hammer Punch) | la sienne |
+
+⚠️ **Règles de jeu confirmées par l'utilisateur le 2026-10-27**, non
+relevées en jeu : seules les lignes d'artéfact 218 à 220 lisent ces totaux
+(221 lit la VIT, 222 à 224 la cible) ; les effets entre les coups (défense
+brisée, marque, ignore-DEF) ne changent jamais le scaling d'un sort ; un
+modificateur du monstre qui lit une stat est écrit dans ses passifs. Les
+conditions de combat sur une stat propre restent dans la table parce que le
+code les lit (`conditionCombatActive`). La table prend ce que retient
+`damageRelevantStats`, plus les conditions des passifs comptés et la
+variable d'un compteur : un sur-ensemble ne coûte que des notes. ⚠️ Un
+modificateur que le code ne modélise pas n'y est pas : l'équilibrage d'ATQ
+et de DEF d'Internal Force (Leona) et la conversion des PV en ATQ de Diana ;
+les modéliser demande d'ajouter leur stat à la table.
+
+Exacte par R, la table et le préfiltre des artéfacts (sa meilleure paire,
+pour `a`, vaut au moins sa note sur `p`) : note(`a`, `p`) ≥ note(`b`, `p`),
+`a` gagne l'égalité, une paire évitée n'est donc jamais celle du choix, et
+le résultat est celui du niveau build seul, champ pour champ. Une paire
+évitée est un couple faisable de sa relique : une relique dont toutes les
+paires faisables sont évitées compte comme ayant un couple pour les deux
+niveaux. Si une paire évitée n'a, parmi ses dominantes, aucune relique
+notée avec un couple, sa relique est notée à nouveau en entier.
+`DominanceReliques.lues` à `null` : le niveau build seul. ⚠️ Une note NaN
+d'une paire évitée n'est jamais vue.
 
 Vérification : `testResolutionDominanceReliques`
 (`tests/resolution-dominance-reliques.test.ts`) — même résultat qu'avec
-`dominanceReliques: null`, et, pour chaque relique écartée, une relique
-notée qui gagne l'égalité et note au moins autant sur chaque paire où
-l'écartée est faisable.
+`dominanceReliques: null` et qu'au niveau build seul (`lues: null`) ; pour
+chaque relique écartée, une relique notée qui gagne l'égalité et note au
+moins autant sur chaque paire où l'écartée est faisable ; pour chaque paire
+évitée, une relique notée qui gagne l'égalité, faisable sur elle, y note au
+moins autant ; le repli sur une dominante sans couple. La table, sur tout le
+corpus : `testDominanceLecteursCorpus`
+(`tests/dominance-lecteurs-corpus.test.ts`) — chaque sort calculable, sous
+le réglage par défaut et un réglage riche (scénario d'effets entre les coups
+compris), chaque classe de paires : une stat inerte augmentée seule ne
+change pas la note, au bit près.
 
 ### Confirmation sans note
 

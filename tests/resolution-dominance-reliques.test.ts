@@ -216,7 +216,8 @@ export default function testResolutionDominanceReliques() {
   // formes à principale de PV, mais ses candidats de paires sont vidés : seul
   // l'emplacement vide lui reste, infaisable (minimum de PV). Les paires de
   // l'autre relique (PV % en principale) qu'elle domine sur l'ATQ et les
-  // dégâts infligés sont d'abord évitées, puis la relique est notée en entier.
+  // dégâts infligés (PV et DEF inertes : ni ligne 218 ni 220) sont d'abord
+  // évitées, puis la relique est notée en entier.
   {
     const rngR = mulberry32(91);
     const runesR = runesAuHasard(rngR, 0);
@@ -224,7 +225,11 @@ export default function testResolutionDominanceReliques() {
     const invR = inventaire(rngR, 6).map((a) => ({ ...a, subs: a.subs.filter((s) => s.code !== 218 && s.code !== 220) }));
     const dominante: RelicDetail = { id: 10, upgrade: 9, main: { code: 101, value: 15 }, unique: { type: 5, tranche: 1000, percent: 1 } };
     const dominee: RelicDetail = { id: 20, upgrade: 9, main: { code: 100, value: 8 }, unique: { type: 5, tranche: 1000, percent: 1 } };
-    const pvSansArtefact = computeStats({ base: BASE, runes: runesR, artifacts: [], relic: dominante }).find((s) => s.key === 'hp')!.total;
+    // Minimum de PV hors d'atteinte sans principale de PV, pour les deux
+    // reliques : toutes les paires faisables de la dominée sont évitées, sans
+    // le repli elle n'aurait aucun couple et le build serait rejeté à tort.
+    const pvSansArtefact = Math.max(...[dominante, dominee].map((r) =>
+      computeStats({ base: BASE, runes: runesR, artifacts: [], relic: r }).find((s) => s.key === 'hp')!.total));
     const ctxR = resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 0 }, undefined, [dominee, dominante]);
     const artifactParams: Omit<ArtifactSearchParams, 'evaluer'> = { porteur: PORTEUR, inventaire: invR, equipes: [], principaleParSorte: {}, lignesVerrouillees: [], maxStatsActifs: [] };
     const e0 = entreeResolutionDuBuild({

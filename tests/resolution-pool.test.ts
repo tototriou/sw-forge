@@ -15,14 +15,14 @@ import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs, tamponsCan
 import { DEFAULT_DAMAGE_SETUP, artifactDamageProfile, estPrisEnCharge, skillDamageProfile } from '../src/lib/damage';
 import { computeStats } from '../src/lib/stats';
 import type { BuildCandidate, RealDamageContext, SearchParams } from '../src/lib/runeBuildOptim';
-import { cleBuild, type ResultatArtefacts } from '../src/lib/artifactQueue';
+import { cleBuild, compteConfirmeDesComptes, type ResultatArtefacts } from '../src/lib/artifactQueue';
 import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild } from '../src/lib/relicQueue';
 import { ResolutionDistante } from '../src/workers/resolutionDistante';
 import type { MessageVersResolution, ReponseResolution } from '../src/workers/resolutionBody';
 import type { ReponseClassement } from '../src/workers/classementDistant';
 import type { ArtifactDetail, RuneDetail } from '../src/types';
 import { classerPourLaPage } from './classement-fixture';
-import { fil, verifierInstantane } from './classement-distant.test';
+import { fil, fileFinie, verifierInstantane } from './classement-distant.test';
 import { BASE } from './relic-search.test';
 import { egal, ok, titre } from './outils';
 
@@ -222,8 +222,10 @@ export async function testResolutionPoolDifferentiel() {
     const o = pool.observation;
     ok(o.inversions > 0 && o.parVoie.every((n) => n > 0) && o.maxEnVol > 2,
       `${nom} : précondition — ${o.inversions} réponse(s) arrivée(s) avant une plus récente, résultats par voie ${o.parVoie.join('/')}, jusqu’à ${o.maxEnVol} demandes en vol`);
-    if (!f.photo.toutVerifier) ok(rejets > 0 && ref.projection.parBuild.size < f.candidats.length - 1,
-      `${nom} : précondition — la file écarte ${rejets} build(s) et s’arrête avant le dernier trouvé (${ref.projection.parBuild.size} résolus sur ${f.candidats.length} lignes)`);
+    if (!f.photo.toutVerifier) ok(rejets > 0 && ref.projection.parBuild.size < f.candidats.length - 1 && ref.projection.confirmeesSansNote.length > 0,
+      `${nom} : précondition — la file écarte ${rejets} build(s), note moins que tout (${ref.projection.parBuild.size} résolus sur ${f.candidats.length} lignes) et confirme en fond ${ref.projection.confirmeesSansNote.length} build(s)`);
+    ok(isDeepStrictEqual([...pool.projection.confirmeesSansNote].sort(), [...ref.projection.confirmeesSansNote].sort()),
+      `${nom} : les mêmes ${ref.projection.confirmeesSansNote.length} confirmées sans note que le résolveur unique`);
     ok(isDeepStrictEqual(cacheRange(pool.projection), cacheRange(ref.projection)),
       `${nom} : ${ref.projection.parBuild.size} builds résolus, les mêmes, avec le même équipement, la même conformité et les mêmes stats`);
     ok(isDeepStrictEqual(pool.projection.base, ref.projection.base) && isDeepStrictEqual(pool.projection.affichees, ref.projection.affichees),
@@ -288,7 +290,7 @@ async function poolEnPanne(voies: number, pannes: number[], signaux: number) {
           }
           if (m.type === 'publication') {
             derniere = m.publication;
-            if (derniere.bilan && derniere.enAttente === 0 && signales) { clearTimeout(filet); accepter(); }
+            if (derniere.bilan && fileFinie(derniere) && signales) { clearTimeout(filet); accepter(); }
           }
         } catch (e) { clearTimeout(filet); refuser(e); }
       });
@@ -414,7 +416,7 @@ export async function testResolutionPoolVoiesAvantScelle() {
           }
           if (m.type === 'publication') {
             derniere = m.publication;
-            if (scelle && derniere.bilan && derniere.enAttente === 0) { clearTimeout(filet); accepter(); }
+            if (scelle && derniere.bilan && fileFinie(derniere)) { clearTimeout(filet); accepter(); }
           }
         } catch (e) { clearTimeout(filet); refuser(e); }
       });
@@ -470,4 +472,64 @@ export async function testResolutionPoolGestes() {
   verifierInstantane(pool.instantane, pool.projection, b.photo);
   ok(pool.instantane.page.cartes.every((c) => c.resultat?.conforme === true) && pool.instantane.enAttente === 0,
     `page finale (tri ATQ) : ${pool.instantane.page.cartes.length} cartes, toutes résolues et conformes, file vide`);
+}
+
+/**
+ * La confirmation en fond : après les notes de la file (K = 100), chaque build
+ * reçu non jugé est confirmé sans note. Le vrai classeur en résolution directe,
+ * avec et sans confirmation (`aConfirmer` coupé : la file d'avant). Oracle :
+ * la résolution directe de chaque build. À la fin : plus aucun non vérifié,
+ * confirmées = les lignes conformes de l'oracle, pages exactes sans « + » ;
+ * chaque entrée du cache est la résolution directe (un rejet de confirmation
+ * compris), chaque confirmée sans note est conforme pour l'oracle ; et chaque
+ * page, ouverte l'une après l'autre, a les mêmes cartes (builds NOTÉS, même
+ * équipement) qu'avec la file d'avant. Le pool de vrais Workers suit la même
+ * règle : `testResolutionPoolDifferentiel`.
+ */
+export function testConfirmationEnFond() {
+  titre('Résolution — confirmation en fond de toutes les trouvées : comptes exacts, aucun non vérifié, pages notées inchangées');
+  const f = fixturePool(180, { enemyDef: 1200, signature: 'pool', toutVerifier: false });
+  const entrees = resolutionDuContexte(f.photo)!, runeById = new Map(f.photo.recherche.pool.map((r) => [r.id, r]));
+  const direct = (c: BuildCandidate) => resoudreEquipementDuBuild(entreeResolutionDuBuild({ ...entrees, runes: runesDuBuild(c, runeById), caches: nouveauxCachesResolution() }));
+  const oracle = new Map(f.candidats.map((c) => [cleBuild(c), direct(c)]));
+  const conformesOracle = f.candidats.filter((c) => oracle.get(cleBuild(c))!.conforme).length;
+
+  // `pagesOuvertes` : les pages de la recherche confirmée, ouvertes dans les deux files.
+  const mener = (confirmer: boolean, pagesOuvertes?: number) => {
+    let instantane: InstantaneClassement | null = null;
+    const corps = new CorpsClassement({ publier: (p) => { instantane = p; },
+      resoudre: () => { throw new Error('Résolution distante sur le classement local'); }, incident: (r) => { throw new Error(r); } }, false, 'directe');
+    if (!confirmer) (corps as unknown as { aConfirmer: () => BuildCandidate[] }).aConfirmer = () => [];
+    corps.ouvrir(f.photo, 1, f.vue, 1);
+    const bs = blocs(f.candidats); bs.forEach((b, i) => corps.ajouter(1, i, b));
+    corps.sceller(1, f.candidats.length, bs.length - 1, BILAN);
+    const finir = () => { let garde = 0; do { corps.pomper(0); } while (corps.travailEnRepli && ++garde < 100000); corps.publier(1e9, true); return instantane!; };
+    const fin = finir();
+    const projection = corps.projection();
+    const compte = compteConfirmeDesComptes({ recus: fin.comptes.recus, resolus: fin.comptes.resolus, confirmees: fin.comptes.confirmees, avecFile: true,
+      trouves: fin.comptes.recus, taillePage: 20, termine: true });
+    // Les pages, ouvertes l'une après l'autre (navigation : notées à la demande).
+    const pages: unknown[] = [];
+    for (let page = 1, id = 2; page <= (pagesOuvertes ?? compte.pages); page++, id++) {
+      corps.changerVue({ ...f.vue, page }, id, id);
+      pages.push(finir().page.cartes.map(({ candidat, resultat }) => ({ cle: cleBuild(candidat), resultat })));
+    }
+    return { fin, projection, compte, pages };
+  };
+  const apres = mener(true), avant = mener(false, apres.compte.pages);
+  ok(avant.compte.nonVerifies > 0 && avant.compte.pagesPeuventMonter,
+    `précondition — sans confirmation, la file s’arrête à K : ${avant.compte.nonVerifies} non vérifié(s), « / ${avant.compte.pages}+ »`);
+  egal({ nonVerifies: apres.compte.nonVerifies, plus: apres.compte.pagesPeuventMonter, resolus: apres.fin.comptes.resolus, enAttente: apres.fin.enAttente },
+    { nonVerifies: 0, plus: false, resolus: f.candidats.length, enAttente: 0 }, 'avec confirmation : plus aucun non vérifié, chaque reçu jugé, pas de « + »');
+  egal([apres.fin.comptes.confirmees, apres.compte.pages], [conformesOracle, Math.ceil(conformesOracle / 20)],
+    `confirmées = les ${conformesOracle} lignes conformes de l’oracle (doublon compris), pages exactes`);
+  ok(apres.projection.confirmeesSansNote.length > 0 && apres.projection.confirmeesSansNote.every((cle) => oracle.get(cle)!.conforme && !apres.projection.parBuild.has(cle)),
+    `${apres.projection.confirmeesSansNote.length} build(s) confirmé(s) sans note, tous conformes pour l’oracle, aucun dans le cache des notés`);
+  const fausses = [...apres.projection.parBuild].filter(([cle, r]) => !isDeepStrictEqual(r, oracle.get(cle))).map(([cle]) => cle);
+  const rejetsDeConfirmation = [...apres.projection.parBuild.keys()].filter((cle) => !avant.projection.parBuild.has(cle));
+  ok(fausses.length === 0 && rejetsDeConfirmation.length > 0 && rejetsDeConfirmation.every((cle) => !apres.projection.parBuild.get(cle)!.conforme),
+    `cache des notés : chaque entrée = la résolution directe ; ${rejetsDeConfirmation.length} rejet(s) écrit(s) par la confirmation, identiques au rejet noté`);
+  ok(isDeepStrictEqual(apres.fin.page, avant.fin.page), 'page 1 en fin de fond : mêmes cartes notées, même équipement, mêmes places qu’avant');
+  ok(avant.pages.length === apres.pages.length && isDeepStrictEqual(apres.pages, avant.pages),
+    `les ${apres.pages.length} pages ouvertes l’une après l’autre : mêmes cartes notées dans le même ordre, même équipement`);
 }

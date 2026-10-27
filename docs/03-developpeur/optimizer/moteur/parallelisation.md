@@ -534,8 +534,15 @@ l'appariement : les deux ne se chevauchent que sur la fin de l'appariement,
 une seconde au plus, quand la résolution dure ensuite des dizaines de
 secondes. Ses canaux partent ensemble au classeur (`portsResolution`) ;
 une voie est l'indice de son canal. Le corps `CorpsResolution` reconstruit les entrées
-par `entreeResolutionDuBuild`, puis appelle `resoudreEquipementDuBuild`.
-Il répond exactement une fois par demande : résultat, annulation ou erreur.
+par `entreeResolutionDuBuild`, puis appelle `resoudreEquipementDuBuild`, ou,
+pour une demande `confirmer` (confirmation en fond, verdict sans note),
+`confirmerEquipementDuBuild` ; les deux natures partagent sa file, dans
+l'ordre d'arrivée, et les crédits de la voie, les confirmations ne prenant
+que ceux que les résolutions laissent
+([pipeline.md § File de résolution](pipeline.md#file-de-résolution)).
+Il répond exactement une fois par demande : résultat, confirmation (`confirme`,
+sans équipement), annulation ou erreur ; une réponse qui ne correspond pas à
+la nature de sa demande est un défaut du protocole, levé.
 Le couple contexte/demande et l'identité courante sont vérifiés avant
 chaque écriture ; une réponse périmée libère seulement sa place.
 
@@ -649,7 +656,8 @@ la relance explicite crée un nouveau Worker, sans secours ni relance automatiqu
   `worker_threads` (coquilles de production), réponses retardées au hasard
   pour mélanger leur ordre d'arrivée : `testResolutionPoolDifferentiel`
   (même cache build par build, même classement et même page que la
-  résolution directe, K = 100 avec écartés et « tout vérifier »),
+  résolution directe, K = 100 avec écartés et « tout vérifier », mêmes
+  confirmées en fond sans note),
   `testResolutionPoolPanne` (vrai classeur, un Worker terminé en cours de
   file : ses builds repris, même page, aucun incident sur la page ; le même
   Worker signalé deux fois avec une seule voie saine restante : aucun repli ;
@@ -661,4 +669,7 @@ la relance explicite crée un nouveau Worker, sans secours ni relance automatiqu
   navigation et tri en cours de file) ne compare que des invariants,
   l'ensemble résolu dépendant alors du moment : aucune réponse périmée
   écrite, cache égal à la résolution directe build par build, page égale à
-  la composition de ce cache.
+  la composition de ce cache. La confirmation en fond elle-même :
+  `testConfirmationEnFond` (pipeline.md § File de résolution). Les tests qui
+  attendent la fin de la file l'attendent confirmation comprise
+  (`fileFinie` : rien à noter, chaque reçu jugé).

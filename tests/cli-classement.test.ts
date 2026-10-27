@@ -146,7 +146,8 @@ export async function testCliClassementDifferentiel() {
       const avant = new Set(cache.keys()); corps.pomper(garde * 400);
       for (const cle of cache.keys()) if (!avant.has(cle)) ordreResolution.push(cle);
       if (!isDeepStrictEqual([...cache], [...cacheOracle])) throw new Error(`Écart de résolution après ${cache.size} réponses`);
-      if (!corps.travailEnRepli) break;
+      // Les notes finies : la confirmation en fond qui suit ne note rien (testConfirmationEnFond).
+      if (!corps.travailEnRepli || observation.restants().length === 0) break;
     }
     ok(premierEcart !== null, 'le CLI historique et la page vérifiée demandent des priorités différentes');
     egal(controles, observation.cache.size, `chaque transition du corps contrôlée : notes, ordre complet et choix de la page ${pageImprimee ? 'imprimée' : 'vérifiée'}`);

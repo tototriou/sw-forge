@@ -224,6 +224,14 @@ export class CandidatsCompacts {
   private readonly notesPaire: Float64Array;
   private readonly couts: Float64Array;
   private readonly drapeaux: Uint8Array;
+  // Les confirmations en fond (verdict sans note) : un octet par groupe,
+  // alloué à la première ; à part de `etats`, qui ne dit que le cache des
+  // notés. Un groupe confirmé reste « non résolu » pour la page et la file.
+  private confirmes: Uint8Array | null = null;
+  // Lignes des groupes confirmés sans note (état 0), tenu à jour à la
+  // confirmation et à l'ingestion d'un résultat noté.
+  private lignesConfirmees = 0;
+  private confirmationContredite = false;
   private readonly inventaireReliques: RelicDetail[] = [];
   private readonly inventaireArtefacts: ArtifactDetail[] = [];
   private readonly indicesReliques = new Map<number, number>();
@@ -351,11 +359,46 @@ export class CandidatsCompacts {
     return index;
   }
 
+  private taille(g: number): number {
+    let n = 0;
+    for (const _ of this.lignesDuGroupe(g)) n++;
+    return n;
+  }
+
+  /**
+   * Le groupe de la ligne `i` est confirmé conforme, sans note. Sans effet
+   * sur un groupe déjà noté, ou déjà confirmé ; un groupe noté rejeté
+   * contredit la confirmation (défaut signalé, jamais absorbé en silence).
+   */
+  confirmer(i: number): void {
+    const g = this.groupes[i] - 1;
+    if (this.etats[g] === 2) this.signalerContradiction(g);
+    if (this.etats[g] !== 0) return;
+    this.confirmes ??= new Uint8Array(this.longueur);
+    if (this.confirmes[g]) return;
+    this.confirmes[g] = 1;
+    this.lignesConfirmees += this.taille(g);
+  }
+  /** Le groupe de la ligne `i` a-t-il été confirmé en fond (noté depuis, ou non) ? */
+  confirme(i: number): boolean { return this.confirmes?.[this.groupes[i] - 1] === 1; }
+  /** Les lignes confirmées conformes en fond et pas encore notées. */
+  get confirmeesSansNote(): number { return this.lignesConfirmees; }
+  private signalerContradiction(g: number): void {
+    if (this.confirmationContredite) return;
+    this.confirmationContredite = true;
+    console.error(`Confirmation sans note contredite par la résolution notée (build ${this.cle(g)}) — défaut de la confirmation.`);
+  }
+
   ingerer(i: number, resultat: ResultatArtefacts | undefined): void {
     const g = this.groupes[i] - 1;
     exiger(this.versions[g] < 0xffffffff, 'Version équipement épuisée');
     this.versions[g]++;
-    this.etats[g] = resultat ? resultat.conforme ? 1 : 2 : 0;
+    const etat = resultat ? resultat.conforme ? 1 : 2 : 0;
+    if (this.confirmes?.[g] && (this.etats[g] === 0) !== (etat === 0)) {
+      this.lignesConfirmees += etat === 0 ? this.taille(g) : -this.taille(g);
+      if (etat === 2) this.signalerContradiction(g);
+    }
+    this.etats[g] = etat;
     this.reliques[g] = 0;
     this.artefacts.forEach((colonne) => { colonne[g] = 0; });
     this.drapeaux[g] = 0;

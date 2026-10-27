@@ -37,6 +37,7 @@ import { DamageSetup } from '../lib/damage';
 import { BuildRequirement, RechercheRefusee } from '../lib/runeBuildOptim';
 import { RelicContext, RelicVide } from '../lib/relicOptim';
 import { CachesResolution, entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../lib/relicQueue';
+import { confirmerEquipementDuBuild } from '../lib/resolutionRapide';
 
 /* --------------------------------------------------------------------------
  * Les entrées sérialisables
@@ -141,6 +142,22 @@ export interface MessageDemandeResolution {
 }
 
 /**
+ * La CONFIRMATION d'un build, dans le contexte nommé : mêmes champs qu'une
+ * résolution, traitée dans la même file du corps, au même rang d'arrivée.
+ * Le corps s'arrête au premier couple faisable, sans rien noter
+ * (`confirmerEquipementDuBuild`) : réponse `confirme` (conforme, sans
+ * équipement) ou `resultat` portant le rejet, identique à celui d'une
+ * résolution. Annulation, contexte et crédits : ceux d'une résolution.
+ */
+export interface MessageConfirmationResolution {
+  type: 'confirmer';
+  idContexte: number;
+  idDemande: number;
+  cle: string;
+  runes: RuneDetail[];
+}
+
+/**
  * Retire une demande encore en attente (`idDemande`), ou toutes (absent).
  * Une demande déjà résolue ne se rappelle pas : sa réponse est partie, et
  * c'est à l'appelant de l'ignorer.
@@ -150,14 +167,19 @@ export interface MessageAnnulationResolution {
   idDemande?: number;
 }
 
-export type MessageVersResolution = MessageContexteResolution | MessageDemandeResolution | MessageAnnulationResolution;
+export type MessageVersResolution = MessageContexteResolution | MessageDemandeResolution | MessageConfirmationResolution | MessageAnnulationResolution;
+
+/** Une demande en attente dans le corps : une résolution ou une confirmation. */
+type DemandeDuCorps = MessageDemandeResolution | MessageConfirmationResolution;
 
 /**
  * La réponse à une demande — EXACTEMENT une par demande reçue, pour que la
  * file n'attende jamais un build qui ne viendra pas :
  *
  * - `resultat` : l'équipement résolu, tel que `resoudreEquipementDuBuild` le
- *   rend ;
+ *   rend ; pour une confirmation, seulement un rejet (le même résultat) ;
+ * - `confirme` : réponse à une confirmation, le build est conforme ; aucun
+ *   équipement, aucune note ;
  * - `annule` : jamais résolue — annulée par l'appelant (`demande`), ou son
  *   contexte n'est pas (ou plus) celui du corps (`contexte`) ;
  * - `erreur` : la résolution a levé ; `vide` porte le motif d'une
@@ -172,6 +194,7 @@ export type MessageVersResolution = MessageContexteResolution | MessageDemandeRe
  */
 export type ReponseResolution =
   | { type: 'resultat'; idContexte: number; idDemande: number; cle: string; resultat: ResultatArtefacts }
+  | { type: 'confirme'; idContexte: number; idDemande: number; cle: string }
   | { type: 'annule'; idContexte: number; idDemande: number; cle: string; motif: 'demande' | 'contexte' }
   | { type: 'erreur'; idContexte: number; idDemande: number; cle: string; nom: string; message: string; vide?: RelicVide };
 
@@ -200,7 +223,7 @@ export type ProtocoleClonable = Verifie<
  * Le corps
  * ----------------------------------------------------------------------- */
 
-function annulee(d: MessageDemandeResolution, motif: 'demande' | 'contexte'): ReponseResolution {
+function annulee(d: DemandeDuCorps, motif: 'demande' | 'contexte'): ReponseResolution {
   return { type: 'annule', idContexte: d.idContexte, idDemande: d.idDemande, cle: d.cle, motif };
 }
 
@@ -215,7 +238,7 @@ function annulee(d: MessageDemandeResolution, motif: 'demande' | 'contexte'): Re
  */
 export class CorpsResolution {
   private contexte: { id: number; entrees: EntreesResolutionSerialisables; caches: CachesResolution } | null = null;
-  private file: MessageDemandeResolution[] = [];
+  private file: DemandeDuCorps[] = [];
 
   get demandesEnAttente(): number {
     return this.file.length;
@@ -232,13 +255,13 @@ export class CorpsResolution {
       this.contexte = { id: m.idContexte, entrees: m.entrees, caches: nouveauxCachesResolution() };
       return sorties;
     }
-    if (m.type === 'resoudre') {
+    if (m.type === 'resoudre' || m.type === 'confirmer') {
       if (!this.contexte || m.idContexte !== this.contexte.id) return [annulee(m, 'contexte')];
       this.file.push(m);
       return [];
     }
     const sorties: ReponseResolution[] = [];
-    const reste: MessageDemandeResolution[] = [];
+    const reste: DemandeDuCorps[] = [];
     for (const d of this.file) {
       if (m.idDemande === undefined || d.idDemande === m.idDemande) sorties.push(annulee(d, 'demande'));
       else reste.push(d);
@@ -247,7 +270,10 @@ export class CorpsResolution {
     return sorties;
   }
 
-  /** Résout la plus ancienne demande en attente ; `null` s'il n'y en a pas. */
+  /**
+   * Traite la plus ancienne demande en attente — résolution ou confirmation,
+   * dans l'ordre d'arrivée ; `null` s'il n'y en a pas.
+   */
   etape(): ReponseResolution | null {
     const d = this.file.shift();
     if (!d) return null;
@@ -256,20 +282,22 @@ export class CorpsResolution {
     const ctx = this.contexte!;
     const { idContexte, idDemande, cle } = d;
     try {
-      const resultat = resoudreEquipementDuBuild(
-        entreeResolutionDuBuild({
-          fiche: ctx.entrees.fiche,
-          runes: d.runes,
-          artifactParams: ctx.entrees.artifactParams,
-          regime: ctx.entrees.regime,
-          degats: ctx.entrees.degats,
-          exclusive: ctx.entrees.exclusive,
-          requirement: ctx.entrees.requirement,
-          relicContext: ctx.entrees.relicContext,
-          caches: ctx.caches,
-        })
-      );
-      return { type: 'resultat', idContexte, idDemande, cle, resultat };
+      const entree = entreeResolutionDuBuild({
+        fiche: ctx.entrees.fiche,
+        runes: d.runes,
+        artifactParams: ctx.entrees.artifactParams,
+        regime: ctx.entrees.regime,
+        degats: ctx.entrees.degats,
+        exclusive: ctx.entrees.exclusive,
+        requirement: ctx.entrees.requirement,
+        relicContext: ctx.entrees.relicContext,
+        caches: ctx.caches,
+      });
+      if (d.type === 'confirmer') {
+        const v = confirmerEquipementDuBuild(entree);
+        return v.conforme ? { type: 'confirme', idContexte, idDemande, cle } : { type: 'resultat', idContexte, idDemande, cle, resultat: v.rejet };
+      }
+      return { type: 'resultat', idContexte, idDemande, cle, resultat: resoudreEquipementDuBuild(entree) };
     } catch (err) {
       const e = err instanceof Error ? err : new Error(String(err));
       return {

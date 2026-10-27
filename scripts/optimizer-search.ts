@@ -490,12 +490,13 @@ if (resolu) {
     resolu.mode === 'tout'
       ? `Équipement résolu pour TOUS les candidats (--resoudre-tout) : ${resolu.parBuild.size} build(s), ` +
           `${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms`
-      : `Équipement résolu comme la file de l'écran : ${resolu.parBuild.size} build(s) sur ${result.candidates.length} — ` +
+      : `Équipement résolu comme la file de l'écran : ${resolu.parBuild.size - resolu.rejetes} build(s) noté(s) sur ${result.candidates.length} — ` +
           (Number.isFinite(resolu.K)
             ? `l'ordre de base jusqu'à ${resolu.K} combinaisons confirmées (ou jusqu'au dernier build trouvé)`
             : `toutes les combinaisons trouvées (« Vérifier toutes les combinaisons trouvées » dans la recette)`) +
           ` et les ${LIGNES_IMPRIMEES} lignes imprimées, jusqu'au point fixe ` +
-          `(${resolu.lots} lot(s)) — ${resolu.parBuild.size - resolu.rejetes} confirmée(s), ${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms. ` +
+          `(${resolu.lots} lot(s)) — ${resolu.parBuild.size - resolu.rejetes + resolu.confirmeesSansNote} confirmée(s), dont ${resolu.confirmeesSansNote} sans note ` +
+          `(confirmation en fond des builds non notés), ${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms. ` +
           `Les autres candidats restent classés dans l'ordre de base, non résolus ; --resoudre-tout pour tout résoudre.`
   );
   if (result.truncated) {

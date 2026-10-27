@@ -196,7 +196,8 @@ admissibles. Ce repli ne garantit pas l'optimum sur l'inventaire entier.
   et chaque apport s'essaie avec chaque relique représentative (la relique
   en « OU ») : le test est exact sur la relique comme sur la paire, et
   rejoint le jugement de la résolution —
-  [reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md).
+  [reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md) ;
+  pourquoi : [ADR](../../../04-decisions/adr/relique-en-ou-a-la-validation.md).
 
 ## Filtre final sur la vraie paire
 

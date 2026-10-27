@@ -342,7 +342,9 @@ Une paire visitée passe ensuite :
    réellement atteignable (`artPossibles`, ou la paire figée à défaut) et,
    en mode `recherche`, UNE relique représentative lui font tenir toutes
    les conditions à la fois
-   ([reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md)).
+   ([reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md) ;
+   pourquoi la relique en « OU » :
+   [ADR](../../../04-decisions/adr/relique-en-ou-a-la-validation.md)).
    Une tentative qui échoue alimente le quasi-succès
    (`nearMissByCondition`, `globalNearMiss`).
 

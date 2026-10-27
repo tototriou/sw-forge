@@ -146,7 +146,8 @@ d'être jetés. Jamais recalculé ailleurs, seulement fusionné et mis en forme.
   et le quasi-succès retient la tentative qui approche le plus le build,
   comme sa validation — jamais la borne par stat, qui accordait la
   meilleure PV %, ATQ % et DEF % à la fois et déclarait réussi un build
-  qu'aucune relique ne rend conforme.
+  qu'aucune relique ne rend conforme
+  ([ADR](../../../04-decisions/adr/relique-en-ou-a-la-validation.md)).
 - **`NearMiss`** : `runeIds`, `stats`, `effTotal`, `shortfalls`. `stats` est
   la fiche `computeStats` calculée avec la paire figée, et sans relique en
   mode `recherche` : les écarts viennent de l'apport et de la relique

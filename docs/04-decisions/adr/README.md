@@ -16,6 +16,7 @@ toujours ce qui est en vigueur : une décision qui change se réécrit.
 | [appariement-par-seuils-exacts.md](appariement-par-seuils-exacts.md) | L'appariement des deux moitiés de build saute par seuils exacts les paires vouées au rejet et valide les autres sur tableaux typés ; à partir de 100 M de paires, en parallèle sur un nombre de Workers qui suit la machine, en rendant l'ordre séquentiel. |
 | [classement-dans-un-worker-dedie.md](classement-dans-un-worker-dedie.md) | Les résultats d'une recherche appartiennent à un Worker de classement dédié, sur un contexte figé au lancement, qui ne publie à la page que ce qu'elle affiche ; filtres d'affichage et tri par colonne séparés de la recherche, ne résolvant rien ; l'équipement suit l'objectif de la recherche, pas le tri. |
 | [pool-de-resolveurs.md](pool-de-resolveurs.md) | La vérification des builds trouvés tourne sur un pool de résolveurs, aussi nombreux que les Workers d'appariement, une seule voie tant que la recherche apparie ; la panne d'un résolveur ne s'affiche pas. |
+| [relique-en-ou-a-la-validation.md](relique-en-ou-a-la-validation.md) | Quand la relique se choisit dans l'inventaire, la validation des paires essaie les reliques représentatives une à une au lieu d'accorder la meilleure de chaque stat à la fois : elle ne garde que les builds qu'une vraie relique rend conformes, et le quasi-succès suit la même règle. |
 
 ## Écrire un ADR
 

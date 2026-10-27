@@ -45,18 +45,10 @@ function brancherResolveurs(ports: MessagePort[]): void {
 // enchaînés sont bridés à ~4 ms par Chromium, le classeur passait la moitié
 // de son temps à attendre. La relance prend son tour derrière les messages
 // déjà reçus (annulation, crédits, réponses du résolveur).
-// Pendant la recherche, les notes et l'ordre de base se préparent au fil des
-// blocs reçus, après la tâche et la file, en tranche d'au plus 1 ms : une
-// réponse du résolveur ou un bloc n'attend pas davantage.
+// Le contenu d'une tranche (tâche, pompe, travail au fil, temps mort) est
+// `CorpsClassement.tranche`, que les tests mènent sur une horloge virtuelle.
 const relance = new Relance(() => proteger(() => {
-  const limite = performance.now() + 4;
-  do { corps.avancer(); } while (corps.travailEnCours && performance.now() < limite);
-  corps.pomper(performance.now());
-  if (!corps.travailEnCours) {
-    const fin = Math.min(limite, performance.now() + 1);
-    while (corps.avancerAuFil() && performance.now() < fin) { /* tranche au fil des blocs */ }
-  }
-  if (corps.travailEnCours || corps.travailEnRepli || corps.travailAuFil) relance.programmer();
+  if (corps.tranche(() => performance.now())) relance.programmer();
 }));
 function proteger(f: () => void): void {
   try { f(); } catch (e) {

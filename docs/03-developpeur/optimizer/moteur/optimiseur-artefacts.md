@@ -488,9 +488,86 @@ vue, comme avant.
 natifs stables sur indices JavaScript, avec les expressions de la référence,
 sans normalisation ni comparateur composite.
 
+**Aperçu d'un geste de vue.** Un tri, un sens, une mesure ou des bornes
+publient leur page avant l'ordre complet, dans la même tâche, mêmes
+tranches et mêmes versions ; l'ordre de base, `rangBase` et l'arbre se
+terminent ensuite. Ce que la page lit ne demande pas l'ordre complet : avec
+une file, les seules confirmées de la vue (après un tri ou des bornes, la
+page ne passe plus devant le fond) ; des comptes qui ne dépendent pas de
+l'ordre ; le reste de la file, qui suit l'ordre du FOND (objectif lancé),
+compté sur lui ; sans file, la tête de l'ordre de base restreint à la vue.
+L'aperçu (`ClassementCompact.apercuEtapes`) juge la catégorie de chaque ligne
+sous les bornes de la vue (reprises telles quelles quand ni bornes ni mesure
+ne changent), note les seules confirmées et les range par le comparateur de
+l'arbre, sauf la position dans l'ordre de base à venir, qu'il lit comme
+« note de base décroissante, puis ordinal » : c'est le tri stable de ces
+notes, et l'ordre au fil des blocs est ce même tri. Sans file, une
+sélection des premières lignes de la vue sur les notes de base, sans trier
+les autres. Des bornes seules reprennent les notes et l'ordre courants. Il
+ne publie rien, et le geste attend la fin de sa tâche comme avant, dès que
+l'équivalence n'est pas établie : note de base non finie, note de ligne
+résolue non finie, note absente parmi des présentes (le comparateur n'est
+plus symétrique, l'arbre dépend de l'ordre d'insertion), relique hors
+contrat, cache que le journal ne relie pas au magasin par une seule
+écriture, index en construction, page qui attend des non vérifiées
+(priorité de page). Un geste arrivé pendant l'actualisation qui suit une
+réponse du résolveur a son aperçu : le magasin rattrape d'abord les seuls
+groupes de cette écriture (`rattraperIngestion`, contrôlés sur le journal
+comme une actualisation consécutive), puis l'aperçu le lit ; l'index, en
+retard sur ce cache, ne prête alors ni ses notes ni ses catégories, et
+l'actualisation complète qui suit réingère le magasin à l'identique (il
+reste lisible pendant cette passe) ; un index ainsi devancé par son magasin
+ne fait jamais de différence. Un aperçu ne vaut que pour l'index et la clé de vue
+(critère, sens, mesure, bornes) qui l'ont produit, quelle que soit la page ;
+un nouveau geste l'efface avant de programmer sa tâche, la fin de tâche
+aussi : aucune vue quittée ne repart. L'aperçu publié est exactement
+l'instantané de fin de tâche (`tests/classement-apercu.test.ts`,
+différentiel pas à pas contre le même corps sans tâche différée).
+
+**Notes de base gardées.** Les notes et l'ordre de base d'un critère
+(`tri|mesure|sens`) ne lisent que les candidats collectés et le contexte
+photographié : `CorpsClassement` les garde par population, l'objectif lancé
+(l'ordre du fond) et la vue courante toujours, avec les quatre derniers
+critères quittés (~12 octets par candidat chacun). Quitter puis retrouver
+l'objectif lancé, revenir à une colonne déjà triée, ne renote rien ;
+inverser le sens prend les notes opposées (la note croissante est la note
+décroissante × −1, `noteDansLeSens`) quand aucune n'est absente, et range
+seulement. Une colonne de stat se note par lecture de sa colonne du
+magasin (`totalDeLaStat`, le nombre que `statTotal` lit sur le candidat),
+sans matérialiser de candidat, et une borne sur une stat se juge de même
+(`valeurAfficheeDeStat`, la seule écriture de cette valeur). Une borne sur
+l'Efficience lit les notes d'Efficience déjà calculées sur cette population
+sous la mesure de la vue (temps mort ou tri), quand elles le sont et toutes
+présentes : la mesure ne lit que les runes du build, que la résolution ne
+change pas, et `valeurAfficheeDEfficience` (moyenne par rune, arrondie comme
+l'affichage) est la seule écriture de sa valeur ; sinon, le candidat. À cache
+inchangé, un changement de critère ne réingère plus le magasin ni ne rejuge
+les catégories : seules les notes et l'arbre se refont.
+
+**Temps mort.** Une fois la recherche scellée, Dégâts réels, PV effectifs
+et Efficience (décroissants, sous la mesure de la vue) se notent à l'avance
+quand rien d'autre n'attend (`avancerAuRepos`) : la tranche du Worker qui
+reste après la tâche, la file et le travail au fil, au plus 1 ms. Ce sont
+les seules colonnes chères à noter ; une stat se lit dans sa colonne. Mêmes
+candidats collectés, même contexte photographié, sans cache : les notes que
+la tâche d'un tri calculerait, gardées comme l'objectif lancé (~8 octets
+par candidat chacune) ; une tâche qui a noté le critère entre-temps garde
+les siennes, une note qui lève abandonne ce critère. Le tri d'une de ces
+colonnes ne note alors plus rien avant sa page. Rien pendant la recherche,
+ni tant que la file de résolution travaille : le temps mort ne commence
+qu'une fois qu'une pompe a trouvé la file au repos (plus rien à vérifier,
+aucune demande en vol, aucune réponse retenue), et une réponse ou un geste
+l'arrête jusqu'à la pompe suivante. Une réponse du résolveur n'attend donc
+jamais derrière une tranche de temps mort (`CorpsClassement.tranche`, la
+boucle du Worker, menée sur une horloge virtuelle par
+`tests/classement-temps-mort.test.ts`).
+
 Une publication pour l'écran est l'instantané de sa page : comptes de
 l'arbre, extraction des confirmées du rang demandé, places attendues, soit
-O(log N + 20) ; aucun objet ni ordinal par ligne ne la traverse. Seul
+O(log N + 20) ; aucun objet ni ordinal par ligne ne la traverse. Seule
+exception, l'aperçu d'un geste sans file (`teteDeLApercu`) : il choisit les
+premières lignes de la vue en parcourant toutes les lignes, d'un seul bloc,
+soit O(N log k) pour k lignes jusqu'à la fin de la page. Seul
 `classerEnLocal` (CLI, harnais, tests) lit la projection objet complète
 (`CorpsClassement.projection`), une fois, à la fin de sa file. Le stockage
 vivant n'est jamais transféré pour servir une vue.

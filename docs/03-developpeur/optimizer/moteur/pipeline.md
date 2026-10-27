@@ -518,8 +518,10 @@ Une publication forcée demandée pendant une étape de classement reste due
 jusqu'à la fin de cette étape, même si le fond continue. Une actualisation
 en cours rend la file indisponible, jamais vide : sa fin seule permet de
 décider si la page ou la file est réellement terminée. Un geste de vue
-(page, tri, mesure) force aussi sa publication, dès que son instantané est
-prêt (après le tri qu'il demande) : retenu par la cadence, il n'attendrait
+(page, tri, sens, mesure, bornes) force aussi sa publication, dès que son
+instantané est prêt : celui d'un tri ou de bornes sort de l'**aperçu** de la
+tâche, avant l'ordre complet (moteur/optimiseur-artefacts.md § Magasin
+compact et publications versionnées), sinon de sa fin. Retenu par la cadence, il n'attendrait
 que la prochaine réponse du résolveur, qui peut tarder (relique
 « recherche », deux résolutions longues en vol), et l'écran garderait
 l'ancienne page sous le nouveau numéro. Le geste vient de l'utilisateur :

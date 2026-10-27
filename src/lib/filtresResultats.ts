@@ -5,6 +5,8 @@
 // rien ici ne résout, ne renote ni ne relance.
 
 import { COLONNES_RESULTATS, type ColonneResultat } from './colonnesResultats';
+import type { StatKey } from './effects';
+import type { OptimMetric } from './runeOptim';
 import { scoreDuCandidat, statTotal, type BuildCandidate, type OptionsDeClassement } from './runeBuildOptim';
 import { chiffresMesureRune, displayedTotal, entierAffiche, moyenneParRune } from './valeursAffichees';
 
@@ -134,13 +136,38 @@ export function etatDesBornes(bornes: BornesResultats | undefined, disponible: (
 export function valeurAffichee(colonne: ColonneResultat, candidat: BuildCandidate, options: OptionsDeClassement, afficherDepassement = true): number | null {
   if (colonne === 'efficience') {
     const total = scoreDuCandidat(candidat, 'efficience', options);
-    return total === null || !options.metric ? null : Number(chiffresMesureRune(moyenneParRune(total), options.metric));
+    return total === null || !options.metric ? null : valeurAfficheeDEfficience(total, options.metric);
   }
   if (colonne === 'ehp' || colonne === 'degats_reels') {
     const note = scoreDuCandidat(candidat, colonne, options);
     return note === null ? null : entierAffiche(note);
   }
-  return displayedTotal(colonne, statTotal(candidat.stats, colonne), afficherDepassement);
+  return valeurAfficheeDeStat(colonne, statTotal(candidat.stats, colonne), afficherDepassement);
+}
+
+/**
+ * La valeur qu'une carte écrit pour une colonne de stat, à partir du total
+ * que `statTotal` lit : la seule écriture, que la carte passe par
+ * `valeurAffichee` ou que le classeur lise ce total dans ses colonnes.
+ */
+export function valeurAfficheeDeStat(colonne: StatKey, total: number, afficherDepassement = true): number {
+  return displayedTotal(colonne, total, afficherDepassement);
+}
+
+/**
+ * La valeur qu'une carte écrit pour l'Efficience, à partir de la mesure des
+ * six runes (`candidateMetricTotal`, qui ne lit que les runes) : moyenne par
+ * rune, arrondie comme l'affichage. La seule écriture, que le total vienne du
+ * candidat ou d'une note de base déjà calculée.
+ */
+export function valeurAfficheeDEfficience(total: number, metric: OptimMetric): number {
+  return Number(chiffresMesureRune(moyenneParRune(total), metric));
+}
+
+/** Les huit colonnes de la fiche, celles qui ne sont pas un objectif : leur valeur ne dépend que d'un total de stat. */
+const COLONNES_DE_STAT: ReadonlySet<string> = new Set(COLONNES_RESULTATS.filter((c) => c !== 'efficience' && c !== 'degats_reels' && c !== 'ehp'));
+export function estColonneDeStat(colonne: string): colonne is StatKey {
+  return COLONNES_DE_STAT.has(colonne);
 }
 
 /**
@@ -177,6 +204,11 @@ export function filtreDesLignes(e: {
   cle: string;
   candidat: (ligne: number) => BuildCandidate;
   valeur: (colonne: ColonneResultat, candidat: BuildCandidate) => number | null;
+  /**
+   * La même valeur que `valeur(colonne, candidat(ligne))`, lue sans
+   * matérialiser le candidat ; `undefined` : passer par le candidat.
+   */
+  valeurDirecte?: (colonne: ColonneResultat, ligne: number) => number | null | undefined;
 }): FiltreLignes {
   const definitive = (etat: 0 | 1) => etat === 1 || !e.avecFile;
   if (!e.bornes.actives.length) {
@@ -186,7 +218,10 @@ export function filtreDesLignes(e: {
     cle: e.cle,
     juger: (ligne, etat) => {
       let c: BuildCandidate | undefined;
-      return categorieDeLaLigne((colonne) => e.valeur(colonne, c ??= e.candidat(ligne)), definitive(etat), e.bornes);
+      return categorieDeLaLigne((colonne) => {
+        const directe = e.valeurDirecte?.(colonne, ligne);
+        return directe !== undefined ? directe : e.valeur(colonne, c ??= e.candidat(ligne));
+      }, definitive(etat), e.bornes);
     },
   };
 }

@@ -230,6 +230,11 @@ import { testFluxCandidatsCompactOrdre, testFluxCandidatsCoupe, testFluxCandidat
   testFluxCandidatsRefusRecevoir, testFluxCandidatsRefusSceller, testFluxCandidatsRefusResultat, testFluxCandidatsLanceurCommun } from './flux-candidats.test';
 import { testClassementCreditsRelance, testClassementCadenceDifferee, testClassementVueSansAutreMessage, testClassementInstantaneBorne, testClassementMortInactive } from './classement-publication.test';
 import { testClassementAuFilDifferentiel, testClassementAuFilTravail } from './classement-au-fil.test';
+import { testClassementNotesDeBaseGardees, testClassementNotesAuRepos } from './classement-notes-de-base.test';
+import { testClassementTempsMortApresLaFile } from './classement-temps-mort.test';
+import { testClassementApercuDifferentiel, testClassementApercuNonFinis, testClassementApercuSecondGeste, testClassementApercuPagePrioritaire,
+  testClassementApercuPendantActualisation,
+  testClassementApercuTravail } from './classement-apercu.test';
 import { testClassementComparerApresValidation } from './classement-comparer.test';
 import { testClassementSelectionExhaustiveBorne, testClassementSelectionExhaustiveTransitions, testClassementSelectionExhaustiveDifferee } from './classement-selection-exhaustive.test';
 import testRetentionEmboitee from './retention-emboitee.test';
@@ -905,6 +910,15 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testClassementMortInactive', testClassementMortInactive],
   ['testClassementAuFilDifferentiel', testClassementAuFilDifferentiel],
   ['testClassementAuFilTravail', testClassementAuFilTravail],
+  ['testClassementNotesDeBaseGardees', testClassementNotesDeBaseGardees],
+  ['testClassementNotesAuRepos', testClassementNotesAuRepos],
+  ['testClassementTempsMortApresLaFile', testClassementTempsMortApresLaFile],
+  ['testClassementApercuDifferentiel', testClassementApercuDifferentiel],
+  ['testClassementApercuNonFinis', testClassementApercuNonFinis],
+  ['testClassementApercuSecondGeste', testClassementApercuSecondGeste],
+  ['testClassementApercuPagePrioritaire', testClassementApercuPagePrioritaire],
+  ['testClassementApercuPendantActualisation', testClassementApercuPendantActualisation],
+  ['testClassementApercuTravail', testClassementApercuTravail],
   ['testClassementComparerApresValidation', testClassementComparerApresValidation],
   ['testClassementSelectionExhaustiveBorne', testClassementSelectionExhaustiveBorne],
   ['testClassementSelectionExhaustiveTransitions', testClassementSelectionExhaustiveTransitions],

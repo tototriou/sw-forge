@@ -27,9 +27,10 @@ confirme ou écarte chaque build — tourne sur un **pool de résolveurs** :
 - **La vérification dominait le temps d'une recherche en Dégâts réels.**
   Sur une recherche réelle à relique libre et artéfacts optimisés (environ
   60 000 builds), le moteur trouvait les builds en un peu plus d'une
-  seconde, puis la vérification prenait environ 40 s sur un seul fil
-  (environ 130 ms par build, les deux tiers dans le calcul des dégâts
-  réels), pendant que les Workers d'appariement, arrêtés, laissaient les
+  seconde, puis la vérification des 300 premiers builds prenait environ
+  40 s sur un seul fil (environ 130 ms par build vérifié, les deux tiers
+  dans le calcul des dégâts réels), pendant que les Workers d'appariement,
+  arrêtés, laissaient les
   cœurs libres. Sur le pool, la même recherche passe d'environ 40 s à
   environ 14 s (−65 %) ; une recherche au préréglage Moyen gagne environ
   5 %, et la plus lourde reste dans le bruit de mesure.

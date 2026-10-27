@@ -14,6 +14,7 @@ import { auTelephone, bouton, boutons, rendre, texteVisible } from './outils-ren
 import { egal, ok, titre } from '../outils';
 import type { BuildCandidate, BuildRequirement } from '../../src/lib/runeBuildOptim';
 import EnteteResultats from '../../src/components/outils/optimizer/EnteteResultats';
+import PaginationResultats from '../../src/components/outils/optimizer/PaginationResultats';
 import { rechercheClasseeTest } from './optimizer-classement-banc';
 
 const EPUISEMENT = "Rechercher jusqu'à épuisement complet";
@@ -190,6 +191,20 @@ export function testRenduOptimizerResultatsEntete() {
   ok(tSans.includes('1 combinaison(s) confirmée(s)') && !tSans.includes('confirmée(s) sur') && !bouton(sansFile, 'Combinaisons confirmées')
     && !interrupteurs(sansFile).some((x) => x.nom === 'Adapter les artéfacts et reliques au tri') && selecteurTri(sansFile),
   'sans file : les trouvées sont les confirmées, sans le « sur M trouvée(s) », sans infobulle ni « Adapter… », « Trier par » gardé');
+
+  // La pagination : « / N+ » tant qu'il reste des trouvées non vérifiées ; le
+  // « + » garde sa place, invisible, une fois tout vérifié. L'écran entier ne
+  // la montre pas en rendu serveur (rien n'y est vérifié, une seule page) :
+  // elle est rendue seule.
+  const pagination = (resteAVerifier: boolean) => rendre(
+    <PaginationResultats setResultsPage={() => {}} resultsPage={1} pageDraft={null} setPageDraft={() => {}} totalResultsPages={16}
+      resteAVerifier={resteAVerifier} />,
+  );
+  const plus = (html: string) => html.match(/<span\b([^>]*)>\+<\/span>/)?.[1] ?? null;
+  const ouverte = pagination(true), exacte = pagination(false);
+  ok(/\/ 16<span\b[^>]*>\+<\/span>/.test(ouverte) && !/invisible/.test(plus(ouverte) ?? 'invisible'), 'il reste des non vérifiées : « / 16+ », collé au nombre');
+  ok(/class="invisible"/.test(plus(exacte) ?? '') && /aria-hidden="true"/.test(plus(exacte) ?? ''),
+    'tout vérifié : « / 16 », le « + » garde sa place, invisible et tu (la flèche suivante ne bouge pas)');
 }
 
 // La ligne de la file, sous l'en-tête : le reste de la file en vérification,
@@ -201,7 +216,7 @@ export function testRenduOptimizerLigneFile() {
   const entete = (avecFile: boolean, enAttente: number) => rendre(
     <EnteteResultats
       result={{ nombre: 3, explored: 10, truncated: false, nearMissByCondition: [], globalNearMiss: null }}
-      compteConfirmes={{ confirmees: 1, nonVerifies: 2, pages: 1, aucune: false }}
+      compteConfirmes={{ confirmees: 1, nonVerifies: 2, pages: 1, resteAVerifier: true, aucune: false }}
       avecFile={avecFile}
       tri={{ tri: 'atk', sens: 'desc' }}
       trier={() => {}}

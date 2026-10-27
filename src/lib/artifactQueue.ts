@@ -734,6 +734,12 @@ export interface CompteConfirme {
    * les pages des reçus, comme avant.
    */
   pages: number;
+  /**
+   * Il reste des combinaisons trouvées non vérifiées — reçues non résolues, ou
+   * trouvées par le moteur et pas encore reçues : le nombre de pages n'est pas
+   * définitif (« / N+ »). Toujours faux sans file : rien n'y reste à vérifier.
+   */
+  resteAVerifier: boolean;
   // Recherche finie, tout vérifié, aucune confirmée : « Aucune combinaison ne
   // répond à ces critères ».
   aucune: boolean;
@@ -748,7 +754,8 @@ export interface CompteConfirme {
  *   recherche. Seules leurs entrées du cache comptent : les rejets d'une
  *   recherche précédente aux mêmes réglages, restés en cache, n'y sont pas.
  * - `parBuild` : le cache PUBLIÉ de la file, `null` sans file.
- * - `trouves` : le compte du moteur, lu seulement sans file.
+ * - `trouves` : le compte du moteur — le compte confirmé sans file ; avec
+ *   file, seulement pour savoir s'il reste des trouvées pas encore reçues.
  *
  * ⚠️ **Le compte ne baisse jamais pendant une recherche** : le cache ne fait que
  * grandir (une entrée n'est jamais retirée ni réécrite sous une même
@@ -800,6 +807,7 @@ export function compteConfirmeDesComptes(e: {
       confirmees: e.trouves,
       nonVerifies: 0,
       pages: Math.max(1, Math.ceil(e.recus / e.taillePage)),
+      resteAVerifier: false,
       aucune: e.termine && e.trouves === 0,
     };
   }
@@ -807,7 +815,26 @@ export function compteConfirmeDesComptes(e: {
   const nonVerifies = e.recus - e.resolus;
   const pagesConfirmees = Math.ceil(confirmees / e.taillePage);
   const pages = Math.max(1, Math.min(Math.ceil((confirmees + nonVerifies) / e.taillePage), pagesConfirmees + 1));
-  return { confirmees, nonVerifies, pages, aucune: e.termine && confirmees === 0 && nonVerifies === 0 };
+  return { confirmees, nonVerifies, pages, resteAVerifier: nonVerifies > 0 || e.trouves > e.recus,
+    aucune: e.termine && confirmees === 0 && nonVerifies === 0 };
+}
+
+/**
+ * Les pages que la pagination écrit : celles de la recherche, ou, sous une
+ * borne active, celles de la vue filtrée (`filtre.pages`, même règle des
+ * confirmées). `resteAVerifier` dit si le nombre n'est pas définitif
+ * (« / N+ ») : sous filtre, des non vérifiés peuvent encore entrer dans la
+ * vue (`potentielsNonVerifies`), ou des trouvées pas encore reçues
+ * (`trouvesMoteur` au-delà de `recusActifs`). Sans file, jamais.
+ */
+export function pagesDesResultats(
+  compte: Pick<CompteConfirme, 'pages' | 'resteAVerifier'>,
+  filtre: { pages: number; comptes: { potentielsNonVerifies: number; trouvesMoteur: number; recusActifs: number } } | null,
+  avecFile: boolean,
+): { pages: number; resteAVerifier: boolean } {
+  if (!filtre) return { pages: compte.pages, resteAVerifier: compte.resteAVerifier };
+  const { potentielsNonVerifies, trouvesMoteur, recusActifs } = filtre.comptes;
+  return { pages: filtre.pages, resteAVerifier: avecFile && (potentielsNonVerifies > 0 || trouvesMoteur > recusActifs) };
 }
 
 export interface CompositionDePage {

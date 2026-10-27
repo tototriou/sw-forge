@@ -8,11 +8,15 @@ export interface PaginationResultatsProps {
   pageDraft: string | null;
   setPageDraft: Dispatch<SetStateAction<string | null>>;
   totalResultsPages: number;
+  // Il reste des combinaisons trouvées non vérifiées : le nombre de pages
+  // n'est pas définitif, il s'écrit « / N+ » (`pagesDesResultats`).
+  resteAVerifier?: boolean;
   // Classement perdu : la page reste visible, la navigation est désactivée.
   inactif?: boolean;
 }
 
-export default function PaginationResultats({ setResultsPage, resultsPage, pageDraft, setPageDraft, totalResultsPages, inactif = false }: PaginationResultatsProps) {
+export default function PaginationResultats({ setResultsPage, resultsPage, pageDraft, setPageDraft, totalResultsPages, resteAVerifier = false,
+  inactif = false }: PaginationResultatsProps) {
   return (
     <div className="mt-4 flex items-center justify-center gap-3">
       <BoutonIcone
@@ -55,7 +59,13 @@ export default function PaginationResultats({ setResultsPage, resultsPage, pageD
           }}
           className="w-11 px-1 py-1 text-center font-mono"
         />
-        <span className="font-mono">/ {totalResultsPages}</span>
+        {/* ⚠️ Le « + » garde sa place, invisible, une fois tout vérifié : la
+            dernière vérification, souvent déclenchée par « Page suivante »,
+            ne déplace pas la flèche qu'on vient de cliquer. */}
+        <span className="font-mono">
+          / {totalResultsPages}
+          <span className={resteAVerifier ? undefined : 'invisible'} aria-hidden={!resteAVerifier}>+</span>
+        </span>
       </div>
 
       <BoutonIcone

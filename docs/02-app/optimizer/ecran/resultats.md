@@ -228,14 +228,23 @@ l'ouvre (ci-dessous) —, soit `min(⌈(confirmées + non vérifiés) / 20⌉,
 ⌈confirmées / 20⌉ + 1)`, au moins 1 : jamais une page vide. Par exemple,
 5 100 trouvées et 300 confirmées donnent 16 pages, et non 255. Si le nombre de pages diminue (la page au-delà des
 confirmées perd ses derniers non vérifiés, ou la vérification
-recommence), la page courante revient sur la dernière. Une seule
+recommence), la page courante revient sur la dernière. **Tant qu'il
+reste des combinaisons trouvées non vérifiées**, la pagination écrit
+« / 16+ » : le nombre n'est pas définitif (des reçues non résolues, la
+vérification s'étant arrêtée à K confirmées, ou des trouvées du moteur
+pas encore reçues) ; une fois tout vérifié, le nombre exact, « / 16 ». Le
+« + » garde sa place, invisible, quand il disparaît : la dernière
+vérification, souvent déclenchée par « Page suivante », ne déplace pas
+la flèche cliquée. Une seule
 fonction pure, `compteConfirme` (artifactQueue.ts), donne le compte, les
-non vérifiés, les pages et l'état « Aucune combinaison… » ; l'écran l'appelle
+non vérifiés, les pages, ce qu'il reste à vérifier (`resteAVerifier`) et
+l'état « Aucune combinaison… » ; l'écran l'appelle
 sur les comptes de l'instantané du classeur (`compteConfirmeDesComptes`),
-sans jamais recevoir la liste des reçus. Sans optimisation d'artéfacts, pas de file :
+sans jamais recevoir la liste des reçus, et n'écrit que ce que
+`pagesDesResultats` en retient. Sans optimisation d'artéfacts, pas de file :
 l'équipement est celui de la fiche, déjà jugé exactement par le moteur —
-les confirmées sont les trouvées, les pages celles des reçus, et
-l'infobulle ne s'affiche pas.
+les confirmées sont les trouvées, les pages celles des reçus, toujours
+exactes (jamais « + »), et l'infobulle ne s'affiche pas.
 ⚠️ **Une carte n'apparaît qu'une fois vérifiée** : une carte qui
 apparaîtrait avec sa paire supposée puis se retirerait à la vérification
 rendrait la liste illisible. Dès qu'une file tourne (optimisation d'artéfacts
@@ -456,7 +465,12 @@ formats). Les libellés et unités viennent de `filtresAffichage.ts` ;
   leur valeur, borne dite « (inactive) » dans le résumé, colonne grisée
   sans valeur dans le tableau.
 - **Pages** : sous une borne active, le nombre de pages est celui de la vue
-  filtrée (`filtre.pages`) ; sans borne, celui de la recherche.
+  filtrée (`filtre.pages`) ; sans borne, celui de la recherche. « / N+ »
+  sous la même règle : sous une borne, tant qu'un non vérifié peut encore
+  entrer dans la vue (`filtre.comptes.potentielsNonVerifies`) ou qu'une
+  trouvée n'est pas encore reçue (`trouvesMoteur` au-delà de
+  `recusActifs`) ; un non vérifié déjà masqué (échec démontré) ne compte
+  pas.
 - **Décimales** : une borne d'Efficience admet une décimale (« 78.8 »,
   point ou virgule), comme la carte l'écrit (`NumberField decimales`,
   `decimalesColonne`) ; Score SW et les autres colonnes, des entiers.

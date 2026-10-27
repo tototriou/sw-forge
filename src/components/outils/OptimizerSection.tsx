@@ -7,7 +7,7 @@ import { importerRecoOptimizer } from '../../lib/importRecoOptimizer';
 import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importerPrepaRtaOptimizer, type RapportImportOptimizer } from '../../lib/importEquipes';
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
 import { computeStats } from '../../lib/stats';
-import { compteAffichable, compteConfirmeDesComptes, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
+import { compteAffichable, compteConfirmeDesComptes, pagesDesResultats, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
 import { etatReliqueDuBuild } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
@@ -2331,9 +2331,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   });
   // Sous une borne active, les pages sont celles de la vue filtrée (même
   // règle des confirmées, sur les visibles et les potentiels) ; sans borne,
-  // celles de la recherche, comme avant.
+  // celles de la recherche, comme avant. « / N+ » tant qu'il en reste à
+  // vérifier, dans l'un comme dans l'autre (`pagesDesResultats`).
   const filtreActif = (instantane?.filtre.bornes.actives.length ?? 0) > 0;
-  const totalResultsPages = filtreActif ? instantane!.filtre.pages : compteConfirmes.pages;
+  const pagesResultats = pagesDesResultats(compteConfirmes, filtreActif ? instantane!.filtre : null, avecFile);
+  const totalResultsPages = pagesResultats.pages;
 
   // ⚠️ CORRIGE la page courante, ne la remet PAS à 1 : un aperçu EN DIRECT
   // (pendant la phase d'appariement) grandit au fil de la recherche sans
@@ -3188,6 +3190,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               pageDraft={pageDraft}
               setPageDraft={setPageDraft}
               totalResultsPages={totalResultsPages}
+              resteAVerifier={pagesResultats.resteAVerifier}
             />
           )}
         </div>

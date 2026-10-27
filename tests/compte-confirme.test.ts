@@ -12,7 +12,8 @@
 
 import { readFileSync } from 'node:fs';
 import { BuildCandidate, OptionsDeClassement, aurasPropresParRunes, sortCandidates } from '../src/lib/runeBuildOptim';
-import { ResultatArtefacts, classementResolu, cleBuild, compositionDePage, compteAffichable, compteConfirme } from '../src/lib/artifactQueue';
+import { ResultatArtefacts, classementResolu, cleBuild, compositionDePage, compteAffichable, compteConfirme, compteConfirmeDesComptes,
+  pagesDesResultats } from '../src/lib/artifactQueue';
 import { StatRow } from '../src/lib/stats';
 import { egal, ok, titre } from './outils';
 
@@ -51,8 +52,8 @@ export function testCompteConfirme() {
 
   {
     const r = recus(5);
-    egal(compter(r, cacheDe(), false), { confirmees: 0, nonVerifies: 5, pages: 1, aucune: false }, 'rien de vérifié : 0 confirmée, 5 non vérifiés, une page');
-    egal(compter(r, cacheDe([1, true], [2, false], [3, true]), false), { confirmees: 2, nonVerifies: 2, pages: 1, aucune: false },
+    egal(compter(r, cacheDe(), false), { confirmees: 0, nonVerifies: 5, pages: 1, resteAVerifier: true, aucune: false }, 'rien de vérifié : 0 confirmée, 5 non vérifiés, une page');
+    egal(compter(r, cacheDe([1, true], [2, false], [3, true]), false), { confirmees: 2, nonVerifies: 2, pages: 1, resteAVerifier: true, aucune: false },
       '2 conformes, 1 écarté, 2 en attente : 2 confirmées — ni l’écarté ni les non résolus');
     egal(compter(r, cacheDe([99, true], [98, false], [1, true]), false).confirmees, 1,
       'les entrées du cache hors des reçus (recherche précédente aux mêmes réglages) ne comptent pas');
@@ -65,7 +66,7 @@ export function testCompteConfirme() {
     egal(compter(kinki, cacheDe(), false).aucune, false, 'Kinki, pendant la recherche, non résolu : pas « Aucune »');
     egal(compter(kinki, cacheDe([1, false]), false).aucune, false, 'Kinki écarté, recherche en cours : pas « Aucune » (la recherche peut encore trouver)');
     egal(compter(kinki, cacheDe(), true).aucune, false, 'Kinki, recherche finie, pas encore vérifié : pas « Aucune »');
-    egal(compter(kinki, cacheDe([1, false]), true), { confirmees: 0, nonVerifies: 0, pages: 1, aucune: true },
+    egal(compter(kinki, cacheDe([1, false]), true), { confirmees: 0, nonVerifies: 0, pages: 1, resteAVerifier: false, aucune: true },
       'Kinki, recherche finie, écarté : tout est vérifié, aucune confirmée → « Aucune »');
     egal(compter(recus(3), cacheDe([1, false], [2, false]), true).aucune, false, '2 écartés sur 3, le 3ᵉ pas vérifié : pas encore « Aucune »');
     egal(compter([], cacheDe(), true).aucune, true, 'moteur vide : « Aucune » (les diagnostics gardent leur condition)');
@@ -91,6 +92,29 @@ export function testCompteConfirme() {
     egal(pages(45, 16), 4, 'C = 45, U = 16 : 4 — une page de plus, une seule');
     egal(pages(45, 500), 4, 'C = 45, U = 500 : 4 — jamais plus d’une page au-delà des confirmées');
     egal(pages(300, 4800), 16, '« Dégâts réels » : 300 confirmées sur 5 100 trouvées → 16 pages (au lieu de 255)');
+  }
+
+  titre('Compte confirmé — « / N+ » tant qu’il reste des trouvées non vérifiées');
+
+  {
+    const reste = (recus: number, resolus: number, trouves: number, avecFile = true) => compteConfirmeDesComptes({
+      recus, resolus, confirmees: resolus, avecFile, trouves, taillePage: PAGE, termine: false }).resteAVerifier;
+    egal(reste(5100, 300, 5100), true, '4 800 reçues non résolues (vérification arrêtée à K) : il en reste');
+    egal(reste(300, 300, 5100), true, 'tout reçu vérifié, mais le moteur en a trouvé plus que l’aperçu : il en reste');
+    egal(reste(300, 300, 300), false, 'tout trouvé, reçu et vérifié : nombre exact');
+    egal(reste(41, 0, 3500, false), false, 'sans file : jamais, rien n’y reste à vérifier');
+
+    // Sous une borne active : la vue filtrée, ses potentiels et les trouvées
+    // pas encore reçues (instantané, `filtre.comptes`).
+    const compte = { pages: 16, resteAVerifier: true };
+    const filtre = (potentielsNonVerifies: number, trouvesMoteur = 100, recusActifs = 100) =>
+      ({ pages: 2, comptes: { potentielsNonVerifies, trouvesMoteur, recusActifs } });
+    egal(pagesDesResultats(compte, null, true), { pages: 16, resteAVerifier: true }, 'sans borne : les pages et le reste de la recherche');
+    egal(pagesDesResultats(compte, filtre(0), true), { pages: 2, resteAVerifier: false },
+      'sous filtre, aucun potentiel, tout reçu : nombre exact, même s’il reste des non vérifiés masqués');
+    egal(pagesDesResultats(compte, filtre(3), true), { pages: 2, resteAVerifier: true }, 'sous filtre, 3 potentiels : il en reste');
+    egal(pagesDesResultats(compte, filtre(0, 150, 100), true).resteAVerifier, true, 'sous filtre, des trouvées pas encore reçues : il en reste');
+    egal(pagesDesResultats({ pages: 2, resteAVerifier: false }, filtre(3), false).resteAVerifier, false, 'sous filtre, sans file : jamais');
   }
 
   {
@@ -166,7 +190,7 @@ export function testCompteConfirme() {
 
   {
     const r = recus(41);
-    egal(compter(r, null, false, 3500), { confirmees: 3500, nonVerifies: 0, pages: 3, aucune: false },
+    egal(compter(r, null, false, 3500), { confirmees: 3500, nonVerifies: 0, pages: 3, resteAVerifier: false, aucune: false },
       'optimisation d’artéfacts coupée : les trouvés par le moteur, pages = ⌈41 reçus / 20⌉ comme avant');
     egal(compter([], null, true, 0).aucune, true, 'sans file, moteur vide : « Aucune »');
     egal(compter(r, null, true, 41).aucune, false, 'sans file, des trouvés : jamais « Aucune »');
@@ -180,7 +204,9 @@ export function testCompteConfirme() {
     'écran : `compteConfirmes` vient des comptes de l’instantané (reçus, résolus, confirmées)');
   egal([(src.match(/compteConfirmeDesComptes\(/g) ?? []).length, (src.match(/compteConfirme\(/g) ?? []).length], [1, 0],
     'écran : un seul appel, sur les comptes, jamais sur la liste des reçus');
-  ok(/const totalResultsPages = compteConfirmes\.pages;/.test(src), 'pagination : le nombre de pages vient des confirmées');
+  ok(/const pagesResultats = pagesDesResultats\(compteConfirmes, filtreActif \? instantane!\.filtre : null, avecFile\);\s*const totalResultsPages = pagesResultats\.pages;/.test(src)
+    && /resteAVerifier=\{pagesResultats\.resteAVerifier\}/.test(src),
+  'pagination : le nombre de pages vient des confirmées (de la vue filtrée sous une borne), et « / N+ » de `pagesDesResultats`');
   ok(/setResultsPage\(\(p\) => Math\.min\(Math\.max\(p, 1\), totalResultsPages\)\);\s*\}, \[totalResultsPages, setResultsPage\]\);/.test(src),
     'pagination : la page courante revient sur la dernière quand le nombre de pages diminue');
   // L'en-tête à l'écran — « Aucune combinaison… » seulement sous

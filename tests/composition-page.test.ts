@@ -296,8 +296,10 @@ export function testCompositionDePage() {
 
   const brut = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8').replace(/\r\n/g, '\n');
   const src = brut.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  ok(/const cartes = instantane\?\.page\.cartes \?\? AUCUNE_CARTE;/.test(src) && /placesEnAttente: instantane\?\.page\.placesEnAttente \?\? 0,/.test(src),
-    'écran : cartes et places viennent de l’instantané composé par le classeur');
+  // Une page interrompue (classeur perdu) ne montre que ses cartes : plus rien
+  // ne remplirait ses places (`testRenduOptimizerPageInterrompue*`).
+  ok(/const cartes = instantane\?\.page\.cartes \?\? AUCUNE_CARTE;/.test(src) && /placesEnAttente: interrompu \? 0 : instantane\?\.page\.placesEnAttente \?\? 0,/.test(src),
+    'écran : cartes et places viennent de l’instantané composé par le classeur (aucune place sur une page interrompue)');
   egal((src.match(/compositionDePage\(/g) ?? []).length, 0, 'écran : aucune page recomposée sur le fil de l’écran');
   // Le classeur compose cette page selon la même règle : verifierInstantane
   // (tests/classement-distant.test.ts) la compare à `compositionDePage`.

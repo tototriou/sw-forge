@@ -501,7 +501,10 @@ export function testDominanceLignesProducteurs() {
   // Contrôles de source : l'écran et le CLI remplissent le champ par le
   // producteur, l'un dans `handleSearch`, l'autre dans `recipeToSearchParams`.
   const source = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
-  ok(/function handleSearch\(\) \{[\s\S]*?run\(\{[\s\S]*?statsLignesArtefactsEquipables: artifactParams \? statsLignesArtefactsEquipables\(artifactParams\) : undefined,[\s\S]*?\}\);\s*\}/.test(source),
+  // Dans `handleSearch` (sans en sortir) : les `SearchParams` portent le
+  // producteur, puis partent au moteur par `run(params, …)`.
+  const handleSearch = source.replace(/\r\n/g, '\n').match(/\n {2}function handleSearch\(\) \{\n[\s\S]*?\n {2}\}\n/)?.[0] ?? '';
+  ok(/const params: SearchParams = \{[\s\S]*?\n {6}statsLignesArtefactsEquipables: artifactParams \? statsLignesArtefactsEquipables\(artifactParams\) : undefined,[\s\S]*?\n {4}\};[\s\S]*?\n {4}run\(params, /.test(handleSearch),
     'écran : handleSearch passe statsLignesArtefactsEquipables(artifactParams) au moteur');
   egal((source.match(/statsLignesArtefactsEquipables\(/g) ?? []).length, 1, 'écran : un seul appel au producteur — dans handleSearch');
   const cli = readFileSync('scripts/lib/recipeToSearchParams.ts', 'utf8');

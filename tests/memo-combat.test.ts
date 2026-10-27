@@ -15,6 +15,12 @@
 // paires de mêmes principales, comme en production) et dont les profils
 // portent des amplifications de buff variées ; chaque paire est notée deux
 // fois, dans un ordre mélangé, pour relire ce que le memo a retenu.
+//
+// `PreparationReglage` (ce qui ne dépend que du réglage, une fois par
+// recherche) : la même promesse avec UNE préparation partagée par tous les
+// contextes du corpus, comme une file la partage entre ses builds et
+// reliques ; puis, sur un contexte, plusieurs builds qui la partagent : après
+// le premier, plus aucun terme du réglage n'est recalculé.
 
 import { ArtifactDetail, ArtifactKind, BaseStats } from '../src/types';
 import { ARTIFACT_SUB_MAX } from '../src/lib/artifacts';
@@ -26,6 +32,7 @@ import {
   DEFAULT_DAMAGE_SETUP,
   DamageSetup,
   MemoCombat,
+  PreparationReglage,
   artifactDamageProfile,
   computeTotalDamage,
   estPrisEnCharge,
@@ -101,6 +108,10 @@ export default function testMemoCombat() {
   let avecCombatsRetenus = 0;
   let critiqueForce = 0;
   let passifsAllumes = 0;
+  // Une préparation pour tout le corpus : une « file » qui verrait passer
+  // tous ces réglages, bornes comprises.
+  const preparationCorpus = new PreparationReglage();
+  const ecartsPartage: string[] = [];
   const vus = new Set<number>();
   for (const m of loadMonstersList()) {
     const id = m.com2usId;
@@ -126,14 +137,19 @@ export default function testMemoCombat() {
         if (setup === riche && ctx.passifs.length) passifsAllumes++;
         // Un memo par build et par relique : chaque paire, deux fois, ordre mélangé.
         const memo = new MemoCombat(PROPRES, ctx.element);
+        const memoPartage = new MemoCombat(PROPRES, ctx.element, preparationCorpus);
         const ordre = [...paires, ...paires].map((p) => ({ p, k: rng() })).sort((a, b) => a.k - b.k).map((x) => x.p);
         for (const arts of ordre) {
           const stats = statsAvec(arts);
           const avec = total(ctx, stats, arts, memo);
           const sans = total(ctx, stats, arts);
+          const partage = total(ctx, stats, arts, memoPartage);
           appels++;
           if (!Object.is(avec, sans) && ecarts.length < 5) {
             ecarts.push(`${id} sort ${sort.skillCom2usId} (${setup === defaut ? 'défaut' : 'riche'}) [${arts.map((a) => a.id).join(',')}] : ${avec} ≠ ${sans}`);
+          }
+          if (!Object.is(partage, sans) && ecartsPartage.length < 5) {
+            ecartsPartage.push(`${id} sort ${sort.skillCom2usId} (${setup === defaut ? 'défaut' : 'riche'}) [${arts.map((a) => a.id).join(',')}] : ${partage} ≠ ${sans}`);
           }
         }
         const c = memo.compte;
@@ -146,7 +162,59 @@ export default function testMemoCombat() {
   egal(ecarts, [], `${appels} notes de paires, ${sorts} contextes (sort × réglage) : avec le memo = sans le memo, au bit près`);
   ok(avecChronologie > 20, `… dont ${avecChronologie} contextes où le memo a retenu une chronologie de poses entre les coups`);
   ok(avecStatsRetenues > 100 && avecCombatsRetenus > 100, `… ${avecStatsRetenues} où il a retenu des stats au début du combat, ${avecCombatsRetenus} des stats de combat`);
-  ok(critiqueForce > 0 && passifsAllumes > 0, `… ${critiqueForce} contextes à critique forcé (réglage recopié, sans mémoire), ${passifsAllumes} à passifs allumés`);
+  ok(critiqueForce > 0 && passifsAllumes > 0, `… ${critiqueForce} contextes à critique forcé, ${passifsAllumes} à passifs allumés`);
+  egal(ecartsPartage, [], `… et avec UNE préparation du réglage partagée par les ${sorts} contextes (une file), au bit près`);
+  const cc = preparationCorpus.compte.calculs;
+  ok(cc.termesLus > 0 && cc.decoupesLues > 0 && cc.sortsLus > 0,
+    `… qui relit ce qu’elle a préparé (termes ${cc.termesLus} lus pour ${cc.termes} calculés, découpes ${cc.decoupesLues}/${cc.decoupes}, sorts ${cc.sortsLus}/${cc.sorts})`);
+
+  // ── Une recherche : plusieurs builds (bases de stats différentes) et leurs
+  // paires partagent la préparation du réglage d'un contexte riche — scénario
+  // de poses actif et passifs allumés si le corpus en a un. Après le premier
+  // build, plus rien du réglage n'est recalculé : chronologies, sort, découpes
+  // et termes ne sont que relus. ──
+  {
+    const riches = [...vus].flatMap((id) => monsterDamageSkills(loadMonsterSkills(id)).filter(estPrisEnCharge)
+      .filter((s) => (s.effetsEntreCoups?.length ?? 0) > 0 && s.hits > 1).map((s) => ({ id, s })));
+    const choix = riches.find(({ id, s }) => (contexte(id, { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: s.skillCom2usId })?.passifs.length ?? 0) > 0) ?? riches[0];
+    ok(choix !== undefined, `un sort à poses entre les coups pour la recherche partagée (${choix?.id} sort ${choix?.s.skillCom2usId})`);
+    if (choix) {
+      const base0 = contexte(choix.id, { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: choix.s.skillCom2usId, critMode: 'crit' })!;
+      const setup: DamageSetup = {
+        ...DEFAULT_DAMAGE_SETUP, skillCom2usId: choix.s.skillCom2usId, critMode: 'crit', atkBuff: true,
+        passifsOffensifs: Object.fromEntries(base0.passifs.map((p) => [p.skillCom2usId, true])),
+        scenariosEffetsEntreCoups: { [choix.s.skillCom2usId]: { actif: true, apresCoup: Object.fromEntries(choix.s.effetsEntreCoups!.map((e) => [e.id, 1])) } },
+      };
+      const ctx = contexte(choix.id, setup)!;
+      const preparation = new PreparationReglage();
+      const bases: BaseStats[] = [BASE, { ...BASE, atk: 950, cd: 120, spd: 130 }, { ...BASE, hp: 15000, def: 900 }];
+      const ecartsRecherche: string[] = [];
+      let apresPremier: PreparationReglage['compte']['calculs'] | null = null;
+      for (const [b, base] of bases.entries()) {
+        const stats = statsParPaire({ base, runes: [], artifacts: [] });
+        // Un évaluateur par build et par relique : deux « reliques » par build.
+        for (let relique = 0; relique < 2; relique++) {
+          const memo = new MemoCombat(PROPRES, ctx.element, preparation);
+          for (const arts of paires) {
+            const s = stats(arts);
+            const avec = total(ctx, s, arts, memo);
+            const sans = total(ctx, s, arts);
+            if (!Object.is(avec, sans) && ecartsRecherche.length < 3) ecartsRecherche.push(`build ${b} [${arts.map((a) => a.id).join(',')}] : ${avec} ≠ ${sans}`);
+          }
+        }
+        if (b === 0) apresPremier = preparation.compte.calculs;
+      }
+      const fin = preparation.compte.calculs;
+      egal(ecartsRecherche, [], `${bases.length} builds × 2 reliques × ${paires.length} paires sur une préparation : au bit près`);
+      egal(
+        [fin.chronologies, fin.sorts, fin.decoupes, fin.termes, fin.termesHorsMemoire],
+        [apresPremier!.chronologies, apresPremier!.sorts, apresPremier!.decoupes, apresPremier!.termes, apresPremier!.termesHorsMemoire],
+        `… après le premier build, aucun calcul du réglage de plus (fin : ${JSON.stringify(fin)})`
+      );
+      ok(fin.chronologies > 0 && fin.termes > 0 && fin.decoupes > 0 && fin.termesLus > fin.termes,
+        `… chronologies (${fin.chronologies}), découpes (${fin.decoupes}) et termes (${fin.termes}) calculés une fois, relus ${fin.termesLus} fois`);
+    }
+  }
 
   // ── Les clés, appelées directement : des cas qu'aucun sort du corpus
   // n'atteint aujourd'hui (un seul passif `coupsDuSortActif`), que la clé
@@ -217,11 +285,11 @@ export default function testMemoCombat() {
       ok(maxChronologies <= BORNE_CHRONOLOGIES, `… au plus ${BORNE_CHRONOLOGIES} chronologies retenues (vu : ${maxChronologies})`);
 
       // ── Critique forcé sous scénario actif : le sort se calcule sous un
-      // réglage recopié à chaque appel (`critMode: 'crit'`), dont la
-      // chronologie ne peut jamais être relue. Elle ne se retient pas, et le
-      // memo garde ce qui se relit (la chronologie du réglage lui-même, pour
-      // l'état après le sort) au lieu de se vider toutes les
-      // `BORNE_CHRONOLOGIES` paires. Aucun monstre du corpus n'a à la fois
+      // réglage à `critMode: 'crit'`, construit une fois par la préparation
+      // du sort (`setupCritForce`) et donc relu, avec sa chronologie. Le memo
+      // garde ce qui se relit (la chronologie du réglage lui-même, pour l'état
+      // après le sort, et celle du réglage forcé) au lieu de se vider toutes
+      // les `BORNE_CHRONOLOGIES` paires. Aucun monstre du corpus n'a à la fois
       // `critSiPlusRapide` et un sort à effets posables : le contexte le pose. ──
       const reglageForce: DamageSetup = { ...reglage(0), critMode: 'normal', enemySpd: 40 };
       const brut = { ...contexte(scenario.id, reglageForce)!, element: null };

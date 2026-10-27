@@ -43,7 +43,7 @@ import {
 import { RelicContext } from './relicOptim';
 import { ResultatArtefacts } from './artifactQueue';
 import { CacheProfilsParPaire, DegatsContext, RegimeArtefacts, evaluerPourRegime } from './artifactEvaluation';
-import { DamageSetup, aurasPropresDesRunes } from './damage';
+import { DamageSetup, PreparationReglage, aurasPropresDesRunes } from './damage';
 import { CachesResolutionRapide, resoudreEquipementDuBuildRapide } from './resolutionRapide';
 
 /**
@@ -52,8 +52,11 @@ import { CachesResolutionRapide, resoudreEquipementDuBuildRapide } from './resol
  * (`CacheProfilsParPaire`, qui ne dépend que des deux pièces), les
  * candidats élagués de chaque sorte (`MemoPreFiltre`, sur leurs entrées
  * réelles) et les représentants des formes de paire de la résolution
- * rapide (`CachesResolutionRapide`, sur les entrées de `candidatsParSorte`).
- * Les deux premiers sont bornés ; le troisième ne garde qu'un jeu de formes.
+ * rapide (`CachesResolutionRapide`, sur les entrées de `candidatsParSorte`),
+ * et ce que le calcul des dégâts réels lit du seul réglage
+ * (`PreparationReglage`, damage.ts, sur ses entrées par identité : le contexte
+ * de dégâts de la file). Les deux premiers sont bornés ; le troisième ne
+ * garde qu'un jeu de formes ; la préparation a ses bornes.
  *
  * ⚠️ **Durée de vie : une file** — créés par l'écran avec la signature des
  * réglages et les paramètres de paires (donc l'inventaire), par le Worker de
@@ -64,10 +67,14 @@ export interface CachesResolution {
   profils: CacheProfilsParPaire;
   preFiltre: MemoPreFiltre;
   rapide: CachesResolutionRapide;
+  reglage: PreparationReglage;
 }
 
 export function nouveauxCachesResolution(): CachesResolution {
-  return { profils: new CacheProfilsParPaire(), preFiltre: new MemoPreFiltre(), rapide: new CachesResolutionRapide() };
+  return {
+    profils: new CacheProfilsParPaire(), preFiltre: new MemoPreFiltre(), rapide: new CachesResolutionRapide(),
+    reglage: new PreparationReglage(),
+  };
 }
 
 /**
@@ -243,7 +250,7 @@ export function entreeResolutionDuBuild(e: {
       // § Régime de la paire).
       const evaluer =
         e.regime === 'degats_reels'
-          ? evaluerPourRegime(e.regime, statsAvec, propres, e.degats!, exclusive, e.caches?.profils)
+          ? evaluerPourRegime(e.regime, statsAvec, propres, e.degats!, exclusive, e.caches?.profils, e.caches?.reglage)
           : evaluerPourRegime(e.regime, statsAvec, propres, exclusive);
       return { ...e.artifactParams, evaluer };
     },

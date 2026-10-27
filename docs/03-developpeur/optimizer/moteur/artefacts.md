@@ -414,29 +414,59 @@ rendent est partagé : à lire, jamais à modifier.
 Dans un même build et une même relique, l'évaluateur « Dégâts réels » de
 `evaluerPourRegime` note des milliers de paires ; il porte un
 `MemoCombat` (`src/lib/damage.ts`) qui calcule une fois ce que
-`computeTotalDamage` relit à l'identique d'une paire à l'autre : la
-chronologie des poses entre les coups (le sort et le réglage seuls), les
-stats au début du combat (par tableau de stats, que `statsParPaire` partage
-entre paires de mêmes principales) et les stats de combat (par tableau et
-par amplifications de buff de la paire). Reconnues à leur identité, ces
-entrées rendent la valeur de la fonction elle-même, au bit près
-(`tests/memo-combat.test.ts`). Ce qui ne peut pas être relu ne se retient
-pas : une chronologie seulement pour le réglage et le sort de
-`computeTotalDamage` (ou un réglage qu'une chronologie retenue a rendu),
-jamais pour un réglage ou un profil recopié à chaque appel (critique forcé,
-mode critique d'un passif, coups déduits du build), qui remplirait la
-mémoire de clés jamais relues et la ferait se vider à sa borne ; un élément
-`undefined` vaut `null`, comme dans `computeTotalDamage`. Bornes `BORNE_CHRONOLOGIES` (16),
-`BORNE_STATS_PAR_REGLAGE` (64), `BORNE_COMBATS_PAR_STATS` (16) ; durée de
-vie : celle de l'évaluateur.
-`sortsConnus` n'a pas de borne propre : cet évaluateur garde le même profil
-de sort pour tous ses appels ; les profils dérivés par paire n'y entrent
-pas. L'API directe qui partagerait un memo entre des profils toujours
-nouveaux ne bénéficie pas de cette limite. Au vidage des chronologies,
-tous les réglages et sorts connus sont oubliés, ceux de l'appel courant
-compris ; la chronologie courante est ensuite retenue et ses réglages
-dérivés réinscrits. Le réglage et le sort de `computeTotalDamage` ne
-reviennent qu'à son prochain appel.
+`computeTotalDamage` relit à l'identique d'une paire à l'autre : les stats
+au début du combat (par tableau de stats, que `statsParPaire` partage entre
+paires de mêmes principales) et les stats de combat (par tableau et par
+amplifications de buff de la paire). Ce qui ne dépend que du réglage vit
+dans sa **préparation du réglage** (`PreparationReglage`), que la file
+partage entre tous ses builds et reliques (`CachesResolution.reglage`,
+passée par `entreeResolutionDuBuild` à `evaluerPourRegime`) : elle se
+calcule donc une fois par recherche, et non plus une fois par build et par
+relique. Elle retient :
+
+- la chronologie des poses entre les coups (le sort et le réglage seuls) ;
+- la préparation du sort de `computeTotalDamage` : contexte d'attaque
+  conjointe, réglage à critique forcé, état de la cible après le sort, et
+  pour chaque passif qui compte son contexte conjoint, son bonus acquis, son
+  profil et ses réglages (mode critique, réduction de DEF après le sort, état
+  avant chaque coup) ; les facteurs de fin de chaîne lus sur le seul réglage
+  (stack saisi, bonus conditionnel, Velaska) ;
+- la découpe d'un sort en appels : groupes d'une séquence curée, tronçons de
+  coups (poses entre les coups, ignore DEF à partir d'un rang) ;
+- les termes du réglage d'un calcul de sort (`TermesDuReglage`) : points de
+  Dgts CRIT de l'invocateur, d'Euldong et d'un lead, Taux Crit d'un lead et
+  des stats de combat, PV et VIT de la cible, PV propres, alliés et ennemis,
+  effets comptés, facteur de réduction de DEF et mitigation sans DEF
+  ignorée, réductions, facteurs d'effets, de bouton et de stack, coups
+  résolus, préfixes de Rage Charge et de Calculated Sacrifice.
+
+Ce qui lit le build, la paire ou l'état du combat reste calculé à chaque
+paire : VIT de combat et critique forcé qui en découle, Taux Crit brut et
+Dgts CRIT, conditions de combat, DEF ignorée selon la VIT ou les PV perdus
+(la mitigation préparée ne sert que si aucune fraction n'est ignorée), DMG%
+et bombe (profil de la paire), stats de combat et `valeurs` de la formule.
+
+Reconnues à leur identité, ces entrées rendent la valeur de l'expression
+elle-même, au bit près : aucune somme ni aucun produit n'est réassocié, un
+terme préparé prend sa place dans l'expression, un préfixe seulement quand
+elle se lit de gauche à droite (`tests/memo-combat.test.ts`, sur le corpus
+avec une préparation partagée par tous ses contextes). Ce qui ne peut pas
+être relu ne se retient pas : une chronologie seulement pour un réglage
+connu et le sort de `computeTotalDamage` ; une découpe ou des termes
+seulement pour un profil et un réglage connus — le réglage et le sort de
+`computeTotalDamage`, les réglages rendus par une chronologie retenue, les
+profils et réglages que la préparation construit elle-même (critique forcé,
+passifs, tronçons) ; un objet recopié par un appel (coups déduits du build)
+se calcule sans mémoire. Un élément `undefined` vaut `null`, comme dans
+`computeTotalDamage`. Bornes `BORNE_CHRONOLOGIES` (16),
+`BORNE_SORTS_PREPARES` (16), `BORNE_DECOUPES` (64), `BORNE_TERMES` (256),
+`BORNE_CONNUS` (64) pour la préparation ; `BORNE_STATS_PAR_REGLAGE` (64),
+`BORNE_COMBATS_PAR_STATS` (16) et `BORNE_CONNUS` réglages pour le memo.
+Au vidage des chronologies, tous les réglages, sorts et profils connus sont
+oubliés, ceux de l'appel courant compris ; la chronologie courante est
+ensuite retenue et ses réglages dérivés réinscrits. Durées de vie : le memo,
+celle de l'évaluateur ; la préparation, celle de la file — sans elle (API
+directe, fiche de l'écran), l'évaluateur crée la sienne.
 
 ## Mesurer un changement des bornes
 

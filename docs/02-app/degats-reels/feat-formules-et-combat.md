@@ -160,11 +160,16 @@ buff de vitesse **+30 %**, réduction de défense **×0,3**, marque **+25 %**.
 `computeTotalDamage` sur des milliers de paires pour un même build. Son
 dernier paramètre, facultatif, est un `MemoCombat`, créé par l'évaluateur de
 paires (`evaluerPourRegime`) : il calcule une fois ce que le calcul relit à
-l'identique d'une paire à l'autre — la chronologie des poses entre les
-coups, les stats au début du combat, les stats de combat (par tableau de
-stats et par amplifications de buff de la paire). Rien de l'équation ne
-change : chaque valeur retenue est celle de la fonction sur les mêmes
-entrées, au bit près (`tests/memo-combat.test.ts`). Détail :
+l'identique d'une paire à l'autre — les stats au début du combat, les stats
+de combat (par tableau de stats et par amplifications de buff de la paire).
+Ce qui ne dépend que du réglage — chronologie des poses entre les coups,
+passifs qui comptent et leurs réglages, découpe du sort en tronçons, et les
+termes de l'équation lus sur le seul réglage (invocateur, lead, PV et VIT de
+la cible, réductions, mitigation sans DEF ignorée…) — vit dans sa
+préparation du réglage (`PreparationReglage`), partagée par toute la
+recherche. Rien de l'équation ne change : chaque valeur retenue est celle de
+l'expression sur les mêmes entrées, au bit près, sans aucune somme ni aucun
+produit réassocié (`tests/memo-combat.test.ts`). Détail :
 [moteur/artefacts.md § Partage entre les builds d'une file](../../03-developpeur/optimizer/moteur/artefacts.md#partage-entre-les-builds-dune-file).
 
 

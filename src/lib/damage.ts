@@ -6385,7 +6385,7 @@ export interface SortPrepare {
   // Le réglage du sort sous critique forcé, construit une fois quand la
   // préparation est retenue ; `null` sinon.
   setupCritForce: DamageSetup | null;
-  passifs: PassifPrepare[];
+  passifs: readonly PassifPrepare[];
   facteurStack: number;
   conditionnelActif: boolean;
   facteurVelaska: number;
@@ -6402,9 +6402,22 @@ function avecModeCritique(base: DamageSetup, p: PassifOffensifProfile, forceCrit
   };
 }
 
-// Le corps de `PreparationReglage.sort`, ou sa version sans mémoire
-// (`reglage` absent : les réglages à mode critique ne sont pas construits
-// d'avance, `computeTotalDamage` les recopie à chaque appel comme avant).
+// Aucun passif qui compte : la liste vide partagée, sans allocation.
+const AUCUN_PASSIF: readonly PassifPrepare[] = Object.freeze([]);
+
+// ⚠️ Le brouillon du sort préparé d'un `computeTotalDamage` SANS préparation :
+// réécrit en entier à chaque appel, lu par lui seul (`computeTotalDamage`
+// n'appelle aucun autre `computeTotalDamage`). Jamais une mémoire.
+const SORT_SANS_MEMOIRE: SortPrepare = {
+  vitEnnemie: 0, contexteSort: null, setupCritForce: null, passifs: AUCUN_PASSIF,
+  facteurStack: 0, conditionnelActif: false, facteurVelaska: 0,
+};
+
+// Le corps de `PreparationReglage.sort` (`reglage` présent : un objet neuf,
+// retenu), ou sa version sans mémoire (`reglage` absent : écrit dans le
+// brouillon `SORT_SANS_MEMOIRE` ; les réglages à mode critique ne sont pas
+// construits d'avance, `computeTotalDamage` les recopie à chaque appel comme
+// avant).
 function preparerSort(
   profile: SkillDamageProfile,
   passifs: PassifOffensifProfile[],
@@ -6418,9 +6431,10 @@ function preparerSort(
   // comprises, pour les contributions qui SUIVENT le sort ; `null` sans
   // scénario actif (voir `etatCibleApresSort`).
   const setupApresSort = etatCibleApresSort(profile, passifs, setup, monsterWide, reglage);
-  const prepares: PassifPrepare[] = [];
+  let prepares: PassifPrepare[] | null = null;
   for (const p of passifs) {
     if (!passifCompte(p, profile, setup)) continue;
+    prepares ??= [];
     const avant = p.coupsDuSortActif ? setupsAvantChaqueCoup(profile, setup, monsterWide, [p.profile], reglage) : null;
     const contexte = contexteAttaqueConjointe(p.profile, setup, 'suite-du-sort');
     const bonusActif = bonusPassifActif(p, setup);
@@ -6449,20 +6463,22 @@ function preparerSort(
       setups: reglage ? [[avecModeCritique(base, p, false)], [avecModeCritique(base, p, true)]] : null,
     });
   }
-  return {
-    // ⚠️ Bornée à 1, comme dans `computeSkillDamageDetail`.
-    vitEnnemie: Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!),
-    contexteSort: contexteAttaqueConjointe(profile, setup, 'sort-choisi'),
-    setupCritForce: reglage ? { ...setup, critMode: 'crit' as const } : null,
-    passifs: prepares,
-    facteurStack: stack ? 1 + resolvedStackPct(stack, setup) / 100 : 1,
-    conditionnelActif: !!(
-      conditionnel &&
-      conditionnel.excludeSkillCom2usId !== profile.skillCom2usId &&
-      bonusDegatsConditionnelActif(conditionnel, setup)
-    ),
-    facteurVelaska: setup.velaskaActif ? 1 + (VELASKA_PCT_PAR_PV_PERDU * (setup.velaskaPvPerduPct ?? 0)) / 100 : 1,
-  };
+  const r: SortPrepare = reglage
+    ? { vitEnnemie: 0, contexteSort: null, setupCritForce: null, passifs: AUCUN_PASSIF, facteurStack: 0, conditionnelActif: false, facteurVelaska: 0 }
+    : SORT_SANS_MEMOIRE;
+  // ⚠️ Bornée à 1, comme dans `computeSkillDamageDetail`.
+  r.vitEnnemie = Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
+  r.contexteSort = contexteAttaqueConjointe(profile, setup, 'sort-choisi');
+  r.setupCritForce = reglage ? { ...setup, critMode: 'crit' as const } : null;
+  r.passifs = prepares ?? AUCUN_PASSIF;
+  r.facteurStack = stack ? 1 + resolvedStackPct(stack, setup) / 100 : 1;
+  r.conditionnelActif = !!(
+    conditionnel &&
+    conditionnel.excludeSkillCom2usId !== profile.skillCom2usId &&
+    bonusDegatsConditionnelActif(conditionnel, setup)
+  );
+  r.facteurVelaska = setup.velaskaActif ? 1 + (VELASKA_PCT_PAR_PV_PERDU * (setup.velaskaPvPerduPct ?? 0)) / 100 : 1;
+  return r;
 }
 
 /**
@@ -6598,7 +6614,8 @@ export function termesDuReglage(
   profile: SkillDamageProfile,
   setup: DamageSetup,
   element: ElementKey | null,
-  monsterWide: ModificateursMonstre
+  monsterWide: ModificateursMonstre,
+  cible?: TermesDuReglage
 ): TermesDuReglage {
   const leader = resolvedLeaderSkill(setup);
   const pvPropresPct = Math.min(100, Math.max(0, setup.ownHpPct ?? 100));
@@ -6630,57 +6647,79 @@ export function termesDuReglage(
       )
     : 0;
   const bonusCompteur = profile.bonusCoefficientParCompteur;
+  // Écrits dans `cible` (le brouillon du calcul sans préparation), sinon dans
+  // un objet neuf, retenu par la préparation.
+  const r = cible ?? termesVides();
+  r.cdPointsInvocateur = summonerSkillBonus(setup.summonerSkills, element).cdPoints;
+  r.cdEuldong = setup.euldongActif ? EULDONG_CD_POINTS : 0;
+  r.pctLeaderCd = leader?.stat === 'Critical DMG' ? leader.pct : 0;
+  r.pctLeaderCr = leader?.stat === 'Critical Rate' ? leader.pct : 0;
+  r.crCombat = resolvedCombatStatBonuses(monsterWide.combatStats ?? [], setup).crPoints;
+  r.pvMax = Math.max(0, setup.enemyHp);
+  r.vitEnnemie = Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
+  r.pvPropresPct = pvPropresPct;
+  r.fractionPvPropres = pvPropresPct / 100;
+  r.alliesVivants = Math.min(100, Math.max(0, setup.livingAlliesPct ?? 100)) / 100;
+  r.ennemisVivants = Math.min(4, Math.max(1, Math.floor(setup.aliveEnemies ?? 1)));
+  r.reserveSacrifice = Math.min(100, Math.max(0, setup.sacrificeReservePct ?? 0)) / 100;
+  r.compteEffetsDirect = compteEffetsDirect;
+  r.compteEffetsMonstre = compteEffetsMonstre;
+  r.stackPropre = stackPropre;
+  r.critTermBase = 1 + profile.skillupDamagePct / 100;
+  r.facteurDefBreak = facteurDefBreak;
+  r.mitigationSansIgnore = profile.fixed ? 1 : defenseFactor(defEff);
+  r.reductionsUniverselles = reductionsUniverselles;
+  r.reductions =
+    reductionsUniverselles +
+    (horsPorteeMirinae
+      ? 0
+      : (setup.mirinaeActif ? MIRINAE_BONUS_PCT / 100 : 0) +
+        (setup.transmissionActif ? TRANSMISSION_BONUS_PCT / 100 : 0));
+  r.facteurEffetCible = 1 + (pctEffetsCible + pctEffetsPropres) / 100;
+  r.facteurEffetCibleMonstre = monsterWide.bonusParEffetCible
+    ? 1 + bonusPctParEffet(monsterWide.bonusParEffetCible, compteEffetsMonstre) / 100
+    : 1;
+  r.facteurEffetPropre = monsterWide.bonusParEffetPropre
+    ? 1 + pctBonusParEffetPropreMonstre(monsterWide.bonusParEffetPropre, setup) / 100
+    : 1;
+  r.facteurConditionnelPropre = profile.bonusConditionnelPropre && bonusConditionnelPropreActif(profile, setup)
+    ? 1 + profile.bonusConditionnelPropre.pct / 100
+    : 1;
+  r.facteurStackPropre = profile.bonusStackPropre
+    ? 1 + Math.min(profile.bonusStackPropre.pctMax, stackPropre * profile.bonusStackPropre.ratio) / 100
+    : 1;
+  r.coups = resolvedHits(profile, setup);
+  r.prefixeCompteur = bonusCompteur ? bonusCompteur.coeffParPoint * resolvedCompteurPersonnalise(profile, setup) : 0;
+  r.ajoutCiblePvMax = monsterWide.bonusFixeCiblePvMax ? (monsterWide.bonusFixeCiblePvMax.pct / 100) * Math.max(0, setup.enemyHp) : 0;
+  r.prefixeSacrifice = monsterWide.bonusSacrifice
+    ? (monsterWide.bonusSacrifice.pctSurPerte / 100) *
+      (monsterWide.bonusSacrifice.pctPerte / 100) *
+      (resolvedPvActuelsAvantSacrificePctMonstre(monsterWide.bonusSacrifice.skillCom2usId, setup) / 100)
+    : 0;
+  r.formuleLitPvCible = profile.variables.includes('Target Current HP %');
+  r.ignoreDefParCoup = !!profile.ignoreDefSelonPvCiblePerdus && !profile.ignoreDef && !profile.fixed;
+  return r;
+}
+
+// Des termes à remplir, de forme fixe (mêmes champs, même ordre).
+function termesVides(): TermesDuReglage {
   return {
-    cdPointsInvocateur: summonerSkillBonus(setup.summonerSkills, element).cdPoints,
-    cdEuldong: setup.euldongActif ? EULDONG_CD_POINTS : 0,
-    pctLeaderCd: leader?.stat === 'Critical DMG' ? leader.pct : 0,
-    pctLeaderCr: leader?.stat === 'Critical Rate' ? leader.pct : 0,
-    crCombat: resolvedCombatStatBonuses(monsterWide.combatStats ?? [], setup).crPoints,
-    pvMax: Math.max(0, setup.enemyHp),
-    vitEnnemie: Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!),
-    pvPropresPct,
-    fractionPvPropres: pvPropresPct / 100,
-    alliesVivants: Math.min(100, Math.max(0, setup.livingAlliesPct ?? 100)) / 100,
-    ennemisVivants: Math.min(4, Math.max(1, Math.floor(setup.aliveEnemies ?? 1))),
-    reserveSacrifice: Math.min(100, Math.max(0, setup.sacrificeReservePct ?? 0)) / 100,
-    compteEffetsDirect,
-    compteEffetsMonstre,
-    stackPropre,
-    critTermBase: 1 + profile.skillupDamagePct / 100,
-    facteurDefBreak,
-    mitigationSansIgnore: profile.fixed ? 1 : defenseFactor(defEff),
-    reductionsUniverselles,
-    reductions:
-      reductionsUniverselles +
-      (horsPorteeMirinae
-        ? 0
-        : (setup.mirinaeActif ? MIRINAE_BONUS_PCT / 100 : 0) +
-          (setup.transmissionActif ? TRANSMISSION_BONUS_PCT / 100 : 0)),
-    facteurEffetCible: 1 + (pctEffetsCible + pctEffetsPropres) / 100,
-    facteurEffetCibleMonstre: monsterWide.bonusParEffetCible
-      ? 1 + bonusPctParEffet(monsterWide.bonusParEffetCible, compteEffetsMonstre) / 100
-      : 1,
-    facteurEffetPropre: monsterWide.bonusParEffetPropre
-      ? 1 + pctBonusParEffetPropreMonstre(monsterWide.bonusParEffetPropre, setup) / 100
-      : 1,
-    facteurConditionnelPropre: profile.bonusConditionnelPropre && bonusConditionnelPropreActif(profile, setup)
-      ? 1 + profile.bonusConditionnelPropre.pct / 100
-      : 1,
-    facteurStackPropre: profile.bonusStackPropre
-      ? 1 + Math.min(profile.bonusStackPropre.pctMax, stackPropre * profile.bonusStackPropre.ratio) / 100
-      : 1,
-    coups: resolvedHits(profile, setup),
-    prefixeCompteur: bonusCompteur ? bonusCompteur.coeffParPoint * resolvedCompteurPersonnalise(profile, setup) : 0,
-    ajoutCiblePvMax: monsterWide.bonusFixeCiblePvMax ? (monsterWide.bonusFixeCiblePvMax.pct / 100) * Math.max(0, setup.enemyHp) : 0,
-    prefixeSacrifice: monsterWide.bonusSacrifice
-      ? (monsterWide.bonusSacrifice.pctSurPerte / 100) *
-        (monsterWide.bonusSacrifice.pctPerte / 100) *
-        (resolvedPvActuelsAvantSacrificePctMonstre(monsterWide.bonusSacrifice.skillCom2usId, setup) / 100)
-      : 0,
-    formuleLitPvCible: profile.variables.includes('Target Current HP %'),
-    ignoreDefParCoup: !!profile.ignoreDefSelonPvCiblePerdus && !profile.ignoreDef && !profile.fixed,
+    cdPointsInvocateur: 0, cdEuldong: 0, pctLeaderCd: 0, pctLeaderCr: 0, crCombat: 0, pvMax: 0, vitEnnemie: 0,
+    pvPropresPct: 0, fractionPvPropres: 0, alliesVivants: 0, ennemisVivants: 0, reserveSacrifice: 0,
+    compteEffetsDirect: 0, compteEffetsMonstre: 0, stackPropre: 0, critTermBase: 0, facteurDefBreak: 0,
+    mitigationSansIgnore: 0, reductionsUniverselles: 0, reductions: 0, facteurEffetCible: 0,
+    facteurEffetCibleMonstre: 0, facteurEffetPropre: 0, facteurConditionnelPropre: 0, facteurStackPropre: 0,
+    coups: 0, prefixeCompteur: 0, ajoutCiblePvMax: 0, prefixeSacrifice: 0, formuleLitPvCible: false,
+    ignoreDefParCoup: false,
   };
 }
+
+// ⚠️ Le brouillon des termes d'un calcul de sort SANS préparation
+// (`computeSkillDamageDetail` sans memo) : réécrit en entier à chaque calcul
+// simple, lu par lui seul avant qu'il rende la main — il n'appelle aucun autre
+// calcul de sort après l'avoir rempli. Jamais une mémoire : aucune valeur n'y
+// survit d'un appel à l'autre.
+const TERMES_SANS_MEMOIRE: TermesDuReglage = termesVides();
 
 /**
  * Les stats **au DÉBUT DU COMBAT** — base + runes + artéfacts + principale de
@@ -7036,9 +7075,11 @@ export function computeSkillDamageDetail(
   // ADDITIF dans le bracket `DMG%` (voir son usage plus bas, et
   // `relicExclusive.ts` pour le calcul du gain). `0` = inchangé.
   reliqueDmgPct = 0,
-  // Voir `MemoCombat` (transmis par `computeTotalDamage`) : chronologie et
-  // stats au début du combat calculées une fois. Absent = tout recalculé.
-  memo?: MemoCombat
+  // Voir `MemoCombat` (transmis par `computeTotalDamage`) : stats de combat
+  // calculées une fois par tableau de stats, et sa préparation du réglage ;
+  // ou la seule préparation (`PreparationReglage`, notes des candidats).
+  // Absent = tout recalculé.
+  memo?: MemoCombat | PreparationReglage
 ): {
   total: number;
   // Part du total qui vient du bucket ADDITIONNEL (dégâts bruts par coup :
@@ -7054,6 +7095,8 @@ export function computeSkillDamageDetail(
   fixeProtege: number;
   pvRestantsPct: number;
 } {
+  const reglage = memo instanceof PreparationReglage ? memo : memo?.reglage;
+  const memoStats = memo instanceof MemoCombat ? memo : undefined;
   // Coup en plus DÉDUIT de l'ATQ du build (Brutal Fists) : le nombre de
   // coups se règle ICI, une fois les stats de combat connues, puis le sort suit le
   // chemin ordinaire avec `hits` résolu et sans plage. Même `statsDeCombat` (mêmes
@@ -7061,7 +7104,7 @@ export function computeSkillDamageDetail(
   // eux, ne lisent que le réglage (`resolvedHits`).
   if (profile.hitsRange && profile.conditionsCombat?.some(coupsEnPlusDeduitDuBuild)) {
     const combatPourCoups: StatsCombatPourCoups = {
-      ...statsDeCombat(stats, setup, propres, element, artefacts, monsterWide, memo),
+      ...statsDeCombat(stats, setup, propres, element, artefacts, monsterWide, memoStats),
       // ATQ de base du monstre : la tranche de Stormfist se compte sur elle.
       atkBase: stats.find((s) => s.key === 'atk')?.base ?? 0,
     };
@@ -7090,7 +7133,7 @@ export function computeSkillDamageDetail(
   // La découpe ne lit que le profil et le réglage (`decoupeDuSort`) : préparée
   // une fois avec le memo (`PreparationReglage.decoupe`), ses groupes et ses
   // tronçons sont alors les mêmes objets d'un appel à l'autre.
-  const decoupe = memo ? memo.reglage.decoupe(profile, setup, monsterWide) : decoupeDuSort(profile, setup, monsterWide);
+  const decoupe = reglage ? reglage.decoupe(profile, setup, monsterWide) : decoupeDuSort(profile, setup, monsterWide);
   if (decoupe?.groupes) {
     let totalSequence = 0;
     let additionnelSequence = 0;
@@ -7136,7 +7179,13 @@ export function computeSkillDamageDetail(
   // Ce que le calcul lit du seul réglage (`termesDuReglage`) : préparé une
   // fois avec le memo (`PreparationReglage.termes`), chaque terme prend sa
   // place dans les expressions ci-dessous, aucune n'est réassociée.
-  const t = memo ? memo.reglage.termes(profile, setup, element, monsterWide) : termesDuReglage(profile, setup, element, monsterWide);
+  // Sans préparation, les termes s'écrivent dans un brouillon réutilisé
+  // (`TERMES_SANS_MEMOIRE`) : aucun objet de plus par appel qu'avant leur
+  // préparation. Sûr parce que ce calcul simple n'appelle plus aucun calcul de
+  // sort une fois `t` lu, et qu'il le lit en entier avant de rendre la main.
+  const t = reglage
+    ? reglage.termes(profile, setup, element, monsterWide)
+    : termesDuReglage(profile, setup, element, monsterWide, TERMES_SANS_MEMOIRE);
   // Compétences d'invocateur et lead sur PV/ATQ/DEF/VIT : un pourcentage de la
   // BASE, dans un `ceil` unique, posé par `statsDeCombat` (source unique, plus
   // bas) ; ici ne comptent que leurs points de Dgts CRIT (`t.cdPointsInvocateur`).
@@ -7144,7 +7193,7 @@ export function computeSkillDamageDetail(
   const pvMax = t.pvMax;
   const pctDepart = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
 
-  const combat = statsDeCombat(stats, setup, propres, element, artefacts, monsterWide, memo);
+  const combat = statsDeCombat(stats, setup, propres, element, artefacts, monsterWide, memoStats);
   const maVit = combat.spd;
   // ⚠️ Bornée à 1 : une VIT adverse ≤ 0 ferait diverger le ratio (division
   // par zéro ou par un nombre négatif), un réglage vidé ne doit jamais casser
@@ -7864,15 +7913,19 @@ export function computeTotalDamage(
   // Ce qui ne dépend pas de la paire d'artéfacts, calculé une fois pour toutes
   // les paires d'un build et d'une relique (`MemoCombat`, créé par
   // `evaluerPourRegime`), et ce qui ne dépend que du réglage, une fois pour
-  // toute une file (sa `PreparationReglage`). Absent = tout recalculé ; même
+  // toute une file (sa `PreparationReglage`) ; ou la seule préparation, pour
+  // des notes de candidats qui ne partagent aucun tableau de stats (le
+  // classement, `optionsDeClassement`). Absent = tout recalculé ; même
   // résultat, au bit près.
-  memo?: MemoCombat
+  memo?: MemoCombat | PreparationReglage
 ): number {
   memo?.connaitre(setup, profile);
+  const reglage = memo instanceof PreparationReglage ? memo : memo?.reglage;
+  const memoStats = memo instanceof MemoCombat ? memo : undefined;
   // Ce que le total lit du seul réglage (`preparerSort`) : préparé une fois
-  // avec le memo, recalculé à chaque appel sans lui.
-  const prepare = memo
-    ? memo.reglage.sort(profile, passifs, setup, monsterWide, bonusDegatsStack, bonusDegatsConditionnel)
+  // avec la préparation, recalculé à chaque appel sans elle.
+  const prepare = reglage
+    ? reglage.sort(profile, passifs, setup, monsterWide, bonusDegatsStack, bonusDegatsConditionnel)
     : preparerSort(profile, passifs, setup, monsterWide, bonusDegatsStack, bonusDegatsConditionnel);
   const maVit = maVitCombat(stats, setup, element, artefacts.ampliVitPct);
   const ecartVit = maVit - prepare.vitEnnemie;
@@ -8033,14 +8086,14 @@ export function computeTotalDamage(
   // Gideon (« Aegis Shell ») — linéaire, plafonné, même forme que
   // `bonusDegatsSelonVit`/`bonusDegatsSelonCr`, source = TA PROPRE DEF.
   if (bonusDegatsSelonDef) {
-    const def = defCombat(stats, setup, propres, element, memo);
+    const def = defCombat(stats, setup, propres, element, memoStats);
     const pct = Math.min(bonusDegatsSelonDef.defMax, Math.max(0, def)) * (bonusDegatsSelonDef.pctMax / bonusDegatsSelonDef.defMax);
     total *= 1 + pct / 100;
   }
   // Brita/Eivor (Eau) — SEUIL absolu (pas linéaire) : +pct % dès que l'ATQ
   // totale (avec lead, compétence d'invocateur) atteint `seuil`, rien
   // avant. Entièrement déduit.
-  if (bonusSiAtqSeuil && atkCombatComplet(stats, setup, propres, element, memo) >= bonusSiAtqSeuil.seuil) {
+  if (bonusSiAtqSeuil && atkCombatComplet(stats, setup, propres, element, memoStats) >= bonusSiAtqSeuil.seuil) {
     total *= 1 + bonusSiAtqSeuil.pct / 100;
   }
   // Même famille que `bonusDegatsSelonVit` (multiplicatif sur le TOTAL,

@@ -83,7 +83,7 @@ function contexte(com2usId: number, setup: DamageSetup): RealDamageContext | nul
   return buildRealDamageContext({ objective: 'degats_reels', damageSetup: setup } as unknown as OptimizerRecipe, com2usId, []);
 }
 
-function total(ctx: RealDamageContext, stats: ReturnType<ReturnType<typeof statsParPaire>>, arts: ArtifactDetail[], memo?: MemoCombat): number {
+function total(ctx: RealDamageContext, stats: ReturnType<ReturnType<typeof statsParPaire>>, arts: ArtifactDetail[], memo?: MemoCombat | PreparationReglage): number {
   return computeTotalDamage(
     ctx.profile, ctx.passifs, stats, ctx.setup, PROPRES, ctx.element, artifactDamageProfile(arts), ctx.critSiPlusRapide,
     ctx.bonusDegatsSelonVit, ctx.bonusDegatsStack, ctx.monsterWide, ctx.bonusDegatsConditionnel, ctx.bonusDegatsSelonCr,
@@ -111,6 +111,10 @@ export default function testMemoCombat() {
   // Une préparation pour tout le corpus : une « file » qui verrait passer
   // tous ces réglages, bornes comprises.
   const preparationCorpus = new PreparationReglage();
+  // La seule préparation, sans memo de stats : les notes du classement
+  // (`optionsDeClassement`), un candidat par note.
+  const preparationNotes = new PreparationReglage();
+  const ecartsNotes: string[] = [];
   const ecartsPartage: string[] = [];
   const vus = new Set<number>();
   for (const m of loadMonstersList()) {
@@ -144,6 +148,10 @@ export default function testMemoCombat() {
           const avec = total(ctx, stats, arts, memo);
           const sans = total(ctx, stats, arts);
           const partage = total(ctx, stats, arts, memoPartage);
+          const note = total(ctx, stats, arts, preparationNotes);
+          if (!Object.is(note, sans) && ecartsNotes.length < 5) {
+            ecartsNotes.push(`${id} sort ${sort.skillCom2usId} (${setup === defaut ? 'défaut' : 'riche'}) [${arts.map((a) => a.id).join(',')}] : ${note} ≠ ${sans}`);
+          }
           appels++;
           if (!Object.is(avec, sans) && ecarts.length < 5) {
             ecarts.push(`${id} sort ${sort.skillCom2usId} (${setup === defaut ? 'défaut' : 'riche'}) [${arts.map((a) => a.id).join(',')}] : ${avec} ≠ ${sans}`);
@@ -164,6 +172,8 @@ export default function testMemoCombat() {
   ok(avecStatsRetenues > 100 && avecCombatsRetenus > 100, `… ${avecStatsRetenues} où il a retenu des stats au début du combat, ${avecCombatsRetenus} des stats de combat`);
   ok(critiqueForce > 0 && passifsAllumes > 0, `… ${critiqueForce} contextes à critique forcé, ${passifsAllumes} à passifs allumés`);
   egal(ecartsPartage, [], `… et avec UNE préparation du réglage partagée par les ${sorts} contextes (une file), au bit près`);
+  egal(ecartsNotes, [], `… et avec la seule préparation passée à computeTotalDamage, sans memo de stats (les notes du classement), au bit près`);
+  ok(preparationNotes.compte.calculs.termesLus > 0, `… qui relit ses termes (${preparationNotes.compte.calculs.termesLus} lus)`);
   const cc = preparationCorpus.compte.calculs;
   ok(cc.termesLus > 0 && cc.decoupesLues > 0 && cc.sortsLus > 0,
     `… qui relit ce qu’elle a préparé (termes ${cc.termesLus} lus pour ${cc.termes} calculés, découpes ${cc.decoupesLues}/${cc.decoupes}, sorts ${cc.sortsLus}/${cc.sorts})`);

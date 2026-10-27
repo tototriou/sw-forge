@@ -422,7 +422,11 @@ dans sa **préparation du réglage** (`PreparationReglage`), que la file
 partage entre tous ses builds et reliques (`CachesResolution.reglage`,
 passée par `entreeResolutionDuBuild` à `evaluerPourRegime`) : elle se
 calcule donc une fois par recherche, et non plus une fois par build et par
-relique. Elle retient :
+relique. Le classement en a une aussi : les options de
+`optionsDeClassement` portent leur `reglage`, une par contexte de résultat
+(`optionsDuContexte`), que `scorerPour` passe à `objectiveScore` puis à
+`computeTotalDamage` sans memo de stats (une note par candidat) ; les notes
+de base, du tri et des cartes la partagent. Elle retient :
 
 - la chronologie des poses entre les coups (le sort et le réglage seuls) ;
 - la préparation du sort de `computeTotalDamage` : contexte d'attaque
@@ -465,8 +469,13 @@ se calcule sans mémoire. Un élément `undefined` vaut `null`, comme dans
 Au vidage des chronologies, tous les réglages, sorts et profils connus sont
 oubliés, ceux de l'appel courant compris ; la chronologie courante est
 ensuite retenue et ses réglages dérivés réinscrits. Durées de vie : le memo,
-celle de l'évaluateur ; la préparation, celle de la file — sans elle (API
-directe, fiche de l'écran), l'évaluateur crée la sienne.
+celle de l'évaluateur ; la préparation, celle de la file ou du contexte de
+résultat — sans elle (API directe, fiche de l'écran), l'évaluateur crée la
+sienne. Sans aucune préparation (`computeTotalDamage` sans memo), le sort
+préparé et les termes s'écrivent dans deux brouillons du module
+(`SORT_SANS_MEMOIRE`, `TERMES_SANS_MEMOIRE`), réécrits en entier à chaque
+appel et lus par lui seul : aucun objet de plus par note qu'avant la
+préparation, hors la découpe d'un sort en tronçons ou en groupes.
 
 ## Mesurer un changement des bornes
 

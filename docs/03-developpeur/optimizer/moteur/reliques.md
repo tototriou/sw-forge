@@ -153,7 +153,8 @@ recherche : [pipeline.md § Pipeline de la recherche de runes](pipeline.md).
   passe. `Collecteur.valider` recopie ce bloc de `pairBuckets`,
   `ValidationTypee.ecarts(a, f)` en est le miroir typé (la principale
   ajoutée à la somme entière des pourcentages avant le `ceil`, valeur
-  entière exigée par son contrat).
+  entière exigée par son contrat). Pourquoi :
+  [ADR](../../../04-decisions/adr/relique-en-ou-a-la-validation.md).
 - **Les représentatives** (`reliquesRepresentatives`,
   `src/lib/relicOptim.ts`, préparées une fois dans `deriveMinMaxContext`,
   `PreparedSearch.reliquesRepresentatives`) suffisent parce qu'une relique

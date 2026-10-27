@@ -342,7 +342,9 @@ Une paire visitée passe ensuite :
    réellement atteignable (`artPossibles`, ou la paire figée à défaut) et,
    en mode `recherche`, UNE relique représentative lui font tenir toutes
    les conditions à la fois
-   ([reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md)).
+   ([reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md) ;
+   pourquoi la relique en « OU » :
+   [ADR](../../../04-decisions/adr/relique-en-ou-a-la-validation.md)).
    Une tentative qui échoue alimente le quasi-succès
    (`nearMissByCondition`, `globalNearMiss`).
 
@@ -479,6 +481,8 @@ d'appariement ; au scellé (`sceller`), toutes les voies résolvent. Les identif
 pas à zéro au remplacement d'une recherche : une ancienne réponse ne peut
 pas devenir une nouvelle demande. Le détail du protocole et du repli est dans
 [parallelisation.md § Worker de résolution](parallelisation.md#worker-de-résolution).
+Pourquoi un pool, une seule voie pendant l'appariement et des pannes
+silencieuses à l'écran : [ADR](../../../04-decisions/adr/pool-de-resolveurs.md).
 
 ## File de résolution
 
@@ -489,7 +493,9 @@ Le propriétaire des candidats, du cache et du classement est le Worker dédié
 `classementDistant.ts` porte le protocole, sans React ni API de plateforme.
 Le contrôleur appartient à la recherche remontée dans l'état applicatif :
 démonter l'écran ne détruit ni le magasin ni la file. Une nouvelle recherche
-invalide immédiatement la génération précédente.
+invalide immédiatement la génération précédente. Pourquoi un Worker dédié, un
+contexte figé et des filtres séparés de la recherche :
+[ADR](../../../04-decisions/adr/classement-dans-un-worker-dedie.md).
 
 `contexteResultat.ts` photographie les données au lancement, par un producteur
 pur partagé avec Node : paramètres de recherche, fiche, inventaires de

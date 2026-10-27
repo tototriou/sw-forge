@@ -487,7 +487,8 @@ le canal coopératif du bouton « Arrêter ».
 ## Worker de résolution
 
 Trois propriétaires de tâches restent distincts : recherche, classement,
-résolution. La page crée le Worker de classement auprès de la recherche
+résolution. Pourquoi la résolution tourne sur un pool de résolveurs :
+[ADR](../../../04-decisions/adr/pool-de-resolveurs.md). La page crée le Worker de classement auprès de la recherche
 remontée dans App, puis deux canaux transférés une fois : recherche →
 classeur pour chaque lancement ; classeur ↔ résolveur pour la vie du
 classeur. La page ne relaie ni les blocs collectés ni les réponses

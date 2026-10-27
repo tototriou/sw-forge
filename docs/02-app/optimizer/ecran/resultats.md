@@ -345,7 +345,8 @@ pagination). Ne pas réoptimiser l'équipement pour le tri affiché (c'était
 l'interrupteur « Adapter les artéfacts et reliques au tri », retiré) : un
 changement de vue deviendrait une nouvelle vérification. Une mémoire de
 membre ou une session qui porte encore ce réglage est relue sans lui, sans
-avertissement.
+avertissement. Pourquoi le tri et les filtres d'affichage ne résolvent rien :
+[ADR](../../../04-decisions/adr/classement-dans-un-worker-dedie.md).
 
 ## Filtres d'affichage par colonne
 

@@ -14,6 +14,7 @@ toujours ce qui est en vigueur : une décision qui change se réécrit.
 | [retention-a-parts-egales.md](retention-a-parts-egales.md) | Pendant la construction des moitiés de build, chaque tranche de rétention par stat a le même nombre de places : le moteur ne priorise pas les stats « difficiles », ce qui faisait trouver moins de builds valides. |
 | [prereglages-emboites.md](prereglages-emboites.md) | Les préréglages de pré-filtrage de l'Optimizer sont emboîtés (Bas ⊆ Moyen ⊆ Haut ⊆ Extrême) : chaque moitié de build garde aussi ce que retiennent les préréglages plus étroits, construits en parallèle, sans agrandir la rétention. |
 | [appariement-par-seuils-exacts.md](appariement-par-seuils-exacts.md) | L'appariement des deux moitiés de build saute par seuils exacts les paires vouées au rejet et valide les autres sur tableaux typés ; à partir de 100 M de paires, en parallèle sur un nombre de Workers qui suit la machine, en rendant l'ordre séquentiel. |
+| [classement-dans-un-worker-dedie.md](classement-dans-un-worker-dedie.md) | Les résultats d'une recherche appartiennent à un Worker de classement dédié, sur un contexte figé au lancement, qui ne publie à la page que ce qu'elle affiche ; filtres d'affichage et tri par colonne séparés de la recherche, ne résolvant rien ; l'équipement suit l'objectif de la recherche, pas le tri. |
 
 ## Écrire un ADR
 

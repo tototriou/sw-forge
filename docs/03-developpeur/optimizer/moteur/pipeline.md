@@ -489,7 +489,9 @@ Le propriétaire des candidats, du cache et du classement est le Worker dédié
 `classementDistant.ts` porte le protocole, sans React ni API de plateforme.
 Le contrôleur appartient à la recherche remontée dans l'état applicatif :
 démonter l'écran ne détruit ni le magasin ni la file. Une nouvelle recherche
-invalide immédiatement la génération précédente.
+invalide immédiatement la génération précédente. Pourquoi un Worker dédié, un
+contexte figé et des filtres séparés de la recherche :
+[ADR](../../../04-decisions/adr/classement-dans-un-worker-dedie.md).
 
 `contexteResultat.ts` photographie les données au lancement, par un producteur
 pur partagé avec Node : paramètres de recherche, fiche, inventaires de

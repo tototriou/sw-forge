@@ -391,7 +391,8 @@ Une seule primitive, `chercherPaires`, sert deux entrées.
   avec, `'libre'` et les principales deviennent des filtres de candidats.
 - Le Worker de classement possède la file et son cache compact. L'écran lui
   envoie sa vue (tri et son sens, mesure, page) et n'en reçoit que l'instantané de la
-  page affichée ; aucune résolution n'y tourne.
+  page affichée ; aucune résolution n'y tourne. Pourquoi :
+  [ADR](../../../04-decisions/adr/classement-dans-un-worker-dedie.md).
 
 ### Classement incrémental
 

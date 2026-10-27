@@ -61,14 +61,33 @@ export async function testSelectionFichiersInventaire(): Promise<void> {
   ok(inv.dureeMs < 15000, `inventaire recalculé en ${inv.dureeMs} ms`);
 }
 
-// Le graphe d'un banc (racine secondaire construite par esbuild) contient tout
-// ce que le chargeur maison charge vraiment : relevé à l'exécution, dans un
-// processus à part où le navigateur et Tailwind sont remplacés.
+// Le graphe d'un banc (racine secondaire construite par esbuild), avec les
+// Workers que ses modules démarrent, contient tout ce que le chargeur maison
+// charge vraiment : relevé à l'exécution, dans un processus à part où le
+// navigateur et Tailwind sont remplacés.
 export async function testSelectionFichiersChargeur(): Promise<void> {
-  titre('Sélection par fichiers modifiés — graphe des bancs contre le chargeur maison');
+  titre('Sélection par fichiers modifiés — graphe des bancs et de leurs Workers contre le chargeur maison');
   const inv = await reel();
+  // Un Worker démarré par un module du banc (`new Worker(new URL(…))`) est une
+  // racine à part, que la sélection joint à l'ensemble de chaque test qui
+  // charge ce banc ; le chargeur maison le charge aussi. Le graphe comparé est
+  // donc celui du banc, plus les Workers que ses modules démarrent, de proche
+  // en proche — comme la sélection les trouve.
+  const workers = [...inv.fichiersTest.values()].flatMap((i) => i.racines.filter((r) => r.type === 'worker'));
+  const avecSesWorkers = (banc: string[]) => {
+    const g = new Set(banc);
+    for (let change = true; change;) {
+      change = false;
+      for (const w of workers) {
+        if (!g.has(w.via.replace(/:\d+$/, '')) || w.fichiers.every((f) => g.has(f))) continue;
+        for (const f of w.fichiers) g.add(f);
+        change = true;
+      }
+    }
+    return g;
+  };
   const bancs = new Map<string, Set<string>>();
-  for (const i of inv.fichiersTest.values()) for (const r of i.racines) if (r.type === 'chargeur-maison') bancs.set(r.racine, new Set(r.fichiers));
+  for (const i of inv.fichiersTest.values()) for (const r of i.racines) if (r.type === 'chargeur-maison') bancs.set(r.racine, avecSesWorkers(r.fichiers));
   ok(bancs.size >= 7, `${bancs.size} bancs du chargeur maison`);
   const dossier = mkdtempSync(join(racineDepot, 'node_modules', 'swblacksmith-tests-selection-'));
   try {

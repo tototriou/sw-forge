@@ -6595,23 +6595,10 @@ export function computeSkillDamageDetail(
     return { total: totalScenario, additionnel: additionnelScenario, fixeProtege: fixeProtegeScenario, pvRestantsPct: pvScenario };
   }
 
+  // Compétences d'invocateur et lead sur PV/ATQ/DEF/VIT : un pourcentage de la
+  // BASE, dans un `ceil` unique, posé par `statsDeCombat` (source unique, plus
+  // bas) ; ici ne comptent que leurs points de Dgts CRIT.
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
-  // Compétences d'invocateur : un POURCENTAGE de la stat de BASE, ajouté au
-  // total — même modèle que le totem de vitesse déjà en place (voir
-  // `pctSpeedBonus`, speed.ts, et docs/02-app/mecaniques/ : le totem entre dans le
-  // `Σ%vit` appliqué à la base, pas au total runé).
-  // ⚠️ Ajouté APRÈS coup plutôt que fondu dans le `Σ%` de `computeStats` (qui
-  // a déjà rendu ses totaux) : l'écart tient au double arrondi supérieur, au
-  // plus 1 point sur la stat, sans effet sur un classement de builds.
-  // `extraBasePct` : un AUTRE pourcentage de la BASE à sommer AVANT le seul
-  // `ceil` (leader skill — voir plus bas) — jamais un second `ceil` séparé,
-  // qui reproduirait l'écart d'un point déjà documenté et corrigé une fois
-  // dans `pctSpeedBonus` (speed.ts, « ne jamais arrondir bonus par bonus »).
-  const avecInvocateur = (key: 'atk' | 'def' | 'hp' | 'spd', extraBasePct = 0) => {
-    const row = stats.find((s) => s.key === key);
-    if (!row) return 0;
-    return row.total + Math.ceil((row.base * (bonus.pct[key] + extraBasePct)) / 100);
-  };
 
   const pvMax = Math.max(0, setup.enemyHp);
   const pctDepart = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
@@ -6623,25 +6610,10 @@ export function computeSkillDamageDetail(
   // le calcul plutôt que produire `Infinity`/`NaN`.
   const vitEnnemie = Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
 
-  // Miriam (« Blacksmith's Technique ») amplifie la MAGNITUDE des trois
-  // buffs déjà actifs — jamais leur simple présence (conditionné à
-  // `setup.atkBuff`/`defBuff` ci-dessous ; `maVitCombat` fait de même en
-  // interne pour la VIT).
-  const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
   // ⚠️ Leader skill d'ÉQUIPE choisi par l'utilisateur (voir `LeaderSkillStat`
-  // plus haut) — PV/ATQ/DEF portent sur la stat de BASE, exactement comme
-  // VIT (`maVitCombat`) : sommé à la compétence d'invocateur (même nature)
-  // AVANT le `ceil` unique d'`avecInvocateur`, PUIS le buff de combat
-  // (`atkBuff`/`defBuff`, %TOTAL cette fois — base+rune+lead déjà posés)
-  // s'applique par-dessus. Les deux mécaniques ne se somment PAS entre
-  // elles : le lead est acquis même buff éteint, contrairement au surplus
-  // du buff — jamais une seule formule additive comme avant correction.
+  // plus haut) : un lead PV/ATQ/DEF/VIT porte sur la BASE, dans `statsDeCombat` ;
+  // un lead Dgts CRIT, des points (plus bas).
   const leader = resolvedLeaderSkill(setup);
-  const pctLeaderAtkBase = leader?.stat === 'Attack Power' ? leader.pct : 0;
-  const pctLeaderDefBase = leader?.stat === 'Defense' ? leader.pct : 0;
-  const pctLeaderHpBase = leader?.stat === 'HP' ? leader.pct : 0;
-  const atkAvecLead = avecInvocateur('atk', pctLeaderAtkBase);
-  const defAvecLead = avecInvocateur('def', pctLeaderDefBase);
   // ⚠️ Artéfact et Miriam s'ADDITIONNENT avant de multiplier la potence de
   // base — exactement comme pour la VIT (`maVitCombat`, seul précédent).
   // Les deux « augmentent l'effet d'augmentation » : les traiter

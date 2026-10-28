@@ -10,7 +10,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { egal, ok, titre } from './outils';
 import {
   CHARGEURS, comparerIndex, decisionTailwind, formater, inventaire, optionsConstruction, PREREQUIS, RefusSelection, selectionDepuisGit, selectionner,
-  type Inventaire, type Selection,
+  WORKERS_NON_RESOLUS_TOLERES, type Inventaire, type Selection, type WorkerTolere,
 } from './selection';
 
 const racineDepot = resolve('.');
@@ -46,11 +46,13 @@ export async function testSelectionFichiersInventaire(): Promise<void> {
   egal(attendues.filter((r) => !racines.has(r)), [], 'les 14 racines secondaires connues sont retrouvées');
   // Les `new Worker(…)` à cible non résolue du dépôt : deux lanceurs Node qui
   // démarrent un paquet construit par esbuild (son point d'entrée est suivi par
-  // le site `esbuild-build`), avertis ; le fil `eval` des tests, du code, non.
-  egal(inv.avertissements.map((a) => a.replace(/:\d+ /, ' ')), [
-    'scripts/lib/appariementRapideNode.ts new Worker : cible non résolue (*)',
-    'scripts/lib/buildHalvesNode.ts new Worker : cible non résolue (*)',
-  ], 'avertissements : les deux lanceurs de paquet construit, rien d’autre');
+  // le site `esbuild-build`), tolérés par la liste, chacun avec sa raison ; le
+  // fil `eval` des tests porte du code. Aucun avertissement.
+  egal(WORKERS_NON_RESOLUS_TOLERES.map((t) => [t.fichier, t.argument, t.raison.length > 0]), [
+    ['scripts/lib/appariementRapideNode.ts', 'chemin', true],
+    ['scripts/lib/buildHalvesNode.ts', 'chemin', true],
+  ], 'liste tolérée : les deux lanceurs de paquet construit, chacun avec sa raison');
+  egal(inv.avertissements, [], 'avertissements : aucun, les deux lanceurs sont tolérés');
   const erreurs = [...inv.fichiersTest.values()].flatMap((i) => i.racines.filter((r) => r.erreur).map((r) => r.racine));
   egal([...new Set(erreurs)], [], 'chaque racine secondaire se construit');
   const bandes = inv.fichiersTest.get('tests/rendu/optimizer-bandes.test.ts');
@@ -324,7 +326,8 @@ async function depotEssai(corps: (racine: string) => Promise<void>): Promise<voi
     rmSync(racine, { recursive: true, force: true });
   }
 }
-const depuisHead = async (racine: string) => (await selectionDepuisGit({ racine, depuis: 'HEAD' })).selection;
+// Un dépôt d'essai n'a pas les fichiers de la liste tolérée du dépôt : il n'en a aucune.
+const depuisHead = async (racine: string) => (await selectionDepuisGit({ racine, depuis: 'HEAD', workersToleres: [] })).selection;
 
 // Le motif Tailwind ne retient que si la feuille produite peut changer : les
 // contenus « avant » et « après » sont fournis, le dépôt n'est pas modifié.
@@ -524,6 +527,30 @@ export async function testSelectionFichiersGit(): Promise<void> {
     egal(avant.avertissements, ['tests/aide.ts:2 new Worker : cible non résolue (*)'], 'Worker à cible non résolue → un avertissement (le Worker `eval` n’en donne pas)');
     ok(/Avertissements \(1\)[^\n]*\n {2}! tests\/aide\.ts:2 new Worker : cible non résolue/.test(formater(avant, 5)), '… écrit dans la sortie de la sélection');
     egal([avant.complet, avant.retenues.map((x) => x.nom)], [s.complet, s.retenues.map((x) => x.nom)], '… et la sélection ne change pas');
+    // La liste tolérée : le site toléré se tait ; un site nouveau, ou un
+    // second site au même argument, reste averti ; une entrée qui ne
+    // correspond plus à aucun site est dite.
+    const avecListe = async (toleres: WorkerTolere[]) => {
+      ecrire(r, 'docs/a.md', '# a modifié\n');
+      const t = (await selectionDepuisGit({ racine: r, depuis: 'HEAD', workersToleres: toleres })).selection;
+      git(r, 'checkout', '-q', '--', 'docs/a.md');
+      return t.avertissements;
+    };
+    const toleree: WorkerTolere = { fichier: 'tests/aide.ts', argument: 'process.argv[2]', raison: 'essai' };
+    egal(await avecListe([toleree]), [], 'liste tolérée : le site toléré se tait');
+    egal(await avecListe([toleree, { fichier: 'tests/disparu.ts', argument: 'chemin', raison: 'essai' }]),
+      ['liste tolérée : tests/disparu.ts new Worker(chemin) ne correspond plus à aucun site non résolu'], '… une entrée sans site est dite');
+    ecrire(r, 'tests/aide.ts', "import { lib } from '../src/lib';\nexport function aide(): number { new Worker(process.argv[2]); new Worker(String(lib()), { eval: true }); return lib(); }\n"
+      + 'export function autre(): void { new Worker(process.argv[3]); }\n');
+    commit(r, 'worker nouveau');
+    egal(await avecListe([toleree]), ['tests/aide.ts:3 new Worker : cible non résolue (*)'], '… un site nouveau reste averti');
+    ecrire(r, 'tests/aide.ts', "import { lib } from '../src/lib';\nexport function aide(): number { new Worker(process.argv[2]); new Worker(String(lib()), { eval: true }); return lib(); }\n"
+      + 'export function autre(): void { new Worker(process.argv[2]); }\n');
+    commit(r, 'worker au même argument');
+    egal(await avecListe([toleree]), [
+      'liste tolérée : tests/aide.ts new Worker(process.argv[2]) correspond à 2 sites, un seul toléré',
+      'tests/aide.ts:2 new Worker : cible non résolue (*)', 'tests/aide.ts:3 new Worker : cible non résolue (*)',
+    ], '… un second site au même argument reste averti, et l’entrée le dit');
     ecrire(r, 'tests/c.test.ts', "import { execFileSync } from 'node:child_process';\nexport const verificationsC: [string, () => void][] = [['testC1', () => { execFileSync('git', ['ls-files']); }]];\n");
     commit(r, 'lecture du dépôt');
     s = await essai('docs/a.md', '# a modifié\n');

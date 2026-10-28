@@ -269,8 +269,8 @@ format bureau seulement (voir
 Chacun vaut sur une plage `[a, b[` :
 
 - **A1, de 728 à 904 px — une colonne.** Les essentiels ; le bloc
-  « Objectif et Rechercher », suivi de sa barre fine (« Rechercher » et la
-  progression, la seule partie collée au bas de la fenêtre) ; le contrôle à
+  « Objectif et Rechercher », suivi de « Rechercher » (seul collé au bas de
+  la fenêtre, sans son panneau) ; le contrôle à
   onglets ; la colonne repliable ouverte, dans la page, ses sections deux à
   deux ; « Exemplaire » ; les résultats.
 - **A2, de 904 à 952 px.** Les essentiels à gauche ; à leur droite, de
@@ -486,7 +486,7 @@ d'adresse retranchés : ≈ 1 920 × 940 sur un écran de 1 920 × 1 080,
   n'en dépendent pas : en couche supérieure (`Flottant`), une bulle ancrée
   près du bord droit d'une colonne qui défile s'affiche en entier.
 - **A1** : la page défile dans la fenêtre (ou le volet), avec le pied de page ;
-  seule la barre fine du bloc est collée au bas de la partie visible.
+  seul « Rechercher » / « Arrêter » est collé au bas de la partie visible.
 
 ### Bloc « Objectif et Rechercher »
 
@@ -553,16 +553,15 @@ insérées : elle s'adapte au redimensionnement ou au clic d'un onglet,
 jamais au lancement d'une recherche.
 
 En A1, le bloc suit les essentiels, à sa place, dans son panneau : estimation,
-objectifs, « Exporter » · « Importer ». ⚠️ **Seule sa barre fine reste collée
-au bas de la fenêtre** tant que sa place est sous le pli : « Rechercher » (ou
-« Arrêter », à sa place exacte) et, à sa droite, la progression, 69 px
-mesurés : seuls le lancement, l'arrêt et leur progression restent ainsi
-accessibles sans couvrir les réglages. Elle suit le bloc dans la page
-(`data-zone="barre"`), et y reprend
-sa place une fois le bloc atteint. ⚠️ **Sa hauteur ne change jamais** : la
-progression y tient dans la place de la plus haute (copie invisible) ;
-collée par le bas, une barre qui grandirait ferait monter « Rechercher » /
-« Arrêter » sous le pointeur.
+objectifs, « Exporter » · « Importer », puis la progression. ⚠️ **Seul
+« Rechercher » (ou « Arrêter », à sa place exacte) reste collé au bas de la
+fenêtre** tant que sa place est sous le pli : à droite, à 240 px, sans
+panneau ni progression autour (décision de l'utilisateur) ; le lancement et
+l'arrêt restent ainsi accessibles sans couvrir les réglages. Il suit le bloc
+dans la page (`data-zone="barre"`), et y reprend sa place une fois le bloc
+atteint. ⚠️ **Sa hauteur ne change jamais** : la progression reste dans le
+bloc, parce que collé par le bas, un élément qui grandirait ferait monter
+« Rechercher » / « Arrêter » sous le pointeur.
 
 ### Zone des résultats et place en plus
 

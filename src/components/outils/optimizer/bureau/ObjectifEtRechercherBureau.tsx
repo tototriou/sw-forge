@@ -4,8 +4,7 @@ import { Bouton } from '../../../../ui';
 import Segmented from '../../../../ui/Segmented';
 import { OBJECTIVE_LABELS } from '../../../../lib/runeBuildOptim';
 import type { FormeObjectifBureau } from '../../../../lib/optimizerColonnes';
-import ProgressionRecherche, { type ProgressionRechercheProps } from '../ProgressionRecherche';
-import { ResumeCombat, TitreObjectifRecherche, type ObjectifEtActionsProps } from '../ObjectifEtActions';
+import ProgressionRecherche, { type ProgressionRechercheProps } from '../ProgressionRecherche';import { ResumeCombat, TitreObjectifRecherche, type ObjectifEtActionsProps } from '../ObjectifEtActions';
 import { PANNEAU } from './panneau';
 
 export const LARGEUR_OBJECTIF_ETROIT = 340;
@@ -29,21 +28,12 @@ const LARGEUR_RECHERCHER_LARGE = 'w-60';
 const RANGEE_LARGE = 'flex flex-col-reverse gap-2 @[448px]/rangee:flex-row-reverse @[448px]/rangee:items-center @[448px]/rangee:justify-between';
 const RECHERCHER_DANS_LA_RANGEE = 'w-full @[448px]/rangee:w-60 @[448px]/rangee:flex-none';
 
-// La progression la plus haute que la recherche affiche (phase d'appariement,
-// grands nombres ; préparation, erreur et refus tiennent dans sa place) :
-// sa copie invisible fixe la hauteur de la barre fine de A1.
-const PROGRESSION_LA_PLUS_HAUTE: Omit<ProgressionRechercheProps, 'status'> = {
-  progress: { phase: 'pairing', explored: 999_999_999_999, found: 999_999, pct: 1, totalPairs: 999_999_999_999 },
-  refusal: null,
-  compteAffiche: { compte: 999_999 },
-};
-
 // Choisie par la mise en page (`formeObjectifBureau`, src/lib/optimizerColonnes.ts).
 export type FormeObjectif = FormeObjectifBureau;
 
-// Ce que la page rend du bloc : tout (A2, A3), ou, en A1, les réglages à leur
-// place d'un côté, et de l'autre la barre fine collée au bas de la fenêtre
-// (« Rechercher » / « Arrêter » et la progression).
+// Ce que la page rend du bloc : tout (A2, A3), ou, en A1, le bloc à sa place
+// (progression comprise) d'un côté, et de l'autre « Rechercher » / « Arrêter »
+// seul, collé au bas de la fenêtre.
 export type PartieObjectif = 'tout' | 'reglages' | 'barre';
 
 export interface ObjectifEtRechercherBureauProps extends ObjectifEtActionsProps {
@@ -92,7 +82,7 @@ export default function ObjectifEtRechercherBureau({
   }, [enCours]);
   const etroite = forme === 'etroite';
 
-  // Sa largeur : celle du bloc (étroite), 240 px dans la barre fine de A1,
+  // Sa largeur : celle du bloc (étroite), 240 px seul collé en A1,
   // selon sa rangée dans la forme large.
   const largeurRechercher = etroite ? '' : partie === 'barre' ? `flex-none ${LARGEUR_RECHERCHER_LARGE}` : RECHERCHER_DANS_LA_RANGEE;
   const rechercher = (
@@ -140,22 +130,17 @@ export default function ObjectifEtRechercherBureau({
   );
   const progressionCompacte = <ProgressionRecherche status={status} {...progression} compacte />;
 
-  // A1 : la barre fine, collée au bas de la fenêtre par la page.
-  // ⚠️ **Sa hauteur ne change jamais** : collée par le bas, une barre qui
-  // grandit monte, et « Rechercher » / « Arrêter » avec elle, sous le
-  // pointeur (mesuré : `clics-7b`, recherche longue en A1). La progression y
-  // tient donc dans la place de la plus haute (copie invisible) : c'est la
-  // place de « Rechercher » / « Arrêter » qu'elle garde, la seule réservée.
+  // A1 : « Rechercher » / « Arrêter » seul, sans panneau, collé au bas de la
+  // fenêtre par la page, à droite comme dans la forme large (décision de
+  // l'utilisateur : seul le bouton flotte, le bloc reste à sa place).
+  // ⚠️ **Sa hauteur ne change jamais** : collé par le bas, un élément qui
+  // grandit monte, et le bouton avec lui, sous le pointeur (mesuré :
+  // `clics-7b`, recherche longue en A1). La progression reste donc dans le
+  // bloc, sous « Exporter » · « Importer ».
   if (partie === 'barre') {
     return (
-      <div role="group" aria-label="Rechercher" data-forme={forme} className={`${PANNEAU} flex items-center gap-3`}>
+      <div role="group" aria-label="Rechercher" data-forme={forme} className="flex justify-end pb-3">
         {rechercher}
-        <div className="grid min-w-0 flex-1">
-          <div aria-hidden className="invisible col-start-1 row-start-1">
-            <ProgressionRecherche status="running" {...PROGRESSION_LA_PLUS_HAUTE} compacte />
-          </div>
-          <div className="col-start-1 row-start-1 self-center">{progressionCompacte}</div>
-        </div>
       </div>
     );
   }
@@ -236,7 +221,7 @@ export default function ObjectifEtRechercherBureau({
       />
 
       {messageImport}
-      {partie === 'tout' && progressionCompacte}
+      {progressionCompacte}
     </section>
   );
 }

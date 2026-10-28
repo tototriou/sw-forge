@@ -22,9 +22,9 @@ import {
 // racine. Mêmes seuils que `SEUILS_BUREAU` (src/lib/optimizerColonnes.ts),
 // écrits en littéraux parce que Tailwind ne lit que le source :
 // - A1 [728, 904[ : une colonne — essentiels, bloc « Objectif et Rechercher »
-//   (large, à sa place) suivi de sa barre fine (« Rechercher » / « Arrêter » et
-//   la progression), seule collée au bas de la partie visible tant que sa
-//   place est plus bas ; onglets, colonne repliable ouverte (ses sections deux
+//   (large, à sa place, progression comprise) suivi de « Rechercher » /
+//   « Arrêter », seul collé au bas de la partie visible tant que sa place est
+//   plus bas ; onglets, colonne repliable ouverte (ses sections deux
 //   à deux), « Exemplaire », résultats ;
 // - A2 [904, 952[ : essentiels à gauche ; à leur droite, le bloc (étroit), les
 //   onglets puis la colonne repliable ouverte (cartes empilées) ; dessous, sur
@@ -67,7 +67,7 @@ import {
 // En A2, « Exemplaire » et les résultats passent sous les essentiels : aucune
 // colonne n'y va de haut en bas, et la page défile en elle-même, d'un bloc,
 // la fenêtre immobile. En A1, la page défile dans la fenêtre, comme avant ;
-// seule sa barre fine est collée. Aucun défilement ne se reporte d'un panneau à la page ou à un autre
+// seul « Rechercher » / « Arrêter » est collé. Aucun défilement ne se reporte d'un panneau à la page ou à un autre
 // (`overscroll-behavior: contain`).
 //
 // ⚠️ **Le contrôle à onglets ne bouge jamais au clic** : il a sa propre rangée,
@@ -410,7 +410,7 @@ export default function PageBureau(props: PageBureauProps) {
   }, [guideComplements, onColonnes]);
 
   // A1 (largeur inconnue comprise, la forme de départ) : le bloc à sa place,
-  // sa barre fine collée à part. A3 : le bloc est une section du panneau de
+  // « Rechercher » collé à part. A3 : le bloc est une section du panneau de
   // droite, dont il ouvre la boîte.
   const agencement = largeur != null ? agencementBureau(largeur) : 'A1';
   const a1 = agencement === 'A1';
@@ -491,8 +491,8 @@ export default function PageBureau(props: PageBureauProps) {
         </Colonne>
 
         {/* Le bloc, en A1 et A2 (en A3, il ouvre la colonne de droite) ; en
-            A1, sa barre fine (« Rechercher » / « Arrêter » et la progression)
-            le suit, collée au bas de la partie visible tant que sa place est
+            A1, « Rechercher » / « Arrêter » seul, sans panneau, le suit, collé
+            au bas de la partie visible tant que sa place est
             plus bas (« Rechercher » toujours atteignable). */}
         {!a3 && objectif}
         {a1 && (

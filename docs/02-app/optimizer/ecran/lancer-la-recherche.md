@@ -99,10 +99,8 @@ et la progression.
     que le rang `#X` d'un résultat) : « Attendez la fin de la recherche pour
     être sûr de trouver votre build optimal. ». Au bureau, la progression
     est **compacte** : les deux mêmes lignes, sans barre, sous « Rechercher »
-    (en A1, à sa droite, dans la barre fine collée au bas de la fenêtre),
-    sans place réservée dans le bloc ordinaire : elle paraît sous le bouton
-    qu'on vient de cliquer, jamais au-dessus. La barre fine de A1 réserve
-    en revanche la hauteur de sa progression la plus haute pour que
-    « Rechercher » ne monte pas sous le clic. Pendant la
+    (en A1, sous « Exporter » · « Importer », dans le bloc : seul le bouton
+    est collé au bas de la fenêtre), sans place réservée : elle paraît sous
+    le bouton qu'on vient de cliquer, jamais au-dessus. Pendant la
     préparation, une ligne par moitié (« Préparation — moitié A : x / y
     runes »), avec sa barre au téléphone, sans barre au bureau.

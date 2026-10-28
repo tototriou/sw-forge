@@ -155,16 +155,18 @@ export function testRenduOptimizerGabaritsDroite() {
     'le résumé du combat prend la hauteur de son texte, au bureau comme au téléphone');
   ok(!/aria-hidden="true" class="invisible col-start-1 row-start-1"/.test(repos), 'aucune copie invisible qui réserve une place (estimation, progression)');
 
-  // A1 : le bloc en deux parties. Les réglages à leur place, sans
-  // « Rechercher » ; la barre fine, « Rechercher » / « Arrêter » et la
-  // progression, à hauteur fixe (copie invisible de la plus haute) : collée
-  // par le bas, une barre qui grandirait ferait monter « Rechercher ».
-  const reglages = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large', partie: 'reglages' })} />);
-  ok(!bouton(reglages, 'Rechercher') && !!bouton(reglages, 'Exporter') && texteVisible(reglages).includes('Objectif de recherche'),
-    'A1, réglages : objectifs, « Exporter » · « Importer », sans « Rechercher »');
+  // A1 : le bloc en deux parties. Les réglages à leur place, progression
+  // comprise, sans « Rechercher » ; « Rechercher » / « Arrêter » seul, sans
+  // panneau ni progression : collé par le bas, un élément qui grandirait
+  // ferait monter le bouton sous le pointeur.
+  const reglages = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large', partie: 'reglages', status: 'running' })} />);
+  ok(!bouton(reglages, 'Rechercher') && !bouton(reglages, 'Arrêter') && !!bouton(reglages, 'Exporter') && texteVisible(reglages).includes('Objectif de recherche')
+    && texteVisible(reglages).includes('Préparation…'),
+    'A1, réglages : objectifs, « Exporter » · « Importer » et la progression, sans « Rechercher »');
   const barre = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large', partie: 'barre', status: 'running' })} />);
-  ok(!!bouton(barre, 'Arrêter') && !texteVisible(barre).includes('Objectif de recherche') && /aria-hidden="true" class="invisible col-start-1 row-start-1"/.test(barre),
-    'A1, barre fine : « Arrêter » à la place de « Rechercher », sans les objectifs, progression dans la place de la plus haute');
+  ok(!!bouton(barre, 'Arrêter') && !texteVisible(barre).includes('Objectif de recherche') && !texteVisible(barre).includes('Préparation…')
+    && !barre.includes('rounded-xl border border-border bg-panel p-2') && !/aria-hidden="true" class="invisible col-start-1 row-start-1"/.test(barre),
+    'A1, collé : « Arrêter » à la place de « Rechercher », seul — ni panneau, ni objectifs, ni progression');
   // Forme large : « Rechercher » à droite de « Exporter » · « Importer » (hors d'une colonne superposée, à 1230),
   // ou dessous, pleine largeur, sous 448 px de rangée (requête sur la rangée elle-même ; au navigateur :
   // testRenduOptimizerGabaritsLargeurs).
@@ -172,7 +174,7 @@ export function testRenduOptimizerGabaritsDroite() {
   ok(/class="@container\/rangee"><div class="flex flex-col-reverse gap-2 @\[448px\]\/rangee:flex-row-reverse/.test(large)
     && /class="grid w-full @\[448px\]\/rangee:w-60 @\[448px\]\/rangee:flex-none"/.test(large),
     'forme large : « Rechercher », 240 px, à droite de sa rangée, dessous et pleine largeur sous 448 px de rangée');
-  ok(/class="grid flex-none w-60"/.test(barre), 'barre fine de A1 : « Rechercher » (ou « Arrêter ») toujours à 240 px');
+  ok(/class="grid flex-none w-60"/.test(barre) && /class="flex justify-end/.test(barre), 'A1, collé : « Rechercher » (ou « Arrêter ») toujours à 240 px, à droite');
 
   // Pendant une recherche : « Arrêter » à la place de « Rechercher », inactif au premier rendu (300 ms).
   const enCours = rendre(<ObjectifEtRechercherBureau {...props({ status: 'running' })} />);
@@ -219,13 +221,13 @@ export function testRenduOptimizerPageBureauDroite() {
   egal(zones, ['essentiels', 'objectif', 'barre', 'onglets', 'colonnes', 'droite', 'exemplaire', 'resultats'],
     'ordre du DOM : essentiels, bloc « Objectif et Rechercher » (l\'objectif se choisit tôt) et sa barre fine, onglets, colonnes, colonne de droite (Exemplaire, résultats)');
   ok(/data-zone="objectif" data-forme="large"/.test(html) && texteVisible(html).includes('Bloc large reglages panneau') && texteVisible(html).includes('Bloc large barre panneau'),
-    'largeur inconnue (rendu serveur) : comme en A1, le bloc large dans son panneau, ses réglages à leur place et sa barre fine à part');
+    'largeur inconnue (rendu serveur) : comme en A1, le bloc large dans son panneau, ses réglages à leur place et « Rechercher » à part');
   ok(/data-zone="droite" class="contents /.test(html) && /<div class="contents @\[952px\]:grid/.test(html),
     'hors A3, la colonne de droite s\'efface (`display: contents`) : Exemplaire et résultats sont des cases de la grille de la page');
   ok(!/data-page-fenetre/.test(html) && !/style="[^"]*height/.test(html.slice(0, html.indexOf('>'))),
     'largeur inconnue (rendu serveur) : la page n\'est pas à hauteur de fenêtre, comme en A1');
   ok(!/(?<!before:)sticky/.test(html.replace(/data-zone="barre" class="sticky/, '')),
-    'aucune colonne collée : seule la barre fine de A1 l\'est (la bande d\'une colonne, son `::before` collé en A3, n\'en est pas une)');
+    'aucune colonne collée : seul « Rechercher » de A1 l\'est (la bande d\'une colonne, son `::before` collé en A3, n\'en est pas une)');
   // La bande braise : le contour du haut du panneau (3 px, à la place du trait
   // de 1 px, rembourrage du haut réduit d'autant), dessinée par le `::before`
   // du panneau : un anneau de la hauteur du rayon (3 px en haut, 1 px de côté)

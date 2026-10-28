@@ -980,7 +980,8 @@ export function sortCandidates(
      * (`PreparationReglage`, damage.ts), reconnu à l'identité du sort, du
      * réglage et des modificateurs de `realDamage`, qui ne doit donc jamais
      * être modifié en place pendant sa vie. Posée par `optionsDuContexte`
-     * (contexte de résultat gelé) ; absente, recalculé à chaque note — même
+     * (contexte de résultat jamais modifié : gelé dans l'écran, copie reçue
+     * par `postMessage` dans le Worker) ; absente, recalculé à chaque note — même
      * valeur, au bit près.
      */
     reglage?: PreparationReglage;
@@ -1159,8 +1160,9 @@ export function optionsDeClassement(e: {
   etatReliqueDe: (c: BuildCandidate) => EtatRelique;
   contexteExclusive: { setup: DamageSetup; element: ElementKey | null };
   // La préparation du réglage, partagée par les options d'un même contexte
-  // (`optionsDuContexte` : une par contexte de résultat, gelé par
-  // `copierDonnees`, donc jamais modifié pendant sa vie). ⚠️ Seulement pour
+  // (`optionsDuContexte` : une par contexte de résultat, jamais modifié
+  // pendant sa vie — gelé par `copierDonnees` dans l'écran, copie reçue par
+  // `postMessage` que seul le corps du classement tient dans le Worker). ⚠️ Seulement pour
   // un `realDamage` immuable : l'API directe peut modifier sort ou réglage en
   // place sur les mêmes objets, qu'une préparation relirait périmés ; absente,
   // chaque note recalcule tout.

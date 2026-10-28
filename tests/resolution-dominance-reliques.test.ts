@@ -25,6 +25,10 @@
 // Pools à graine fixe : runes tirées au hasard, inventaire d'artéfacts à
 // principales et lignes variées, reliques de principales et d'effets variés
 // dont des équivalentes sur les quatre canaux (Ténacité, Régénération).
+//
+// L'exception à la règle R se vérifie sur le VRAI profil de Ceres (Last Shot,
+// `testExceptionCeres`) : ni dominance des reliques ni dominance du préfiltre
+// des artéfacts, résultat égal à la force brute, témoin à dominance forcée.
 
 import { isDeepStrictEqual } from 'node:util';
 import { ArtifactArchetype, ArtifactDetail, ArtifactKind, BaseStats, ElementKey, RelicDetail, RuneDetail } from '../src/types';
@@ -33,11 +37,15 @@ import { artifactSubKinds } from '../src/lib/effects';
 import { computeStats } from '../src/lib/stats';
 import { BuildRequirement, respecteConditionsAvecRelique } from '../src/lib/runeBuildOptim';
 import { prefereeALEgalite, resoudreContexteRelique } from '../src/lib/relicOptim';
-import { ArtifactSearchParams, candidatsParSorte } from '../src/lib/artifactOptim';
+import { ArtifactSearchParams, candidatsParSorte, chercherPaires } from '../src/lib/artifactOptim';
+import { AUCUN_ARTEFACT_RESERVE, parametresArtefactsFiche } from '../src/lib/artifactFiche';
 import { EntreeResolution, entreeResolutionDuBuild, nouveauxCachesResolution } from '../src/lib/relicQueue';
 import { EXCEPTIONS_REGLE_R, compteursVides, resoudreEquipementDuBuildRapide } from '../src/lib/resolutionRapide';
-import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
+import { DEFAULT_DAMAGE_SETUP, DamageSetup } from '../src/lib/damage';
+import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { mulberry32, randomRune, SETS_VARIES } from '../scripts/lib/randomPool';
+import { loadMonstersList } from '../scripts/lib/monstersData';
+import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import { DEGATS_FICHE } from './artifact-fiche.test';
 import { egal, ok, titre } from './outils';
 
@@ -267,21 +275,7 @@ export default function testResolutionDominanceReliques() {
   egal(parId.relique?.id, 300, 'égalité en « Dégâts réels » : la plus petite `id` gagne, même portée par l’autre');
   egal(c1.reliquesDominees, 1, 'égalité : la relique d’`id` plus grand est écartée sans note');
   ok(isDeepStrictEqual(parId, resoudreEquipementDuBuildRapide({ ...e, dominanceReliques: null })), 'égalité par `id` : même résultat que sans dominance');
-  // Un sort en exception à la règle R (Ceres, Last Shot) : le producteur ne pose
-  // aucune dominance, ni au niveau build ni par paire ; les deux reliques sont
-  // notées, et le résultat est celui de la même entrée sans dominance.
-  const idExceptionR = [...EXCEPTIONS_REGLE_R.keys()][0]!;
-  const eException = entreeResolutionDuBuild({
-    fiche: { base: BASE, runes: [], artifacts: [], relic: grande }, runes,
-    artifactParams: { porteur: PORTEUR, inventaire: inv, equipes: [], principaleParSorte: {}, lignesVerrouillees: [], maxStatsActifs: [] },
-    regime: 'degats_reels', degats: { ...DEGATS, profile: { ...DEGATS.profile, skillCom2usId: idExceptionR } }, exclusive: EXCLUSIVE,
-    requirement: { sets: [], minStats: {}, maxStats: {}, auraResPre: { res: 0, acc: 0, compter: true } }, relicContext: ctxEgalite, caches: null,
-  });
-  egal(eException.dominanceReliques, null, `sort en exception à la règle R (${idExceptionR}) : aucune dominance posée par le producteur`);
-  const cException = compteursVides();
-  const rException = resoudreEquipementDuBuildRapide(eException, cException);
-  egal(cException.reliquesDominees + cException.pairesDominees, 0, 'sort en exception : aucune relique ni paire écartée sans note');
-  ok(isDeepStrictEqual(rException, parId), 'sort en exception : même résultat que le sort témoin, dont la relique d’`id` plus grand est écartée sans note');
+  testExceptionCeres();
   // Départage par la portée (celui des régimes de stat, `departagePortee`) : la
   // dominance suit le même départage que `bestRelicForBuild`.
   const parPortee: EntreeResolution = { ...e, regimeDeStat: true };
@@ -295,4 +289,67 @@ export default function testResolutionDominanceReliques() {
   egal(prefereeALEgalite(grande, petite, { equipee: grande }), false, '`prefereeALEgalite` : la portée ne compte pas hors `departagePortee`');
   egal(prefereeALEgalite(grande, petite, { equipee: grande, departagePortee: true }), true, '`prefereeALEgalite` : la portée d’abord sous `departagePortee`');
   egal(prefereeALEgalite(petite, grande, { equipee: grande, departagePortee: true }), false, '`prefereeALEgalite` : l’autre perd devant la portée');
+}
+
+// ── Exception à la règle R, sur le VRAI profil de Ceres (Last Shot) ──
+// +50 % quand les PV de la cible dépassent deux fois les PV propres : une
+// principale de PV plus grande (relique ou artéfact) peut éteindre ce bonus
+// (cible à 40 000 PV, réglage par défaut : seuil à 20 000 PV propres).
+// Le cas : la graine 87 des générateurs de ce fichier, dix builds ; sur le
+// troisième, la dominance du préfiltre des artéfacts écarte la pièce 5003
+// devant la 5002 (même principale de PV, plus petite) et perd la meilleure
+// note (9 768,72 contre 9 777,13). Référence de contrôle (`algo-verify`) : la
+// force brute sur chaque relique éligible × chaque paire autorisée, notée par
+// le vrai `evaluer` de `faireParams`. Le témoin (la même entrée, dominance du
+// préfiltre forcée) doit s'en écarter : sans lui, le cas ne prouverait pas que
+// l'exception sert.
+function testExceptionCeres() {
+  const CERES = 14912, LAST_SHOT = 5812;
+  ok(EXCEPTIONS_REGLE_R.has(LAST_SHOT), 'Ceres, Last Shot est en exception à la règle R');
+  const espece = loadMonstersList().find((m) => m.com2usId === CERES)!;
+  egal({ element: espece.element, archetype: espece.archetype }, PORTEUR, 'Ceres porte les artéfacts des générateurs (Feu, Attaque)');
+  const setup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: LAST_SHOT, critMode: 'crit' };
+  const reel = buildRealDamageContext({ objective: 'degats_reels', damageSetup: setup } as unknown as OptimizerRecipe, CERES, []);
+  egal(reel?.profile.skillCom2usId, LAST_SHOT, 'le vrai contexte de dégâts de Ceres, Last Shot');
+  if (!reel) return;
+  const { artefacts: _artefacts, ...degats } = reel;
+  const exclusive = { setup, element: espece.element };
+  const libre: BuildRequirement = { sets: [], minStats: {}, maxStats: {}, auraResPre: { res: 0, acc: 0, compter: true } };
+  const rng = mulberry32(87);
+  const inv = inventaire(rng, 6);
+  const pool = reliques(rng, 7);
+  const lot = Array.from({ length: 10 }, (_, i) => runesAuHasard(rng, 100 * i));
+  // Le producteur de l'écran, du CLI et du différentiel.
+  const artifactParams = parametresArtefactsFiche({
+    porteur: PORTEUR, inventaire: inv, reserves: AUCUN_ARTEFACT_RESERVE, equipes: [], optimiserArtefacts: true,
+    principaleParSorte: {}, lignesVerrouillees: [], damageSetup: setup, maxStats: {}, sortDegats: LAST_SHOT,
+  });
+  egal(artifactParams.sansDominance, true, 'le producteur retire la dominance du préfiltre des artéfacts pour Ceres, Last Shot');
+  const ctx = resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 0 }, pool[pool.length - 1], pool);
+  const paires = pairesAutorisees(artifactParams);
+  const ecarts: string[] = [];
+  const temoins: string[] = [];
+  let prefiltreFaux = 0;
+  for (const [i, runes] of lot.entries()) {
+    const e = entreeResolutionDuBuild({
+      fiche: { base: BASE, runes: [], artifacts: [], relic: undefined }, runes, artifactParams, regime: 'degats_reels', degats,
+      exclusive, requirement: libre, relicContext: ctx, caches: null,
+    });
+    if (e.dominanceReliques !== null) ecarts.push(`build ${i} : le producteur pose la dominance des reliques`);
+    const bruteDe = (r: RelicDetail) => Math.max(...paires.map((p) => e.faireParams(r).evaluer(p)));
+    const brute = Math.max(...ctx.eligibles.map(bruteDe));
+    const c = compteursVides();
+    const prod = resoudreEquipementDuBuildRapide(e, c);
+    if (prod.paire?.score !== brute) ecarts.push(`build ${i} : résolution ${prod.paire?.score} (relique ${prod.relique?.id}, paire ${clePaire(prod.artefacts)}), force brute ${brute}`);
+    if (c.reliquesDominees + c.pairesDominees > 0) ecarts.push(`build ${i} : ${c.reliquesDominees} relique(s), ${c.pairesDominees} paire(s) écartées sans note`);
+    // Le préfiltre des artéfacts seul, relique par relique.
+    for (const r of ctx.eligibles) if (chercherPaires(e.faireParams(r)).paires[0]?.score !== bruteDe(r)) prefiltreFaux++;
+    // Témoin : la dominance du préfiltre forcée.
+    const force: EntreeResolution = { ...e, faireParams: (r) => ({ ...e.faireParams(r), sansDominance: false }) };
+    const noteForcee = resoudreEquipementDuBuildRapide(force).paire?.score;
+    if (noteForcee !== brute) temoins.push(`build ${i} : ${noteForcee} contre ${brute}`);
+  }
+  egal(ecarts, [], `Ceres, Last Shot : la résolution égale la force brute (${lot.length} builds, ${pool.length} reliques)`);
+  egal(prefiltreFaux, 0, 'Ceres, Last Shot : le préfiltre des artéfacts garde la meilleure paire de chaque relique');
+  ok(temoins.length > 0, `témoin, dominance du préfiltre forcée : la meilleure note se perd (${temoins.join(' ; ') || 'aucun build'}) — le cas sert l’exception`);
 }

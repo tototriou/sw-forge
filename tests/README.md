@@ -210,6 +210,12 @@ par nom, elle ne le remplace pas ; les deux se combinent.
 - **Repli sur la suite complète**, cause écrite en sortie : un fichier
   modifié sans lien spécifique, une incohérence de l'inventaire, une lecture
   de Git qui échoue. Jamais moins sans le dire.
+- **Avertissements** : un `new Worker(…)` dont la cible ne se résout pas
+  (hors `{ eval: true }`, qui porte du code) ne fait entrer aucun module par
+  ce site ; la sortie le dit (« Avertissements (n) », et leur nombre sous
+  `--silencieux`), sans changer la sélection. Aujourd'hui, les deux lanceurs
+  Node de paquets construits par esbuild, dont le point d'entrée est suivi
+  par son site `entryPoints`.
 - **Fichiers sans effet** (`*.md`, `tests/banc/**`, `.gitignore`) : ne retiennent que les
   vérifications qui lisent le dépôt entier (`depot`) ou un chemin non
   déterminable (`opaque`). Une retenue générale ne certifie jamais la

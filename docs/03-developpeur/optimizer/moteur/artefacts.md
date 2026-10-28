@@ -426,9 +426,11 @@ relique. Le classement en a une aussi : `optionsDuContexte` pose sur les
 options de `optionsDeClassement` (champ `reglage`) celle de son contexte de
 résultat, une par contexte, que `scorerPour` passe à `objectiveScore` puis à
 `computeTotalDamage` sans memo de stats (une note par candidat) ; les notes
-de base, du tri et des cartes la partagent. Le contexte est gelé
-(`copierDonnees`) : la précondition (entrées jamais modifiées) tient par
-construction. `optionsDeClassement` appelé directement n'en pose aucune,
+de base, du tri et des cartes la partagent. La précondition (entrées
+jamais modifiées) tient dans l'écran parce que le contexte y est gelé
+(`copierDonnees`) ; dans le Worker de classement, il arrive par
+`postMessage`, une copie non gelée que seul le corps du classement tient et
+qu'il ne modifie pas. `optionsDeClassement` appelé directement n'en pose aucune,
 parce que l'API directe peut modifier sort ou réglage en place. Elle
 retient :
 
@@ -458,7 +460,9 @@ Reconnues à leur identité, ces entrées rendent la valeur de l'expression
 elle-même, au bit près : aucune somme ni aucun produit n'est réassocié, un
 terme préparé prend sa place dans l'expression, un préfixe seulement quand
 elle se lit de gauche à droite (`tests/memo-combat.test.ts`, sur le corpus
-avec une préparation partagée par tous ses contextes). Ce qui ne peut pas
+avec une préparation partagée par tous ses contextes ; et, parce que le
+calcul sans memo passe par le même code des termes, contre une empreinte
+figée des notes de l'ancien calcul, d'avant la préparation). Ce qui ne peut pas
 être relu ne se retient pas : une chronologie seulement pour un réglage
 connu et le sort de `computeTotalDamage` ; une découpe ou des termes
 seulement pour un profil et un réglage connus — le réglage et le sort de

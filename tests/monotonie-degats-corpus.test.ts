@@ -20,6 +20,10 @@
 // ligne d'artéfact est augmentée seule, de plusieurs valeurs, sur deux profils
 // d'artéfacts (neutre, et toutes les lignes non nulles). Référence de contrôle
 // (`algo-verify`) : `computeTotalDamage` lui-même, sans memo.
+//
+// ⚠️ Un ÉCHANTILLON, pas une preuve : la liste des exceptions est relevée
+// sous ces réglages et ces valeurs ; un sort qui ne baisserait que sous un
+// autre réglage (autre cible, autres buffs) n'y serait pas vu.
 
 import { BaseStats } from '../src/types';
 import { StatRow, statsParPaire } from '../src/lib/stats';

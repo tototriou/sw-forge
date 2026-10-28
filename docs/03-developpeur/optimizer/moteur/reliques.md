@@ -512,15 +512,25 @@ change pas la note, au bit près.
 sorts dont la note BAISSE quand l'un des canaux ci-dessus ou une ligne
 d'artéfact augmente seul. Le producteur ne pose aucune dominance pour eux
 (`dominanceReliques` à `null`, `relicQueue.ts`) : toutes leurs reliques sont
-notées, au niveau build comme par paire. Aujourd'hui, Ceres, Last Shot
+notées, au niveau build comme par paire. Le préfiltre des artéfacts, qui
+suppose R lui aussi, n'applique pas sa dominance sur ces sorts
+(`ArtifactSearchParams.sansDominance`, posé par `parametresArtefactsFiche`
+depuis le sort noté, la même liste) : sans cela, une pièce à principale de
+PV plus grande écartait une pièce qui note mieux. Vérifié sur le vrai profil
+de Ceres par `testResolutionDominanceReliques` : résolution égale à la force
+brute (chaque relique × chaque paire), témoin à dominance forcée qui perd
+la meilleure note. Aujourd'hui, Ceres, Last Shot
 (5812) : son bonus de +50 % quand les PV de la cible dépassent 2 fois ses PV
-propres s'éteint quand ses PV montent. La liste est dressée sur le corpus
-des monstres que propose l'Optimizer (`formesJouables`) par
-`testMonotonieDegatsCorpus` (`tests/monotonie-degats-corpus.test.ts`) : PV,
-ATQ, DEF, dégâts infligés de relique et chaque ligne du profil d'artéfacts
-augmentés seuls, sous les deux réglages de `testMemoCombat` et trois jeux de
-stats de base ; il échoue si un sort hors liste baisse, ou si un sort de la
-liste ne baisse plus. Une exception se signale à l'utilisateur, elle ne se
+propres s'éteint quand ses PV montent. La liste est relevée par
+échantillonnage sur le corpus des monstres que propose l'Optimizer
+(`formesJouables`) par `testMonotonieDegatsCorpus`
+(`tests/monotonie-degats-corpus.test.ts`) : PV, ATQ, DEF, dégâts infligés
+de relique et chaque ligne du profil d'artéfacts augmentés seuls, de
+quelques valeurs, sous les deux réglages de `testMemoCombat` et trois jeux
+de stats de base ; il échoue si un sort hors liste baisse, ou si un sort de
+la liste ne baisse plus. ⚠️ Un échantillon, pas une preuve : un sort qui ne
+baisserait que sous un autre réglage (autre cible, autres buffs) n'y est pas
+vu. Une exception se signale à l'utilisateur, elle ne se
 corrige pas dans ce test. La règle R est une règle de jeu confirmée par
 l'utilisateur (non relevée en jeu) : le test vérifie que le code la suit.
 
@@ -530,8 +540,11 @@ l'utilisateur (non relevée en jeu) : le test vérifie que le code la suit.
 seule question : ce build a-t-il au moins un couple (paire, relique)
 faisable ? Même entrée que la résolution, même verdict, et pour un build
 rejeté le MÊME résultat, champ pour champ (une seule écriture du rejet pour
-les deux) ; mêmes erreurs. Elle s'arrête au premier couple faisable et ne
+les deux) ; la même erreur sur un pool de reliques vide en mode
+`recherche`. Elle s'arrête au premier couple faisable et ne
 note rien : ni paire, ni sonde de pertinence, donc aucun calcul de dégâts.
+⚠️ Sans note, une note NaN ne se voit pas : là où la résolution lève parce
+que toutes les notes faisables sont NaN, la confirmation confirme.
 La file de l'écran s'en sert pour confirmer en fond les builds qu'elle ne
 note pas ([pipeline.md § File de résolution](pipeline.md#file-de-résolution)).
 

@@ -1494,10 +1494,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         lignesVerrouillees,
         damageSetup,
         maxStats,
+        sortDegats: resolvedSkill?.skillCom2usId ?? null,
       }),
       evaluer,
     };
-  }, [selected, evaluateursFiche, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, artefactsReserves, lignesVerrouillees, damageSetup, maxStats]);
+  }, [selected, evaluateursFiche, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, artefactsReserves, lignesVerrouillees, damageSetup, maxStats, resolvedSkill]);
 
   const searchArtifacts = useMemo<ArtifactDetail[]>(
     () => (artifactParams ? paireRepresentative(artifactParams) : []),
@@ -1863,7 +1864,10 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       realDamage, damageSetup, exclusive: contexteExclusive, signature: signatureArtefacts, idInventaire: importDuCompte, idEspece: selected.monster.com2usId ?? null,
       toutVerifier: verifierToutesLesCombinaisons });
     // Les bornes posées restent : une nouvelle recherche se lit sous les mêmes filtres.
-    run(params, photo, { tri: triDeDepart, sens: 'desc', bornes: bornesResultats, metric, page: 1, afficherDepassement });
+    // Le tableau demande ses onze valeurs dès la première vue, comme l'effet
+    // de la vue plus bas (`colonnesCompletes`).
+    run(params, photo, { tri: triDeDepart, sens: 'desc', bornes: bornesResultats, metric, page: 1, afficherDepassement,
+      ...(formeResultats === 'tableau' ? { colonnesCompletes: true } : {}) });
   }
 
   // Exporte la RECETTE de cette recherche (set, minimums, objectif,

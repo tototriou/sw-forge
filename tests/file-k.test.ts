@@ -61,6 +61,14 @@ export function testKDeLaFile() {
   const clesVue = [...(effetVue?.[1] ?? '').matchAll(/(?:^|[{,])\s*(\w+)(?=\s*[:,}]|\s*$)/g)].map((m) => m[1]).sort();
   egal(clesVue, ['afficherDepassement', 'bornes', 'colonnesCompletes', 'metric', 'page', 'sens', 'tri'],
     'écran : seuls tri, sens, bornes d’affichage, mesure, page, dépassement et colonnes du tableau parviennent au propriétaire');
+  // La vue du lancement (`run`) : les mêmes clés, colonnes du tableau
+  // comprises — sans elles, la première vue d'une recherche lancée en
+  // tableau arrivait sans les onze valeurs.
+  const vueRun = ecran.match(/run\(params, photo, \{([\s\S]*?)\}\);/)?.[1] ?? '';
+  const clesRun = [...vueRun.matchAll(/(?:^|[{,])\s*(\w+)(?=\s*[:,}]|\s*$)/g)].map((m) => m[1]).sort();
+  egal(clesRun, clesVue, 'écran : la vue du lancement porte les mêmes clés que celle de l’effet');
+  ok(/\.\.\.\(formeResultats === 'tableau' \? \{ colonnesCompletes: true \} : \{\}\)\s*$/.test(vueRun),
+    'écran : le lancement demande les colonnes complètes sous la même condition que l’effet (forme « tableau »)');
 
   // Le CLI : le contexte de la recherche lancée (`params.relicContext`).
   const cli = readFileSync('scripts/lib/classementCli.ts', 'utf8');

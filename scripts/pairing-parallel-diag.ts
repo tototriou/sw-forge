@@ -78,7 +78,7 @@ async function main() {
     // (`OptimizerSection.tsx`, `handleSearch`) : PAS de `maxCollected` ici,
     // volontairement — la prod ne le passe JAMAIS, même en mode exhaustif
     // (`exhaustiveSearch` ne touche QUE `maxMs`, décision actée), donc le
-    // défaut réel `MAX_COLLECTED=100 000` doit s'appliquer tel quel. Une
+    // défaut réel `MAX_COLLECTED` (1 000 000, runeBuildOptim.ts) doit s'appliquer tel quel. Une
     // première version de ce script le forçait à `MAX_SAFE_INTEGER` — un
     // vrai écart de fidélité, pas un détail (voir le skill
     // `optimizer-perf-testing`/section « Fidélité des scripts diagnostics »

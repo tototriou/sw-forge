@@ -74,8 +74,9 @@ interface Row {
 const rows: Row[] = [];
 
 for (const sc of scenarios) {
-  // ⚠️ `maxCollected` explicitement ÉLARGI (défaut de production 100 000) :
-  // sans ça, une recherche lâche s'arrête dès 100 000 candidats VALIDES
+  // ⚠️ `maxCollected` explicitement ÉLARGI (défaut de production
+  // `MAX_COLLECTED`, 1 000 000, runeBuildOptim.ts) :
+  // sans ça, une recherche lâche s'arrête dès 1 000 000 de candidats VALIDES
   // trouvés, bien avant d'avoir exploré assez de l'espace pour que le nœud
   // plafond de mesure (`MAX_PAIRES`) devienne la vraie limite — un plafond DIFFÉRENT de
   // celui qu'on veut isoler ici (le rang RELATIF sur l'espace total, pas le

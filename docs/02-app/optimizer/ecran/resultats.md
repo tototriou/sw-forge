@@ -424,6 +424,15 @@ tri ; ../feat-listes-equipes-et-sauvegarde.md § Mémoires des membres).
   la borne compare le total. Les conditions de recherche, elles, jugent
   toujours le total brut. Changer ce réglage ne reclasse la vue que sous une
   borne de l'une de ces trois colonnes.
+- **Changer de mesure retire la borne d'Efficience.** La colonne change
+  d'échelle (moyenne d'efficience en %, ou Score SW entier) : une borne
+  posée sous une mesure n'a aucun sens sous l'autre. Au passage Efficience
+  ↔ Score SW, réglage global changé depuis n'importe quelle page, elle tombe
+  (`bornesApresChangementDeMesure`, filtresResultats.ts, appelé par un effet
+  de useOptimizerState.ts), et la mémoire du membre affiché la perd avec
+  elle ; les bornes des autres colonnes restent. ⚠️ La mémoire d'un autre
+  membre garde la sienne : rien n'y dit sous quelle mesure elle a été posée,
+  et elle revient au retour sur ce membre.
 - **Un build non vérifié n'est jamais jugé sur ses stats provisoires** :
   sa paire et sa relique peuvent encore changer PV, ATQ, DEF et les deux
   objectifs. Il reste « potentiel » (il garde sa place dans la pagination et
@@ -539,7 +548,7 @@ affiché (`testRenduFiltresResultatsCartes`).
   son rang au clavier, ouvre la carte telle quelle dans une `Modale`
   (« Build n° 3 », croix) : « Comparer » et « Valider » y sont. Les places
   « Vérification… » sont des lignes. La vue demande alors les onze valeurs
-  de chaque build (`colonnesCompletes`).
+  de chaque build (`colonnesCompletes`), dès celle du lancement (`run`).
 - ⚠️ **Largeurs selon le contenu** : la mise en page automatique du
   `<table>` ; un en-tête de deux mots passe sur deux lignes ; chaque borne a
   la largeur de la plus grande valeur de sa colonne (`CHIFFRES_MAX_COLONNE`,

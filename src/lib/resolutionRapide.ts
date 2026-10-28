@@ -421,9 +421,13 @@ function reliquesDominees(
  * règle de jeu R (dégâts non décroissants en PV, ATQ, DEF, dégâts infligés de
  * relique et lignes d'artéfact, confirmée par l'utilisateur le 2026-10-27).
  * Leurs reliques sont toutes notées (`dominanceReliques` absent, `relicQueue.ts`),
- * au niveau build comme par paire. La liste est dressée par
- * `tests/monotonie-degats-corpus.test.ts` sur le corpus de l'Optimizer, qui
- * échoue si un sort hors liste baisse ou si un sort de la liste ne baisse plus.
+ * au niveau build comme par paire, et le préfiltre des artéfacts n'applique
+ * pas sa dominance (`ArtifactSearchParams.sansDominance`). La liste est
+ * relevée par échantillonnage (`tests/monotonie-degats-corpus.test.ts` :
+ * chaque sort du corpus de l'Optimizer, sous deux réglages et trois jeux de
+ * stats, quelques augmentations par canal) : un sort qui ne baisserait que
+ * sous un autre réglage n'y serait pas vu. Le test échoue si un sort hors
+ * liste baisse ou si un sort de la liste ne baisse plus.
  * ⚠️ Une exception se signale, elle ne se corrige pas ici : la valeur est la
  * raison, pour chaque sort.
  */
@@ -982,7 +986,8 @@ function partagerConditions(r: Pick<BuildRequirement, 'minStats' | 'maxStats' | 
  * faisable existe-t-il ? Aucune paire notée — aucun appel à `evaluer`,
  * aucune sonde de pertinence. Même entrée que `resoudreEquipementDuBuild` ;
  * même verdict (`conforme`) ; pour un build rejeté, le même résultat, champ
- * pour champ ; mêmes erreurs (pool de reliques vide en mode `recherche`).
+ * pour champ ; la même erreur sur un pool de reliques vide en mode
+ * `recherche`, mais pas celle des notes NaN (écart accepté, plus bas).
  *
  * Le jugement même de la résolution, sans ce qui ne change pas le verdict :
  * - par réglage (`CachesResolutionRapide`, une fois par file) : les apports

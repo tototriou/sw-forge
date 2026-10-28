@@ -147,6 +147,9 @@ export function entreeResolution(p: SearchParams, c: BuildCandidate, ctx: RelicC
       lignesVerrouillees: r.lignesVerrouillees ?? [],
       damageSetup: r.exclusive.setup,
       maxStats: p.requirement.maxStats ?? {},
+      // Le sort du contexte de dégâts ; sans lui (critère hors « Dégâts
+      // réels »), aucune note de dégâts n'est posée et la dominance reste.
+      sortDegats: r.degats?.profile.skillCom2usId ?? null,
     }),
     regime: regimeDe(r),
     degats: r.degats ?? null,

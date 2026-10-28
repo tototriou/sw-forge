@@ -247,7 +247,7 @@ async function poolEnPanne(voies: number, pannes: number[], signaux: number) {
   const resolveurs = await Promise.all(Array.from({ length: voies }, () => fil('resolution')));
   const tirage = alea(11);
   const enVol = resolveurs.map(() => new Set<number>());
-  let recues = 0, enVolALaPanne: number[] = [], derniere: InstantaneClassement | null = null, signales = false;
+  let recues = 0, enVolALaPanne: number[] = [], derniere: InstantaneClassement | null = null, signales = false, declenche = false;
   const incidents: (number | undefined)[] = [];
   const recherche = new MessageChannel();
   const ports: MessagePort[] = [];
@@ -264,7 +264,11 @@ async function poolEnPanne(voies: number, pannes: number[], signaux: number) {
         versResolveur.port1.on('message', (r: ReponseResolution) => setTimeout(() => {
           enVol[voie].delete(r.idDemande);
           versClasseur.port2.postMessage(r);
-          if (++recues === 12) {
+          // Au plus tôt à la 12e réponse, et seulement quand chaque voie à
+          // faire tomber a des demandes en vol : sous charge, la 12e réponse
+          // peut arriver avant le scellé, quand seule la voie 0 travaille.
+          if (++recues >= 12 && !declenche && pannes.every((v) => enVol[v].size > 0)) {
+            declenche = true;
             // Les voies perdent leur Worker pendant qu'il a encore des demandes.
             enVolALaPanne = pannes.map((v) => enVol[v].size);
             void Promise.all(pannes.map((v) => resolveurs[v].terminate())).then(() => {

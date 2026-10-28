@@ -543,7 +543,7 @@ affiché (`testRenduFiltresResultatsCartes`).
   son rang au clavier, ouvre la carte telle quelle dans une `Modale`
   (« Build n° 3 », croix) : « Comparer » et « Valider » y sont. Les places
   « Vérification… » sont des lignes. La vue demande alors les onze valeurs
-  de chaque build (`colonnesCompletes`).
+  de chaque build (`colonnesCompletes`), dès celle du lancement (`run`).
 - ⚠️ **Largeurs selon le contenu** : la mise en page automatique du
   `<table>` ; un en-tête de deux mots passe sur deux lignes ; chaque borne a
   la largeur de la plus grande valeur de sa colonne (`CHIFFRES_MAX_COLONNE`,

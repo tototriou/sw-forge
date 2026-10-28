@@ -865,15 +865,18 @@ Une allocation que le moteur JavaScript refuse dans le classeur
 (`estEchecAllocation` : `RangeError` d'allocation, pas une longueur invalide)
 passe par `reprendreSurMemoire` au lieu de perdre le propriétaire.
 `CorpsClassement.arreterSurMemoire` abandonne la tâche qui allouait, garde
-l'index déjà construit (l'aperçu des 3 000 premiers quand le refus tombe au
-scellé), ne l'agrandit plus (`activer`, `sceller`), arrête la fenêtre de fond,
-la confirmation en fond et « Vérifier toutes les combinaisons trouvées » ; la
-page demandée se vérifie encore. Les réponses du résolveur retenues derrière
-la tâche rendent leur crédit, comme à l'ouverture (`abandonnerReponses`).
-Pendant la collecte, le classeur poste
+l'index déjà construit (au plus l'aperçu des 3 000 premiers trouvés quand le
+refus tombe pendant la collecte ou au scellé), ne l'agrandit plus
+(`activer`, `sceller`), arrête la fenêtre de fond, la confirmation en fond,
+« Vérifier toutes les combinaisons trouvées », le travail au fil des blocs
+et le temps mort ; la page demandée se vérifie encore. Les réponses du
+résolveur retenues derrière la tâche rendent leur crédit, comme à
+l'ouverture (`abandonnerReponses`). Les blocs qui arrivent encore après
+l'arrêt se comptent (`trouves`) sans être gardés ni notés : aucun ordre au
+fil ne se recrée. Pendant la collecte, le classeur poste
 `ARRET_MEMOIRE` à la recherche, qui s'arrête comme sur « Arrêter »
 (`routerMessageDuClasseur`) et scelle ce qu'elle a. L'instantané porte
-`arretMemoire` (`gardes`, `trouves`), que l'écran annonce. L'arrêt vaut pour
-une recherche ; une seconde panne pendant la même recherche n'est pas
+`arretMemoire` (`gardes`, `trouves`), que l'écran annonce. L'arrêt vaut
+pour une recherche ; une seconde panne pendant la même recherche n'est pas
 reprise (propriétaire perdu). Rien ne devine la mémoire de l'appareil. Un
 onglet tué par le système pour manque de mémoire n'a pas de reprise.

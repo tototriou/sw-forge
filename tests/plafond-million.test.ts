@@ -308,5 +308,42 @@ function arretPendantUneTache(voies: number) {
     'la recherche suivante : 20 cartes, aucune place en attente, aucune demande en vol');
   verifierInstantane(suivante!, corps.projection(), f.photo);
 }
+/**
+ * L'arrêt sur la mémoire pendant la collecte, sur le classeur différé mené
+ * par tranches comme dans le Worker : les blocs qui arrivent encore se
+ * comptent sans être gardés ; aucun ordre au fil n'est recréé, aucune note
+ * recalculée, ni pendant la collecte ni au scellé.
+ */
+export function testArretMemoireCollecte() {
+  titre('Plafond — arrêt sur la mémoire pendant la collecte : aucun travail au fil repris, les blocs suivants comptés sans être gardés');
+  let instantane: InstantaneClassement | null = null;
+  const corps = new CorpsClassement({ publier: (p) => { instantane = p; }, resoudre: () => { throw new Error('Résolution distante sans file'); },
+    incident: (r) => { throw new Error(r); } }, true, 'directe');
+  const prive = corps as unknown as { auFil: unknown[]; lots: unknown[] };
+  let t = 0;
+  const horloge = () => (t += 0.25);
+  const tranches = () => { for (let garde = 0; corps.tranche(horloge); garde++) if (garde > 1_000_000) throw new Error('Tranches sans fin'); };
+  const n = 10_000, lots = blocs(n);
+  const { photo, vue } = demandeClassementTest({}, false, false);
+  corps.ouvrir(photo, 1, vue, 1);
+  lots.slice(0, 2).forEach((b, i) => corps.ajouter(1, i, b));
+  corps.activer(1);
+  tranches();
+  ok(prive.auFil.length > 0 && corps.travail.notes > 0, 'avant l’arrêt, le reçu est noté au fil des blocs');
+  egal(reprendreSurMemoire(corps, new RangeError('Array buffer allocation failed')), { collecteEnCours: true }, 'pendant la collecte : la recherche doit être arrêtée');
+  tranches();
+  const notes = corps.travail.notes, gardes = prive.lots.length;
+  lots.slice(2).forEach((b, i) => { corps.ajouter(1, i + 2, b); tranches(); });
+  egal([prive.auFil.length, corps.travailAuFil], [0, false], 'aucun ordre au fil recréé après l’arrêt');
+  egal(corps.travail.notes, notes, 'aucune note recalculée pour les blocs arrivés après l’arrêt');
+  egal(prive.lots.length, gardes, 'les blocs arrivés après l’arrêt ne sont pas gardés');
+  corps.sceller(1, n, lots.length - 1, BILAN(n));
+  tranches();
+  corps.publier(1e9, true);
+  const publie = instantane as InstantaneClassement | null;
+  egal(publie?.arretMemoire, { gardes: 3000, trouves: n }, 'au scellé : l’aperçu gardé, tout le trouvé compté');
+  egal([publie?.filtre.comptes.trouvesMoteur, publie?.comptes.recus], [n, 3000], 'trouvés par le moteur et lignes classées');
+  egal(corps.travail.notes, notes, 'aucune note recalculée au scellé');
+}
 /** Au-dessus des blocs de collecte (4 096) et de l'aperçu (3 000), sous l'index de 10 000. */
 const LIGNES_MAX_SANS_REFUS = 5_000;

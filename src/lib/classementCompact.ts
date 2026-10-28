@@ -1065,6 +1065,8 @@ export class CorpsClassement {
     return vue.tri === this.triDuLancement() && vue.metric === this.contexte?.recherche.metric && sensDe(vue) === SENS_PAR_DEFAUT;
   }
   private courant(idRecherche: number) { return this.contexte !== null && idRecherche === this.versions.idRecherche; }
+  /** Ce que le moteur a envoyé : le flux reçu, ou, après un arrêt sur la mémoire, le compte qui suit l'arrêt (blocs comptés sans être gardés). */
+  private get trouves(): number { return this.memoire?.trouves ?? this.flux.longueur; }
   private criteresDeBase(): CritereDeBase[] {
     if (!this.contexte || !this.vue) return [];
     const lance: CritereDeBase = [this.triDuLancement(), this.contexte.recherche.metric, SENS_PAR_DEFAUT];
@@ -1079,8 +1081,8 @@ export class CorpsClassement {
     }
     return ordre;
   }
-  /** Du travail reste à faire au fil des blocs reçus (recherche non scellée). */
-  get travailAuFil(): boolean { return this.auFilEnAttente && !this.collecteScellee && this.contexte !== null && this.vue !== null; }
+  /** Du travail reste à faire au fil des blocs reçus (recherche non scellée, et pas arrêtée sur la mémoire). */
+  get travailAuFil(): boolean { return this.auFilEnAttente && !this.collecteScellee && !this.memoire && this.contexte !== null && this.vue !== null; }
   /**
    * Un pas de travail au fil des blocs : noter et ranger le reçu pour la vue et
    * l'objectif lancé. Faux quand tout est à jour. Le Worker ne l'appelle
@@ -1099,7 +1101,8 @@ export class CorpsClassement {
    */
   private critereAuRepos(): { critere: ColonneResultat; cle: string } | null {
     const index = this.index, vue = this.vue, contexte = this.contexte;
-    if (!index || !vue || !contexte || !this.collecteScellee || this.tache || index.magasin.longueur !== this.nombreCible) return null;
+    // Après un arrêt sur la mémoire, rien ne s'alloue sans geste : un refus de plus perdrait la page gardée.
+    if (!index || !vue || !contexte || !this.collecteScellee || this.memoire || this.tache || index.magasin.longueur !== this.nombreCible) return null;
     for (const critere of OBJECTIFS_AU_REPOS) {
       if (!colonneDisponible(critere, contexte.realDamage)) continue;
       const cle = cleCritere(critere, vue.metric, SENS_PAR_DEFAUT);
@@ -1148,13 +1151,29 @@ export class CorpsClassement {
   }
   private *notesConnues(critere: StatKey | Objective, metric: OptimMetric, sens: SensTri, n: number): Generator<void, NotesConnues | undefined> {
     // Source libérée après le scellé : l'ordre se refait sur le magasin, comme avant.
-    if (this.collecteScellee && !this.lots.length) return undefined;
+    // Après un arrêt sur la mémoire, aucun ordre au fil ne se recrée : il noterait tout le reçu.
+    if (this.memoire || (this.collecteScellee && !this.lots.length)) return undefined;
     const ordre = this.ordreAuFil(critere, metric, sens);
     return this.collecteScellee && n === this.flux.longueur ? yield* ordre.finir(n) : ordre.connues(n);
   }
   ajouter(idRecherche: number, sequence: number, bloc: BlocCandidats): void {
     if (!this.courant(idRecherche)) return;
     if (!Number.isSafeInteger(sequence) || sequence < 0) throw new Error('Séquence de candidats invalide');
+    // Après un arrêt sur la mémoire, un bloc nouveau se compte sans être gardé
+    // ni noté (les blocs déjà partis arrivent encore) ; un bloc retransmis se
+    // reconnaît à sa plage.
+    if (this.memoire && !this.lots[sequence]) {
+      const plage = this.plages[sequence];
+      if (plage) {
+        if (plage.debut !== bloc.debut || plage.longueur !== bloc.longueur) throw new Error('Lot retransmis avec un contenu différent');
+        return;
+      }
+      if (this.collecteScellee || sequence !== this.plages.length) throw new Error('Séquence de candidats manquante ou flux scellé');
+      if (bloc.debut !== this.memoire.trouves || !Number.isSafeInteger(bloc.longueur) || bloc.longueur <= 0) throw new Error('Plage de candidats non contiguë');
+      this.plages.push({ debut: bloc.debut, longueur: bloc.longueur }); this.memoire.trouves += bloc.longueur;
+      this.sale = true;
+      return;
+    }
     if (this.collecteScellee && !this.lots.length) {
       const plage = this.plages[sequence];
       if (!plage || plage.debut !== bloc.debut || plage.longueur !== bloc.longueur || bloc.schema !== 1
@@ -1195,10 +1214,13 @@ export class CorpsClassement {
     if (!this.courant(idRecherche)) return;
     if (derniereSequence !== this.plages.length - 1) throw new Error('Scellement de séquence incomplet');
     if (this.collecteScellee) {
-      if (nombre !== this.nombreCible || JSON.stringify(bilan) !== JSON.stringify(this.bilan)) throw new Error('Scellement retransmis incohérent');
+      if (nombre !== this.trouves || JSON.stringify(bilan) !== JSON.stringify(this.bilan)) throw new Error('Scellement retransmis incohérent');
       return;
     }
-    this.flux.scellerColonnes(nombre); this.bilan = bilan; this.collecteScellee = true;
+    // Après un arrêt sur la mémoire, le flux ne reçoit plus rien : le compte des trouvés est celui de l'arrêt.
+    if (!this.memoire) this.flux.scellerColonnes(nombre);
+    else if (nombre !== this.memoire.trouves) throw new Error('Scellement incomplet ou répété');
+    this.bilan = bilan; this.collecteScellee = true;
     // L'appariement est fini : tout le pool résout.
     this.pilote.activerVoies(Infinity);
     // Le bilan (fin de recherche) part dès que son instantané est prêt : retenu
@@ -1297,10 +1319,11 @@ export class CorpsClassement {
   /**
    * Ce que `restants` comptera après la tâche, sans page demandée : le fond
    * (l'ordre de l'objectif lancé) jusqu'à K confirmées et à vérifier, groupes
-   * distincts ; en vérification exhaustive, les groupes non vérifiés.
+   * distincts ; en vérification exhaustive, les groupes non vérifiés. Après
+   * un arrêt sur la mémoire, le fond est arrêté : rien.
    */
   private enAttenteDuFond(index: ClassementCompact, fond: Uint32Array): number {
-    if (!this.entrees || !this.contexte) return 0;
+    if (!this.entrees || !this.contexte || this.memoire) return 0;
     const K = cibleDeLaFile({ relicContext: this.contexte.recherche.relicContext, toutVerifier: this.contexte.toutVerifier });
     if (K === Infinity) {
       let n = 0;
@@ -1658,8 +1681,11 @@ export class CorpsClassement {
    * Une allocation du classeur a été refusée (`estEchecAllocation`) : la
    * tâche qui allouait est abandonnée, l'index déjà construit est gardé (la
    * page le montre, le trie et le filtre encore), la file et la confirmation
-   * en fond s'arrêtent, et rien ne se retente (ni index agrandi, ni
-   * résolution). Vrai si la collecte n'est pas encore scellée : au Worker de
+   * en fond s'arrêtent, et rien ne se retente (ni index agrandi, ni ordre ou
+   * note au fil des blocs, ni résolution). Les réponses retenues derrière la
+   * tâche rendent leur crédit comme à l'ouverture (`abandonnerReponses`) :
+   * jetées sans le pilote, leurs demandes resteraient en vol jusqu'au
+   * rechargement. Vrai si la collecte n'est pas encore scellée : au Worker de
    * demander l'arrêt de la recherche. Une seconde panne pendant la même
    * recherche n'est plus reprise : `null`, l'appelant la traite en erreur.
    */
@@ -1781,13 +1807,13 @@ export class CorpsClassement {
       comptes: { recus, affichables: recus - ecartes, resolus: confirmees + ecartes, confirmees, avecFile },
       filtre: this.filtrePublie(parCategorie, total, confirmes, avecFile, recus),
       page: { premierRang: debut + 1, cartes, placesEnAttente: places }, enAttente, incident: this.incident,
-      arretMemoire: this.memoire ? { gardes: this.memoire.gardes, trouves: this.flux.longueur } : null, bilan: this.bilan };
+      arretMemoire: this.memoire ? { ...this.memoire } : null, bilan: this.bilan };
   }
   private filtrePublie(parCategorie: number[][], total: number, confirmes: number, avecFile: boolean, recus: number): FiltrePublie {
     const [nonVerifies, confirmees, ecartes] = parCategorie.map((ligne) => ligne.reduce((s, n) => s + n, 0));
     const de = (categorie: number) => parCategorie[0][categorie] + parCategorie[1][categorie];
     const comptes: ComptesDeLaVue = {
-      trouvesMoteur: this.flux.longueur, recusActifs: recus, ecartesResolution: ecartes,
+      trouvesMoteur: this.trouves, recusActifs: recus, ecartesResolution: ecartes,
       // Sans file, l'équipement est celui de la fiche : tout reçu a ses valeurs définitives.
       confirmesGlobaux: avecFile ? confirmees : confirmees + nonVerifies, nonVerifiesGlobaux: avecFile ? nonVerifies : 0,
       visiblesConfirmes: de(CATEGORIE_LIGNE.visible), masquesConfirmes: de(CATEGORIE_LIGNE.masquee),

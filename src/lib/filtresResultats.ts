@@ -80,6 +80,25 @@ export function avecBorne(bornes: BornesResultats, colonne: ColonneResultat, cot
   return next;
 }
 
+/**
+ * Les colonnes dont l'échelle suit la mesure des runes : « Efficience » vaut
+ * une moyenne d'efficience en % ou un Score SW entier. Une borne posée sous
+ * une mesure n'a aucun sens sous l'autre.
+ */
+export const COLONNES_SELON_MESURE: readonly ColonneResultat[] = ['efficience'];
+
+/**
+ * Les bornes après un changement de mesure des runes : celles des
+ * `COLONNES_SELON_MESURE` tombent, devenues sans objet ; les autres restent.
+ * Sans borne à retirer, les mêmes bornes (même objet).
+ */
+export function bornesApresChangementDeMesure(bornes: BornesResultats): BornesResultats {
+  if (!COLONNES_SELON_MESURE.some((c) => bornes[c] !== undefined)) return bornes;
+  const next = { ...bornes };
+  for (const c of COLONNES_SELON_MESURE) delete next[c];
+  return next;
+}
+
 /** Une copie des bornes d'une vue : le classeur ne garde aucun objet de l'appelant. */
 export function copierBornes(bornes: BornesResultats): BornesResultats {
   const copie: BornesResultats = {};

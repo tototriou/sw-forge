@@ -4,6 +4,8 @@ import { CLES_SESSION, composerSession, ecrireSession, lireSession, valeurStocka
 import { CLE_FORME_RESULTATS, lireFormeResultats } from '../src/hooks/useFormeResultats';
 import { cleMemoireMembre, ecrireMembresOptimizer, lireMembresOptimizer } from '../src/lib/optimizerMemberStorage';
 import type { ExclusionSelector } from '../src/lib/optimizerExclusion';
+import { COLONNES_SELON_MESURE, bornesApresChangementDeMesure, type BornesResultats } from '../src/lib/filtresResultats';
+import { readFileSync } from 'node:fs';
 import { egal, ok, titre } from './outils';
 
 // Les filtres d'affichage des résultats (sens du tri, bornes par colonne)
@@ -66,4 +68,21 @@ export function testFiltresResultatsMemoire() {
   const relue = lireSession(ecrireSession(session));
   ok(relue.ok && relue.session.outils.optimizer?.sensTri === 'asc'
     && JSON.stringify(relue.session.outils.optimizer?.bornesResultats) === JSON.stringify(bornes), 'session : sens et bornes écrits et relus');
+}
+
+export function testFiltresResultatsChangementDeMesure() {
+  titre('Filtres d’affichage des résultats — la borne d’Efficience tombe au passage Efficience ↔ Score SW, les autres restent');
+  egal(COLONNES_SELON_MESURE, ['efficience'], 'seule « Efficience » change d’échelle avec la mesure');
+  const bornes: BornesResultats = { spd: { min: 200, max: null }, efficience: { min: 78.8, max: null } };
+  const apres = bornesApresChangementDeMesure(bornes);
+  egal(apres, { spd: { min: 200, max: null } }, 'la borne d’Efficience tombe, la borne de VIT reste');
+  egal(bornes.efficience, { min: 78.8, max: null }, 'les bornes d’origine ne sont pas modifiées');
+  const sans: BornesResultats = { spd: { min: 200, max: null } };
+  ok(bornesApresChangementDeMesure(sans) === sans && bornesApresChangementDeMesure({}) !== undefined, 'sans borne d’Efficience : les mêmes bornes (même objet)');
+  // Le branchement : un effet de useOptimizerState, sur la mesure, par le
+  // setter de saisie (la mémoire du membre perd la borne aussi).
+  const hook = readFileSync('src/hooks/useOptimizerState.ts', 'utf8').replace(/\s+/g, ' ');
+  ok(hook.includes('const mesureDesBornes = useRef(mesure); function retirerBornesSansObjet() { if (mesureDesBornes.current === mesure) return; mesureDesBornes.current = mesure;')
+    && hook.includes("saisie('bornesResultats', setBornesResultats)(bornesApresChangementDeMesure); } useEffect(() => { retirerBornesSansObjet(); });"),
+  'useOptimizerState : au changement de mesure, les bornes passent par bornesApresChangementDeMesure, via le setter de saisie');
 }

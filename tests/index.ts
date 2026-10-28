@@ -104,7 +104,7 @@ import { testColonnesTriAscendant } from './colonnes-tri.test';
 import { testFiltresResultatsBornes, testFiltresResultatsReversibles, testFiltresResultatsIndetermines, testFiltresResultatsComptesPages,
   testFiltresResultatsDifferentiel, testFiltresResultatsPlafondAffiche } from './filtres-resultats.test';
 import { testFiltresResultatsDoublonsTaches } from './filtres-resultats-doublons.test';
-import { testFiltresResultatsMemoire } from './filtres-memoire.test';
+import { testFiltresResultatsChangementDeMesure, testFiltresResultatsMemoire } from './filtres-memoire.test';
 import { testFiltresResultatsAvecBorne } from './filtres-avec-borne.test';
 import { testFiltresResultatsValeurBornee } from './filtres-carte.test';
 import { testFiltresResultatsBonus, testFiltresResultatsDecimales } from './filtres-bonus.test';
@@ -959,6 +959,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testFiltresResultatsPlafondAffiche', testFiltresResultatsPlafondAffiche],
   ['testFiltresResultatsDoublonsTaches', testFiltresResultatsDoublonsTaches],
   ['testFiltresResultatsMemoire', testFiltresResultatsMemoire],
+  ['testFiltresResultatsChangementDeMesure', testFiltresResultatsChangementDeMesure],
   ['testFiltresResultatsAvecBorne', testFiltresResultatsAvecBorne],
   ['testFiltresResultatsValeurBornee', testFiltresResultatsValeurBornee],
   ['testFiltresResultatsBonus', testFiltresResultatsBonus],

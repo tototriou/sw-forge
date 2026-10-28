@@ -35,6 +35,13 @@
       "justification": "Garde de neutralité du producteur de données partagé entre navigateur et Node ; son comportement est également testé par import."
     },
     {
+      "fichier": "tests/filtres-memoire.test.ts",
+      "cible": "src/hooks/useOptimizerState.ts",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Garde du branchement de la mesure (réglage global, store externe) au retrait de la borne d'Efficience, dans un effet du hook que seul le banc navigateur exécute ; le retrait lui-même (bornesApresChangementDeMesure) est testé par import."
+    },
+    {
       "fichier": "tests/banc/ecrans.ts",
       "cible": "src/lib/optimizerColonnes",
       "occurrences": 1,

@@ -33,7 +33,7 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
       lead: { stat: 'HP', amount: 33, area: 'Guild', element: null } }]);
     b.etat().setMinStats({ spd: 230 });
     b.etat().setExcludeBase(false);
-    b.listes().validateBuild('a', b.premier, b.runes().map(r => r.id), b.arts().map(a => a.id), 10101);
+    b.listes().validateBuild('a', b.premier, b.runes().map(r => r.id), b.arts().map(a => a.id), undefined, 10101);
   });
   const sansMemoire = nom.startsWith('point-sans-memoire');
   const leadSecond = () => b.listes().memories.get(cleMemoireMembre('a', b.second))?.criteres.damageSetup.leaderSkill;
@@ -129,7 +129,7 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
   } else if (nom === 'point-reimport') {
     await b.geste(() => b.etat().choisirMembre('a', b.siege));
     await b.geste(() => { b.etat().setMinStats({ spd: 275 }); b.etat().setExcludeBase(false);
-      b.listes().validateBuild('a', b.siege, b.runes().map(r => r.id), [71, 72], 10101); });
+      b.listes().validateBuild('a', b.siege, b.runes().map(r => r.id), [71, 72], undefined, 10101); });
     await b.geste(() => bouton('Sauvegarder', barre).click());
     await b.geste(() => bouton('Remplacer', document.querySelector('[role="dialog"]')!).click());
     const point = localStorage.getItem(OPTIMIZER_BACKUP_STORAGE_KEY);

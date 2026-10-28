@@ -57,7 +57,7 @@ export function testOptimizerRattachementIdentites() {
   listes.addMember('l', ancien, 1001); listes = h.render();
   egal(listes.identities.get(cleMemoireMembre('l', ancien))?.com2usId, 1001, 'ajout manuel : identité acquise au geste');
   const copie: ExclusionSelector = { source: 'box', unitKey: 'copie' };
-  listes.validateBuild('l', copie, [1, 2, 3, 4, 5, 6], [], 1001); listes = h.render();
+  listes.validateBuild('l', copie, [1, 2, 3, 4, 5, 6], [], undefined, 1001); listes = h.render();
   egal(listes.identities.get(cleMemoireMembre('l', copie))?.com2usId, 1001, 'validation qui inclut : identité acquise au geste');
   listes.removeMember('l', ancien); listes = h.render();
   ok(!listes.identities.has(cleMemoireMembre('l', ancien)), 'retrait explicite : identité retirée');

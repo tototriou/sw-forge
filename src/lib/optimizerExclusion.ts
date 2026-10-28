@@ -451,6 +451,23 @@ export interface ValidatedBuild {
    * n'en ont pas. Tout lecteur applique `?? []`.
    */
   artifactIds?: number[];
+  /**
+   * La RELIQUE du build validé (`RelicDetail.id`), même instantané que les
+   * runes et la paire : celle que la carte validée montrait, retenue par la
+   * recherche ou portée.
+   *
+   * ⚠️ **Sans elle, « Comparer » un build validé à lui-même donnait un
+   * écart** : la carte comptait la relique retenue par la recherche, la fiche
+   * la relique portée. Signalé à l'usage.
+   *
+   * ⚠️ Ne réserve rien : une relique s'équipe sur plusieurs monstres à la
+   * fois (occupation `n / 150`).
+   *
+   * ⚠️ **Optionnel** : absent d'un build validé avant ce champ, d'un build
+   * sans relique, ou d'une relique sortie de l'inventaire — la fiche reprend
+   * alors la relique portée.
+   */
+  reliqueId?: number;
 }
 
 // Artéfacts validés de TOUS LES AUTRES exemplaires de LA MÊME LISTE.

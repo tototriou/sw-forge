@@ -241,7 +241,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     await geste(() => { listes.addMember('a', second, monstres[1].com2usId!); etat.capturerMembre('a', second); });
     verifier(memoire('a', second)?.criteres.minStats.spd === 160 && etat.proprietaireCriteres?.com2usId === 10102, 'ajout : capture et propriétaire');
     await geste(() => { etat.setSourceSelector(troisieme); etat.setSelectedId('1'); listes.removeMember('a', troisieme); });
-    await geste(() => { listes.validateBuild('a', troisieme, [1, 2, 3, 4, 5, 6], [], monstres[0].com2usId!); etat.capturerMembre('a', troisieme); });
+    await geste(() => { listes.validateBuild('a', troisieme, [1, 2, 3, 4, 5, 6], [], undefined, monstres[0].com2usId!); etat.capturerMembre('a', troisieme); });
     verifier(!!memoire('a', troisieme), 'validation avec inclusion : capture');
     await geste(() => { const id = listes.createList('Nouvelle', 'guilde'); listes.addMember(id, troisieme, monstres[0].com2usId!); etat.capturerMembre(id, troisieme); });
     verifier(etat.proprietaireCriteres?.listId === listes.activeListId && !!memoire(listes.activeListId!, troisieme), 'création et ajout : capture au même geste');

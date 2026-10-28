@@ -475,7 +475,9 @@ export function testRelicClassementParMode() {
       'écran : PV effectifs et Dégâts réels des cartes sont ceux que le classeur a notés, jamais recalculés');
     // La valeur passée à la carte : l'état de la relique que le score compte,
     // lu dans l'équipement de la carte et la photographie.
-    ok(/etatRelique: etatReliqueDuBuild\(carte\?\.resultat \?\? undefined, photo\?\.recherche\.relicContext, photo\?\.fiche\.relic\)/.test(ecran),
+    // Le même état fournit la relique que « Valider » mémorise.
+    ok(/const etatRelique = etatReliqueDuBuild\(carte\?\.resultat \?\? undefined, photo\?\.recherche\.relicContext, photo\?\.fiche\.relic\)/.test(ecran)
+      && /^\s+etatRelique,$/m.test(ecran),
       'écran : la relique affichée par la carte est celle que le score compte');
     // Ces valeurs sont celles de `scoreDuCandidat` avec les options de la
     // photographie et du cache : verifierInstantane (classement-distant.test.ts).

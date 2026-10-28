@@ -701,6 +701,9 @@ effectifs » gardent l'effet unique, comme ci-dessus.
 résultat (elles n'apparaissent plus dans les recherches suivantes de la
 même liste de travail), jusqu'à libération explicite : voir
 ../feat-listes-et-reservation.md § Listes de travail et réservation de runes.
+Le build validé mémorise aussi la relique de la carte (celle de la case
+ci-dessous, sans la réserver) : la fiche la reprend, et « Comparer » ce
+build à lui-même ne donne aucun écart.
 
 ⚠️ **Relique, un emplacement, quatre états** — un emplacement « Relique »,
 sous la roue à la souris, à sa droite au doigt (voir plus haut), même

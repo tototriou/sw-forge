@@ -90,11 +90,12 @@ export function loadOptimizerLists(): StoredState {
     if (Array.isArray(parsed.validated)) {
       for (const item of parsed.validated) {
         if (!item || typeof item !== 'object') continue;
-        const { listId, selector, runeIds, artifactIds, runesManquantes, artefactsManquants } = item as {
+        const { listId, selector, runeIds, artifactIds, reliqueId, runesManquantes, artefactsManquants } = item as {
           listId?: unknown;
           selector?: unknown;
           runeIds?: unknown;
           artifactIds?: unknown;
+          reliqueId?: unknown;
           runesManquantes?: unknown;
           artefactsManquants?: unknown;
         };
@@ -108,7 +109,10 @@ export function loadOptimizerLists(): StoredState {
         const arts = Array.isArray(artifactIds) && artifactIds.every((id) => typeof id === 'number') ? artifactIds : undefined;
         const absentes = Array.isArray(runesManquantes) && runesManquantes.every(id => typeof id === 'number' && runeIds.includes(id)) ? runesManquantes : undefined;
         const artsAbsents = Array.isArray(artefactsManquants) && artefactsManquants.every(id => typeof id === 'number' && arts?.includes(id)) ? artefactsManquants : undefined;
-        validated.push({ listId, selector, runeIds, ...(arts ? { artifactIds: arts } : {}), ...(absentes?.length ? { runesManquantes: absentes } : {}),
+        // Une relique illisible se perd seule : le build garde ses runes et sa paire.
+        const relique = typeof reliqueId === 'number' && Number.isFinite(reliqueId) ? reliqueId : undefined;
+        validated.push({ listId, selector, runeIds, ...(arts ? { artifactIds: arts } : {}), ...(relique !== undefined ? { reliqueId: relique } : {}),
+          ...(absentes?.length ? { runesManquantes: absentes } : {}),
           ...(artsAbsents?.length ? { artefactsManquants: artsAbsents } : {}) });
       }
     }
@@ -148,8 +152,8 @@ export interface UseOptimizerLists {
   /** Retire un monstre de la liste — libère AUSSI son build validé s'il en avait un (jamais de réservation orpheline, invisible dans « Monstres de la liste »). */
   removeMember: (listId: string, selector: ExclusionSelector) => void;
   validated: ValidatedBuild[];
-  /** Valide un build pour cet exemplaire DANS cette liste — REMPLACE l'entrée existante pour la même paire (liste, sélecteur) s'il y en a une. */
-  validateBuild: (listId: string, selector: ExclusionSelector, runeIds: number[], artifactIds: number[], com2usId: number) => void;
+  /** Valide un build (runes, paire, relique) pour cet exemplaire DANS cette liste — REMPLACE l'entrée existante pour la même paire (liste, sélecteur) s'il y en a une. */
+  validateBuild: (listId: string, selector: ExclusionSelector, runeIds: number[], artifactIds: number[], reliqueId: number | undefined, com2usId: number) => void;
   releaseBuild: (listId: string, selector: ExclusionSelector) => void;
   /** Rend les artéfacts d’un build validé, ses runes restant réservées. */
   releaseArtifacts: (listId: string, selector: ExclusionSelector) => void;
@@ -327,7 +331,7 @@ export function useOptimizerLists(): UseOptimizerLists {
     }));
   }, [setState]);
 
-  const validateBuild = useCallback((listId: string, selector: ExclusionSelector, runeIds: number[], artifactIds: number[], com2usId: number) => {
+  const validateBuild = useCallback((listId: string, selector: ExclusionSelector, runeIds: number[], artifactIds: number[], reliqueId: number | undefined, com2usId: number) => {
     const key = exclusionSelectorKey(selector);
     setState((s) => ({
       ...s,
@@ -343,7 +347,7 @@ export function useOptimizerLists(): UseOptimizerLists {
         // ⚠️ Les ids ≤ 0 désignent une pièce SYNTHÉTIQUE, absente du compte :
         // la mémoriser ferait croire à un artéfact qu'on ne possède pas, et la
         // réserverait pour rien.
-        { listId, selector, runeIds, artifactIds: artifactIds.filter((id) => id > 0) },
+        { listId, selector, runeIds, artifactIds: artifactIds.filter((id) => id > 0), ...(reliqueId !== undefined ? { reliqueId } : {}) },
       ],
     }));
   }, [setState]);

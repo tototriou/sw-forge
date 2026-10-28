@@ -4,7 +4,8 @@ import type { GearSet, LeaderSkill, Monster, SiegeTeam } from '../src/types';
 import { baseCompleteCriteres } from '../src/lib/criteresOptimizer';
 import { appliquerCriteres } from '../src/lib/criteresOptimizer';
 import { leadEffectifMembreOptimizer } from '../src/lib/equipesOptimizer';
-import { exclusionSelectorKey, type ExclusionSourceData } from '../src/lib/optimizerExclusion';
+import { exclusionSelectorKey, resolveExclusionEntry, type ExclusionSourceData } from '../src/lib/optimizerExclusion';
+import { monsterBaseStats } from '../src/lib/stats';
 import { cleMemoireMembre, ecrireMembresOptimizer, lireMembresOptimizer, type StockageOptimizer } from '../src/lib/optimizerMemberStorage';
 import { consommerImportOptimizer, importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importerPrepaRtaOptimizer, type ImportOptimizer } from '../src/lib/importEquipes';
 
@@ -125,8 +126,21 @@ export function testImportEquipesMonstresInconnus() {
   delete data.rtaEntries['1'].gear;
   const defense = importerDefensesSiegeOptimizer(data), rta = importerPrepaRtaOptimizer(data);
   egal(defense.ignores.length, 2, 'inconnu et identité invalide, slot vide exclu du rapport');
-  egal(rta.ignores.length, 3, 'RTA sans équipement, identité invalide et inconnu');
+  egal(rta.ignores.length, 2, 'RTA : identité invalide et inconnu ignorés');
   ok([...defense.ignores, ...rta.ignores].every(m => m.raison.length > 0), 'une raison par monstre ignoré');
+  // Un monstre placé à la main n'a pas d'équipement : il s'importe comme un
+  // monstre non possédé, sous le sélecteur de sa source.
+  ok(rta.membres.some(m => m.selector.source === 'rta' && m.selector.monsterId === '1'), 'RTA placé à la main, sans équipement : importé');
+  const resolu = resolveExclusionEntry({ source: 'rta', monsterId: '1' }, data);
+  egal(resolu && { runes: resolu.gear.runes.length, artefacts: resolu.gear.artifacts.length, base: resolu.gear.base },
+    { runes: 0, artefacts: 0, base: monsterBaseStats(data.monsterById.get('1')!) }, 'résolu aux stats de base de l’espèce, sans rune ni artéfact');
+  const placeAlaMain = deck('o2', [1, 3, null]);
+  placeAlaMain.slots.forEach(s => { delete s.gear; });
+  data.siegeOffenseTeams = [placeAlaMain];
+  const offense = importerOffenseSiegeOptimizer('o2', data);
+  egal(offense.membres.map(m => m.selector), [{ source: 'siege-offense', teamId: 'o2', slotIndex: 0 }, { source: 'siege-offense', teamId: 'o2', slotIndex: 1 }],
+    'deck de siège composé à la main : ses deux monstres importés, sous leurs slots');
+  egal(offense.equipes.length, 1, 'et son équipe créée');
 }
 
 export function testImportEquipesVitessesInvalides() {

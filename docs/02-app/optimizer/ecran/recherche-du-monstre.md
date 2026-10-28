@@ -55,7 +55,8 @@ Ce document décrit la carte de recherche du monstre à optimiser.
    désambiguïsation volontaire). **Un exemplaire NU (sans aucune rune) reste
    sélectionnable, dans TOUTE source** — Box (construire un build depuis
    rien) comme RTA/siège (un monstre assigné à un favori RTA ou un deck de
-   siège mais jamais runé, ex. juste obtenu et pas encore équipé) : seul un
+   siège mais jamais runé, ex. juste obtenu et pas encore équipé, ou placé
+   à la main sans équipement du compte, aux stats de base) : seul un
    **slot RÉELLEMENT vide** (aucun monstre assigné) est absent des
    candidats, pas un monstre présent sans rune.
    **Choisir un résultat fixe l'exemplaire RÉELLEMENT optimisé** — pas

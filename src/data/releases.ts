@@ -96,6 +96,7 @@ export const RELEASES: Release[] = [
       { kind: 'feat', scope: 'Bestiaire', text: '« Jouables uniquement » et « Formes éveillées » : deux filtres, cochés par défaut.' },
       { kind: 'fix', scope: 'Monstres', text: 'Veromos et les autres Ifrit n’apparaissent plus en double dans les recherches, ni les formes de boss.' },
       { kind: 'fix', scope: 'Application', text: 'Changer de compte SW Exporter importe tout : prépa RTA, siège et box.' },
+      { kind: 'fix', scope: 'Optimizer', text: 'Une équipe de siège ou un monstre de la prépa RTA ajouté à la main s’exporte vers l’Optimizer.' },
       { kind: 'feat', scope: 'Application', text: 'Avant de changer de compte, l’app propose de sauvegarder ta session.' },
       { kind: 'feat', scope: 'Artéfacts', text: 'Top 10 : tes meilleures valeurs de chaque propriété, par attribut ou type, et par stat principale.' },
     ],

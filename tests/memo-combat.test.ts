@@ -4,11 +4,22 @@
 // La promesse : `computeTotalDamage` rend, avec le memo, EXACTEMENT ce qu'il
 // rend sans lui (`Object.is`, au bit près), paire après paire, sur le corpus.
 //
-// Référence de contrôle (`algo-verify`) : le même appel sans memo, qui
-// recalcule tout. Chaque sort calculable de chaque fiche du corpus, sous deux
+// Références de contrôle (`algo-verify`) :
+// - le même appel sans memo, qui recalcule tout — mais par le MÊME code des
+//   termes du réglage (`termesDuReglage`) que la préparation : un écart dans
+//   ce code commun passerait des deux côtés ;
+// - donc une EMPREINTE FIGÉE des notes sans memo (`EMPREINTE_ANCIEN_CALCUL`),
+//   relevée sur l'arbre d'avant la préparation du réglage (b7a09c03), avec
+//   les mêmes entrées. Une empreinte plutôt qu'une copie gelée de
+//   `computeTotalDamage` : la copie traînerait des milliers de lignes de
+//   damage.ts qu'il faudrait faire suivre à chaque changement de type ; les
+//   deux sont à relever de nouveau quand le modèle change volontairement une
+//   note.
+// Chaque sort calculable de chaque fiche du corpus, sous deux
 // réglages : le défaut, et un réglage « riche » — buffs ATQ/DEF/VIT, Miriam,
 // tous les passifs allumés, VIT adverse basse (critique forcé des monstres
-// `critSiPlusRapide`, réglages recopiés à chaque appel), et, pour un sort à
+// `critSiPlusRapide`, sous le réglage forcé que la préparation du sort
+// construit une fois), et, pour un sort à
 // effets posables entre les coups, le scénario actif (chronologies). Un memo
 // par build et par relique comme `evaluerPourRegime` : des paires tirées à
 // graine fixe, dont les stats viennent de `statsParPaire` (le même tableau aux
@@ -22,6 +33,7 @@
 // reliques ; puis, sur un contexte, plusieurs builds qui la partagent : après
 // le premier, plus aucun terme du réglage n'est recalculé.
 
+import { createHash } from 'node:crypto';
 import { ArtifactDetail, ArtifactKind, BaseStats } from '../src/types';
 import { ARTIFACT_SUB_MAX } from '../src/lib/artifacts';
 import { artifactSubKinds } from '../src/lib/effects';
@@ -49,6 +61,18 @@ import { egal, ok, titre } from './outils';
 
 const BASE: BaseStats = { hp: 11000, atk: 780, def: 640, spd: 104, cr: 15, cd: 50, res: 15, acc: 0 };
 const PROPRES: AurasPropres = { fight: 1, determination: 1, enhance: 0, accuracy: 0, tolerance: 0 };
+
+// L'empreinte des notes SANS memo du corpus de ce test (sha256 des Float64 de
+// chaque contexte, paires dans l'ordre de `paires`), relevée le 2026-10-28 sur
+// l'arbre de b7a09c03 — l'ancien calcul, avant `PreparationReglage` — avec ces
+// mêmes entrées et ces mêmes données ; le code courant la rend à l'identique.
+// ⚠️ Un écart veut dire qu'une note a changé. Voulu (modèle de dégâts, données
+// SWARFARM régénérées) : relever l'empreinte de nouveau (le message d'échec
+// la donne) et le dire dans le commit. Sinon : un défaut du code commun au
+// calcul avec et sans memo.
+const EMPREINTE_ANCIEN_CALCUL = {
+  contextes: 12170, notes: 304250, sha256: 'ed2dd8e3b58c342151f0f139ecfdfd3b22b99734b8c5057cea8422a5a758533a',
+};
 
 // Quatre pièces par sorte, deux principales par sorte : des paires partagent
 // leur tableau de stats (`statsParPaire`) et ne diffèrent que par UNE
@@ -116,6 +140,9 @@ export default function testMemoCombat() {
   const preparationNotes = new PreparationReglage();
   const ecartsNotes: string[] = [];
   const ecartsPartage: string[] = [];
+  // Les notes sans memo, contexte après contexte, paires dans l'ordre de `paires`.
+  const empreinte = createHash('sha256');
+  let notesEmpreinte = 0;
   const vus = new Set<number>();
   for (const m of loadMonstersList()) {
     const id = m.com2usId;
@@ -142,11 +169,14 @@ export default function testMemoCombat() {
         // Un memo par build et par relique : chaque paire, deux fois, ordre mélangé.
         const memo = new MemoCombat(PROPRES, ctx.element);
         const memoPartage = new MemoCombat(PROPRES, ctx.element, preparationCorpus);
-        const ordre = [...paires, ...paires].map((p) => ({ p, k: rng() })).sort((a, b) => a.k - b.k).map((x) => x.p);
-        for (const arts of ordre) {
+        const ordre = [...paires.keys(), ...paires.keys()].map((i) => ({ i, k: rng() })).sort((a, b) => a.k - b.k).map((x) => x.i);
+        const notesSans = new Float64Array(paires.length);
+        for (const i of ordre) {
+          const arts = paires[i]!;
           const stats = statsAvec(arts);
           const avec = total(ctx, stats, arts, memo);
           const sans = total(ctx, stats, arts);
+          notesSans[i] = sans;
           const partage = total(ctx, stats, arts, memoPartage);
           const note = total(ctx, stats, arts, preparationNotes);
           if (!Object.is(note, sans) && ecartsNotes.length < 5) {
@@ -160,6 +190,8 @@ export default function testMemoCombat() {
             ecartsPartage.push(`${id} sort ${sort.skillCom2usId} (${setup === defaut ? 'défaut' : 'riche'}) [${arts.map((a) => a.id).join(',')}] : ${partage} ≠ ${sans}`);
           }
         }
+        empreinte.update(new Uint8Array(notesSans.buffer));
+        notesEmpreinte += notesSans.length;
         const c = memo.compte;
         if (c.chronologies > 0) avecChronologie++;
         if (c.tableaux > 0) avecStatsRetenues++;
@@ -167,6 +199,8 @@ export default function testMemoCombat() {
       }
     }
   }
+  egal({ contextes: sorts, notes: notesEmpreinte, sha256: empreinte.digest('hex') }, EMPREINTE_ANCIEN_CALCUL,
+    'sans le memo = l’ancien calcul, d’avant la préparation du réglage (empreinte figée des notes du corpus), au bit près');
   egal(ecarts, [], `${appels} notes de paires, ${sorts} contextes (sort × réglage) : avec le memo = sans le memo, au bit près`);
   ok(avecChronologie > 20, `… dont ${avecChronologie} contextes où le memo a retenu une chronologie de poses entre les coups`);
   ok(avecStatsRetenues > 100 && avecCombatsRetenus > 100, `… ${avecStatsRetenues} où il a retenu des stats au début du combat, ${avecCombatsRetenus} des stats de combat`);

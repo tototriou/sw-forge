@@ -169,7 +169,9 @@ la cible, réductions, mitigation sans DEF ignorée…) — vit dans sa
 préparation du réglage (`PreparationReglage`), partagée par toute la
 recherche. Rien de l'équation ne change : chaque valeur retenue est celle de
 l'expression sur les mêmes entrées, au bit près, sans aucune somme ni aucun
-produit réassocié (`tests/memo-combat.test.ts`). Détail :
+produit réassocié (`tests/memo-combat.test.ts`, contre le calcul sans memo
+et contre une empreinte figée des notes de l'ancien calcul, d'avant la
+préparation). Détail :
 [moteur/artefacts.md § Partage entre les builds d'une file](../../03-developpeur/optimizer/moteur/artefacts.md#partage-entre-les-builds-dune-file).
 
 

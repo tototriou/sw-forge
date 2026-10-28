@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { egal, ok, titre } from './outils';
 import {
-  CHARGEURS, comparerIndex, decisionTailwind, inventaire, optionsConstruction, PREREQUIS, RefusSelection, selectionDepuisGit, selectionner,
+  CHARGEURS, comparerIndex, decisionTailwind, formater, inventaire, optionsConstruction, PREREQUIS, RefusSelection, selectionDepuisGit, selectionner,
   type Inventaire, type Selection,
 } from './selection';
 
@@ -44,6 +44,13 @@ export async function testSelectionFichiersInventaire(): Promise<void> {
     '.githooks/commit-msg', 'scripts/relic-differentiel.ts', 'tests/rendu/recherche-coeurs-banc.tsx',
   ];
   egal(attendues.filter((r) => !racines.has(r)), [], 'les 14 racines secondaires connues sont retrouvées');
+  // Les `new Worker(…)` à cible non résolue du dépôt : deux lanceurs Node qui
+  // démarrent un paquet construit par esbuild (son point d'entrée est suivi par
+  // le site `esbuild-build`), avertis ; le fil `eval` des tests, du code, non.
+  egal(inv.avertissements.map((a) => a.replace(/:\d+ /, ' ')), [
+    'scripts/lib/appariementRapideNode.ts new Worker : cible non résolue (*)',
+    'scripts/lib/buildHalvesNode.ts new Worker : cible non résolue (*)',
+  ], 'avertissements : les deux lanceurs de paquet construit, rien d’autre');
   const erreurs = [...inv.fichiersTest.values()].flatMap((i) => i.racines.filter((r) => r.erreur).map((r) => r.racine));
   egal([...new Set(erreurs)], [], 'chaque racine secondaire se construit');
   const bandes = inv.fichiersTest.get('tests/rendu/optimizer-bandes.test.ts');
@@ -506,6 +513,17 @@ export async function testSelectionFichiersGit(): Promise<void> {
     ok(!s.complet && /^opaque/.test(raisons(s, 'verificationsC')), 'lecture non résolue → opaque, retenue pour un fichier de src/');
     s = await essai('docs/a.md', '# a modifié\n');
     ok(!s.complet && /^opaque/.test(raisons(s, 'verificationsC')) && s.transversalesSeulement, '… et pour docs/ (sans effet : seules les transversales)');
+    // Un Worker à cible non résolue : le module démarré n'entre dans aucun
+    // ensemble par ce site. Un avertissement, en sortie, jamais une écartée
+    // silencieuse ; la sélection ne change pas. Un Worker `{ eval: true }`
+    // porte du code, pas une cible : aucun avertissement.
+    egal(s.avertissements, [], 'avant : aucun avertissement');
+    ecrire(r, 'tests/aide.ts', "import { lib } from '../src/lib';\nexport function aide(): number { new Worker(process.argv[2]); new Worker(String(lib()), { eval: true }); return lib(); }\n");
+    commit(r, 'worker non résolu');
+    const avant = await essai('docs/a.md', '# a modifié\n');
+    egal(avant.avertissements, ['tests/aide.ts:2 new Worker : cible non résolue (*)'], 'Worker à cible non résolue → un avertissement (le Worker `eval` n’en donne pas)');
+    ok(/Avertissements \(1\)[^\n]*\n {2}! tests\/aide\.ts:2 new Worker : cible non résolue/.test(formater(avant, 5)), '… écrit dans la sortie de la sélection');
+    egal([avant.complet, avant.retenues.map((x) => x.nom)], [s.complet, s.retenues.map((x) => x.nom)], '… et la sélection ne change pas');
     ecrire(r, 'tests/c.test.ts', "import { execFileSync } from 'node:child_process';\nexport const verificationsC: [string, () => void][] = [['testC1', () => { execFileSync('git', ['ls-files']); }]];\n");
     commit(r, 'lecture du dépôt');
     s = await essai('docs/a.md', '# a modifié\n');

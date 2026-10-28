@@ -58,6 +58,7 @@ if (avecSelection) {
     // En silence : le nombre d'entrées retenues, sans la liste des fichiers ni des entrées.
     console.log(silencieux && !selection.complet
       ? `Sélection par fichiers modifiés : ${selection.fichiers.length} fichier(s) modifié(s), ${selection.retenues.length}/${inventaire.entrees.length} entrées retenues`
+        + (selection.avertissements.length ? `, ${selection.avertissements.length} avertissement(s) (détail sans --silencieux)` : '')
       : formater(selection, inventaire.entrees.length));
     writeFileSync(fichierSelection, JSON.stringify(selection));
   } catch (e) {

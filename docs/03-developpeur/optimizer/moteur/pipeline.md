@@ -868,7 +868,9 @@ passe par `reprendreSurMemoire` au lieu de perdre le propriétaire.
 l'index déjà construit (l'aperçu des 3 000 premiers quand le refus tombe au
 scellé), ne l'agrandit plus (`activer`, `sceller`), arrête la fenêtre de fond,
 la confirmation en fond et « Vérifier toutes les combinaisons trouvées » ; la
-page demandée se vérifie encore. Pendant la collecte, le classeur poste
+page demandée se vérifie encore. Les réponses du résolveur retenues derrière
+la tâche rendent leur crédit, comme à l'ouverture (`abandonnerReponses`).
+Pendant la collecte, le classeur poste
 `ARRET_MEMOIRE` à la recherche, qui s'arrête comme sur « Arrêter »
 (`routerMessageDuClasseur`) et scelle ce qu'elle a. L'instantané porte
 `arretMemoire` (`gardes`, `trouves`), que l'écran annonce. L'arrêt vaut pour

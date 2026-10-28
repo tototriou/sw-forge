@@ -1666,7 +1666,7 @@ export class CorpsClassement {
   arreterSurMemoire(): { collecteEnCours: boolean } | null {
     if (this.memoire || !this.contexte || !this.vue) return null;
     this.tache = null; this.auFil = []; this.auFilEnAttente = false; this.repos = null; this.apercu = null;
-    this.reponsesEnAttente = []; this.fileExhaustive = null;
+    this.abandonnerReponses(); this.fileExhaustive = null;
     const gardes = this.index?.magasin.longueur ?? 0;
     this.memoire = { gardes, trouves: this.flux.longueur };
     this.nombreCible = gardes;

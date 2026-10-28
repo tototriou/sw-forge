@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
-import { CandidatNonCompactable, CandidatsCompacts } from '../src/lib/candidatsCompacts';
+import { CandidatNonCompactable, CandidatsCompacts, hacherIds } from '../src/lib/candidatsCompacts';
 import { ClassementCompact } from '../src/lib/classementCompact';
 import { CacheResolutionJournalise, ResultatArtefacts, candidatAvecSaPaire, classementResolu, cleBuild, compteAffichable, compteConfirme, journalResolution, ordonnerParDepartage, travailDuClassementCompact } from '../src/lib/artifactQueue';
 import { BuildCandidate, Objective, OptionsDeClassement, aurasPropresParRunes, optionsDeClassement, preparerNotationCompacte, scoreDuCandidat, sortCandidates } from '../src/lib/runeBuildOptim';
@@ -118,6 +118,16 @@ export function testCandidatsCompactsAllerRetour() {
   refuse = false;
   try { new CandidatsCompacts(autreBase); } catch (e) { refuse = e instanceof CandidatNonCompactable; }
   ok(refuse, 'base non commune refusée');
+  // Petits identifiants (pool synthétique : 8 runes par emplacement) : sans
+  // brassage final, leurs empreintes tombaient sur quelques cases et la table
+  // devenait quadratique (193 452 candidats : plus de dix minutes au scellé).
+  const cases = new Set<number>();
+  let combinaisons = 0;
+  for (let a = 1; a <= 8; a++) for (let b = 9; b <= 16; b++) for (let c = 17; c <= 24; c++) for (let d = 25; d <= 32; d++) {
+    cases.add(hacherIds([a, b, c, d, 33, 41]) & 4095); combinaisons++;
+  }
+  // Au hasard, 4 096 tirages dans 4 096 cases en occupent ~63 %.
+  ok(cases.size > 0.5 * 4096, `empreintes de petits identifiants réparties : ${cases.size} cases sur 4 096 pour ${combinaisons} combinaisons`);
 }
 
 export function testClassementCompactPublications() {

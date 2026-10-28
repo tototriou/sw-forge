@@ -27,7 +27,28 @@ export interface BlocCandidats {
 /** `length` est cumulatif ; les blocs déjà transférés sont retirés. */
 export interface ColonnesCandidats { length: number; blocs: BlocCandidats[] }
 export type SortieCandidats = BuildCandidate[] | ColonnesCandidats;
-export const creerColonnesCandidats = (): ColonnesCandidats => ({ length: 0, blocs: [] });
+/**
+ * Empreinte de six identifiants de runes pour une table à adressage ouvert,
+ * masquée ensuite sur ses bits bas. Mélanger les deux mots conserve les
+ * identifiants dépassant 32 bits. Le brassage final est nécessaire : un petit
+ * entier n'occupe que les bits hauts de son flottant, que la multiplication ne
+ * fait jamais descendre — sans lui, des identifiants petits (pool synthétique)
+ * tombent sur quelques cases et la table devient quadratique.
+ */
+export function hacherIds(ids: readonly number[]): number {
+  const bits = new DataView(new ArrayBuffer(8));
+  let h = 2166136261;
+  for (const id of ids) {
+    bits.setFloat64(0, id === 0 ? 0 : id);
+    h = Math.imul(h ^ bits.getUint32(0), 16777619);
+    h = Math.imul(h ^ bits.getUint32(4), 16777619);
+  }
+  h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
+export const creerColonnesCandidats =(): ColonnesCandidats => ({ length: 0, blocs: [] });
 
 /** Le message que le classeur poste à la recherche pour l'arrêter sur sa mémoire (`arreterSurMemoire`). */
 export const ARRET_MEMOIRE = { arret: 'memoire' } as const;
@@ -314,15 +335,7 @@ export class CandidatsCompacts {
   private idsTries(i: number): number[] { return this.ids.map((colonne) => colonne[i]).sort((a, b) => a - b); }
 
   private emplacement(ids: readonly number[]): number {
-    // Mélanger les deux mots conserve les identifiants dépassant 32 bits.
-    const bits = new DataView(new ArrayBuffer(8));
-    let h = 2166136261;
-    for (const id of ids) {
-      bits.setFloat64(0, id === 0 ? 0 : id);
-      h = Math.imul(h ^ bits.getUint32(0), 16777619);
-      h = Math.imul(h ^ bits.getUint32(4), 16777619);
-    }
-    let p = (h >>> 0) & (this.hachage.length - 1);
+    let p = hacherIds(ids) & (this.hachage.length - 1);
     while (this.hachage[p]) {
       const connus = this.idsTries(this.hachage[p] - 1);
       if (connus.every((id, j) => id === ids[j])) break;

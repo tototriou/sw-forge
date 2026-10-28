@@ -1,5 +1,5 @@
 import type { ArtifactDetail, RelicDetail } from '../types';
-import type { GabaritCandidat } from './candidatsCompacts';
+import { hacherIds, type GabaritCandidat } from './candidatsCompacts';
 import type { ChangementResolution, JournalResolution, ResultatArtefacts } from './artifactQueue';
 
 const TAILLE = 4096;
@@ -26,10 +26,7 @@ export class CacheResolutionCompact extends Map<string, ResultatArtefacts> {
   private bloc(i: number) { return this.blocs[Math.floor(i / TAILLE)]; }
   private ids(i: number) { const b = this.bloc(i), j = i % TAILLE; return b.ids.map((c) => c[j]); }
   private emplacement(ids: number[], table = this.table): number {
-    let h = 2166136261;
-    const bits = new DataView(new ArrayBuffer(8));
-    for (const id of ids) { bits.setFloat64(0, id === 0 ? 0 : id); h = Math.imul(h ^ bits.getUint32(0), 16777619); h = Math.imul(h ^ bits.getUint32(4), 16777619); }
-    let p = (h >>> 0) & (table.length - 1);
+    let p = hacherIds(ids) & (table.length - 1);
     while (table[p] && !this.ids(table[p] - 1).every((id, j) => id === ids[j])) p = (p + 1) & (table.length - 1);
     return p;
   }

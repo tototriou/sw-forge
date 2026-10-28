@@ -63,12 +63,15 @@ ici.
   les résultats occupent environ 281 Mio (443 Mio avec « Vérifier toutes
   les combinaisons trouvées »), plus 114 Mio le temps de construire le
   classement à la fin de la recherche. Si l'appareil refuse une de ces
-  allocations, le classement garde ce qu'il avait déjà classé (l'aperçu
-  des 3 000 premiers trouvés, quand le refus tombe à la fin de la
-  recherche), cesse de vérifier en fond, arrête la
+  allocations, le classement garde ce qu'il avait déjà classé (au plus
+  l'aperçu des 3 000 premiers trouvés, quand le refus tombe pendant la
+  recherche ou à sa fin), cesse de vérifier en fond, arrête la
   recherche si elle collecte encore, et l'écran dit « Arrêt : mémoire — N
   builds gardés sur M trouvés ». Rien n'est retenté ; une nouvelle
-  recherche repart entière. Un appareil qui manque de mémoire peut aussi
+  recherche repart entière. Ce refus n'est reconnu à coup sûr que sous
+  Chromium et dans l'application de bureau : sous Firefox ou Safari, dont
+  la forme du refus n'a pas été relevée, il peut interrompre le classement
+  (page gardée, « Classement interrompu »). Un appareil qui manque de mémoire peut aussi
   fermer l'onglet sans que l'app puisse l'en empêcher : ce cas-là n'a pas
   de reprise.
 - **Aucun bonus de set ne pèse au pré-filtrage ni à la rétention.** Une

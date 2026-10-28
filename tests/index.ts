@@ -96,7 +96,7 @@ import { testClassementDistantVersions, testClassementDistantPanne, testContexte
 import { testCliClassementParMode, testCliClassementDifferentiel } from './cli-classement.test';
 import { testClassementCessionOrdre, testClassementCessionSansAffamement, testClassementCessionCanal } from './classement-cession.test';
 import { testPlafondCompactMillion, testRelancesCompactLiberation, testCacheRelanceBorne, testArretMemoireClassement,
-  testArretMemoireBranchement } from './plafond-million.test';
+  testArretMemoireBranchement, testArretMemoireCredits, testArretMemoireCollecte } from './plafond-million.test';
 import { testRetraitAdaptationMigrations } from './retrait-adaptation.test';
 import { testTriSansNouvelleResolution, testToutVerifierPhotographie, testPlacesEnAttenteToujoursTravaillees } from './classement-non-relance.test';
 import { testObjectifVitesseMigration } from './objectif-vitesse.test';
@@ -948,6 +948,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testCacheRelanceBorne', testCacheRelanceBorne],
   ['testArretMemoireClassement', testArretMemoireClassement],
   ['testArretMemoireBranchement', testArretMemoireBranchement],
+  ['testArretMemoireCredits', testArretMemoireCredits],
+  ['testArretMemoireCollecte', testArretMemoireCollecte],
   ['testRetraitAdaptationMigrations', testRetraitAdaptationMigrations],
   ['testObjectifVitesseMigration', testObjectifVitesseMigration],
   ['testColonnesTriAscendant', testColonnesTriAscendant],

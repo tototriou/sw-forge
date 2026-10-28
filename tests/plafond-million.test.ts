@@ -4,12 +4,15 @@
 // refusée (aucune relance, l'index déjà construit gardé).
 import { MAX_COLLECTED } from '../src/lib/runeBuildOptim';
 import { CorpsClassement, estEchecAllocation, reprendreSurMemoire, type InstantaneClassement } from '../src/lib/classementCompact';
-import { ARRET_MEMOIRE, ajouterValeursCandidat, creerColonnesCandidats, extraireBlocs, routerMessageDuClasseur, type GabaritCandidat } from '../src/lib/candidatsCompacts';
+import { ARRET_MEMOIRE, ajouterObjetCandidat, ajouterValeursCandidat, creerColonnesCandidats, extraireBlocs, routerMessageDuClasseur, type GabaritCandidat } from '../src/lib/candidatsCompacts';
+import { CorpsResolution, type ReponseResolution } from '../src/workers/resolutionBody';
+import type { ResolutionDistante } from '../src/workers/resolutionDistante';
 import { computeStats } from '../src/lib/stats';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import AvisRechercheTronquee from '../src/components/outils/optimizer/AvisRechercheTronquee';
-import { demandeClassementTest } from './classement-fixture';
+import { demandeClassementTest, fixtureClassementCombat } from './classement-fixture';
+import { verifierInstantane } from './classement-distant.test';
 import { egal, ok, titre } from './outils';
 
 const BASE = { hp: 10000, atk: 700, def: 600, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
@@ -229,6 +232,118 @@ export function testArretMemoireBranchement() {
   const html = renderToStaticMarkup(createElement(AvisRechercheTronquee, { result: null, stoppedManually: true, arretMemoire: publie!.arretMemoire }));
   ok(html.includes('data-arret-memoire') && html.includes('Arrêt : mémoire') && /3.000 builds gardés sur 10.000 trouvés/.test(html),
     `l’écran annonce l’arrêt sur la mémoire, à la place de l’arrêt manuel (${html})`);
+}
+/**
+ * L'arrêt sur la mémoire pendant une tâche du classeur différé (celui du
+ * Worker), une réponse du résolveur déjà arrivée et retenue derrière la tâche :
+ * sa demande rend son crédit, comme à l'ouverture. Vrais corps de résolution,
+ * une voie puis trois. La page de la recherche arrêtée se vérifie encore ; la
+ * recherche suivante, sur le même classeur, sert ses 20 cartes sans demande en
+ * vol. Le refus lui-même (une allocation qui lève dans la tâche) est celui de
+ * `arretAuScelle` ; ici, la coquille du Worker le reprend comme elle le fait
+ * (`reprendreSurMemoire`).
+ */
+export function testArretMemoireCredits() {
+  for (const voies of [1, 3]) arretPendantUneTache(voies);
+}
+function arretPendantUneTache(voies: number) {
+  titre(`Plafond — arrêt sur la mémoire pendant une tâche, réponse retenue, ${voies} voie(s) : aucun crédit perdu`);
+  const f = fixtureClassementCombat('ehp', false);
+  const resolveurs = Array.from({ length: voies }, () => new CorpsResolution());
+  const files: ReponseResolution[][] = resolveurs.map(() => []);
+  let instantane: InstantaneClassement | null = null;
+  const corps = new CorpsClassement({ publier: (p) => { instantane = p; },
+    resoudre: (m, voie) => { files[voie].push(...resolveurs[voie].recevoir(m)); },
+    incident: (r) => { throw new Error(`incident inattendu : ${r}`); } }, true);
+  corps.brancherVoies(voies);
+  const enVol = () => (corps as unknown as { pilote: ResolutionDistante }).pilote.demandesEnVol;
+  let t = 0;
+  const horloge = () => (t += 0.25);
+  const tranches = () => { for (let garde = 0; corps.tranche(horloge); garde++) if (garde > 100_000) throw new Error('Tranches sans fin'); };
+  // La plus ancienne réponse d'une voie, à tour de rôle.
+  let tour = 0;
+  const reponse = (): ReponseResolution | null => {
+    for (let k = 0; k < voies; k++) {
+      const v = (tour + k) % voies, r = files[v].shift() ?? resolveurs[v].etape();
+      if (r) { tour = v + 1; return r; }
+    }
+    return null;
+  };
+  const auRepos = () => {
+    for (let garde = 0; garde < 100_000; garde++) {
+      tranches();
+      const r = reponse();
+      if (!r) { corps.publier(horloge() + 1e6, true); return; }
+      corps.recevoirResolution(r, horloge());
+    }
+    throw new Error('Classeur jamais au repos');
+  };
+  const rechercher = (id: number) => {
+    corps.ouvrir(f.photo, id, f.vue, id);
+    const colonnes = creerColonnesCandidats();
+    for (const c of f.candidats) ajouterObjetCandidat(colonnes, c);
+    const lots = extraireBlocs(colonnes);
+    lots.forEach((b, i) => corps.ajouter(id, i, b));
+    corps.sceller(id, f.candidats.length, lots.length - 1, BILAN(f.candidats.length));
+    tranches();
+  };
+  rechercher(1);
+  // Une réponse écrit le cache : l'actualisation de l'index devient la tâche
+  // du classeur ; la réponse suivante arrive pendant cette tâche et attend.
+  corps.recevoirResolution(reponse()!, horloge());
+  ok(corps.travailEnCours, 'une réponse écrite : l’actualisation de l’index est en cours');
+  corps.recevoirResolution(reponse()!, horloge());
+  ok(corps.travailEnRepli, 'la réponse suivante, arrivée pendant la tâche, est retenue');
+  corps.avancer();
+  egal(reprendreSurMemoire(corps, new RangeError('Array buffer allocation failed')), { collecteEnCours: false }, 'arrêt sur la mémoire au milieu de la tâche');
+  auRepos();
+  const arretee = instantane as InstantaneClassement | null;
+  ok(arretee?.arretMemoire !== null, 'l’arrêt est annoncé');
+  egal([arretee?.page.cartes.length, arretee?.page.placesEnAttente, enVol()], [20, 0, 0],
+    'la page de la recherche arrêtée se vérifie : 20 cartes, aucune place en attente, aucune demande en vol');
+  rechercher(2);
+  auRepos();
+  const suivante = instantane as InstantaneClassement | null;
+  egal([suivante?.versions.idRecherche, suivante?.arretMemoire, suivante?.page.cartes.length, suivante?.page.placesEnAttente, enVol()], [2, null, 20, 0, 0],
+    'la recherche suivante : 20 cartes, aucune place en attente, aucune demande en vol');
+  verifierInstantane(suivante!, corps.projection(), f.photo);
+}
+/**
+ * L'arrêt sur la mémoire pendant la collecte, sur le classeur différé mené
+ * par tranches comme dans le Worker : les blocs qui arrivent encore se
+ * comptent sans être gardés ; aucun ordre au fil n'est recréé, aucune note
+ * recalculée, ni pendant la collecte ni au scellé.
+ */
+export function testArretMemoireCollecte() {
+  titre('Plafond — arrêt sur la mémoire pendant la collecte : aucun travail au fil repris, les blocs suivants comptés sans être gardés');
+  let instantane: InstantaneClassement | null = null;
+  const corps = new CorpsClassement({ publier: (p) => { instantane = p; }, resoudre: () => { throw new Error('Résolution distante sans file'); },
+    incident: (r) => { throw new Error(r); } }, true, 'directe');
+  const prive = corps as unknown as { auFil: unknown[]; lots: unknown[] };
+  let t = 0;
+  const horloge = () => (t += 0.25);
+  const tranches = () => { for (let garde = 0; corps.tranche(horloge); garde++) if (garde > 1_000_000) throw new Error('Tranches sans fin'); };
+  const n = 10_000, lots = blocs(n);
+  const { photo, vue } = demandeClassementTest({}, false, false);
+  corps.ouvrir(photo, 1, vue, 1);
+  lots.slice(0, 2).forEach((b, i) => corps.ajouter(1, i, b));
+  corps.activer(1);
+  tranches();
+  ok(prive.auFil.length > 0 && corps.travail.notes > 0, 'avant l’arrêt, le reçu est noté au fil des blocs');
+  egal(reprendreSurMemoire(corps, new RangeError('Array buffer allocation failed')), { collecteEnCours: true }, 'pendant la collecte : la recherche doit être arrêtée');
+  tranches();
+  const notes = corps.travail.notes, gardes = prive.lots.length;
+  lots.slice(2).forEach((b, i) => { corps.ajouter(1, i + 2, b); tranches(); });
+  egal([prive.auFil.length, corps.travailAuFil], [0, false], 'aucun ordre au fil recréé après l’arrêt');
+  egal(corps.travail.notes, notes, 'aucune note recalculée pour les blocs arrivés après l’arrêt');
+  egal(prive.lots.length, gardes, 'les blocs arrivés après l’arrêt ne sont pas gardés');
+  corps.sceller(1, n, lots.length - 1, BILAN(n));
+  tranches();
+  corps.publier(1e9, true);
+  const publie = instantane as InstantaneClassement | null;
+  egal(publie?.arretMemoire, { gardes: 3000, trouves: n }, 'au scellé : l’aperçu gardé, tout le trouvé compté');
+  egal([publie?.filtre.comptes.trouvesMoteur, publie?.comptes.recus], [n, 3000], 'trouvés par le moteur et lignes classées');
+  egal(corps.travail.notes, notes, 'aucune note recalculée au scellé');
 }
 /** Au-dessus des blocs de collecte (4 096) et de l'aperçu (3 000), sous l'index de 10 000. */
 const LIGNES_MAX_SANS_REFUS = 5_000;

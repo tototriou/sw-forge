@@ -171,7 +171,7 @@ function ResultatsGabarit({ ctx, mode }: { ctx: ContexteGabarits; mode: AttenteR
   const confirmees = mode === 'vingt' ? 60 : 0;
   return (
     <ResultatsBureau attente={null}>
-      <EnteteResultats result={result} compteConfirmes={{ confirmees, nonVerifies: 0, pages: 3, pagesPeuventMonter: false, aucune: confirmees === 0 }} avecFile={false}
+      <EnteteResultats result={result} compteConfirmes={{ confirmees, nonVerifies: 0, pages: 3, pagesPeuventMonter: false, aRecevoir: false, aucune: confirmees === 0 }} avecFile={false}
         tri={tri} trier={(t) => { setTri(t); setPage(1); }} metric={metric} disponible={(c) => c !== 'degats_reels'} enAttente={0}
         compteAffiche={{ compte: confirmees, ecartes: 0, raison: null }} bureau />
       <DiagnosticsSansResultat bureau result={result}

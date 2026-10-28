@@ -13,7 +13,11 @@ export interface HalfBuildProgress { scanned: number; total: number; pct: number
 export type BuildOptimProgress =
   | { phase: 'building'; halves: { A: HalfBuildProgress | null; B: HalfBuildProgress | null } }
   | { phase: 'pairing'; explored: number; found: number; pct: number; totalPairs: number };
-/** Le bilan d'une recherche finie, sans ses candidats : ils restent dans le classeur. */
+/**
+ * Le bilan d'une recherche finie, sans ses candidats : ils restent dans le
+ * classeur. `nombre` : les builds trouvés par le moteur, gardés ou non (un
+ * arrêt sur la mémoire n'en garde qu'une partie).
+ */
 export type BilanRecherche = Omit<SearchResult, 'candidates'> & { nombre: number };
 // `resolutions` : le pool, indexé par voie ; une case vide est un Worker retiré.
 type Classement = { worker: Worker; resolutions: (Worker | null)[]; pilote: ClassementDistant };
@@ -80,7 +84,9 @@ export function useBuildOptimSearch() {
             publicationRef.current = p; setClassement(p);
             if (!p?.bilan) return;
             if (!precedent?.bilan || precedent.versions.idRecherche !== p.versions.idRecherche) {
-              setResult({ ...p.bilan, nombre: p.comptes.recus }); setProgress(null); setStatus('done');
+              // Le compte du moteur : les reçus, ou, après un arrêt sur la mémoire, tout le trouvé
+              // (celui de son avis), dont le classeur n'a gardé qu'une partie.
+              setResult({ ...p.bilan, nombre: p.arretMemoire?.trouves ?? p.comptes.recus }); setProgress(null); setStatus('done');
             }
           }, ouverte: (id) => demarrerRef.current?.(id), erreur: echouer,
           incident: (raison, detail, voie) => {

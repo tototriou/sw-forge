@@ -521,13 +521,16 @@ de Ceres par `testResolutionDominanceReliques` : résolution égale à la force
 brute (chaque relique × chaque paire), témoin à dominance forcée qui perd
 la meilleure note. Aujourd'hui, Ceres, Last Shot
 (5812) : son bonus de +50 % quand les PV de la cible dépassent 2 fois ses PV
-propres s'éteint quand ses PV montent. La liste est dressée sur le corpus
-des monstres que propose l'Optimizer (`formesJouables`) par
-`testMonotonieDegatsCorpus` (`tests/monotonie-degats-corpus.test.ts`) : PV,
-ATQ, DEF, dégâts infligés de relique et chaque ligne du profil d'artéfacts
-augmentés seuls, sous les deux réglages de `testMemoCombat` et trois jeux de
-stats de base ; il échoue si un sort hors liste baisse, ou si un sort de la
-liste ne baisse plus. Une exception se signale à l'utilisateur, elle ne se
+propres s'éteint quand ses PV montent. La liste est relevée par
+échantillonnage sur le corpus des monstres que propose l'Optimizer
+(`formesJouables`) par `testMonotonieDegatsCorpus`
+(`tests/monotonie-degats-corpus.test.ts`) : PV, ATQ, DEF, dégâts infligés
+de relique et chaque ligne du profil d'artéfacts augmentés seuls, de
+quelques valeurs, sous les deux réglages de `testMemoCombat` et trois jeux
+de stats de base ; il échoue si un sort hors liste baisse, ou si un sort de
+la liste ne baisse plus. ⚠️ Un échantillon, pas une preuve : un sort qui ne
+baisserait que sous un autre réglage (autre cible, autres buffs) n'y est pas
+vu. Une exception se signale à l'utilisateur, elle ne se
 corrige pas dans ce test. La règle R est une règle de jeu confirmée par
 l'utilisateur (non relevée en jeu) : le test vérifie que le code la suit.
 

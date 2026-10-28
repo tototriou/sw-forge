@@ -94,7 +94,7 @@ sans relance automatique ni reconstruction d'un résultat depuis l'écran.
     stats de base. La table garde 160 px pour 157 au pire cas mesuré (base à
     six chiffres comme les 19 755 PV, la plus haute des données, bonus
     « +40 000 ») : rien n'est tronqué ni replié. Rembourrage de la carte et
-    creux entre cartes inchangés. Mesuré (compte d'exemple, A3) : 3 cartes
+    creux entre cartes inchangés. Mesuré (compte d'exemple, bureau) : 3 cartes
     par rangée au lieu de 2 à 1920 × 940, 2 au lieu de 1 avec « Artéfacts et
     relique » ; 5 au lieu de 4 à 2560 × 1300, 4 au lieu de 3 avec la
     colonne. Au doigt et au téléphone, 360 px et la fiche de 200 px.

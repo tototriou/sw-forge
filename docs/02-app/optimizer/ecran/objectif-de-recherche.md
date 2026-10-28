@@ -13,7 +13,7 @@ Ce document décrit la carte « Objectif de recherche » et ses quatre objectifs
    le set, ce n'est pas un critère de plus parmi d'autres. **Un bouton à
    choix unique** (`<Segmented
    size="lg">`, [Segmented.tsx](src/ui/Segmented.tsx)) sur une seule ligne
-   — en 2 × 2 dans la forme étroite du bloc de bureau (axe `colonnes`) —,
+   — en 2 × 2 au bureau quand ils ne tiennent pas sur une ligne (axe `colonnes`) —,
    chaque option se partageant la largeur à égalité, séparées par un
    **liseré vertical constant** entre deux options voisines, y compris
    quand l'une des deux est sélectionnée — un `<span>` à part, sans rayon :

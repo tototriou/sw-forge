@@ -40,8 +40,8 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    en tête de la carte (`max-w-md`), avant le point suivant puis les
    Conditions, empilés.
 
-   **Au bureau**, le set de runes recherché est une section du panneau des
-   essentiels, sous la liste de travail, **sans le titre « Critères de
+   **Au bureau**, le set de runes recherché est la première section de
+   « Critères » (colonne ou onglet), 294 px, **sans le titre « Critères de
    recherche »** du téléphone (le panneau et ses traits situent déjà la
    section). **En forme compacte** (`SetDeRunesCompact`) : le libellé seul
    (le message d'une recherche refusée sans set à sa droite), puis
@@ -64,19 +64,20 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    - ⚠️ **La rangée des jetons est réservée** : vide, elle a déjà la hauteur
      d'un jeton, et le premier set choisi ne fait pas descendre la grille
      sous le pointeur.
-   - ⚠️ **Dépliée quand la place le permet** (A3 seulement) : la grille du
+   - ⚠️ **Dépliée quand la place le permet** : la grille du
      téléphone remplace la liste, dans son coffre, centrée ; son compteur
      `N/6 runes` est celui de la grille, aucun second compte à droite du
-     libellé (décision de l'utilisateur : il faisait doublon), tant que la colonne des essentiels tient sans défiler une fois
-     dépliée ; compacte sinon, et toujours compacte en A1 et A2, où la page
-     défile d'un bloc (`useSetDeplie`, `PageBureau.tsx` ; contexte
-     `setDeplie.ts`). Décision de l'utilisateur. La page décide sur la
-     hauteur de la boîte de la colonne et sur ce que le dépli ajoute
-     (mesuré sur deux copies invisibles, liste fermée et grille vide,
-     indépendant des sets choisis) : jamais sur un clic, et elle ne
-     redécide que si cette hauteur, cet écart ou l'agencement changent —
-     un clic qui allonge la colonne ne replie pas le set sous le pointeur.
-     Aucune bascule à la main.
+     libellé (décision de l'utilisateur : il faisait doublon), tant que
+     « Critères » (sa colonne, ou le panneau du groupe d'onglets) tient sans
+     défiler une fois dépliée ; compacte sinon, et toujours compacte en deux
+     piles, où la pile de droite défile d'un bloc (`useSetDeplie`,
+     `PageBureau.tsx` ; contexte `setDeplie.ts`). Décision de l'utilisateur.
+     La page décide sur la hauteur de la boîte de « Critères » et sur ce
+     que le dépli ajoute (mesuré sur deux copies invisibles, liste fermée
+     et grille vide, indépendant des sets choisis) : jamais sur un clic, et
+     elle ne redécide que si cette hauteur, cet écart ou la configuration
+     changent — un clic qui allonge la colonne ne replie pas le set sous le
+     pointeur. Aucune bascule à la main.
 5. **Statistique principale imposée (slots pairs)** — pour chacun des slots
    **2, 4 et 6** (les seuls dont la statistique principale n'est **pas**
    fixée par les règles du jeu — 1/3/5 sont toujours ATQ/DEF/PV plats), un
@@ -96,8 +97,8 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    portent sur les runes elles-mêmes, groupées ensemble), séparée de lui par
    un trait.
 
-   **Au bureau**, une section des essentiels, en tête de la sous-colonne de
-   177 px à droite des Conditions, au-dessus d'« État de mon monstre »
+   **Au bureau**, une section de 294 px de « Critères », sous les
+   Conditions, au-dessus d'« État de mon monstre »
    (`PrincipalesImposeesBureau`) : une **rangée compacte par slot**, « Slot
    n » puis sa liste à choix multiples (`SelecteurMultiple`, forme
    « surbrillance »). Fermée, la liste dit

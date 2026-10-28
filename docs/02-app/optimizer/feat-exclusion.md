@@ -3,7 +3,7 @@
 ⚠️ **Au doigt, dans le panneau « Options »** (bouton de la barre de nav),
 EN TÊTE — avant « Réglages avancés » (voir
 ecran/conditions-et-reglages.md § Réglages avancés). Au bureau, sa carte
-est en ligne dans la colonne repliable « Aura, exclusion, avancés »
+est en ligne dans « Aura, exclusion, avancés » (colonne, ou onglet « Options »)
 ([ecran/README.md](ecran/README.md#réglages-avancés-et-exclusion-de-runes)).
 
 **« Exclure les runes déjà utilisées »**, interrupteur DÉSACTIVÉ par

@@ -13,8 +13,8 @@
 
    **Au téléphone**, la carte suit « Artéfacts et relique » et porte tout
    ce contenu, sets d'aura compris. **Au bureau**, elle est réduite aux
-   buffs et au lead, section des essentiels dans la sous-colonne de 177 px,
-   sous la statistique principale imposée (`EtatMonstreEssentiels`) : les
+   buffs et au lead, dernière section de « Critères » (294 px), sous la
+   statistique principale imposée (`EtatMonstreEssentiels`) : les
    trois vignettes de buff **sur une rangée** (56 px chacune), puis le lead :
    « Lead », l'icône, la liste de la stat
    et, sous elle, celle du pourcentage, sans boîte autour, la liste de la
@@ -79,7 +79,7 @@
    l'intérieur de la carte, elles ne longent pas son bord. `items-stretch` les
    met à la hauteur de la plus haute, sinon une boîte d'une rangée flotterait
    au milieu d'une boîte de deux et l'œil lirait un décalage. Au bureau,
-   buffs et lead sont sans cadre dans les essentiels, et les auras forment
+   buffs et lead sont sans cadre dans « Critères », et les auras forment
    une section sans cadre de leur colonne.
 
    Dans le groupe **Lead**, au bureau, les deux menus (type et valeur) ont la
@@ -115,7 +115,7 @@
    **Sets d'aura des autres monstres** — au téléphone, une troisième
    boîte d'« État de mon monstre », sous les groupes pour éviter le
    débordement ; au bureau, une section de 294 px, en tête de la
-   colonne repliable « Aura, exclusion, avancés » (`SetsAuraBureau`), avec la
+   colonne « Aura, exclusion, avancés », ou de l'onglet « Options » (`SetsAuraBureau`), avec la
    même saisie (`AurasExternesSaisie`). Elle saisit `DamageSetup.setsAuraExternes` : les sets Fight,
    Determination, Enhance, Accuracy et Tolerance portés par les **autres**
    monstres de l'équipe (voir
@@ -193,12 +193,13 @@
    l'écriture des auras externes (`ecrire`, point de passage de tous les
    contrôles de leur boîte) et le choix d'un set recherché. Deux formes,
    une par format, choisies par `SOUS_LG` comme le panneau lui-même :
-   - **Au format bureau, quel que soit le pointeur** — la colonne repliable « Aura, exclusion, avancés »
-     s'ouvre (jeton `guideComplements`, que `PageBureau` applique à l'état
-     des onglets par `ouvrirColonne`), **puis** l'interrupteur, rendu dès
-     que la colonne est ouverte, est amené à l'écran du strict nécessaire
-     (`nearest`) ; l'effet se rejoue quand l'état des onglets change. En
-     A3, c'est la colonne repliable qui défile, seule.
+   - **Au format bureau, quel que soit le pointeur** — quand « Aura,
+     exclusion, avancés » est rangée dans le groupe d'onglets, l'onglet
+     « Options » s'ouvre (jeton `guideComplements`, que `PageBureau` passe
+     à l'onglet ouvert) ; **puis** l'interrupteur, rendu dès que la colonne
+     ou l'onglet est visible, est amené à l'écran du strict nécessaire
+     (`nearest`) : c'est la colonne, ou le panneau du groupe, qui défile,
+     seule.
    - **Au format téléphone** — le panneau « Options de recherche » s'ouvre par-dessus
      la carte ; il reste piloté par la barre de navigation, l'écran le
      demande par la prop `onOuvrirMenu` (`App.tsx`, relayée par

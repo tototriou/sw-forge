@@ -310,10 +310,10 @@ for (let s = 0; s < SCENARIOS; s++) {
     const bucketCapReal = preset.key === 'bas' ? prepared.bucketCap : prepareSearch({ base: BASE, artifacts: [], pool, requirement, metric: 'eff', slotFilterCap: preset.cap })!.bucketCap;
 
     const bucketsA_real = drain(
-      buildBuckets('A', [0, 1, 2], { ...prepared, bucketCap: bucketCapReal }, prepared.maxSetsForA, undefined, false, combosOrderMode)
+      buildBuckets('A', [0, 1, 2], { ...prepared, bucketCap: bucketCapReal }, prepared.maxSetsForA, undefined, combosOrderMode)
     );
     const bucketsB_real = drain(
-      buildBuckets('B', [3, 4, 5], { ...prepared, bucketCap: bucketCapReal }, prepared.maxSetsForB, undefined, false, combosOrderMode)
+      buildBuckets('B', [3, 4, 5], { ...prepared, bucketCap: bucketCapReal }, prepared.maxSetsForB, undefined, combosOrderMode)
     );
 
     const foundA = bucketFor(bucketsA_real, idsA);

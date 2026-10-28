@@ -25,7 +25,8 @@ interface Props {
   // composants qui l'exposent déjà nativement (voir leurs propres fichiers,
   // déjà utilisés à échelle réduite par `BuildCandidateCard.tsx`). `StatPanel`
   // reste à sa largeur FIXE (`w-[200px]`, voir son commentaire de tête) : elle
-  // ne bouge JAMAIS, quel que soit l'appelant — un panneau qui rétrécirait ici
+  // ne bouge JAMAIS — seules les cartes de résultat de l'Optimizer au bureau
+  // la posent plus étroite (`serre`), fixe elle aussi — un panneau qui rétrécirait ici
   // recréerait exactement le déplacement au clic base+bonus↔total que sa
   // largeur fixe existe pour empêcher. `undefined` = taille normale
   // (comportement historique inchangé pour RTA/Siège, seuls appelants avant
@@ -51,6 +52,12 @@ interface Props {
   // `undefined` pour RTA, Siège, speed tuning, le sélecteur d'exclusion —
   // aucune ligne de compteur n'y apparaît.
   relicUsageById?: Record<number, number>;
+  // Largeurs NATURELLES de la fiche, à pleine échelle : `deplie`, panneau de
+  // statistiques et groupe sur une rangée ; `replie`, sa rangée la plus large
+  // une fois le groupe passé à la ligne. SEUL l'Optimizer au bureau la lit,
+  // pour poser « Valider ce build » à la largeur de la fiche telle
+  // qu'affichée ; les autres écrans ne la fournissent pas.
+  onLargeursNaturelles?: (l: { deplie: number; replie: number }) => void;
 }
 
 export default function MonsterGear({
@@ -60,6 +67,7 @@ export default function MonsterGear({
   selection,
   onSelectionChange,
   relicUsageById,
+  onLargeursNaturelles,
 }: Props) {
   const stats = computeStats(gear);
   const [selInterne, setSelInterne] = useState<Selected>(null);
@@ -117,6 +125,10 @@ export default function MonsterGear({
   // L'arrondi de l'échelle sert le même but : sans lui, deux mesures
   // équivalentes à 10⁻¹⁵ près relanceraient un tour.
   const [mesure, setMesure] = useState<{ w: number; h: number; s: number } | null>(null);
+  // Lu dans la mesure sans la relancer : le parent passe en général une
+  // fonction neuve à chaque rendu.
+  const largeursRef = useRef(onLargeursNaturelles);
+  largeursRef.current = onLargeursNaturelles;
 
   useLayoutEffect(() => {
     const racine = racineRef.current;
@@ -129,6 +141,20 @@ export default function MonsterGear({
       // mesure se mordrait la queue.
       const naturelW = groupe.offsetWidth;
       const naturelH = groupe.offsetHeight;
+      // Le panneau garde sa largeur fixe et le groupe sa largeur de contenu
+      // (`w-max`, `transform` hors layout) : ces deux largeurs ne dépendent
+      // pas de la place reçue, le parent peut s'en servir pour la choisir.
+      // 8 : l'écart `gap-2` du conteneur, comme plus bas. ⚠️ **Largeur du
+      // groupe arrondie au pixel SUPÉRIEUR** (largeur calculée, fractionnaire,
+      // insensible au `transform` comme `offsetWidth`) : `offsetWidth`
+      // arrondit au plus proche, et une boîte posée à 352 pour un groupe de
+      // 352,4 px fait passer le groupe à la ligne — la fiche se replie alors
+      // que la place de la fiche dépliée lui est donnée.
+      const panneauW = statPanelRef.current?.offsetWidth ?? 0;
+      const groupeW = Math.ceil(parseFloat(getComputedStyle(groupe).width) || naturelW);
+      if (groupeW > 0 && panneauW > 0) {
+        largeursRef.current?.({ deplie: panneauW + 8 + groupeW, replie: Math.max(panneauW, groupeW) });
+      }
       // ⚠️ **Deux façons de calculer la place disponible, format par format —
       // demande explicite au doigt (« la fiche de stats, les artéfacts, les
       // runes ainsi que la relique tiennent alignés ensemble »), jamais

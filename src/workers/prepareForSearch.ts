@@ -1,6 +1,6 @@
 // Protocole de préparation d'une recherche — la LOGIQUE seule, sans aucune
-// API de messagerie (même patron que `pairSliceBody.ts` pour la phase
-// d'appariement) : `prepareSearch` peut lever `RechercheRefusee` (pool de
+// API de messagerie (même patron que `appariementRapideParallele.ts` pour la
+// phase d'appariement) : `prepareSearch` peut lever `RechercheRefusee` (pool de
 // reliques vide en mode `recherche`) ou toute autre erreur, et cette
 // fonction les convertit en un résultat NOMMÉ plutôt que de laisser l'appel
 // direct dans `self.onmessage` transformer un rejet en promesse non gérée

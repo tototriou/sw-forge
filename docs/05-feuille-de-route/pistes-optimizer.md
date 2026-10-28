@@ -19,21 +19,16 @@ et celles des tests, du harnais et des scripts de mesure :
 
 ### Prototypes de `buildBuckets`
 
-- **Constat** : deux paramètres de `buildBuckets`
-  (`src/lib/runeBuildOptim.ts`) sont annoncés « PROTOTYPE EN MESURE ».
+- **Constat** : un paramètre de `buildBuckets`
+  (`src/lib/runeBuildOptim.ts`) est annoncé « PROTOTYPE EN MESURE ».
   `skylineKeys` (frontière de Pareto des demi-builds de chaque
   compartiment, `Bucket.skyline`, `insertIntoSkyline`,
   `dominatesHalfCombo`) n'est passé par aucun appel de `src/`, `scripts/`
   ni `tests/` : seuls ses deux auxiliaires sont testés
   (`tests/rune-optim.test.ts`), et le script de mesure que cite son
-  commentaire n'existe plus. `adaptiveTrancheWeighting`, lui, est en
-  production : l'interrupteur « Prioriser les stats les plus difficiles »
-  le transmet (`src/components/outils/OptimizerSection.tsx`,
-  `src/workers/runeBuildOptim.worker.ts`), alors que son commentaire le dit
-  faux dans tous les appels de production.
+  commentaire n'existe plus.
 - **Idée** : retirer `skylineKeys`, `Bucket.skyline` et leurs auxiliaires,
-  ou les garder comme instrument appelé par un script de mesure ; récrire
-  le commentaire d'`adaptiveTrancheWeighting` d'après le code.
+  ou les garder comme instrument appelé par un script de mesure.
 - **Bloque** : un changement de code, et le choix entre retirer et garder.
   La variante elle-même est écartée
   ([03-developpeur/optimizer/moteur/elagages.md § Variantes écartées ou gardées en réserve](../03-developpeur/optimizer/moteur/elagages.md#variantes-écartées-ou-gardées-en-réserve)).
@@ -184,16 +179,47 @@ et celles des tests, du harnais et des scripts de mesure :
 - **Bloque** : jamais explorée. Se juge sur la qualité sous saturation,
   jamais sur les comptes ([03-developpeur/optimizer/moteur/artefacts.md § Mesurer un changement des bornes](../03-developpeur/optimizer/moteur/artefacts.md#mesurer-un-changement-des-bornes)).
 
-### GPU comme architecture de remplacement
+### Calcul sur GPU, en flottants 64 bits, dans l'application de bureau
 
-- **Constat** : porter l'appariement actuel sur GPU est écarté
+Le calcul sur GPU en flottants 32 bits est écarté : il ne garde pas
+l'exactitude des seuils ni des notes (même raison que pour l'appariement,
+[04-decisions/adr/appariement-par-seuils-exacts.md](../04-decisions/adr/appariement-par-seuils-exacts.md)).
+Seule reste possible une version en flottants 64 bits, pour l'application
+de bureau seulement.
+
+- **Constat** : la recherche (appariement) et la vérification de
+  l'équipement tournent sur CPU, en parallèle sur des Workers ; sur les
+  recettes mesurées, ni l'une ni l'autre ne domine plus le temps au point de
+  justifier une réécriture.
+- **Idée** : porter sur GPU, en flottants 64 bits et dans l'application de
+  bureau seulement, la partie qui redeviendrait le goulot (appariement
+  d'un espace de 10¹¹ paires et plus, ou vérification d'un très grand
+  nombre de builds).
+- **Bloque** : aucun besoin prouvé ; le calcul 64 bits sur GPU n'est pas
+  garanti par WebGPU (extension optionnelle selon le matériel, à vérifier)
+  et un module natif est écarté pour garder un seul code
+  ([04-decisions/adr/trois-plateformes-un-seul-code.md](../04-decisions/adr/trois-plateformes-un-seul-code.md)) ;
+  toute la vérification serait à refaire contre le calcul CPU.
+
+### Appariement sur GPU
+
+- **Constat** : l'appariement tourne sur CPU, par le noyau sur tableaux
+  typés qui saute par seuils exacts les paires vouées au rejet, en
+  parallèle sur des Workers ; porter ce parcours tel quel sur GPU est
+  écarté, sa chaîne de filtres à sortie anticipée faisant diverger les fils
   ([03-developpeur/optimizer/moteur/parallelisation.md § Choix du régime](../03-developpeur/optimizer/moteur/parallelisation.md#choix-du-régime)).
-- **Idée** : une autre architecture, un pré-filtrage léger puis le produit
-  cartésien intégral sans branchement, sur GPU.
-- **Bloque** : une réécriture majeure (tableaux typés, toute la
-  vérification à refaire), une compatibilité WebGPU incertaine selon le
-  matériel, et aucun besoin prouvé : le cas le plus lourd mesuré reste
-  acceptable sur CPU.
+  Sur la recette la plus lourde mesurée (~2 × 10¹⁰ paires au préréglage
+  Moyen), l'appariement ne pèse plus qu'autant que la construction des
+  moitiés.
+- **Idée** : réduire le temps de l'appariement là où il redevient le
+  goulot, par une autre architecture sur GPU (WebGPU, repli CPU) : un
+  pré-filtrage léger puis le produit cartésien intégral sans branchement.
+- **Bloque** : repoussée, aucun besoin prouvé tant que l'appariement ne
+  domine plus le temps total. La rouvrirait une recherche où il redevient
+  le goulot (un préréglage large, des espaces de 10¹¹ paires et plus), un
+  prototype se comparant alors à l'appariement CPU sur 2, 4 et 6 Workers,
+  les machines courantes. Restent ensuite une réécriture majeure (toute la vérification
+  à refaire) et une compatibilité WebGPU incertaine selon le matériel.
 
 ### Solveur joint sur plusieurs monstres
 
@@ -304,6 +330,32 @@ et celles des tests, du harnais et des scripts de mesure :
   artéfact qui n'en a pas, retirer le `as GearSet`.
 - **Bloque** : rien qu'un changement de code.
 
+### Diagnostic d'un build rejeté au CLI
+
+- **Constat** : un build sans couple artéfacts/relique faisable n'est que
+  compté par `scripts/optimizer-search.ts` (« rejeté(s) faute de couple
+  artéfacts/relique faisable »). Son diagnostic, le meilleur couple au
+  score, ne se calcule plus pendant la résolution de l'app, qui ne note que
+  les paires faisables : la fonction du CLI `resoudreEquipementCli`
+  (`scripts/lib/recipeToSearchParams.ts`) le calcule sur son option
+  `diagnostic`, par le calcul exhaustif, mais seuls
+  `scripts/banc-resolution-rapide.ts --diagnostic` et le test différentiel
+  [tests/cli-classement.test.ts](../../tests/cli-classement.test.ts) (appel
+  à la ligne 244) l'appellent ainsi ; ni le
+  script du CLI (`classementCli.ts` résout sans l'option) ni le harnais ne
+  l'exposent
+  ([03-developpeur/optimizer/moteur/reliques.md § Résolution rapide — le chemin de l'app](../03-developpeur/optimizer/moteur/reliques.md#résolution-rapide--le-chemin-de-lapp)).
+- **Idée** : une option `--diagnostic` de `scripts/optimizer-search.ts`
+  qui résout par `resoudreEquipementCli(…, { diagnostic: true })` et
+  imprime, pour chaque build rejeté, le meilleur couple et les conditions
+  qu'il ne tient pas, sans rien changer au classement des builds conformes.
+- **Bloque** : aucune question ne l'a encore demandée. L'écran ne montre
+  jamais un build rejeté, et le compte des rejetés suffit à suivre la
+  résolution. Ce qui la rouvrirait : une recette dont des builds sont
+  rejetés sans qu'on sache quelle condition les écarte. Reste alors à
+  décider ce que la ligne imprime ; le coût du calcul exhaustif par build
+  rejeté n'est pas mesuré.
+
 ## Dégâts réels
 
 Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pistes-degats-reels.md) (dont les attaques conjointes) et [pistes-degats-reels-stats.md](pistes-degats-reels-stats.md) (dont l'arrondi de la VIT de Gold Headband).
@@ -316,13 +368,14 @@ Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pist
   trouvés), jamais un temps
   ([02-app/optimizer/feat-interruption.md § Barre de progression](../02-app/optimizer/feat-interruption.md#barre-de-progression)). L'instant de
   départ existe déjà côté moteur (`PreparedSearch.startedAt`, l'instant
-  global repris par chaque tranche parallèle), et `scripts/perf-battery.ts`
+  global repris par chaque Worker d'appariement parallèle), et `scripts/perf-battery.ts`
   calcule `foundMs` sur ce principe.
 - **Idée** : quatre chiffres — un compteur de secondes pendant la
   recherche, l'instant du premier build trouvé, la durée de l'exploration
   complète quand elle va au bout, le temps écoulé à l'arrêt manuel.
-- **Bloque** : en appariement parallèle, « premier build trouvé » est le
-  minimum sur les tranches, pas un événement d'un seul fil : à traiter.
+- **Bloque** : en appariement parallèle, « premier build trouvé » arrive avec
+  le premier morceau fusionné, pas au moment où un fil l'a trouvé : à
+  traiter.
 
 ### Objectifs personnalisés
 

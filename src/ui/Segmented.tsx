@@ -31,6 +31,20 @@ const CRAN_DENSE = 'px-1 py-1 text-nano leading-tight';
 const CRAN_LG = 'lg:h-[26px] lg:py-0 lg:px-2.5 lg:text-xs';
 const CRAN_LARGE = `px-3 py-1.5 text-xs whitespace-nowrap ${CRAN_LG}`;
 const CRAN_PETIT = `px-2 py-1 text-micro whitespace-nowrap ${CRAN_LG}`;
+// **Libellés sur deux lignes** (forme `deuxLignes`, choisie par la mesure) :
+// le texte du cran normal, mais retour à la ligne permis (coupé à un espace,
+// jamais dans un mot : `whitespace-normal` sans `break-words`), interligne
+// serré et, à la souris, sans hauteur fixe — un plancher de 26 px, celui du
+// cran normal, et 38 px pour deux lignes (2 × 15 + 2 × 4). ⚠️ `lg:leading-tight`
+// en plus de `leading-tight` : `lg:text-xs` repose l'interligne de `xs` (18 px).
+const CRAN_DEUX_LIGNES_LG = 'leading-tight whitespace-normal lg:min-h-[26px] lg:py-1 lg:px-2.5 lg:text-xs lg:leading-tight';
+const CRAN_LARGE_DEUX_LIGNES = `px-3 py-1.5 text-xs ${CRAN_DEUX_LIGNES_LG}`;
+const CRAN_PETIT_DEUX_LIGNES = `px-2 py-1 text-micro ${CRAN_DEUX_LIGNES_LG}`;
+
+// Forme du contrôle, choisie par la mesure en mode automatique, dans cet
+// ordre : tout sur une ligne si ça tient ; sinon les libellés passent sur deux
+// lignes au texte normal ; sinon seulement le texte resserré (`dense`).
+type Forme = 'ligne' | 'deuxLignes' | 'serre';
 
 export default function Segmented<T extends string>({
   options,
@@ -40,6 +54,7 @@ export default function Segmented<T extends string>({
   size = 'sm',
   disabled = false,
   dense,
+  colonnes,
 }: {
   // `disabled` par option : voir le `disabled` du contrôle entier plus bas
   // pour la distinction entre les deux axes.
@@ -80,13 +95,22 @@ export default function Segmented<T extends string>({
   //
   // ⚠️ **Laisser `undefined` = AUTOMATIQUE** (le défaut, et le bon choix dans
   // presque tous les cas) : le contrôle mesure lui-même s'il tient dans la
-  // place qu'on lui donne, et se resserre uniquement quand il déborderait.
+  // place qu'on lui donne. S'il déborderait, ses libellés passent d'abord sur
+  // deux lignes, au texte normal (« Défenses / siège ») ; il ne se resserre
+  // que si même ainsi il déborderait (un mot seul trop long, trop de crans).
   // Passer `true`/`false` FORCE le rendu — à réserver aux cas où l'on sait
   // mieux que la mesure (voir `AncientFilter.tsx`, qui resserre par cohérence
   // avec une rangée voisine, pas par manque de place).
   dense?: boolean;
+  // **Les crans en grille**, `colonnes` par rangée, à largeur égale (quatre
+  // crans en 2 × 2 dans une colonne étroite, comme l'objectif de recherche du
+  // bloc « Objectif et Rechercher » au bureau). Toujours un seul cadre : le
+  // choix reste exclusif à l'œil. ⚠️ Pas de resserrement automatique : la
+  // grille EST la réponse au manque de place, `dense` reste forçable.
+  colonnes?: number;
 }) {
-  const large = size === 'lg' || size === 'md';
+  const large = size === 'lg' || size === 'md' || colonnes != null;
+  const enGrille = colonnes != null;
   // ⚠️ **Mesure de la place RÉELLEMENT disponible, pas de la largeur de la
   // FENÊTRE** — `useMediaQuery(SOUS_SM)` était utilisé pour ça avant : un
   // seuil de fenêtre (639 px) ne dit RIEN de la largeur d'un contrôle posé
@@ -96,8 +120,9 @@ export default function Segmented<T extends string>({
   // place réellement reçue, quelle que soit la résolution.
   const racineRef = useRef<HTMLDivElement>(null);
   const mesureRef = useRef<HTMLDivElement>(null);
-  const [serre, setSerre] = useState(false);
-  const auto = dense === undefined;
+  const mesureDeuxRef = useRef<HTMLDivElement>(null);
+  const [formeMesuree, setFormeMesuree] = useState<Forme>('ligne');
+  const auto = dense === undefined && !enGrille;
 
   // ⚠️ `useLayoutEffect` et non `useEffect` : mesurer AVANT que le navigateur
   // peigne évite d'afficher un instant le rendu non resserré (donc débordant)
@@ -106,7 +131,8 @@ export default function Segmented<T extends string>({
     if (!auto) return;
     const racine = racineRef.current;
     const mesure = mesureRef.current;
-    if (!racine || !mesure) return;
+    const mesureDeux = mesureDeuxRef.current;
+    if (!racine || !mesure || !mesureDeux) return;
     // ⚠️ Comparaison contre la COPIE DE MESURE (toujours au cran NORMAL), pas
     // contre le contenu réel : mesurer le contenu réel oscillerait sans fin
     // — une fois resserré il ne déborde plus, donc on repasserait au cran
@@ -114,10 +140,18 @@ export default function Segmented<T extends string>({
     // la même largeur naturelle, indépendante de l'état courant.
     // En `lg`, les crans se partagent la largeur à égalité : c'est le plus
     // large qui doit tenir dans sa part, pas seulement la somme des crans.
+    // La seconde copie, en `w-min`, donne la largeur de chaque cran passé sur
+    // deux lignes (son mot le plus long). Cette forme tient si leur SOMME tient
+    // dans le contenu de la racine : un cran `flex-1` qui ne peut pas
+    // descendre sous son mot le plus long garde cette largeur et les autres se
+    // partagent le reste. Ni l'une ni l'autre copie ne dépend du cran choisi :
+    // le passage à la ligne ne bouge pas au clic.
     const verifier = () => {
       const crans = [...mesure.children].map(c => (c as HTMLElement).offsetWidth);
       const besoin = size === 'lg' && crans.length ? Math.max(...crans) * crans.length : mesure.scrollWidth;
-      setSerre(besoin > racine.clientWidth);
+      const style = getComputedStyle(racine);
+      const contenu = racine.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      setFormeMesuree(besoin <= racine.clientWidth ? 'ligne' : mesureDeux.scrollWidth <= contenu ? 'deuxLignes' : 'serre');
     };
     verifier();
     const ro = new ResizeObserver(verifier);
@@ -125,18 +159,55 @@ export default function Segmented<T extends string>({
     // libellés eux-mêmes peuvent changer — options remplacées, traduction).
     ro.observe(racine);
     ro.observe(mesure);
+    ro.observe(mesureDeux);
     return () => ro.disconnect();
   }, [auto, size]);
 
-  const compact = dense ?? serre;
+  const forme: Forme = dense === undefined ? formeMesuree : dense ? 'serre' : 'ligne';
+  const compact = forme === 'serre';
+  const deuxLignes = forme === 'deuxLignes';
+
+  // ⚠️ **En grille, les bords intérieurs se dessinent** : une grille interne
+  // au fond `border`, écartée d'1 px (`gap-px`), dont chaque case reprend le
+  // fond du cadre — les écarts deviennent des traits de 1 px, verticaux ET
+  // horizontaux, qui séparent les crans comme le trait de la rangée `lg`.
+  // Sans eux, quatre crans en 2 × 2 se lisaient comme un seul bloc.
+  if (enGrille) {
+    return (
+      <div className={`bg-panel2 border border-border rounded-lg p-0.5 w-full ${disabled ? 'opacity-40' : ''} ${className}`}>
+        <div className="grid gap-px bg-border" style={{ gridTemplateColumns: `repeat(${colonnes}, minmax(0, 1fr))` }}>
+          {options.map((o) => {
+            const active = value === o.key;
+            return (
+              <div key={o.key} className="flex items-stretch bg-panel2">
+                <button
+                  onClick={() => onChange(o.key)}
+                  disabled={disabled || o.disabled}
+                  title={o.hint}
+                  aria-pressed={active}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-semibold text-center
+                              transition disabled:cursor-not-allowed ${dense ? CRAN_DENSE : CRAN_LARGE} ${
+                                o.disabled ? 'opacity-40 text-ink-dim' : active ? 'bg-accent text-accent-ink' : 'text-ink-dim hoverable:text-ink'
+                              }`}
+                >
+                  {o.icon}
+                  {o.label}
+                  {o.suffix}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
       ref={racineRef}
       // `relative` : contexte de positionnement de la copie de mesure
       // ci-dessous, qui doit sortir du flux sans peser sur la mise en page.
-      className={`relative flex items-center ${
-        size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'
+      className={`relative flex ${deuxLignes ? 'items-stretch' : 'items-center'} ${size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'
       } bg-panel2 border border-border rounded-lg p-0.5 ${disabled ? 'opacity-40' : ''} ${className}`}
     >
       {/* ⚠️ **Copie de MESURE, jamais affichée** — sert uniquement à connaître
@@ -169,19 +240,39 @@ export default function Segmented<T extends string>({
               </div>
             ))}
           </div>
+          <div ref={mesureDeuxRef} className={`absolute left-0 top-0 flex w-max flex-none items-center ${size === 'lg' ? 'gap-0' : 'gap-0.5'}`}>
+            {options.map((o, i) => (
+              <div key={o.key} className="flex flex-none items-stretch">
+                {size === 'lg' && i > 0 && <span className="w-px self-stretch" />}
+                <span
+                  className={`flex w-min flex-none items-center justify-center gap-1.5 font-semibold ${
+                    large ? CRAN_LARGE_DEUX_LIGNES : CRAN_PETIT_DEUX_LIGNES
+                  }`}
+                >
+                  {o.icon}
+                  {o.label}
+                  {o.suffix}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {options.map((o, i) => {
         const active = value === o.key;
         return (
-          <div key={o.key} className={`flex items-stretch ${size === 'lg' ? 'flex-1' : 'flex-none'}`}>
+          // Sur deux lignes, un cran de `sm`/`md` peut rétrécir jusqu'à son
+          // mot le plus long (`flex-initial`) : c'est ce qui fait passer le
+          // libellé à la ligne.
+          <div key={o.key} className={`flex items-stretch ${size === 'lg' ? 'flex-1' : deuxLignes ? 'flex-initial' : 'flex-none'}`}>
             {/* ⚠️ Élément à part, PAS un `border-l` posé sur le bouton
                 arrondi : un `border-l` sur un `rounded-md` se courbe aux
                 coins au lieu de rester droit. Un trait dédié, sans rayon,
                 reste rigoureusement vertical sur toute la hauteur
                 (`self-stretch`). Toujours dessiné, même entre deux cases
-                adjacentes dont l'une est sélectionnée. */}
+                adjacentes dont l'une est sélectionnée. En grille, les
+                traits sont les écarts de la grille interne (plus haut). */}
             {size === 'lg' && i > 0 && <span className="w-px self-stretch bg-border" />}
             <button
               onClick={() => onChange(o.key)}
@@ -190,7 +281,7 @@ export default function Segmented<T extends string>({
               aria-pressed={active}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-semibold text-center
                           transition disabled:cursor-not-allowed ${
-                            compact ? CRAN_DENSE : large ? CRAN_LARGE : CRAN_PETIT
+                            compact ? CRAN_DENSE : deuxLignes ? (large ? CRAN_LARGE_DEUX_LIGNES : CRAN_PETIT_DEUX_LIGNES) : large ? CRAN_LARGE : CRAN_PETIT
                           } ${
                             // ⚠️ `o.disabled` (grisage PAR OPTION) s'applique
                             // même si le contrôle entier ne l'est pas — le

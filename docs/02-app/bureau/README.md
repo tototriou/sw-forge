@@ -48,8 +48,8 @@ Electron `44.5.1`, electron-builder `26.15.3`, electron-updater `6.8.9`
    tour `session.json`, `swex.json` et `fenetre.json`.
 2. **À `ready`** : aucun menu (`Menu.setApplicationMenu(null)`) ;
    `protocol.handle` sert les fichiers du build ; la fenêtre est créée,
-   puis branchés la navigation, la mise à jour, le dossier SW Exporter et
-   la session en cours ;
+   puis branchés la navigation, la mise à jour, le dossier SW Exporter, la
+   session en cours et le canal des cœurs physiques ;
    elle charge `SWBLACKSMITH_DEV_URL` sinon `app://swblacksmith/`. En mode
    preuve, le scénario demandé par les variables d'environnement se lance.
 3. Toutes les fenêtres fermées : l'app quitte.
@@ -64,6 +64,7 @@ lecteur côté page (`estBureau()` = l'objet présent, avec `bureau: true`).
 |-----------|-------|------|
 | `bureau`, `plateforme` (`process.platform`) | — | valeurs |
 | `couleurs({ fond, barre, symboles })` | `bureau:couleurs` | page → bureau |
+| `coeursPhysiques()` | `bureau:coeurs-physiques` (`invoke`) | rend le nombre de cœurs physiques, ou `null` |
 | `miseAJour.etat()` | `bureau:mise-a-jour` (`invoke`) | état courant |
 | `miseAJour.surChangement(rappel)` | `bureau:mise-a-jour` | bureau → page ; rend de quoi se désabonner |
 | `miseAJour.rechercher()`, `telecharger()`, `redemarrer()` | `bureau:rechercher`, `bureau:telecharger`, `bureau:redemarrer` | page → bureau |
@@ -94,6 +95,7 @@ change pas. Ce qui en dépend aujourd'hui :
 | « Se déconnecter », barre du haut (ordinateur) | absent : sans compte ni ordinateur partagé, il n'a pas de sens ; « Sauvegarder sous… » à sa place, « Tout supprimer » (Paramètres) reste le moyen de tout effacer |
 | — | la sauvegarde de session : « Sauvegarder » (barre du haut aux deux formats, ligne « Session » des Paramètres, palette, Ctrl+S) réécrit la session en cours ; « Sauvegarder sous… » dans la barre du haut et la palette ([transverse/](../transverse/) (sauvegarde de session)) |
 | Textes qui parlent du navigateur (« dans ton navigateur », « en fermant l'onglet », « ta prochaine visite », thème « Auto », « un autre navigateur ») | leur variante : « sur ta machine », « en fermant l'application »… (`selonSupport(site, app)`) |
+| Workers de la recherche de runes : la moitié des fils logiques moins deux (`navigator.hardwareConcurrency`) | les cœurs physiques moins deux, lus par le bureau (« Les cœurs physiques ») ; la règle du site si la lecture échoue |
 
 ## La coquille
 
@@ -128,6 +130,34 @@ change pas. Ce qui en dépend aujourd'hui :
   de l'app est bloquée (un fichier déposé à côté de la zone d'import ne
   remplace plus l'app) ; un téléchargement passe par « Enregistrer le
   fichier », dans Téléchargements.
+
+## Les cœurs physiques
+
+La recherche de runes répartit son appariement sur des Workers, un par cœur
+physique moins deux
+([parallelisation.md § Choix du régime](../../03-developpeur/optimizer/moteur/parallelisation.md)).
+Le navigateur n'annonce que des fils logiques, et le site suppose deux fils
+par cœur ; l'app lit le vrai nombre (`bureau/coeurs.ts`, lecture pure et
+testée dans `bureau/coeursPur.ts`), aucune API de Node ne le donnant
+(`os.cpus()` compte les fils) et sans module natif :
+
+- **Windows** : `powershell.exe -NoProfile -NonInteractive -Command
+  "(Get-CimInstance -ClassName Win32_Processor).NumberOfCores"`, une ligne
+  par processeur, sommées. L'exécutable est pris par son chemin absolu sous
+  `SystemRoot`, lu à l'exécution : `System32\WindowsPowerShell\v1.0\powershell.exe`.
+  Sans dossier système absolu, la lecture échoue sans recherche dans le PATH ;
+- **Linux** : `/proc/cpuinfo` (paires `physical id` / `core id`
+  distinctes), puis `lscpu --parse=CORE,SOCKET` si le fichier ne les porte
+  pas (processeurs ARM, certaines machines virtuelles).
+
+Lu une fois, à la première demande de la page, puis gardé ; la commande est
+lancée sans fenêtre et abandonnée après 15 s. Une lecture en échec ou
+illisible rend `null`, et la recherche garde la règle du site. Côté page,
+`coeursPhysiques()` (`src/lib/bureau.ts`) rend `null` sur le site et pour
+toute réponse qui n'est pas un entier positif ; le hook de la recherche
+(`src/hooks/useBuildOptimSearch.ts`) le demande au montage et le passe dans
+chaque demande au Worker de recherche (`DemandeDeRecherche.coeursPhysiques`),
+qui n'a pas accès au pont.
 
 ## Les données
 
@@ -295,7 +325,7 @@ npm run bureau:preuve -- --swex        # le dossier SW Exporter, sur des fixture
 npm run bureau:preuve -- --session     # « Sauvegarder », « Sauvegarder sous… », conservation refusée
 npm run bureau:preuve -- <dossier> --exe "<app installée>"  # la même chose, sur l'app installée
 npm run bureau:local                   # la regarder
-node tests/run.mjs bureau              # protocole, fenêtre, mise à jour, noms de fichiers
+node tests/run.mjs bureau              # protocole, fenêtre, mise à jour, noms de fichiers, cœurs physiques
 ```
 
 Le mode preuve (`bureau/preuve.ts`, variables `SWBLACKSMITH_PREUVE` et

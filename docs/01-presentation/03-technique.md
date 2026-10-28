@@ -12,7 +12,7 @@ commits, vérifications) sont dans [AGENTS.md](../../AGENTS.md) et
 | Build | Vite 5, Tailwind 3, PostCSS + autoprefixer, et le plugin de l'écran partagé (`scripts/lib/postcssVolets.ts`), tous déclarés dans `vite.config.ts` |
 | Dépendances runtime | `lucide-react` (icônes), `framer-motion` (animations), `react-resizable-panels` (séparateur de l'écran partagé) — aucune mesure d'audience |
 | Node | **24** (LTS active), déclaré à trois endroits qui doivent rester alignés : `engines` de `package.json`, `.nvmrc` et la CI |
-| Calcul lourd | Web Workers (`src/workers/`) |
+| Calcul lourd | Web Workers de recherche, classement et résolution (`src/workers/`) ; corps de calcul partagés avec les outils Node |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé) |
 | Déploiement du site | Vercel (preset Vite, sortie `dist`) : déploiement automatique sur `main`, preview par branche |
 | Application de bureau | Electron, voir ci-dessous |
@@ -35,13 +35,15 @@ Code dans **`bureau/`** (hors de `src/` : il tourne dans Node) :
 - `session.ts` + `sessionPur.ts` (session en cours : « Sauvegarder » la réécrit, « Sauvegarder
   sous… », `session.json` ; dossier SW Blacksmith et son sous-dossier `sessions`,
   `dossier-swblacksmith.json`) ;
+- `coeurs.ts` + `coeursPur.ts` (nombre de cœurs physiques, lu par une commande du système et
+  donné à la page : le nombre de Workers de la recherche de runes en dérive) ;
 - `preuve.ts`, `installeur.nsh` (désinstalleur Windows), `icone.ico` (générée par
   `scripts/generer-icone-bureau.mjs`).
 
 Empaqueté par `electron-builder.yml`, publié au tag `v*` par `.github/workflows/bureau.yml`
 (installeurs attachés à la release), compilé par `scripts/construire-bureau.mjs` vers le dossier
 `dist-bureau` (non suivi). Côté page : `src/lib/bureau.ts` (`estBureau()`, couleurs du thème,
-mise à jour), `src/components/MiseAJourBureau.tsx` (la mise à jour dite par la notification),
+mise à jour, cœurs physiques), `src/components/MiseAJourBureau.tsx` (la mise à jour dite par la notification),
 `src/components/BlocApplication.tsx` (bloc « Application » des Réglages : version, mise à jour à
 portée, dossier SW Exporter), `src/components/SuiviSwex.tsx` (applique l'export : tout après le
 choix d'un invocateur, « Mon compte » ensuite), `src/hooks/useEtatSwex.ts` (l'état du dossier, lu

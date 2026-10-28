@@ -60,7 +60,7 @@ function recette(setsAuraExternes: unknown, sets: string[] = []) {
     monsterCom2usId: 14104, monsterName: 'Monstre du test',
     requirement: { sets, minStats: {} }, objective: 'efficience', damageSetup: DEFAULT_DAMAGE_SETUP,
     compterAurasResPre: true, metric: 'eff', slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    exhaustiveSearch: false,
     excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
     ignoreArtifacts: false, artifactMainByKind: {},
   });
@@ -248,27 +248,10 @@ export function testAurasEcranInterrupteur() {
   ok(/const \[compterAurasResPre, setCompterAurasResPre\] = useState\(base.compterAurasResPre\);/.test(lire('src/hooks/useOptimizerState.ts'))
     && lire('src/lib/criteresOptimizer.ts').includes("compterAurasResPre: true, critereArtefacts: 'brut'"),
     'état : activé par la base complète');
-
-  const ecran = lire('src/components/outils/OptimizerSection.tsx');
-  const sansCommentaires = ecran.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  const avances = sansCommentaires.slice(sansCommentaires.indexOf('const reglagesAvancesInner = '), sansCommentaires.indexOf('const reglagesAvancesTitre = '));
-  const libelle = 'Compter les effets d\'auras Tolerance et Précision dans les conditions';
-  // La rangée entière : de son cadre jusqu'à la fermeture qui suit l'interrupteur.
-  // Depuis 7b, la rangée porte un cadre intérieur — la cible de l'ouverture
-  // guidée (voir `testAurasEcranGuidage`) — autour du libellé et de l'interrupteur.
-  const rangee = avances.match(
-    /<div className="py-2 last:pb-0">\s*<div\s+ref=\{[^}]*\}\s+className=\{`[^`]*`\}\s*>\s*<div className="flex min-w-0 flex-1 items-center gap-1\.5">\s*<span className="min-w-0 text-\[11\.5px\] text-ink-dim">\s*Compter les effets[\s\S]*?<Interrupteur[\s\S]*?\/>\s*<\/span>\s*<\/div>\s*<\/div>/,
-  )?.[0] ?? '';
-  ok(new RegExp(`<span className="min-w-0 text-\\[11\\.5px\\] text-ink-dim">\\s*${libelle}\\s*</span>`).test(rangee),
-    'Réglages avancés : une rangée au libellé exact de l’utilisateur');
-  ok(rangee.includes(`<HelpPopover title="${libelle}">`), 'avec une aide');
-  ok(rangee.includes('<Interrupteur\n') && new RegExp(`<Interrupteur\\s+actif=\\{compterAurasResPre\\}\\s+onChange=\\{setCompterAurasResPre\\}\\s+aria-label="${libelle}"\\s*/>`).test(rangee),
-    'interrupteur `src/ui` branché sur compterAurasResPre');
-  const position = rangee.length > 0 ? avances.indexOf(rangee) : -1;
-  ok(position >= 0 && /\)\}\s*$/.test(avances.slice(0, position)) && /^\s*<\/div>\s*<\/div>\s*\);\s*$/.test(avances.slice(position + rangee.length)),
-    'rendu SANS condition, en dernier, dans le contenu commun aux deux formats (`reglagesAvancesInner`)');
-  egal(ecran.match(/reglagesAvancesInner\((true|false)\)/g), ['reglagesAvancesInner(false)', 'reglagesAvancesInner(true)'],
-    'le même contenu sert le flottant du bureau et le panneau « Options » au doigt');
+  // À l'écran — la rangée au libellé exact, son aide, l'interrupteur branché
+  // sur `compterAurasResPre`, rendu sans condition, en dernier, le même
+  // contenu au bureau et au téléphone : `testRenduOptimizerReglagesAvancesContenu`
+  // (rendu) et `testRendu…OptimizerEcranReglagesAvances` (clic, navigateur).
 }
 
 export function testAurasEcranRappel() {
@@ -298,14 +281,17 @@ export function testAurasEcranRappel() {
   egal(damageSetupApresChangementMonstre(setup).setsAuraExternes, auras,
     'les nombres ne sont jamais réécrits : le changement de monstre conserve les auras, le rappel ne fait que les signaler');
 
-  // Branchement : dans le seul onClick d'un membre de la liste de travail.
+  // Branchement : dans le seul geste d'un membre de la liste de travail. Le
+  // geste est repéré par sa LOGIQUE (garde, restauration… jusqu'au rappel),
+  // où qu'il soit écrit dans l'écran ; que le clic d'une ligne de la zone C
+  // le déclenche, et lui seul, est prouvé au navigateur
+  // (`testRendu…MemoireOptimizerRappelAurasDestination`, `testRendu…OptimizerEcranRappel`).
   const ecran = lireSansCommentaires('src/components/outils/OptimizerSection.tsx');
-  const zoneC = ecran.slice(Math.max(0, ecran.indexOf('const zoneCContent = (')));
-  const clic = entre(zoneC, 'onClick={() => {', 'className="flex min-w-0 flex-1 items-center gap-2 text-left"');
+  const clic = entre(ecran, 'if (!resolved) return;', 'else setRappelAuras(null);');
   // La restauration est l'action de l'état partagé ; le rappel reste
   // uniquement dans le geste explicite de cette ligne.
   const chemin = entre(ecran, 'function choisirExemplaire(', 'function handleAddToList(');
-  ok(clic.includes('if (!resolved) return;') && clic.includes('optimizer.choisirMembre(m.listId, m.selector);')
+  ok(clic.includes('optimizer.choisirMembre(m.listId, m.selector);')
     && chemin.includes('setSelectedId(id);') && chemin.includes('effacerResultats()'),
   'source : le geste d’un membre de la liste de travail (zone C) est localisé');
   ok(/doitRappeler\(\s*'liste',/.test(clic), 'source : le rappel est décidé DANS ce onClick, voie « liste »');
@@ -320,7 +306,7 @@ export function testAurasEcranRappel() {
   for (const [nom, corps] of [
     ['pickSpecies (bestiaire)', entre(ecran, 'function pickSpecies(', 'const zoneDRef = useRef')],
     ['pickSource (puces de source)', entre(ecran, 'function pickSource(', 'function pickSpecies(')],
-    ['importRecipe (import de recette)', entre(ecran, 'function importRecipe(', 'const candidatesSource =')],
+    ['importRecipe (import de recette)', entre(ecran, 'function importRecipe(', '\n  }\n')],
   ] as const) {
     ok(corps.length > 0 && !/doitRappeler|setRappelAuras/.test(corps), `source : ${nom} ne rappelle rien`);
   }
@@ -331,48 +317,44 @@ export function testAurasEcranRappel() {
   ok(app.includes("optimizer.resetSearch('compte')") && !/doitRappeler|RappelAuras|rappelAuras/.test(app),
     'source : l’import de compte (App.tsx, `resetSearch(\'compte\')`) ne rappelle rien');
   ok(/setTimeout\(\(\) => setRappelAuras\(null\), DUREE_ATTENTION_MS\)/.test(ecran), 'source : effacé par une minuterie de DUREE_ATTENTION_MS');
-  ok(/<EtatMonstre[\s\S]*?rappelAuras=\{rappelAuras !== null\}[\s\S]*?\/>/.test(ecran), 'source : l’état du rappel est passé à « État de mon monstre »');
+  // L'état du rappel passé à « État de mon monstre » : la boîte des auras
+  // l'affiche au clic d'un membre (`testRendu…OptimizerEcranRappel`).
 
   // Rendu : la boîte des auras recolorée au token d'attention, message à place réservée.
   const carte = lireSansCommentaires('src/components/outils/EtatMonstre.tsx');
   ok(/<AurasExternesSaisie setup=\{setup\} maj=\{maj\} rappel=\{rappelAuras\}[^>]*\/>/.test(carte), 'rendu : la carte transmet le rappel à la saisie des auras');
   const saisie = carte.slice(Math.max(0, carte.indexOf('function AurasExternesSaisie(')));
-  ok(saisie.includes("rappel ? 'border-warn bg-warn-soft' : 'border-border-soft bg-panel2'"),
-    'rendu : la boîte passe au token d’attention (warn / warn-soft) à la place de ses couleurs — un seul contour de 1 px');
+  ok(saisie.includes("rappel ? 'border-warn bg-warn-soft' : sansCadre ? 'border-transparent' : 'border-border-soft bg-panel2'"),
+    'rendu : la boîte passe au token d’attention (warn / warn-soft) à la place de ses couleurs — un seul contour de 1 px ; sans cadre (bureau), le contour reste en place, transparent : le rappel le teinte sans rien déplacer');
   ok(/className=\{`col-start-1 row-start-1 flex items-center justify-between gap-2 \$\{rappel \? 'invisible' : ''\}`\}/.test(saisie),
     'rendu : l’en-tête occupe la case 1/1 de sa grille, effacé pendant le rappel');
-  const message = saisie.match(/<div className="col-start-1 row-start-1 self-center" aria-live="polite">\s*<p\s+className=\{`text-xs font-semibold text-warn \$\{\s*rappel \? '[^']*' : 'invisible'\s*\}`\}\s*>\s*Pense à vérifier les sets d&apos;aura externes\.\s*<\/p>/);
+  // `aria-live` sous condition d'`annonce` (vrai par défaut) : au bureau, la
+  // carte des auras n'est montée que colonne ouverte, la page annonce à sa
+  // place (`AnnonceRappelAuras`, plus bas).
+  const message = saisie.match(/<div className="col-start-1 row-start-1 self-center" aria-live=\{annonce \? 'polite' : undefined\}>\s*<p\s+className=\{`text-xs font-semibold text-warn \$\{\s*rappel \? '[^']*' : 'invisible'\s*\}`\}\s*>\s*Pense à vérifier les sets d&apos;aura externes\.\s*<\/p>/);
   ok(message !== null, 'rendu : « Pense à vérifier les sets d’aura externes. » dans la MÊME case, toujours rendu, invisible hors rappel (place réservée)');
+  ok(/annonce = true,/.test(saisie), 'rendu : la boîte annonce le rappel par défaut (téléphone) ; au bureau, la page : `testRenduOptimizerPageBureauDroite`');
   ok(!/\{rappel &&/.test(saisie), 'rendu : rien n’est monté sous condition du rappel — rien ne bouge quand il paraît');
 
   // Le MÊME rappel, aussi sous la liste de la zone C :
   // un seul état (`rappelAuras`), une seule
   // minuterie, deux rendus. Aucun déclencheur nouveau : les deux comptes plus
   // haut (un seul `doitRappeler`, un seul `setRappelAuras` hors effacement)
-  // le prouvent déjà.
-  const corpsZoneC = entre(ecran, 'const zoneCContent = (', '\n  return (');
-  // La liste est rendue par équipe (`groupesMembres`), dans son conteneur qui défile.
-  const finListe = corpsZoneC.indexOf('groupesMembres.filter(');
-  const liberer = corpsZoneC.indexOf('Libérer toutes les runes');
-  const sousLaListe = corpsZoneC.match(
-    /\{activeMembers\.length > 0 && \(\s*<p\s+className=\{`([^`$]*)\$\{\s*([^?]*?)\s*\?\s*'([^']*)'\s*:\s*'([^']*)'\s*\}`\}\s*>\s*([^<]*?)\s*<\/p>/
-  );
-  const debutMessage = sousLaListe?.index ?? -1;
-  ok(finListe >= 0 && debutMessage > finListe && /<\/div>\s*\)\}\s*$/.test(corpsZoneC.slice(finListe, debutMessage))
-    && (liberer < 0 || debutMessage < liberer),
-  'rendu 7c : un message SOUS la liste de la zone C — hors du conteneur qui défile, avant « Libérer toutes les runes » —, monté avec la liste');
-  const [, classes = '', condition = '', siRappel = '', sinon = '', texte = ''] = sousLaListe ?? [];
-  egal(condition, 'rappelAuras !== null', 'rendu 7c : branché sur le MÊME état que la boîte des auras, jamais une autre condition');
-  egal(sinon, 'invisible', 'rendu 7c : invisible hors rappel, jamais démonté — sa place est réservée, rien ne bouge');
-  egal(siRappel, 'animate-[apparition_200ms_var(--ease-out)]', 'rendu 7c : la même apparition que le message de la boîte des auras');
-  const jetons = classes.split(/\s+/);
-  ok(['border', 'border-warn', 'bg-warn-soft', 'text-warn'].every((c) => jetons.includes(c))
-    && jetons.filter((c) => /^border(-|$)/.test(c)).join(' ') === 'border border-warn' && !/\b(ring|outline)\b/.test(classes),
-  'rendu 7c : même token (contour warn de 1 px, fond warn-soft, texte warn), un seul contour');
-  egal(texte, 'Pense à vérifier les sets d&apos;aura externes.', 'rendu 7c : le même message, mot pour mot');
-  egal(corpsZoneC.match(/rappelAuras/g)?.length ?? 0, 1, 'rendu 7c : la zone C ne lit le rappel qu’à cet endroit — rien n’y est monté sous sa condition');
-  egal(ecran.match(/rappelAuras !== null/g)?.length ?? 0, 2,
-    'source 7c : un seul état, deux rendus — `rappelAuras !== null` lu par « État de mon monstre » et sous la liste, nulle part ailleurs');
+  // le prouvent déjà. Son rendu — sous la liste, avant « Libérer toutes les
+  // runes », monté avec elle, invisible hors rappel, même token, un seul
+  // contour — : `testRenduOptimizerListeDeTravail` ; son apparition à place
+  // réservée, et que rien d'autre de la zone C ne dépend du rappel :
+  // `testRendu…OptimizerEcranRappel`.
+  // Au bureau, la boîte des auras quitte « État de mon monstre » pour la
+  // colonne « Aura, exclusion, avancés » (`SetsAuraBureau`) : un lecteur de
+  // plus, le même état, jamais les deux boîtes montées ensemble (un format
+  // à la fois). Et un dernier lecteur, au bureau seulement : la page, qui
+  // annonce le rappel colonne fermée comprise (`rappelAuras` de PageBureau).
+  egal(ecran.match(/rappelAuras !== null/g)?.length ?? 0, 4,
+    'source 7c : un seul état, deux rendus par format — `rappelAuras !== null` lu par la boîte des auras (« État de mon monstre » au téléphone, `SetsAuraBureau` au bureau), sous la liste, et par l’annonce de la page au bureau, nulle part ailleurs');
+  const pageBureau = ecran.slice(ecran.indexOf('<PageBureau'), ecran.indexOf('guideComplements={guideComplements}'));
+  ok(pageBureau.includes('rappelAuras={rappelAuras !== null}'), 'source 7c : au bureau, la page reçoit le même état pour l’annoncer');
+  ok(/<SetsAuraBureau setup=\{damageSetup\} maj=\{majDamageSetup\} rappel=\{rappelAuras !== null\}/.test(ecran), 'source 7c : au bureau, la boîte des auras reçoit le même état');
   egal(ecran.match(/setTimeout\([^;]*DUREE_ATTENTION_MS\)/g)?.length ?? 0, 2,
     'source 7c : aucune minuterie de plus — celle du rappel et celle de l’ouverture guidée, seules');
   ok(!/setTimeout/.test(carte), 'source 7c : « État de mon monstre » n’a aucune minuterie — il reçoit l’état du rappel, rien de plus');
@@ -420,16 +402,18 @@ export function testAurasEcranGuidage() {
     'source : chaque écriture des auras externes (`ecrire`, point de passage de tous les gestes de la boîte) guide quand Accuracy ou Tolerance y apparaît');
   egal(carte.match(/guideVersResPre\(/g)?.length ?? 0, 1, 'source : la carte ne décide le guidage qu’à cet endroit');
   ok(carte.includes('onGuiderResPre={onGuiderResPre}'), 'source : la carte transmet le guidage à la saisie des auras');
-  ok(/<EtatMonstre[\s\S]*?onGuiderResPre=\{guiderVersResPre\}[\s\S]*?\/>/.test(ecran), 'source : l’écran fournit son guidage à « État de mon monstre »');
-  const picker = entre(ecran, '<SetComboPicker', '/>');
-  ok(/if \(guideVersResPre\(\{ setsRecherches: comboSets \}, \{ setsRecherches: next \}\)\) guiderVersResPre\(\);/.test(picker),
+  // Que l'écran fournisse son guidage à « État de mon monstre », et que le
+  // choix d'un set recherché le déclenche : prouvé par les deux gestes au
+  // navigateur (`testRendu…OptimizerEcranGuidage`). Ici, la décision, où
+  // qu'elle soit écrite dans l'écran.
+  ok(/if \(guideVersResPre\(\{ setsRecherches: comboSets \}, \{ setsRecherches: next \}\)\) guiderVersResPre\(\);/.test(ecran),
     'source : choisir un set recherché guide quand Accuracy ou Tolerance y apparaît, sans toucher aux auras externes');
   egal(ecran.match(/guideVersResPre\(/g)?.length ?? 0, 1, 'source : l’écran ne décide le guidage qu’au choix du set recherché');
   egal(ecran.match(/(?<!function )guiderVersResPre\(\)/g)?.length ?? 0, 1, 'source : guiderVersResPre n’est appelé qu’au choix du set recherché (la carte le reçoit en prop)');
   for (const [nom, corps] of [
-    ['importRecipe (import de recette)', entre(ecran, 'function importRecipe(', 'const candidatesSource =')],
+    ['importRecipe (import de recette)', entre(ecran, 'function importRecipe(', '\n  }\n')],
     ['pickSpecies (bestiaire)', entre(ecran, 'function pickSpecies(', 'const zoneDRef = useRef')],
-    ['le geste de la zone C (changement de monstre)', entre(ecran.slice(Math.max(0, ecran.indexOf('const zoneCContent = ('))), 'onClick={() => {', 'className="flex min-w-0 flex-1 items-center gap-2 text-left"')],
+    ['le geste de la zone C (changement de monstre)', entre(ecran, 'if (!resolved) return;', 'else setRappelAuras(null);')],
   ] as const) {
     ok(corps.length > 0 && !/guiderVersResPre|guideVersResPre|setShowAdvanced\(true\)|onOuvrirMenu|setAttentionResPre/.test(corps), `source : ${nom} ne guide pas`);
   }
@@ -441,26 +425,24 @@ export function testAurasEcranGuidage() {
   const guider = entre(ecran, 'function guiderVersResPre() {', '\n  }\n');
   ok(/if \(sousLg\) \{[\s\S]*?onOuvrirMenu\(\);[\s\S]*?return;\s*\}/.test(guider),
     'au doigt : le panneau « Options de recherche » s’ouvre par-dessus la carte, demandé à App.tsx');
-  ok(guider.includes('const ancre = avancesRef.current;') && /defilerPuis\(ancre, \(\) => \{\s*setShowAdvanced\(true\);/.test(guider),
-    'à la souris : défiler vers l’ancre (`avancesRef`), PUIS ouvrir le flottant — l’ouverture est la suite du défilement');
-  ok(guider.indexOf('defilerPuis(ancre') >= 0 && guider.indexOf('setShowAdvanced(true)') > guider.indexOf('defilerPuis(ancre'), '… jamais l’ouverture avant le défilement');
-  const defiler = entre(ecran, 'function defilerPuis(', 'function guiderVersResPre() {');
-  ok(defiler.includes("el.scrollIntoView({ behavior: 'smooth', block: 'center' });") && /addEventListener\('scrollend', fin\)/.test(defiler)
-    && /setTimeout\(fin, 1000\)/.test(defiler) && /const fin = \(\) => \{\s*annuler\(\);\s*suite\(\);/.test(defiler),
-  '… même défilement que « Set de runes recherché », la suite à sa fin (`scrollend`, repli d’une seconde)');
+  // Au bureau, l'interrupteur vit en ligne dans la colonne repliable « Aura,
+  // exclusion, avancés » (la refonte du bureau a retiré le flottant des
+  // réglages avancés) : le guidage ouvre cette colonne par son jeton, que
+  // `PageBureau` résout avec la largeur (`ouvrirColonne`).
+  ok(/setGuideComplements\(\(n\) => \(n \?\? 0\) \+ 1\);/.test(guider) && !guider.includes('setShowAdvanced(true)'),
+    'à la souris : la colonne « Aura, exclusion, avancés » s’ouvre (jeton `guideComplements`), plus de flottant');
   ok(/setAttentionResPre\(\(n\) => \(n \?\? 0\) \+ 1\)/.test(guider), '… puis le surlignage, par un jeton');
   ok(/setTimeout\(\(\) => setAttentionResPre\(null\), DUREE_ATTENTION_MS\)/.test(ecran), 'le surlignage s’efface après DUREE_ATTENTION_MS (3 s)');
-  ok(/sousLg\s*\?\s*menuOuvert\s*\?\s*interrupteurResPrePanneauRef\.current\s*:\s*null\s*:\s*showAdvanced\s*\?\s*interrupteurResPreFlottantRef\.current\s*:\s*null/.test(ecran)
-    && ecran.includes("el.scrollIntoView({ behavior: 'smooth', block: sousLg ? 'center' : 'nearest' })"),
-  'puis l’interrupteur est amené à l’écran dans sa surface ouverte : centré dans le panneau, au plus près sous le flottant');
+  ok(/sousLg\s*\?\s*menuOuvert\s*\?\s*interrupteurResPrePanneauRef\.current\s*:\s*null\s*:\s*interrupteurResPreBureauRef\.current/.test(ecran)
+    && ecran.includes("el.scrollIntoView({ behavior: 'smooth', block: sousLg ? 'center' : 'nearest' })")
+    && /\}, \[attentionResPre, sousLg, menuOuvert, colonnesBureau\]\);/.test(ecran),
+  'puis l’interrupteur est amené à l’écran dans sa surface ouverte : centré dans le panneau, au plus près dans la colonne, rejoué quand la colonne s’ouvre');
 
-  // La cible : cadre permanent au token d'attention, une ref par surface, un seul contenu.
-  const avances = entre(ecran, 'const reglagesAvancesInner = ', 'const reglagesAvancesTitre = ');
-  ok(/ref=\{dansPanneau \? interrupteurResPrePanneauRef : interrupteurResPreFlottantRef\}/.test(avances),
-    'cible : une ref par surface (flottant du bureau, panneau au doigt)');
-  ok(/className=\{`-mx-1 flex items-center justify-between gap-3 rounded-md border [^`]*\$\{\s*attentionResPre !== null \? 'border-warn bg-warn-soft' : 'border-transparent'\s*\}`\}/.test(avances),
-    'cible : cadre PERMANENT (bord transparent hors guidage), au même token que le rappel — rien ne bouge quand il se colore');
-  egal(ecran.match(/const reglagesAvancesInner = /g)?.length ?? 0, 1, 'un seul `reglagesAvancesInner` : l’interrupteur reste rendu, sans condition, dans les deux surfaces');
+  // La cible — cadre permanent au token d'attention, amené à l'écran dans sa
+  // surface ouverte (une ref par surface), le même contenu dans les deux :
+  // `testRenduOptimizerReglagesAvancesContenu` (cadre transparent hors
+  // guidage, même contenu au bureau et au téléphone) et
+  // `testRendu…OptimizerEcranGuidage` (coloré, à l'écran, puis effacé).
 
   // La prop d'ouverture du panneau, du shell à l'écran.
   ok(/onOuvrirMenu: \(\) => void;/.test(ecran), 'prop : OptimizerSection reçoit onOuvrirMenu');

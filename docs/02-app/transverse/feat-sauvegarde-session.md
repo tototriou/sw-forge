@@ -206,6 +206,14 @@ lecteur actuel ; réécrite, elle porte la version 2.
 `lireSession(texte)` lit et valide le fichier entier, et rend une session
 avec ses avertissements, ou une erreur.
 
+Les champs retirés `adaptiveTrancheWeighting` et `adapterArtefactsAuTri`
+(« Adapter les artéfacts et reliques au tri ») d'une session historique sont
+ignorés sans erreur ni avertissement, vrais ou faux : `garderChampsOptimizer`
+ne conserve que `CHAMPS_OPTIMIZER_SESSION`. Il ne repart pas dans une
+sauvegarde suivante. Un tri `vitesse` (objectif Vitesse, qui ne se trie
+plus que par la colonne VIT) s'y relit `spd`, sans avertissement, par
+`triDesResultats` (colonnesResultats.ts), à l'écriture comme à la lecture.
+
 - **Refusé** : un texte qui n'est pas du JSON ou pas un objet ; un autre
   format ; une version qui n'est pas un entier ≥ 1, ou plus récente que
   `VERSION_SESSION` (« mets-la à jour pour la charger ») ; un `stockage`

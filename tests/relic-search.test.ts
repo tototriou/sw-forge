@@ -43,12 +43,13 @@ import {
   rankBlockingConditions,
   respecteConditionsAvecRelique,
   respecteMinEtMax,
-  searchBuilds,
+  pairBuckets,
 } from '../src/lib/runeBuildOptim';
+import { apparier, searchBuilds } from '../src/lib/rechercheRunes';
 import { drain } from '../scripts/lib/drain';
 import { oracleSearch, oracleSearchRuns } from '../scripts/lib/relicOracle';
-import { runPairSlice } from '../src/workers/pairSliceBody';
-import { ensurePairSliceBundle, makeSpawnSliceNode } from '../scripts/lib/spawnSliceNode';
+import { verifierContrat } from '../src/lib/appariementRapide';
+import { PARALLEL_PAIRING_THRESHOLD, regimeAppariement } from '../src/workers/parallelPairing';
 import { prepareOrRefuse } from '../src/workers/prepareForSearch';
 import { egal, ok, titre } from './outils';
 
@@ -155,7 +156,11 @@ export const CORPUS_5A: Record<'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'Fbis' | 'G' 
       ...six(900, h([10, 35])), ...six(1000, h([11, 40])),
     ];
     const inv = [relique(911, 100, 14), relique(912, 102, 14)];
-    return fixture('C', pool, inv, params(pool, { sets: [], minStats: { hp: 17400, def: 2784, atk: 1120 } }, { bucketCap: 10 }));
+    // Préréglage Bas (40, le pool de 8 runes par emplacement passe entier
+    // comme à 80) : aucun préréglage plus étroit dont la rétention, à son
+    // propre `bucketCap` dérivé, s'ajouterait et lèverait la pression
+    // (préréglages emboîtés, elagages.md).
+    return fixture('C', pool, inv, params(pool, { sets: [], minStats: { hp: 17400, def: 2784, atk: 1120 } }, { bucketCap: 10, slotFilterCap: 40 }));
   })();
   // D — deux valeurs d'une même principale, non dominées.
   const D = (() => {
@@ -431,10 +436,10 @@ export default async function testRelicSearch() {
     ok(presentes(result.traceur!, 'feasibility').every((p) => !p), 'traceur rejet : étage feasibility à 0 (rejet à eliminateInfeasible)');
   }
 
-  /* ── Traceur : recopié par l'adaptateur Node d'appariement parallèle
-   * (sonde TRACE_WORKER, avec de VRAIS
-   * `worker_threads`). `runPairSlice` le rend déjà ; seule la
-   * reconstruction EXPLICITE de `spawnSliceNode.ts` l'omettait. */
+  /* ── Traceur : le noyau d'appariement ne le remplit pas, donc un traceur
+   * fait sortir l'appariement du contrat numérique — séquentiel quel que soit
+   * l'espace, par `pairBuckets`, qui rend la trace entière, identique sur le
+   * chemin de production (`apparier`). */
   {
     const poolFixe = [1, 2, 3, 4, 5, 6].map((slot) => rune(slot, slot, [8, 5]));
     const rel = relique(1, 101, 9);
@@ -447,22 +452,13 @@ export default async function testRelicSearch() {
     const prepared = prepareSearch(p0)!;
     const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA));
     const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB));
-    const requete = { params: p0, bucketASlice: bucketsA, bucketsB, startedAt: prepared.startedAt };
-
-    const direct = await runPairSlice(requete, () => false, () => {});
-    ok(direct.traceur != null, 'traceur worker : runPairSlice direct porte le traceur');
-
-    const bundle = await ensurePairSliceBundle();
-    const spawn = makeSpawnSliceNode(bundle);
-    const handle = spawn(requete, () => {});
-    let viaAdaptateur: Awaited<typeof handle.done>;
-    try {
-      viaAdaptateur = await handle.done;
-    } finally {
-      handle.terminate();
-    }
-    ok(viaAdaptateur.traceur != null, 'traceur worker : l’adaptateur Node (spawnSliceNode) recopie le traceur');
-    egal(viaAdaptateur.traceur, direct.traceur, 'traceur worker : trace identique entre appel direct et adaptateur worker_threads');
+    const motif = verifierContrat(prepared, bucketsA, bucketsB);
+    ok(motif != null && /traceur/.test(motif), `traceur : hors contrat du noyau, motif nommé (${motif})`);
+    egal(regimeAppariement(10 * PARALLEL_PAIRING_THRESHOLD, motif), 'sequentiel', 'traceur : séquentiel même au-delà du seuil');
+    const reference = drain(pairBuckets(prepareSearch(p0)!, bucketsA, bucketsB));
+    const production = drain(apparier(prepareSearch(p0)!, bucketsA, bucketsB));
+    ok(production.traceur != null, 'traceur : le chemin de production (apparier) rend la trace');
+    egal(production.traceur, reference.traceur, 'traceur : trace identique à celle de pairBuckets');
   }
 
   /* ── L'oracle ne consomme jamais le contexte (garantie E). */
@@ -541,13 +537,16 @@ export default async function testRelicSearch() {
 
   /* ── Fixture B — deux minimums concurrents (PV ≥ 30300, DEF ≥ 1818) : la
    * borne accorde PV % +14 ET DEF % +14 à la fois ; le build O n'est faisable
-   * avec AUCUNE relique seule (faux positif de la borne), le build P l'est. */
+   * avec AUCUNE relique seule (faux positif de la borne), le build P l'est.
+   * La relique en « OU » du test conjoint écarte O dès la recherche. */
   {
     const { pool, inv, ctx, p0 } = CORPUS_5A.B;
     const O = [101, 102, 103, 104, 105, 106];
     const { relaxed, oracle } = verifierFixture('B', p0, ctx, { N: 2 });
     ok(!oracle.candidats.some((c) => cle(c.runeIds) === cle(O)), 'B : O n’est candidat pour aucune relique fixe (oracle)');
-    ok(relaxed.candidates.some((c) => cle(c.runeIds) === cle(O)), 'B : O est un faux positif de la borne (candidat relâché)');
+    ok(!relaxed.candidates.some((c) => cle(c.runeIds) === cle(O)), 'B : O, faux positif de la borne, n’est plus collecté (relique en « OU »)');
+    const trace = searchBuilds({ ...p0, relicContext: ctx, traceur: { runeIds: O } }).traceur!;
+    egal([trace.appariement.quickOkMin, trace.appariement.validationFinale], [true, false], 'B : O passe la borne (quickOk) et tombe à la validation finale, par la relique en « OU »');
     const gearO = { base: BASE, runes: pool.slice(0, 6), artifacts: [] };
     for (const r of inv) ok(!respecteConditionsAvecRelique(gearO, r, p0.requirement).respecte, `B : le filtre final exact rejette O avec la relique ${r.id}`);
     ok(cles(oracle.candidats).every((k) => cles(relaxed.candidates).includes(k)), 'B : tout candidat de l’oracle est candidat relâché (aucun faux négatif)');
@@ -634,7 +633,7 @@ export default async function testRelicSearch() {
     egal(ctx.bornes.min.atk, 1, 'F bis : Lmin = 1 sur la statistique forcée');
     const { trace } = verifierFixture('F bis', p0, ctx, { optimumRunes: [101, 102, 103, 104, 105, 106], rid: 951, N: 1 });
     egal(trace.appariement.quickOkMax, true, 'F bis : quickOk maximum accepte (fusion dans le ceil)');
-    egal(trace.appariement.validationFinale, true, 'F bis : validation finale accepte (floor(B × Lmin / 100) = 1, 103 + 1 = 104 ≤ 104)');
+    egal(trace.appariement.validationFinale, true, 'F bis : validation finale accepte (relique ATQ +1 % fondue dans le ceil : 101 + ceil(101 × 2 / 100) = 104 ≤ 104)');
     const diag = diagnoseFeasibility({ ...p0, relicContext: ctx }).find((d) => d.key === 'atk')!;
     ok(diag.satisfiable && diag.bound <= 104, `F bis : diagnostic maximum satisfiable (borne ${diag.bound} ≤ 104)`);
     // Le filtre final EXACT avec la relique réelle : 104 ≤ 104.

@@ -5,8 +5,8 @@
 // résout ce qu'on lui demande, dans l'ordre reçu.
 //
 // ⚠️ **Ce module doit rester NEUTRE**, comme le corps : ni `self`, ni
-// `Worker`, ni DOM, ni React. Le hook (`useArtifactOptimQueue`) ne fait que le
-// BRANCHER — il crée le Worker, lui passe les messages et lui fournit ses
+// `Worker`, ni DOM, ni React. Le classeur (`CorpsClassement`) ne fait que le
+// BRANCHER — il lui passe les messages du résolveur et lui fournit ses
 // « ports » (`PortsResolutionDistante`) ; les tests et le script de preuve
 // branchent les mêmes méthodes sur `CorpsResolution`, sans navigateur.
 //
@@ -14,6 +14,13 @@
 // décidée sur le fil de l'écran, par `prochainsATraiter` (page affichée
 // d'abord, puis l'avance de fond vers K confirmées) ; ce module ne trie rien, il prend les
 // restants dans l'ordre reçu.
+//
+// Plusieurs résolveurs : chacun est une VOIE (un Worker, un canal). Le pilote
+// donne à chaque voie vivante ses propres crédits, adresse chaque message à
+// une voie et retire une voie en panne sans perdre ses builds : ils
+// redeviennent à faire. Une voie, c'est le comportement d'un seul résolveur.
+// L'ordre d'arrivée des réponses n'est jamais supposé : chacune retrouve sa
+// demande par `idDemande`.
 
 import { RuneDetail } from '../types';
 import { BuildCandidate } from '../lib/runeBuildOptim';
@@ -22,16 +29,22 @@ import { ResultatArtefacts, VoieDeLaFile, cleBuild, voieDeLaFile } from '../lib/
 import { EntreesResolutionSerialisables, MessageVersResolution, ReponseResolution } from './resolutionBody';
 
 /**
- * Au plus DEUX demandes sans réponse, toutes confondues (annulées et d'un
- * contexte périmé comprises, tant que leur réponse n'est pas revenue).
+ * Au plus DEUX demandes sans réponse PAR VOIE, toutes confondues (annulées et
+ * d'un contexte périmé comprises, tant que leur réponse n'est pas revenue).
  *
  * Deux plutôt qu'une : pendant que le Worker résout la première, la seconde
  * attend déjà dans sa file — il enchaîne sans attendre l'aller-retour vers
- * l'écran, souvent occupé pendant une recherche (rendu, tri). Pas davantage :
+ * le classeur, occupé par ses tranches (notation, index). Pas davantage :
  * une demande partie est une demande que la page, si elle change, ne peut plus
  * doubler qu'en l'annulant.
  */
 export const DEMANDES_EN_VOL_MAX = 2;
+
+/** Un message pour le résolveur, et la voie (l'indice du Worker) qui le reçoit. */
+export interface EnvoiResolution {
+  voie: number;
+  message: MessageVersResolution;
+}
 
 /**
  * Ce qui identifie le contexte de la file, côté écran : les entrées
@@ -55,16 +68,26 @@ export interface PortsResolutionDistante {
   runesDe(c: BuildCandidate): RuneDetail[];
   /** Les builds à traiter, dans l'ordre de priorité : `prochainsATraiter` sur le cache courant. */
   restants(): readonly BuildCandidate[];
+  /**
+   * Les builds à CONFIRMER en fond (verdict sans note), au plus bas niveau de
+   * priorité : servis après `restants`, avec les crédits qu'il laisse. Jamais
+   * un build de `restants`. Au plus `maxEnVol` lus. Absent : aucune confirmation.
+   */
+  aConfirmer?(): readonly BuildCandidate[];
+  /** Un build confirmé conforme, sans note : le propriétaire le range à part du cache des notés. */
+  confirmer?(cle: string): void;
+  /** Le classement doit terminer son actualisation avant de connaître la file. */
+  actualisationEnCours?(): boolean;
   /** La page RÉELLEMENT affichée. */
   page(): readonly BuildCandidate[];
   /** Le cache de la file (`cleBuild` → résultat), le même que celui du chemin direct. */
   cache(): Map<string, ResultatArtefacts>;
-  /** `postMessage` vers le Worker ; peut lever (clonage impossible). */
-  envoyer(m: MessageVersResolution): void;
+  /** `postMessage` vers le Worker de la voie ; peut lever (clonage impossible). */
+  envoyer(m: MessageVersResolution, voie: number): void;
   /**
    * Publie le cache à l'écran — `forcer` passe outre la cadence. Rend VRAI si
-   * l'écran a reçu le cache, FAUX si la cadence l'a retenu (jamais faux quand
-   * `forcer`) : c'est ainsi que le module sait qu'une écriture attend encore.
+   * l'écran a reçu le cache, FAUX si la cadence, une tâche ou l'adoption de
+   * la source le retient. Un forçage retenu reste dû chez le propriétaire.
    */
   publier(forcer: boolean): boolean;
   /** Combien restent à traiter, pour l'affichage. */
@@ -75,10 +98,15 @@ export interface PortsResolutionDistante {
 
 /** Ce qu'il advient d'une réponse du Worker. */
 export type IssueReponse =
-  | { issue: 'ecrite'; cle: string }
+  // `confirmation` : le rejet d'une confirmation, écrit comme un résultat noté.
+  | { issue: 'ecrite'; cle: string; confirmation?: true }
+  // Une confirmation conforme : rien n'est écrit dans le cache, l'appelant la range (`confirmer`).
+  | { issue: 'confirmee'; cle: string }
   | {
       issue: 'ignoree';
-      motif: 'contexte-perime' | 'demande-annulee' | 'annulee-par-le-corps' | 'demande-inconnue' | 'cle-differente' | 'repli';
+      // `deja-notee` : le rejet d'une confirmation arrivé quand le build a déjà
+      // son résultat noté — jamais écrit par-dessus.
+      motif: 'contexte-perime' | 'demande-annulee' | 'annulee-par-le-corps' | 'demande-inconnue' | 'cle-differente' | 'repli' | 'deja-notee';
     }
   | { issue: 'erreur'; nom: string; message: string; vide?: RelicVide };
 
@@ -103,10 +131,20 @@ interface DemandeEnVol {
   idDemande: number;
   idContexte: number;
   cle: string;
+  // La voie qui l'a reçue : son annulation va là, et la panne de cette voie
+  // la rend à faire.
+  voie: number;
   // Annulée par l'écran (ou rendue caduque par un nouveau contexte) : sa
   // réponse, quelle qu'elle soit, ne sera pas écrite.
   annulee: boolean;
+  // Une résolution (note) ou une confirmation (verdict sans note) : une même
+  // clé peut avoir les deux en vol, ce sont deux demandes distinctes.
+  nature: NatureDemande;
 }
+
+type NatureDemande = 'noter' | 'confirmer';
+// La clé de planification : la nature ET le build.
+const cleDemande = (nature: NatureDemande, cle: string) => `${nature === 'noter' ? 'n' : 'c'}:${cle}`;
 
 /**
  * La publication est-elle FORCÉE après ce build ? Même règle que la tranche du
@@ -131,11 +169,100 @@ export class ResolutionDistante {
   // retenue (`publier` a rendu faux). Remis à faux par toute publication
   // effective, et par `renoncer`, qui la rend à l'appelant.
   private nonPubliee = false;
+  // Parmi elles, une écriture NOTÉE : la file des notes qui se vide la publie
+  // de force, même si des confirmations restent (elles suivent la cadence).
+  private noteNonPubliee = false;
+  private voieAvantActualisation: VoieDeLaFile | null = null;
 
-  constructor(readonly maxEnVol: number = DEMANDES_EN_VOL_MAX) {}
+  // Les voies, par indice : vivante ou retirée après une panne.
+  private voies: boolean[];
+  // Combien de voies vivantes reçoivent de nouvelles demandes (les premières
+  // par indice) ; les autres finissent seulement ce qu'elles ont.
+  private actives = Infinity;
+
+  /**
+   * `parVoie` : les crédits de chaque voie ; `voies` : le nombre de
+   * résolveurs. Une voie (le défaut) : un seul résolveur, ou la résolution
+   * directe du classeur.
+   */
+  constructor(readonly parVoie: number = DEMANDES_EN_VOL_MAX, voies = 1) {
+    if (!Number.isSafeInteger(voies) || voies < 1) throw new Error('Nombre de voies de résolution invalide');
+    this.voies = new Array<boolean>(voies).fill(true);
+  }
+
+  /** Les demandes sans réponse permises, toutes voies vivantes confondues. */
+  get maxEnVol(): number {
+    return this.parVoie * Math.min(this.actives, this.voiesVivantes);
+  }
+
+  /**
+   * Seules les `n` premières voies vivantes reçoivent de nouvelles demandes
+   * (`Infinity` : toutes). Le classeur n'en active qu'une tant que la
+   * recherche apparie encore : le pool ne prend pas de cœurs aux Workers
+   * d'appariement. Une demande déjà partie sur une autre voie y reste.
+   */
+  activerVoies(n: number): void {
+    if (!(n >= 1)) throw new Error('Nombre de voies actives invalide');
+    this.actives = n;
+  }
+
+  /** Les voies qui reçoivent de nouvelles demandes. */
+  get voiesActives(): number {
+    return Math.min(this.actives, this.voiesVivantes);
+  }
+
+  get voiesVivantes(): number {
+    return this.voies.filter(Boolean).length;
+  }
+
+  /** La voie existe-t-elle encore (ni retirée après une panne, ni hors du pool) ? */
+  voieVivante(voie: number): boolean {
+    return this.voies[voie] === true;
+  }
 
   get demandesEnVol(): number {
     return this.enVol.length;
+  }
+
+  /** Les résolutions (notes) sans réponse, confirmations exclues. */
+  get demandesDeNoteEnVol(): number {
+    let n = 0;
+    for (const d of this.enVol) if (d.nature === 'noter') n++;
+    return n;
+  }
+
+  /** Les demandes sans réponse de chaque voie (une voie retirée n'en a aucune). */
+  get demandesParVoie(): number[] {
+    const n = this.voies.map(() => 0);
+    for (const d of this.enVol) n[d.voie]++;
+    return n;
+  }
+
+  /**
+   * De nouveaux résolveurs, `voies` vivantes : les demandes en vol sont
+   * oubliées (leurs canaux sont fermés, aucune réponse n'en viendra) et le
+   * contexte repartira à la prochaine demande. Les compteurs continuent :
+   * aucun identifiant n'est réutilisé.
+   */
+  brancherVoies(voies: number): void {
+    if (!Number.isSafeInteger(voies) || voies < 1) throw new Error('Nombre de voies de résolution invalide');
+    this.voies = new Array<boolean>(voies).fill(true);
+    this.enVol = [];
+    this.contexte = null;
+  }
+
+  /**
+   * La voie est en panne : retirée, ses demandes en vol sont oubliées — leurs
+   * crédits rendus, leurs builds de nouveau à faire sur les autres voies au
+   * prochain tour. Une réponse tardive de cette voie ne correspond plus à
+   * aucune demande. Rend le nombre de voies vivantes qui restent.
+   */
+  retirerVoie(voie: number): number {
+    if (this.voies[voie]) {
+      this.voies[voie] = false;
+      this.enVol = this.enVol.filter((d) => d.voie !== voie);
+    }
+    return this.voiesVivantes;
   }
 
   get enRepli(): boolean {
@@ -147,8 +274,25 @@ export class ResolutionDistante {
     return this.nonPubliee;
   }
 
+  /** Change de propriétaire sans réutiliser les identifiants des demandes en vol. */
+  invalider(): MessageVersResolution[] {
+    return this.invaliderVoies().map((e) => e.message);
+  }
+
+  /** `invalider`, chaque annulation adressée à la voie de sa demande. */
+  invaliderVoies(): EnvoiResolution[] {
+    this.contexte = null;
+    this.voieAvantActualisation = null;
+    this.nonPubliee = false;
+    this.noteNonPubliee = false;
+    return this.enVol.filter((d) => !d.annulee).map((d) => {
+      d.annulee = true;
+      return { voie: d.voie, message: { type: 'annuler' as const, idDemande: d.idDemande } };
+    });
+  }
+
   private publier(p: PortsResolutionDistante, forcer: boolean): void {
-    if (p.publier(forcer)) this.nonPubliee = false;
+    if (p.publier(forcer)) { this.nonPubliee = false; this.noteNonPubliee = false; }
   }
 
   private estCourant(courant: ContexteCourant | null): boolean {
@@ -167,12 +311,25 @@ export class ResolutionDistante {
    *    y a du travail : changer dix fois un réglage sans recherche n'envoie
    *    rien. Un nouvel `idContexte` rend caduques toutes les demandes encore
    *    en vol (le corps annule celles qu'il n'a pas commencées) ;
+   *    Il part vers CHAQUE voie vivante ;
    * 2. les ANNULATIONS : une demande du contexte courant qui ne fait plus
-   *    partie des premiers restants (la page a changé, de meilleurs builds
-   *    sont arrivés) est retirée, sauf la plus ancienne en vol — le corps l'a
-   *    sans doute commencée, et sa réponse reste bonne à prendre ;
-   * 3. les DEMANDES, dans l'ordre des restants, jusqu'à `maxEnVol` demandes
-   *    sans réponse.
+   *    partie des `maxEnVol` premiers restants (la page a changé, de
+   *    meilleurs builds sont arrivés) est retirée, sauf la plus ancienne en
+   *    vol de sa voie — son Worker l'a sans doute commencée, et sa réponse
+   *    reste bonne à prendre. L'annulation part vers la voie de la demande ;
+   * 3. les DEMANDES, dans l'ordre des restants, chacune vers la voie vivante
+   *    qui en a le moins sans réponse (à égalité, la plus petite), jusqu'à
+   *    `parVoie` par voie.
+   *
+   * `aConfirmer` (confirmations en fond, verdict sans note) suit `restants`
+   * dans cette même file, au plus bas niveau : une confirmation ne prend
+   * qu'un crédit que les restants laissent, et une confirmation en vol qui
+   * n'est plus parmi les `maxEnVol` premiers de la file (une page demandée,
+   * par exemple) s'annule comme une résolution. Nature et build forment la
+   * clé d'une demande : une confirmation et une résolution du même build sont
+   * deux demandes.
+   *
+   * Une voie : exactement le pilote d'un seul résolveur.
    *
    * Idempotent : appelé deux fois de suite sans réponse entre les deux, le
    * second appel ne rend rien.
@@ -180,35 +337,70 @@ export class ResolutionDistante {
   planifier(
     courant: ContexteCourant | null,
     restants: readonly BuildCandidate[],
-    runesDe: (c: BuildCandidate) => RuneDetail[]
+    runesDe: (c: BuildCandidate) => RuneDetail[],
+    aConfirmer: readonly BuildCandidate[] = []
   ): MessageVersResolution[] {
+    return this.planifierVoies(courant, restants, runesDe, aConfirmer).map((e) => e.message);
+  }
+
+  /** `planifier`, chaque message adressé à sa voie. */
+  planifierVoies(
+    courant: ContexteCourant | null,
+    restants: readonly BuildCandidate[],
+    runesDe: (c: BuildCandidate) => RuneDetail[],
+    aConfirmer: readonly BuildCandidate[] = []
+  ): EnvoiResolution[] {
     if (this.renonce) return [];
-    const sorties: MessageVersResolution[] = [];
-    if (courant !== null && restants.length > 0 && !this.estCourant(courant)) {
+    const sorties: EnvoiResolution[] = [];
+    if (courant !== null && (restants.length > 0 || aConfirmer.length > 0) && !this.estCourant(courant)) {
+      if (!Number.isSafeInteger(this.idContexte + 1)) throw new Error('Compteur de contexte de résolution épuisé');
       this.idContexte++;
       this.contexte = courant;
       for (const d of this.enVol) d.annulee = true;
-      sorties.push({ type: 'contexte', idContexte: this.idContexte, entrees: courant.entrees });
+      this.voies.forEach((vivante, voie) => {
+        if (vivante) sorties.push({ voie, message: { type: 'contexte', idContexte: this.idContexte, entrees: courant.entrees } });
+      });
     }
     const actif = this.estCourant(courant);
-    const voulues = new Set(restants.slice(0, this.maxEnVol).map(cleBuild));
-    this.enVol.forEach((d, i) => {
-      if (i === 0 || d.annulee) return;
-      if (actif && d.idContexte === this.idContexte && voulues.has(d.cle)) return;
+    // Les `maxEnVol` premières places de la file : les restants, puis les confirmations.
+    const nNotes = Math.min(restants.length, this.maxEnVol);
+    const voulues = new Set(restants.slice(0, nNotes).map((c) => cleDemande('noter', cleBuild(c))));
+    for (const c of aConfirmer.slice(0, this.maxEnVol - nNotes)) voulues.add(cleDemande('confirmer', cleBuild(c)));
+    const premiere = new Set<number>();
+    for (const d of this.enVol) {
+      // La plus ancienne de chaque voie, annulée ou non, garde sa place.
+      if (!premiere.has(d.voie)) { premiere.add(d.voie); continue; }
+      if (d.annulee) continue;
+      if (actif && d.idContexte === this.idContexte && voulues.has(cleDemande(d.nature, d.cle))) continue;
       d.annulee = true;
-      sorties.push({ type: 'annuler', idDemande: d.idDemande });
-    });
-    if (!actif) return sorties;
-    const enCours = new Set(this.enVol.filter((d) => !d.annulee && d.idContexte === this.idContexte).map((d) => d.cle));
-    for (const c of restants) {
-      if (this.enVol.length >= this.maxEnVol) break;
-      const cle = cleBuild(c);
-      if (enCours.has(cle)) continue;
-      const idDemande = this.prochainIdDemande++;
-      this.enVol.push({ idDemande, idContexte: this.idContexte, cle, annulee: false });
-      enCours.add(cle);
-      sorties.push({ type: 'resoudre', idContexte: this.idContexte, idDemande, cle, runes: runesDe(c) });
+      sorties.push({ voie: d.voie, message: { type: 'annuler', idDemande: d.idDemande } });
     }
+    if (!actif) return sorties;
+    const enCours = new Set(this.enVol.filter((d) => !d.annulee && d.idContexte === this.idContexte).map((d) => cleDemande(d.nature, d.cle)));
+    const charge = this.demandesParVoie;
+    // Rend faux quand aucune voie n'a plus de crédit.
+    const demander = (c: BuildCandidate, nature: NatureDemande): boolean => {
+      const cle = cleBuild(c);
+      if (enCours.has(cleDemande(nature, cle))) return true;
+      // La voie active la moins chargée : chaque voie a ses `parVoie` places.
+      let voie = -1;
+      for (let v = 0, rang = 0; v < this.voies.length && rang < this.actives; v++) {
+        if (!this.voies[v]) continue;
+        rang++;
+        if (charge[v] < this.parVoie && (voie < 0 || charge[v] < charge[voie])) voie = v;
+      }
+      if (voie < 0) return false;
+      if (!Number.isSafeInteger(this.prochainIdDemande + 1)) throw new Error('Compteur de demande de résolution épuisé');
+      const idDemande = this.prochainIdDemande++;
+      this.enVol.push({ idDemande, idContexte: this.idContexte, cle, voie, annulee: false, nature });
+      charge[voie]++;
+      enCours.add(cleDemande(nature, cle));
+      const type = nature === 'noter' ? 'resoudre' as const : 'confirmer' as const;
+      sorties.push({ voie, message: { type, idContexte: this.idContexte, idDemande, cle, runes: runesDe(c) } });
+      return true;
+    };
+    for (const c of restants) if (!demander(c, 'noter')) return sorties;
+    for (const c of aConfirmer) if (!demander(c, 'confirmer')) return sorties;
     return sorties;
   }
 
@@ -236,6 +428,19 @@ export class ResolutionDistante {
       return { issue: 'ignoree', motif: 'contexte-perime' };
     }
     if (r.cle !== d.cle) return { issue: 'ignoree', motif: 'cle-differente' };
+    // Une réponse qui ne correspond pas à la nature de sa demande est un défaut
+    // du protocole, jamais absorbé.
+    if ((r.type === 'confirme') !== (d.nature === 'confirmer' && r.type !== 'resultat') || (d.nature === 'confirmer' && r.type === 'resultat' && r.resultat.conforme)) {
+      throw new Error(`Réponse « ${r.type} » à une demande de nature « ${d.nature} » — défaut du protocole de résolution.`);
+    }
+    if (r.type === 'confirme') return { issue: 'confirmee', cle: d.cle };
+    // Le rejet d'une confirmation est le résultat même d'une résolution : il
+    // s'écrit comme lui, jamais par-dessus un résultat déjà noté.
+    if (d.nature === 'confirmer') {
+      if (cache.has(d.cle)) return { issue: 'ignoree', motif: 'deja-notee' };
+      cache.set(d.cle, r.resultat);
+      return { issue: 'ecrite', cle: d.cle, confirmation: true };
+    }
     cache.set(d.cle, r.resultat);
     return { issue: 'ecrite', cle: d.cle };
   }
@@ -254,6 +459,8 @@ export class ResolutionDistante {
     this.enVol = [];
     const nonPubliee = this.nonPubliee;
     this.nonPubliee = false;
+    this.noteNonPubliee = false;
+    this.voieAvantActualisation = null;
     return nonPubliee;
   }
 
@@ -266,18 +473,23 @@ export class ResolutionDistante {
   pomper(p: PortsResolutionDistante): void {
     if (this.renonce) return;
     const restants = p.restants();
+    if (p.actualisationEnCours?.()) return;
     p.enAttente(restants.length);
+    this.acheverActualisation(p, restants);
     // ⚠️ **La file s'est vidée sans nouvelle écriture** — réponse ignorée,
     // changement de page, nouvelle recherche — alors que la cadence a retenu
     // la dernière : publication FORCÉE. Sans elle, ce résultat
     // resterait dans le cache sans jamais atteindre l'écran, puisque plus
     // rien ne publierait. Le chemin direct fait de même quand il s'endort.
-    if (restants.length === 0 && this.nonPubliee) this.publier(p, true);
-    for (const m of this.planifier(p.courant(), restants, (c) => p.runesDe(c))) {
+    // Des confirmations en fond restent : seule une écriture notée retenue
+    // force, la confirmation suit la cadence jusqu'à la dernière.
+    const aConfirmer = p.aConfirmer?.() ?? [];
+    if (restants.length === 0 && this.nonPubliee && (aConfirmer.length === 0 || this.noteNonPubliee)) this.publier(p, true);
+    for (const { voie, message } of this.planifierVoies(p.courant(), restants, (c) => p.runesDe(c), aConfirmer)) {
       try {
-        p.envoyer(m);
+        p.envoyer(message, voie);
       } catch (err) {
-        this.basculer(p, `envoi au Worker impossible (${m.type})`, err);
+        this.basculer(p, `envoi au Worker impossible (${message.type})`, err);
         return;
       }
     }
@@ -293,18 +505,39 @@ export class ResolutionDistante {
     if (this.renonce) return;
     const cache = p.cache();
     const page = p.page();
-    const avant = voieDeLaFile(p.restants(), page, cache);
+    const restants = p.restants();
+    this.acheverActualisation(p, restants);
+    const avant = voieDeLaFile(restants, page, cache);
     const issue = this.recevoir(r, cache, p.courant());
     if (issue.issue === 'erreur') {
       const { raison, detail } = repliSurErreur(issue);
       this.basculer(p, raison, detail);
       return;
     }
-    if (issue.issue === 'ecrite') {
+    if (issue.issue === 'confirmee') p.confirmer?.(issue.cle);
+    if (issue.issue === 'confirmee' || (issue.issue === 'ecrite' && issue.confirmation)) {
+      // Une confirmation : la cadence ; la dernière de la file publie de force
+      // au tour suivant (`pomper`).
       this.nonPubliee = true;
-      this.publier(p, publicationForcee(avant, voieDeLaFile(p.restants(), page, cache)));
+      this.publier(p, false);
+    } else if (issue.issue === 'ecrite') {
+      this.nonPubliee = true;
+      this.noteNonPubliee = true;
+      const apres = p.restants();
+      if (p.actualisationEnCours?.()) {
+        // Le tableau vide provisoire ne dit rien de la page ni du fond.
+        this.voieAvantActualisation = avant;
+        this.publier(p, false);
+      } else this.publier(p, publicationForcee(avant, voieDeLaFile(apres, page, cache)));
     }
     this.pomper(p);
+  }
+
+  private acheverActualisation(p: PortsResolutionDistante, restants: readonly BuildCandidate[]): void {
+    if (this.voieAvantActualisation === null || p.actualisationEnCours?.()) return;
+    const avant = this.voieAvantActualisation;
+    this.voieAvantActualisation = null;
+    if (this.nonPubliee && publicationForcee(avant, voieDeLaFile(restants, p.page(), p.cache()))) this.publier(p, true);
   }
 
   /**

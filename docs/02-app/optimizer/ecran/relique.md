@@ -1,11 +1,12 @@
 # Relique
 
 6 ter. **Relique** — **bloc
-   séparé** de la carte « Artéfacts et reliques », PAS une carte propre :
-   ferme la carte, sous « Meilleurs artéfacts offensifs pour ce build »,
-   séparé par un **trait horizontal** de 1 px (`border-border-soft`, un
-   seul contour) — même JSX pour les deux formats, ordinateur et
-   téléphone. Ni carte propre (elle ferait double emploi avec la
+   séparé** de la carte « Artéfacts et relique », PAS une carte propre :
+   ferme la carte, séparé par un **trait horizontal** de 1 px
+   (`border-border-soft`, un seul contour) — même JSX pour les deux formats,
+   ordinateur et téléphone (`Relique.tsx`). Au téléphone, il suit l'encart
+   « Meilleurs artéfacts offensifs pour ce build » ; au bureau, cet encart
+   devient une section à part du panneau de la colonne, sous la relique. Ni carte propre (elle ferait double emploi avec la
    carte Artéfacts juste au-dessus et décalerait toute la grille de la
    colonne), ni bloc à droite de la rangée Attribut / Type, trait vertical
    (il désalignerait les listes relique de celles d'artéfacts).
@@ -17,17 +18,17 @@
 
    Trois réglages, **grammaire des artéfacts à la valeur près qui n'existe
    que pour la relique** (le type) :
-   - **Principale** : **« Garder la relique équipée »** (pièce entière,
-     rien n'est cherché), **Principale ATQ %**, **Principale DEF %**,
-     **Principale PV %**, **« Libre »** (cherche parmi toutes les reliques
-     éligibles). **Défaut : « Garder la relique équipée » si le monstre
+   - **Principale** : **« Comme équipée »** (pièce entière,
+     rien n'est cherché), **ATQ %**, **DEF %**, **PV %** (courts comme
+     ceux de l'artéfact), **« Libre »** (cherche parmi toutes les reliques
+     éligibles). **Défaut : « Comme équipée » si le monstre
      choisi porte une relique, « Libre » sinon** — calculé au choix du
      monstre, comme pour l'artéfact : bestiaire, « un autre exemplaire »,
      puce de source, zone D et réimport du compte. Un membre de liste
      restaure son choix mémorisé ; ce défaut n'est posé que sans mémoire
      applicable. Une recette pose son propre choix après validation.
      Entre deux exemplaires de la **même espèce** choisis hors liste, le choix de
-     l'utilisateur est conservé, sauf « Garder la relique équipée » sur un
+     l'utilisateur est conservé, sauf « Comme équipée » sur un
      exemplaire qui n'en porte pas, qui redevient « Libre »
      (`relicMainChoiceApresChangementExemplaire`) : ce mode ne refuse pas la
      recherche, il la ferait tourner sans relique, sans le dire. Une puce
@@ -37,13 +38,13 @@
      (`RELIC_UNIQUE`, `src/lib/effects.ts`), avec le libellé **« `<effet>` en
      fonction `<stat>` »** (`relicUniqueEffectLabel`, DÉRIVÉ de
      `RELIC_UNIQUE` — effet et stat sont chacun des mots du jeu, jamais une
-     table séparée) — **désactivée et sans effet** avec « Garder la relique
-     équipée » (la pièce est fixée), le bloc le dit. La carte candidat, elle,
+     table séparée) — **désactivée et sans effet** avec « Comme équipée »
+     (la pièce est fixée), le bloc le dit. La carte candidat, elle,
      donne la phrase complète de la fiche d'objet (`formatRelicUnique`,
      `RelicSlot.tsx`), trop longue pour un sélecteur (voir
      resultats.md § Validation d'un build et relique).
-   - **Niveau minimum** (`NumberField`, +0 à +15, +6 par défaut,
-     `relicMinUpgrade`) : filtre d'ENTRÉE sur le pool cherché, jamais un
+   - **Niveau minimum** (« Niveau min. » au bureau ; `NumberField`, +0 à +15,
+     +6 par défaut, `relicMinUpgrade`) : filtre d'ENTRÉE sur le pool cherché, jamais un
      critère de classement.
    - `libre` et le type n'ont d'effet qu'avec la recherche (bornes,
      résolution exacte) ; les sélecteurs ne se conditionnent
@@ -52,7 +53,7 @@
      raison (seuil trop haut, aucune relique de cette principale/ce type,
      aucune relique dans l'inventaire — réimporter le compte ou couper
      l'interrupteur).
-   - **Recette** : « Garder la relique équipée » ne se partage pas —
+   - **Recette** : « Comme équipée » ne se partage pas —
      importée d'un autre joueur, elle bascule sur « Libre » et le message
      d'import le dit (mêmes trois règles que l'artéfact) ; le script CLI ne
      bascule jamais.

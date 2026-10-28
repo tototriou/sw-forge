@@ -11,7 +11,8 @@
 import { computeStats } from '../src/lib/stats';
 import { activeSets, runeEfficiency } from '../src/lib/effects';
 import { missingSets } from '../src/lib/recoMatch';
-import { searchBuilds, BuildRequirement, SearchParams } from '../src/lib/runeBuildOptim';
+import { BuildRequirement, SearchParams } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import { ArtifactDetail, BaseStats, GearSet, RelicDetail, RuneDetail } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
 

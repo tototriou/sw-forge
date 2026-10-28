@@ -39,6 +39,14 @@ export const ACTIVITE_LEADS_OPTIMIZER = {
 // Compatible avec appliquerCriteres ; tout « aucun » porte sa raison.
 export type LeadMembreOptimizer = Exclude<LeadEffectifOptimizer, { type: 'aucun' }> | { type: 'aucun'; motif: string };
 const aucun = (motif: string): LeadMembreOptimizer => ({ type: 'aucun', motif });
+
+// Le motif d'une liste sans contenu de combat. ⚠️ « État de mon monstre » ne
+// l'affiche JAMAIS (décision de l'utilisateur, « Je ne veux jamais le voir ») :
+// la carte passe par `motifLeadAffiche`. Le motif reste porté par le lead
+// effectif (repère ⚠ de la liste, rapport d'import).
+export const MOTIF_CONTENU_NON_DEFINI = 'Le contenu de combat de la liste n’est pas défini : aucun lead d’équipe appliqué.';
+export const motifLeadAffiche = (motif: string | null | undefined): string | null =>
+  motif && motif !== MOTIF_CONTENU_NON_DEFINI ? motif : null;
 const memeMembre = (a: ExclusionSelector, b: ExclusionSelector): boolean => exclusionSelectorKey(a) === exclusionSelectorKey(b);
 
 export function leadEffectifMembreOptimizer(
@@ -47,7 +55,7 @@ export function leadEffectifMembreOptimizer(
   const equipe = stockage.teams.find(e => e.listId === listId && e.members.some(s => memeMembre(s, selector)));
   if (!equipe) return { type: 'personnel' };
   const contenu = stockage.listContents.get(listId);
-  if (!contenu) return aucun('Le contenu de combat de la liste n’est pas défini : aucun lead d’équipe appliqué.');
+  if (!contenu) return aucun(MOTIF_CONTENU_NON_DEFINI);
   const lead = equipe.lead;
   if (!lead) return aucun('L’équipe ne porte aucun lead.');
   const ligne = ACTIVITE_LEADS_OPTIMIZER[contenu] as Record<string, ActiviteLead> | undefined;

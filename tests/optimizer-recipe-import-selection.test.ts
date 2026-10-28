@@ -47,7 +47,29 @@ export default function testOptimizerRecipeImportSelection() {
   const zoneImport = source.slice(debutImportRecipe);
   ok(zoneImport.includes(REGLE_PICKER), "le site d'import de recette applique bien la règle du picker (pas de cas spécial sur 1 exemplaire)");
 
+  // Le corps d'`importRecipe` : jusqu'à son accolade fermante, au niveau de
+  // la déclaration (deux espaces).
+  testFiltresAlImport(zoneImport.replace(/\r\n/g, '\n').slice(0, zoneImport.replace(/\r\n/g, '\n').indexOf('\n  }\n')));
   testRecetteRelique();
+}
+
+// Les filtres d'affichage (tri, sens, bornes) appartiennent au monstre : une
+// recette d'une AUTRE espèce les remet à leurs défauts par le chemin du
+// changement d'espèce (`resetSearch`), jamais par une seconde écriture de la
+// règle ; même espèce, rien ne change. Contrôle de source, même patron que
+// ci-dessus : la règle vit dans un hook et un composant.
+function testFiltresAlImport(corpsImport: string) {
+  titre('Optimizer · import de recette — les filtres d’affichage tombent avec le monstre');
+  const code = corpsImport.replace(/^\s*\/\/.*$/gm, '');
+  const remise = code.indexOf('if (match && String(match.id) !== selectedId) resetSearch();');
+  ok(remise > 0, 'autre espèce : l’import passe par `resetSearch`, sous la seule condition d’un monstre différent du sélectionné');
+  egal((code.match(/resetSearch\(/g) ?? []).length, 1, '… une seule fois, et aucun autre geste ne la remplace');
+  ok(remise > code.indexOf('const match = allMonsters.find') && remise < code.indexOf('poserCriteresAutomatiques('),
+    '… avant les valeurs de la recette, qui l’emportent sur les défauts');
+  ok(!/setSortBy|setSensTri|setBornesResultats|sortBy:|sensTri:|bornesResultats:/.test(code),
+    'aucune seconde écriture de la règle : l’import ne pose ni tri, ni sens, ni bornes lui-même');
+  // Que `resetSearch` fasse tomber les filtres est prouvé au navigateur, sur
+  // l'état réel : optimizer-filtres-preuves.ts (changement de monstre hors liste).
 }
 
 // Trois champs (`relicMainChoice`,
@@ -62,7 +84,6 @@ function recetteDeBase(extra: Partial<Parameters<typeof buildOptimizerRecipe>[0]
     damageSetup: DEFAULT_DAMAGE_SETUP,
     metric: 'eff',
     slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false,
     exhaustiveSearch: false,
     excludeUsedRunes: false,
     excludeUsedScope: 'rta',
@@ -120,12 +141,12 @@ function testRecetteRelique() {
     egal(parseOptimizerRecipe(JSON.stringify(tropHaut)).recipe?.relicMinUpgrade, 15, 'seuil 99 → normalisé à 15');
   }
 
-  // « Garder la relique équipée » ne se partage pas — même règle que
+  // « Comme équipée » ne se partage pas — même règle que
   // l'artéfact (`mainsPourCeCompte` : « mêmes trois règles »).
   {
     const r = { relicMainChoice: 'equipped' as const, wizardName: 'Alice' };
     const autreCompte = relicMainPourCeCompte(r, 'Bob');
-    egal(autreCompte.main, 'libre', "compte différent : « Garder la relique équipée » passe sur « Libre »");
+    egal(autreCompte.main, 'libre', "compte différent : « Comme équipée » passe sur « Libre »");
     egal(autreCompte.bascule, true, '… et la bascule est signalée, pour le message d’import');
 
     const memeCompte = relicMainPourCeCompte(r, 'Alice');

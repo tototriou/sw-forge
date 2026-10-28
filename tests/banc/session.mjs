@@ -14,6 +14,8 @@ import { fileURLToPath } from 'url';
 import { FORMATS } from './ecrans.ts';
 import { medias, mesurer, stabiliser } from './mesure.ts';
 
+/* global document, getComputedStyle */ // Le contrôle géométrique s'exécute dans page.evaluate.
+
 export { medias };
 
 // Conteneur Linux (claude.ai/code) : Chromium y est préinstallé pour une
@@ -33,7 +35,7 @@ export async function lancerNavigateur() {
 
 /** Options du contexte Playwright d'un format. */
 export function optionsFormat(format) {
-  const f = FORMATS[format];
+  const f = typeof format === 'string' ? FORMATS[format] : format;
   return {
     viewport: { width: f.largeur, height: f.hauteur },
     deviceScaleFactor: 1,
@@ -141,7 +143,7 @@ export function borne(promesse, ms, cause) {
 }
 
 function decrireCible(c) {
-  return `${c.role} « ${c.nom} »${c.etendu === undefined ? '' : c.etendu ? ' (déplié)' : ' (replié)'}${c.pres ? ` près de ${decrireCible(c.pres)}` : ''}`;
+  return `${c.role} « ${c.nom} »${c.dans ? ` dans ${c.dans}` : ''}${c.etendu === undefined ? '' : c.etendu ? ' (déplié)' : ' (replié)'}${c.pres ? ` près de ${decrireCible(c.pres)}` : ''}`;
 }
 
 /**
@@ -150,8 +152,14 @@ function decrireCible(c) {
  * commun avec le repère est le plus profond ; une égalité est une ambiguïté.
  */
 async function localiser(page, cible, attenteMs = 0) {
+  const contenant = cible.dans ? page.locator(cible.dans).filter({ visible: true }) : page;
+  if (cible.dans) {
+    if (attenteMs) await contenant.first().waitFor({ state: 'visible', timeout: attenteMs }).catch(() => {});
+    const n = await contenant.count();
+    if (n !== 1) throw new ErreurBanc(`${decrireCible(cible)} : ${n} contenant(s) visible(s), 1 attendu`);
+  }
   const options = { name: cible.nom, exact: true, ...(cible.etendu === undefined ? {} : { expanded: cible.etendu }) };
-  const loc = (cible.role === 'texte' ? page.getByText(cible.nom, { exact: true }) : page.getByRole(cible.role, options)).filter({ visible: true });
+  const loc = (cible.role === 'repere' ? contenant.locator(cible.nom) : cible.role === 'texte' ? contenant.getByText(cible.nom, { exact: true }) : contenant.getByRole(cible.role, options)).filter({ visible: true });
   if (attenteMs) await loc.first().waitFor({ state: 'visible', timeout: attenteMs }).catch(() => {});
   const n = await loc.count();
   if (n === 1 && !cible.pres) return loc.elementHandle({ timeout: 5000 });
@@ -181,7 +189,7 @@ async function localiser(page, cible, attenteMs = 0) {
  * Un import refusé n'affiche pas ce compte rendu mais un rapport d'erreurs : on
  * lit alors la cause, plutôt que de mesurer l'écran resté vide.
  */
-async function importerFichier(page, cible, fichier) {
+async function importerFichier(page, cible, fichier, confirme) {
   if (!/^[\w.-]+$/.test(fichier)) throw new ErreurBanc(`importer : nom de fichier invalide (${fichier})`);
   const chemin = fileURLToPath(new URL(`../fixtures/${fichier}`, import.meta.url));
   if (!existsSync(chemin)) throw new ErreurBanc(`importer : fichier absent (tests/fixtures/${fichier})`);
@@ -190,6 +198,18 @@ async function importerFichier(page, cible, fichier) {
     throw new ErreurBanc(`importer ${decrireCible(cible)} : aucun sélecteur de fichier ouvert`);
   });
   await selecteur.setFiles(chemin);
+  if (confirme) {
+    // Chaque import a son propre compte rendu ; une recette ne dit pas
+    // « importés. ». Sans confirmation exacte, l'état reste non atteint.
+    try {
+      await localiser(page, confirme, 8000);
+      return;
+    } catch {
+      const refus = page.getByText(/^Import refusé/).filter({ visible: true });
+      const cause = await refus.first().innerText({ timeout: 1000 }).catch(() => null);
+      throw new ErreurBanc(`importer ${decrireCible(cible)} : ${cause ? cause.replace(/\s+/g, ' ').slice(0, 200) : `confirmation absente (${decrireCible(confirme)})`}`);
+    }
+  }
   const compteRendu = page.getByText(/importés\./).filter({ visible: true });
   const refus = page.getByText(/Import refusé/).filter({ visible: true });
   const issue = await Promise.race([
@@ -209,7 +229,7 @@ export async function preparer(page, etapes) {
   const clicsRejoues = [];
   for (const etape of etapes) {
     if ('attendre' in etape) {
-      await localiser(page, etape.attendre, 5000);
+      await localiser(page, etape.attendre, etape.delaiMs ?? 5000);
       continue;
     }
     if ('saisir' in etape) {
@@ -217,14 +237,24 @@ export async function preparer(page, etapes) {
       await champ.fill(etape.texte, { timeout: 5000 });
       continue;
     }
+    if ('montrer' in etape) {
+      const element = await localiser(page, etape.montrer, 5000);
+      await element.scrollIntoViewIfNeeded({ timeout: 5000 });
+      continue;
+    }
     if ('importer' in etape) {
-      await importerFichier(page, etape.importer, etape.fichier);
+      await importerFichier(page, etape.importer, etape.fichier, etape.confirme);
       continue;
     }
     // L'élément est pris AVANT le clic : une tentative ratée peut faire
     // défiler la page, et un localisateur filtré sur « visible » ne plus le
     // retrouver.
     const element = await localiser(page, etape.cliquer, 5000);
+    if (etape.siPresse !== undefined) {
+      const presse = await element.getAttribute('aria-pressed');
+      if (presse !== 'true' && presse !== 'false') throw new ErreurBanc(`cliquer ${decrireCible(etape.cliquer)} : aria-pressed absent`);
+      if ((presse === 'true') !== etape.siPresse) continue;
+    }
     try {
       await element.click({ timeout: 5000 });
     } catch (err) {
@@ -253,6 +283,52 @@ export async function verifierAtteint(page, cibles) {
       throw new ErreurBanc(`postcondition : ${err instanceof ErreurBanc ? err.message : decrireCible(cible)}`);
     }
   }
+}
+
+/** Agencement observé avant la mesure : une mauvaise taille n'est pas une preuve. */
+export async function verifierOptimizer(page, attendu) {
+  if (!attendu) return null;
+  const observe = await page.evaluate(() => {
+    const racine = document.querySelector('[data-agencement]');
+    if (!racine) return null;
+    const rect = (el) => {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { x: r.x, y: r.y, droite: r.right, bas: r.bottom, largeur: r.width };
+    };
+    const droite = rect(racine.querySelector('[data-zone="droite"]'));
+    const fiche = racine.querySelector('[data-fiche-optimizer] > div');
+    const stats = rect(fiche?.children[0]);
+    const equipement = rect(fiche?.children[1]);
+    const colonnes = [...racine.querySelectorAll('[data-colonne]')].map((el) => ({
+      nom: el.getAttribute('data-colonne'), ...rect(el), marge: parseFloat(getComputedStyle(el).marginRight),
+    }));
+    const volet = racine.closest('[data-volet]');
+    const volets = [...document.querySelectorAll('[data-volet]')].map(rect);
+    return {
+      largeur: racine.clientWidth, agencement: racine.getAttribute('data-agencement'),
+      fiche: stats && equipement ? (equipement.y >= stats.bas - 1 ? 'repliee' : 'depliee') : null,
+      set: racine.querySelector('[data-set-optimizer]')?.getAttribute('data-set-optimizer'),
+      colonnes, droite, volet: !!volet, volets,
+      cartes: racine.querySelectorAll('[data-carte-resultat]').length,
+    };
+  });
+  const refuser = (cause) => { throw new ErreurBanc(`agencement Optimizer : ${cause}`); };
+  if (!observe) refuser('racine de bureau absente');
+  const [min, max] = attendu.conteneur;
+  if (observe.largeur < min || observe.largeur >= max) refuser(`conteneur ${observe.largeur} px hors [${min}, ${max}[`);
+  if (observe.agencement !== attendu.agencement) refuser(`${observe.agencement} au lieu de ${attendu.agencement}`);
+  if (observe.fiche !== attendu.fiche) refuser(`fiche ${observe.fiche} au lieu de ${attendu.fiche}`);
+  if (attendu.set && observe.set !== attendu.set) refuser(`set ${observe.set} au lieu de ${attendu.set}`);
+  if (observe.volet !== !!attendu.volet) refuser('présence du volet différente de celle demandée');
+  if (attendu.volet && (observe.volets.length !== 2 || Math.abs(observe.volets[0].largeur - observe.volets[1].largeur) > 1)) refuser('les deux volets ne sont pas à parts égales');
+  for (const c of observe.colonnes) {
+    if (attendu.colonnes === 'page') continue;
+    if (attendu.colonnes === 'superposees') {
+      if (c.marge >= 0 || !observe.droite || c.x < observe.droite.x - 1 || c.x >= observe.droite.droite) refuser(`${c.nom} n'est pas superposée à droite`);
+    } else if (c.marge < 0 || !observe.droite || c.droite > observe.droite.x + 1) refuser(`${c.nom} n'est pas insérée avant la droite`);
+  }
+  return observe;
 }
 
 /**

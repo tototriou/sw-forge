@@ -2,14 +2,18 @@
 
 Ce document décrit la carte « Objectif de recherche » et ses quatre objectifs.
 
-3. **Objectif de recherche** — en tête de la **carte du bouton
-   Rechercher**, au-dessus de la rangée Rechercher / Exporter / Importer.
+3. **Objectif de recherche** — au-dessus du bouton Rechercher : au
+   téléphone, en tête de la **carte du bouton Rechercher**, au-dessus de la
+   rangée Rechercher / Exporter / Importer ; au bureau, dans le bloc
+   « Objectif et Rechercher », sous la ligne d'estimation (voir
+   [README.md](README.md#bloc--objectif-et-rechercher-)).
    ⚠️ Il vit avec le geste qu'il qualifie : *quoi* chercher se lit juste
    au-dessus de *chercher*. Ce n'est **pas** un champ de
    « Critères de recherche » — l'objectif se choisit avant même de composer
    le set, ce n'est pas un critère de plus parmi d'autres. **Un bouton à
    choix unique** (`<Segmented
-   size="lg">`, [Segmented.tsx](src/ui/Segmented.tsx)) sur une seule ligne,
+   size="lg">`, [Segmented.tsx](src/ui/Segmented.tsx)) sur une seule ligne
+   — en 2 × 2 dans la forme étroite du bloc de bureau (axe `colonnes`) —,
    chaque option se partageant la largeur à égalité, séparées par un
    **liseré vertical constant** entre deux options voisines, y compris
    quand l'une des deux est sélectionnée — un `<span>` à part, sans rayon :
@@ -27,7 +31,9 @@ Ce document décrit la carte « Objectif de recherche » et ses quatre objectifs
   à sa comparaison, sans ajouter les autres bonus de début de combat —
   celles des autres monstres comme celles que forment les runes de chaque
   build, dans un seul arrondi.
-- **Vitesse** — VIT seule.
+- **Vitesse** — VIT seule. Ses résultats se trient par la colonne VIT
+  (même note, même ordre) : l'objectif reste un choix de recherche, il
+  n'est plus un tri des résultats ([resultats.md § Tri des résultats](resultats.md#tri-des-résultats)).
 - **Dégâts réels** — la **vraie formule d'un sort précis** contre un
   adversaire configuré, pas une espérance générique. Modèle de calcul
   détaillé : [degats-reels/](../../degats-reels/). Choisir cet objectif
@@ -201,9 +207,9 @@ Ce que contient ce réglage :
   cette variable, ex. n'importe quel sort de Sonia). Un éventuel
   critique/bonus de dégâts garanti est, lui, **déduit et affiché**,
   jamais redemandé. L'amplification d'un artéfact « Effet aug. VIT » est
-  lue sur la paire que la recherche suppose (les pièces portées seulement
-  sans optimisation d'artéfacts), et s'affiche dans « État de mon
-  monstre » quand le buff VIT est actif.
+  comptée sur la paire évaluée quand le buff VIT est actif, sans phrase
+  d'amplification dans « État de mon monstre » (voir
+  [etat-de-mon-monstre.md](etat-de-mon-monstre.md)).
   Détail : [degats-reels/feat-passifs-offensifs.md § VIT de l'adversaire](../../degats-reels/feat-passifs-offensifs.md#vit-de-ladversaire--relative-spd-et-lignore-def-proportionnel), « VIT de l'adversaire ».
 - **Effets actifs** — effets subis par la cible (réduction de défense
   ×0,3, marque +25 %, « ce sort pose le def break » — distingue
@@ -285,11 +291,11 @@ Ce que contient ce réglage :
   Non critique est grisé et non sélectionnable. Pas de mode
   « Moyenne » (espérance sur le Taux Crit).
 
-⚠️ **On n'affiche que ce que le sort CONSOMME** : un sort qui ignore la
-défense ne montre ni la DEF ennemie ni la réduction de défense ; un
-sort qui ne dépend pas de la VIT ne montre pas le buff de vitesse. Un
-champ visible mais sans effet est pire qu'un champ absent — il fait
-croire à une action.
+⚠️ **La fenêtre n'affiche que ce que le sort CONSOMME** : un sort qui
+ignore la défense ne montre ni la DEF ennemie ni la réduction de défense.
+Les buffs ATQ/DEF/VIT restent toujours accessibles dans « État de mon
+monstre », quel que soit le sort : ils changent aussi les statistiques
+lues par les dégâts supplémentaires des artéfacts.
 
 ⚠️ Contrairement aux trois autres objectifs, ses stats pertinentes
 **dépendent du sort** (`{ATK}`, `{ATK}×({SPD}+70)/30`, `0.2×{MAX HP}`…)
@@ -308,10 +314,11 @@ calculé sur un autre modèle que celui affiché serait invisible.
 ⚠️ **Aucun sort calculable** (monstre perso, fiche absente, formules
 hors modèle) : le sélecteur de **tri** des résultats ne propose pas
 « Dégâts réels » (`OBJECTIVE_LABELS` filtré sur `realDamage`, résolu) ;
-il y reste Efficience/PV effectifs/Vitesse. Le bouton à choix unique de
+il y reste Efficience et PV effectifs (Vitesse n'y figure jamais : elle se
+trie par VIT, dans le groupe des stats). Le bouton à choix unique de
 l'objectif, lui, reçoit `OBJECTIVE_LABELS` sans filtre et propose donc
 toujours « Dégâts réels »
-([OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx)).
+([ObjectifEtActions.tsx](src/components/outils/optimizer/ObjectifEtActions.tsx)).
 
 ⚠️ **Ni « Speed nuker » ni « Dégâts »** (formule générique
 `ATQ × (1 + TC × DC)`, sans sort ni adversaire) : « Dégâts réels » couvre

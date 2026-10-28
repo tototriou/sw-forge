@@ -42,6 +42,9 @@ Les pull requests sont bienvenues ; pour un changement de fond, ouvre d'abord un
 en discute. Avant de coder, lis la documentation de ce que tu touches : [AGENTS.md](AGENTS.md) dit
 laquelle.
 
+Le chemin partagé de recherche, classement et résolution de l'Optimizer est décrit dans
+[le pipeline du moteur](docs/03-developpeur/optimizer/moteur/pipeline.md).
+
 ## Contact
 
 Une question, un retour ou une demande particulière :

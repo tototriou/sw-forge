@@ -1,6 +1,8 @@
 import { ajouterLeadEquipe } from './import-lead-equipe';
+import { listeActiveLue } from './optimizer-listes-preuves';
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { ClassementVideTest, demandeClassementTest } from '../classement-fixture';
 import { flushSync } from 'react-dom';
 import { useOptimizerState, type OptimizerState } from '../../src/hooks/useOptimizerState';
 import { useOptimizerLists, type UseOptimizerLists } from '../../src/hooks/useOptimizerLists';
@@ -66,13 +68,8 @@ const photographierAffichage = () => JSON.stringify({ selectedId: etat.selectedI
 async function preparerResultatsRefus() {
   // Un transport synthétique remplit le vrai hook pour vérifier qu'un refus
   // conserve aussi un résultat déjà reçu, sans exécuter le moteur.
-  globalThis.Worker = class {
-    onmessage: ((e: MessageEvent) => void) | null = null; onerror = null;
-    postMessage() { queueMicrotask(() => this.onmessage?.(new MessageEvent('message', { data: { type: 'result', candidates: [], explored: 1,
-      truncated: false, durationMs: 1, nearMissByCondition: {}, globalNearMiss: null } }))); }
-    terminate() { this.onmessage = null; }
-  } as unknown as typeof Worker;
-  await geste(() => etat.search.run({} as never));
+globalThis.Worker = ClassementVideTest as unknown as typeof Worker;
+  await geste(() => { const d = demandeClassementTest(); etat.search.run(d.params, d.photo, d.vue); });
   await geste(() => { etat.setResultsPage(4); etat.setStoppedManually(true); etat.setOpenDetailKey('à conserver'); });
   if (!etat.search.result || etat.search.status !== 'done' || !etat.proprietaireCriteres) throw new Error('Précondition de refus manquante.');
 }
@@ -220,13 +217,8 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   } else if (nom === 'action') {
     await geste(() => afficher(false));
     // Le transport injecte un résultat synthétique dans le vrai hook ; aucun moteur n'est lancé.
-    globalThis.Worker = class {
-      onmessage: ((e: MessageEvent) => void) | null = null; onerror = null;
-      postMessage() { queueMicrotask(() => this.onmessage?.(new MessageEvent('message', { data: { type: 'result', candidates: [], explored: 1,
-        truncated: false, durationMs: 1, nearMissByCondition: {}, globalNearMiss: null } }))); }
-      terminate() { this.onmessage = null; }
-    } as unknown as typeof Worker;
-    await geste(() => etat.search.run({} as never));
+globalThis.Worker = ClassementVideTest as unknown as typeof Worker;
+    await geste(() => { const d = demandeClassementTest(); etat.search.run(d.params, d.photo, d.vue); });
     await geste(() => { etat.setResultsPage(4); etat.setStoppedManually(true); etat.setOpenDetailKey('ancien'); });
     verifier(etat.search.result !== null && etat.search.status === 'done', 'précondition : résultat reçu par le vrai hook, écran démonté');
     avant = photographierExistant(listes, idsAvant);
@@ -247,7 +239,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     verifier(listes.validated.length === 1 && listes.validated[0].runeIds[0] === 91 && listes.validated[0].artifactIds?.[0] === 92
       && JSON.stringify(listes.memories.get(cleMemoireMembre('a', selector))) === ancienne, 'action : ancienne mémoire et build intacts');
     const memoires = JSON.stringify([...listes.memories]);
-    await geste(() => etat.search.run({} as never));
+    await geste(() => { const d = demandeClassementTest(); etat.search.run(d.params, d.photo, d.vue); });
     const resultatAvantImportVide = etat.search.result;
     await geste(() => { etat.importerEquipe(courantes => importerPrepaRtaOptimizer({ ...courantes, rtaEntries: {} })); });
     verifier(listes.activeListId === id && listes.lists.length === 2 && JSON.stringify([...listes.memories]) === memoires
@@ -261,9 +253,17 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   } else {
     const ancre = bouton('Importer une équipe');
     const recherche = [...document.querySelectorAll<HTMLInputElement>('input[placeholder="Rechercher un monstre…"]')].find(visible)!;
-    const choisi = [...document.querySelectorAll('span')].find(e => visible(e) && e.textContent === 'Monstre 1'
-      && position(e).y >= position(recherche).y + position(recherche).height && position(e).y + position(e).height <= position(ancre).y);
-    verifier(!!choisi, 'le monstre choisi reste entre sa recherche et les contrôles de liste, sans bouton intercalé');
+    // Bureau : la liste de travail ouvre les essentiels — « Liste active » et
+    // l'import en tête, puis la carte de la liste, dont la rangée du titre
+    // porte la recherche et, à sa droite, le monstre choisi. Téléphone : le
+    // monstre choisi entre sa recherche et les contrôles de liste.
+    const auBureau = innerWidth >= 1024;
+    const choisi = [...document.querySelectorAll('span')].find(e => visible(e) && e.textContent === 'Monstre 1' && (auBureau
+      ? position(e).x >= position(recherche).x + position(recherche).width && position(e).y >= position(recherche).y
+        && position(e).y + position(e).height <= position(recherche).y + position(recherche).height && position(e).y >= position(ancre).y + position(ancre).height
+      : position(e).y >= position(recherche).y + position(recherche).height && position(e).y + position(e).height <= position(ancre).y));
+    verifier(!!choisi, auBureau ? 'bureau : le monstre choisi à droite de sa recherche, sur la rangée du titre de la liste, sous l’import'
+      : 'le monstre choisi reste entre sa recherche et les contrôles de liste, sans bouton intercalé');
     const pliListe = bouton('Gérer mes listes');
     if (pliListe) await geste(() => pliListe.click());
     const selecteurListe = bouton('Ancienne - Guilde');
@@ -309,13 +309,18 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
       verifier(!!rapport && rapport.textContent!.includes('créée') && rapport.textContent!.includes(nom === 'defenses' ? '7 monstre(s), 2 équipe(s)' : nom === 'rta' ? '1 monstre(s), 0 équipe(s)' : '3 monstre(s), 1 équipe(s)'), 'rapport de création lu à l’écran');
       if (nom === 'defenses') verifier(rapport.textContent!.includes('inconnu : Monstre inconnu.')
         && rapport.textContent!.includes('Défense 3 — lead de la source') && rapport.textContent!.includes('appliqué'), 'rapport lu à l’écran : membre inconnu ignoré, équipe à un membre et lead non appliqué dits');
-      verifier(getComputedStyle(rapport.parentElement!).position === 'absolute' && getComputedStyle(rapport.parentElement!).borderTopWidth === '1px', 'rapport hors du flux dans la surface au contour de 1 px');
+      // La surface est un `Flottant` : couche supérieure du navigateur
+      // (`popover` ouvert), position calculée en `fixed`, jamais rognée par la
+      // colonne qui défile.
+      const surface = rapport.parentElement!;
+      verifier(getComputedStyle(surface).position === 'fixed' && surface.getAttribute('popover') === 'manual' && surface.matches(':popover-open')
+        && getComputedStyle(surface).borderTopWidth === '1px', 'rapport hors du flux, en couche supérieure, dans la surface au contour de 1 px');
       await geste(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
       verifier(ancre.getAttribute('aria-expanded') === 'false', 'Échap ferme les sources sans import supplémentaire');
       // Au téléphone, l'import déplie « Gérer mes listes » de lui-même.
       const pli = bouton('Gérer mes listes');
       verifier(!pli || pli.getAttribute('aria-expanded') === 'true', 'téléphone : « Gérer mes listes » déplié par l’import');
-      verifier(texte().includes(nom === 'defenses' ? 'Monstres de « Défenses de siège »' : nom === 'rta' ? 'Monstres de « Prépa RTA »' : 'Monstres de « Offense de siège »'), 'liste active importée lue à l’écran');
+      verifier(listeActiveLue(nom === 'defenses' ? 'Défenses de siège' : nom === 'rta' ? 'Prépa RTA' : 'Offense de siège', texte), 'liste active importée lue à l’écran');
       const minimum = [...document.querySelectorAll<HTMLInputElement>('[aria-label="VIT minimum"]')].find(visible);
       verifier(minimum?.value === String(nom === 'rta' ? 140 : 120), 'vitesse importée lue dans le champ réel de l’écran');
       verifier(etat.sourceSelector?.source === (nom === 'defenses' ? 'siege-defense' : nom === 'rta' ? 'rta' : 'siege-offense')

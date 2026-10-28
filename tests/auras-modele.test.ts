@@ -7,11 +7,14 @@ import { apportExclusive } from '../src/lib/relicExclusive';
 import { evaluerPourRegime, type DegatsContext } from '../src/lib/artifactEvaluation';
 import { chercherPaires } from '../src/lib/artifactOptim';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
-import { aurasPropresParRunes, avecAurasConditions, buildBuckets, conditionsPaireFixePosees, diagnoseFeasibility, objectiveScore, pairBuckets, prepareSearch, pvEffectifs, respecteConditionsAvecRelique, respecteConditionsPaireFixe, respecteMinEtMax, scoreDuCandidat, searchBuilds, sortCandidates, contexteDominance, reliquesEquipables, statsLuesParLesLignes, totalPairCount } from '../src/lib/runeBuildOptim';
+import { aurasPropresParRunes, avecAurasConditions, buildBuckets, conditionsPaireFixePosees, diagnoseFeasibility, objectiveScore, pairBuckets, prepareSearch, pvEffectifs, respecteConditionsAvecRelique, respecteConditionsPaireFixe, respecteMinEtMax, scoreDuCandidat, sortCandidates, contexteDominance, reliquesEquipables, statsLuesParLesLignes, totalPairCount } from '../src/lib/runeBuildOptim';
+import { apparier, construireMoitie, searchBuilds } from '../src/lib/rechercheRunes';
 import { readFileSync } from 'node:fs';
 import { prepareOrRefuse } from '../src/workers/prepareForSearch';
-import { PARALLEL_PAIRING_THRESHOLD, driveParallelPairing } from '../src/workers/parallelPairing';
-import { ensurePairSliceBundle, makeSpawnSliceNode } from '../scripts/lib/spawnSliceNode';
+import { PARALLEL_PAIRING_THRESHOLD } from '../src/workers/parallelPairing';
+import { enResultatDeRecherche } from '../src/lib/appariementRapideParallele';
+import { apparierObjetPourTest as apparierRapideEnParallele } from './flux-candidats.test';
+import { assurerBundleAppariementRapide, lancerTravailleurNode } from '../scripts/lib/appariementRapideNode';
 import { runSearchToCompletion } from '../scripts/lib/runSearch';
 import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import type { BuildCandidate, BuildRequirement, RealDamageContext, TraceCandidat } from '../src/lib/runeBuildOptim';
@@ -68,7 +71,7 @@ function recette() {
     monsterCom2usId: 14104, monsterName: 'Monstre du test',
     requirement: { sets: [], minStats: {} }, objective: 'ehp', damageSetup: SETUP,
     compterAurasResPre: true, metric: 'eff', slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    exhaustiveSearch: false,
     excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
     ignoreArtifacts: false, artifactMainByKind: {},
   });
@@ -233,7 +236,7 @@ export function testAurasChoixEffectifReliqueEhp() {
     ok(Math.abs(scores[1]! - oracle.def) < 1e-9, `${nom} : score chiffré de la relique DEF`);
     egal(scores[0]! > scores[1]!, oracle.retenue === pv.id, `${nom} : classement chiffré des deux candidates`);
     const resolution = resoudreEquipementDuBuild({ gear, faireParams, respecteConditions: null,
-      requirement: { minStats: {}, maxStats: {} }, regimeAucun: false, regimeDeStat: false, relicContext: ctx });
+      requirement: { minStats: {}, maxStats: {} }, regimeAucun: false, regimeDeStat: false, relicContext: ctx, dominanceReliques: null });
     egal(resolution.conforme, true, `${nom} : un couple faisable est retenu`);
     egal(resolution.relique?.id, oracle.retenue, `${nom} : relique effectivement retenue par la résolution`);
     ok(Math.abs((resolution.paire?.score ?? NaN) - Math.max(oracle.pv, oracle.def)) < 1e-9,
@@ -736,7 +739,7 @@ export function testAurasConditionsPropresResolution() {
       evaluer: evaluerPourRegime('ehp', statsParPaire({ ...gear, relic: relique }), propres, { relique, setup: SETUP, element: null }),
     });
     const conforme = (req: BuildRequirement) => resoudreEquipementDuBuild({ gear, faireParams, respecteConditions: null,
-      requirement: req, regimeAucun: false, regimeDeStat: false, relicContext: ctx }).conforme;
+      requirement: req, regimeAucun: false, regimeDeStat: false, relicContext: ctx, dominanceReliques: null }).conforme;
     egal(conforme(conditions({ res }, {}, true)), true, `${nom} : minimum RES ${res} franchi, couple retenu`);
     egal(conforme(conditions({ res }, {}, false)), false, `${nom} : toggle éteint, minimum RES ${res} non franchi`);
     egal(conforme(conditions({}, { res: res - 1 }, true)), false, `${nom} : maximum RES ${res - 1} dépassé, aucun couple`);
@@ -876,10 +879,14 @@ export function testAurasCarteEgaleTri() {
     'sans exclusive, PV effectifs inchangés (B)');
   egal(scoreDuCandidat(cA, 'degats_reels', { damageSetup: setup, aurasPropresDe }), null, 'sans contexte de dégâts : null, comme le tri');
 
-  // L'écran : les deux cartes lisent `scoreDuCandidat`, plus de formule recopiée.
+  // Les deux valeurs des cartes viennent de `scoreDuCandidat`, notées par le
+  // classeur dans l'instantané (comparées à `scoreDuCandidat` sur chaque
+  // publication par `verifierInstantane`, classement-distant.test.ts) ;
+  // l'écran les lit telles quelles, sans formule recopiée.
   const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
-  ok(/degatsReels=\{[\s\S]{0,700}?scoreDuCandidat\(c, 'degats_reels'/.test(ecran), 'écran : la carte « Dégâts réels » lit scoreDuCandidat');
-  ok(/pvEffectifs:\s*[\s\S]{0,300}?scoreDuCandidat\(c, 'ehp'/.test(ecran), 'écran : la carte « PV effectifs » lit scoreDuCandidat');
+  ok(/degatsReels:[\s\S]{0,800}?carte\?\.degatsReels/.test(ecran), 'écran : la carte « Dégâts réels » lit la valeur de l’instantané');
+  ok(/pvEffectifs:[\s\S]{0,300}?carte\?\.pvEffectifs/.test(ecran), 'écran : la carte « PV effectifs » lit la valeur de l’instantané');
+  ok(!/scoreDuCandidat\(c, '(ehp|degats_reels)'/.test(ecran), 'écran : plus de scoreDuCandidat recalculé sur la page');
   ok(!/computeTotalDamage\(\s*realDamage\.profile,\s*realDamage\.passifs,\s*c\.stats/.test(ecran),
     'écran : plus de computeTotalDamage recopié sur les stats du candidat');
 }
@@ -887,8 +894,8 @@ export function testAurasCarteEgaleTri() {
 /* --------------------------------------------------------------------------
  * Le MÊME build par les constructeurs de l'écran et du CLI, le
  * Worker séquentiel (préparation sur le message cloné, comme `postMessage`)
- * et l'appariement PARALLÈLE de production : `driveParallelPairing` + vrais
- * `worker_threads` exécutant `runPairSlice` (`scripts/lib/pair-slice-worker.ts`).
+ * et l'appariement PARALLÈLE de production : `apparierRapideEnParallele` + vrais
+ * `worker_threads` exécutant `servirAppariement` → `parcourirMorceau` (`scripts/lib/appariement-rapide-worker.ts`).
  * ⚠️ FIDÉLITÉ : DIVERGE DE LA PROD — sur ce petit pool, `totalPairCount` est
  * sous le seuil de 100 M : la production choisirait le séquentiel, le
  * parallèle est FORCÉ ici. Le cas réel au-dessus du seuil est la recette
@@ -911,7 +918,7 @@ export async function testAurasPariteRegimes() {
     monsterCom2usId: 13413, monsterName: 'Lushen',
     requirement: { sets: [], minStats: {} }, objective: 'degats_reels', damageSetup: setup,
     compterAurasResPre: true, metric: 'eff', slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false, exhaustiveSearch: true,
+    exhaustiveSearch: true,
     excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
     ignoreArtifacts: true, artifactMainByKind: {},
   });
@@ -930,30 +937,35 @@ export async function testAurasPariteRegimes() {
   const issue = prepareOrRefuse(message);
   if (issue.kind !== 'prepared') throw new Error(`préparation : ${issue.kind}`);
   const prepared = issue.prepared;
-  const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, params.adaptiveTrancheWeighting, params.combosOrderMode));
-  const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, params.adaptiveTrancheWeighting, params.combosOrderMode));
+  const bucketsA = drain(construireMoitie('A', [0, 1, 2], prepared, prepared.maxSetsForA, params.combosOrderMode));
+  const bucketsB = drain(construireMoitie('B', [3, 4, 5], prepared, prepared.maxSetsForB, params.combosOrderMode));
   const totalPairs = totalPairCount(prepared, bucketsA, bucketsB);
   ok(totalPairs < PARALLEL_PAIRING_THRESHOLD,
-    `FIDÉLITÉ : DIVERGE DE LA PROD — ${totalPairs} paires < ${PARALLEL_PAIRING_THRESHOLD} : parallèle FORCÉ, ${Math.min(4, bucketsA.length)} tranches`);
-  ok(Math.min(4, bucketsA.length) >= 2, 'au moins deux tranches : le découpage est réellement exercé');
-  const sequentiel = drain(pairBuckets(prepared, bucketsA, bucketsB));
-  const cli = runSearchToCompletion(params);
-  const bundle = await ensurePairSliceBundle();
-  const parallele = await driveParallelPairing(makeSpawnSliceNode(bundle), message, prepared, bucketsA, bucketsB, totalPairs, () => {}, prepared.startedAt);
+    `FIDÉLITÉ : DIVERGE DE LA PROD — ${totalPairs} paires < ${PARALLEL_PAIRING_THRESHOLD} : parallèle FORCÉ, 3 Workers`);
+  const sequentiel = drain(apparier(prepared, bucketsA, bucketsB));
+  egal(JSON.stringify(sequentiel), JSON.stringify(drain(pairBuckets(prepared, bucketsA, bucketsB))), 'Worker séquentiel (apparier) = pairBuckets, la référence');
+  const cli = await runSearchToCompletion(params);
+  const lancer = lancerTravailleurNode(await assurerBundleAppariementRapide());
+  const rParallele = await apparierRapideEnParallele({
+    params: message, prepared, bucketsA, bucketsB, totalPaires: totalPairs, travailleurs: 3, lancer, startedAt: prepared.startedAt,
+    cibleMorceau: Math.max(1, Math.ceil(totalPairs / 20)),
+  });
+  ok(rParallele.morceaux >= 2, `au moins deux morceaux (${rParallele.morceaux}) : la répartition est réellement exercée`);
+  const parallele = enResultatDeRecherche(rParallele);
   ok(!sequentiel.truncated && !parallele.truncated && !cli.truncated,
     `trois recherches complètes (truncated=false) : ${sequentiel.candidates.length} candidats`);
-  const cles = (res: { candidates: BuildCandidate[] }) => res.candidates.map(cleBuild).sort();
-  egal(cles(parallele), cles(sequentiel), 'parallèle (worker_threads) = Worker séquentiel : mêmes builds');
-  egal(cles(cli), cles(sequentiel), 'CLI (runSearchToCompletion) = Worker séquentiel : mêmes builds');
+  const cles = (res: { candidates: BuildCandidate[] }) => res.candidates.map(cleBuild);
+  egal(cles(parallele), cles(sequentiel), 'parallèle (worker_threads) = Worker séquentiel : mêmes builds, dans le même ordre');
+  egal(cles(cli), cles(sequentiel), 'CLI (runSearchToCompletion) = Worker séquentiel : mêmes builds, dans le même ordre');
 
-  // Chaque tranche relance `prepareSearch` sur SES paramètres.
-  const tranche = structuredClone({ ...params, maxCollected: Math.ceil(prepared.maxCollected / Math.min(4, bucketsA.length)) });
+  // Chaque Worker relance `prepareSearch` sur les paramètres clonés.
+  const tranche = structuredClone(params);
   const apresDominance = (p: typeof params) => {
     let ids: number[][] = [];
     prepareSearch(p, (etage, listes) => { if (etage === 'dominance') ids = listes.map((l) => l.map((x) => x.id)); });
     return ids;
   };
-  egal(apresDominance(tranche), apresDominance(params), 'dominance : même pool côté principal et côté tranche');
+  egal(apresDominance(tranche), apresDominance(params), 'dominance : même pool côté principal et côté Worker');
   const interchangeables = (p: typeof params) => [...contexteDominance(p.requirement, p.pool, p.objective, p.objectiveStats, reliquesEquipables(p.relic, p.relicContext),
     statsLuesParLesLignes(p.objective, p.artifacts, p.statsLignesArtefactsEquipables)).interchangeables].sort();
   egal(interchangeables(tranche), interchangeables(params), 'contexteDominance : mêmes objective/objectiveStats, même contexte');

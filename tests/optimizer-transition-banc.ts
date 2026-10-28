@@ -12,6 +12,7 @@ import * as exemplaires from '../src/lib/optimizerExclusion';
 import * as equipes from '../src/lib/equipesOptimizer';
 import * as imports from '../src/lib/importEquipes';
 import * as sauvegardes from '../src/lib/optimizerBackup';
+import * as colonnesResultats from '../src/lib/colonnesResultats';
 import type { OptimizerState } from '../src/hooks/useOptimizerState';
 
 export function fonctionDeSource(fichier: string, nom: string, contexte: Record<string, unknown>) {
@@ -51,6 +52,7 @@ export async function bancOptimizer() {
     '../lib/equipesOptimizer': equipes,
     '../lib/importEquipes': imports,
     '../lib/optimizerBackup': sauvegardes,
+    '../lib/colonnesResultats': colonnesResultats,
     react: {
       useCallback<T>(callback: T) { return callback; },
       useEffect() {},
@@ -68,6 +70,9 @@ export async function bancOptimizer() {
       },
     },
     './useBuildOptimSearch': { useBuildOptimSearch: () => search },
+    // La mesure globale (Efficience / Score SW) est un store externe lu par
+    // `useSyncExternalStore`, absent du faux React : sa valeur par défaut.
+    './useRuneMetric': { useRuneMetric: () => 'eff' },
   };
   for (const [, chemin] of code.matchAll(/require\("([^"]+)"\)/g)) {
     if (!(chemin in modules)) throw new Error(`Dépendance de production non instrumentée : ${chemin}`);

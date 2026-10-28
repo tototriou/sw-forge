@@ -82,7 +82,11 @@ export default async function testDiagnosticDifferentiel() {
   /* ── Une VRAIE divergence, LOCALISÉE ───────────────────────────────── */
 
   const sensible = trouverProfil('complet-sensible');
-  const div = await executerDifferentiel(sensible, 'bucketCap', 6000, 500);
+  // À `slotFilterCap` 40 dans les deux bras (le pool de 25 runes passe entier
+  // comme à 80) : à 80, la rétention de Bas (son `bucketCap` dérivé, 3000)
+  // s'ajouterait aux deux bras (préréglages emboîtés) et rendrait la même
+  // population à 6000 qu'à 500.
+  const div = await executerDifferentiel(sensible, 'bucketCap', 6000, 500, { overrides: { slotFilterCap: 40 } });
 
   egal(div.verdict, 'DIVERGENCE_LOCALISÉE', 'complet-sensible — bucketCap 6000 → 500 produit une divergence');
   egal(

@@ -124,7 +124,7 @@ for (const a of chargee.avertissements) console.warn(`⚠️ ${a}`);
 console.log(
   `Recette : ${recipe.monsterName} — sets ${recipe.requirement.sets.join('+')} — objectif ${recipe.objective} — ` +
     `métrique ${recipe.metric} — préfiltrage ${recipe.slotFilterPreset} — ` +
-    `prioriser les stats les plus difficiles ${recipe.adaptiveTrancheWeighting ? 'ON' : 'off'} — exclure les runes déjà utilisées ${
+    `exclure les runes déjà utilisées ${
       recipe.excludeUsedRunes ? `ON (${recipe.excludeUsedScope})` : 'off'
     } — vérifier toutes les combinaisons trouvées ${toutVerifierDeLaRecette(recipe) ? 'ON' : 'off'}`
 );
@@ -436,9 +436,9 @@ if (recipe.objective === 'degats_reels') {
 }
 
 console.log('\nRecherche en cours (chemin de prod complet, séquentiel — peut prendre plusieurs minutes)…');
-let result: ReturnType<typeof runSearchToCompletion>;
+let result: Awaited<ReturnType<typeof runSearchToCompletion>>;
 try {
-  result = runSearchToCompletion(params);
+  result = await runSearchToCompletion(params);
 } catch (e) {
   // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche) :
   // imprimé tel quel, jamais présenté comme « 0 build ».
@@ -490,12 +490,13 @@ if (resolu) {
     resolu.mode === 'tout'
       ? `Équipement résolu pour TOUS les candidats (--resoudre-tout) : ${resolu.parBuild.size} build(s), ` +
           `${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms`
-      : `Équipement résolu comme la file de l'écran : ${resolu.parBuild.size} build(s) sur ${result.candidates.length} — ` +
+      : `Équipement résolu comme la file de l'écran : ${resolu.parBuild.size - resolu.rejetes} build(s) noté(s) sur ${result.candidates.length} — ` +
           (Number.isFinite(resolu.K)
             ? `l'ordre de base jusqu'à ${resolu.K} combinaisons confirmées (ou jusqu'au dernier build trouvé)`
             : `toutes les combinaisons trouvées (« Vérifier toutes les combinaisons trouvées » dans la recette)`) +
           ` et les ${LIGNES_IMPRIMEES} lignes imprimées, jusqu'au point fixe ` +
-          `(${resolu.lots} lot(s)) — ${resolu.parBuild.size - resolu.rejetes} confirmée(s), ${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms. ` +
+          `(${resolu.lots} lot(s)) — ${resolu.parBuild.size - resolu.rejetes + resolu.confirmeesSansNote} confirmée(s), dont ${resolu.confirmeesSansNote} sans note ` +
+          `(confirmation en fond des builds non notés), ${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms. ` +
           `Les autres candidats restent classés dans l'ordre de base, non résolus ; --resoudre-tout pour tout résoudre.`
   );
   if (result.truncated) {

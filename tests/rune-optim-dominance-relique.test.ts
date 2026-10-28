@@ -56,9 +56,9 @@ import {
   prepareSearch,
   respecteConditionsAvecRelique,
   scoreDuCandidat,
-  searchBuilds,
   totalPairCount,
 } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import type { BuildCandidate, BuildRequirement, Objective, RealDamageContext, SearchParams, SearchResult } from '../src/lib/runeBuildOptim';
 import { prepareOrRefuse } from '../src/workers/prepareForSearch';
 import { drain } from '../scripts/lib/drain';
@@ -108,7 +108,7 @@ interface Cas {
   minStats?: Partial<Record<StatKey, number>>;
   maxStats?: Partial<Record<StatKey, number>>;
   compter?: boolean;
-  // La paire FIXE (« Garder l'artéfact équipé » ×2) : `SearchParams.artifacts`,
+  // La paire FIXE (« Comme équipé » ×2) : `SearchParams.artifacts`,
   // lue par la note (principales, lignes 218–221). Absente : aucun artéfact.
   paire?: ArtifactDetail[];
   // Le mode critique de « Dégâts réels » ; absent : le défaut de l'écran.
@@ -259,8 +259,8 @@ function runesDuCandidat(p: SearchParams, c: { runeIds: number[] }): RuneDetail[
 function espaceExact(p: SearchParams): number {
   const prepared = prepareSearch(p);
   if (!prepared) return 0;
-  const a = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, p.adaptiveTrancheWeighting, p.combosOrderMode));
-  const b = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, p.adaptiveTrancheWeighting, p.combosOrderMode));
+  const a = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, p.combosOrderMode));
+  const b = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, p.combosOrderMode));
   return totalPairCount(prepared, a, b);
 }
 
@@ -283,7 +283,7 @@ function lancer(cas: Cas, extra: Partial<SearchParams> = {}, traceMax = 40): Ver
     let rel = cas.relique;
     let noteProduction: number;
     if (p.relicContext?.mode === 'recherche') {
-      // La paire figée côté résolution (`paireFixe` → « Garder l'artéfact
+      // La paire figée côté résolution (`paireFixe` → « Comme
       // équipé » ×2) : sans elle, la résolution noterait sur une paire vide.
       const r = resoudreCandidat(p, c, p.relicContext, {
         critere: cas.objective,

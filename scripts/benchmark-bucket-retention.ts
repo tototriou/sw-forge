@@ -15,7 +15,8 @@
 // la demande via `npm run benchmark:bucket-retention`.
 
 import { BaseStats, RuneDetail } from '../src/types';
-import { BuildRequirement, SearchParams, searchBuilds } from '../src/lib/runeBuildOptim';
+import { BuildRequirement, SearchParams } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 // Pool synthétique PARTAGÉ — voir scripts/lib/randomPool.ts.
 import { SETS_VARIES, mulberry32, randomPool } from './lib/randomPool';
 

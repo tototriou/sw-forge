@@ -26,22 +26,34 @@ plus du plafond de candidats collectés :
 
 Les cas de troncature se distinguent dans le message affiché : un arrêt
 manuel dit « voici le meilleur trouvé jusque-là » (un choix assumé), un
-plafond atteint dit « resserre tes critères » (une limite subie).
+plafond atteint dit « resserre tes critères » (une limite subie). Le
+plafond de candidats collectés est d'un million de builds, tous gardés.
 
-⚠️ **Sur une grosse recherche (appariement parallèle, au-delà de 100 M de
-combinaisons), le plafond de candidats est partagé en quatre** : chaque
-tranche en reçoit le quart et s'arrête quand elle l'a rempli. Une tranche
-arrêtée ainsi alors qu'il lui restait des combinaisons à examiner rend la
-recherche **tronquée**, même si le total reste sous le plafond : l'écran
-affiche alors « Recherche interrompue après examen de N combinaisons —
-resserre tes critères pour un résultat exhaustif. »
-(`OptimizerSection.tsx`), plutôt que de présenter le résultat comme
-complet. La troncature ne change que le message : la recherche n'examine
-rien de plus. Une tranche qui remplit
-son quart sur sa toute dernière combinaison ne laisse rien de côté et ne
-déclenche pas le message. Le moteur transmet le motif (`motifTroncature` :
-temps, plafond global ou quota de tranche) ; l'écran ne l'affiche pas, il
-n'en lit que le booléen `truncated`.
+Un quatrième arrêt est subi : la **mémoire**. Si l'appareil refuse une
+allocation pendant le classement des résultats, la recherche s'arrête si
+elle collecte encore, le classement garde ce qu'il avait déjà classé, et le
+message devient « Arrêt : mémoire — N builds gardés sur M trouvés. Resserre
+tes critères pour un résultat complet. », à la place des deux autres. Rien
+n'est retenté ; une nouvelle recherche repart entière (voir
+limites-connues.md et
+../../03-developpeur/optimizer/moteur/pipeline.md § Arrêt sur la mémoire du classeur).
+
+Sur une grosse recherche (appariement parallèle, au-delà de 100 M de
+combinaisons), le plafond de candidats reste **global** : les combinaisons
+gardées sont les premières dans l'ordre où une recherche sur un seul fil les
+aurait trouvées, et le message « Recherche interrompue après examen de N
+combinaisons — resserre tes critères pour un résultat exhaustif. »
+(`src/components/outils/optimizer/AvisRechercheTronquee.tsx`) ne s'affiche
+que si ce plafond est atteint ou le filet de temps écoulé. L'écran n'en lit
+que le booléen `truncated`. Le
+nombre de Workers suit la machine (la moitié de ses fils logiques, au plus
+8) ; « Arrêter » cesse de leur confier du travail, interrompt celui en
+cours (chaque Worker le lit entre deux tranches de 100 ms) et rend tout ce
+qu'ils ont trouvé.
+
+Une erreur de réception des candidats ou de validation de leur nombre final
+termine la recherche et ses Workers, avec un état d'erreur visible. Une
+nouvelle recherche peut être lancée et arrêtée normalement.
 
 ## Barre de progression
 
@@ -58,7 +70,13 @@ une grosse recherche : il ne ralentit rien, il borne le nombre de
 `postMessage`, dont chacun clone les nouveaux candidats ; plus long, il
 n'en économiserait que quelques-uns par seconde, pour une barre moins
 vivante. Chaque message porte `explored`, `found`
-et un `pct` approximatif : le plus avancé des trois budgets qui peuvent
+et un `pct` approximatif. En appariement parallèle, `explored` est
+l'avancement : les paires déjà parcourues par tous les Workers, y compris
+les morceaux finis que la fusion, faite dans l'ordre, n'a pas encore
+rejoints et ceux en cours ; sans lui, le compteur restait figé derrière un
+morceau lent puis sautait d'un coup
+([moteur/parallelisation.md § Orchestration et progression](../../03-developpeur/optimizer/moteur/parallelisation.md#orchestration-et-progression)).
+Le résultat, lui, compte les paires traitées. `pct` est le plus avancé des trois budgets qui peuvent
 chacun terminer la recherche — et les seuls qui existent (pas de plafond
 de nœuds : une borne qui grandit en cours de route ferait RECULER la
 barre) :

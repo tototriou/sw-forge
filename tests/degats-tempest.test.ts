@@ -522,7 +522,6 @@ export function testDegatsTempestRecette() {
     damageSetup,
     metric: 'eff',
     slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false,
     exhaustiveSearch: false,
     excludeUsedRunes: false,
     excludeUsedScope: 'box',

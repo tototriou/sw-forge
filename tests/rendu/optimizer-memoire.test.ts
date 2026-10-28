@@ -36,6 +36,13 @@ export const testRenduMemoireOptimizerRecetteSansSelection = () => transition('r
 export const testRenduMemoireOptimizerGlobauxAvantRestauration = () => transition('globaux-restauration');
 export const testRenduMemoireOptimizerSourceRta = () => transition('source-rta');
 export const testRenduMemoireOptimizerSourceSiege = () => transition('source-siege');
+export const testRenduFiltresResultatsMemoire = () => transition('filtres-memoire');
+export const testRenduFiltresResultatsCarteContexte = () => transition('filtres-carte-contexte');
+export const testRenduFiltresResultatsCartes = () => transition('filtres-ecran');
+export const testRenduTelephoneFiltresResultatsCartes = () => transition('filtres-ecran', true);
+export const testFiltresBranchementApp = () => transition('filtres-branchement');
+export const testFiltresBranchementAppTelephone = () => transition('filtres-branchement', true);
+export const testRenduFiltresResultatsMesure = () => transition('filtres-mesure');
 
 async function inclusion(genre: 'ajout' | 'fiche' | 'carte', telephone = false) {
   titre(`rendu · Optimizer mémoire — inclusion par clic ${genre}${telephone ? ' au téléphone' : ''}`);

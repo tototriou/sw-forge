@@ -686,7 +686,7 @@ export function testAttaquesConjointesChoixArtefacts() {
       const verrous: LigneVerrouillee[] = g % 4 === 0 ? [{ code: 209, min: 5 }] : [];
       const sansEvaluer = parametresArtefactsFiche({
         porteur, inventaire: inv, reserves: new Set(), equipes: [], optimiserArtefacts: true,
-        principaleParSorte: {}, lignesVerrouillees: verrous, damageSetup: c.setup, maxStats: {},
+        principaleParSorte: {}, lignesVerrouillees: verrous, damageSetup: c.setup, maxStats: {}, sortDegats: degats.profile.skillCom2usId,
       });
       const params: ArtifactSearchParams = { ...sansEvaluer, evaluer };
       const moteur = chercherPaires(params, 1).paires[0];
@@ -714,7 +714,7 @@ export function testAttaquesConjointesChoixArtefacts() {
 
     const pertinence = analyserPertinence({ ...parametresArtefactsFiche({
       porteur, inventaire: [], reserves: new Set(), equipes: [], optimiserArtefacts: true,
-      principaleParSorte: {}, lignesVerrouillees: [], damageSetup: c.setup, maxStats: {},
+      principaleParSorte: {}, lignesVerrouillees: [], damageSetup: c.setup, maxStats: {}, sortDegats: degats.profile.skillCom2usId,
     }), evaluer });
     egal(
       [209, 225].map((code) => pertinence.croissants.has(code)),

@@ -16,6 +16,13 @@ ici.
   compartiment (`buildBuckets`, `bucketCap` places par tranche). Une rune
   ou un demi-build écarté à ces étages n'est jamais revu. Mécanisme :
   [03-developpeur/optimizer/moteur/elagages.md § Pré-filtrage heuristique et compartiments](../../03-developpeur/optimizer/moteur/elagages.md#pré-filtrage-heuristique-et-compartiments).
+- **Un préréglage plus large ne perd rien d'un plus étroit, sur une
+  recherche complète seulement.** Chaque préréglage ajoute à sa rétention
+  celle des préréglages plus étroits (Bas ⊆ Moyen ⊆ Haut ⊆ Extrême) ; une
+  recherche que le filet de temps ou le plafond de candidats arrête visite
+  ses demi-builds dans un autre ordre et peut rendre d'autres builds que le
+  préréglage plus étroit :
+  [03-developpeur/optimizer/moteur/elagages.md § Préréglages emboîtés](../../03-developpeur/optimizer/moteur/elagages.md#préréglages-emboîtés).
 - **Plus il y a de conditions à la fois, plus le pré-filtrage les dilue.**
   `relevance` additionne une contribution par minimum posé : une rune utile
   à une partie seulement des conditions se classe d'autant plus bas qu'elles
@@ -46,11 +53,27 @@ ici.
   candidats l'interrompt, la part non explorée peut contenir mieux que ce
   qui est affiché ([feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel](feat-interruption.md)).
 - **Le plafond de candidats collectés n'a pas de réglage.**
-  `MAX_COLLECTED` (100 000) s'applique toujours ; « Rechercher jusqu'à
+  `MAX_COLLECTED` (1 000 000) s'applique toujours ; « Rechercher jusqu'à
   épuisement complet » ne retire que le filet de temps. Atteint, il arrête
   la recherche : le résultat est le meilleur des candidats collectés
   jusque-là, et l'écran dit « resserre tes critères pour un résultat
-  exhaustif ».
+  exhaustif ». Sous le plafond, tous les builds trouvés sont gardés, jamais
+  un top K : [ADR](../../04-decisions/adr/plafond-de-builds.md).
+- **La mémoire peut arrêter une recherche avant le plafond.** Au million,
+  les résultats occupent environ 281 Mio (443 Mio avec « Vérifier toutes
+  les combinaisons trouvées »), plus 114 Mio le temps de construire le
+  classement à la fin de la recherche. Si l'appareil refuse une de ces
+  allocations, le classement garde ce qu'il avait déjà classé (au plus
+  l'aperçu des 3 000 premiers trouvés, quand le refus tombe pendant la
+  recherche ou à sa fin), cesse de vérifier en fond, arrête la
+  recherche si elle collecte encore, et l'écran dit « Arrêt : mémoire — N
+  builds gardés sur M trouvés ». Rien n'est retenté ; une nouvelle
+  recherche repart entière. Ce refus n'est reconnu à coup sûr que sous
+  Chromium et dans l'application de bureau : sous Firefox ou Safari, dont
+  la forme du refus n'a pas été relevée, il peut interrompre le classement
+  (page gardée, « Classement interrompu »). Un appareil qui manque de mémoire peut aussi
+  fermer l'onglet sans que l'app puisse l'en empêcher : ce cas-là n'a pas
+  de reprise.
 - **Aucun bonus de set ne pèse au pré-filtrage ni à la rétention.** Une
   rune y vaut par sa principale, son innée et ses sous-propriétés
   (`runeContribution`), plus, pour RES et PRÉ, la part EXTERNE d'aura
@@ -90,14 +113,14 @@ ici.
 
 ## Réglages exposés, estimation et progression
 
-- **Quatre réglages de l'écran agissent sur la recherche**, sous
+- **Trois réglages de l'écran agissent sur la recherche**, sous
   « Réglages avancés » : le préréglage de pré-filtrage (`slotFilterCap`,
   dont dérive `bucketCap` par `bucketCapFor`), « Rechercher jusqu'à
-  épuisement complet » (filet de temps de 10 minutes retiré), « Prioriser
-  les stats les plus difficiles » (`adaptiveTrancheWeighting`) et
+  épuisement complet » (filet de temps de 10 minutes retiré) et
   « Compter les effets d'auras Tolerance et Précision dans les
   conditions » (`compterAurasResPre`). Ne sont pas exposés :
-  `MAX_COLLECTED`, `BUCKET_CAP`, `combosOrderMode` ;
+  `MAX_COLLECTED`, `BUCKET_CAP` et `combosOrderMode` ;
+  `adaptiveTrancheWeighting` est retiré des paramètres et de l'état ;
   `SearchParams.bucketCap` sert à la mesure, jamais à l'écran. Détail :
   [ecran/conditions-et-reglages.md § Réglages avancés](ecran/conditions-et-reglages.md).
 - **L'estimation affichée avant de lancer est un ordre de grandeur**
@@ -186,16 +209,16 @@ et [03-developpeur/optimizer/harnais/extensions.md § Le différentiel : l'oracl
   quasi-succès d'un différentiel ne se comparent pas quand le nombre de
   paires explorées diffère au-delà de leur dispersion
   (`scripts/lib/diagnosticDifferentiel.ts`) ; un plafond de candidats
-  (`maxCollected`) que la recherche n'atteint pas ne tronque pas une
-  recherche séquentielle, mais en appariement parallèle une tranche tronque
-  dès qu'elle atteint sa part (motif `quotaTranche`) ;
-- le motif d'une recherche arrêtée à la main ne se distingue pas : en
-  appariement parallèle elle porte `maxMs`, en séquentiel aucun motif
-  (`runeBuildOptim.ts`, `motifTroncature`). L'écran n'en dépend pas, il
-  sait lui-même qu'on a cliqué « Arrêter » ;
+  (`maxCollected`) que la recherche n'atteint pas ne la tronque pas, dans
+  l'un ou l'autre régime ;
+- le motif d'une troncature se déduit du plafond (atteint : `maxCollected`,
+  sinon `maxMs`) : une recherche arrêtée à la main s'y lirait `maxMs`.
+  L'écran n'en dépend pas, il sait lui-même qu'on a cliqué « Arrêter » ;
 - en appariement parallèle, l'instant de découverte d'un build cible est
-  relevé à intervalle de temps, non reproductible : comparer deux
-  configurations sur cette grandeur demande le régime séquentiel.
+  relevé à chaque morceau reçu, non reproductible : comparer deux
+  configurations sur cette grandeur demande le régime séquentiel. Un traceur
+  (`--suivre`) n'est rempli qu'en séquentiel : en régime parallèle, le
+  harnais apparie sans lui.
 
 Ce que le harnais ne sait pas faire, ou dit de travers :
 
@@ -213,12 +236,10 @@ Ce que le harnais ne sait pas faire, ou dit de travers :
   `relevanceScore`, est plus large que le code : `combined` ne replie
   qu'en l'absence de minimum, `potential` jamais ;
 - **la source synthétique** ne force pas de principale par emplacement,
-  n'injecte pas de rune et ne porte aucun artéfact ;
-  `adaptiveTrancheWeighting` ne se règle ni par elle ni par un override
-  (`scripts/lib/diagnosticTypes.ts`) : [03-developpeur/optimizer/harnais/extensions.md § Configuration : une résolution, des arguments refusés, une fidélité bornée](../../03-developpeur/optimizer/harnais/extensions.md#configuration--une-résolution-des-arguments-refusés-une-fidélité-bornée) ;
-- **trois scripts conservés ne reproduisent plus leur référence**, chacun
-  le dit dans son en-tête : `scripts/bucket-cap-scaling-diag.ts`,
-  `scripts/stress-tranche-weighting-attainable-diag.ts` et
+  n'injecte pas de rune et ne porte aucun artéfact :
+  [03-developpeur/optimizer/harnais/extensions.md § Configuration : une résolution, des arguments refusés, une fidélité bornée](../../03-developpeur/optimizer/harnais/extensions.md#configuration--une-résolution-des-arguments-refusés-une-fidélité-bornée) ;
+- **deux scripts conservés ne reproduisent plus leur référence**, chacun
+  le dit dans son en-tête : `scripts/bucket-cap-scaling-diag.ts` et
   `scripts/filterslot-topk-diag.ts`, dont la copie `filterSlotOld` n'a pas
   l'élagage sûr de la production à combo de coût complet
   ([03-developpeur/optimizer/harnais/scripts.md § Les scripts voisins](../../03-developpeur/optimizer/harnais/scripts.md#les-scripts-voisins)).

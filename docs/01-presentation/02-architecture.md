@@ -15,7 +15,7 @@ flowchart TD
   Pages --> Hooks
   Comp --> Lib["src/lib/<br/>calcul pur, testé"]
   Hooks --> Lib
-  Hooks --> Workers["src/workers/<br/>recherche de l'Optimizer"]
+  Hooks --> Workers["src/workers/<br/>recherche et classement de l'Optimizer"]
   Workers --> Lib
   Hooks --> Stockage[("localStorage<br/>IndexedDB")]
   Donnees[("public/data/<br/>données SWARFARM")] --> Hooks
@@ -149,10 +149,72 @@ Lib `accountStore` (IndexedDB), `accountViews`, `runeSort`, `runeOptim`, `builds
 `useBuildOptimSearch` (saisie et recherche, jamais persistées) et `useOptimizerLists` (listes de
 travail créées par l'utilisateur + runes validées scopées par liste — seul état PERSISTÉ de
 l'écran — fiche : [optimizer/feat-listes-et-reservation.md](../02-app/optimizer/feat-listes-et-reservation.md)).
-Moteur `src/lib/runeBuildOptim.ts`, exécuté dans `src/workers/runeBuildOptim.worker.ts` et
-`src/workers/buildHalf.worker.ts` — [03-developpeur/optimizer/](../03-developpeur/optimizer/README.md).
+Moteur `src/lib/runeBuildOptim.ts`, ses noyaux sur tableaux typés (`constructionRapide.ts`,
+`appariementRapide.ts`, `validationRapide.ts`, `appariementRapideParallele.ts`, `travailleurAppariement.ts`) et son orchestration hors Worker
+(`rechercheRunes.ts`), exécuté dans `src/workers/runeBuildOptim.worker.ts`,
+`src/workers/buildHalf.worker.ts` et, au-delà du seuil, `src/workers/appariementRapide.worker.ts`
+— [03-developpeur/optimizer/](../03-developpeur/optimizer/README.md).
+Les demi-builds de l'écran restent en colonnes typées
+(`src/lib/demiBuildsTypes.ts`) de la construction à l'appariement ; les
+adaptateurs objets servent le CLI et les références de contrôle.
 ⚠️ Disposition mobile dédiée pour « Monstre & équipement » seul — le reste de l'écran n'est pas
 encore audité en mobile.
+
+Les cartes de la grille des réglages du téléphone vivent dans `src/components/outils/optimizer/`,
+une par fichier, sans état propre : `OptimizerSection` garde l'état et la logique et les leur
+passe par props. « Monstre & équipement » (`MonstreEquipement`, avec
+`MonstreEquipementTelephone`, `BandeauBuildValide`, `BoutonValiderBuild` ; la liste de travail
+`MonstresDeLaListe` — zone C —, le choix de l'exemplaire `ChoixExemplaire` — zone D —, le
+sélecteur de listes `SelecteurListes`), « Critères de recherche » (`CriteresRecherche` :
+`SetDeRunes`, `StatPrincipaleImposee`, `Conditions`), « Artéfacts et relique »
+(`ArtefactsEtReliques`, `MeilleursArtefacts`, `Relique`), `CarteEtatMonstre`, l'estimation
+(`EstimationPool`), et le panneau « Options de recherche » (`OptionsRechercheTelephone`), qui
+porte « Exclusion de runes » (`ExclusionRunesContenu`, `RunesDejaUtilisees`,
+`ExclusionMonstrePrecis`, `RunesImposees`, `TitreExclusionRunes`) et « Réglages avancés »
+(`ReglagesAvancesContenu`, `TitreReglagesAvances`). Le bureau reprend une partie de ces cartes
+dans ses propres boîtes (ci-dessous), dont l'exemplaire et sa fiche (`ExemplaireEtFiche`). Les gestes restent dans
+`OptimizerSection`, nommés et passés aux cartes (`choisirMembreDeLaListe`,
+`choisirExemplaireZoneD`, `choisirSetsRecherches`). Constantes
+partagées : `src/components/outils/optimizer/constantes.ts` ; types :
+`src/components/outils/optimizer/types.ts`.
+
+Au format bureau, `OptimizerSection` rend la page en colonnes
+([02-app/optimizer/ecran/](../02-app/optimizer/ecran/README.md)) par `PageBureau`
+(`src/components/outils/optimizer/bureau/PageBureau.tsx`) : racine en requêtes de conteneur,
+agencements A1, A2, A3, contrôle à onglets et colonnes repliables, page à hauteur de fenêtre en
+A2 et A3 (chaque colonne défile seule en A3) ; ses
+seuils et l'état de départ des onglets viennent de `src/lib/optimizerColonnes.ts`. Le téléphone
+garde la grille des cartes ci-dessus. Les boîtes de cette page vivent dans
+`src/components/outils/optimizer/bureau/` : la liste de
+travail (`ListeDeTravailBureau`), le set de runes compact (`SetDeRunesCompact`), les principales
+imposées (`PrincipalesImposeesBureau`), les conditions (`ConditionsBureau`), l'état du monstre
+réduit aux buffs et au lead (`EtatMonstreEssentiels`) et le contrôle à onglets des colonnes
+repliables (`OngletsColonnes`, décidé par `src/lib/optimizerColonnes.ts`) ; dans la colonne
+« Artéfacts et relique », la carte des artéfacts et de la relique (`ArtefactsEtReliqueBureau`) et
+celle des meilleurs artéfacts (`MeilleursArtefactsBureau`) ; dans la colonne « Aura, exclusion,
+avancés », les sets d'aura (`SetsAuraBureau`), l'exclusion de runes (`ExclusionRunesBureau`) et les
+réglages avancés (`ReglagesAvancesBureau`), en ligne ; dans la colonne de droite, « Exemplaire »
+(`ExemplaireBureau`), le bloc « Objectif et Rechercher » en forme étroite ou large
+(`ObjectifEtRechercherBureau`, forme choisie par `formeObjectifBureau` de
+`src/lib/optimizerColonnes.ts`) et les résultats (`ResultatsBureau`, autour des composants des
+résultats plus bas). Elles se voient seules
+dans la vue de développement `#/outils/optimizer/gabarits`
+(`src/components/outils/optimizer/gabarits/`, adresse dans `src/lib/optimizerGabarits.ts`) :
+[03-developpeur/vue-des-gabarits.md](../03-developpeur/vue-des-gabarits.md).
+
+Sous la grille, même dossier, même règle : « Objectif de recherche » et les actions
+(`ObjectifEtActions` : Rechercher, Exporter, Importer, Arrêter), la progression, l'échec et le
+refus, avec la barre d'appariement (`ProgressionRecherche`), le message d'import d'une recette
+(`MessageImportRecette`), l'en-tête des résultats — compte confirmé,
+tri, ligne de la file de vérification ou avis de page interrompue, choix cartes / tableau,
+« Filtrer l'affichage », ligne de comptes, ligne de raison — (`EnteteResultats`), la grille
+Min / Max des filtres d'affichage (`FiltresResultats`, flottant au bureau, panneau au
+téléphone), la bande des têtes de tri (`TetesDeTri`), le tableau des résultats
+(`TableauResultats`), les blocs de 0 résultat (`DiagnosticsSansResultat` : `DiagnosticFaisabilite`,
+`DiagnosticApprofondi`, `QuasiSucces`), `AvisRechercheTronquee`, la grille des cartes
+(`GrilleResultats`), `PaginationResultats` et les confirmations de libération
+(`ConfirmationsLiberation`). Ce que reçoit chaque carte (`proprietesCarte`) et la création
+d'une liste depuis sa fenêtre (`creerListeDepuisDialogue`) restent calculés par l'écran.
 
 Autour de la liste, dans le même dossier : `OptimizerBackupBar` (point de sauvegarde des listes :
 sauvegarder, reprendre), `OptimizerCreateListDialog` (création d'une liste et choix de son contenu
@@ -194,6 +256,7 @@ imposé + sort de chacun) dans le même moteur. Tout est testé dans `tests/spee
 | `ZoneCliquable.tsx` | une **surface** rendue cliquable (ligne dépliante, poignée) |
 | `Champ.tsx` / `NumberField.tsx` | saisie texte / numérique (⚠️ jamais `type="number"`) |
 | `Selecteur.tsx` | liste déroulante |
+| `SelecteurMultiple.tsx` | liste à **choix multiples** : fermée, le résumé des choix ; ouverte, une `Case` par option dans un flottant |
 | `Case.tsx` / `Interrupteur.tsx` | à cocher / à glissière |
 | `Option.tsx` | choix riche : icône + titre + explication ; action optionnelle juste à droite du titre (`actionTitre`, hors du bouton principal : le « ? » d'une prose de sort) |
 | `Dialogs.tsx` | `Modale` (portalisée), `ConfirmDialog`, `PromptDialog`, `KeepAccountDialog` |
@@ -233,12 +296,12 @@ exemptés.
 | `useMediaQuery` | une media query lue depuis React ; ⚠️ dans un volet de l'écran partagé, une requête de largeur répond selon le volet (`LargeurVolet`) |
 | `useScrollBloque` | ⚠️ **compteur de verrous** — blocage du défilement, verrou `position: fixed` sur `body` (iOS ignore `overflow: hidden` au toucher) |
 | `useClavierOuvert` | clavier virtuel déployé ? via `visualViewport` |
-| `useRecalageEcran` | ramène dans l'écran un flottant qui déborde par la droite |
 | `useComboboxNav` | ↑/↓/Entrée/Échap des barres de recherche à suggestions |
 | `useSpeedTune` | ⚠️ **tout** l'état, les actions et les dérivées du speed tuning — la page ne fait que rendre |
 | `useDonneesKit` | charge kits, sorts et passifs d'une poignée de monstres (outil **et** siège, un seul chemin) |
 | `useAdversaireReference` | réglage global : toujours poser l'adversaire de référence en face |
 | `useBuildsRapides` | réglage global : les combinaisons et le nombre de builds du bloc « Builds les plus rapides » (Résumé des runes) |
+| `useFormeResultats` | réglage : les résultats de l'Optimizer en cartes ou en tableau (bureau) |
 | `useEtatSwex` | l'état du dossier SW Exporter au bureau, lu par les Réglages et par `SidebarCompte` |
 
 ## Calcul — `src/lib/`
@@ -249,8 +312,9 @@ Fonctions **pures**, testables sans rendu. C'est ici que va toute logique, jamai
 | --- | --- |
 | Vitesse & stats | `speed.ts` (source de vérité), `stats.ts` |
 | Speed tuning | `speedTune.ts` (moteur de ticks), `speedTuneLignes.ts` (modèle de l'écran), `speedTuneAuto.ts` (analyse partagée outil/siège), `speedTuneKit.ts` + `speedTunePassif.ts` (lecture des kits), `speedTuneDeck.ts` (import d'un deck), `siegeStatut.ts` (statut d'une équipe de siège) |
-| Runes | `runeOptim.ts`, `runeBuildOptim.ts`, `runeSort.ts`, `runeCurveShare.ts` |
-| Reliques | `relicOptim.ts` (choix de la meilleure relique pour un build, pertinence et dominance structurelle) ; `relicQueue.ts` (résolution EXACTE de l'équipement d'un build — paire d'artéfacts ET relique, ensemble — la partie pure de la file `useArtifactOptimQueue`, et l'état de la relique d'un candidat pour l'écran) |
+| Runes | `runeOptim.ts`, `runeBuildOptim.ts` (moteur, référence), `rechercheRunes.ts` (orchestration : `searchBuilds`, `construireMoitie`, `apparier`), `constructionRapide.ts`, `appariementRapide.ts` et `validationRapide.ts` (noyaux sur tableaux typés), `retentionEmboitee.ts` (union des rétentions des préréglages emboîtés) et `constructionEmboitee.ts` (un Worker de construction par moitié et par préréglage), `appariementRapideParallele.ts` (appariement parallèle) et `travailleurAppariement.ts` (ce que fait chacun de ses Workers), `runeSort.ts`, `runeCurveShare.ts` |
+| Résultats Optimizer | `contexteResultat.ts` (photographie pure partagée Node), `candidatsCompacts.ts` (stockage), `classementCompact.ts` (index et corps propriétaire), `cacheResolutionCompact.ts` (cache typé), `cession.ts` (cession entre deux tranches), `colonnesResultats.ts` (les onze colonnes des résultats, et la lecture d'un objectif ou d'un tri enregistré comme colonne), `filtresResultats.ts` (bornes min/max par colonne : validation, valeur comparée, catégorie de chaque ligne), `valeursAffichees.ts` (ce qu'une carte de résultat écrit d'une valeur, en nombre : la moyenne par rune et ses chiffres, l'entier des PV effectifs et des dégâts), `filtresAffichage.ts` (ce que l'écran écrit des onze colonnes : libellés, unités, résumé des bornes, ligne de comptes) ; `classement.worker.ts` et `classementDistant.ts` (transport, versions et instantané de la page) ; `useBuildOptimSearch` garde les Workers vivants pendant la navigation et reçoit l'instantané de la vue |
+| Reliques | `relicOptim.ts` (choix de la meilleure relique pour un build, pertinence et dominance structurelle) ; `relicQueue.ts` (résolution EXACTE de l'équipement d'un build — paire d'artéfacts ET relique, ensemble — la partie pure de la file du classeur, et l'état de la relique d'un candidat pour l'écran) ; `resolutionRapide.ts` (la résolution de l'app, appelée par `relicQueue.ts` : elle ne note que les paires faisables) ; `resolutionExhaustive.ts` (la même résolution, toutes les paires notées : référence des tests et diagnostic d'un build rejeté, à la demande) |
 | Tri | `tri.ts` (le SENS d'un tri, partagé par toutes les listes) |
 | Artéfacts | `artifacts.ts` |
 | Dégâts réels | `damage.ts` ([degats-reels/](../02-app/degats-reels/README.md)) |
@@ -263,4 +327,4 @@ Fonctions **pures**, testables sans rendu. C'est ici que va toute logique, jamai
 | Fichiers exportés | `formatsExport.ts` (identifiant `swblacksmith/<nom>` écrit, l'ancien `sw-forge/<nom>` relu — lu par `rtaShare`, `recoShare`, `siegeShare`, `runeCurveShare`) |
 | Bureau | `bureau.ts` (`estBureau()`, couleurs du thème, mise à jour, `TELECHARGEMENTS`) |
 | Écran partagé | `volets.ts` (les transitions des deux volets : navigation, verrou, volet vide ; plancher, seuil et correspondance des seuils de largeur dans un volet) — [ecran-partage.md](../02-app/transverse/feat-navigation/ecran-partage.md) |
-| Divers | `effects.ts` (codes com2us → libellés), `crafts.ts`, `gearSync.ts`, `detecteurDebordement.ts` (dev seulement), `migrationStockage.ts` (clés de stockage de l'ancien nom) |
+| Divers | `effects.ts` (codes com2us → libellés), `crafts.ts`, `gearSync.ts`, `detecteurDebordement.ts` (dev seulement), `migrationStockage.ts` (clés de stockage de l'ancien nom), `formatBig.ts` (un grand nombre de l'Optimizer, lisible) |

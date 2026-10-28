@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { ArtifactDamageProfile, DamageSetup, LEADER_SKILL_STATS, LEADER_SKILL_VALEURS, LeaderSkillStat, type SetAura } from '../../lib/damage';
+import { DamageSetup, LEADER_SKILL_STATS, LEADER_SKILL_VALEURS, LeaderSkillStat, type SetAura } from '../../lib/damage';
 import { leadIconUrl, STAT_LABEL } from '../siege/LeadPill';
 import { Bouton, BoutonIcone, Jeton, NumberField, Selecteur } from '../../ui';
 import type { RappelBuffDePassif } from '../../lib/buffsDePassif';
 import HelpPopover from '../HelpPopover';
 import EffetVignette from './EffetVignette';
+import { motifLeadAffiche } from '../../lib/equipesOptimizer';
 import { ATK_BUFF_ICON, DEF_BUFF_ICON, SPD_BUFF_ICON } from '../../lib/damage';
 import {
   PLAFOND_AURAS_EXTERNES,
@@ -64,7 +65,6 @@ export default function EtatMonstre({
   setup,
   maj,
   etroit,
-  artefacts,
   rappelAuras,
   onGuiderResPre,
   rappelsBuffs,
@@ -76,7 +76,6 @@ export default function EtatMonstre({
   equipe?: boolean;
   motifLead?: string | null;
   etroit: boolean;
-  artefacts: ArtifactDamageProfile;
   // Passifs du monstre choisi qui posent un buff standard (`rappelsBuffsDePassif`, buffsDePassif.ts) : un rappel, jamais un
   // réglage — le buff reste à allumer à la main dans la boîte ci-dessous.
   rappelsBuffs: RappelBuffDePassif[];
@@ -90,20 +89,7 @@ export default function EtatMonstre({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-1.5">
-        <p className="label">État de mon monstre</p>
-        <HelpPopover title="État de mon monstre">
-          Ce qui rend ton monstre plus fort, <b className="text-ink">quel que soit l&apos;adversaire</b> : buffs
-          reçus, leader skill de l&apos;équipe, compétences d&apos;invocateur, sets d&apos;aura des autres
-          monstres. Ces réglages changent ses statistiques, donc les{' '}
-          <b className="text-ink">dégâts supplémentaires</b> que lui apportent des artéfacts proportionnels
-          aux PV, à l&apos;ATQ, à la DEF ou à la VIT.
-          <br />
-          <br />
-          Ce qui décrit <b className="text-ink">le combat</b> — le sort, la cible, le coup critique — vit dans
-          la fenêtre « Dégâts réels », qui s&apos;ouvre depuis l&apos;objectif de recherche.
-        </HelpPopover>
-      </div>
+      <TitreEtatMonstre />
 
       {/* ⚠️ **Les deux groupes sur UNE rangée** : buffs et
           leader skill décrivent la même chose — l'état du
@@ -164,20 +150,69 @@ export default function EtatMonstre({
 
       <AurasExternesSaisie setup={setup} maj={maj} rappel={rappelAuras} onGuiderResPre={onGuiderResPre} />
       </div>
-      {equipe && <p className="h-20 overflow-y-auto text-xs text-ink-dim">Lead effectif de l’équipe : le modifier change le lead de toute l’équipe. Chaque membre le garde en quittant l’équipe.
-        {motifLead && <span className="block text-warn">{motifLead}</span>}
+      {/* ⚠️ Pour un membre d'équipe, seul le motif d'un lead inactif, à place
+          réservée (le choix du lead, juste au-dessus, peut le faire paraître).
+          Ni phrase d'explication du lead d'équipe ni motif « contenu de combat
+          non défini » : l'utilisateur ne veut jamais les voir (`motifLeadAffiche`). */}
+      {equipe && <p className="h-20 overflow-y-auto text-xs text-ink-dim">
+        {motifLeadAffiche(motifLead) && <span className="block text-warn">{motifLeadAffiche(motifLead)}</span>}
       </p>}
       {/* ⚠️ **Rappel des buffs posés par un passif** :
-          même grammaire que les lignes d'amplification juste dessous (texte
-          `xs` atténué sous la rangée des buffs) ; le passif est nommé comme
+          texte `xs` atténué sous la rangée des buffs ; le passif est nommé comme
           dans « Stats acquises en combat » — `Jeton` en lecture
           seule, icône et nom du jeu. La condition est un extrait LITTÉRAL de
           la prose, entre guillemets, jamais reformulé.
           ⚠️ Il dépend du MONSTRE, jamais d'un clic dans cette carte : il
           paraît au choix du monstre, dont le sélecteur et la liste vivent
-          dans la carte du haut (avant celle-ci au téléphone, rangée 1 au
-          bureau) — rien de ce qu'on vient de cliquer ne bouge. Les vignettes
-          au-dessus ne bougent pas non plus : il vit sous elles. */}
+          plus haut (la carte « Monstre & équipement » au téléphone ; au
+          bureau, la liste de travail en tête des essentiels, où ces rappels
+          suivent la forme `EtatMonstreEssentiels`) — rien de ce qu'on vient
+          de cliquer ne bouge. Les vignettes au-dessus ne bougent pas non
+          plus : il vit sous elles. */}
+      <RappelsEtatMonstre rappelsBuffs={rappelsBuffs} />
+
+
+    </div>
+  );
+}
+
+// Le titre de la carte et son aide. Exporté pour la forme de bureau des
+// essentiels (`optimizer/bureau/EtatMonstreEssentiels.tsx`) : une seule prose.
+// ⚠️ `bureau` : l'aide de la forme des essentiels ne nomme pas les sets d'aura
+// (ils sont dans la colonne « Aura, exclusion, avancés ») et n'a pas le
+// paragraphe sur le combat (décision de l'utilisateur) ; le téléphone ne la
+// passe pas.
+export function TitreEtatMonstre({ bureau = false }: { bureau?: boolean }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <p className="label">État de mon monstre</p>
+      <HelpPopover title="État de mon monstre">
+        Ce qui rend ton monstre plus fort, <b className="text-ink">quel que soit l&apos;adversaire</b> : buffs
+        reçus, leader skill de l&apos;équipe, compétences d&apos;invocateur{bureau ? '' : <>, sets d&apos;aura des autres
+        monstres</>}. Ces réglages changent ses statistiques, donc les{' '}
+        <b className="text-ink">dégâts supplémentaires</b> que lui apportent des artéfacts proportionnels
+        aux PV, à l&apos;ATQ, à la DEF ou à la VIT.
+        {!bureau && (
+          <>
+            <br />
+            <br />
+            Ce qui décrit <b className="text-ink">le combat</b> — le sort, la cible, le coup critique — vit dans
+            la fenêtre « Dégâts réels », qui s&apos;ouvre depuis l&apos;objectif de recherche.
+          </>
+        )}
+      </HelpPopover>
+    </div>
+  );
+}
+
+// Les buffs posés par un passif, sous les réglages. Exporté pour la forme de
+// bureau des essentiels, comme le titre. ⚠️ Plus de phrase sur
+// l'amplification d'un buff par les artéfacts (décision de l'utilisateur) :
+// elle portait sur la paire représentative de la recherche, que le joueur ne
+// connaît pas, et non sur ses artéfacts. Le calcul, lui, en tient compte.
+export function RappelsEtatMonstre({ rappelsBuffs }: { rappelsBuffs: RappelBuffDePassif[] }) {
+  return (
+    <>
       {rappelsBuffs.length > 0 && (
         <div className="space-y-0.5 text-xs text-ink-dim">
           {rappelsBuffs.map((r) => (
@@ -193,24 +228,7 @@ export default function EtatMonstre({
           ))}
         </div>
       )}
-      {(setup.atkBuff && artefacts.ampliAtkPct > 0) ||
-      (setup.defBuff && artefacts.ampliDefPct > 0) ||
-      (setup.spdBuff && artefacts.ampliVitPct > 0) ? (
-        <div className="space-y-0.5 text-xs text-ink-dim">
-          {setup.atkBuff && artefacts.ampliAtkPct > 0 && (
-            <p>Buff ATQ actif : l'artéfact « Effet renforcement ATQ » amplifie ce buff de {artefacts.ampliAtkPct} %.</p>
-          )}
-          {setup.defBuff && artefacts.ampliDefPct > 0 && (
-            <p>Buff DEF actif : l'artéfact « Effet renforcement DEF » amplifie ce buff de {artefacts.ampliDefPct} %.</p>
-          )}
-          {setup.spdBuff && artefacts.ampliVitPct > 0 && (
-            <p>Buff VIT actif : l'artéfact « Effet aug. VIT » amplifie ce buff de {artefacts.ampliVitPct} %.</p>
-          )}
-        </div>
-      ) : null}
-
-
-    </div>
+    </>
   );
 }
 
@@ -253,16 +271,30 @@ export default function EtatMonstre({
  * importée (qui écrit `damageSetup` directement) — le guidage n'est donc
  * jamais rejoué à l'import ni au changement de monstre.
  */
-function AurasExternesSaisie({
+// Exporté pour la carte « Sets d'aura des autres monstres » du bureau
+// (optimizer/bureau/SetsAuraBureau.tsx), en tête de la colonne « Aura,
+// exclusion, avancés » ; rendu inchangé ici.
+export function AurasExternesSaisie({
   setup,
   maj,
   rappel,
   onGuiderResPre,
+  annonce = true,
+  sansCadre = false,
 }: {
   setup: DamageSetup;
   maj: (patch: Partial<DamageSetup>) => void;
   rappel: boolean;
   onGuiderResPre: () => void;
+  // Hors rappel, la boîte sans contour ni fond (au bureau, section du panneau
+  // de sa colonne). Le contour reste en place, transparent, avec le
+  // rembourrage : le rappel le teinte sans rien déplacer.
+  sansCadre?: boolean;
+  // La boîte annonce-t-elle le rappel (`aria-live`) ? Au bureau, non : elle
+  // n'est montée que colonne « Aura, exclusion, avancés » ouverte, et la page
+  // l'annonce dans une région toujours montée (PageBureau) — deux régions
+  // liraient deux fois la même phrase.
+  annonce?: boolean;
 }) {
   const entrees = setup.setsAuraExternes ?? [];
   // Le set dont le champ du nombre est momentanément VIDE (affichage seul).
@@ -283,7 +315,7 @@ function AurasExternesSaisie({
   return (
     <div
       className={`min-w-0 flex-1 basis-full lg:basis-0 flex flex-col gap-1.5 rounded-lg border px-2 py-1.5 transition-colors duration-200 ${
-        rappel ? 'border-warn bg-warn-soft' : 'border-border-soft bg-panel2'
+        rappel ? 'border-warn bg-warn-soft' : sansCadre ? 'border-transparent' : 'border-border-soft bg-panel2'
       }`}
     >
       <div className="grid">
@@ -314,7 +346,7 @@ function AurasExternesSaisie({
           un conteneur toujours visible : le message qui y devient visible est
           annoncé. `apparition` : un message qui se pose en place
           (docs/03-developpeur/interface/, Mouvement). */}
-      <div className="col-start-1 row-start-1 self-center" aria-live="polite">
+      <div className="col-start-1 row-start-1 self-center" aria-live={annonce ? 'polite' : undefined}>
         <p
           className={`text-xs font-semibold text-warn ${
             rappel ? 'animate-[apparition_200ms_var(--ease-out)]' : 'invisible'
@@ -408,7 +440,7 @@ function AurasExternesSaisie({
 // divergé ». `leadIconUrl` attend un objet `LeaderSkill` complet
 // (portée/élément) que ce choix utilisateur n'a pas : traité comme portée
 // `'General'`, sans élément, pour obtenir l'icône DE BASE.
-function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Partial<DamageSetup>) => void }) {
+export function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Partial<DamageSetup>) => void }) {
   const lead = setup.leaderSkill;
   const icone = lead ? leadIconUrl({ stat: lead.stat, amount: lead.pct, area: 'General', element: null }) : null;
   const valeurs = lead ? LEADER_SKILL_VALEURS[lead.stat] : [];

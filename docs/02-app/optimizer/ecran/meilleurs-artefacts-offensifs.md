@@ -1,18 +1,32 @@
 # Meilleurs artéfacts offensifs pour ce build
 
-2 bis. **« Meilleurs artéfacts offensifs pour ce build »** — dans la carte
-   **Artéfacts**, juste sous les **sous-propriétés verrouillées** : le
-   résultat suit immédiatement les réglages qui le produisent, sans qu'un
-   autre sujet ne s'intercale. La meilleure paire pour l'équipement
+2 bis. **« Meilleurs artéfacts offensifs pour ce build »** — au plus près
+   des réglages d'artéfacts qui le produisent : au téléphone, un encart de
+   la carte **Artéfacts et relique**, juste sous les **sous-propriétés
+   verrouillées** ; au bureau, une section à part, juste sous elle (un trait
+   les sépare), dans le panneau de la colonne « Artéfacts et relique ». La meilleure paire pour l'équipement
    **affiché**, avec ce
    qu'elle apporte face à celle qui est portée. Optimise les artéfacts
    **seuls**, sans lancer de recherche de runes : le cas visé est un monstre
    runé pour un autre objectif (un tank fait pour survivre) à qui les artéfacts
    ajoutent des dégâts par-dessus.
 
-   Au téléphone, le bloc est **replié par défaut**, comme « Gérer mes
-   listes » : son titre et le chiffre absolu (avec l'écart) restent
-   visibles, et un toucher sur le titre déplie les crans et la paire.
+   Au téléphone, sous 640 px de large (`SOUS_SM`), le bloc est **replié
+   par défaut**, comme « Gérer mes listes » : son titre et le chiffre absolu
+   (avec l'écart) restent visibles, et un toucher sur le titre déplie les
+   crans et la paire. Au bureau, il n'est jamais replié.
+
+   La paire : deux pièces côte à côte dès 640 px au téléphone ; **empilées
+   au bureau**, une pièce par rangée (décision de l'utilisateur) : dans la
+   colonne, deux pièces côte à côte tronquaient les sous-propriétés longues
+   (« Dgts supp. en prop. de DEF : XX % »), et une pièce par rangée leur
+   rend la largeur de la colonne. Au bureau, les crans « Dégâts
+   supplémentaires / Dégâts réels » sont centrés dans la colonne.
+
+   Il n'existe qu'avec un monstre choisi et l'optimisation d'artéfacts
+   active : sans optimisation, il répondrait « la paire portée est la
+   meilleure », vrai seulement parce qu'on lui interdit d'en chercher une
+   autre.
 
 ## Emplacements figés
 
@@ -21,7 +35,7 @@ pas dans son coin. La question « quels sont mes meilleurs artéfacts » et la
 question « quelle paire supposer pendant la recherche de runes » partagent
 donc une seule réponse : deux blocs qui se contrediraient à l'écran
 coûteraient plus cher qu'un bloc parfois muet. Concrètement :
-- **un** emplacement sur « Garder l'artéfact équipé » → la proposition
+- **un** emplacement sur « Comme équipé » → la proposition
   reste faite, et **deux signaux** disent qu’une moitié est imposée :
   un **bandeau au-dessus de la paire** (« Emplacement attribut figé — il
   est gardé tel que porté, pas optimisé ») et un **marqueur « figé » sur
@@ -143,7 +157,7 @@ principales, verrous, amplifications de buff, maximums actifs) viennent
 eux aussi d'un seul producteur, `parametresArtefactsFiche`, que l'écran
 appelle dans son mémo, le script CLI et le différentiel relique aussi.
 Le script neutralise donc les verrous de sous-propriété comme l'écran
-quand les deux emplacements sont sur « Garder l'artéfact équipé » :
+quand les deux emplacements sont sur « Comme équipé » :
 sinon il chercherait une paire qui les tienne, n'en trouverait aucune et
 rejetterait chaque build d'une recette que l'écran résout. Seul écart : le script
 n'a pas de liste de travail, donc aucun artéfact réservé n'est retiré de
@@ -161,18 +175,20 @@ une seule ligne séparée par des « · » se replie n'importe où et ne
 ressemble pas au jeu.
 
 ⚠️ **Jamais à la place des artéfacts de la fiche** : celle-ci montre
-l'équipement RÉEL, et y substituer une proposition ferait croire à un
-équipement qu'on ne porte pas. Le bloc vit dans la carte **voisine**,
-sous « Exemplaire » — la fiche dit ce qu'on
-PORTE, la carte Artéfacts ce qu'on DEVRAIT porter, et elles se touchent.
-Le bloc est ainsi avec les réglages qui le pilotent, au lieu d'en être
-séparé par une carte entière.
+l'équipement de référence, réellement porté ou validé dans la liste
+active (voir [equipement-actuel.md](equipement-actuel.md)). Y substituer
+une proposition confondrait la référence et le résultat du calcul.
+Le bloc est avec les réglages
+d'artéfacts qui le pilotent, au lieu d'en être séparé par une carte
+entière.
 
-⚠️ **Encadré à part dans la carte** (contour atténué, fond `panel2`),
-sous les sous-propriétés verrouillées : la carte porte deux métiers.
-Attribut, Type et les verrous au-dessus sont des critères de la
-recherche de runes, appliqués à tous les builds qu'elle examine ; le bloc
-ne parle que du build affiché.
+⚠️ **Séparé des critères de la recherche** : Attribut, Type et les verrous
+sont des critères de la recherche de runes, appliqués à tous les builds
+qu'elle examine ; le bloc ne parle que du build affiché. Au téléphone, un
+**encadré à part dans la carte** (contour atténué, fond `panel2`), sous
+les sous-propriétés verrouillées et avant le bloc « Relique » ; au bureau,
+une **section à part** de 294 px (`MeilleursArtefactsBureau`), sans cadre,
+sous « Artéfacts et relique », relique comprise, dans le même panneau.
 
 Quand la paire portée est déjà la meilleure, l'écran le **dit** au lieu
 d'afficher « +0,0 % » — un zéro ressemble à une panne, la phrase est une

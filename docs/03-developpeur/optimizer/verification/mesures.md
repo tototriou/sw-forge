@@ -26,14 +26,26 @@ script sur la machine du moment, en suivant le skill
   paralléliser ses mesures de temps : la contention entre processus
   fausserait ce qu'elles mesurent. `--monotonicity`, qui ne compare aucun
   temps, tourne sur des `worker_threads` (`scripts/lib/monotonicity-worker.ts`).
-- `scripts/pairing-parallel-diag.ts` : la calibration, aux volumes réels, du
-  seuil de déclenchement et du nombre de workers de l'appariement parallèle
-  (`tests/rune-optim-parallel-pairing.test.ts:49-51`).
+  Il construit les moitiés typées et apparie par le lanceur compact de
+  l'écran (`apparierNode` → `lancerAppariement`), avec son régime, sa
+  distribution et ses crédits. La découverte lit les ids à chaque point
+  de passage séquentiel ou publication parallèle ; c'est un majorant,
+  dépendant de l'arrivée des morceaux en parallèle. Une référence de temps
+  prise sous un autre régime ne permet pas une comparaison de débit.
+- `scripts/banc-appariement-rapide.ts` et
+  `scripts/banc-construction-moities.ts` : le chemin de production de
+  l'appariement et de la construction contre `pairBuckets` et
+  `buildBuckets`, sur les cas connus et sur une recette et un export, avec
+  le différentiel et des temps indicatifs par phase.
+- `scripts/pairing-parallel-diag.ts` : le seuil de déclenchement et le
+  nombre de workers, mesurés aux volumes réels pour l'appariement par
+  `pairBuckets` réparti en tranches statiques — la référence, pas la
+  production.
 
 Il n'existe pas de budget de paires : la recherche n'est bornée que par le
 plafond de candidats collectés (`MAX_COLLECTED`, surchargeable par
 `SearchParams.maxCollected`), par le temps (`maxMs`) et par la taille exacte
-de l'espace (`totalPairCount`) (`src/lib/runeBuildOptim.ts:1167-1190`). Un
+de l'espace (`totalPairCount`) (`src/lib/runeBuildOptim.ts:4221-4238`). Un
 en-tête de script qui cite `DEFAULT_MAX_NODES` décrit un budget supprimé.
 Le plafond de collecte privilégie la qualité du résultat sur la vitesse ;
 au préréglage le plus large, c'est la construction des compartiments, un
@@ -67,5 +79,5 @@ propres stats comme critères.
 Sur un compte de plusieurs milliers de runes, le moteur a retrouvé
 exactement le runage d'un monstre existant ; le préréglage « Extrême »
 (300) est la valeur qui l'a permis sur un très gros compte
-(`src/lib/runeBuildOptim.ts:605-608`). Un export de compte ne se commite
+(`src/lib/runeBuildOptim.ts:624-627`). Un export de compte ne se commite
 pas : le `pre-commit` refuse un fichier de plus de 5 Mo.

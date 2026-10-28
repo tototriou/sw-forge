@@ -6,10 +6,12 @@ import { readdirSync } from 'fs';
 import { ECRANS, MOTIFS_TOUS } from './banc/ecrans';
 import { couvre, ecransPourFichiers, motifsPartages } from './banc/selection';
 import { egal, ok } from './outils';
+import { verifierContratsBanc } from './banc/contrats';
 
 const ids = (fichiers: string[]) => ecransPourFichiers(fichiers).ecrans.map((e) => e.id);
 
 export default function testBancSelection() {
+  verifierContratsBanc();
   // Trois fichiers d'exemple, trois formes de motif.
   egal(ids(['src/components/outils/SpeedTuningSection.tsx']), ['optimizer', 'speed-tuning'], 'dossier partagé (outils/) : les deux écrans d’Outils');
   egal(ids(['src/pages/HomePage.tsx']), ['accueil'], 'page propre à un écran : cet écran seul');

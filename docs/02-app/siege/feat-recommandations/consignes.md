@@ -60,6 +60,11 @@ PV        10 050  + [24 950]  35 000
   ce qui est comparé à la stat réelle du joueur.
 - Base inconnue (monstre absent des données) → base affichée « — » et base
   traitée comme 0 : le champ vaut alors directement le total.
+- ⚠️ **Taux Crit, Dmg Crit, RES et Précision sont toujours en total**, en
+  saisie comme en lecture (`STATS_AVEC_BASE`, stats.ts ; décision de
+  l'utilisateur pour toute l'app) : pas de base rappelée ni de « + » devant
+  le champ, qui vaut le total, et la lecture écrit le total à la place de la base. Seuls PV, ATQ,
+  DEF et VIT se lisent en base + bonus.
 
 **Lecture** — ⚠️ **pas de colonne « total » permanente**, contrairement à la
 saisie : `base` et `bonus` par défaut, le total au clic — même geste que le

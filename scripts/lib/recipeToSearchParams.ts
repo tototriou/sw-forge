@@ -36,7 +36,8 @@ import { computeStats } from '../../src/lib/stats';
 import { bornesArtefacts, paireRepresentative, type ArtifactSearchParams, type BornesArtefacts } from '../../src/lib/artifactOptim';
 import { regimeArtefacts, regimeEquipementDe, type DegatsContext } from '../../src/lib/artifactEvaluation';
 import { AUCUN_ARTEFACT_RESERVE, evaluateursArtefactsFiche, parametresArtefactsFiche, statsLignesArtefactsEquipables } from '../../src/lib/artifactFiche';
-import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../../src/lib/relicQueue';
+import { type EntreeResolution, entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../../src/lib/relicQueue';
+import { resoudreEquipementDuBuildRapide } from '../../src/lib/resolutionRapide';
 import type { ResultatArtefacts } from '../../src/lib/artifactQueue';
 import { buildRealDamageContext } from './realDamageCli';
 import { loadMonstersList } from './monstersData';
@@ -262,11 +263,17 @@ export function toutVerifierDeLaRecette(recipe: OptimizerRecipe): boolean {
  * `null` là où l'écran n'a pas de file : optimisation d'artéfacts coupée
  * (`ignoreArtifacts`, qui met aussi la relique en mode `off`), ou espèce
  * introuvable.
+ *
+ * `options.diagnostic` : un build rejeté porte le diagnostic du calcul
+ * exhaustif (son meilleur couple au score), que l'écran ne calcule jamais ;
+ * un build conforme reste résolu par le chemin de l'app. Absent : le chemin
+ * de l'app, à l'identique.
  */
 export function resoudreEquipementCli(
   recipe: OptimizerRecipe,
   loaded: LoadedMonster,
-  params: SearchParams
+  params: SearchParams,
+  options: { diagnostic?: boolean } = {}
 ): ((c: BuildCandidate) => ResultatArtefacts) | null {
   if (recipe.ignoreArtifacts) return null;
   const a = artefactsDuCli(recipe, loaded);
@@ -277,8 +284,11 @@ export function resoudreEquipementCli(
   // Les caches de la file de l'écran : un jeu pour toute la
   // résolution de cette recette, comme l'écran pour une signature.
   const caches = nouveauxCachesResolution();
+  const resoudre = options.diagnostic
+    ? (e: EntreeResolution) => resoudreEquipementDuBuildRapide(e, undefined, { diagnostic: true })
+    : resoudreEquipementDuBuild;
   return (c) =>
-    resoudreEquipementDuBuild(
+    resoudre(
       entreeResolutionDuBuild({
         fiche: loaded.gear,
         // Une rune absente du pool est ignorée, comme à l'écran.
@@ -327,6 +337,9 @@ function paramsArtefacts(
       lignesVerrouillees: recipe.lignesVerrouillees ?? [],
       damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
       maxStats: recipe.requirement.maxStats ?? {},
+      // Le sort résolu comme à l'écran (`resolvedSkill`), quel que soit
+      // l'objectif : la même source, `resolveDamageSkill`.
+      sortDegats: resolveDamageSkill(monsterDamageSkills(loadMonsterSkills(loaded.com2usId)), recipe.damageSetup?.skillCom2usId ?? null)?.skillCom2usId ?? null,
     }),
     evaluer,
   };
@@ -515,6 +528,5 @@ export function recipeToSearchParams(
     // ce champ — même repli que `importRecipe` (OptimizerSection.tsx).
     maxMs: (recipe.exhaustiveSearch ?? false) ? Number.POSITIVE_INFINITY : HARD_TIMEOUT_MS,
     slotFilterCap: resolveSlotFilterCap(recipe.slotFilterPreset),
-    adaptiveTrancheWeighting: recipe.adaptiveTrancheWeighting,
   };
 }

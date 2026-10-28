@@ -1,9 +1,10 @@
 import type { OptimizerState } from '../../src/hooks/useOptimizerState';
 import type { UseOptimizerLists } from '../../src/hooks/useOptimizerLists';
 import type { ExclusionSelector } from '../../src/lib/optimizerExclusion';
-import type { SearchParams } from '../../src/lib/runeBuildOptim';
+import type { DemandeDeRecherche } from '../../src/workers/runeBuildOptim.worker';
 import { cleMemoireMembre } from '../../src/lib/optimizerMemberStorage';
 import { editerContenuListe } from './optimizer-listes-preuves';
+import { attendreDemandeTest, observerRechercheTest } from './optimizer-classement-banc';
 
 interface Banc {
   etat: () => OptimizerState;
@@ -54,19 +55,15 @@ export async function preuvesCombatAfficheOptimizer(b: Banc): Promise<[boolean, 
   const menuType = carte.querySelector<HTMLSelectElement>('select[aria-label="Type de leader skill"]')!;
   const lireAffichage = () => ({ type: menuType.value, libelle: menuType.selectedOptions[0]?.textContent,
     valeur: [...carte.querySelectorAll<HTMLSelectElement>('select[aria-label="Valeur du leader skill"]')].find(visible)?.value ?? null,
-    motif: [...carte.querySelectorAll('span')].find(e => visible(e) && e.textContent === 'Cette portée de lead est inactive pour ce contenu.')?.textContent ?? null });
+    // Au téléphone, le motif est un `span` de sa place réservée ; au bureau,
+    // un `p` qui ne paraît que s'il existe.
+    motif: [...carte.querySelectorAll('p, span')].find(e => visible(e) && e.textContent === 'Cette portée de lead est inactive pour ce contenu.')?.textContent ?? null });
   async function ouvrirEquipe() {
     const groupe = [...document.querySelectorAll<HTMLElement>('section[aria-label="Équipe 1"]')].find(visible)!;
     await b.geste(() => bouton('Modifier l’équipe', groupe).click());
     return document.querySelector<HTMLElement>('[role="dialog"]')!;
   }
-  const messages: SearchParams[] = [], vraiWorker = globalThis.Worker;
-  // Observer la frontière réelle du hook sans exécuter le moteur de runes.
-  class WorkerObserve {
-    postMessage(params: SearchParams) { messages.push(params); }
-    terminate() {}
-  }
-  globalThis.Worker = WorkerObserve as unknown as typeof Worker;
+  const messages: DemandeDeRecherche[] = [], restaurerWorker = observerRechercheTest(messages);
   async function constater(etape: string, type: string, libelle: string, valeur: string | null, inactif = false) {
     const affiche = lireAffichage();
     verifier(menuType.isConnected && visible(menuType) && affiche.type === type && affiche.libelle === libelle
@@ -85,7 +82,11 @@ export async function preuvesCombatAfficheOptimizer(b: Banc): Promise<[boolean, 
     await b.geste(() => bouton('Fermer', dialogue).click());
     const avant = messages.length;
     await b.geste(() => bouton('Rechercher').click());
-    const params = messages[avant];
+    await attendreDemandeTest(messages, avant + 1);
+    const params = messages[avant]?.params;
+    // Sur le site, aucun pont de bureau : la demande ne porte pas de cœurs physiques.
+    verifier(messages[avant]?.type === 'recherche' && messages[avant]?.coeursPhysiques === null,
+      `${etape} : demande de recherche, sans cœurs physiques sur le site — ${JSON.stringify(messages[avant]?.coeursPhysiques)}`);
     verifier(messages.length === avant + 1 && params?.metric === 'eff' && params.objective === 'degats_reels'
       && params.base.spd === 100 && params.requirement.minStats.spd === 230 && params.requirement.sets.includes('swift'),
       `${etape} : lancement observé, metric=${params?.metric}, objectif=${params?.objective}, minimum VIT=${params?.requirement.minStats.spd}`);
@@ -111,7 +112,7 @@ export async function preuvesCombatAfficheOptimizer(b: Banc): Promise<[boolean, 
     await constater('Membre retiré de l’équipe', 'Attack Speed', 'VIT', '33');
   } finally {
     await b.geste(() => b.etat().effacerResultats());
-    globalThis.Worker = vraiWorker;
+    restaurerWorker();
   }
   return preuves;
 }

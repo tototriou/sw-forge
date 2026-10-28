@@ -480,6 +480,9 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
     })()`);
     resultats.prechargement = await js('JSON.stringify(Object.keys(window.swblacksmithBureau ?? {}))');
     resultats.nodeDansLaPage = await js('typeof require + " / " + typeof process');
+    // Les cœurs physiques, lus par le processus principal (bureau/coeurs.ts)
+    // et demandés par la page comme le fait la recherche de runes.
+    resultats.coeursPhysiques = await js('window.swblacksmithBureau.coeursPhysiques()');
     resultats.fetchDonnees = await js(
       `fetch('/data/monsters.json').then((r) => r.status).catch((e) => 'erreur ' + e)`
     );

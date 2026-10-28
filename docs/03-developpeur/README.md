@@ -17,6 +17,7 @@ dans [CLAUDE.md](../../CLAUDE.md), qui importe AGENTS.md — pas ici.
 | `eslint.config.js`, `.githooks/`, `scripts/installer-hooks.mjs`, `scripts/verifier-commits.mjs`, `.github/workflows/tests.yml` | [qualite-code.md](qualite-code.md) |
 | `tests/renvois.test.ts`, `tests/fixtures/renvois-toleres.json`, un fichier déplacé ou renommé | [renvois.md](renvois.md) |
 | `docs/` | [documentation.md](documentation.md) |
+| la vue des gabarits de l'Optimizer : `src/components/outils/optimizer/gabarits/`, `src/lib/optimizerGabarits.ts` | [vue-des-gabarits.md](vue-des-gabarits.md) |
 
 ## Documents
 
@@ -29,3 +30,4 @@ dans [CLAUDE.md](../../CLAUDE.md), qui importe AGENTS.md — pas ici.
 | [qualite-code.md](qualite-code.md) | Le lint du code (ESLint) : règles bloquantes et avertissements, où il tourne ; forme du message de commit (hook `commit-msg`) ; niveaux d'application, refus du `pre-commit`, installation des hooks (à la main et à `npm install`) ; garde-fous rejoués sur chaque commit en CI. |
 | [renvois.md](renvois.md) | Le garde-fou des renvois : formes relevées, résolution dans les fichiers suivis, exemptions, liste tolérée. |
 | [documentation.md](documentation.md) | Les bonnes pratiques pour écrire la documentation : avant d'écrire, un document, les titres, les liens, découper ou regrouper, déplacer ou renommer, relire. |
+| [vue-des-gabarits.md](vue-des-gabarits.md) | La vue de développement des gabarits de l'Optimizer (`#/outils/optimizer/gabarits`) : l'ouvrir, ce qu'elle montre, y ajouter des boîtes. |

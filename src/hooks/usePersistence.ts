@@ -34,6 +34,8 @@ const CLES_DE_REGLAGE = new Set([
   'swblacksmith-overcap-display-v1',
   'swblacksmith-adversaire-reference-v1',
   'swblacksmith-builds-rapides-v1',
+  // Cartes ou tableau, pour les résultats de l'Optimizer (useFormeResultats.ts).
+  'swblacksmith-optimizer-resultats-forme-v1',
 ]);
 
 // ⚠️ Les anciens préfixes restent reconnus : une

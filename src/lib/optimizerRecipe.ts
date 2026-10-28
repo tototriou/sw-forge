@@ -45,7 +45,7 @@ export const OPTIMIZER_RECIPE_VERSION = 1;
 /**
  * Les choix de principale d'une recette, adaptés au compte qui la LIT.
  *
- * ⚠️ **« Garder l'artéfact équipé » ne se partage pas.** Ce choix garde
+ * ⚠️ **« Comme équipé » ne se partage pas.** Ce choix garde
  * l'artéfact porté par le LECTEUR, pas par l'auteur : chez quelqu'un d'autre,
  * il n'exporte aucune intention — il impose une pièce arbitraire, parfois sans
  * rapport avec la recherche décrite. Tout le reste d'une recette se re-résout
@@ -119,7 +119,7 @@ export interface OptimizerRecipe {
    * UNIQUEMENT à reconnaître, à l'import, qu'une recette vient d'un AUTRE
    * compte.
    *
-   * ⚠️ **Pourquoi c'est nécessaire** : « Garder l'artéfact équipé » garde
+   * ⚠️ **Pourquoi c'est nécessaire** : « Comme équipé » garde
    * l'artéfact porté **par le lecteur**, pas par l'auteur. Chez quelqu'un
    * d'autre, ce réglage ne reproduit donc pas l'intention exportée — il
    * impose une pièce arbitraire, éventuellement sans rapport. `importRecipe`
@@ -143,7 +143,6 @@ export interface OptimizerRecipe {
   compterAurasResPre?: boolean;
   metric: RuneMetric;
   slotFilterPreset: SlotFilterPresetKey;
-  adaptiveTrancheWeighting: boolean;
   exhaustiveSearch: boolean;
   /**
    * « Vérifier toutes les combinaisons trouvées » :
@@ -520,7 +519,7 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
     }
   }
 
-  for (const champ of ['adaptiveTrancheWeighting', 'exhaustiveSearch', 'excludeUsedRunes', 'ignoreArtifacts', 'compterAurasResPre', 'verifierToutesLesCombinaisons']) {
+  for (const champ of ['exhaustiveSearch', 'excludeUsedRunes', 'ignoreArtifacts', 'compterAurasResPre', 'verifierToutesLesCombinaisons']) {
     if (d[champ] !== undefined && typeof d[champ] !== 'boolean') return { recipe: null, error: erreur(champ, 'doit être un booléen') };
   }
   if (d.excludeUsedScope !== undefined && !['rta', 'siege-defense', 'box'].includes(String(d.excludeUsedScope))) {
@@ -576,7 +575,10 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
   // avertissement (voir `AVERTISSEMENT_CRIT_MOYENNE`) : même normalisation
   // centrale, pour l'écran comme pour le CLI.
   const avertissements: string[] = [];
-  let normalisee = d;
+  // Le réglage de rétention retiré ne doit survivre ni à l'import ni à un
+  // nouvel export ; ce point commun protège l'écran et tous les scripts.
+  const { adaptiveTrancheWeighting: _prioriteRetiree, ...sansPriorite } = d;
+  let normalisee = sansPriorite;
   if (estObjet(d.damageSetup)) {
     const { setsAura: _ancienTotal, ...setupLu } = d.damageSetup;
     let setup = setupLu;
@@ -585,7 +587,7 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
       avertissements.push(AVERTISSEMENT_CRIT_MOYENNE);
     }
     normalisee = {
-      ...d,
+      ...sansPriorite,
       damageSetup: normaliserCompetencesInvocateur(setup as unknown as DamageSetup),
     };
   }

@@ -4,9 +4,17 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
 
 7. **Conditions** — les 8 stats (PV, ATQ, DEF, VIT, Taux Crit, Dmg Crit, RES,
    Précision). Chaque stat porte **deux champs, minimum et maximum**, tous
-   deux facultatifs — champ vide = pas de contrainte. **Colonne DROITE** de
-   « Critères de recherche », qu'elle occupe seule : « Artéfacts et
-   reliques » est une carte à part (voir artefacts.md § Place de la carte à l'écran).
+   deux facultatifs — champ vide = pas de contrainte. Au téléphone, en bas
+   de « Critères de recherche », sous le set et les principales ; au bureau,
+   une section « Conditions » de 328 px du panneau des essentiels, sous le
+   set, à gauche des principales et d'« État de mon monstre », dont un trait
+   vertical la sépare (`ConditionsBureau`). La colonne des libellés y prend
+   la largeur du plus long d'entre eux, les colonnes s'écartent de 12 px, et
+   Min et Max s'en rapprochent : les champs gardent leur largeur, et la
+   grille tient sans déborder. ⚠️ La grille est centrée dans la section :
+   autant de marge du bord du panneau aux libellés que des « Max » au trait
+   (décision de l'utilisateur ; 17,75 px mesurés de chaque côté). « Artéfacts et relique » est une carte à
+   part (voir artefacts.md § Place de la carte à l'écran).
    - **Interrupteur « Stats de base exclues »**, activé par défaut : n'affecte
      que PV, ATQ, DEF et VIT — ces 4 stats ont une base qui grandit avec le
      niveau/l'éveil ; activé, le champ porte sur ce que l'**équipement**
@@ -33,10 +41,10 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    - ⚠️ **Aucun champ ne descend sous ce qui est garanti sans la moindre
      rune** — le plancher, pas la valeur de conversion ci-dessus. La
      contribution d'artéfact se calcule séparément par emplacement :
-     l'artéfact réellement porté si le choix est « Garder l'artéfact
+     l'artéfact réellement porté si le choix est « Comme
      équipé », la principale imposée si elle est choisie, et zéro si le
      choix est « Libre ». Pour la relique, seule une pièce réellement portée
-     avec le choix « Garder la relique équipée » garantit sa principale en
+     avec le choix « Comme équipée » garantit sa principale en
      PV %, ATQ % ou DEF % : `ceil(base × valeur / 100)`, comme dans
      `computeStats`. Une principale forcée, « Libre » ou l'absence de relique
      garantit zéro. La contribution de relique ne modifie jamais Taux Crit,
@@ -113,7 +121,9 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
      le pré-filtrage et la rétention restent heuristiques et ne valorisent
      pas l'aura propre. Les auras PV/ATQ/DEF ne comptent dans aucune
      condition. Les auras externes se saisissent dans « État de mon
-     monstre » (voir etat-de-mon-monstre.md § Sets d'aura des autres monstres) ;
+     monstre » au téléphone, dans la carte « Sets d'aura des autres
+     monstres » de la colonne « Aura, exclusion, avancés » au bureau (voir
+     etat-de-mon-monstre.md § Sets d'aura des autres monstres) ;
      `compterAurasResPre` se règle dans
      « Réglages avancés » (point 9 ci-dessous).
    - **« Réinitialiser les conditions »**, en bas à droite de la grille, vide
@@ -130,21 +140,25 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
 
 ## Réglages avancés
 
-9. **« Réglages avancés »** (repliés par défaut). ⚠️ **Au bureau, un
-   `FlottantAuto`** (`../../../03-developpeur/interface/librairie-ui/composants.md`), PAS un bloc qui grandit la
-   carte — dépliée, la carte reste sous « Exclusion de runes » (colonne 2,
-   rangée 5, sous Exclusion en rangée 4 — voir
-   README.md § Ordre d'usage et grille) à sa hauteur repliée, le
-   contenu flotte par-dessus le reste de la page ; ferme au clic extérieur.
-   Un panneau replié par défaut ne peut pas réserver sa place à l'avance
-   sans perdre l'intérêt d'être replié — voir
-   [03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md), « un clic ne déplace jamais ce
-   qu'on vient de cliquer ». **Pré-filtrage par emplacement**, en
+9. **« Réglages avancés »**. ⚠️ **Au bureau, en ligne** dans la colonne
+   repliable « Aura, exclusion, avancés », section de 294 px de son panneau,
+   **sans titre** (ni icône ni en-tête : le téléphone garde le sien dans le
+   panneau « Options »), après « Exclusion de runes », sur une seule colonne : pré-filtrage, puis
+   les interrupteurs (voir
+   README.md § Réglages avancés et exclusion de runes). La section n'a ni
+   hauteur fixe ni place réservée : elle suit son contenu. **Pré-filtrage par emplacement**, en
    **presets** plutôt qu'un curseur libre — Bas / Moyen
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus
    lent, mais capable de retrouver un build sur un très gros compte),
    **séparés par un liseré vertical** (même patron que `Segmented.tsx`,
-   PC et mobile).
+   PC et mobile). **Les préréglages sont emboîtés** : une recherche
+   complète à un préréglage trouve au moins les builds valides de chaque
+   préréglage plus à gauche (Moyen ceux de Bas, Haut ceux de Moyen et de
+   Bas…), le moteur ajoutant à sa rétention celle des préréglages plus
+   étroits
+   ([elagages.md § Préréglages emboîtés](../../../03-developpeur/optimizer/moteur/elagages.md#préréglages-emboîtés)) ;
+   arrêtée par le filet de temps ou le plafond de candidats, elle peut
+   rendre d'autres builds.
    ⚠️ **Au doigt, dans le panneau « Options »** (bouton de la barre de nav,
    voir App.tsx/`pageAPanneau` — même patron que la Liste et l'Optimisation
    de runes de « Mon compte », voir RunesOptim.tsx), **sous** « Exclusion de
@@ -152,20 +166,21 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    le geste « je veux voir les options ». Chaque groupe dans son propre
    cadre, deux unités visuelles distinctes plutôt qu'un simple trait entre
    deux blocs de texte. ⚠️ **« Pool de runes = X » s'affiche à droite des
-   presets**, dans le panneau SEULEMENT (pas la carte du bureau, où
-   l'estimation détaillée du point 10 est déjà visible juste en dessous,
-   sans qu'un panneau ne la masque) — sans ce rappel local, aucun moyen de
+   presets**, dans le panneau SEULEMENT (pas la colonne du bureau, où
+   l'estimation détaillée du point 10 est visible en tête du bloc
+   « Objectif et Rechercher », sans qu'un panneau ne la masque) — sans ce rappel local, aucun moyen de
    voir l'effet du preset qu'on vient de toucher sans d'abord fermer le
    panneau. **Passe sous les presets si la largeur manque** (le message
    est assez long pour ne pas toujours tenir à côté sur un téléphone
    étroit) — adaptatif, jamais coupé ni superposé. ⚠️ **Choisir Haut ou
    Extrême active automatiquement** « Rechercher jusqu'à épuisement
-   complet » et « Prioriser les stats les plus difficiles » ci-dessous — un
-   pré-filtrage large n'a de sens que combiné à ces deux réglages, qu'un
-   utilisateur novice n'a aucune raison de connaître. Un COUP DE POUCE, pas
-   un verrouillage : chaque interrupteur reste cliquable normalement
-   ensuite pour revenir à décoché. Choisir Bas ou Moyen ne les décoche PAS
-   automatiquement dans l'autre sens. Sous ce réglage :
+   complet » ci-dessous — un pré-filtrage large n'a de sens que combiné à
+   ce réglage, qu'un utilisateur novice n'a aucune raison de connaître. Un
+   COUP DE POUCE, pas un verrouillage : l'interrupteur reste cliquable
+   normalement ensuite pour revenir à décoché. Choisir Bas ou Moyen ne le
+   décoche PAS automatiquement dans l'autre sens. Pour le moteur, un
+   préréglage ne change que `slotFilterCap` (et ce qui en dérive :
+   `bucketCap` et les préréglages plus étroits emboîtés). Sous ce réglage :
    - **« Rechercher jusqu'à épuisement complet »**, décoché par défaut :
      retire le filet de temps de 10 minutes (voir
      ../feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel) — la
@@ -182,25 +197,27 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
      lancer-la-recherche.md § Lancer la recherche).
    - **« Diagnostic approfondi sur 0 résultat »**, décoché par défaut (plus
      coûteux qu'un diagnostic simple, voir resultats.md § Diagnostic sur 0 résultat).
-   - **« Prioriser les stats les plus difficiles »**, décoché par défaut :
-     réalloue le budget de rétention vers les stats demandées les plus
-     rares/difficiles à combiner plutôt qu'un partage égal entre toutes —
-     peut retrouver un build qu'une recherche normale rate, au prix d'une
-     recherche plus longue. Fait partie des réglages exportés/importés dans
-     une recette (voir lancer-la-recherche.md § Lancer la recherche).
+   - ⚠️ **Aucun contrôle de pondération adaptative des stats** aux deux
+     formats : `adaptiveTrancheWeighting` est retiré des paramètres, de
+     l'état et des recettes exportées. Une recette ou une session qui le
+     porte à vrai ou faux se lit sans erreur ni avertissement, le champ
+     ignoré par son lecteur commun. Chaque stat garde la même part de la
+     rétention
+     ([retention-a-parts-egales.md](../../../04-decisions/adr/retention-a-parts-egales.md)).
    - **« Vérifier toutes les combinaisons trouvées »**, décoché par défaut :
      la file de résolution vérifie tous les
      builds trouvés au lieu de s'arrêter à 100 combinaisons confirmées (300
      en mode relique « recherche », voir
      ../../../03-developpeur/optimizer/moteur/artefacts.md § Quand ce choix a lieu) — le
      compte des confirmées devient complet, au prix de plusieurs minutes
-     possibles ; son aide le dit. ⚠️ **Lu EN DIRECT par la file**, jamais par
-     « Rechercher » : il ne change pas la recherche de runes, seulement
-     jusqu'où la file vérifie ; l'activer après une recherche vérifie le
-     reste sans la relancer, le couper ne perd rien de déjà vérifié.
+     possibles ; son aide le dit. ⚠️ **Photographié au clic « Rechercher »**,
+     comme les autres réglages : il ne change pas la recherche de runes,
+     seulement jusqu'où la file vérifie, mais le changer après une recherche
+     prépare la prochaine, sans lancer aucune vérification sur le résultat
+     affiché (seul « Rechercher » lance une recherche ou un équipement).
      ⚠️ **Masqué quand l'optimisation d'artéfacts est désactivée** : sans
-     file, rien n'est vérifié — même règle que « Adapter les artéfacts et
-     reliques au tri ». Fait partie des réglages exportés/importés dans une
+     file, rien n'est vérifié — une saisie sans effet est pire qu'une
+     saisie absente. Fait partie des réglages exportés/importés dans une
      recette, champ optionnel `verifierToutesLesCombinaisons` (absent, il se
      relit désactivé), et le CLI le respecte (voir
      resultats.md § Valeur d'objectif affichée sur les cartes).
@@ -211,12 +228,17 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
      et de Précision ; désactivé, ces deux conditions ignorent les auras,
      sans rien retirer des dégâts ni des PV effectifs. Son aide le dit.
      Lu au clic sur « Rechercher », comme les autres réglages de la
-     recherche, et déjà porté par la recette. ⚠️ **Rendu sans condition**,
+     recherche, et déjà porté par la recette. Son aide nomme où se
+     saisissent les auras des autres monstres : « Aura, exclusion, avancés »
+     au bureau, « État de mon monstre » au téléphone. ⚠️ **Rendu sans condition**,
      en dernier de la colonne, même sans aucune aura RES/PRE saisie : les
      activations propres d'un build comptent aussi, et un réglage qui
      apparaîtrait avec la saisie d'une autre carte ne se retrouverait pas.
-     Contenu commun aux deux formats (`reglagesAvancesInner`) : flottant au
-     bureau, panneau « Options » au doigt. Fermés, ni l'un ni l'autre ne
+     Contenu commun aux deux formats (`ReglagesAvancesContenu`) : colonne
+     « Aura, exclusion, avancés » au bureau, panneau « Options » au doigt.
+     Dans le panneau, le libellé passe à la ligne en laissant à son aide
+     sa largeur entière : l'enveloppe du bouton ne rétrécit pas sous lui.
+     Fermés, ni l'une ni l'autre ne
      montre rien ; « toujours visible » porte sur leur contenu. Ajouter
      Accuracy ou Tolerance aux auras externes, ou le choisir comme set
      recherché, ouvre la surface du format et surligne cet interrupteur 3 s
@@ -225,6 +247,6 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
 
    ⚠️ **Le seuil de niveau minimum de la relique N'EST PAS ICI** : il vit
    dans le bloc
-   « Relique » de la carte « Artéfacts et reliques » (« Niveau minimum »,
+   « Relique » de la carte « Artéfacts et relique » (« Niveau minimum »,
    voir relique.md § Relique), avec les deux autres réglages relique, pas dans
    « Réglages avancés ».

@@ -2,18 +2,14 @@
 // ce qu'elles font. Il ne réimplémente AUCUNE étape algorithmique.
 //
 // La séquence exécutée ici est celle de `runeBuildOptim.worker.ts`, c'est-à-
-// dire du chemin de production : `prepareSearch` → `buildBuckets` ×2 EN
-// PARALLÈLE (deux fils, comme les deux Web Workers de l'app) →
-// `totalPairCount` (qui décide du régime) → `pairBuckets` séquentiel OU
-// `driveParallelPairing` → `sortCandidates`.
+// dire du chemin de production : `prepareSearch` → moitiés typées dans leurs
+// Workers → `compterPaires` et contrat numérique → `lancerAppariement`,
+// en compact et avec les crédits de l'écran → `sortCandidates`.
 //
 // ⚠️ **Pourquoi le harnais orchestre lui-même au lieu d'appeler
 // `runSearchToCompletion`** : ce dernier fait prepare + build + pair d'un
-// bloc, et TOUJOURS en séquentiel. Or le régime que la production
-// choisirait dépend de `totalPairCount`, qui n'existe qu'une fois les deux
-// moitiés construites — impossible à décider depuis l'extérieur d'un appel
-// monolithique. Piloter étage par étage est de toute façon nécessaire pour
-// `arretApres` et pour les temps par phase. Aucune étape n'est pour autant
+// bloc. Piloter étage par étage est nécessaire pour `arretApres`, les
+// observations et les temps par phase. Aucune étape n'est pour autant
 // recréée : chaque appel est celui de la prod.
 //
 // ⚠️ **Le régime n'est pas un choix offert à l'utilisateur.** Par défaut le
@@ -22,6 +18,9 @@
 // par construction, et il affiche lequel s'est appliqué et pourquoi. Forcer
 // un régime reste possible — c'est un override, marqué comme tel.
 
+import { contexteResultat } from '../../src/lib/contexteResultat';
+import { classerEnLocal } from '../../src/lib/classementCompact';
+import { triDesResultats } from '../../src/lib/colonnesResultats';
 import {
   ALL_STAT_KEYS,
   Bucket,
@@ -42,18 +41,11 @@ import {
   mainStatFilteredBySlot,
   objectiveKeysOf,
   CHECKPOINT_EVERY,
-  SearchProgress,
-  pairBuckets,
   prepareSearch,
   rankBlockingConditions,
   relevance,
   runeContribution,
   satisfiesSets,
-  aurasPropresParRunes,
-  optionsDeClassement,
-  sortCandidates,
-  totalPairCount,
-  trancheReallocation,
   weightedContribution,
 } from '../../src/lib/runeBuildOptim';
 // ⚠️ Les DEUX fonctions que `pairBuckets` appelle pour décider d'accepter une
@@ -61,16 +53,17 @@ import {
 // règle de compatibilité de sets.
 import { activeSets } from '../../src/lib/effects';
 import { missingSets } from '../../src/lib/recoMatch';
-import { PARALLEL_PAIRING_THRESHOLD } from '../../src/workers/parallelPairing';
-import { driveParallelPairing } from '../../src/workers/parallelPairing';
+import { availableParallelism } from 'os';
+import { PARALLEL_PAIRING_THRESHOLD, nombreDeTravailleurs, regimeAppariement } from '../../src/workers/parallelPairing';
+import { releverLignes, verifierContrat, verifierEtEncoder } from '../../src/lib/appariementRapide';
+import { ColonnesCandidats, identifiantsDesCandidats } from '../../src/lib/candidatsCompacts';
+import { CompartimentType, objetsDesCompartiments } from '../../src/lib/demiBuildsTypes';
 import { RuneDetail } from '../../src/types';
-import { drain } from './drain';
 import { buildRealDamageContext } from './realDamageCli';
 import { loadMonstersList } from './monstersData';
 import { DEFAULT_DAMAGE_SETUP } from '../../src/lib/damage';
-import { etatReliqueDuBuild } from '../../src/lib/relicQueue';
 import { ConfigResolue, resoudreConfig } from './diagnosticConfig';
-import { ensurePairSliceBundle, makeSpawnSliceNode } from './spawnSliceNode';
+import { apparierNode, assurerBundleAppariementRapide } from './appariementRapideNode';
 import { construireMoitiesEnParallele, ensureBuildHalfBundle } from './buildHalvesNode';
 // ⚠️ `import type` IMPÉRATIF : `build-half-worker.ts` exécute du code au
 // chargement (`workerData`, `parentPort!`). Un import de valeur le ferait
@@ -85,16 +78,13 @@ import {
   ConfigHarnais,
   DemiBuildCombo,
   DecouverteBuildCible,
-  DispersionTranches,
   DetailDemiBuild,
   JalonRendement,
-  TrancheDispersion,
   DetailFiltrage,
   DistributionIntervalles,
   EtagePopulation,
   Faisabilite,
   NatureEtage,
-  PreuveFaisabilite,
   ProgressionConstruction,
   ProgressionMoitieRendue,
   QuasiSucces,
@@ -146,10 +136,14 @@ interface Passage {
    * conservé pour `detailFiltrage` — jamais recalculé, lu depuis `onStage`.
    */
   feasibilityBySlot?: RuneDetail[][];
-  bucketsA?: Bucket[];
-  bucketsB?: Bucket[];
+  bucketsA?: CompartimentType[];
+  bucketsB?: CompartimentType[];
   totalPairs?: number;
   regime?: RegimeAppariement;
+  /** Pourquoi le noyau ne prend pas l'appariement (`verifierContrat`), `null` s'il le prend. */
+  motifContrat?: string | null;
+  /** Workers de l'appariement parallèle, par la règle de production sur cette machine. */
+  travailleurs?: number;
   resultat?: SearchResult;
   msPreparation: number;
   /** Le temps RÉEL de la phase — le maximum des deux fils, pas leur somme. */
@@ -230,7 +224,7 @@ async function deroulerHarnais(
   // moitiés est préparé dès qu'on ira au-delà de la préparation ; celui des
   // tranches d'appariement seulement si l'appariement aura lieu.
   const bundleMoities = irAuDelaDeLaPreparation(arretApres) ? await ensureBuildHalfBundle() : null;
-  const bundleTranches = doitPouvoirParalleliser(arretApres) ? await ensurePairSliceBundle() : null;
+  const bundleTranches = doitPouvoirParalleliser(arretApres) ? await assurerBundleAppariementRapide() : null;
 
   const passages: Passage[] = [];
   for (let i = 0; i < repetitions; i++) {
@@ -248,10 +242,10 @@ async function deroulerHarnais(
     );
   }
   // ⚠️ Le DERNIER passage sert de source aux résultats non temporels. Tous
-  // sont identiques par construction (mêmes paramètres, même pool) SAUF
-  // l'ordre de collecte en régime parallèle, qui dépend de l'ordonnancement
-  // des fils — c'est précisément pourquoi forcer le séquentiel est l'outil
-  // de la reproductibilité.
+  // sont identiques par construction (mêmes paramètres, même pool, ordre de
+  // collecte séquentiel dans les deux régimes) SAUF sous une troncature par
+  // le temps, et sauf l'instant de découverte d'une cible en parallèle, qui
+  // dépend de l'arrivée des morceaux.
   const dernier = passages[passages.length - 1];
 
   const resultat: ResultatHarnais = {
@@ -352,10 +346,14 @@ async function deroulerHarnais(
   // lisible) et l'étage 4 (la paire de compartiments à évaluer) doivent
   // parler des mêmes trios, sans quoi ils pourraient se contredire.
   const moities = moitiesSuivies(options.suivre ?? [], resolue.poolInitial);
+  // Les diagnostics de suivi lisent les runes ; le chemin sans suivi garde
+  // ses colonnes. Ces conversions ont lieu hors des chronos de phase.
+  const objetsA = moities.A ? objetsDesCompartiments(dernier.bucketsA!, dernier.prepared!.filtered) : [];
+  const objetsB = moities.B ? objetsDesCompartiments(dernier.bucketsB!, dernier.prepared!.filtered) : [];
   {
     const detail: DetailDemiBuild[] = [];
-    if (moities.A) detail.push(detailDemiBuild('A', moities.A, dernier.bucketsA!, dernier.prepared!.retentionKeys));
-    if (moities.B) detail.push(detailDemiBuild('B', moities.B, dernier.bucketsB!, dernier.prepared!.retentionKeys));
+    if (moities.A) detail.push(detailDemiBuild('A', moities.A, objetsA, dernier.prepared!.retentionKeys));
+    if (moities.B) detail.push(detailDemiBuild('B', moities.B, objetsB, dernier.prepared!.retentionKeys));
     if (detail.length > 0) resultat.detailDemiBuilds = detail;
   }
   resultat.regime = {
@@ -367,11 +365,14 @@ async function deroulerHarnais(
     // harnais ne doit pas pouvoir répondre autrement qu'elle.
     force: resolue.regimeForce != null,
     explication:
-      resolue.regimeForce != null
-        ? `régime FORCÉ (${dernier.regime}) — ⚠️ ne décrit la production que par coïncidence`
-        : dernier.totalPairs! >= PARALLEL_PAIRING_THRESHOLD
-          ? `totalPairs ≥ seuil → PARALLÈLE (4 workers), comme la production pour ce cas`
-          : `totalPairs < seuil → SÉQUENTIEL, comme la production pour ce cas`,
+      (resolue.regimeForce != null
+        ? `régime FORCÉ (${resolue.regimeForce}) — ⚠️ ne décrit la production que par coïncidence`
+        : dernier.regime === 'parallele'
+          ? `totalPairs ≥ seuil → PARALLÈLE (${dernier.travailleurs} Workers, nombreDeTravailleurs de cette machine), comme la production pour ce cas`
+          : dernier.totalPairs! >= PARALLEL_PAIRING_THRESHOLD
+            ? 'totalPairs ≥ seuil mais hors contrat numérique du noyau → SÉQUENTIEL, comme la production pour ce cas'
+            : `totalPairs < seuil → SÉQUENTIEL, comme la production pour ce cas`) +
+      (dernier.motifContrat ? ` ; appariement par pairBuckets (contrat numérique non tenu : ${dernier.motifContrat})` : ''),
   };
   resultat.temps = agregerTemps(passages, arretApres, true);
 
@@ -396,13 +397,6 @@ async function deroulerHarnais(
   // ── ÉTAGES 4-5 du build cible : la paire a-t-elle été explorée, et à quel
   // RANG la cible sort-elle ? ⚠️ Le rang est pris sur `classes`, la liste
   // ENTIÈRE — jamais sur le top rendu ci-dessous, qui est déjà coupé.
-  // ── La dispersion par tranche, LUE sur la fonction du moteur.
-  if (dernier.prepared && dernier.prepared.retentionKeys.length > 0 && dernier.bucketsA) {
-    resultat.dispersionTranches = (['A', 'B'] as const).map((moitie) =>
-      dispersionTranches(moitie, dernier.prepared!, resolue.params.adaptiveTrancheWeighting === true)
-    );
-  }
-
   // ── QUAND la cible est apparue, et à quel rythme les candidats se
   // sont accumulés. ⚠️ Lu sur le DERNIER passage, comme tout le reste des
   // grandeurs non temporelles — et rendu avec ses trois marques, jamais nu.
@@ -420,8 +414,8 @@ async function deroulerHarnais(
       moities.A,
       moities.B,
       dernier.prepared!,
-      dernier.bucketsA!,
-      dernier.bucketsB!,
+      objetsA,
+      objetsB,
       classes,
       total
     );
@@ -685,6 +679,7 @@ const REGLE_INTERPRETATION_RETENTION =
 const CAVEAT_MEMOIRE =
   '⚠️ Le ramasse-miettes de Node N’EST PAS celui du navigateur : ces chiffres valent pour comparer A à B ' +
   'DANS LE MÊME PROCESSUS, jamais comme prédiction de ce que vit l’utilisateur. ⚠️ Relevé de FIN de fil ' +
+  '(arrayBuffers comprend les colonnes hors tas avant transfert ; rss porte sur tout le processus) ' +
   '(palier LÉGER) : il dit ce que la moitié laisse derrière elle, pas son pic instantané, et ne compte ni ' +
   'les pauses de ramassage ni leur durée — le PerformanceObserver sur gc reste ÉCARTÉ tant que ce relevé ' +
   'ne montre pas d’écart, son propre coût s’insérant dans la phase qu’il mesurerait.';
@@ -759,61 +754,6 @@ export function releverPreparation(): RelevePreparation {
 }
 
 /**
- * La dispersion par tranche d'une moitié.
- *
- * ⚠️ **Aucun calcul ici.** Tout vient de `trancheReallocation`, la fonction
- * que `buildBuckets` appelle lui-même : le harnais rend LE nombre du moteur,
- * jamais une reconstitution. C'est la différence exacte avec
- * `retention-dispersion-diag`, qui recalcule un CV sur les demi-builds
- * RETENUS, principale COMPRISE et compartiments aplatis — un autre nombre,
- * qui ne pilote rien.
- *
- * ⚠️ Les indices d'emplacement sont ceux de la moitié, dans l'ordre exact que
- * `buildBuckets` reçoit — jamais redevinés.
- */
-function dispersionTranches(
-  moitie: 'A' | 'B',
-  prepared: PreparedSearch,
-  applique: boolean
-): DispersionTranches {
-  const slotIdxs = moitie === 'A' ? ([0, 1, 2] as const) : ([3, 4, 5] as const);
-  const capEgal = prepared.bucketCap;
-  const { cv, reallocatedCap } = trancheReallocation(
-    prepared.filtered,
-    slotIdxs,
-    prepared.retentionKeys,
-    prepared.base,
-    capEgal
-  );
-  const tranches: TrancheDispersion[] = prepared.retentionKeys
-    .map((stat) => ({
-      stat,
-      cv: cv[stat] ?? 0,
-      capRealloue: reallocatedCap[stat] ?? capEgal,
-      capEgal,
-      facteur: capEgal > 0 ? (reallocatedCap[stat] ?? capEgal) / capEgal : 1,
-    }))
-    // ⚠️ Trié par CV DÉCROISSANT : la tranche la plus DISPERSÉE en tête, parce
-    // que c'est elle que la réallocation privilégie — l'ordre de lecture suit
-    // la décision, il ne suit pas l'ordre des clés.
-    .sort((x, y) => y.cv - x.cv);
-  return {
-    moitie,
-    applique,
-    capEgal,
-    tranches,
-    avertissement: applique
-      ? '✅ APPLIQUÉE sur ce run (`adaptiveTrancheWeighting` actif) : ces places sont celles que la construction a ' +
-        'réellement utilisées. ⚠️ Un CV élevé dit que la stat DIFFÉRENCIE les demi-builds du pool filtré — jamais ' +
-        'qu’elle est difficile à satisfaire, ni que la cible y survivra.'
-      : '⚠️ NON APPLIQUÉE sur ce run — `adaptiveTrancheWeighting` est INACTIF, chaque tranche a donc reçu ' +
-        `${capEgal} places à parts égales. Ce tableau dit ce que la réallocation FERAIT, pas ce qu’elle a fait : ` +
-        'c’est une simulation, et la présenter autrement serait un résultat fabriqué. ⚠️ Le CV, lui, est bien réel — ' +
-        'il ne dépend que du pool FILTRÉ, pas du réglage.',
-  };
-}
-
-/**
  * Met l'observateur en forme — et lui attache ses TROIS marques, qui ne se
  * déduisent pas de la valeur : la granularité, la reproductibilité selon le
  * régime, et ce qu'une absence autorise à conclure sur un run tronqué.
@@ -857,8 +797,9 @@ function rendreDecouverte(
       (sequentiel
         ? `l’appariement séquentiel n’émet un point de passage que toutes les ${CHECKPOINT_EVERY} paires, donc la cible ` +
           'était déjà là quelque part dans les 500 précédentes. ✅ Reproductible : deux runs identiques rendent le même instant.'
-        : '⚠️⚠️ le régime PARALLÈLE relève sa progression à intervalle de TEMPS, et `explored` y est la SOMME des ' +
-          'workers à cet instant. L’ordre d’arrivée des candidats dépend de l’ordonnancement des fils : ' +
+        : '⚠️⚠️ le régime PARALLÈLE relève sa progression à chaque PUBLICATION fusionnée, et `explored` y est la SOMME des ' +
+          'morceaux déjà fusionnés, préfixe du plan qui avance par bonds selon l’ordre où les fils les rendent. L’ordre des candidats est celui du ' +
+          'séquentiel, mais l’instant où l’un d’eux apparaît dépend de l’arrivée des morceaux : ' +
           'DEUX RUNS IDENTIQUES PEUVENT RENDRE DEUX INSTANTS DIFFÉRENTS. Ne comparer deux configurations sur cette ' +
           'grandeur qu’en régime séquentiel, ou en répétant et en mesurant d’abord la dispersion.'),
   };
@@ -894,11 +835,9 @@ export const JALONS_RENDEMENT = [1, 5, 10, 25, 50, 75, 100];
 /**
  * L'observateur de DÉCOUVERTE.
  *
- * ⚠️ **Niveau A-passif au sens strict** : il lit les `PairingProgress` que
- * `pairBuckets` émet DÉJÀ, n'ajoute aucun `yield`, n'appelle aucune fonction
- * du moteur et ne touche pas à `src/`. Le seul coût est un `findIndex` sur les
- * candidats NOUVEAUX de chaque point de passage — et il s'arrête dès que la
- * cible est vue.
+ * Il lit les colonnes d'ids des points de passage séquentiels ou des
+ * publications parallèles déjà émises, sans ajouter de yield ni matérialiser
+ * les fiches. La recherche de la cible cesse dès sa première apparition.
  */
 class ObservateurDecouverte {
   exploredALaDecouverte: number | null = null;
@@ -912,12 +851,12 @@ class ObservateurDecouverte {
     private readonly totalPairs: number
   ) {}
 
-  /** À appeler à CHAQUE point de passage de l'appariement, quel que soit le régime. */
-  observer(explored: number, candidats: { runeIds: number[] }[], cumul: number): void {
+  /** Point de passage séquentiel ou publication parallèle, avant transfert. */
+  observer(explored: number, candidats: ColonnesCandidats, cumul: number): void {
     this.dernierExplored = explored;
     this.derniersCandidats = cumul;
-    if (this.exploredALaDecouverte === null && candidats.some((c) => estLeBuildCible(c, this.cibles))) {
-      this.exploredALaDecouverte = explored;
+    if (this.exploredALaDecouverte === null) for (const runeIds of identifiantsDesCandidats(candidats)) {
+      if (estLeBuildCible({ runeIds }, this.cibles)) { this.exploredALaDecouverte = explored; break; }
     }
     this.avancerJalons(explored, cumul);
   }
@@ -954,12 +893,11 @@ class ObservateurDecouverte {
    * fabriquée, exactement ce que le verdict du build cible interdit.
    */
   cloturer(resultat: SearchResult): void {
-    // ⚠️ L'`explored` FINAL vient du résultat, jamais du dernier point de
-    // passage vu : en parallèle les relevés sont throttlés dans le TEMPS, donc
-    // le dernier reçu peut être très en deçà de ce qui a réellement été
-    // parcouru (mesuré : 2 000 au dernier relevé contre 60 806 au total).
-    // S'en tenir au dernier relevé ferait annoncer une recherche vingt fois
-    // plus courte qu'elle ne l'a été.
+    // ⚠️ L'`explored` FINAL vient du résultat, jamais du dernier relevé vu :
+    // en séquentiel les relevés tombent aux points de passage, et la fin du
+    // parcours peut suivre le dernier ; en parallèle, un relevé par publication
+    // fusionnée, dont le dernier vaut le résultat — le prendre au résultat vaut
+    // pour les deux régimes.
     this.dernierExplored = Math.max(this.dernierExplored, resultat.explored);
     this.derniersCandidats = Math.max(this.derniersCandidats, resultat.candidates.length);
     if (this.exploredALaDecouverte === null && resultat.candidates.some((c) => estLeBuildCible(c, this.cibles))) {
@@ -1043,25 +981,42 @@ async function unPassage(
   passage.msTotal = tBuild - t0;
 
   // ── Le régime, décidé comme la production le déciderait.
-  const totalPairs = totalPairCount(prepared, bucketsA, bucketsB);
+  const lignes = releverLignes(prepared, bucketsA, bucketsB);
+  const totalPairs = lignes.total;
   passage.totalPairs = totalPairs;
+  // Hors contrat numérique, le parallèle n'existe pas : la production apparie
+  // alors en séquentiel, et un régime forcé aussi. ⚠️ Le contrat se juge SANS
+  // le traceur, que la production ne pose jamais : suivre une cible ne doit
+  // pas changer le régime. En parallèle, l'appariement tourne sans lui (le
+  // noyau ne le remplit pas) — la trace d'appariement n'existe qu'en séquentiel.
+  const sansTraceur = { ...prepared, traceur: undefined };
+  const motifContrat = verifierContrat(sansTraceur, bucketsA, bucketsB);
   const regime: RegimeAppariement =
-    resolue.regimeForce ?? (totalPairs >= PARALLEL_PAIRING_THRESHOLD ? 'parallele' : 'sequentiel');
+    resolue.regimeForce === 'sequentiel' || motifContrat != null
+      ? 'sequentiel'
+      : resolue.regimeForce ?? regimeAppariement(totalPairs, motifContrat);
   passage.regime = regime;
+  passage.motifContrat = motifContrat;
+  // Node ne connaît que les fils logiques : la règle du site (moitié des fils).
+  passage.travailleurs = nombreDeTravailleurs(availableParallelism(), null);
 
   if (arretApres === 'demi-builds') return passage;
 
   // ── Phase C : appariement, par le chemin que la production emprunterait.
   // ⚠️ L'observateur de découverte n'existe que si une cible COMPLÈTE
-  // est suivie : `null` sinon, et le chemin repasse par `drain`, strictement
-  // inchangé — l'instrument ne se paie que quand il sert.
+  // est suivie : `null` sinon, sans modifier le lanceur ni son protocole.
   const observateur = cibleComplete ? new ObservateurDecouverte(cibleComplete, totalPairs) : null;
-  const resultat =
-    regime === 'parallele'
-      ? await apparierEnParallele(params, prepared, bucketsA, bucketsB, totalPairs, cheminBundleTranches!, observateur)
-      : observateur
-        ? drainEnObservant(pairBuckets(prepared, bucketsA, bucketsB), observateur)
-        : drain(pairBuckets(prepared, bucketsA, bucketsB));
+  // Comme la production, le relevé et l'encodage passent à l'appariement
+  // (`espace`) ; sauf en séquentiel avec le traceur, qui sort du contrat et
+  // demande `pairBuckets` : l'appariement juge alors son contrat lui-même.
+  const espace = regime === 'parallele' || !prepared.traceur ? { releve: lignes, ...verifierEtEncoder(sansTraceur, bucketsA, bucketsB) } : undefined;
+  const { resultat } = await apparierNode({
+    params: regime === 'parallele' ? { ...params, traceur: undefined } : params,
+    prepared: regime === 'parallele' ? { ...prepared, traceur: undefined } : prepared,
+    bucketsA, bucketsB, totalPaires: totalPairs, travailleurs: passage.travailleurs, ...(espace ? { espace } : {}),
+    startedAt: prepared.startedAt, regime, cheminBundle: cheminBundleTranches!,
+    ...(observateur ? { observer: (explored: number, candidats: ColonnesCandidats) => observateur.observer(explored, candidats, candidats.length) } : {}),
+  });
   if (observateur) {
     observateur.cloturer(resultat);
     passage.decouverte = observateur;
@@ -1071,73 +1026,6 @@ async function unPassage(
   passage.msAppariement = tPair - tBuild;
   passage.msTotal = tPair - t0;
   return passage;
-}
-
-/**
- * ⚠️ Le VRAI chemin parallèle de production : `driveParallelPairing` (la même
- * répartition LPT, la même division de plafond, la même fusion de résultats
- * que le navigateur) avec le spawn Node injecté, qui exécute `runPairSlice` —
- * le code de production lui-même. Rien n'est reproduit ici.
- */
-async function apparierEnParallele(
-  params: SearchParams,
-  prepared: PreparedSearch,
-  bucketsA: Bucket[],
-  bucketsB: Bucket[],
-  totalPairs: number,
-  cheminBundle: string,
-  observateur: ObservateurDecouverte | null
-): Promise<SearchResult> {
-  const spawn = makeSpawnSliceNode(cheminBundle);
-  // ⚠️ `postProgress` reçoit `newCandidates` — les candidats NOUVEAUX depuis
-  // le dernier relevé, pas le cumul — plus `found`, qui EST le cumul. On passe
-  // donc les deux : la découverte se cherche dans les nouveaux, la courbe se
-  // trace sur le cumul. Les confondre gonflerait la courbe ou raterait la
-  // cible.
-  // ⚠️⚠️ Et ce relevé est TEMPOREL (throttle en ms côté `driveParallelPairing`),
-  // pas tous les `CHECKPOINT_EVERY` paires comme en séquentiel : c'est la
-  // raison pour laquelle l'instant de découverte parallèle est marqué NON
-  // REPRODUCTIBLE, et non une imprécision qu'on pourrait resserrer.
-  let cumul = 0;
-  return driveParallelPairing(
-    spawn,
-    params,
-    prepared,
-    bucketsA,
-    bucketsB,
-    // Le même `totalPairs` que celui qui a choisi le régime : la fusion en
-    // déduit qu'une tranche arrêtée sur son quota a laissé des paires.
-    totalPairs,
-    (explored, found, newCandidates) => {
-      cumul = found;
-      observateur?.observer(explored, newCandidates, cumul);
-    },
-    prepared.startedAt
-  );
-}
-
-/**
- * `drain`, mais en laissant l'observateur voir chaque point de passage.
- *
- * ⚠️ **Il ne remplace PAS `drain` partout** : le chemin sans cible garde
- * `drain` tel quel, pour que le harnais ne paie rien quand personne ne
- * regarde. Deux chemins, une seule raison de diverger — la présence d'une
- * cible.
- */
-function drainEnObservant(
-  gen: Generator<SearchProgress, SearchResult, void>,
-  observateur: ObservateurDecouverte
-): SearchResult {
-  let step = gen.next();
-  while (!step.done) {
-    const p = step.value;
-    // ⚠️ `buildBuckets` n'est pas dans ce générateur, mais `SearchProgress`
-    // est une union : le garde sur la phase est ce qui rend la lecture sûre
-    // si `pairBuckets` venait un jour à émettre autre chose.
-    if (p.phase === 'pairing') observateur.observer(p.explored, p.candidates, p.candidates.length);
-    step = gen.next();
-  }
-  return step.value;
 }
 
 /**
@@ -1624,8 +1512,7 @@ function etatCompletude(completude: Completude | null): string {
     return `⚠️ Run INCOHÉRENT (${compte}) — annoncé complet sans avoir parcouru tout l’espace, motif NON déductible.`;
   }
   if (!completude.complet) {
-    const glose = completude.motif === 'quotaTranche' ? ' — une tranche parallèle a atteint sa part du plafond de candidats' : '';
-    return `⚠️ Run TRONQUÉ (motif : ${completude.motif}${glose}, ${compte}).`;
+    return `⚠️ Run TRONQUÉ (motif : ${completude.motif}, ${compte}).`;
   }
   return `✅ Run COMPLET (${compte}) : tout l’espace a été parcouru.`;
 }
@@ -1816,18 +1703,13 @@ function divergence(
  * ----------------------------------------------------------------------- */
 
 /**
- * ⚠️ **Le motif se LIT quand le résultat le porte** (`motifTroncature`) : c'est le cas du résultat fusionné du
- * régime parallèle, le seul qui puisse être tronqué par le quota d'UNE
- * tranche (`quotaTranche`) avec moins de candidats que le plafond global. Le
- * déduire ici rendait « maxMs » — faux.
- *
- * Sinon (régime séquentiel, `pairBuckets` nu) il se DÉDUIT, par la règle
- * prouvée dans `combineParallelPairingResults` : `pairBuckets` teste le
- * budget-TEMPS *avant* de pousser un candidat et ne tronque par quota
- * qu'*après* un push. Donc au moment où `truncated` sort vrai, le nombre de
- * candidats vaut exactement le plafond si la cause est le quota, et
- * strictement moins si c'est le temps. Exacte en séquentiel, où le plafond
- * de `pairBuckets` EST le plafond global.
+ * ⚠️ **Le motif se DÉDUIT**, dans les deux régimes : le noyau (comme
+ * `pairBuckets`) teste le budget-TEMPS *avant* de collecter un candidat et ne
+ * tronque par plafond qu'*après* une collecte. Donc au moment où `truncated`
+ * sort vrai, le nombre de candidats vaut exactement le plafond si la cause
+ * est le plafond, et strictement moins si c'est le temps. Exacte en
+ * parallèle aussi : la fusion garde le plafond GLOBAL dans l'ordre
+ * séquentiel, et s'arrête à lui.
  */
 export function evaluerCompletude(resultat: SearchResult, totalPairs: number, params: SearchParams): Completude {
   const plafond = params.maxCollected!;
@@ -1851,7 +1733,7 @@ export function evaluerCompletude(resultat: SearchResult, totalPairs: number, pa
     // ici. Inventer `maxMs` par défaut serait un diagnostic inventé.
     motif: annonceComplet
       ? undefined
-      : resultat.motifTroncature ?? (resultat.candidates.length >= plafond ? 'maxCollected' : 'maxMs'),
+      : resultat.candidates.length >= plafond ? 'maxCollected' : 'maxMs',
     explored: resultat.explored,
     totalPairs,
   };
@@ -2027,17 +1909,11 @@ export function classer(
   // neutre en `recherche` (aucune résolution par build ici non plus).
   const setup = resolue.recette?.damageSetup ?? DEFAULT_DAMAGE_SETUP;
   const element = resolue.monstre ? (loadMonstersList().find((m) => m.com2usId === resolue.monstre!.com2usId)?.element ?? null) : null;
-  const classes = sortCandidates(candidats, objectif, optionsDeClassement({
-    realDamage,
-    runeById,
-    metric: resolue.params.metric,
-    damageSetup: setup,
-    // Auras propres des six runes de chaque candidat, comme l'écran.
-    aurasPropresDe: aurasPropresParRunes(runeById),
-    artefactsDuBuild: () => null,
-    etatReliqueDe: () => etatReliqueDuBuild(undefined, resolue.params.relicContext, resolue.params.relic),
-    contexteExclusive: { setup, element },
-  }));
+  const photo = contexteResultat({ params: { ...resolue.params, pool: resolue.poolInitial },
+    fiche: resolue.monstre?.gear ?? { base: resolue.params.base, runes: [], artifacts: resolue.params.artifacts, relic: resolue.params.relic },
+    realDamage, damageSetup: setup, exclusive: { setup, element }, signature: '', idInventaire: 0, idEspece: resolue.monstre?.com2usId ?? null, resolution: null, toutVerifier: false });
+  const classes = classerEnLocal(photo, candidats, { tri: triDesResultats(objectif), metric: resolue.params.metric,
+    page: 1 }).affichees;
   // ⚠️ `candidateMetricTotal` recalcule depuis les VRAIES runes dans la
   // mesure courante — jamais `effTotal`, figé au moment de la recherche. Il
   // est appliqué à la DEMANDE, pas à toute la liste : le classement peut

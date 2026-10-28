@@ -23,7 +23,7 @@
 //    conditionnels et n'entrent pas dans les stats de base ;
 //  - relique : stat principale en % (PV%/ATQ%/DEF%).
 
-import { ArtifactDetail, BaseStats, GearSet, Monster } from '../types';
+import { ArtifactDetail, BaseStats, GearSet, Monster, RelicDetail } from '../types';
 import { RUNE_EFFECT, ARTIFACT_MAIN, RELIC_MAIN, StatKey, SET_STAT_BONUS, activeSets } from './effects';
 
 export interface StatRow {
@@ -34,6 +34,16 @@ export interface StatRow {
   total: number;
   suffix: string; // '%' pour crit/res/précision, '' sinon
 }
+
+/**
+ * Les stats qui s'affichent en base + bonus : PV, ATQ, DEF et VIT, dont la base
+ * grandit avec le niveau et l'éveil et que les runes gonflent. Taux Crit,
+ * Dmg Crit, RES et Précision partent d'une petite valeur d'éveil fixe et
+ * s'affichent TOUJOURS en total, dans toute l'app (décision de l'utilisateur,
+ * généralisant « Stats de base exclues » des conditions de l'Optimizer) :
+ * fiche de stats, recommandations de siège, tableau des résultats.
+ */
+export const STATS_AVEC_BASE: ReadonlySet<StatKey> = new Set<StatKey>(['hp', 'atk', 'def', 'spd']);
 
 const ROWS: { key: StatKey; label: string; suffix: string }[] = [
   { key: 'hp', label: 'PV', suffix: '' },
@@ -47,6 +57,33 @@ const ROWS: { key: StatKey; label: string; suffix: string }[] = [
 ];
 
 export function computeStats(gear: GearSet): StatRow[] {
+  return terminerStats(accumulerAvantRelique(gear), gear.relic);
+}
+
+/**
+ * Les stats d'un équipement pour N'IMPORTE QUELLE relique : runes et
+ * artéfacts accumulés UNE fois, puis, par relique, la fin du calcul même de
+ * `computeStats` (relique, sets, lignes). Rend, au bit près,
+ * `computeStats({ ...gear, relic })` : les deux passent par les mêmes étapes,
+ * dans le même ordre d'opérations (accumulateurs recopiés, jamais
+ * réassociés). Sert à juger un build sous chaque principale de relique sans
+ * refaire ses runes.
+ */
+export function statsSelonRelique(gear: GearSet): (relic: RelicDetail | undefined) => StatRow[] {
+  const avant = accumulerAvantRelique(gear);
+  return (relic) => terminerStats({ ...avant, flat: { ...avant.flat }, pct: { ...avant.pct } }, relic);
+}
+
+// L'état de `computeStats` juste avant la relique : runes et artéfacts
+// accumulés, stats de base, sets actifs.
+interface AccumulationStats {
+  flat: Record<StatKey, number>;
+  pct: Record<'hp' | 'atk' | 'def', number>;
+  baseVal: Record<StatKey, number>;
+  sets: ReturnType<typeof activeSets>;
+}
+
+function accumulerAvantRelique(gear: GearSet): AccumulationStats {
   const base = gear.base;
   // Accumulateurs de bonus plats et de pourcentages (PV/ATQ/DEF uniquement).
   const flat: Record<StatKey, number> = { hp: 0, atk: 0, def: 0, spd: 0, cr: 0, cd: 0, res: 0, acc: 0 };
@@ -71,19 +108,23 @@ export function computeStats(gear: GearSet): StatRow[] {
     if (def) flat[def.stat] += a.main.value;
   }
 
-  // Stat principale de relique : en % (PV%/ATQ%/DEF%).
-  if (gear.relic) {
-    const def = RELIC_MAIN[gear.relic.main.code];
-    if (def) pct[def.stat as 'hp' | 'atk' | 'def'] += gear.relic.main.value;
-  }
-
   const baseVal: Record<StatKey, number> = {
     hp: base.hp, atk: base.atk, def: base.def, spd: base.spd,
     cr: base.cr, cd: base.cd, res: base.res, acc: base.acc,
   };
+  return { flat, pct, baseVal, sets: activeSets(gear.runes.map((r) => r.set)) };
+}
+
+// La fin de `computeStats`, sur des accumulateurs qu'elle modifie : relique, sets, lignes.
+function terminerStats({ flat, pct, baseVal, sets }: AccumulationStats, relic: RelicDetail | undefined): StatRow[] {
+  // Stat principale de relique : en % (PV%/ATQ%/DEF%).
+  if (relic) {
+    const def = RELIC_MAIN[relic.main.code];
+    if (def) pct[def.stat as 'hp' | 'atk' | 'def'] += relic.main.value;
+  }
 
   // Bonus de set : appliqués APRÈS le calcul des bases (les % portent dessus).
-  for (const key of activeSets(gear.runes.map((r) => r.set))) {
+  for (const key of sets) {
     const bonus = SET_STAT_BONUS[key];
     if (!bonus) continue;
     if (bonus.flat != null) {

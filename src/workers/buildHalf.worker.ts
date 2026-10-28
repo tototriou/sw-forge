@@ -1,52 +1,30 @@
 /// <reference lib="webworker" />
-// Worker DÉDIÉ à la construction d'UNE SEULE moitié (`buildBuckets`), spawné
-// PAR `runeBuildOptim.worker.ts` (pas par l'app directement) pour paralléliser
-// la construction des deux moitiés A et B sur deux cœurs plutôt qu'un seul —
-// voir docs/03-developpeur/optimizer/ § Construction des moitiés.
+// Worker DÉDIÉ à la construction d'UN préréglage d'UNE moitié
+// (`construireMoitieTypee` : colonnes typées, sans HalfCombo), spawné PAR
+// `runeBuildOptim.worker.ts` (pas par l'app directement),
+// un par moitié et par préréglage construit (préréglages emboîtés,
+// `construireMoitiesEmboiteesTypees`) — voir
+// docs/03-developpeur/optimizer/moteur/pipeline.md § Construction des moitiés.
 // Reste minimal, comme runeBuildOptim.worker.ts : aucune
-// logique propre, pilote juste `buildBuckets` pas à pas pour pouvoir relayer
+// logique propre, pilote juste la construction pas à pas pour pouvoir relayer
 // une progression pendant que ça tourne.
 //
 // ⚠️ Pas de protocole d'arrêt ICI (contrairement à runeBuildOptim.worker.ts) :
 // un arrêt manuel PENDANT la construction se traite en tuant le Worker depuis
 // le parent (`Worker.terminate()`), instantané et fiable — bien plus simple
-// qu'un arrêt coopératif à répercuter sur deux Workers enfants à la fois. Ce
+// qu'un arrêt coopératif à répercuter sur tous les Workers de moitié à la
+// fois (2 à 8, un par moitié et par préréglage construit). Ce
 // Worker n'a donc besoin de gérer qu'UN seul message (la demande initiale),
 // jamais un second message « stop ».
 
-import { buildBuckets, Bucket } from '../lib/runeBuildOptim';
-import { StatKey } from '../lib/effects';
-import { RuneDetail, BaseStats } from '../types';
+import { CompartimentType, tamponsDesDemiBuilds } from '../lib/demiBuildsTypes';
+import { construireMoitieTypee, totalConstruction } from '../lib/rechercheRunes';
+import { RequeteMoitie } from '../lib/constructionEmboitee';
 
-export interface BuildHalfRequest {
-  half: 'A' | 'B';
-  slotIdxs: readonly [number, number, number];
-  filtered: RuneDetail[][];
-  distinctKeys: string[];
-  constrainedKeys: StatKey[];
-  retentionKeys: StatKey[];
-  minEntries: { k: StatKey; min: number }[];
-  bucketCap: number;
-  otherHalfMaxSets: number[];
-  jokerCredit: number;
-  requiredPieces: number[];
-  // ⚠️ Nécessaire à `retentionScore`/`combinedRetentionScore` (pondération
-  // pct/flat par base — voir BuildBucketsContext dans runeBuildOptim.ts).
-  base: BaseStats;
-  // PROTOTYPE (combosOrderMode='objective') — voir BuildBucketsContext dans
-  // runeBuildOptim.ts, même discipline de propagation que `base`.
-  objectiveKeys: StatKey[];
-  // Bouton « Prioriser les stats les plus difficiles » — voir SearchParams
-  // dans runeBuildOptim.ts, même paramètre relayé tel quel.
-  adaptiveTrancheWeighting?: boolean;
-  // ⚠️ Voir SearchParams.combosOrderMode dans
-  // runeBuildOptim.ts. Sans ce champ (et son relais ci-dessous jusqu'à
-  // `buildBuckets`), `SearchParams.combosOrderMode` n'aurait AUCUN effet sur
-  // le vrai chemin de production (Web Workers) : `buildBuckets` recevrait
-  // toujours `undefined` ici, retombant sur son défaut interne quel que
-  // soit ce que l'appelant avait demandé.
-  combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
-}
+// La requête d'UN préréglage d'une moitié (préréglages emboîtés : un Worker
+// par moitié ET par préréglage, `construireMoitiesEmboitees`), produite par
+// `requetesDeLaMoitie` — jamais assemblée à la main.
+export type BuildHalfRequest = RequeteMoitie;
 export interface BuildHalfProgressMessage {
   type: 'progress';
   half: 'A' | 'B';
@@ -56,7 +34,7 @@ export interface BuildHalfProgressMessage {
 export interface BuildHalfResultMessage {
   type: 'result';
   half: 'A' | 'B';
-  buckets: Bucket[];
+  buckets: CompartimentType[];
 }
 export type BuildHalfResponse = BuildHalfProgressMessage | BuildHalfResultMessage;
 
@@ -66,21 +44,20 @@ export type BuildHalfResponse = BuildHalfProgressMessage | BuildHalfResultMessag
 const PROGRESS_THROTTLE_MS = 150;
 
 self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
-  const { half, slotIdxs, filtered, otherHalfMaxSets, adaptiveTrancheWeighting, combosOrderMode } = e.data;
+  const { half, slotIdxs, otherHalfMaxSets, combosOrderMode } = e.data;
   // Connu D'AVANCE (indépendant du générateur) : le total réel que
-  // `buildBuckets` utilisera pour CE premier emplacement de la moitié — sert
+  // la construction annoncera — runes du premier emplacement de la moitié,
+  // sommées sur les préréglages emboîtés (`totalConstruction`) — sert
   // au message de fin garanti ci-dessous, voir son commentaire.
-  const total = filtered[slotIdxs[0]].length;
+  const total = totalConstruction(e.data, slotIdxs);
   // ⚠️ `e.data` (BuildHalfRequest) satisfait déjà STRUCTURELLEMENT
-  // `BuildBucketsContext` (mêmes 8 champs, voir son commentaire dans
-  // runeBuildOptim.ts) — pas besoin de reconstruire un objet, les champs en
+  // `ContexteMoitie` (les champs de `BuildBucketsContext`, voir son
+  // commentaire dans runeBuildOptim.ts, plus `cransEmboites`) — pas besoin
+  // de reconstruire un objet, les champs en
   // trop (half/slotIdxs/otherHalfMaxSets/…) sont ignorés sans risque
   // puisque ce n'est pas un littéral d'objet (aucune vérification de
   // propriété excédentaire de TypeScript ici).
-  const gen = buildBuckets(
-    half, slotIdxs, e.data, otherHalfMaxSets,
-    undefined, adaptiveTrancheWeighting, combosOrderMode
-  );
+  const gen = construireMoitieTypee(half, slotIdxs, e.data, otherHalfMaxSets, combosOrderMode);
   let lastPost = 0;
   let step = gen.next();
   while (!step.done) {
@@ -106,5 +83,5 @@ self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
   const finalProgress: BuildHalfProgressMessage = { type: 'progress', half, scanned: total, total };
   (self as unknown as Worker).postMessage(finalProgress);
   const message: BuildHalfResultMessage = { type: 'result', half, buckets: step.value };
-  (self as unknown as Worker).postMessage(message);
+  (self as unknown as Worker).postMessage(message, tamponsDesDemiBuilds(step.value));
 };

@@ -67,7 +67,7 @@ runes : la paire n'est pas figée avant la recherche.
    de la file : [pipeline.md § File de résolution](pipeline.md).
 
 Sans optimisation d'artéfacts, les paramètres de paires restent construits,
-avec « Garder l'artéfact équipé » imposé des deux côtés
+avec « Comme équipé » imposé des deux côtés
 (`parametresArtefactsFiche`, `src/lib/artifactFiche.ts`) : la seule paire
 possible est la portée, et il n'y a pas de file (`resoudreEquipement` est
 nul).
@@ -163,26 +163,41 @@ admissibles. Ce repli ne garantit pas l'optimum sur l'inventaire entier.
   Les pré-filtres, qui tournent sur des milliards de paires, gardent
   `artFlatMax` et `artFlatMin`, larges donc admissibles, à coût constant.
 - **Construction** (`apportsAtteignables`, `src/lib/artifactOptim.ts`) :
+  - « meilleur » suit le sens de chaque stat suivie : le plus fort sous
+    minimum seul (ou sur une stat non suivie), le plus faible sous maximum
+    seul, toutes les valeurs distinctes sous minimum ET maximum (l'ensemble
+    admis est un intervalle) ;
   - sans ligne verrouillée, seule la principale compte ; par sorte, on
     garde, pour chaque code de principale, le meilleur artéfact **et** le
     meilleur non Intangible — le meilleur peut être Intangible, et la paire
-    de deux Intangibles est interdite —, plus l'emplacement vide s'il est
-    candidat ;
+    de deux Intangibles est interdite — (sous minimum ET maximum, une pièce
+    par valeur, non Intangible de préférence), plus l'emplacement vide s'il
+    est candidat ;
   - avec des lignes verrouillées, cette réduction est impossible (le
     meilleur d'un code peut violer le verrou) : on parcourt tous les
     candidats de `candidatsParSorte`, filtrés par `paireRespecteLignes` ;
   - les paires permises (`artifactPairAllowed`) sont dédoublonnées sur les
-    stats suivies, puis réduites à leur frontière de Pareto.
+    stats suivies, puis réduites à leur frontière de Pareto, dans le même
+    sens (égalité exigée sous minimum ET maximum).
+- ⚠️ **Le sens compte** : pour toute vraie paire, `possibles` contient un
+  apport au moins aussi bon sur CHAQUE condition, minimum comme maximum ; le
+  test qui les juge avec la même paire est donc exact. Une réduction « le
+  plus fort domine » partout perdait, sous un maximum de PV, d'ATQ ou de
+  DEF, la paire plus faible qui le tient (ancien fonctionnement, remplacé) :
+  aux valeurs du jeu (PV +1500 par artéfact), 20 000 PV sans artéfact et
+  21 000 ≤ PV ≤ 22 000, seul +3 000 restait (23 000) et le build qu'un
+  seul artéfact PV rend conforme (21 500) était écarté.
 - Rien ne se perd au pré-filtrage de la file, qui passe par
   `preFiltrerCandidats` : la dominance y garde inconditionnellement les
   trois principales, et rend deux artéfacts incomparables sous un maximum
   actif sur leur principale
   ([optimiseur-artefacts.md § Pré-filtrage exact — pertinence, obligation, dominance](optimiseur-artefacts.md)).
-- **En mode relique `recherche`**, les stats du candidat sont sans relique
-  et le terme de relique s'ajoute en majorant côté minimum, en minorant
-  côté maximum : le test reste une borne, et l'exactitude vient de la
-  résolution avec la relique réelle —
-  [reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md).
+- **En mode relique `recherche`**, les stats du candidat sont sans relique,
+  et chaque apport s'essaie avec chaque relique représentative (la relique
+  en « OU ») : le test est exact sur la relique comme sur la paire, et
+  rejoint le jugement de la résolution —
+  [reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md) ;
+  pourquoi : [ADR](../../../04-decisions/adr/relique-en-ou-a-la-validation.md).
 
 ## Filtre final sur la vraie paire
 
@@ -246,11 +261,11 @@ paire qui viole ses conditions, ce qui est pire qu'un build manquant.
   sans sa branche y échoue aussi (`const _exhaustif: never`) : jamais un
   `else` qui le noterait par la somme des principales. Elle vit hors
   d'`artifactOptim.ts`, qui reste sans logique de dégâts.
-- **Le régime de la représentative suit l'objectif ; celui de la
-  résolution, le critère regardé** : `regimeEquipement =
-  regimeEquipementDe(regimeArtefacts(adapterArtefactsAuTri ? sortBy :
-  objective), contexte de dégâts disponible)`. « Dégâts réels » sans sort
-  calculable est rabattu sur `aucun`.
+- **La représentative et la résolution suivent l'objectif de la
+  recherche** : `regimeEquipement = regimeEquipementDe(regimeArtefacts(objective),
+  contexte de dégâts disponible)`, photographié au lancement
+  (`resolutionDuContexte`). « Dégâts réels » sans sort calculable est rabattu
+  sur `aucun`. Le tri affiché ne choisit jamais le régime : il ne résout rien.
 - **Régime `aucun`** (Efficience, Vitesse, VIT, Taux CRIT, Dgts CRIT, RES,
   PRE) : aucun artéfact n'entre dans le score, rien n'est à maximiser. La
   note est la somme des principales, pour un ordre qui ne soit pas
@@ -264,14 +279,18 @@ paire qui viole ses conditions, ce qui est pire qu'un build manquant.
   pas le critère : deux critères ne la partagent que si la paire optimale
   y est démontrablement la même, ce qui n'est vrai que dans le régime
   `aucun`. Passer d'Efficience à Vitesse ne recalcule donc rien.
-- **« Adapter les artéfacts et reliques au tri »**, activé par défaut, fait
-  suivre le tri à la paire ; désactivé, elle suit l'objectif de la recherche
-  et reste stable pendant toute l'exploration — ce n'est pas « pas
-  d'optimisation ». L'interrupteur est masqué sans optimisation
-  d'artéfacts (une seule paire possible) :
+- Ne pas faire suivre le tri affiché à la paire (l'ancien interrupteur
+  « Adapter les artéfacts et reliques au tri », retiré) : un changement de
+  vue deviendrait une nouvelle résolution ; pour un autre critère, on
+  relance la recherche avec cet objectif :
   [02-app/optimizer/ecran/resultats.md § Tri des résultats](../../../02-app/optimizer/ecran/resultats.md#tri-des-résultats).
 
 ## Recalcul quand la paire peut changer
+
+Les entrées suivantes sont celles du contexte figé au lancement. Éditer les
+critères ne modifie ni la file ni le cache du résultat vivant ; le prochain
+lancement photographie ces changements. Le régime effectif est celui de
+l'objectif lancé : ni le tri ni la page ne le changent.
 
 Le cache de la file (paires et reliques résolues, clé `cleBuild`) ne fait que
 grandir sous une même signature, et se vide quand `signatureArtefacts`
@@ -291,7 +310,7 @@ tout ce qui change le score d'une paire, l'inventaire ou les conditions :
 - les **artéfacts réservés** par les autres builds validés de la liste
   active, lus comme un ensemble — « Libérer les artéfacts » sur un autre
   monstre de la liste, ou changer de liste active, refait les paires ;
-- les **pièces des emplacements figés** sur « Garder l'artéfact équipé »
+- les **pièces des emplacements figés** sur « Comme équipé »
   (`piecesFigeesDe`, `src/lib/artifactFiche.ts`), seul candidat de leur
   emplacement : valider un build du monstre recherché, « Voir le runage
   réellement porté » ou changer d'exemplaire de la même espèce les
@@ -316,43 +335,47 @@ que s'il change le régime effectif.
 
 ## Résolution hors du fil de l'écran
 
-Quand il est disponible, un Worker dédié (`src/workers/resolution.worker.ts`,
-corps `CorpsResolution`) exécute la même résolution que le fil de l'écran,
-`entreeResolutionDuBuild` puis `resoudreEquipementDuBuild`, sur des entrées
-en données (`entreesSerialisables`, qui ne retire que `evaluer`) et avec les
-runes de chaque build produites par `runesDuBuild`, le producteur de la
-résolution directe. Ce qui compte pour la paire :
+Un pool de Workers `resolution.worker.ts` (autant que l'appariement)
+exécute `CorpsResolution`, chacun sur un port reçu du Worker de classement. L'entrée reste dérivée par
+`entreeResolutionDuBuild`, puis résolue par `resoudreEquipementDuBuild` ;
+`entreesSerialisables` ne retire que `evaluer`, et `runesDuBuild` fournit
+les runes de chaque demande. La priorité, le cache et les deux demandes au
+plus sans réponse par Worker appartiennent au classeur, via
+`ResolutionDistante`. Chaque Worker a ses propres caches de résolution, qui
+ne changent aucun résultat : un build reçoit le même équipement sur
+n'importe lequel.
 
-- la priorité reste décidée sur le fil de l'écran (`prochainsATraiter`) ; ni
-  les builds traités, ni leur ordre, ni `K` ne changent ;
-- un nouveau contexte ne vide pas le cache : seul un changement de
-  signature le vide, comme sur le chemin direct ;
-- une réponse périmée — d'un contexte remplacé ou d'une demande annulée —
-  n'est jamais écrite dans le cache ;
-- un Worker qui échoue est journalisé et terminé, et la file reprend sur le
-  fil de l'écran, avec le cache tel qu'il est.
+Une réponse d'un contexte remplacé ou d'une demande annulée libère son crédit
+sans écriture. Un nouveau contexte compatible conserve le cache ; un autre
+régime effectif ou une autre signature le vide. Si un Worker du pool
+échoue, il est journalisé et terminé, ses builds en vol repris par les
+autres ; si le dernier échoue, la même résolution reprend dans le classeur,
+avec son cache, sans calcul sur le fil de l'écran. Perdre le classeur lui-même
+passe par l'erreur de recherche existante et perd ses données.
 
-Le protocole, l'annulation, la cadence de publication et le repli :
-[pipeline.md § Worker de résolution](pipeline.md) et
-[pipeline.md § File de résolution](pipeline.md). La logique côté écran est
-un module pur, `ResolutionDistante` (`src/workers/resolutionDistante.ts`) :
-`tests/resolution-distante.test.ts` y fait tourner une file simulée — le
-corps derrière `structuredClone`, des entrelacements aléatoires de messages,
-de pages, de candidats et de contextes — qui doit remplir le même cache que
-la résolution directe, et garde le branchement du hook par des contrôles de
-source.
+Protocole, annulation et cadence :
+[pipeline.md § Worker de résolution](pipeline.md),
+[pipeline.md § File de résolution](pipeline.md) et
+[parallelisation.md § Worker de résolution](parallelisation.md).
+`tests/resolution-distante.test.ts` contrôle le pilote neutre avec des
+entrelacements de demandes ; `tests/classement-distant.test.ts` transfère
+les vrais ports et termine réellement le résolveur avant de vérifier le repli.
 
 ## Partage entre les builds d'une file
 
-Les builds d'une file essaient en grande partie les mêmes paires. Trois
-mémoires et un tri différé partagent ce qui ne dépend pas du build, sans
-changer aucun résultat :
+Les builds d'une file essaient en grande partie les mêmes paires. Quatre
+mémoires partagent ce qui ne dépend pas du build, sans changer aucun
+résultat, et la lecture des notes ne trie rien sur le chemin de l'app
+(dernier point) :
 
 - le **profil de dégâts d'une paire** ne lit que ses deux pièces : il se
   calcule une fois par paire (`CacheProfilsParPaire`,
   `src/lib/artifactEvaluation.ts` ; clé = identifiants des pièces dans
   l'ordre reçu, emplacement vide compris ; une pièce d'identifiant ≤ 0 n'est
-  pas une pièce et n'y entre jamais) ;
+  pas une pièce et n'y entre jamais). ⚠️ La clé est propre à UN
+  inventaire : un identifiant ne désigne la même pièce, donc le même
+  profil, que dans l'inventaire où il a été lu — d'où la durée de vie d'une
+  file, vidée avec l'inventaire (paragraphe suivant la liste) ;
 - les **candidats élagués de chaque sorte** ne se recalculent que si leurs
   entrées changent (`MemoPreFiltre`, `src/lib/artifactOptim.ts`) : la
   pertinence reste sondée contre le vrai calcul à chaque build et à chaque
@@ -362,20 +385,105 @@ changer aucun résultat :
   `statsParPaire` (`src/lib/stats.ts`) rend le même tableau aux paires de
   mêmes sommes, et l'effet unique de la relique essayée n'est calculé
   qu'une fois par tableau (`evaluerPourRegime`) ;
-- la résolution ne lit d'ordinaire que la **meilleure paire** :
-  `pairesParScore` la trouve en un parcours — plus grand score, premier
-  dans l'ordre de l'inventaire en cas d'égalité, comme le tri stable — et
-  ne trie toutes les paires que si l'on lit plus loin, ou si un score vaut
-  NaN. L'ordre rendu est exactement celui de `chercherPaires`.
+- les **formes de paire** de la résolution rapide — par sorte, une pièce
+  par principale `(code, valeur)` distincte de `candidatsParSorte`, plus
+  l'emplacement vide — ne se recalculent que si les entrées de
+  `candidatsParSorte` changent (`CachesResolutionRapide`,
+  `src/lib/resolutionRapide.ts`, mémoïsé par identité comme
+  `MemoPreFiltre`), avec l'indice de chaque forme, par lequel une paire se
+  juge : [reliques.md § Résolution rapide — le chemin de l'app](reliques.md#résolution-rapide--le-chemin-de-lapp) ;
+- la résolution ne note d'ordinaire que les **paires faisables** et ne lit
+  que la meilleure d'entre elles, en un parcours de l'ordre de
+  `chercherPaires` — plus grand score, premier dans l'ordre de l'inventaire
+  en cas d'égalité, comme le tri stable. Le calcul exhaustif, lui, note
+  toutes les paires et les parcourt par `pairesParScore`, qui trouve la
+  meilleure en un parcours et ne trie toutes les paires que si l'on lit plus
+  loin, ou si un score vaut NaN ; l'ordre rendu est exactement celui de
+  `chercherPaires`.
 
-Chaque mémoire est bornée (`BORNE_PROFILS_PAR_PAIRE`,
+Les trois premières mémoires sont bornées (`BORNE_PROFILS_PAR_PAIRE`,
 `BORNE_MEMO_PREFILTRE`, `BORNE_STATS_PAR_APPORT`,
-`BORNE_APPORTS_PAR_STATS`) et se vide d'un coup à sa borne. Leur durée de vie
+`BORNE_APPORTS_PAR_STATS`) et se vident d'un coup à leur borne ; celle des
+formes ne garde qu'un jeu, celui des dernières entrées. Leur durée de vie
 est celle d'une file (`nouveauxCachesResolution`) : l'écran les recrée avec
 la signature des réglages et les paramètres de paires (donc l'inventaire), le
 Worker de résolution à chaque contexte reçu, le CLI une fois par recette —
 jamais un état global qu'un nouvel inventaire laisserait périmé. Ce qu'elles
 rendent est partagé : à lire, jamais à modifier.
+
+Dans un même build et une même relique, l'évaluateur « Dégâts réels » de
+`evaluerPourRegime` note des milliers de paires ; il porte un
+`MemoCombat` (`src/lib/damage.ts`) qui calcule une fois ce que
+`computeTotalDamage` relit à l'identique d'une paire à l'autre : les stats
+au début du combat (par tableau de stats, que `statsParPaire` partage entre
+paires de mêmes principales) et les stats de combat (par tableau et par
+amplifications de buff de la paire). Ce qui ne dépend que du réglage vit
+dans sa **préparation du réglage** (`PreparationReglage`), que la file
+partage entre tous ses builds et reliques (`CachesResolution.reglage`,
+passée par `entreeResolutionDuBuild` à `evaluerPourRegime`) : elle se
+calcule donc une fois par recherche, et non plus une fois par build et par
+relique. Le classement en a une aussi : `optionsDuContexte` pose sur les
+options de `optionsDeClassement` (champ `reglage`) celle de son contexte de
+résultat, une par contexte, que `scorerPour` passe à `objectiveScore` puis à
+`computeTotalDamage` sans memo de stats (une note par candidat) ; les notes
+de base, du tri et des cartes la partagent. La précondition (entrées
+jamais modifiées) tient dans l'écran parce que le contexte y est gelé
+(`copierDonnees`) ; dans le Worker de classement, il arrive par
+`postMessage`, une copie non gelée que seul le corps du classement tient et
+qu'il ne modifie pas. `optionsDeClassement` appelé directement n'en pose aucune,
+parce que l'API directe peut modifier sort ou réglage en place. Elle
+retient :
+
+- la chronologie des poses entre les coups (le sort et le réglage seuls) ;
+- la préparation du sort de `computeTotalDamage` : contexte d'attaque
+  conjointe, réglage à critique forcé, état de la cible après le sort, et
+  pour chaque passif qui compte son contexte conjoint, son bonus acquis, son
+  profil et ses réglages (mode critique, réduction de DEF après le sort, état
+  avant chaque coup) ; les facteurs de fin de chaîne lus sur le seul réglage
+  (stack saisi, bonus conditionnel, Velaska) ;
+- la découpe d'un sort en appels : groupes d'une séquence curée, tronçons de
+  coups (poses entre les coups, ignore DEF à partir d'un rang) ;
+- les termes du réglage d'un calcul de sort (`TermesDuReglage`) : points de
+  Dgts CRIT de l'invocateur, d'Euldong et d'un lead, Taux Crit d'un lead et
+  des stats de combat, PV et VIT de la cible, PV propres, alliés et ennemis,
+  effets comptés, facteur de réduction de DEF et mitigation sans DEF
+  ignorée, réductions, facteurs d'effets, de bouton et de stack, coups
+  résolus, préfixes de Rage Charge et de Calculated Sacrifice.
+
+Ce qui lit le build, la paire ou l'état du combat reste calculé à chaque
+paire : VIT de combat et critique forcé qui en découle, Taux Crit brut et
+Dgts CRIT, conditions de combat, DEF ignorée selon la VIT ou les PV perdus
+(la mitigation préparée ne sert que si aucune fraction n'est ignorée), DMG%
+et bombe (profil de la paire), stats de combat et `valeurs` de la formule.
+
+Reconnues à leur identité, ces entrées rendent la valeur de l'expression
+elle-même, au bit près : aucune somme ni aucun produit n'est réassocié, un
+terme préparé prend sa place dans l'expression, un préfixe seulement quand
+elle se lit de gauche à droite (`tests/memo-combat.test.ts`, sur le corpus
+avec une préparation partagée par tous ses contextes ; et, parce que le
+calcul sans memo passe par le même code des termes, contre une empreinte
+figée des notes de l'ancien calcul, d'avant la préparation). Ce qui ne peut pas
+être relu ne se retient pas : une chronologie seulement pour un réglage
+connu et le sort de `computeTotalDamage` ; une découpe ou des termes
+seulement pour un profil et un réglage connus — le réglage et le sort de
+`computeTotalDamage`, les réglages rendus par une chronologie retenue, les
+profils et réglages que la préparation construit elle-même (critique forcé,
+passifs, tronçons) ; un objet recopié par un appel (coups déduits du build)
+se calcule sans mémoire. Un élément `undefined` vaut `null`, comme dans
+`computeTotalDamage`. Bornes `BORNE_CHRONOLOGIES` (16),
+`BORNE_SORTS_PREPARES` (16), `BORNE_DECOUPES` (64), `BORNE_TERMES` (256),
+`BORNE_CONNUS` (64) pour la préparation ; `BORNE_STATS_PAR_REGLAGE` (64),
+`BORNE_COMBATS_PAR_STATS` (16) et `BORNE_CONNUS` réglages pour le memo.
+Au vidage des chronologies, tous les réglages, sorts et profils connus sont
+oubliés, ceux de l'appel courant compris ; la chronologie courante est
+ensuite retenue et ses réglages dérivés réinscrits. Durées de vie : le memo,
+celle de l'évaluateur ; la préparation, celle de la file ou du contexte de
+résultat — sans elle (API directe, fiche de l'écran), l'évaluateur crée la
+sienne. Sans aucune préparation (`computeTotalDamage` sans memo), le sort
+préparé et les termes s'écrivent dans deux brouillons du module
+(`SORT_SANS_MEMOIRE`, `TERMES_SANS_MEMOIRE`), réécrits en entier à chaque
+appel et lus par lui seul : aucun objet de plus par note qu'avant la
+préparation, hors la découpe d'un sort en tronçons ou en groupes.
 
 ## Mesurer un changement des bornes
 

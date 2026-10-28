@@ -17,10 +17,11 @@ import { BORNE_STATS_PAR_APPORT, StatRow, computeStats, statsParPaire } from '..
 import { ArtifactSearchParams, BORNE_MEMO_PREFILTRE, MemoPreFiltre, PaireArtefacts as PaireArtefactsT, chercherPaires, pairesParScore } from '../src/lib/artifactOptim';
 import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { RelicContext } from '../src/lib/relicOptim';
-import { SearchParams, searchBuilds, statTotal } from '../src/lib/runeBuildOptim';
+import { SearchParams, statTotal } from '../src/lib/runeBuildOptim';
 import { maxStatsActifsDe, runesDe } from '../scripts/lib/relicDifferentiel';
 import { cleBuild } from '../src/lib/artifactQueue';
 import { CORPUS_5A } from './relic-search.test';
+import { corpusAvecRejetes } from './relique-ou.test';
 import { BASE_FICHE, DEGATS_FICHE, relFiche } from './artifact-fiche.test';
 import { egal, ok, titre } from './outils';
 
@@ -150,7 +151,9 @@ export function testResolutionCaches() {
   let compares = 0;
   for (const fx of Object.values(CORPUS_5A)) {
     const p: SearchParams = { ...fx.p0, relicContext: fx.ctx };
-    const candidats = searchBuilds(p).candidates;
+    // Les faux positifs de la borne par stat, que la recherche n'émet plus
+    // (relique en « OU »), gardent les builds rejetés au corpus.
+    const candidats = corpusAvecRejetes(p);
     const artifactParams = {
       porteur: PORTEUR, inventaire: invLarge, equipes: [], principaleParSorte: {}, lignesVerrouillees: [], maxStatsActifs: maxStatsActifsDe(p),
     };

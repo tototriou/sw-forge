@@ -15,8 +15,8 @@ import {
   Objective,
   SLOT_FILTER_PRESETS,
   prepareSearch,
-  buildBuckets,
 } from '../../src/lib/runeBuildOptim';
+import { construireMoitie } from '../../src/lib/rechercheRunes';
 import { loadDeckMonster } from './deckMonster';
 import { drain } from './drain';
 import { GearSet, RelicDetail, RuneDetail } from '../../src/types';
@@ -116,7 +116,9 @@ export function loadCase(c: Case): { gear: GearSet; allRunes: RuneDetail[]; allR
 }
 
 // ── Vérification de MONOTONICITÉ (voir docs/03-developpeur/optimizer/,
-// « Pré-filtrage heuristique et compartiments ») — rapide : `buildBuckets` SEUL, jamais `pairBuckets`,
+// « Pré-filtrage heuristique et compartiments ») — rapide : la construction
+// des moitiés SEULE (`construireMoitie`, celle de la production, préréglages
+// emboîtés compris), jamais `pairBuckets`,
 // pas besoin d'appariement complet pour savoir si les runes cible SURVIVENT
 // à la rétention. `maxMs` n'a ici aucun effet réel (jamais vérifié en dehors
 // de `pairBuckets`) — une valeur fixe suffit.
@@ -147,8 +149,8 @@ export function checkMonotonicityForCase(c: Case): MonotonicityRow[] {
       continue;
     }
     const inFilteredPool = prepared.filtered.flat().some((r) => targetRuneIds.has(r.id)) && prepared.filtered.every((slotList) => slotList.some((r) => targetRuneIds.has(r.id)));
-    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA));
-    const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB));
+    const bucketsA = drain(construireMoitie('A', [0, 1, 2], prepared, prepared.maxSetsForA, params.combosOrderMode));
+    const bucketsB = drain(construireMoitie('B', [3, 4, 5], prepared, prepared.maxSetsForB, params.combosOrderMode));
     const isTargetHalf = (ids: number[]) => ids.every((id) => targetRuneIds.has(id));
     const halfARetained = bucketsA.some((b) => b.combos.some((combo) => isTargetHalf(combo.runes.map((r) => r.id))));
     const halfBRetained = bucketsB.some((b) => b.combos.some((combo) => isTargetHalf(combo.runes.map((r) => r.id))));

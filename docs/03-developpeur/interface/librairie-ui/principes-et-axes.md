@@ -24,7 +24,7 @@ séparément et se combinent** :
 | `fond` | `vide`, `doux`, `plein` | Le **remplissage** |
 | `trait` | `aucun`, `plein`, `pointille` | Le **contour** |
 | `forme` | `boite`, `pilule` | Le **rayon des coins** |
-| `taille` | `xs`, `sm`, `md`, `carre` | L'**encombrement** |
+| `taille` | `xs`, `sm`, `md`, `lg`, `carre` | L'**encombrement** |
 
 > ⚠️ **À la souris, le gabarit des boutons** : `md`, **32 px** de haut, 12 px
 > de côté, 13 px de texte ; `sm`, **28 px**, 10 px, 12 px ; rayon 8 px. Un
@@ -32,7 +32,10 @@ séparément et se combinent** :
 > « ⋯ » d'en-tête = 32 px. `Segmented` : cadre de 32 px, crans de 26. `min-h`
 > et non `h` : un libellé qui passe à la ligne agrandit le bouton au lieu de
 > déborder. `xs` et `serre` restent hors échelle — ils vivent DANS un
-> contenant plus petit qu'elle. **Le survol peint le fond** : `panel2` (même
+> contenant plus petit qu'elle. `lg`, **40 px** (44 au doigt), 16 px de côté,
+> texte de `md` : réservé à l'action qu'on vient faire dans un écran qui en a
+> une, plus grosse que tout autour (« Rechercher » de l'Optimizer, et
+> « Arrêter » à sa place exacte). **Le survol peint le fond** : `panel2` (même
 > écart au panneau dans les deux thèmes) sur un bouton neutre, `bad-soft` sur
 > un `danger` sans fond — ni contour d'accent, ni voile noir. Au doigt :
 > tailles en `lg:`, survol en `hoverable:`.

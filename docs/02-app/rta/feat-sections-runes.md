@@ -191,7 +191,13 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
 - **L'encadré de stats entier est cliquable** (`role="button"`, pas un bouton
   séparé) et bascule entre deux affichages du même tableau :
   - **Base + bonus** (par défaut) : base en blanc, bonus en **vert**
-    (`text-good`).
+    (`text-good`). ⚠️ **PV, ATQ, DEF et VIT seulement** : Taux Crit, Dmg
+    Crit, RES et Précision s'affichent **toujours en total**, à la place de
+    la base, colonne du bonus vide (`STATS_AVEC_BASE`, stats.ts ; décision
+    de l'utilisateur pour toute l'app — leur base est une petite valeur
+    d'éveil fixe, comme « Stats de base exclues » de l'Optimizer le traitait
+    déjà). Vaut pour toutes les fiches (RTA, ami, siège, Optimizer) et les
+    cartes de résultat.
   - **Total** (base + bonus additionnés) au clic : une seule colonne, dans le
     **même vert** que le bonus ci-dessus — **sauf Taux Crit, RES ou
     Précision** (`CAPPED_STATS` dans [effects.ts](src/lib/effects.ts)) qui
@@ -221,7 +227,9 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   `StatPanel` a une **largeur fixe** (`w-[200px]`, pas `w-fit`) : sans elle,
   la bascule base+bonus ↔ total changerait la largeur de l'encadré et
   pousserait la roue/les artéfacts/la relique voisins d'un côté à l'autre au
-  clic.
+  clic. Seules les cartes de résultat de l'Optimizer, au bureau et à la
+  souris, la posent plus étroite (174 px, fixe elle aussi :
+  [resultats.md](../optimizer/ecran/resultats.md)).
 - ⚠️ **Détail d'une rune/artéfact/relique en popover flottant, pas EN
   LIGNE** : inséré dans un bloc sous la roue, il agrandirait toute la fiche à
   chaque clic (le cadre de stats/roue/artéfacts/relique se décalerait).

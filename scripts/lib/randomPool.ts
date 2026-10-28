@@ -9,7 +9,7 @@
 // ont un corps identique, `randomPool` ne diffère que par le passage
 // explicite de `setKeys` (la copie s'appuie sur le défaut), et son
 // `SET_KEYS` vaut `SETS_JOKER` dans le MÊME ORDRE. Elle est migrable sans
-// changer son tirage — contrairement aux quatre variantes ci-dessous, dont
+// changer son tirage — contrairement aux variantes ci-dessous, dont
 // le biais est le sujet même de ce qu'elles mesurent.
 //
 // ⚠️ **La séquence de tirage est un CONTRAT, pas un détail
@@ -29,20 +29,16 @@
 // Une question qui dépend du réalisme des runes se pose sur un compte réel
 // (voir `scripts/lib/loadMonster.ts`), jamais ici.
 //
-// ⚠️ **QUATRE variantes du dépôt ne passent PAS par ce module, délibérément**
+// ⚠️ **Des variantes du dépôt ne passent PAS par ce module, délibérément**
 // (plus la copie oubliée signalée en tête, qui n'en est pas une) :
 // elles biaisent le tirage pour provoquer une situation précise, donc leur
 // séquence diffère et les migrer changerait leurs pools —
 // `rune-optim-filterslot-topk.test.ts` et `filterslot-topk-diag.ts` (mode
-// `sparse`), `parallel-pairing-quota-diag.ts` (sets rapides vs lents, pour
-// déséquilibrer les tranches), et
-// `stress-tranche-weighting-attainable-diag.ts` (principales FORCÉES par
-// emplacement). Leur biais est le sujet même de ce qu'elles mesurent.
+// `sparse`). Leur biais est le sujet même de ce qu'elles mesurent.
 //
 // ⚠️ **Tirer au hasard les principales des emplacements 1/3/5 serait une
 // ERREUR**, pas un biais assumé : le jeu impose ATQ+ en 1, DEF+ en 3 et PV+
 // en 5, un tel pool ne pourrait pas exister en jeu.
-// `stress-tranche-weighting-attainable-diag.ts` impose ces principales.
 
 import { RuneDetail, EffectLine } from '../../src/types';
 

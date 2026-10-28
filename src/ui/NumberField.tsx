@@ -80,6 +80,30 @@ interface Props {
    * l'appelant qui SEUL connaît l'autre champ.
    */
   onBlur?: () => void;
+  // ⚠️ **Axe de PRÉCISION** : le nombre de décimales admises à la frappe (0
+  // par défaut, un entier). Pour une valeur que l'app ÉCRIT avec des
+  // décimales : une borne d'Efficience se pose comme la carte l'affiche
+  // (« 78.8 »). Le point et la virgule sont admis ; « 78. » reste à l'écran
+  // le temps d'écrire la décimale.
+  decimales?: number;
+}
+
+/**
+ * Ce qu'une frappe donne : une valeur, un brouillon à garder à l'écran sans
+ * valeur nouvelle (« - », « 78. »), ou rien (frappe ignorée). Pur, pour être
+ * vérifié tel quel ; le composant ne fait que l'appliquer.
+ */
+export function lireFrappe(brut: string, decimales = 0, allowEmpty = false):
+  { valeur: number | null } | { brouillon: string; valeur?: number } | null {
+  const texte = brut.trim();
+  if (texte === '') return { valeur: allowEmpty ? null : 0 };
+  if (texte === '-') return { brouillon: '-' };
+  const motif = decimales > 0 ? new RegExp(`^-?\\d+([.,]\\d{0,${decimales}})?$`) : /^-?\d+$/;
+  if (!motif.test(texte)) return null;
+  const valeur = Number(texte.replace(',', '.'));
+  // Un séparateur sans décimale, ou une virgule : l'écran garde la frappe.
+  if (/[.,]$/.test(texte) || texte.includes(',')) return { brouillon: texte, valeur };
+  return { valeur };
 }
 
 export default function NumberField({
@@ -92,6 +116,7 @@ export default function NumberField({
   boxWidth,
   ton = 'neutre',
   onBlur,
+  decimales = 0,
   placeholder = '0',
   allowEmpty = false,
   title,
@@ -250,32 +275,24 @@ export default function NumberField({
 
       <input
         type="text"
-        inputMode="numeric"
+        inputMode={decimales > 0 ? 'decimal' : 'numeric'}
         value={affiche}
         placeholder={placeholder}
         aria-label={ariaLabel}
         disabled={disabled}
         onChange={(e) => {
-          const brut = e.target.value.trim();
-          if (brut === '') {
-            setBrouillon(null);
-            return onChange(allowEmpty ? null : 0);
-          }
-          // « - » seul : négatif en cours de frappe, on le garde à l'écran sans
-          // encore produire de valeur (voir `brouillon`).
-          if (brut === '-') {
-            setBrouillon('-');
-            return;
-          }
-          if (!/^-?\d+$/.test(brut)) return; // frappe invalide ignorée
+          // « - » seul, ou « 78. » : frappe en cours, gardée à l'écran (voir
+          // `brouillon`) ; une frappe invalide est ignorée (`lireFrappe`).
+          const lu = lireFrappe(e.target.value, decimales, allowEmpty);
+          if (!lu) return;
           // ⚠️ PAS de `borne()` ici : borner CHAQUE frappe casse la saisie dès
           // qu'un `min` positif dépasse un chiffre isolé. Exemple vécu : min 15,
           // max 100 — taper « 5 » saute à 15, puis « 0 » (lu comme « 150 »)
           // saute à 100. On ne peut alors plus jamais écrire « 50 ». La borne
           // s'applique donc seulement en sortie de champ (`onBlur`) et sur les
           // boutons ± (des pas discrets, pas de composition de chiffres).
-          setBrouillon(null);
-          onChange(Number(brut));
+          setBrouillon('brouillon' in lu ? lu.brouillon : null);
+          if (lu.valeur !== undefined) onChange(lu.valeur);
         }}
         onBlur={() => {
           setBrouillon(null); // un « - » resté seul disparaît, le champ suit la valeur
@@ -289,7 +306,10 @@ export default function NumberField({
         }}
         // ⚠️ Un cran plus bas au doigt : 13 px, ce champ pesait plus lourd que
         // le nom du monstre à côté duquel il vit.
-        className={`${boxWidth ? 'flex-1' : width} min-w-0 bg-transparent px-1 text-center font-mono text-sm compact:text-xs ${encre}
+        // `w-0 flex-1` sous `boxWidth` : le champ remplit le cadre sans
+        // imposer sa largeur intrinsèque (une vingtaine de caractères), qui
+        // élargirait une cellule de tableau à largeur automatique.
+        className={`${boxWidth ? 'w-0 flex-1' : width} min-w-0 bg-transparent px-1 text-center font-mono text-sm compact:text-xs ${encre}
                     outline-none placeholder:text-ink-dim disabled:cursor-not-allowed`}
       />
 

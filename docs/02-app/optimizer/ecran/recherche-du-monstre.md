@@ -2,28 +2,24 @@
 
 Ce document décrit la carte de recherche du monstre à optimiser.
 
-0. **Bandeau bêta** — permanent, pas refermable (contrairement à
-   `MobileNotice` : ce n'est pas un avertissement ponctuel mais un statut qui
-   reste vrai tant que l'outil est en rodage). Rappelle que le moteur de
-   recherche peut être lent sur des critères serrés ou manquer un build sur
-   un cas inhabituel, et qu'il faut vérifier le résultat avant de re-runer.
-
 ## Choix du monstre et de l’exemplaire
 
 1. **Recherche bestiaire, puis puces d'exemplaire** — la recherche
-   « Monstre à optimiser » résout d'abord une **ESPÈCE** (nom, icône, stats
+   « Rechercher un monstre… » (« Monstre à optimiser » au téléphone) résout
+   d'abord une **ESPÈCE** (nom, icône, stats
    de base 6★ niveau max, sorts) dans **TOUT le bestiaire**, possédé ou
    non — pas seulement les monstres du compte (`MonsterSourcePicker
    mode="bestiary"`, même filtre `formesJouables` que les autres pickers de
-   l'app). Un **sélecteur de source** (Box, par défaut / RTA / Défenses
-   siège / Offenses siège, `Segmented size="lg"` — même contrôle qu'« Exclure
-   les runes d'un monstre »,
-   voir ../feat-exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source) apparaît entre le libellé et le champ
-   de recherche, mais ne filtre pas la recherche elle-même : il choisit
+   l'app). Un **sélecteur de source**, les puces d'« Exemplaire » (Box, par
+   défaut / RTA / Défenses siège / Offenses siège, `Segmented size="lg"` —
+   même contrôle qu'« Exclure les runes d'un monstre »,
+   voir ../feat-exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source),
+   ne filtre pas la recherche elle-même : il choisit
    dans QUELLE source résoudre l'**exemplaire**, une fois l'espèce trouvée.
-   ⚠️ **Mode compact déclenché par la largeur RÉELLE de sa colonne, pas par
+   ⚠️ **Libellés sur deux lignes selon la largeur RÉELLE de sa colonne, pas
    celle de la fenêtre** — `Segmented` mesure lui-même la place qu'il reçoit
-   et se resserre tout seul (voir
+   et passe seul ses libellés sur deux lignes quand ils ne tiennent pas (au
+   doigt : « Défenses / siège », « Offenses / siège » ; voir
    [03-developpeur/interface/librairie-ui/README.md](../../../03-developpeur/interface/librairie-ui/README.md)), comportement commun
    à TOUS les sélecteurs de l'app. **Une puce grisée** signale que l'espèce
    choisie n'a aucun exemplaire dans cette source (`options[i].disabled` ;
@@ -157,12 +153,12 @@ l’import d’une recette. Cette dérivation ne réécrit aucune mémoire.
 | Navigation entre listes sans choisir un autre monstre | Mémoire valide du membre affiché dans la destination ; sinon conservés sans propriétaire | Même règle | Même règle |
 | Création ou suppression de la liste active sans inclusion | Conservés sans propriétaire | Conservés sans propriétaire | Conservés sans propriétaire |
 | Choix d'un membre de liste, par sa carte, la recherche ou un exemplaire déjà membre | Mémoire valide, sinon base complète | Mémoire valide, sinon base complète | Mémoire valide, sinon base complète |
-| Import de recette | Valeurs de la recette | Valeurs de la recette | Valeurs de la recette |
+| Import de recette | Valeurs de la recette | Valeurs de la recette | Valeurs de la recette ; autre espèce : `resetSearch` habituel d'abord (tri, sens, bornes, résultats) |
 | Import de compte sans propriétaire valide | Défauts | Défauts | `resetSearch` habituel |
 | Réimport avec propriétaire valide après rattachement | Conservés | Conservés | Conservés ; runes imposées absentes retirées de l'affichage et dites, cohérence de relique conservée |
 
 La conservation hors liste garde la règle de cohérence de la relique :
-« Garder la relique équipée » redevient « Libre » si l'exemplaire choisi
+« Comme équipée » redevient « Libre » si l'exemplaire choisi
 n'en porte pas (voir relique.md § Relique). Cette pose automatique
 ne crée aucune mémoire.
 
@@ -186,11 +182,46 @@ re-sélection de la même espèce dans le bestiaire, ou d'un exemplaire par
 les puces de source et la zone D, ne vide rien, et n'efface pas non plus
 les résultats affichés. L'import de
 recette écrit directement ses valeurs après validation ; aucun effet
-différé de changement d'espèce ne les écrase.
+différé de changement d'espèce ne les écrase. Une recette d'une **autre
+espèce** que le monstre sélectionné passe d'abord par `resetSearch`, comme
+le bestiaire : le tri, son sens et les bornes des résultats reviennent à
+leurs défauts et les résultats affichés s'effacent, puis les valeurs de la
+recette s'écrivent par-dessus. Même espèce, ou monstre introuvable : rien
+n'est remis à zéro.
+
+## Au bureau : la liste de travail et « Exemplaire »
+
+La recherche et le choix de l'exemplaire vivent dans deux boîtes de la page
+de bureau ([README.md](README.md#mise-en-page-densemble)), pas dans une carte
+commune :
+
+1. **la liste de travail**, première section du panneau des essentiels
+   (`ListeDeTravailBureau`) : la rangée de « Liste active », que termine
+   « Importer une équipe » ([../feat-import-equipes.md](../feat-import-equipes.md)),
+   son titre au style d'un titre de section, 13,5 px gras (au téléphone, une
+   étiquette) et son bouton qui nomme la liste (« nom - contenu ») ; puis
+   la liste, sans carte autour (chaque monstre garde la sienne), dont la
+   rangée du titre porte « Ajouter un
+   monstre / à la liste », toujours, sur deux lignes, sans le nom de la
+   liste ni son compte (« Liste active » la nomme juste au-dessus ; au
+   téléphone, le titre reste « Monstres de « … » » et son compte),
+   « Rechercher un monstre… » et le monstre actif (portrait et nom). ⚠️ **La place du monstre actif est réservée, vide ou
+   non**, de la largeur d'« Importer une équipe » au-dessus d'elle (lue sur
+   la page) : choisir un monstre ne déplace ni le champ ni la liste, et la
+   droite du champ s'aligne sur celle de la liste déroulante des listes
+   (décision de l'utilisateur).
+   Les membres prennent leur hauteur jusqu'à 308 px, comme au téléphone,
+   puis défilent pour garder les critères accessibles ;
+2. **« Exemplaire »**, en tête de la colonne de droite en A3, sous les
+   réglages en A1 et A2, section de 598 px au plus du panneau de droite
+   (`ExemplaireBureau`) : les puces de source,
+   la zone D en flottant (300 px de haut au plus, qui défile), puis
+   la fiche ([equipement-actuel.md](equipement-actuel.md)).
 
 ## Au téléphone : trois blocs empilés
 
-Un rendu à part (`lg:hidden`), pas un réagencement du bureau :
+Un rendu à part (`MonstreEquipementTelephone`, dans la carte « Monstre &
+équipement » que seul le téléphone affiche), pas un réagencement du bureau :
 
 1. la recherche, toujours visible, avec en dessous la liste active dans le
    dépliement « Gérer mes listes », replié par défaut

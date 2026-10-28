@@ -175,6 +175,23 @@ export function resoudreConfig(config: ConfigHarnais): ConfigResolue {
     valeurProd: bucketCapFor(capProd),
   });
 
+  // ⚠️ La même cascade, un cran plus loin : les préréglages emboîtés, dont la
+  // rétention s'ajoute à celle du run (tous ceux de `slotFilterCap`
+  // inférieur, chacun à SON `bucketCap` dérivé, qu'un override de `bucketCap`
+  // ne touche pas — moteur/elagages.md § Préréglages emboîtés).
+  const emboites = (cap: number): string => {
+    const l = SLOT_FILTER_PRESETS.filter((p) => p.cap < cap).sort((a, b) => b.cap - a.cap)
+      .map((p) => `${p.label} (${p.cap}, bucketCap ${bucketCapFor(p.cap)})`);
+    return l.length ? l.join(', ') : 'aucun';
+  };
+  parametres.push({
+    nom: 'préréglages emboîtés',
+    valeur: emboites(capEffectif),
+    origine: 'dérivé',
+    derivéDe: 'slotFilterCap',
+    valeurProd: emboites(capProd),
+  });
+
   const maxCollectedEffectif = overrides.maxCollected ?? params.maxCollected ?? MAX_COLLECTED;
   params.maxCollected = maxCollectedEffectif;
   parametres.push({
@@ -239,9 +256,9 @@ export function resoudreConfig(config: ConfigHarnais): ConfigResolue {
  *
  * ⚠️ La règle est « chaque paramètre EFFECTIF affiche son origine », pas
  * seulement chaque paramètre SURCHARGEABLE.
- * L'écart n'est pas cosmétique : un run lancé avec `adaptiveTrancheWeighting`
- * sans le savoir mesure une autre rétention, et l'aperçu annonçait
- * « conforme à la production » sans jamais montrer le réglage.
+ * L'écart n'est pas cosmétique : un run dont l'objectif change les stats
+ * retenues mesure une autre rétention, et un aperçu qui ne montrerait pas
+ * le réglage annoncerait « conforme à la production » sans le dire.
  *
  * ⚠️ **Ce n'est PAS une infidélité** — la valeur appliquée est bien celle de
  * la production. C'est un ANGLE MORT de l'aperçu : `valeurProd` vaut donc
@@ -279,7 +296,6 @@ function parametresNonSurchargeables(
       `stats d’objectif (garde ${PER_STAT_KEEP_OBJECTIVE}, sinon ${PER_STAT_KEEP})`,
       clesObjectif.length > 0 ? clesObjectif.join(', ') : 'aucune'
     ),
-    effectif('adaptiveTrancheWeighting', params.adaptiveTrancheWeighting ?? false),
     effectif('metric', params.metric),
     // La recherche exhaustive ne se lit PAS ailleurs : elle se manifeste
     // uniquement par `maxMs = Infinity`, ce qu'aucun lecteur n'a de raison de
@@ -339,15 +355,17 @@ export function evaluerFidelite(parametres: ParametreEffectif[]): Fidelite {
     ecarts,
     horsPerimetre: HORS_PERIMETRE_FIDELITE,
     // ⚠️ Le mot « PLANCHER » est proscrit : c'est une
-    // affirmation de DIRECTION, et la direction n'est pas établie. La taxe
-    // de `setTimeout(0)` est bien un terme à sens unique, mais elle n'est
-    // pas le seul écart entre les deux plateformes.
+    // affirmation de DIRECTION, et la direction n'est pas établie. La
+    // cession du navigateur passe par un message de canal, non bridé
+    // (`cederLaMain`, src/lib/cession.ts) : le plafond de ~4 ms d'un
+    // `setTimeout(0)` enchaîné ne vaut plus qu'au repli sans `MessageChannel`.
     noteNavigateur:
-      'Temps mesurés en Node : surcoût attendu d’ordre ~7 % dans le modèle actuel, NON MESURÉ — ' +
+      'Temps mesurés en Node : l’écart avec le navigateur est NON MESURÉ — ' +
       'les temps Node ne sont pas directement transposables au navigateur. Le navigateur rend la main ' +
-      'toutes les 50 ms et plafonne à ~4 ms un setTimeout(0) enchaîné : ce terme-là va bien dans un seul ' +
-      'sens, mais ce n’est pas le seul écart entre les deux plateformes (JIT, démarrage des workers, ' +
-      'sérialisation). Chiffre ARITHMÉTIQUE, pas mesuré.',
+      'pendant l’appariement (toutes les 50 ms en séquentiel, entre deux tranches de 100 ms dans chaque ' +
+      'Worker du parallèle) par un message de canal, non bridé ; seul le repli sans MessageChannel paie ' +
+      'le plafond de ~4 ms d’un setTimeout(0) enchaîné. D’autres écarts restent (JIT, démarrage des ' +
+      'workers, sérialisation), et leur direction n’est pas établie.',
   };
 }
 

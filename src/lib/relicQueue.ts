@@ -17,47 +17,64 @@
 // `chercherPaires` lui a donné par `evaluer` — le régime effectif, construit
 // sur les stats AVEC la candidate — et rien d'autre.
 //
-// ⚠️ Ce module ne planifie rien (le « quand » vit dans
-// `useArtifactOptimQueue`, le « qui » dans `artifactQueue.ts`) : il répond à
+// Deux écritures du contrat : le calcul EXHAUSTIF
+// (`resoudreEquipementDuBuildExhaustif`, resolutionExhaustive.ts), qui le
+// suit étape par étape en notant toutes les paires, et la résolution RAPIDE
+// (resolutionRapide.ts), qui juge la faisabilité avant toute note et ne note
+// que les paires faisables. Le point d'entrée de l'app,
+// `resoudreEquipementDuBuild`, est la rapide ; l'exhaustive reste la
+// référence des tests et le diagnostic à la demande.
+//
+// ⚠️ Ce module ne planifie rien (le « quand » vit dans le classeur,
+// `CorpsClassement`, le « qui » dans `artifactQueue.ts`) : il répond à
 // « quel équipement pour CE build ». C'est la partie pure que le différentiel
 // contre l'oracle (`tests/relic-queue.test.ts`) exerce sur TOUS les candidats
 // d'une recherche, sans navigateur.
 
 import { ArtifactDetail, ElementKey, GearSet, RelicDetail, RuneDetail } from '../types';
-import { StatRow, computeStats, statsParPaire } from './stats';
-import { ArtifactSearchParams, MemoPreFiltre, PaireArtefacts, pairesParScore } from './artifactOptim';
+import { computeStats, statsParPaire } from './stats';
+import { ArtifactSearchParams, MemoPreFiltre } from './artifactOptim';
 import {
   BuildCandidate,
   BuildRequirement,
-  RechercheRefusee,
   conditionsPaireFixePosees,
-  respecteConditionsAvecRelique,
   respecteConditionsPaireFixe,
 } from './runeBuildOptim';
-import { RelicContext, bestRelicForBuild } from './relicOptim';
+import { RelicContext } from './relicOptim';
 import { ResultatArtefacts } from './artifactQueue';
 import { CacheProfilsParPaire, DegatsContext, RegimeArtefacts, evaluerPourRegime } from './artifactEvaluation';
-import { DamageSetup, aurasPropresDesRunes } from './damage';
+import { DamageSetup, PreparationReglage, aurasPropresDesRunes, statsDuLanceurLuesParLaNote } from './damage';
+import { CachesResolutionRapide, DominanceReliques, estExceptionRegleR, resoudreEquipementDuBuildRapide } from './resolutionRapide';
 
 /**
  * Ce que la résolution de PLUSIEURS builds peut partager sans changer un
  * résultat : le profil de dégâts de chaque paire
- * (`CacheProfilsParPaire`, qui ne dépend que des deux pièces) et les
+ * (`CacheProfilsParPaire`, qui ne dépend que des deux pièces), les
  * candidats élagués de chaque sorte (`MemoPreFiltre`, sur leurs entrées
- * réelles). Les deux sont bornés.
+ * réelles) et les représentants des formes de paire de la résolution
+ * rapide (`CachesResolutionRapide`, sur les entrées de `candidatsParSorte`),
+ * et ce que le calcul des dégâts réels lit du seul réglage
+ * (`PreparationReglage`, damage.ts, sur ses entrées par identité : le contexte
+ * de dégâts de la file). Les deux premiers sont bornés ; le troisième ne
+ * garde qu'un jeu de formes ; la préparation a ses bornes.
  *
  * ⚠️ **Durée de vie : une file** — créés par l'écran avec la signature des
- * réglages et les paramètres de paires (donc l'inventaire), par le CLI une
- * fois par recette ; jamais un état global du module, qu'un changement
- * d'inventaire laisserait périmé.
+ * réglages et les paramètres de paires (donc l'inventaire), par le Worker de
+ * résolution à chaque contexte, par le CLI une fois par recette ; jamais un
+ * état global du module, qu'un changement d'inventaire laisserait périmé.
  */
 export interface CachesResolution {
   profils: CacheProfilsParPaire;
   preFiltre: MemoPreFiltre;
+  rapide: CachesResolutionRapide;
+  reglage: PreparationReglage;
 }
 
 export function nouveauxCachesResolution(): CachesResolution {
-  return { profils: new CacheProfilsParPaire(), preFiltre: new MemoPreFiltre() };
+  return {
+    profils: new CacheProfilsParPaire(), preFiltre: new MemoPreFiltre(), rapide: new CachesResolutionRapide(),
+    reglage: new PreparationReglage(),
+  };
 }
 
 /**
@@ -75,6 +92,11 @@ export interface EntreeResolution {
   // (celle que le moteur a appliquée, `SearchParams.relic`).
   gear: GearSet;
   faireParams: (relique: RelicDetail | undefined) => ArtifactSearchParams;
+  // Les paramètres de paires que `faireParams` complète de son `evaluer`, les
+  // mêmes pour toute relique : la confirmation sans note
+  // (`confirmerEquipementDuBuild`) en tire ses mémoires de file sans calculer
+  // de stats. Absent (entrée construite à la main) : elle les relit par `faireParams`.
+  artifactParams?: Omit<ArtifactSearchParams, 'evaluer'>;
   /**
    * Le prédicat de conformité hors mode `recherche` —
    * `respecteConditionsPaireFixe` : les minimums, plus les seuls maximums
@@ -98,158 +120,53 @@ export interface EntreeResolution {
   // Le contexte canonique de la recherche dont ce build est issu (garantie
   // G) — jamais recalculé ici. Absent : la relique portée reste fixe, rien n'est résolu.
   relicContext: RelicContext | undefined;
+  /**
+   * La dominance des reliques (resolutionRapide.ts, `reliquesDominees` et
+   * `DominanceParPaire`) : le contexte de l'apport des exclusives
+   * (`apportExclusive`) et les stats que la note lit hors des lignes de la
+   * paire (`lues`, `statsDuLanceurLuesParLaNote` sur le contexte de dégâts),
+   * quand `faireParams` note en « Dégâts réels »
+   * (`evaluerPourRegime('degats_reels')`), le seul régime dont elle connaît
+   * les canaux ; `null` sinon, ou quand `faireParams` porte un autre
+   * `evaluer` : aucune relique ni paire n'est alors écartée sans note. Aussi
+   * `null` pour un sort en exception à la règle R (`EXCEPTIONS_REGLE_R`).
+   * Obligatoire, pour que `tsc` signale un constructeur qui n'a pas choisi.
+   */
+  dominanceReliques: DominanceReliques | null;
   // Les caches partagés entre builds : le memo du préfiltre sert
   // à chaque `chercherPaires` de la résolution. Absent : tout se recalcule.
   caches?: CachesResolution | null;
 }
 
-function artefactsDe(p: PaireArtefacts): ArtifactDetail[] {
-  return [p.element, p.archetype].filter((a): a is ArtifactDetail => a != null);
-}
-
 /**
- * Le chemin relique FIXE (`gear.relic`), hors mode `recherche` : la meilleure paire
- * au score, la première CONFORME si un minimum est posé — recopié de
- * `useArtifactOptimQueue.tranche()` tel qu'il était, pour que le chemin écran
- * sans contexte reste byte-identique.
- */
-function resoudreReliqueFixe(e: EntreeResolution, relique: RelicDetail | undefined): ResultatArtefacts {
-  // ⚠️ TOUTES les paires, pas seulement la meilleure — il faut la meilleure
-  // QUI TIENT LES MINIMUMS, pas la meilleure tout court. `pairesParScore` les
-  // rend dans l'ordre de `chercherPaires`, et ne trie l'ensemble que si la
-  // meilleure ne convient pas.
-  const r = pairesParScore(e.faireParams(relique), e.caches?.preFiltre);
-  // Parcours par score DÉCROISSANT, arrêt à la première conforme : dans le cas
-  // courant c'est la première, et on ne recalcule les stats que pour les
-  // paires réellement examinées.
-  let meilleure: PaireArtefacts | null = null;
-  let artefactsRetenus: ArtifactDetail[] = [];
-  let conforme = false;
-  for (const p of r.paires) {
-    const arts = artefactsDe(p);
-    // Premier tour : on retient la meilleure au score, qu'elle soit conforme
-    // ou non — c'est elle qu'on montrera si AUCUNE ne l'est, pour que le
-    // diagnostic reste lisible plutôt que d'afficher un build sans artéfacts.
-    if (!meilleure) {
-      meilleure = p;
-      artefactsRetenus = arts;
-    }
-    if (!e.respecteConditions || e.respecteConditions(arts)) {
-      meilleure = p;
-      artefactsRetenus = arts;
-      conforme = true;
-      break;
-    }
-  }
-  return {
-    paire: meilleure,
-    artefacts: artefactsRetenus,
-    // ⚠️ Recalculées avec la paire RETENUE : la stat principale d'un artéfact
-    // entre dans les stats du monstre. Sans ça, la carte afficherait des stats
-    // issues de la paire supposée à côté des artéfacts réellement choisis.
-    stats: computeStats({ ...e.gear, artifacts: artefactsRetenus, relic: relique }),
-    meilleurSansVerrous: r.meilleurSansVerrous,
-    conforme,
-  };
-}
-
-interface CoupleFaisable {
-  paire: PaireArtefacts;
-  artefacts: ArtifactDetail[];
-  stats: StatRow[];
-  meilleurSansVerrous: number | null;
-}
-
-/**
- * L'équipement de CE build : sa paire et sa relique, résolues ensemble.
+ * L'équipement de CE build : sa paire et sa relique, résolues ensemble — le
+ * point d'entrée de l'app (écran, Worker de résolution, CLI).
  *
  * Hors mode `recherche` (contexte absent, `off`,
  * `equipped`) : la relique portée est fixe, la file ne résout que la paire.
  * En mode `recherche` : le contrat des sept étapes
  * (en-tête).
  *
+ * Par la résolution rapide (`resoudreEquipementDuBuildRapide`,
+ * resolutionRapide.ts), avec les représentants de formes de la file
+ * (`caches.rapide`) : une relique qu'aucune forme de paire ne rend faisable
+ * est écartée sans note, et seules les paires faisables sont notées. Pour un
+ * build conforme, le résultat est celui du calcul exhaustif
+ * (`resoudreEquipementDuBuildExhaustif`, resolutionExhaustive.ts), champ
+ * pour champ ; une note NaN vue sur une paire faisable fait résoudre le
+ * build par lui, signalé par `console.warn`.
+ *
  * ⚠️ **Aucun couple faisable → `conforme: false`**, le build est rejeté par
- * le classement (`affichees`), jamais affiché. Le résultat porte quand même
- * le meilleur couple au score de la PREMIÈRE éligible par `id` — lisible en
- * diagnostic, jamais montré.
+ * le classement (`affichees`), jamais affiché, et le résultat ne porte ni
+ * paire, ni artéfact, ni relique : le diagnostic d'un build rejeté ne se
+ * calcule qu'à la demande (option `diagnostic` de la résolution rapide).
+ * ⚠️ Écart accepté : une note NaN portée par une paire INFAISABLE seule
+ * n'est jamais calculée ; le calcul exhaustif, qui trie avec elle, peut
+ * alors ordonner autrement les paires faisables — seulement sur un build
+ * dont la note est déjà incohérente.
  */
 export function resoudreEquipementDuBuild(e: EntreeResolution): ResultatArtefacts {
-  const ctx = e.relicContext;
-  if (ctx?.mode !== 'recherche') return resoudreReliqueFixe(e, e.gear.relic);
-
-  // (1) Le pool résolu, transporté par le contexte — jamais recalculé ici.
-  const candidates = ctx.eligibles;
-  // Vide en mode `recherche` = la recherche a été REFUSÉE en amont
-  // (`prepareSearch`) et n'a produit aucun candidat : arriver ici est une
-  // incohérence, jamais un « build sans relique » silencieux.
-  if (candidates.length === 0) throw new RechercheRefusee(ctx.vide ?? 'inventaire');
-
-  const parRelique = new Map<number, CoupleFaisable>();
-  // Le meilleur couple AU SCORE de la première éligible par `id`, faisable
-  // ou non — ce qu'on montre en diagnostic si AUCUN couple n'est faisable.
-  const diagnostic: { valeur: { relique: RelicDetail; couple: CoupleFaisable } | null } = { valeur: null };
-
-  const meilleure = bestRelicForBuild(
-    candidates,
-    (relique) => {
-      // (2) La candidate REMPLACE la portée (jamais un cumul) : les paires
-      // sont classées avec les stats qui l'incluent.
-      // Par score décroissant, triées seulement au-delà de la première.
-      const r = pairesParScore(e.faireParams(relique), e.caches?.preFiltre);
-      for (const p of r.paires) {
-        const arts = artefactsDe(p);
-        // (3) + (4) Stats EXACTES du couple, minimums ET maximums — un seul
-        // `computeStats` par couple examiné, et le couple qui viole une
-        // condition est éliminé AVANT d'être noté.
-        const { stats, respecte } = respecteConditionsAvecRelique({ ...e.gear, artifacts: arts }, relique, e.requirement);
-        const couple = { paire: p, artefacts: arts, stats, meilleurSansVerrous: r.meilleurSansVerrous };
-        if (!diagnostic.valeur || relique.id < diagnostic.valeur.relique.id) diagnostic.valeur = { relique, couple };
-        if (!respecte) continue;
-        parRelique.set(relique.id, couple);
-        // (5) La note du couple par le régime effectif : `p.score`, calculé
-        // par le MÊME `evaluer` qui a classé les paires — jamais une seconde
-        // note. Les paires arrivant par score décroissant, le premier couple
-        // faisable est le meilleur faisable pour CETTE candidate.
-        return p.score;
-      }
-      return 'infaisable';
-    },
-    // (6) Le meilleur couple faisable entre candidates — ex æquo : `id`
-    // croissant (`bestRelicForBuild`, la même convention que l'oracle),
-    // sauf en régime de stat, où la portée passe d'abord ;
-    // régime `aucun`.
-    { regimeAucun: e.regimeAucun, equipee: ctx.equipee, departagePortee: e.regimeDeStat }
-  );
-
-  // (7) Aucun couple faisable : rejeté.
-  if (!meilleure) {
-    const d = diagnostic.valeur;
-    return {
-      paire: d?.couple.paire ?? null,
-      artefacts: d?.couple.artefacts ?? [],
-      stats: d?.couple.stats ?? computeStats({ ...e.gear, relic: undefined }),
-      meilleurSansVerrous: d?.couple.meilleurSansVerrous ?? null,
-      conforme: false,
-      relique: d?.relique,
-    };
-  }
-
-  const retenu = parRelique.get(meilleure.relique.id)!;
-  // Garde DÉFENSIVE : la faisabilité
-  // s'est décidée à l'étape (4) ; le couple retenu la repasse — un échec ici
-  // est un bug, pas un filtre.
-  if (!respecteConditionsAvecRelique({ ...e.gear, artifacts: retenu.artefacts }, meilleure.relique, e.requirement).respecte) {
-    throw new Error(`resoudreEquipementDuBuild : le couple retenu (relique ${meilleure.relique.id}) viole les conditions après sélection — bug de résolution.`);
-  }
-  return {
-    paire: retenu.paire,
-    artefacts: retenu.artefacts,
-    stats: retenu.stats,
-    meilleurSansVerrous: retenu.meilleurSansVerrous,
-    conforme: true,
-    relique: meilleure.relique,
-    ...(meilleure.sansEffetSurLeTri ? { sansEffetSurLeTri: true as const } : {}),
-  };
+  return resoudreEquipementDuBuildRapide(e);
 }
 
 /**
@@ -351,10 +268,11 @@ export function entreeResolutionDuBuild(e: {
       // § Régime de la paire).
       const evaluer =
         e.regime === 'degats_reels'
-          ? evaluerPourRegime(e.regime, statsAvec, propres, e.degats!, exclusive, e.caches?.profils)
+          ? evaluerPourRegime(e.regime, statsAvec, propres, e.degats!, exclusive, e.caches?.profils, e.caches?.reglage)
           : evaluerPourRegime(e.regime, statsAvec, propres, exclusive);
       return { ...e.artifactParams, evaluer };
     },
+    artifactParams: e.artifactParams,
     respecteConditions: conditionsPosees
       ? (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), e.requirement, propres)
       : null,
@@ -362,6 +280,13 @@ export function entreeResolutionDuBuild(e: {
     regimeAucun: e.regime === 'aucun',
     regimeDeStat: e.regime === 'hp' || e.regime === 'atk' || e.regime === 'def',
     relicContext: e.relicContext,
+    // `faireParams` note ci-dessus par `evaluerPourRegime` avec CE contexte et
+    // CE contexte de dégâts, dont la table des lecteurs est tirée.
+    // Un sort en exception à la règle R (`EXCEPTIONS_REGLE_R`) n'a aucune
+    // dominance : toutes ses reliques sont notées.
+    dominanceReliques: e.regime === 'degats_reels' && !estExceptionRegleR(e.degats!.profile.skillCom2usId)
+      ? { ...e.exclusive, lues: statsDuLanceurLuesParLaNote(e.degats!) }
+      : null,
     caches: e.caches,
   };
 }

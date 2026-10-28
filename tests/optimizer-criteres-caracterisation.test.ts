@@ -15,26 +15,26 @@ export function remplirCriteres(s: OptimizerState) {
   s.setSelectedId('1'); s.setGearSource('rta');
   s.setSourceSelector({ source: 'box', unitKey: '10' });
   s.setComboSets(['Swift']); s.setMinStats({ spd: 230 }); s.setMaxStats({ res: 80 });
-  s.setExcludeBase(false); s.setOptimiserArtefacts(false); s.setAdapterArtefactsAuTri(false);
+  s.setExcludeBase(false); s.setOptimiserArtefacts(false);
   s.setArtifactMainByKind({ element: 100 }); s.setRelicMainChoice(101); s.setRelicUniqueChoice(1);
   s.setLignesVerrouillees([{ code: 206, min: 12 }]); s.setMainStatsBySlot({ 2: [8] }); s.setLockedRunes({ 1: 123 });
   s.setObjective('degats_reels'); s.setSortBy('spd'); s.setCompterAurasResPre(false);
   s.setDamageSetup({ ...DEFAULT_DAMAGE_SETUP, enemyDef: 2222, leaderSpeedPct: 24, skillCom2usId: 123, passifsOffensifs: { 123: true } });
   s.setRelicMinUpgrade(12); s.setExcludeUsedRunes(true); s.setExcludeUsedScope('box');
   s.setExcludedSelectors([{ source: 'box', unitKey: '99' }]);
-  s.setAdaptiveTrancheWeighting(true); s.setExhaustiveSearch(true); s.setVerifierToutesLesCombinaisons(true);
-  s.setSlotFilterPreset('haut'); s.setShowAdvanced(true); s.setDiagnoseBlockingEnabled(true);
+  s.setExhaustiveSearch(true); s.setVerifierToutesLesCombinaisons(true);
+  s.setSlotFilterPreset('haut'); s.setDiagnoseBlockingEnabled(true);
   s.setSetPickerInvalid(true); s.setResultsPage(7); s.setStoppedManually(true); s.setOpenDetailKey('r:123');
 }
 
 const PERSONNELS_ANCIENS = [
-  'comboSets', 'minStats', 'maxStats', 'excludeBase', 'optimiserArtefacts', 'adapterArtefactsAuTri',
+  'comboSets', 'minStats', 'maxStats', 'excludeBase', 'optimiserArtefacts',
   'artifactMainByKind', 'relicMainChoice', 'relicUniqueChoice', 'lignesVerrouillees', 'mainStatsBySlot',
   'lockedRunes', 'objective', 'damageSetup', 'sortBy', 'compterAurasResPre',
 ] as const;
 const GLOBAUX = [
-  'relicMinUpgrade', 'excludeUsedRunes', 'excludeUsedScope', 'excludedSelectors', 'adaptiveTrancheWeighting',
-  'exhaustiveSearch', 'verifierToutesLesCombinaisons', 'slotFilterPreset', 'showAdvanced', 'diagnoseBlockingEnabled',
+  'relicMinUpgrade', 'excludeUsedRunes', 'excludeUsedScope', 'excludedSelectors',
+  'exhaustiveSearch', 'verifierToutesLesCombinaisons', 'slotFilterPreset', 'diagnoseBlockingEnabled',
 ] as const;
 function valeurs(s: OptimizerState, champs: readonly (keyof OptimizerState)[]) {
   return Object.fromEntries(champs.map((c) => [c, s[c]]));

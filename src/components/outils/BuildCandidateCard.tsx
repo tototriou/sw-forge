@@ -1,10 +1,12 @@
-import { RefObject, useLayoutEffect, useState } from 'react';
+import { ReactNode, RefObject, useLayoutEffect, useState } from 'react';
 import { ArrowLeftRight, CheckCircle2 } from 'lucide-react';
 import { ArtifactDetail, RelicDetail, RuneDetail, RUNE_SETS } from '../../types';
 import { BuildCandidate, candidateMetricTotal } from '../../lib/runeBuildOptim';
 import { activeSets } from '../../lib/effects';
 import { EtatRelique } from '../../lib/relicQueue';
 import { RuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
+import { entierAffiche, moyenneParRune } from '../../lib/valeursAffichees';
+import type { ColonneResultat } from '../../lib/colonnesResultats';
 import { ArtifactDetailBox, RuneDetailBox } from '../PieceDetail';
 import RuneWheel from '../RuneWheel';
 import ArtifactSlots from '../ArtifactSlots';
@@ -77,7 +79,7 @@ interface Props {
   onValidate?: () => void;
   /**
    * Ce candidat est-il DÉJÀ le build validé pour ce monstre ? Comparaison
-   * faite par le parent (voir `EtatValidation`, OptimizerSection.tsx).
+   * faite par le parent (voir `EtatValidation`, optimizer/types.ts).
    *
    * - `'non'` — rien de réservé pour ces runes : « Valider ce build ».
    * - `'oui'` — mêmes runes ET même paire : bouton désactivé, « Validé ».
@@ -102,6 +104,9 @@ interface Props {
    * pas de bouton — aucun monstre résolu, donc aucune référence à comparer.
    */
   onCompare?: () => void;
+  // Classement perdu : la carte reste lisible, « Comparer » et « Valider »
+  // gardent leur place, désactivés.
+  inactif?: boolean;
   /**
    * L'écart, statistique par statistique, entre ce build et la référence —
    * fourni SEULEMENT quand cette carte est celle qu'on compare.
@@ -112,6 +117,18 @@ interface Props {
    * comment cette résolution se fait.
    */
   comparaison?: { key: string; label: string; suffix: string; delta: number }[];
+  // Le rendu du bureau (en-tête, lignes de stats resserrées). ⚠️ **La carte
+  // garde son cadre aux deux formats** (contour et fond) : sans lui, au
+  // bureau, les résultats se lisaient mal d'une carte à l'autre (décision de
+  // l'utilisateur, docs/02-app/optimizer/ecran/README.md, « Panneaux et
+  // sections »). Ses rangées « Dégâts », « PV effectifs » et ses écarts
+  // gardent leur contour fin aux deux formats (décision de l'utilisateur).
+  bureau?: boolean;
+  // La colonne qui trie les résultats : sa valeur est mise en avant sur la
+  // carte (la ligne de la fiche de stats, ou la valeur moyenne en accent ;
+  // PV effectifs et dégâts ont déjà leur rangée). La couleur seulement :
+  // rien ne change de taille quand le tri change.
+  colonneTriee?: ColonneResultat | null;
 }
 
 // ⚠️ Même FORME que l'affichage de l'équipement actuellement équipé (RTA/
@@ -121,7 +138,8 @@ interface Props {
 // ⚠️ Calibrée pour que DEUX cartes tiennent par ligne dans le conteneur
 // `max-w-3xl` (768px) de OptimizerSection.tsx — voir le `minmax` du grid.
 /**
- * Un écart avec le build de référence, sous la valeur qu'il qualifie.
+ * Un écart avec le build de référence, à gauche de la valeur qu'il qualifie,
+ * sur sa ligne (`EmplacementEcart`).
  *
  * ⚠️ Un seul composant pour les trois (dégâts, PV effectifs, efficience) :
  * trois rendus séparés auraient divergé de couleur ou de format au premier
@@ -144,8 +162,25 @@ function Delta({ valeur, suffixe = '' }: { valeur: number; suffixe?: string }) {
   );
 }
 
+/**
+ * La place d'un écart À GAUCHE de sa valeur : réservée même vide, à
+ * la largeur d'un écart courant (« −12,3 % », 44 px), pour que son apparition
+ * au clic sur « Comparer » ne déplace ni la valeur ni ce qui l'entoure.
+ * ⚠️ Taille et interligne de l'écart (`text-nano`) sur la place elle-même :
+ * sans eux, elle prenait l'interligne du corps du texte, et la ligne
+ * grandissait de 5 px à l'apparition de l'écart (mesuré).
+ */
+function EmplacementEcart({ children }: { children: ReactNode }) {
+  return <span className="min-w-11 text-right text-nano">{children}</span>;
+}
+
 const WHEEL_SCALE = 0.45;
 const ARTIFACT_SCALE = 0.45;
+
+// « Valider », au bureau : 160 px, la largeur de son plus long libellé
+// (« Valider les artéfacts », 123 px mesurés) — passer à « Validé » ne change
+// pas sa largeur.
+const VALIDER_BUREAU = 'w-40';
 
 // Une combinaison trouvée : les artéfacts (fixes) et les 6 runes (sur la
 // roue, façon jeu), les sets obtenus, le panneau de stats (base+bonus ↔
@@ -166,9 +201,12 @@ export default function BuildCandidateCard({
   conflit,
   validated,
   onCompare,
+  inactif = false,
   comparaison,
   pvEffectifs,
   metricDelta,
+  bureau = false,
+  colonneTriee = null,
 }: Props) {
   const runes = candidate.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => !!r);
   const sets = activeSets(runes.map((r) => r.set));
@@ -273,6 +311,102 @@ export default function BuildCandidateCard({
     />
   );
 
+  const rang = <span className="font-mono text-xs font-bold text-star">#{rank}</span>;
+  // Une phrase : police du texte (la mono ne sert qu'aux chiffres seuls) ;
+  // `tabular-nums` aligne la valeur d'une carte à l'autre.
+  const texteMoyen = (
+    <span className={`text-xs tabular-nums ${colonneTriee === 'efficience' ? 'text-accent' : 'text-ink-dim'}`}>
+      {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(moyenneParRune(liveTotal), metric)}
+    </span>
+  );
+  const ecartMoyen = metricDelta != null && <Delta valeur={metricDelta / 6} suffixe={metric === 'eff' ? ' %' : ''} />;
+  // ⚠️ **L'écart va À GAUCHE de la valeur, sur sa ligne, aux deux formats**
+  // (décision de l'utilisateur) : sous elle, il faisait grandir la carte au
+  // clic sur « Comparer », et le bouton descendait sous le pointeur. Sa place
+  // est réservée (`EmplacementEcart`) : la valeur reste calée à droite et la
+  // ligne garde sa hauteur, avec ou sans écart. Même forme pour la valeur de
+  // l'objectif (PV effectifs, dégâts) : `groupeValeur`.
+  const valeurMoyenne = (
+    <span className="flex flex-none items-baseline gap-x-1.5">
+      <EmplacementEcart>{ecartMoyen}</EmplacementEcart>
+      {texteMoyen}
+    </span>
+  );
+  const groupeValeur = 'flex flex-none items-baseline gap-x-1.5';
+  const lesSets = sets.map((key, i) => (
+    <span key={`${key}-${i}`} className="text-micro text-ink-dim">
+      {RUNE_SETS.find((s) => s.key === key)?.label ?? key}
+    </span>
+  ));
+  // « Valider » — réserve les 6 runes de CE build (bloquées pour les
+  // recherches des AUTRES monstres de « Monstres déjà runés », voir
+  // OptimizerSection.tsx). Absent (`onValidate` non fourni) pour un monstre
+  // non réellement possédé — rien à réserver sur un exemplaire qui n'existe
+  // pas dans le compte.
+  // ⚠️ Au téléphone, les deux boutons SE PARTAGENT la largeur (demande
+  // explicite), côte à côte plutôt qu'empilés : la carte garde la même
+  // hauteur qu'avec un seul bouton — une rangée de plus par carte se paie sur
+  // toute la grille de résultats. Le partage passe par une ENVELOPPE `flex-1`
+  // autour d'un bouton `pleineLargeur` : un `flex-1` posé sur le bouton
+  // lui-même ne s'applique pas : le `flex-none` du socle de `Bouton`
+  // l'emporte dans la feuille de style.
+  const place = (bouton: ReactNode) => (bureau ? bouton : <div className="flex min-w-0 flex-1">{bouton}</div>);
+  const boutons = (onValidate || onCompare) && (
+    <div className="mt-2.5 flex items-stretch gap-2">
+      {onCompare && place(
+        <Bouton
+          onClick={onCompare}
+          disabled={inactif}
+          ton={comparaison ? 'accent' : 'neutre'}
+          fond={comparaison ? 'doux' : 'vide'}
+          taille="sm"
+          icone={<ArrowLeftRight size={14} />}
+          libelle="Comparer"
+          pleineLargeur={!bureau}
+        />
+      )}
+      {onValidate && place(
+        <Bouton
+          onClick={onValidate}
+          // ⚠️ Seul `'oui'` désactive. `'artefacts'` reste ACTIF : c'est
+          // précisément l'état où il reste quelque chose à valider.
+          disabled={inactif || validated === 'oui' || !!conflit}
+          title={conflit ?? undefined}
+          // Le ton « déjà réservé » ne vaut que pour l'identité complète —
+          // sinon la carte se lirait comme terminée alors qu'elle attend
+          // une action.
+          //
+          // ⚠️ **`alerte` pour « Valider les artéfacts », et c'est son sens
+          // exact** : ce ton « ne dit rien de l'ACTION, il signale l'état
+          // des DONNÉES » (voir Bouton.tsx). Ici la donnée signalée est
+          // « ce que cette carte montre n'est pas ce qui est réservé ».
+          // Sans lui, la carte se confondait avec toutes les autres cartes
+          // non validées, alors que c'est la seule où il reste un écart à
+          // combler.
+          //
+          // ⚠️ Un SEUL contour : `trait` vaut `plein` par défaut, donc le
+          // bouton en porte déjà un — le ton en change la couleur, il n'en
+          // superpose pas un second.
+          ton={validated === 'oui' ? 'accent' : validated === 'artefacts' ? 'alerte' : 'neutre'}
+          fond={validated === 'oui' || validated === 'artefacts' ? 'doux' : 'plein'}
+          taille="sm"
+          icone={validated === 'oui' ? <CheckCircle2 size={14} /> : undefined}
+          libelle={
+            validated === 'oui'
+              ? 'Validé'
+              : conflit
+                ? 'Rune déjà réservée'
+                : validated === 'artefacts'
+                  ? 'Valider les artéfacts'
+                  : 'Valider ce build'
+          }
+          pleineLargeur={!bureau}
+          className={bureau ? VALIDER_BUREAU : undefined}
+        />
+      )}
+    </div>
+  );
+
   return (
     <div
       // ⚠️ `relative` + `z-10` UNIQUEMENT quand cette carte a un popover
@@ -288,18 +422,26 @@ export default function BuildCandidateCard({
       // la hauteur d'une carte réelle.
       data-carte-resultat=""
     >
-      <div className="flex items-start justify-between mb-2">
-        <span className="font-mono text-xs font-bold text-star">#{rank}</span>
-        <span className="flex flex-col items-end">
-          <span className="font-mono text-xs text-ink-dim">
-            {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(liveTotal / 6, metric)}
+      {bureau ? (
+        // ⚠️ **Au bureau, l'en-tête tient sur une ligne** (décision de
+        // l'utilisateur : la carte raccourcit) : le rang et ses sets à gauche,
+        // la valeur moyenne calée à droite (décision de l'utilisateur), au lieu
+        // d'une ligne de sets à part ; les boutons restent en bas de la carte,
+        // comme au téléphone. Les sets se replient sous le rang plutôt que de
+        // pousser la valeur : elle ne bouge pas d'une carte à l'autre.
+        <div className="mb-2 flex items-baseline justify-between gap-x-2">
+          <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+            {rang}
+            {lesSets}
           </span>
-          {/* L'écart avec la référence, SOUS la valeur qu'il qualifie
-              (demande explicite) — jamais à côté, où il se lirait comme une
-              seconde mesure. */}
-          {metricDelta != null && <Delta valeur={metricDelta / 6} suffixe={metric === 'eff' ? ' %' : ''} />}
-        </span>
-      </div>
+          {valeurMoyenne}
+        </div>
+      ) : (
+        <div className="flex items-start justify-between mb-2">
+          {rang}
+          {valeurMoyenne}
+        </div>
+      )}
 
       {/* ⚠️ Même traitement que les dégâts, et pour la même raison : c'est le
           chiffre qui a CLASSÉ ce candidat quand on optimise la survie. Sans
@@ -308,11 +450,11 @@ export default function BuildCandidateCard({
       {pvEffectifs && (
         <p className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
           <span className="text-micro text-ink-dim">PV effectifs</span>
-          <span className="flex flex-col items-end">
+          <span className={groupeValeur}>
+            <EmplacementEcart>{pvEffectifs.delta != null && <Delta valeur={pvEffectifs.delta} />}</EmplacementEcart>
             <span className="font-mono text-sm font-bold text-star">
-              {Math.round(pvEffectifs.total).toLocaleString('fr-FR')}
+              {entierAffiche(pvEffectifs.total).toLocaleString('fr-FR')}
             </span>
-            {pvEffectifs.delta != null && <Delta valeur={pvEffectifs.delta} />}
           </span>
         </p>
       )}
@@ -325,14 +467,16 @@ export default function BuildCandidateCard({
       {degatsReels && (
         <p className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
           <span className="text-micro text-ink-dim">Dégâts</span>
-          <span className="flex flex-col items-end">
-            <span className="font-mono text-sm font-bold text-star">
-              {Math.round(degatsReels.total).toLocaleString('fr-FR')}
+          <span className={groupeValeur}>
+            <EmplacementEcart>{degatsReels.delta != null && <Delta valeur={degatsReels.delta} />}</EmplacementEcart>
+            {/* La mono sur le chiffre seul : « tue la cible » / « N % des PV »
+                est une phrase, en police du texte. */}
+            <span className="text-sm font-bold text-star">
+              <span className="font-mono">{entierAffiche(degatsReels.total).toLocaleString('fr-FR')}</span>
               <span className="ml-1.5 font-normal text-micro text-ink-dim">
                 {degatsReels.partPvCible >= 100 ? 'tue la cible' : `${Math.round(degatsReels.partPvCible)} % des PV`}
               </span>
             </span>
-            {degatsReels.delta != null && <Delta valeur={degatsReels.delta} />}
           </span>
           {/* ⚠️ **Il y avait ici une rangée réservée « artéfacts pas encore
               optimisés »**, toujours présente pour que la hauteur de la carte
@@ -359,13 +503,7 @@ export default function BuildCandidateCard({
         </p>
       )}
 
-      {sets.length > 0 && (
-        <p className="mb-2 flex flex-wrap items-center gap-1 text-micro text-ink-dim">
-          {sets.map((key, i) => (
-            <span key={`${key}-${i}`}>{RUNE_SETS.find((s) => s.key === key)?.label ?? key}</span>
-          ))}
-        </p>
-      )}
+      {!bureau && sets.length > 0 && <p className="mb-2 flex flex-wrap items-center gap-1 text-micro text-ink-dim">{lesSets}</p>}
 
       {/* ⚠️ Panneau de stats à GAUCHE, artéfacts + roue à DROITE — carte
           compacte, en ligne plutôt qu'empilée verticalement (demande
@@ -376,10 +514,13 @@ export default function BuildCandidateCard({
           dessous — les trois blocs s'y écrasaient jusqu'à devenir illisibles.
           Empilés, chacun garde sa taille de lecture. */}
       <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
-        <StatPanel stats={candidate.stats} />
+        <StatPanel stats={candidate.stats} serre={bureau}
+          ligneMiseEnAvant={colonneTriee && colonneTriee !== 'efficience' && colonneTriee !== 'ehp' && colonneTriee !== 'degats_reels' ? colonneTriee : null} />
         {/* ⚠️ À LA SOURIS, la relique est TOUJOURS SOUS LA ROUE (carte de résultat seulement) :
             fiche 200 px + artéfacts 26 px + roue 94 px (échelle 0,45) et leurs
-            écarts font 332 px, ce qu'une carte de 360 px contient tout juste —
+            écarts font 332 px, ce qu'une carte de 360 px contient tout juste
+            (au bureau, fiche resserrée de 174 px : 306 px dans une carte de
+            328, sa largeur au plancher, voir GrilleResultats.tsx) —
             la relique à droite de la roue débordait des deux côtés. Grille à
             deux colonnes : artéfacts | roue, puis la relique dans la case sous
             la roue, centrée. Les artéfacts restent centrés sur la ROUE (la
@@ -387,8 +528,9 @@ export default function BuildCandidateCard({
             `min-content`, soit la largeur fixe de la roue : la relique et ses
             marques s'y replient sans l'élargir, en entier — et la relique ne
             change jamais de place quand la file la résout.
-            Au doigt, rendu inchangé (à droite de la roue) : il relève de la
-            passe responsive. */}
+            Au doigt, la relique reste à droite de la roue : la disposition du
+            téléphone, gardée telle quelle (la page de bureau ne change que le
+            rendu à la souris). */}
         <div
           className={
             auDoigt
@@ -462,69 +604,7 @@ export default function BuildCandidateCard({
         </div>
       )}
 
-      {/* « Valider » — réserve les 6 runes de CE build (bloquées
-          pour les recherches des AUTRES monstres de « Monstres déjà runés »,
-          voir OptimizerSection.tsx). Absent (`onValidate` non fourni) pour
-          un monstre non réellement possédé — rien à réserver sur un
-          exemplaire qui n'existe pas dans le compte. */}
-      {(onValidate || onCompare) && (
-        // ⚠️ Les deux boutons SE PARTAGENT la largeur (demande explicite) :
-        // `flex` + `flex-1` sur chacun, plutôt que deux `pleineLargeur`
-        // empilés. La carte garde ainsi la même hauteur qu'avec un seul
-        // bouton — une rangée de plus par carte se paie sur toute la grille
-        // de résultats.
-        <div className="mt-2.5 flex items-stretch gap-2">
-          {onCompare && (
-            <Bouton
-              onClick={onCompare}
-              ton={comparaison ? 'accent' : 'neutre'}
-              fond={comparaison ? 'doux' : 'vide'}
-              taille="sm"
-              icone={<ArrowLeftRight size={14} />}
-              libelle="Comparer"
-              className="flex-1"
-            />
-          )}
-          {onValidate && (
-            <Bouton
-              onClick={onValidate}
-              // ⚠️ Seul `'oui'` désactive. `'artefacts'` reste ACTIF : c'est
-              // précisément l'état où il reste quelque chose à valider.
-              disabled={validated === 'oui' || !!conflit}
-              title={conflit ?? undefined}
-              // Le ton « déjà réservé » ne vaut que pour l'identité complète —
-              // sinon la carte se lirait comme terminée alors qu'elle attend
-              // une action.
-              //
-              // ⚠️ **`alerte` pour « Valider les artéfacts », et c'est son sens
-              // exact** : ce ton « ne dit rien de l'ACTION, il signale l'état
-              // des DONNÉES » (voir Bouton.tsx). Ici la donnée signalée est
-              // « ce que cette carte montre n'est pas ce qui est réservé ».
-              // Sans lui, la carte se confondait avec toutes les autres cartes
-              // non validées, alors que c'est la seule où il reste un écart à
-              // combler.
-              //
-              // ⚠️ Un SEUL contour : `trait` vaut `plein` par défaut, donc le
-              // bouton en porte déjà un — le ton en change la couleur, il n'en
-              // superpose pas un second.
-              ton={validated === 'oui' ? 'accent' : validated === 'artefacts' ? 'alerte' : 'neutre'}
-              fond={validated === 'oui' || validated === 'artefacts' ? 'doux' : 'plein'}
-              taille="sm"
-              icone={validated === 'oui' ? <CheckCircle2 size={14} /> : undefined}
-              libelle={
-                validated === 'oui'
-                  ? 'Validé'
-                  : conflit
-                    ? 'Rune déjà réservée'
-                    : validated === 'artefacts'
-                      ? 'Valider les artéfacts'
-                      : 'Valider ce build'
-              }
-              className="flex-1"
-            />
-          )}
-        </div>
-      )}
+      {boutons}
 
       {/* ⚠️ L'écart contre le build de RÉFÉRENCE — la fiche affichée, donc le
           build validé quand il en existe un. S'affiche SOUS les boutons : au

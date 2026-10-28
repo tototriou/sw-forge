@@ -296,19 +296,20 @@ export function testCompositionDePage() {
 
   const brut = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8').replace(/\r\n/g, '\n');
   const src = brut.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  ok(/const composition = useMemo\(\s*\(\) =>\s*compositionDePage\(\{\s*classement: affichees,\s*parBuild: resoudreEquipement != null \? fileArtefacts\.parBuild : null,\s*page: resultsPage,\s*taillePage: RESULTS_PAGE_SIZE,\s*\}\),\s*\[affichees, resoudreEquipement, fileArtefacts\.parBuild, resultsPage\]\s*\);/.test(src),
-    'écran : `composition` vient du classement affiché et du cache publié (null sans file), page courante');
-  egal((src.match(/compositionDePage\(/g) ?? []).length, 1, 'écran : un seul appel à `compositionDePage`');
-  ok(/pageAfficheeRef\.current = composition\.aVerifier;/.test(src), 'file : la « page affichée » qu’elle sert en priorité est `composition.aVerifier`');
-  egal((src.match(/pageAfficheeRef\.current = /g) ?? []).length, 1, 'file : une seule écriture de la page qu’elle sert');
-  ok(/\{composition\.cartes\.map\(\(c, i\) => \(\s*<BuildCandidateCard\s+key=\{c\.runeIds\.join\('-'\)\}\s+rank=\{composition\.premierRang \+ i\}/.test(src),
-    'grille : les cartes sont `composition.cartes`, rang compté depuis `premierRang`');
-  ok(/Array\.from\(\{ length: composition\.placesEnAttente \}, \(_, j\) => \(\s*<PlaceEnVerification/.test(src),
-    'grille : autant de places « Vérification… » que `composition.placesEnAttente`');
+  // Une page interrompue (classeur perdu) ne montre que ses cartes : plus rien
+  // ne remplirait ses places (`testRenduOptimizerPageInterrompue*`).
+  ok(/const cartes = instantane\?\.page\.cartes \?\? AUCUNE_CARTE;/.test(src) && /placesEnAttente: interrompu \? 0 : instantane\?\.page\.placesEnAttente \?\? 0,/.test(src),
+    'écran : cartes et places viennent de l’instantané composé par le classeur (aucune place sur une page interrompue)');
+  egal((src.match(/compositionDePage\(/g) ?? []).length, 0, 'écran : aucune page recomposée sur le fil de l’écran');
+  // Le classeur compose cette page selon la même règle : verifierInstantane
+  // (tests/classement-distant.test.ts) la compare à `compositionDePage`.
+  // La grille à l'écran — une carte par build de la page, rang compté depuis
+  // le premier de la page, une place « Vérification… » par build en attente :
+  // `testRenduOptimizerResultatsCartes`.
   ok(!/pageCandidates|affichees\.slice\(/.test(src), 'écran : plus aucune page découpée à la main dans le classement');
   ok(!/paireProvisoire/.test(src), 'écran : plus de carte « artéfacts pas encore optimisés » — une carte affichée est vérifiée');
-  ok(/fileArtefacts\.enAttente > 0\s*\?\s*`\$\{fileArtefacts\.enAttente\.toLocaleString\('fr-FR'\)\} combinaison\(s\) en vérification…`\s*:\s*'( |\\u00a0)'/.test(src),
-    'compte : une ligne dit combien sont en vérification (le reste de la file), sa place réservée');
+  // La ligne « N combinaison(s) en vérification… », place réservée quand la
+  // file est vide : `testRenduOptimizerLigneFile`.
 
   const carte = readFileSync('src/components/outils/BuildCandidateCard.tsx', 'utf8').replace(/\r\n/g, '\n');
   const place = carte.slice(carte.indexOf('export function PlaceEnVerification'), carte.indexOf('export function useHauteurDesCartes'));

@@ -212,7 +212,33 @@ sans passer par une écriture.
 Les critères textuels contrôlés hors du lecteur de recette, `sortBy` et
 `critereArtefacts`, sont obligatoirement des chaînes appartenant aux valeurs
 admises. Un tableau contenant une valeur admise est rejeté, signalé dans le
-rapport et conservé parmi les valeurs brutes inutilisables.
+rapport et conservé parmi les valeurs brutes inutilisables. Un tri
+`vitesse` enregistré avant que l'objectif Vitesse ne quitte les tris reste
+admis et se relit `spd` (la colonne VIT, même ordre), sans avertissement,
+par la seule `triDesResultats` (colonnesResultats.ts).
+
+Le sens du tri (`sensTri`, `desc` ou `asc`) et les filtres d'affichage des
+résultats (`bornesResultats`, une borne minimum et maximum par colonne,
+ecran/resultats.md § Filtres d'affichage par colonne) sont des critères
+personnels, comme le tri : la saisie les écrit dans la mémoire du membre,
+le retour sur lui les rétablit, un autre monstre part sans borne en
+décroissant. Une mémoire écrite avant eux se relit avec ces défauts, sans
+rejet ni avertissement (`CHAMPS_AJOUTES`) ; présents mais mal formés (sens
+inconnu, colonne inconnue, borne non numérique, mesure inconnue ou posée
+sur une autre colonne qu'Efficience), ils font rejeter la mémoire
+(`bornesBienFormees`, colonnesResultats.ts). La borne d'Efficience porte la
+mesure sous laquelle elle a été posée (`mesure`, `eff` ou `score`) : sous
+l'autre mesure, la mémoire la garde sans qu'elle s'applique ; une borne
+écrite sans mesure prend, au premier changement de mesure, celle qui
+s'achève (ecran/resultats.md § Filtres d'affichage par colonne).
+
+Le réglage retiré `adapterArtefactsAuTri` (« Adapter les artéfacts et
+reliques au tri ») d'une mémoire historique est retiré à la lecture, vrai ou
+faux, sans avertissement : les autres critères sont conservés et la
+prochaine écriture ne le contient plus. Présent mais mal typé, il fait
+toujours rejeter la mémoire, comme avant : sa forme reste la règle, pas un
+prétexte de migration. Le point de sauvegarde, relu par le même lecteur à
+la reprise, garde son texte opaque inchangé.
 
 Le membre suit son sélecteur : exemplaire Box par `unitKey`, entrée RTA par
 `monsterId`, slot de siège par `teamId` et `slotIndex`. RTA et siège ne conservent
@@ -338,7 +364,8 @@ Voir ecran/lancer-la-recherche.md § Lancer la recherche.
 
 Le contenu est lu dans `listContents` pour la liste du membre, commun à toutes
 ses équipes. Une liste sans contenu défini n’applique aucun lead d’équipe,
-avec le motif « contenu de combat de la liste non défini » ; le lead
+avec le motif « contenu de combat de la liste non défini » (jamais affiché
+dans « État de mon monstre », voir ecran/etat-de-mon-monstre.md) ; le lead
 personnel de ses membres devient « Aucun ». Une modification du contenu
 change l’effet dérivé et, par lui, le lead personnel des membres ; le lead
 stocké de l’équipe ne change pas.

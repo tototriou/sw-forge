@@ -43,6 +43,8 @@
 //   diagnostic-harness.ts --profil=<nom> --differentiel=<axe>:<témoin>,<comparé>
 //                         [--repetitions=<n>] [--arret=…]
 //   ex. --profil=complet-sensible --differentiel=bucketCap:6000,500
+//   (⚠️ au `slotFilterCap` 80 du profil, la rétention de Bas, emboîtée,
+//   s'ajoute aux deux bras : sous 3000, `bucketCap` n'y change rien)
 // ⚠️ DEUX bras du MÊME cas, exécutés en ALTERNANCE (témoin, comparé, témoin,
 // comparé…) — jamais en blocs, dont le biais se REPRODUIT. C'est l'INVERSE de
 // `--cas` : un lot fait varier le CAS, un différentiel fait varier la
@@ -485,20 +487,6 @@ function rendreResultat(r: ResultatHarnais): string {
     l.push(`  budget : ${JSON.stringify(t.budget)} — compteurs : ${JSON.stringify(t.compteurs)}`);
   }
 
-  // ── La DISPERSION PAR TRANCHE, telle que le moteur la calcule.
-  if (r.dispersionTranches && r.dispersionTranches.length > 0) {
-    l.push('', 'Rétention — DISPERSION PAR TRANCHE (le CV du moteur, qui pilote adaptiveTrancheWeighting)', '─'.repeat(72));
-    for (const d of r.dispersionTranches) {
-      l.push(`  Moitié ${d.moitie} — ${d.applique ? 'RÉALLOCATION APPLIQUÉE' : 'parts égales appliquées'} (${nb(d.capEgal)} places par tranche)`);
-      l.push('    stat     CV      places   contre part égale');
-      for (const t of d.tranches) {
-        const fl = t.facteur >= 1 ? `×${t.facteur.toFixed(2)}` : `×${t.facteur.toFixed(2)}`;
-        l.push(`    ${t.stat.padEnd(6)} ${t.cv.toFixed(3).padStart(6)}  ${String(t.capRealloue).padStart(7)}   ${fl.padStart(6)}`);
-      }
-      l.push(`    ${d.avertissement}`);
-    }
-  }
-
   // ── L'INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT.
   // ⚠️ Imprimé JUSTE APRÈS le verdict, et jamais avant : le verdict dit si la
   // cible est là, celui-ci dit QUAND elle est arrivée. Dans l'autre ordre, un
@@ -732,11 +720,12 @@ function rendreResultat(r: ResultatHarnais): string {
     l.push('', 'Mémoire en fin de construction, par moitié (palier LÉGER)', '─'.repeat(72));
     for (const [moitie, m] of [['A', mem.A], ['B', mem.B]] as const) {
       l.push(
-        `  moitié ${moitie} : heapUsed ${mo(m.heapUsed)}   heapTotal ${mo(m.heapTotal)}   rss ${mo(m.rss)}`
+        `  moitié ${moitie} : heapUsed ${mo(m.heapUsed)}   heapTotal ${mo(m.heapTotal)}   arrayBuffers ${mo(m.arrayBuffers)}   rss ${mo(m.rss)}`
       );
     }
     const ecart = mem.B.heapUsed > 0 ? mem.A.heapUsed / mem.B.heapUsed : 0;
     l.push(`  rapport heapUsed A/B : ×${ecart.toFixed(2)}`);
+    l.push('  arrayBuffers : stockage hors tas, colonnes comprises, relevé avant transfert ; ne pas l’ajouter à rss.');
     l.push(`  ${mem.caveat}`);
 
     // ⚠️ La CARTOGRAPHIE DE L'ÉLAGAGE, et rien d'autre. La

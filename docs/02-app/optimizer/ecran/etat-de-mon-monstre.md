@@ -1,24 +1,38 @@
 # État de mon monstre
 
-6 bis. **État de mon monstre** — ⚠️ **une carte à part**, colonne 2 rangée 3,
-   juste sous « Artéfacts et reliques ». Pas en bas de cette carte, séparée
-   par un simple trait : ça laisserait croire que ces réglages servent les
-   artéfacts, alors qu'ils décrivent le **monstre** et valent pour tout calcul.
-   Le trait ne suffit pas à dire « autre métier » — une carte, si.
+6 bis. **État de mon monstre** — ⚠️ **une carte à part**, jamais le bas de la
+   carte « Artéfacts et relique » séparé par un simple trait : ça
+   laisserait croire que ces réglages servent les artéfacts, alors qu'ils
+   décrivent le **monstre** et valent pour tout calcul. Le trait ne suffit
+   pas à dire « autre métier » — une carte, si.
    Contenu : **buff ATQ**, **buff DEF**, **buff
    VIT**, **leader skill** d'équipe (type puis valeur, icône officielle du
    jeu) et les
    **sets d'aura des autres monstres** de l'équipe. Ce qui rend le monstre
    plus fort, quel que soit l'adversaire.
-   Si un buff actif est amplifié par une ligne d'artéfact, le pourcentage
-   apparaît sous ces contrôles, auprès du buff correspondant (ATQ, DEF ou
-   VIT), jamais sous la VIT de l'adversaire.
+
+   **Au téléphone**, la carte suit « Artéfacts et relique » et porte tout
+   ce contenu, sets d'aura compris. **Au bureau**, elle est réduite aux
+   buffs et au lead, section des essentiels dans la sous-colonne de 177 px,
+   sous la statistique principale imposée (`EtatMonstreEssentiels`) : les
+   trois vignettes de buff **sur une rangée** (56 px chacune), puis le lead :
+   « Lead », l'icône, la liste de la stat
+   et, sous elle, celle du pourcentage, sans boîte autour, la liste de la
+   stat entière ; le motif d'un lead inactif (seulement s'il existe) et les
+   rappels. Son aide ne nomme ni les sets d'aura ni ce qui décrit le
+   combat. Les sets d'aura des autres monstres ont leur propre carte, en
+   tête de la colonne « Aura, exclusion, avancés »
+   ([Sets d'aura des autres monstres](#sets-daura-des-autres-monstres)).
+   ⚠️ **Aucune phrase sur l'amplification d'un buff par un artéfact**
+   (« l'artéfact … amplifie ce buff de N % »), aux deux formats (décision de
+   l'utilisateur) : elle portait sur la paire d'artéfacts représentative de
+   la recherche, que le joueur ne connaît pas, et non sur ses artéfacts. Le
+   calcul en tient toujours compte.
 
    **Rappel des buffs posés par un passif** (rappel à l'écran, réglage manuel
    conservé) — quand le
    monstre choisi porte un passif qui se pose un buff standard, une ligne
-   s'affiche sous la rangée des deux groupes, avant les lignes
-   d'amplification et dans la même grammaire (texte `xs` atténué) : le
+   s'affiche sous la rangée des deux groupes (texte `xs` atténué) : le
    passif nommé comme dans « Stats acquises en combat » (`Jeton` en lecture
    seule, icône et nom du jeu sans « (Passive) »), puis « pose Buff ATQ —
    « when you attack on your turn » ». La condition est un **extrait
@@ -34,16 +48,18 @@
    un passif absent de la table n'a pas de rappel, et les buffs qu'un sort
    actif se pose lui-même n'en ont pas non plus. Le rappel dépend du
    monstre, jamais d'un clic dans la carte : il paraît au choix du monstre,
-   dont le sélecteur et la liste vivent dans la carte du haut — rien de ce
+   dont le sélecteur et la liste vivent au-dessus de la carte (liste de
+   travail au bureau, « Monstre & équipement » au téléphone) — rien de ce
    qu'on vient de cliquer ne bouge. Il lit la fiche du monstre **choisi**
    (garde d'identité : la fiche précédente, encore en mémoire pendant le
    chargement, n'en donne aucun).
 
-   Les deux groupes tiennent sur **une seule rangée** :
+   Au téléphone, les groupes tiennent sur **une seule rangée** quand la
+   largeur le permet :
    empilés, ils donneraient à la carte une hauteur sans rapport avec le peu
-   qu'elle contient. ⚠️ En `flex-wrap`, pas en rangée rigide — au doigt ou
-   dans une colonne étroite, ils repassent à la ligne plutôt que de comprimer
-   les contrôles sous leur taille de cible.
+   qu'elle contient. ⚠️ En `flex-wrap`, pas en rangée rigide — au doigt,
+   ils repassent à la ligne plutôt que de comprimer les contrôles sous leur
+   taille de cible.
 
    Les **compétences d’invocateur** sont dérivées du contenu de la liste
    active : Guilde → « Contenu de guilde », Arène et Donjon → « Contenu normal ».
@@ -53,7 +69,7 @@
    la recette lisent ce même mode effectif ; une valeur mémorisée ou importée
    différente reste conservée, mais le contenu décide de son application.
 
-   Chacun porte son **contour**. ⚠️ **Des boîtes et non des barres**, alors
+   **Au téléphone, chaque groupe porte son contour.** ⚠️ **Des boîtes et non des barres**, alors
    qu'une barre serait
    plus légère et que c'est le patron des deux colonnes de « Critères de
    recherche » : ces groupes-ci peuvent passer à la ligne, et une barre
@@ -62,7 +78,9 @@
    superposés ([03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md)) — ces boîtes vivent à
    l'intérieur de la carte, elles ne longent pas son bord. `items-stretch` les
    met à la hauteur de la plus haute, sinon une boîte d'une rangée flotterait
-   au milieu d'une boîte de deux et l'œil lirait un décalage.
+   au milieu d'une boîte de deux et l'œil lirait un décalage. Au bureau,
+   buffs et lead sont sans cadre dans les essentiels, et les auras forment
+   une section sans cadre de leur colonne.
 
    Dans le groupe **Lead**, au bureau, les deux menus (type et valeur) ont la
    **même largeur** : la valeur se pose sous le type, dans la même colonne de
@@ -72,12 +90,16 @@
    hauteur ; sa place reste réservée avant le choix d'un lead.
 
    Pour un membre lié, le menu montre le **lead effectif**, ou « Aucun » avec
-   son motif si le lead n’agit pas sur lui. La phrase sous les deux groupes
-   dit que le modifier change le lead de toute l’équipe et que chaque membre
-   le garde en quittant l’équipe. Le type et la valeur changent le lead
-   partagé ; portée et élément se règlent dans le dialogue d’équipe. Cette
-   explication et le motif ont une place réservée, au bureau comme au
-   téléphone. Le lead effectif écrase le lead personnel du membre, dans ses
+   son motif si le lead n’agit pas sur lui. Le type et la valeur changent le
+   lead partagé ; portée et élément se règlent dans le dialogue d’équipe. Au
+   téléphone, le motif a une place réservée sous les deux groupes ; au
+   bureau, il ne paraît que s’il existe, sous le lead, sans place réservée
+   (décision de l’utilisateur) : le lead ne bouge pas, seuls les rappels
+   dessous descendent. ⚠️ **Aucune phrase d’explication du lead d’équipe, et jamais le
+   motif « contenu de combat de la liste non défini »** (décision de
+   l’utilisateur : « Je ne veux jamais le voir ») : la carte filtre ce motif
+   (`motifLeadAffiche`, equipesOptimizer.ts), que le repère ⚠ de la liste et
+   le rapport d’import gardent. Le lead effectif écrase le lead personnel du membre, dans ses
    critères et sa mémoire, et lui reste quand il quitte l’équipe. Voir
    ../feat-listes-equipes-et-sauvegarde.md § Lead effectif d’un membre.
 
@@ -90,12 +112,11 @@
 
 ## Sets d'aura des autres monstres
 
-   **Sets d'aura des autres monstres** — une troisième
-   boîte, sur la même rangée que les buffs et le lead au bureau ; au
-   téléphone elle reste sous les groupes pour éviter le débordement.
-   Dans une colonne de bureau étroite, les buffs s'empilent dans leur boîte
-   pour laisser place au lead et aux auras, sans comprimer leurs contrôles.
-   Elle saisit `DamageSetup.setsAuraExternes` : les sets Fight,
+   **Sets d'aura des autres monstres** — au téléphone, une troisième
+   boîte d'« État de mon monstre », sous les groupes pour éviter le
+   débordement ; au bureau, une section de 294 px, en tête de la
+   colonne repliable « Aura, exclusion, avancés » (`SetsAuraBureau`), avec la
+   même saisie (`AurasExternesSaisie`). Elle saisit `DamageSetup.setsAuraExternes` : les sets Fight,
    Determination, Enhance, Accuracy et Tolerance portés par les **autres**
    monstres de l'équipe (voir
    [effets d'équipe](../../degats-reels/)). En tête,
@@ -150,7 +171,10 @@
    ni dans un effet sur le monstre sélectionné, que l'import pose aussi.
    Le même message paraît aussi sous la liste de la zone C, du même état et
    pour la même durée (voir
-   ../feat-listes-et-reservation.md § Zone C — Monstres de la liste).
+   ../feat-listes-et-reservation.md § Zone C — Monstres de la liste). Au
+   bureau, la carte des sets d'aura n'est montée que colonne ouverte : elle
+   affiche le rappel sans l'annoncer, et l'annonce aux lecteurs d'écran vit
+   dans la page, toujours montée, hors de la colonne.
 
 ## Ouverture guidée vers l'interrupteur des auras RES/PRE
 
@@ -169,17 +193,13 @@
    l'écriture des auras externes (`ecrire`, point de passage de tous les
    contrôles de leur boîte) et le choix d'un set recherché. Deux formes,
    une par format, choisies par `SOUS_LG` comme le panneau lui-même :
-   - **À la souris** — la page défile jusqu'à la carte « Réglages avancés »,
-     l'ancre du flottant (même défilement que « Set de runes recherché » :
-     doux, centré), **puis** le flottant s'ouvre : il choisit son côté en
-     mesurant l'ancre à l'ouverture, ouvert pendant le défilement il
-     mesurerait une position périmée. Ancre déjà entièrement visible : pas
-     de défilement, ouverture directe. Le défilement peut déplacer la carte
-     cliquée et le flottant se referme au clic suivant hors de lui — deux
-     effets admis. Si le bas du flottant dépasse de
-     l'écran, la page défile encore du strict nécessaire pour montrer
-     l'interrupteur.
-   - **Au doigt** — le panneau « Options de recherche » s'ouvre par-dessus
+   - **Au format bureau, quel que soit le pointeur** — la colonne repliable « Aura, exclusion, avancés »
+     s'ouvre (jeton `guideComplements`, que `PageBureau` applique à l'état
+     des onglets par `ouvrirColonne`), **puis** l'interrupteur, rendu dès
+     que la colonne est ouverte, est amené à l'écran du strict nécessaire
+     (`nearest`) ; l'effet se rejoue quand l'état des onglets change. En
+     A3, c'est la colonne repliable qui défile, seule.
+   - **Au format téléphone** — le panneau « Options de recherche » s'ouvre par-dessus
      la carte ; il reste piloté par la barre de navigation, l'écran le
      demande par la prop `onOuvrirMenu` (`App.tsx`, relayée par
      `OutilsPage.tsx`). Son contenu défile jusqu'à l'interrupteur, dernier
@@ -187,7 +207,7 @@
 
    Dans les deux cas, l'interrupteur est surligné **3 s**, au même token que
    le rappel (contour `warn`, fond `warn-soft`). ⚠️ Il reste toujours rendu
-   dans sa surface (`reglagesAvancesInner`, commun aux deux formats) :
+   dans sa surface (`ReglagesAvancesContenu`, commun aux deux formats) :
    guider ne le monte jamais sous condition et ne le masque jamais ensuite.
    Son cadre de surlignage existe en permanence, transparent hors guidage,
    et se pose À L'INTÉRIEUR de la rangée, dont le trait du haut sépare les

@@ -35,11 +35,28 @@ export const FORMATS: Record<Format, DefinitionFormat> = {
 
 export const ORDRE_FORMATS: Format[] = ['telephone', 'ordinateur'];
 
+/** Une taille de fenêtre ; le format continue de décider du pointeur et des étapes. */
+export interface Taille extends DefinitionFormat {
+  id: string;
+  format: Format;
+  preparation?: Etape[];
+  optimizer?: {
+    agencement: 'A1' | 'A2' | 'A3';
+    conteneur: [number, number];
+    fiche: 'repliee' | 'depliee';
+    colonnes: 'page' | 'superposees' | 'une-inseree' | 'deux-inserees';
+    set?: 'compact' | 'deplie';
+    volet?: true;
+  };
+}
+
+export const TAILLES_PAR_DEFAUT: Taille[] = ORDRE_FORMATS.map((format) => ({ id: format, format, ...FORMATS[format] }));
+
 /**
  * Rôles ARIA qu'une étape peut viser, ou `texte` : un élément dont le texte est
  * exactement `nom` (ce que le contenu montre sans rôle : ligne d'artéfact, note).
  */
-export type Role = 'button' | 'dialog' | 'switch' | 'tab' | 'link' | 'heading' | 'combobox' | 'option' | 'texte';
+export type Role = 'button' | 'dialog' | 'switch' | 'tab' | 'link' | 'heading' | 'combobox' | 'option' | 'textbox' | 'texte' | 'repere';
 
 /**
  * Un élément visé par son rôle et son nom accessible, comme Playwright
@@ -49,7 +66,10 @@ export type Role = 'button' | 'dialog' | 'switch' | 'tab' | 'link' | 'heading' |
  */
 export interface Cible {
   role: Role;
+  /** Pour `repere`, sélecteur CSS des attributs de repérage de l'app. */
   nom: string;
+  /** Contenant CSS unique et visible : une option de la liste ouverte, par exemple. */
+  dans?: string;
   /** `aria-expanded` exigé (Playwright `expanded`). */
   etendu?: boolean;
   /**
@@ -61,18 +81,21 @@ export interface Cible {
 }
 
 export type Etape =
-  /** Cliquer la cible. */
-  | { cliquer: Cible }
+  /** Cliquer la cible ; avec `siPresse`, seulement dans cet état aria-pressed. */
+  | { cliquer: Cible; siPresse?: boolean }
   /** Remplacer le texte d'un champ. */
   | { saisir: Cible; texte: string }
+  /** Faire défiler jusqu'à la cible pour que la capture montre ce qui est mesuré. */
+  | { montrer: Cible }
   /**
    * Charger un fichier par le bouton d'import de l'interface (sélecteur de
    * fichier de la page). `fichier` est un nom de `tests/fixtures/`. Un import
-   * que l'app refuse rend l'état non atteint, avec la cause.
+   * que l'app refuse rend l'état non atteint, avec la cause. `confirme`
+   * remplace le compte rendu générique par une postcondition propre au fichier.
    */
-  | { importer: Cible; fichier: string }
+  | { importer: Cible; fichier: string; confirme?: Cible }
   /** Attendre que la cible soit visible (bornée). */
-  | { attendre: Cible };
+  | { attendre: Cible; delaiMs?: number };
 
 /** Un format où l'état n'est pas exercé, avec son motif. */
 export interface NonExerce {
@@ -91,6 +114,8 @@ export interface Etat {
    * que le compte est chargé.
    */
   atteint: Cible[] | Record<Format, Cible[]>;
+  /** Restriction explicite à certaines tailles, sans multiplier les écrans. */
+  tailles?: string[];
 }
 
 export interface Ecran {
@@ -116,7 +141,12 @@ export interface Ecran {
    * extension), `chemin/prefixe*` (les fichiers dont le nom commence ainsi).
    */
   motifs: string[];
+  tailles?: Taille[];
   etats: Etat[];
+}
+
+export function taillesPour(ecran: Ecran): Taille[] {
+  return ecran.tailles ?? TAILLES_PAR_DEFAUT;
 }
 
 const DEFAUT: Etat = { id: 'defaut', libelle: 'à l’ouverture', preparation: [], atteint: [] };
@@ -181,6 +211,69 @@ const OBJECTIF_DEGATS_REELS: Cible = {
   pres: { role: 'button', nom: 'Objectif de recherche' },
 };
 
+const repere = (nom: string): Cible => ({ role: 'repere', nom });
+const bouton = (nom: string): Cible => ({ role: 'button', nom });
+// Le titre d'aide « Artéfacts et relique » porte aussi un bouton : les
+// onglets se repèrent par leur rangée, sans dépendre de l'ordre du DOM.
+const onglet = (nom: string): Cible => ({ ...bouton(nom), pres: repere('[data-zone="onglets"]') });
+const OPT_LISTE: Etape[] = [
+  { cliquer: bouton('Aucune liste — choisir ou créer') },
+  { cliquer: bouton('Nouvelle liste…') },
+  { saisir: { role: 'textbox', nom: 'Nom de la liste' }, texte: 'Banc Optimizer' },
+  { cliquer: { role: 'combobox', nom: 'Contenu de la liste' } },
+  { cliquer: { role: 'option', nom: 'Arène', dans: '[role="listbox"][aria-label="Contenu de la liste"]' } },
+  { cliquer: bouton('Créer') },
+  { saisir: { role: 'combobox', nom: 'Rechercher un monstre…' }, texte: 'Vanessa' },
+  { cliquer: { role: 'option', nom: 'Vanessa fire Vanessa' } },
+  { saisir: { role: 'combobox', nom: 'Rechercher un monstre…' }, texte: 'Cassie' },
+  { cliquer: { role: 'option', nom: 'Cassie dark Cassie' } },
+];
+const OPT_MEMBRES = [repere('[data-membre-optimizer="13812"]'), repere('[data-membre-optimizer="19315"]')];
+const OPT_IMPORT: Etape = {
+  importer: bouton('Importer les paramètres de recherche'), fichier: 'optimizer-banc-recette.json',
+  confirme: { role: 'texte', nom: 'Réglages importés pour Cassie — monstre sélectionné automatiquement.' },
+};
+// Les panneaux superposés peuvent couvrir l'import et la recherche : on les
+// ferme par leurs onglets avant ces gestes, puis l'état mesuré les rouvre.
+const OPT_FERMER: Etape[] = ['Artéfacts et relique', 'Aura, exclusion, avancés'].map((nom) => ({ cliquer: onglet(nom), siPresse: true }));
+const OPT_RESULTATS: Etape[] = [
+  ...OPT_LISTE, ...OPT_FERMER, OPT_IMPORT,
+  { cliquer: bouton('Rechercher') },
+  { attendre: repere('[data-carte-resultat]:nth-child(2)'), delaiMs: 30000 },
+  { attendre: bouton('Rechercher'), delaiMs: 30000 },
+  { montrer: repere('[data-carte-resultat]:first-child') },
+];
+const OPT_CARTES = [...OPT_MEMBRES, repere('[data-carte-resultat]:first-child'), repere('[data-carte-resultat]:nth-child(2)')];
+
+function tailleOptimizer(id: string, largeur: number, hauteur: number, optimizer: Taille['optimizer']): Taille {
+  return {
+    id, libelle: `${largeur}×${hauteur}${optimizer?.volet ? ' volet' : ''}`, format: 'ordinateur',
+    largeur, hauteur, tactile: false, optimizer,
+    ...(optimizer?.volet ? { preparation: [{ cliquer: bouton('Écran partagé') }] } : {}),
+  };
+}
+
+// La navigation reste dépliée (248 px). Les intervalles portent sur le
+// CONTENEUR mesuré, pas la fenêtre ; le volet est ouvert à parts égales.
+export const TAILLES_OPTIMIZER: Taille[] = [
+  TAILLES_PAR_DEFAUT[0],
+  tailleOptimizer('bureau-a1', 1120, 800, { agencement: 'A1', conteneur: [728, 904], fiche: 'depliee', colonnes: 'page', set: 'compact' }),
+  tailleOptimizer('bureau-a2', 1200, 900, { agencement: 'A2', conteneur: [904, 952], fiche: 'depliee', colonnes: 'page', set: 'compact' }),
+  tailleOptimizer('ordinateur', 1400, 1000, { agencement: 'A3', conteneur: [952, 1160], fiche: 'repliee', colonnes: 'superposees' }),
+  tailleOptimizer('bureau-portable', 1536, 730, { agencement: 'A3', conteneur: [1160, 1496], fiche: 'depliee', colonnes: 'superposees', set: 'compact' }),
+  tailleOptimizer('bureau-une-colonne', 1920, 940, { agencement: 'A3', conteneur: [1496, 1832], fiche: 'depliee', colonnes: 'une-inseree' }),
+  tailleOptimizer('bureau-deux-colonnes', 2560, 1300, { agencement: 'A3', conteneur: [1832, 3000], fiche: 'depliee', colonnes: 'deux-inserees', set: 'deplie' }),
+  tailleOptimizer('volet-a1', 1920, 940, { agencement: 'A1', conteneur: [728, 904], fiche: 'depliee', colonnes: 'page', set: 'compact', volet: true }),
+  tailleOptimizer('volet-a2', 2200, 1000, { agencement: 'A2', conteneur: [904, 952], fiche: 'depliee', colonnes: 'page', set: 'compact', volet: true }),
+  tailleOptimizer('volet-fiche-repliee', 2560, 1300, { agencement: 'A3', conteneur: [952, 1160], fiche: 'repliee', colonnes: 'superposees', volet: true }),
+  tailleOptimizer('volet-fiche-depliee', 2880, 1300, { agencement: 'A3', conteneur: [1160, 1496], fiche: 'depliee', colonnes: 'superposees', volet: true }),
+  tailleOptimizer('volet-une-colonne', 3840, 1200, { agencement: 'A3', conteneur: [1496, 1832], fiche: 'depliee', colonnes: 'une-inseree', volet: true }),
+  tailleOptimizer('volet-deux-colonnes', 5120, 1440, { agencement: 'A3', conteneur: [1832, 3000], fiche: 'depliee', colonnes: 'deux-inserees', set: 'deplie', volet: true }),
+];
+const OPT_BUREAU = TAILLES_OPTIMIZER.filter((t) => t.format === 'ordinateur').map((t) => t.id);
+const OPT_DEUX = TAILLES_OPTIMIZER.filter((t) => t.optimizer?.colonnes === 'deux-inserees').map((t) => t.id);
+const OPT_COMPACTS = TAILLES_OPTIMIZER.filter((t) => t.optimizer?.set === 'compact').map((t) => t.id);
+
 // Écran des recommandations rempli : le fichier synthétique
 // `tests/fixtures/recommandations-banc.json` (3 listes, 6 decks), chargé par le
 // bouton « Importer » de l'interface. Au téléphone, ce bouton vit dans le
@@ -238,12 +331,15 @@ export const ECRANS: Ecran[] = [
     libelle: 'Optimizer',
     hash: '#/outils/optimizer',
     alias: ['#/outils'],
+    tailles: TAILLES_OPTIMIZER,
     motifs: [
       ...MOTIFS_OUTILS,
       'src/lib/runeBuildOptim',
       'src/workers/',
       'src/hooks/useOptimizer*',
       'src/hooks/useBuildOptimSearch',
+      'src/lib/optimizerColonnes',
+      'tests/fixtures/optimizer-banc-recette',
     ],
     etats: [
       DEFAUT,
@@ -252,14 +348,15 @@ export const ECRANS: Ecran[] = [
         libelle: 'réglages avancés ouverts',
         // Au téléphone, « Réglages avancés » vit dans le panneau « Options de
         // recherche », ouvert par le bouton de la barre d'onglets ; à
-        // l'ordinateur, c'est une carte repliée qui s'ouvre d'un clic.
+        // l'ordinateur, en ligne dans la colonne repliable « Aura, exclusion,
+        // avancés », ouverte par son onglet.
         preparation: {
           telephone: [{ cliquer: { role: 'button', nom: 'Filtres et actions de la page' } }],
-          ordinateur: [{ cliquer: { role: 'button', nom: 'Réglages avancés' } }],
+          ordinateur: [{ cliquer: { role: 'button', nom: 'Aura, exclusion, avancés' } }],
         },
         atteint: {
           telephone: [{ role: 'dialog', nom: 'Options de recherche' }],
-          ordinateur: [{ role: 'button', nom: 'Réglages avancés', etendu: true }],
+          ordinateur: [{ role: 'switch', nom: "Rechercher jusqu'à épuisement complet" }],
         },
       },
       {
@@ -276,17 +373,56 @@ export const ECRANS: Ecran[] = [
         libelle: 'modale « Dégâts réels » remplie (Cassie)',
         // Cassie est le monstre du compte d'exemple qui a des sorts ; la
         // fenêtre montre alors le sort, l'adversaire et le critique.
-        preparation: [
-          { saisir: { role: 'combobox', nom: 'Rechercher un monstre…' }, texte: 'Cassie' },
-          { cliquer: { role: 'option', nom: 'Cassie dark Cassie' } },
-          { cliquer: OBJECTIF_DEGATS_REELS },
-        ],
+        preparation: {
+          telephone: [{ cliquer: bouton('Gérer mes listes') }, ...OPT_LISTE, { cliquer: OBJECTIF_DEGATS_REELS }],
+          ordinateur: [...OPT_LISTE, ...OPT_FERMER, { cliquer: OBJECTIF_DEGATS_REELS }],
+        },
         // « Non critique » n'existe que dans la fenêtre remplie (choix du
         // traitement du critique) : sans sort, elle n'en a pas.
         atteint: [
           { role: 'dialog', nom: 'Dégâts réels' },
           { role: 'button', nom: 'Non critique' },
         ],
+      },
+      {
+        id: 'liste-remplie', libelle: 'liste de travail : Vanessa et Cassie', tailles: OPT_BUREAU,
+        preparation: OPT_LISTE, atteint: OPT_MEMBRES,
+      },
+      {
+        id: 'resultats', libelle: 'recherche Rapide terminée, cartes de résultats', tailles: OPT_BUREAU,
+        preparation: OPT_RESULTATS, atteint: OPT_CARTES,
+      },
+      {
+        // Le tableau à partir de sa largeur minimale, les cartes en dessous :
+        // la ligne de comptes est présente dans les deux formes.
+        id: 'resultats-tableau', libelle: 'résultats en tableau (cartes sous la largeur du tableau)', tailles: OPT_BUREAU,
+        preparation: [...OPT_RESULTATS, { cliquer: bouton('Tableau') }],
+        atteint: [...OPT_MEMBRES, repere('[data-ligne-comptes]'), repere('[data-forme-resultats="tableau"]')],
+      },
+      {
+        id: 'resultats-filtres', libelle: 'résultats, flottant « Filtrer l’affichage » ouvert', tailles: OPT_BUREAU,
+        preparation: [...OPT_RESULTATS, { cliquer: bouton("Filtrer l'affichage") }],
+        atteint: [...OPT_CARTES, { role: 'dialog', nom: "Filtrer l'affichage" }],
+      },
+      {
+        id: 'artefacts', libelle: 'résultats et colonne Artéfacts et relique ouverte', tailles: OPT_BUREAU,
+        preparation: [...OPT_RESULTATS, { cliquer: onglet('Artéfacts et relique'), siPresse: false }],
+        atteint: [...OPT_CARTES, repere('[data-colonne="artefacts"]')],
+      },
+      {
+        id: 'complements', libelle: 'résultats et colonne Aura, exclusion, avancés ouverte', tailles: OPT_BUREAU,
+        preparation: [...OPT_RESULTATS, { cliquer: onglet('Aura, exclusion, avancés'), siPresse: false }],
+        atteint: [...OPT_CARTES, repere('[data-colonne="complements"]'), { role: 'switch', nom: "Rechercher jusqu'à épuisement complet" }],
+      },
+      {
+        id: 'deux-colonnes', libelle: 'résultats et deux colonnes insérées', tailles: OPT_DEUX,
+        preparation: [...OPT_RESULTATS, ...['Artéfacts et relique', 'Aura, exclusion, avancés'].map((nom): Etape => ({ cliquer: onglet(nom), siPresse: false }))],
+        atteint: [...OPT_CARTES, repere('[data-colonne="artefacts"]'), repere('[data-colonne="complements"]')],
+      },
+      {
+        id: 'set-flottant', libelle: 'liste remplie et coffre du set compact ouvert', tailles: OPT_COMPACTS,
+        preparation: [...OPT_LISTE, { cliquer: bouton('Set de runes recherché : Aucun') }],
+        atteint: [...OPT_MEMBRES, repere('[data-set-optimizer="compact"] button[aria-expanded="true"]'), { role: 'texte', nom: 'Set principal' }],
       },
     ],
   },

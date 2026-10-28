@@ -27,6 +27,10 @@ export async function testRenduOptimizerAlerteDefilement() {
   titre('rendu · alerte Optimizer — fermeture au défilement');
   const { browser, page, icone, panneau } = await preparer(false);
   try {
+    // Au bureau, la page tient dans la fenêtre et chaque colonne défile seule :
+    // une fenêtre basse fait défiler la colonne des essentiels, l'ancêtre de la
+    // liste qui défile.
+    await page.setViewportSize({ width: 1440, height: 600 });
     await page.mouse.move(0, 0);
     await icone.scrollIntoViewIfNeeded();
     await icone.focus();
@@ -50,12 +54,13 @@ export async function testRenduOptimizerAlerteDefilement() {
     await icone.focus();
     await panneau.waitFor({ state: 'visible' });
     await finirAnimations(page);
-    const position = await page.evaluate(() => window.scrollY);
-    await page.evaluate(() => window.scrollBy(0, 40));
-    await page.waitForFunction(avant => window.scrollY !== avant, position);
+    const colonne = page.locator('[data-zone="essentiels"]');
+    const position = await colonne.evaluate(e => e.scrollTop);
+    await colonne.evaluate(e => e.scrollBy(0, e.scrollTop >= e.scrollHeight - e.clientHeight - 1 ? -40 : 40));
+    await page.waitForFunction(avant => document.querySelector('[data-zone="essentiels"]')!.scrollTop !== avant, position);
     await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
     await finirAnimations(page);
-    ok(await panneau.count() === 0, 'défilement de la page ancêtre : bulle fermée');
+    ok(await panneau.count() === 0, 'défilement de la colonne ancêtre : bulle fermée');
   } finally { await browser.close(); }
 }
 

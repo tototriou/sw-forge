@@ -108,6 +108,51 @@ export interface Entree {
 
 interface Racine { racine: string; type: string; via: string; fichiers: string[]; erreur: string | null }
 
+/**
+ * Un `new Worker(…)` à cible non résolue que l'inventaire tait : son fichier,
+ * le texte de son premier argument, et pourquoi ce site n'a pas à être suivi.
+ * Une entrée tolère un seul site ; un site de plus avec le même argument, ou
+ * une entrée qui ne correspond plus à aucun site, est dit en avertissement.
+ */
+export interface WorkerTolere { fichier: string; argument: string; raison: string }
+
+export const WORKERS_NON_RESOLUS_TOLERES: readonly WorkerTolere[] = [
+  {
+    fichier: 'scripts/lib/appariementRapideNode.ts', argument: 'chemin',
+    raison: 'Lanceur Node du paquet que construit esbuild dans un dossier temporaire ; son point d’entrée (scripts/lib/appariement-rapide-worker.ts) est suivi par le site `entryPoints` de la construction, dans le même fichier.',
+  },
+  {
+    fichier: 'scripts/lib/buildHalvesNode.ts', argument: 'chemin',
+    raison: 'Lanceur Node du paquet que construit esbuild dans un dossier temporaire ; son point d’entrée (scripts/lib/build-half-worker.ts) est suivi par le site `entryPoints` de la construction, dans le même fichier.',
+  },
+];
+
+interface WorkerNonResolu { fichier: string; argument: string; message: string }
+
+/**
+ * Les avertissements des Workers à cible non résolue, une fois la liste
+ * tolérée appliquée : chaque site non toléré, chaque entrée qui tolère plus
+ * d'un site (ses sites restent avertis) ou plus aucun.
+ */
+export function avertissementsWorkers(sites: readonly WorkerNonResolu[], toleres: readonly WorkerTolere[]): string[] {
+  const sortie: string[] = [];
+  const parEntree = new Map<WorkerTolere, WorkerNonResolu[]>(toleres.map((t) => [t, []]));
+  const libres: WorkerNonResolu[] = [];
+  for (const s of sites) {
+    const t = toleres.find((x) => x.fichier === s.fichier && x.argument === s.argument);
+    if (t) parEntree.get(t)!.push(s); else libres.push(s);
+  }
+  for (const s of libres) sortie.push(s.message);
+  for (const [t, trouves] of parEntree) {
+    if (trouves.length === 0) sortie.push(`liste tolérée : ${t.fichier} new Worker(${t.argument}) ne correspond plus à aucun site non résolu`);
+    else if (trouves.length > 1) {
+      sortie.push(`liste tolérée : ${t.fichier} new Worker(${t.argument}) correspond à ${trouves.length} sites, un seul toléré`);
+      for (const s of trouves) sortie.push(s.message);
+    }
+  }
+  return [...new Set(sortie)].sort();
+}
+
 interface InfoFichierTest {
   graphe: Set<string>;
   racines: Racine[];
@@ -124,6 +169,9 @@ export interface Inventaire {
   entrees: Entree[];
   fichiersTest: Map<string, InfoFichierTest>;
   incoherences: string[];
+  // Ce que l'inventaire n'a pas pu suivre sans que la sélection change :
+  // aujourd'hui, les `new Worker(…)` à cible non résolue. Dit en sortie.
+  avertissements: string[];
   sourceIndex: string;
   // Configuration Tailwind lue (`content`), ou null si illisible ou absente.
   tailwind: { fichier: string; motifs: string[] } | null;
@@ -146,6 +194,8 @@ export interface Selection {
   fichiers: FichierModifie[];
   complet: boolean;
   causes: string[];
+  // Les avertissements de l'inventaire (`Inventaire.avertissements`).
+  avertissements: string[];
   retenues: Retenue[];
   transversalesSeulement: boolean;
   // Décision du motif Tailwind pour ces fichiers ; null : sans objet, ou pas
@@ -184,10 +234,10 @@ export function optionsConstruction(racine: string, sortie: string): BuildOption
     // ⚠️ esbuild ne peut PAS être bundlé lui-même (son API a besoin d'un
     // exécutable externe, localisé via un chemin RELATIF à son propre
     // package sur disque — un chemin qui devient faux une fois inliné dans
-    // un autre fichier). Nécessaire depuis que rune-optim-parallel-pairing.test.ts
-    // bundle lui-même un worker (`scripts/lib/pairing-quota-worker.ts`, VRAIS
-    // `worker_threads` concurrents) — `require('esbuild')` reste un require
-    // normal, résolu à l'exécution depuis node_modules, jamais inliné.
+    // un autre fichier). Nécessaire dès qu'un test bundle lui-même un worker
+    // (`scripts/lib/appariement-rapide-worker.ts`, VRAIS `worker_threads`
+    // concurrents) — `require('esbuild')` reste un require normal, résolu à
+    // l'exécution depuis node_modules, jamais inliné.
     external: ['esbuild'],
   };
 }
@@ -240,7 +290,11 @@ async function chargerTs(): Promise<TsModule> {
  * Relevé des sites de lecture, par l'API du compilateur TypeScript
  * ----------------------------------------------------------------------- */
 
-interface Site { file: string; ligne: number; fn: string; genre: string; appel: string; cible: string[] | null; argv?: string[][]; chargement?: boolean }
+// `cibleNavigateur` (Worker seulement) : la cible quand le module tourne dans le
+// navigateur (chargeur maison des bancs), où `import.meta.url` est sa propre URL.
+// `code` (Worker seulement) : `{ eval: true }`, le premier argument est du code.
+// `argument` (Worker seulement) : le texte du premier argument, clé de la liste tolérée.
+interface Site { file: string; ligne: number; fn: string; genre: string; appel: string; cible: string[] | null; argv?: string[][]; chargement?: boolean; cibleNavigateur?: string[] | null; code?: boolean; argument?: string }
 // Les arguments d'un appel ne s'évaluent qu'à la demande : la plupart des
 // appels ne servent jamais à résoudre un paramètre.
 interface Appel { file: string; nom: string; noeuds: ts.Expression[]; valeurs: (string[] | undefined)[] }
@@ -258,6 +312,8 @@ class Analyseur {
   readonly appelsParNom = new Map<string, Appel[]>();
   readonly fns = new Map<string, Fn>();
   private readonly racine: string;
+  // Vrai pendant l'évaluation d'une cible vue du navigateur (`cibleNavigateur`).
+  private urlPropre = false;
 
   constructor(racine: string, fichiers: Set<string>, principal: Set<string>) {
     this.racine = racine;
@@ -423,8 +479,9 @@ class Analyseur {
     if (T.isPropertyAccessExpression(node)) {
       const p = node.name.text;
       if (p === 'pathname' || p === 'href') return this.eval(node.expression, file, prof + 1);
-      // La construction principale définit `import.meta.url` comme `tests/index.ts`.
-      if (node.expression.getText() === 'import.meta' && p === 'url') return [this.principal.has(file) ? 'tests/index.ts' : file];
+      // La construction principale définit `import.meta.url` comme `tests/index.ts` ;
+      // le navigateur, comme l'URL du module.
+      if (node.expression.getText() === 'import.meta' && p === 'url') return [this.principal.has(file) && !this.urlPropre ? 'tests/index.ts' : file];
       if (node.expression.getText() === 'process' && p === 'execPath') return ['<node>'];
       return [INCONNU];
     }
@@ -517,7 +574,16 @@ class Analyseur {
         }
       } else if (T.isNewExpression(n)) {
         const nom = n.expression.getText();
-        if (nom === 'Worker' || nom.endsWith('.Worker')) site('worker', 'new Worker', n.arguments?.[0] ? this.eval(n.arguments[0], file) : null);
+        if (nom === 'Worker' || nom.endsWith('.Worker')) {
+          const a0 = n.arguments?.[0];
+          let cibleNavigateur: string[] | null;
+          this.urlPropre = true;
+          try { cibleNavigateur = a0 ? this.eval(a0, file) : null; } finally { this.urlPropre = false; }
+          // `{ eval: true }` (worker_threads) : le premier argument est du code, pas une cible.
+          const o1 = n.arguments?.[1];
+          const code = !!o1 && T.isObjectLiteralExpression(o1) && o1.properties.some((p) => T.isPropertyAssignment(p) && p.name.getText() === 'eval' && p.initializer.kind === T.SyntaxKind.TrueKeyword);
+          site('worker', 'new Worker', a0 ? this.eval(a0, file) : null, { cibleNavigateur, code, argument: a0 ? a0.getText() : '' });
+        }
       } else if ((T.isStringLiteral(n) || T.isNoSubstitutionTemplateLiteral(n)) && /ls-files/.test(n.text)) {
         site('ls-files', 'git ls-files', [n.text]);
       }
@@ -747,7 +813,7 @@ function listerFichiers(racine: string): Set<string> {
   return new Set(sortie.split('\0').filter((f) => f && existsSync(join(racine, f))));
 }
 
-export async function inventaire(racine0: string, metafichier?: Metafile): Promise<Inventaire> {
+export async function inventaire(racine0: string, metafichier?: Metafile, workersToleres: readonly WorkerTolere[] = WORKERS_NON_RESOLUS_TOLERES): Promise<Inventaire> {
   const debut = Date.now();
   await chargerTs();
   const racine = norm(resoudreChemin(racine0));
@@ -794,6 +860,13 @@ export async function inventaire(racine0: string, metafichier?: Metafile): Promi
   const graphesRacines = new Map<string, Promise<{ fichiers: string[]; erreur: string | null }>>();
   const racinesDe = new Map<string, Racine[]>();
   const ensembles = new Map<string, Set<string>>();
+  // Les `new Worker(…)` dont la cible ne se résout pas, par fichier de test :
+  // le module démarré n'entre dans aucun ensemble par ce site. Un
+  // avertissement de l'inventaire, jamais une écartée silencieuse ; la
+  // retenue ne change pas (le code démarré est souvent un paquet construit
+  // par un site `esbuild-build`, suivi à part). La liste tolérée
+  // (`WORKERS_NON_RESOLUS_TOLERES`) s'applique à la fin, sur tous les sites.
+  const workersNonResolus = new Map<string, Map<string, WorkerNonResolu>>();
   let aFaire = fichiersTest;
   for (let tour = 0; ; tour++) {
     if (tour === 8) { incoherences.push('racines secondaires : pas de point fixe en 8 tours'); break; }
@@ -802,29 +875,46 @@ export async function inventaire(racine0: string, metafichier?: Metafile): Promi
       const S = new Set(graphes.get(ft));
       const racines: Racine[] = [];
       const vus = new Set<string>();
-      const ajouter = async (r: string, type: string, via: string) => {
+      const nonResolus = new Map<string, WorkerNonResolu>();
+      workersNonResolus.set(ft, nonResolus);
+      // Les modules que le navigateur charge : un banc du chargeur maison, et
+      // les Workers que ces modules démarrent. Leurs `new Worker(new URL(…,
+      // import.meta.url))` se résolvent depuis le module lui-même.
+      const navigateur = new Set<string>();
+      const ajouter = async (r: string, type: string, via: string, dansNavigateur = false) => {
         if (vus.has(r) || !fichiers.has(r)) return;
         vus.add(r);
         const p = graphesRacines.get(r);
         if (!p) { demandes.push({ ft, racine: r, type, via }); return; }
         const g = await p;
         racines.push({ racine: r, type, via, fichiers: g.fichiers, erreur: g.erreur });
-        for (const f of g.fichiers) if (fichiers.has(f)) { S.add(f); an.sites(f); }
+        for (const f of g.fichiers) if (fichiers.has(f)) { S.add(f); an.sites(f); if (dansNavigateur) navigateur.add(f); }
       };
       for (let passe = 0; passe < 6; passe++) {
         const avant = vus.size;
+        // Relevé sur l'ensemble de cette passe : une cible paramétrée se résout
+        // parfois une fois les appelants ajoutés.
+        nonResolus.clear();
         for (const ch of CHARGEURS) {
           if (!S.has(ch.fichier)) continue;
           const fn = an.fnParNom(ch.fichier, ch.fonction);
           const idx = fn ? fn.params.indexOf(ch.parametre) : -1;
           if (!fn || idx < 0 || !an.fnParNom(ch.fichier, ch.chargement)) { incoherences.push(`chargeur ${ch.fichier} : ${ch.fonction}(…${ch.parametre}) ou ${ch.chargement} introuvable`); continue; }
-          for (const v of an.resoudre([jetonParam(fn.id, idx)], S)) if (!v.includes(INCONNU) && !v.includes(JETON) && v !== SANS_APPELANT) await ajouter(posix.normalize(v), 'chargeur-maison', ch.fichier);
+          for (const v of an.resoudre([jetonParam(fn.id, idx)], S)) if (!v.includes(INCONNU) && !v.includes(JETON) && v !== SANS_APPELANT) await ajouter(posix.normalize(v), 'chargeur-maison', ch.fichier, true);
         }
         for (const f of [...S]) for (const s of an.sites(f)) {
-          const cibles = an.resoudre(s.cible ?? [], S).filter((x) => x !== SANS_APPELANT && !x.includes(INCONNU) && !x.includes(JETON));
+          const vueNavigateur = s.genre === 'worker' && navigateur.has(f);
+          const brutes = vueNavigateur ? [...(s.cible ?? []), ...(s.cibleNavigateur ?? [])] : s.cible ?? [];
+          const cibles = an.resoudre(brutes, S).filter((x) => x !== SANS_APPELANT && !x.includes(INCONNU) && !x.includes(JETON));
           const via = `${s.file}:${s.ligne}`;
+          if (s.genre === 'worker' && !s.code) {
+            const valeurs = brutes.length ? an.resoudre(brutes, S) : [INCONNU];
+            const inconnues = valeurs.filter((x) => x.includes(INCONNU) || x.includes(JETON));
+            if (inconnues.length) nonResolus.set(via, { fichier: s.file, argument: s.argument ?? '',
+              message: `${via} new Worker : cible non résolue (${inconnues.map((x) => x.split(INCONNU).join('*').split(JETON).join('?')).join(', ')})` });
+          }
           if (s.genre === 'esbuild-build') for (const c of cibles) await ajouter(posix.normalize(c), 'esbuild-entryPoints', via);
-          if (s.genre === 'worker' || s.genre === 'import-dynamique') for (const c of cibles) await ajouter(posix.normalize(c), s.genre, via);
+          if (s.genre === 'worker' || s.genre === 'import-dynamique') for (const c of cibles) await ajouter(posix.normalize(c), s.genre, via, vueNavigateur);
           if (s.genre === 'spawn') {
             const toutes = [...cibles];
             for (const a of s.argv ?? []) toutes.push(...an.resoudre(a, S).filter((x) => x !== SANS_APPELANT && !x.includes(INCONNU) && !x.includes(JETON)));
@@ -891,7 +981,10 @@ export async function inventaire(racine0: string, metafichier?: Metafile): Promi
     info.opaque = [...new Set(info.opaque)];
     infos.set(ft, info);
   }
-  return { racine, entrees: reg.entrees, fichiersTest: infos, incoherences: [...new Set(incoherences)], sourceIndex: reg.source.text, tailwind: tailwind ?? null, dureeMs: Date.now() - debut };
+  const sitesNonResolus = new Map<string, WorkerNonResolu>();
+  for (const m of workersNonResolus.values()) for (const [via, s] of m) sitesNonResolus.set(via, s);
+  const avertissements = avertissementsWorkers([...sitesNonResolus.values()], workersToleres);
+  return { racine, entrees: reg.entrees, fichiersTest: infos, incoherences: [...new Set(incoherences)], avertissements, sourceIndex: reg.source.text, tailwind: tailwind ?? null, dureeMs: Date.now() - debut };
 }
 
 export function classement(info: InfoFichierTest): 'depot' | 'opaque' | 'dossier' | 'statique' {
@@ -1096,7 +1189,7 @@ export function selectionner(inv: Inventaire, modifies: string[], indexAvant: st
   });
   const transversalesSeulement = !complet && fichiers.length > 0 && fichiers.every((f) => f.statut === 'sans effet');
   return {
-    base, fichiers, complet, causes, retenues, transversalesSeulement, tailwind,
+    base, fichiers, complet, causes, avertissements: [...(inv.avertissements ?? [])], retenues, transversalesSeulement, tailwind,
     execution: complet ? { complet: true, noms: [], groupes: [] } : { complet: false, noms, groupes },
     dureeMs: Date.now() - debut,
   };
@@ -1221,7 +1314,9 @@ export function lireNameStatus(sortie: string): string[] {
 
 export class RefusSelection extends Error {}
 
-export interface OptionsSelection { racine: string; depuis?: string; plage?: string; metafichier?: Metafile }
+// `workersToleres` : la liste tolérée des Workers à cible non résolue ; par
+// défaut, celle du dépôt (`WORKERS_NON_RESOLUS_TOLERES`).
+export interface OptionsSelection { racine: string; depuis?: string; plage?: string; metafichier?: Metafile; workersToleres?: readonly WorkerTolere[] }
 
 export async function selectionDepuisGit(o: OptionsSelection): Promise<{ selection: Selection; inventaire: Inventaire }> {
   const debut = Date.now();
@@ -1262,7 +1357,7 @@ export async function selectionDepuisGit(o: OptionsSelection): Promise<{ selecti
     if (e instanceof RefusSelection) throw e;
     causes.push(`la lecture de Git a échoué : ${String((e as Error).message).split('\n')[0]}`);
   }
-  const inv = await inventaire(racine, o.metafichier);
+  const inv = await inventaire(racine, o.metafichier, o.workersToleres);
   const tw = commitAvant && !causes.length ? await decisionTailwind(inv, modifies, (p) => lireBlob(racine, commitAvant!, p)) : null;
   const selection = selectionner(inv, modifies, indexAvant, base, causes, tw);
   selection.dureeMs = Date.now() - debut;
@@ -1279,6 +1374,10 @@ export function formater(sel: Selection, total: number): string {
   l.push(`Fichiers modifiés (${sel.fichiers.length}) :`);
   for (const f of sel.fichiers) l.push(`  [${f.statut}] ${f.chemin} — ${f.detail}`);
   if (sel.tailwind) l.push(`Motif Tailwind : ${sel.tailwind.etat} — ${sel.tailwind.detail}`);
+  if (sel.avertissements.length) {
+    l.push(`Avertissements (${sel.avertissements.length}) — module démarré non suivi par ce site, sélection inchangée :`);
+    for (const a of sel.avertissements) l.push(`  ! ${a}`);
+  }
   if (sel.complet) {
     l.push(`SUITE COMPLÈTE (${total} entrées du registre), parce que :`);
     for (const c of sel.causes) l.push(`  - ${c}`);

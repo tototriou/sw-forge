@@ -17,11 +17,11 @@ import {
   prepareSearch,
   rankBlockingConditions,
   excludedRuneIds,
-  searchBuilds,
   totalPairCount,
   sortCandidates,
   statTotal,
 } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import type { StatRow } from '../src/lib/stats';
 import { StatKey, runeEfficiency, runeScore } from '../src/lib/effects';
 import { AUCUNE_AURA_PROPRE } from '../src/lib/damage';

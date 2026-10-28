@@ -17,7 +17,8 @@
 import { readFileSync } from 'node:fs';
 import { ArtifactArchetype, ArtifactDetail, ElementKey, RelicDetail } from '../src/types';
 import { RelicContext } from '../src/lib/relicOptim';
-import { BuildCandidate, OptionsDeClassement, SearchParams, aurasPropresParRunes, conditionsPaireFixePosees, optionsDeClassement, respecteConditionsPaireFixe, scoreDuCandidat, searchBuilds, sortCandidates } from '../src/lib/runeBuildOptim';
+import { BuildCandidate, OptionsDeClassement, SearchParams, aurasPropresParRunes, conditionsPaireFixePosees, optionsDeClassement, respecteConditionsPaireFixe, scoreDuCandidat, sortCandidates } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import { ResultatArtefacts, classementResolu, cleBuild } from '../src/lib/artifactQueue';
 import { EntreeResolution, entreeResolutionDuBuild, etatReliqueDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { ReglagesDifferentiel, maxStatsActifsDe, regimeDe, resoudreCandidat, runesDe } from '../scripts/lib/relicDifferentiel';
@@ -26,6 +27,7 @@ import { StatRow, computeStats, statsParPaire } from '../src/lib/stats';
 import { ArtifactSearchParams } from '../src/lib/artifactOptim';
 import { evaluerPourRegime } from '../src/lib/artifactEvaluation';
 import { CORPUS_5A } from './relic-search.test';
+import { corpusAvecRejetes } from './relique-ou.test';
 import { DEGATS_FICHE } from './artifact-fiche.test';
 import { egal, ok, titre } from './outils';
 
@@ -75,10 +77,13 @@ function entreeResolutionAvant(p: SearchParams, c: BuildCandidate, ctx: RelicCon
     respecteConditions: conditionsPosees ? (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), p.requirement, aurasPropresDesRunes(gear.runes)) : null,
     requirement: p.requirement,
     regimeAucun: regime === 'aucun',
-    // Seul ajout à la copie : le champ obligatoire du départage
+    // Premier ajout à la copie : le champ obligatoire du départage
     // des régimes de stat, qui n'existait pas au commit 7905df36.
     regimeDeStat: regime === 'hp' || regime === 'atk' || regime === 'def',
     relicContext: ctx,
+    // Second ajout : la dominance des reliques, absente au même commit. Sans
+    // elle, cette copie est l'oracle du producteur qui la porte (même résultat).
+    dominanceReliques: null,
   };
 }
 
@@ -95,7 +100,9 @@ export function testResolutionProducteurPartage() {
   let compares = 0;
   for (const fx of Object.values(CORPUS_5A)) {
     const p: SearchParams = { ...fx.p0, relicContext: fx.ctx };
-    const candidats = searchBuilds(p).candidates;
+    // Les faux positifs de la borne par stat, que la recherche n'émet plus
+    // (relique en « OU »), gardent les builds rejetés au corpus.
+    const candidats = corpusAvecRejetes(p);
     // UN jeu de caches et UN objet de paramètres de paires pour
     // toute la fixture, comme une file de l'écran — chaque candidat, relique,
     // contexte et critère suivant relit les profils et préfiltres des
@@ -155,14 +162,12 @@ export function testResolutionProducteurPartage() {
 
   // Raccordement : l'écran appelle CE producteur, avec ses propres valeurs.
   const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
-  ok(/const resoudreEquipement = useMemo\(\(\) => \{\s*if \(!artifactParams \|\| !selected \|\| !optimiserArtefacts\) return null;[\s\S]{0,200}?resoudreEquipementDuBuild\(\s*entreeResolutionDuBuild\(\{\s*fiche: selected\.gear,\s*runes: runesDuBuild\(c, runeById\),\s*artifactParams,\s*regime: regimeEquipement,\s*degats: contexteDegatsArtefacts,\s*exclusive: contexteExclusive,\s*requirement: requirementAvecAuras,\s*relicContext: relicContextRecherche,\s*caches: cachesResolution,/.test(ecran),
-    'écran : la file résout par entreeResolutionDuBuild (fiche, runes du candidat par runesDuBuild, artifactParams, régime effectif, contexte, conditions avec auras, contexte relique lancé, caches de la file)');
-  ok(/\}, \[artifactParams, selected, optimiserArtefacts, runeById, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche, cachesResolution\]\);/.test(ecran),
-    'écran : le mémo de résolution dépend de chacune de ses entrées');
-  // Les caches de la file se refont avec la signature des réglages
-  // et les paramètres de paires (l'inventaire) — jamais un état global.
-  ok(/const cachesResolution = useMemo\(\(\) => nouveauxCachesResolution\(\), \[signatureArtefacts, artifactParams\]\);/.test(ecran),
-    'écran : caches de la file neufs à chaque signature des réglages ou paramètres de paires');
+  ok(ecran.includes('const photo = contexteResultat({ params, fiche: selected.gear,')
+    && ecran.includes('resolution: artifactParams && optimiserArtefacts ? { fiche: selected.gear, artifactParams,'),
+    'écran : la photographie porte les paramètres communs de la résolution, sans assemblage local par build');
+  ok(ecran.includes('regime: regimeEquipement, degats: contexteDegatsArtefacts, exclusive: contexteExclusive,')
+    && ecran.includes('requirement: requirementAvecAuras, relicContext: params.relicContext'),
+    'écran : régime, combat, conditions avec auras et contexte relique du lancement traversent ensemble');
   ok(!/faireParamsArtefacts/.test(ecran), 'écran : plus aucun assemblage local des paramètres de paires');
 }
 
@@ -212,6 +217,6 @@ export function testClassementResolu() {
 
   // Raccordement : l'écran classe par CE producteur.
   const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
-  ok(/const affichees = useMemo\(\s*\(\) => classementResolu\(fullSortedCandidates, fileArtefacts\.parBuild, sortBy, optionsDuTriAffiche\),\s*\[fullSortedCandidates, fileArtefacts\.parBuild, sortBy, optionsDuTriAffiche\]/.test(ecran),
-    'écran : le classement affiché vient de classementResolu (ordre de base, cache de la file, tri, options affichées)');
+  ok(ecran.includes('const instantane = search.classement;') && !/classementResolu|sortCandidates/.test(ecran),
+    'écran : la page affichée est l’instantané du corps compact, sans tri parallèle');
 }

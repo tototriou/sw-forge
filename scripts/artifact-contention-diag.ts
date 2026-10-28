@@ -1,6 +1,6 @@
 // L'optimisation d'artéfacts EN TEMPS MASQUÉ ralentit-elle la recherche ?
 //
-// La file (`useArtifactOptimQueue`) travaille sur le fil PRINCIPAL pendant que
+// La file (aujourd'hui dans le Worker de classement) travaillait sur le fil PRINCIPAL pendant que
 // l'appariement tourne dans ses Workers. Aucune API JavaScript ne permet de
 // choisir un cœur : la seule vérification honnête est de MESURER si la
 // recherche ralentit, pas de supposer que le temps est masqué.
@@ -67,7 +67,9 @@ function runWorker(scriptPath: string, data: PairingWorkerData): Promise<Pairing
   });
 }
 
-// Même nombre qu'en production (`PARALLEL_PAIRING_WORKERS`), délibérément fixe.
+// Nombre fixe de fils de l'ancien appariement par `pairBuckets` que ce
+// diagnostic reproduit (prototype `pairing-worker.ts`) ; la production dérive
+// le sien de la machine (`nombreDeTravailleurs`, src/workers/parallelPairing.ts).
 const WORKERS = 4;
 const SLOT_FILTER_CAP = 40; // préréglage « Bas », comme le diagnostic parent
 // ⚠️ 5 répétitions par condition : un effet de quelques pour cent ne se
@@ -108,7 +110,6 @@ function chargeArtefacts() {
     compterAurasResPre: true,
     metric: 'eff',
     slotFilterPreset: 'moyen',
-    adaptiveTrancheWeighting: false,
     exhaustiveSearch: false,
     excludeUsedRunes: false,
     excludeUsedScope: 'box',
@@ -250,7 +251,6 @@ async function main() {
       objective: c.objective,
       slotFilterCap: SLOT_FILTER_CAP,
       maxMs: Number.POSITIVE_INFINITY,
-      adaptiveTrancheWeighting: false,
     };
     const prepared = prepareSearch(params);
     if (!prepared) continue;

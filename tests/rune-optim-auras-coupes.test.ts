@@ -38,8 +38,8 @@ import {
   avecAurasConditions,
   diagnoseFeasibility,
   rankBlockingConditions,
-  searchBuilds,
 } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import type { Objective, SearchParams, SearchResult, TraceCandidat } from '../src/lib/runeBuildOptim';
 import { mulberry32, randomPool } from '../scripts/lib/randomPool';
 import type { BaseStats, RuneDetail } from '../src/types';
@@ -506,7 +506,10 @@ export function testRuneOptimAurasCoupesRetention() {
     const tous = oracle(brouillon).ensembleSets;
     if (tous.length === 0) continue;
     const cas: Cas = { ...brouillon, nom: `rétention seed ${seed}`, minStats: { res: quantile(tous.map((b) => b.cond.res), 0.7) } };
-    const v = lancer(cas, { bucketCap: 1 }, 30);
+    // `slotFilterCap` 40 (Bas, le pool de 4 runes passe entier) : aucun
+    // préréglage plus étroit dont la rétention, à son `bucketCap` dérivé,
+    // s'ajouterait et lèverait la pression (préréglages emboîtés).
+    const v = lancer(cas, { bucketCap: 1, slotFilterCap: 40 }, 30);
     const fp = [...v.trouves].filter((c) => !v.o.valides.has(c));
     egal(fp, [], `${cas.nom} (bucketCap 1) : aucun faux positif`);
     absents += v.o.valides.size - v.trouves.size;
@@ -516,6 +519,7 @@ export function testRuneOptimAurasCoupesRetention() {
       if (HEURISTIQUES.has(k)) perteHeuristique += n;
     }
   }
+  ok(absents > 0 && perteHeuristique > 0, `rétention : la pression mord (${absents} build(s) absents, ${perteHeuristique} tracé(s) à la rétention)`);
   egal(fauxRejets, 0, `rétention : ${absents} build(s) absents, ${perteHeuristique} tracé(s) à une perte heuristique, zéro à une coupe sûre (${fmtMotifs(motifs)})`);
 }
 

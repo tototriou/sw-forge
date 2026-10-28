@@ -173,7 +173,9 @@ validés de la liste active ; il impose `'equipped'` des deux côtés quand
 l'optimisation d'artéfacts est désactivée ; il vide les lignes verrouillées
 sans optimisation ou quand les deux sortes sont figées (une seule paire
 possible, qu'un verrou écarterait sans rechange) ; il fournit
-`codesAmplification` et `maxStatsActifs`.
+`codesAmplification` et `maxStatsActifs`, et `sansDominance` quand le sort
+noté (`sortDegats`, celui du profil de dégâts, quel que soit l'objectif) est
+en exception à la règle R (§ Pré-filtrage exact ci-dessous).
 
 `ArtifactDetail.id` porte l'identifiant com2us de la pièce : c'est ce qui
 rend une paire mémorisable dans un build validé et ses pièces réservables.
@@ -227,6 +229,13 @@ complète de `candidatsParSorte`, élaguée par `preFiltrerCandidats`. N'est
     « au moins aussi bon ». Retirer la principale du vecteur ne suffirait
     pas, le départage des ex æquo éliminerait l'un des deux.
   - L'emplacement vide n'est jamais soumis à la dominance.
+  - ⚠️ La dominance suppose la règle de jeu R (une principale ou une ligne
+    plus grande ne baisse jamais la note). Sous `sansDominance` — le sort
+    noté est dans `EXCEPTIONS_REGLE_R` (resolutionRapide.ts), la liste qui
+    retire aussi la dominance des reliques ; aujourd'hui Ceres, Last Shot,
+    dont le bonus s'éteint quand les PV propres montent — elle ne s'applique
+    pas : seuls l'obligation et le parcours complet restent
+    ([reliques.md § Dominance des reliques dans la résolution](reliques.md#dominance-des-reliques-dans-la-résolution)).
 
 Les listes élaguées se mémoïsent d'un build à l'autre d'une même file
 (`MemoPreFiltre`) :
@@ -303,7 +312,7 @@ Côté moteur :
   meilleure de `meilleuresPairesArtefacts` pour l'équipement affiché, sous
   les mêmes principales et les mêmes verrous. De vrais artéfacts avec leurs
   lignes, jamais une pièce sans sous-propriété, qui ferait calculer les
-  dégâts sans aucune ligne d'effet quand « Garder l'artéfact équipé » les
+  dégâts sans aucune ligne d'effet quand « Comme équipé » les
   compte. Vide si aucune paire ne tient les verrous ; l'écran affiche alors
   le diagnostic de `meilleurCumulParLigne`.
 - La paire finale, qui peut porter une autre principale que la paire
@@ -387,15 +396,222 @@ Une seule primitive, `chercherPaires`, sert deux entrées.
   notation de la paire :
   [artefacts.md § Quand ce choix a lieu](artefacts.md).
 - Le même sélecteur de principale sert les deux : sans optimisation
-  d'artéfacts, l'écran impose « Garder l'artéfact équipé » des deux côtés ;
+  d'artéfacts, l'écran impose « Comme équipé » des deux côtés ;
   avec, `'libre'` et les principales deviennent des filtres de candidats.
-- Ce qui garde la file légère pour le fil de l'écran : `sortCandidates`
-  calcule le score de chaque candidat une fois par tri, jamais dans le
-  comparateur ; `cleBuild` est mémoïsée par identité de candidat
-  (`WeakMap`, qui laisse ramasser les candidats d'une recherche périmée) ;
-  les résultats se publient regroupés (`PUBLICATION_MS`).
-- Ne pas remettre `triees.length` dans les dépendances de l'effet de la file
-  (`useArtifactOptimQueue`) : il change à chaque message de progression,
-  l'effet se démonterait à ce rythme et son nettoyage annulerait la tâche de
-  fond avant qu'elle tourne — la file n'avancerait plus pendant la
-  recherche.
+- Le Worker de classement possède la file et son cache compact. L'écran lui
+  envoie sa vue (tri et son sens, mesure, page) et n'en reçoit que l'instantané de la
+  page affichée ; aucune résolution n'y tourne. Pourquoi :
+  [ADR](../../../04-decisions/adr/classement-dans-un-worker-dedie.md).
+
+### Classement incrémental
+
+#### Magasin compact et publications versionnées
+
+`candidatsCompacts.ts` porte six colonnes d'identifiants et huit colonnes de
+totaux en `Float64`, avec l'efficience reçue et huit gabarits communs.
+L'ingestion vérifie chaque champ et `Object.is(bonus, total - base)` ; la
+reconstruction fait cette même soustraction, sans nouvel arrondi. Les
+identifiants bruts ne passent jamais en `Int32`, les valeurs en `Float32`.
+Les doublons partagent l'équipement, jamais leur identité de ligne ni leurs
+stats collectées. Le hachage vérifie les six identifiants triés en cas de
+collision ; les rangs de clés utilisent les chaînes jointes exactes.
+
+`classementCompact.ts` conserve l'ordre dans un AVL en colonnes typées.
+Une différence retire les anciennes clés, ingère les nouveaux équipements,
+renote leurs seules lignes (doublons compris), puis les réinsère. Un
+contexte ou critère différent invalide toutes les notes. Un rejet sort de
+l'index sans supprimer la ligne. Les comptes de sous-arbre permettent une
+sélection par rang sans balayage total. Initialisation : O(N log N) ;
+différence : O(Δ log N), doublons compris ; page : O(log N + taille).
+
+Le cache propriétaire (`cacheResolutionCompact.ts`) garde aussi les stats,
+indices de pièces et états en colonnes. Son journal identifie génération,
+version et dernière écriture ; journal manqué ou incohérent impose un
+recalcul complet. Aucune liste de changements n'est tenue pour l'écran : il
+ne reçoit que les vingt équipements de sa page, relus à chaque publication.
+Les inventaires sont immuables et propres à l'import photographié.
+
+`CorpsClassement` appelle le même index et les mêmes notes que le CLI et le
+harnais. Construction, notation, tri fini et insertion dans l'index offrent
+des étapes ; Node les consomme jusqu'au bout, la coquille Worker cède la main
+entre des tranches visées de 4 ms, par message de canal (`Relance`,
+`cession.ts`). Une vue nouvelle abandonne le travail
+précédent avant publication. Les non-finis gardent les tris natifs stables de
+la référence, qui sont synchrones ; la cible de tranche ne les préempte pas.
+
+**Ordre de base préparé au fil des blocs.** La note de base d'un candidat ne
+lit que ses valeurs collectées et le contexte photographié, sans cache : elle
+peut se calculer dès l'arrivée de son bloc sans changer de valeur. Pendant la
+recherche, `CorpsClassement` note donc le reçu bloc par bloc (`avancerAuFil`),
+pour le critère de la vue et pour l'objectif lancé (un seul quand la vue suit
+le lancement), et range les notes en plages de 4 096 ordinaux triées de façon
+stable, fusionnées comme un compteur binaire, la plus ancienne à gauche, la
+gauche d'abord à égalité. Sous des notes finies, « note décroissante, puis
+ordinal » est un préordre total : ces fusions donnent exactement le tri stable
+du scellé, qui ne fait plus que les dernières fusions. Une note non finie ou
+absente laisse l'ordre au tri du scellé, avec ses tris natifs ; une note qui
+lève abandonne le travail au fil et le scellé recalcule tout. Changer de tri
+ou de mesure pendant la recherche abandonne le critère quitté ; l'aperçu ne
+reprend que les notes déjà prêtes. Le travail au fil s'arrête au scellé et
+disparaît quand la source est libérée ; un changement de vue ultérieur se
+classe sur le magasin comme avant. À chaque notation de l'index, complète
+ou par différence (un équipement retiré du cache), une ligne non résolue (aucune entrée de cache, donc ni paire, ni relique, ni
+stats résolues) reprend sa note de base du même critère au lieu de la
+recalculer ; seules les lignes résolues sont renotées.
+
+Cache vide : ordre de base inchangé. Cache non vide : note décroissante,
+relique croissante (absente en dernier), clé lexicographique, puis position
+dans l'ordre de base. Sans note calculable, seul le départage s'applique.
+**Sens croissant** (`VueClassement.sens: 'asc'`, absent = décroissant) :
+toutes les notes de la vue, de base, au fil des blocs et de l'index, sont
+prises opposées (`noteDansLeSens`, `signeTri` de tri.ts), et les mêmes tris
+décroissants stables rangent alors par note croissante : seul le comparateur
+de note s'inverse ; relique, clé et position dans l'ordre de base de CETTE
+vue départagent comme avant, et les égalités ne sont jamais renversées (pas
+de `reverse()`). Le sens fait partie du critère : il nomme les notes
+(`tri|mesure|sens`) et renote l'index comme un changement de tri. Le fond de
+la file garde l'objectif lancé, décroissant ; une vue croissante a donc son
+propre ordre de base.
+
+**Bornes de la vue** (`VueClassement.bornes`, filtresResultats.ts). Chaque
+ligne a une catégorie (`CATEGORIE_LIGNE`) : visible, masquée, indéterminée
+(`NaN` sous une borne active), potentielle (non vérifiée), non vérifiée
+masquée (échec démontré sur une colonne immuable) ou écartée. Elle se pose
+à chaque notation de la ligne, complète ou par différence, et à chaque
+changement de bornes ; une ligne non vérifiée n'est jugée que sur les
+colonnes que la résolution ne change pas (`COLONNES_IMMUABLES`), avec la
+valeur que la carte écrit (`valeurAffichee`). **L'arbre ne contient que les
+visibles et les potentielles** : rang, page, comptes de sous-arbre, places
+en attente et priorité de page portent donc sur la vue filtrée sans autre
+code, et la file de fond, qui lit l'ordre de base et l'état des lignes, ne
+voit pas les bornes. Les comptes par état et catégorie se tiennent à chaque
+catégorisation, sans parcours. Changer de bornes ne renote rien : la
+catégorie de chaque ligne est recalculée, O(N) prédicats, et seules les
+lignes qui entrent dans la vue ou en sortent sont insérées ou retirées,
+O(Δ log N) ; pendant une tâche, le classeur reprend la vue entière, comme
+pour un tri. Le repli des non-finis trie toutes les lignes non écartées,
+puis garde celles de la vue, et le cache vide restreint l'ordre de base à
+la vue : la vue filtrée est toujours une sous-suite, dans le même ordre, de
+la vue sans borne. Sans borne active, toute ligne non écartée est dans la
+vue, comme avant.
+`NaN`, infinis et identifiants de relique hors contrat prennent deux tris
+natifs stables sur indices JavaScript, avec les expressions de la référence,
+sans normalisation ni comparateur composite.
+
+**Aperçu d'un geste de vue.** Un tri, un sens, une mesure ou des bornes
+publient leur page avant l'ordre complet, dans la même tâche, mêmes
+tranches et mêmes versions ; l'ordre de base, `rangBase` et l'arbre se
+terminent ensuite. Ce que la page lit ne demande pas l'ordre complet : avec
+une file, les seules confirmées de la vue (après un tri ou des bornes, la
+page ne passe plus devant le fond) ; des comptes qui ne dépendent pas de
+l'ordre ; le reste de la file, qui suit l'ordre du FOND (objectif lancé),
+compté sur lui ; sans file, la tête de l'ordre de base restreint à la vue.
+L'aperçu (`ClassementCompact.apercuEtapes`) juge la catégorie de chaque ligne
+sous les bornes de la vue (reprises telles quelles quand ni bornes ni mesure
+ne changent), note les seules confirmées et les range par le comparateur de
+l'arbre, sauf la position dans l'ordre de base à venir, qu'il lit comme
+« note de base décroissante, puis ordinal » : c'est le tri stable de ces
+notes, et l'ordre au fil des blocs est ce même tri. Sans file, une
+sélection des premières lignes de la vue sur les notes de base, sans trier
+les autres. Des bornes seules reprennent les notes et l'ordre courants. Il
+ne publie rien, et le geste attend la fin de sa tâche comme avant, dès que
+l'équivalence n'est pas établie : note de base non finie, note de ligne
+résolue non finie, note absente parmi des présentes (le comparateur n'est
+plus symétrique, l'arbre dépend de l'ordre d'insertion), relique hors
+contrat, cache que le journal ne relie pas au magasin par une seule
+écriture, index en construction, page qui attend des non vérifiées
+(priorité de page). Un geste arrivé pendant l'actualisation qui suit une
+réponse du résolveur a son aperçu : le magasin rattrape d'abord les seuls
+groupes de cette écriture (`rattraperIngestion`, contrôlés sur le journal
+comme une actualisation consécutive), puis l'aperçu le lit ; l'index, en
+retard sur ce cache, ne prête alors ni ses notes ni ses catégories, et
+l'actualisation complète qui suit réingère le magasin à l'identique (il
+reste lisible pendant cette passe) ; un index ainsi devancé par son magasin
+ne fait jamais de différence. Un aperçu ne vaut que pour l'index et la clé de vue
+(critère, sens, mesure, bornes) qui l'ont produit, quelle que soit la page ;
+un nouveau geste l'efface avant de programmer sa tâche, la fin de tâche
+aussi : aucune vue quittée ne repart. L'aperçu publié est exactement
+l'instantané de fin de tâche (`tests/classement-apercu.test.ts`,
+différentiel pas à pas contre le même corps sans tâche différée).
+
+**Notes de base gardées.** Les notes et l'ordre de base d'un critère
+(`tri|mesure|sens`) ne lisent que les candidats collectés et le contexte
+photographié : `CorpsClassement` les garde par population, l'objectif lancé
+(l'ordre du fond) et la vue courante toujours, avec les quatre derniers
+critères quittés (~12 octets par candidat chacun). Quitter puis retrouver
+l'objectif lancé, revenir à une colonne déjà triée, ne renote rien ;
+inverser le sens prend les notes opposées (la note croissante est la note
+décroissante × −1, `noteDansLeSens`) quand aucune n'est absente, et range
+seulement. Une colonne de stat se note par lecture de sa colonne du
+magasin (`totalDeLaStat`, le nombre que `statTotal` lit sur le candidat),
+sans matérialiser de candidat, et une borne sur une stat se juge de même
+(`valeurAfficheeDeStat`, la seule écriture de cette valeur). Une borne sur
+l'Efficience lit les notes d'Efficience déjà calculées sur cette population
+sous la mesure de la vue (temps mort ou tri), quand elles le sont et toutes
+présentes : la mesure ne lit que les runes du build, que la résolution ne
+change pas, et `valeurAfficheeDEfficience` (moyenne par rune, arrondie comme
+l'affichage) est la seule écriture de sa valeur ; sinon, le candidat. À cache
+inchangé, un changement de critère ne réingère plus le magasin ni ne rejuge
+les catégories : seules les notes et l'arbre se refont.
+
+**Temps mort.** Une fois la recherche scellée, Dégâts réels, PV effectifs
+et Efficience (décroissants, sous la mesure de la vue) se notent à l'avance
+quand rien d'autre n'attend (`avancerAuRepos`) : la tranche du Worker qui
+reste après la tâche, la file et le travail au fil, au plus 1 ms. Ce sont
+les seules colonnes chères à noter ; une stat se lit dans sa colonne. Mêmes
+candidats collectés, même contexte photographié, sans cache : les notes que
+la tâche d'un tri calculerait, gardées comme l'objectif lancé (~8 octets
+par candidat chacune) ; une tâche qui a noté le critère entre-temps garde
+les siennes, une note qui lève abandonne ce critère. Le tri d'une de ces
+colonnes ne note alors plus rien avant sa page. Rien pendant la recherche,
+ni tant que la file des notes travaille : le temps mort ne commence
+qu'une fois qu'une pompe a trouvé la file des notes au repos (plus rien à
+noter, aucune note en vol, aucune réponse retenue), et une réponse ou un
+geste l'arrête jusqu'à la pompe suivante. Une réponse notée n'attend donc
+jamais derrière une tranche de temps mort (`CorpsClassement.tranche`, la
+boucle du Worker, menée sur une horloge virtuelle par
+`tests/classement-temps-mort.test.ts`). La confirmation en fond, au plus
+bas niveau ([pipeline.md § File de résolution](pipeline.md#file-de-résolution)),
+ne le retient pas : sa réponse attend au plus une tranche de temps mort
+(1 ms).
+
+Une publication pour l'écran est l'instantané de sa page : comptes de
+l'arbre, extraction des confirmées du rang demandé, places attendues, soit
+O(log N + 20) ; aucun objet ni ordinal par ligne ne la traverse. Seule
+exception, l'aperçu d'un geste sans file (`teteDeLApercu`) : il choisit les
+premières lignes de la vue en parcourant toutes les lignes, d'un seul bloc,
+soit O(N log k) pour k lignes jusqu'à la fin de la page. Seul
+`classerEnLocal` (CLI, harnais, tests) lit la projection objet complète
+(`CorpsClassement.projection`), une fois, à la fin de sa file. Le stockage
+vivant n'est jamais transféré pour servir une vue.
+
+Les appels génériques de `classementResolu` hors du contrat compact utilisent
+un recalcul sur indices avec les mêmes formules. Les fonctions détectées
+dans les données communes ou propres interdisent la réutilisation compacte.
+Une fermeture mutée sans écriture journalisée et un contexte de l'API directe
+muté sans changement d'identité restent hors garantie.
+
+#### Référence objet des tests
+
+`tests/oracle-classement.ts` conserve l'ancienne mémoire des notes par objet
+candidat. Aucun code de production ne l'importe. `sortCandidates` et
+`ordonnerParDepartage` définissent le recalcul complet : mêmes expressions,
+même stabilité, mêmes égalités et non-finis. `candidatAvecSaPaire` garde sa
+projection tant que base et réponse restent identiques.
+
+Les `testClassementIncremental…` vérifient cette mémoire historique. Les
+`testClassementCompact…` comparent publications, doublons, pages, notes,
+non-finis, journaux manquants et travail par différence à l'oracle.
+`testContexteResultatFige`, `testClassementDistantVersions`,
+`testClassementDistantPanne` et `testClassementBranchementApp` ajoutent la
+photographie immuable, les générations et vues dépassées, les ports réels,
+le repli après perte du résolveur et la navigation pendant la recherche.
+`verifierInstantane` (tests/classement-distant.test.ts) compare chaque
+instantané publié à ce que l'écran calculait sur la projection complète
+(comptes, page, cartes et valeurs) ; `testClassementInstantaneBorne` montre
+qu'aucune publication ne porte de tableau de plus de vingt éléments, de 40 à
+2 000 builds ; `testTriSansNouvelleResolution` et
+`testToutVerifierPhotographie`, que tri, mesure et réglages ne résolvent rien ;
+`testClassementCession…`, que les tranches cèdent par message de canal sans
+affamer les messages reçus. Ces contrôles ne prouvent aucun gain de temps au
+navigateur.

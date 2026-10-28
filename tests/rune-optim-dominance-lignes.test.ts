@@ -46,11 +46,11 @@ import {
   optionsDeClassement,
   prepareSearch,
   scoreDuCandidat,
-  searchBuilds,
   sortCandidates,
   statsLuesParLesLignes,
   totalPairCount,
 } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import type { BuildCandidate, RealDamageContext, SearchParams, SearchResult } from '../src/lib/runeBuildOptim';
 import { candidatsParSorte, paireRepresentative, type ArtifactSearchParams, type ChoixPrincipale } from '../src/lib/artifactOptim';
 import { artifactPairAllowed } from '../src/lib/artifacts';
@@ -101,7 +101,7 @@ interface Cas {
   pool: RuneDetail[];
   sets: string[];
   sort: SortCle;
-  // La paire FIXE (« Garder l'artéfact équipé » ×2) : `SearchParams.artifacts`.
+  // La paire FIXE (« Comme équipé » ×2) : `SearchParams.artifacts`.
   paire: ArtifactDetail[];
   critMode?: DamageSetup['critMode'];
 }
@@ -176,8 +176,8 @@ const presque = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * Math.max(1, 
 function espaceExact(p: SearchParams): number {
   const prepared = prepareSearch(p);
   if (!prepared) return 0;
-  const a = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, p.adaptiveTrancheWeighting, p.combosOrderMode));
-  const b = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, p.adaptiveTrancheWeighting, p.combosOrderMode));
+  const a = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, p.combosOrderMode));
+  const b = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, p.combosOrderMode));
   return totalPairCount(prepared, a, b);
 }
 
@@ -344,6 +344,7 @@ function contexteDePaires(cas: Cas, inventaire: ArtifactDetail[]): ArtifactSearc
     ...parametresArtefactsFiche({
       porteur: { element: 'fire', archetype: 'attack' }, inventaire, reserves: AUCUN_ARTEFACT_RESERVE, equipes: [],
       optimiserArtefacts: true, principaleParSorte: LIBRE, lignesVerrouillees: [], damageSetup: setup, maxStats: {},
+      sortDegats: degats.profile.skillCom2usId,
     }),
     evaluer: representatif,
   };
@@ -424,7 +425,7 @@ function artLushen(id: number, kind: 'element' | 'archetype', main: [number, num
 function recette(r: Partial<OptimizerRecipe>): OptimizerRecipe {
   return buildOptimizerRecipe({
     monsterCom2usId: LUSHEN, monsterName: 'Lushen (test)', requirement: { sets: [], minStats: {} }, objective: 'degats_reels',
-    damageSetup: DEFAULT_DAMAGE_SETUP, metric: 'eff', slotFilterPreset: 'bas', adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    damageSetup: DEFAULT_DAMAGE_SETUP, metric: 'eff', slotFilterPreset: 'bas', exhaustiveSearch: false,
     excludeUsedRunes: false, excludeUsedScope: 'rta', excludedSelectors: [], ignoreArtifacts: false,
     artifactMainByKind: { element: 'libre', archetype: 'libre' }, relicMainChoice: 'equipped',
     ...r,
@@ -488,6 +489,7 @@ export function testDominanceLignesProducteurs() {
     ...parametresArtefactsFiche({
       porteur: { element: 'wind', archetype: 'attack' }, inventaire: loaded.allArtifacts, reserves, equipes: loaded.gear.artifacts,
       optimiserArtefacts, principaleParSorte: { element: 'libre', archetype: 'libre' }, lignesVerrouillees: [], damageSetup: DEFAULT_DAMAGE_SETUP, maxStats: {},
+      sortDegats: artefactsDuCli(recette({}), loaded)!.degats?.profile.skillCom2usId ?? null,
     }),
     evaluer,
   });
@@ -501,7 +503,10 @@ export function testDominanceLignesProducteurs() {
   // Contrôles de source : l'écran et le CLI remplissent le champ par le
   // producteur, l'un dans `handleSearch`, l'autre dans `recipeToSearchParams`.
   const source = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
-  ok(/function handleSearch\(\) \{[\s\S]*?run\(\{[\s\S]*?statsLignesArtefactsEquipables: artifactParams \? statsLignesArtefactsEquipables\(artifactParams\) : undefined,[\s\S]*?\}\);\s*\}/.test(source),
+  // Dans `handleSearch` (sans en sortir) : les `SearchParams` portent le
+  // producteur, puis partent au moteur par `run(params, …)`.
+  const handleSearch = source.replace(/\r\n/g, '\n').match(/\n {2}function handleSearch\(\) \{\n[\s\S]*?\n {2}\}\n/)?.[0] ?? '';
+  ok(/const params: SearchParams = \{[\s\S]*?\n {6}statsLignesArtefactsEquipables: artifactParams \? statsLignesArtefactsEquipables\(artifactParams\) : undefined,[\s\S]*?\n {4}\};[\s\S]*?\n {4}run\(params, /.test(handleSearch),
     'écran : handleSearch passe statsLignesArtefactsEquipables(artifactParams) au moteur');
   egal((source.match(/statsLignesArtefactsEquipables\(/g) ?? []).length, 1, 'écran : un seul appel au producteur — dans handleSearch');
   const cli = readFileSync('scripts/lib/recipeToSearchParams.ts', 'utf8');

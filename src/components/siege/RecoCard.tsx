@@ -17,7 +17,6 @@ import {
 // « Importer un deck d'offense », « Fort contre ».
 import { IconeOffense } from '../IconesAtelier';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRecalageEcran } from '../../hooks/useRecalageEcran';
 import {
   ARTIFACT_KINDS,
   ArtifactKind,
@@ -50,6 +49,7 @@ import {
 } from '../../lib/effects';
 import { UseRecoState } from '../../hooks/useSiegeRecos';
 import RuneIcon from '../RuneIcon';
+import { STATS_AVEC_BASE } from '../../lib/stats';
 import SetsPortes from '../SetsPortes';
 import MonsterPicker from '../MonsterPicker';
 import { JetonSlot, prochainFocus } from './slotVideSuivant';
@@ -2199,10 +2199,6 @@ function CounterRow({
   noteOuverte: boolean;
   onToggleNote: () => void;
 }) {
-  // La note dépliée est ancrée à gauche d'une vignette qui peut être la dernière
-  // de sa rangée : sans recalage, elle sortait de l'écran par la droite.
-  const noteRef = useRef<HTMLDivElement>(null);
-  const { style: recalageNote } = useRecalageEcran(noteRef, noteOuverte);
 
   // Un même monstre ne peut pas occuper deux emplacements de LA MÊME défense —
   // même règle que les slots d'un deck. Il peut revenir dans une autre défense.
@@ -2323,11 +2319,9 @@ function CounterRow({
             et aux marges à elle. */}
         {noteOuverte && (
           <Flottant
-            ref={noteRef}
             // ⚠️ Ancrée à gauche d'une vignette qui peut être la DERNIÈRE de sa
-            // rangée : la note sortait alors de l'écran par la droite. Le
-            // `max-w` borne sa largeur, pas sa position. Voir le hook.
-            style={recalageNote}
+            // rangée : le `max-w` borne sa largeur, et `Flottant` borne sa
+            // position à l'écran.
             largeur="w-max min-w-full max-w-[280px]"
             rembourrage="sm"
           >
@@ -2713,13 +2707,17 @@ export function StatEditor({
   return (
     <div className="flex flex-col">
       {RECO_STATS.map((st) => {
-        const known = baseFor(st.key, monster);
+        // Taux Crit, Dmg Crit, RES et Précision se saisissent et s'affichent
+        // en total (`STATS_AVEC_BASE`) : ni base rappelée, le champ vaut le total.
+        const avecBase = STATS_AVEC_BASE.has(st.key);
+        const known = avecBase ? baseFor(st.key, monster) : null;
         const base = known ?? 0; // base inconnue → le champ vaut le total
         const total = slot.stats[st.key];
         const bonus = total != null ? total - base : null;
         return (
           <div
             key={st.key}
+            data-stat-reco={st.key}
             className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/40 py-1 text-micro last:border-0"
           >
             <span className="w-14 flex-none text-ink-dim">{st.label}</span>
@@ -2727,7 +2725,8 @@ export function StatEditor({
               {known != null ? fmtStat(known) : '—'}
             </span>
             <span className="flex flex-none items-center gap-1">
-              <span className="font-mono text-micro text-good/70">+</span>
+              {/* « + » : un bonus qui s'ajoute à la base ; pas pour une stat saisie en total. */}
+              {avecBase && <span className="font-mono text-micro text-good/70">+</span>}
               {/* Champ texte (et non `type=number`) : pas de boutons +/- à
                   droite, qui mangent la largeur d'une colonne déjà étroite.
                   `inputMode=numeric` garde le pavé numérique sur mobile.
@@ -3472,7 +3471,9 @@ function StatList({
             <span className={`w-14 flex-none ${rate ? 'text-bad font-semibold' : 'text-ink-dim'}`}>
               {st.label}
             </span>
-            {total ? (
+            {/* Taux Crit, Dmg Crit, RES et Précision : toujours le total
+                (`STATS_AVEC_BASE`, décision de l'utilisateur pour toute l'app). */}
+            {total || !STATS_AVEC_BASE.has(st.key) ? (
               <span className="flex-none font-mono font-semibold text-ink tabular-nums">
                 {fmtStat(req)}
                 {st.suffix}

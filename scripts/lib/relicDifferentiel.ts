@@ -38,14 +38,13 @@ import {
   SearchResult,
   TraceCandidat,
   aurasPropresParRunes,
-  buildBuckets,
   candidateMetricTotal,
   objectiveScore,
   prepareSearch,
   respecteConditionsAvecRelique,
-  searchBuilds,
   sortCandidates,
 } from '../../src/lib/runeBuildOptim';
+import { construireMoitie, searchBuilds } from '../../src/lib/rechercheRunes';
 import { LigneVerrouillee } from '../../src/lib/artifactOptim';
 import { PorteurArtefact } from '../../src/lib/artifacts';
 import { RegimeArtefacts, regimeArtefacts, regimeEquipementDe } from '../../src/lib/artifactEvaluation';
@@ -148,6 +147,9 @@ export function entreeResolution(p: SearchParams, c: BuildCandidate, ctx: RelicC
       lignesVerrouillees: r.lignesVerrouillees ?? [],
       damageSetup: r.exclusive.setup,
       maxStats: p.requirement.maxStats ?? {},
+      // Le sort du contexte de dégâts ; sans lui (critère hors « Dégâts
+      // réels »), aucune note de dégâts n'est posée et la dominance reste.
+      sortDegats: r.degats?.profile.skillCom2usId ?? null,
     }),
     regime: regimeDe(r),
     degats: r.degats ?? null,
@@ -211,14 +213,18 @@ export interface Saturation {
  * (dominance, faisabilité) lui ont laissé — observé par `onStage`, jamais
  * « pool filtré = pool par slot » (un élagage sûr n'est pas une capacité) —,
  * aucun compartiment n'atteint `bucketCap`, `MAX_COLLECTED` et `maxMs` non
- * atteints. Coût : `prepareSearch` + `buildBuckets` des deux moitiés, sans
+ * atteints. Coût : `prepareSearch` + `construireMoitie` des deux moitiés, sans
  * appariement (secondes, même à volume réel).
  */
 export function saturationDe(p: SearchParams, trace: TraceCandidat, tronque: boolean, collectes: number): Saturation {
   const etages: Partial<Record<string, number[]>> = {};
   const prepared = prepareSearch(p, (etage, bySlot) => { etages[etage] = bySlot.map((l) => l.length); })!;
-  const popA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA)).map((b) => b.combos.length);
-  const popB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB)).map((b) => b.combos.length);
+  // La construction de production (`construireMoitie`, préréglages emboîtés
+  // compris) : un compartiment que la rétention du préréglage de la recherche
+  // ne sature pas a retenu toute combinaison énumérée, et aucun préréglage
+  // plus étroit ne lui ajoute rien — sa population est la même qu'avant.
+  const popA = drain(construireMoitie('A', [0, 1, 2], prepared, prepared.maxSetsForA, p.combosOrderMode)).map((b) => b.combos.length);
+  const popB = drain(construireMoitie('B', [3, 4, 5], prepared, prepared.maxSetsForB, p.combosOrderMode)).map((b) => b.combos.length);
   const cap = prepared.bucketCap;
   const avantFiltre = etages.feasibility ?? trace.compteurs.poolParSlot;
   const apresFiltre = etages.filterslot ?? trace.compteurs.filtreParSlot;
@@ -400,7 +406,7 @@ export interface EntreesComparaison {
   // La trace de l'optimum de l'oracle dans le run A (`SearchResult.traceur`),
   // si l'appelant l'a demandée ; sinon `classerPerte` rejoue une recherche.
   traceOptimum?: TraceCandidat | null;
-  // La saturation, si l'appelant l'a calculée (coûte `buildBuckets`).
+  // La saturation, si l'appelant l'a calculée (coûte `construireMoitie`).
   sature?: Saturation | null;
   k?: number;
 }

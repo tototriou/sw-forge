@@ -1,43 +1,21 @@
-import { Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react';
-import type { EquipeOptimizer } from '../../lib/optimizerMemberStorage';
-import { leadEffectifMembreOptimizer } from '../../lib/equipesOptimizer';
-import LeadPill, { STAT_LABEL } from '../siege/LeadPill';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react';
+import type { ContenuListeOptimizer, EquipeOptimizer } from '../../lib/optimizerMemberStorage';
 import OptimizerEquipeDialog from './OptimizerEquipeDialog';
 import OptimizerCreateListDialog from './OptimizerCreateListDialog';
-import OptimizerBackupBar from './OptimizerBackupBar';
 import OptimizerImportButton, { type SourceImportOptimizer } from './OptimizerImportButton';
 import { importerRecoOptimizer } from '../../lib/importRecoOptimizer';
 import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importerPrepaRtaOptimizer, type RapportImportOptimizer } from '../../lib/importEquipes';
-import {
-  Search,
-  Square,
-  RotateCcw,
-  FlaskConical,
-  Target,
-  Upload,
-  Download,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  SlidersHorizontal,
-  Wrench,
-  Plus,
-  CheckCircle2,
-  Unlock,
-  Trash2,
-  Eye,
-  Swords,
-  Pencil,
-} from 'lucide-react';
-import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
+import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
 import { computeStats } from '../../lib/stats';
-import ArtifactLinesEditor from './ArtifactLinesEditor';
-import { cibleDeLaFile, classementResolu, cleBuild, compositionDePage, compteAffichable, compteConfirme, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
-import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
+import { compteAffichable, compteConfirmeDesComptes, pagesDesResultats, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
+import { etatReliqueDuBuild } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
-import { useArtifactOptimQueue, type ResolutionHorsFil } from '../../hooks/useArtifactOptimQueue';
-import { entreesSerialisables } from '../../workers/resolutionBody';
+import { contexteResultat, runesDuContexte } from '../../lib/contexteResultat';
+import { TAILLE_PAGE_CLASSEMENT, type CarteClassement } from '../../lib/classementCompact';
+import { bornesMisesDeCote, bornesSousMesure, triDesResultats } from '../../lib/colonnesResultats';
+import { avecBorne, colonneDisponible, objectifsMontres } from '../../lib/filtresResultats';
+import type { ColonneResultat } from '../../lib/colonnesResultats';
 import {
   bornesArtefacts,
   chercherPaires,
@@ -45,49 +23,29 @@ import {
   type ArtifactSearchParams,
   nombreDePairesRetenues,
   paireRepresentative,
-  respecteMinimums,
 } from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
 import { regimeArtefacts, regimeEquipementDe, type RegimeArtefacts } from '../../lib/artifactEvaluation';
 import { evaluateursArtefactsFiche, parametresArtefactsFiche, piecesFigeesDe, sortesFigeesDe, statsLignesArtefactsEquipables } from '../../lib/artifactFiche';
 import {
-  CAPPED_STATS,
-  RUNE_EFFECT,
-  RELIC_MAIN,
-  RELIC_MAIN_OPTIONS,
-  RELIC_UNIQUE,
   StatKey,
-  formatArtifactMain,
-  relicUniqueEffectLabel,
-  runeSetIconFilter,
   runeEfficiency,
   runeScore,
 } from '../../lib/effects';
-import RuneIcon from '../RuneIcon';
 import {
   BuildRequirement,
-  SLOT_MAIN_OPTIONS,
   estimateSearchSpace,
   diagnoseFeasibility,
   StatFeasibility,
   rankBlockingConditions,
   BlockingConditionsDiagnosis,
-  NearMiss,
-  StatShortfall,
-  statTotal,
-  objectiveScore,
   avecAurasConditions,
-  sortCandidates,
-  scoreDuCandidat,
-  optionsDeClassement,
   scoreDeReference,
   candidateMetricTotal,
-  pvEffectifs,
   aurasPropresParRunes,
-  OBJECTIVE_LABELS,
+  type SearchParams,
   RealDamageContext,
   SLOT_FILTER_PRESETS,
-  ARTIFACT_MAIN_OPTIONS,
   type BuildCandidate,
 } from '../../lib/runeBuildOptim';
 import { DetailMonstre, chargerDetail } from '../../lib/monsterSkills';
@@ -128,14 +86,12 @@ import {
   artifactDamageProfile,
 } from '../../lib/damage';
 import {
-  AUTO_EXCLUSION_SCOPES,
-  AutoExclusionScope,
   ExclusionCandidate,
   ExclusionSelector,
   ExclusionSource,
   ExclusionSourceData,
+  type OptimizerListMember,
   SOURCE_OPTIONS,
-  ValidatedBuild,
   autoExcludedRuneIds,
   etatAjoutListe,
   exclusionCandidatesFor,
@@ -150,15 +106,11 @@ import {
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
 import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe, relicMainPourCeCompte } from '../../lib/optimizerRecipe';
-import { classeMessageImport, delaiEffacementImport, type MessageImport } from '../../lib/messageImport';
+import { delaiEffacementImport, type MessageImport } from '../../lib/messageImport';
 import { DUREE_ATTENTION_MS, doitRappeler, echoAurasExternes, guideVersResPre } from '../../lib/aurasExternes';
 import { jourLocal, telechargerTexte } from '../../lib/telechargement';
 import {
-  ArtifactMainChoice,
   OptimizerState,
-  OptimizerSortKey,
-  RelicMainChoice,
-  RelicUniqueChoice,
   DEFAULT_RELIC_MIN_UPGRADE,
   defaultRelicMainChoice,
   criteresApresChangementEspece,
@@ -166,40 +118,69 @@ import {
   relicMainChoiceApresChangementExemplaire,
 } from '../../hooks/useOptimizerState';
 import { UseOptimizerLists } from '../../hooks/useOptimizerLists';
-import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
+import { useRuneMetric } from '../../hooks/useRuneMetric';
+import { useOvercapDisplay } from '../../hooks/useOvercapDisplay';
 import { useMediaQuery, SOUS_LG, SOUS_SM } from '../../hooks/useMediaQuery';
-import GameIcon from '../GameIcon';
-import IconeInterdite from '../IconeInterdite';
-import MonsterAvatar from '../MonsterAvatar';
-import MonsterGear, { type Selected as SelectionGear } from '../MonsterGear';
-import ArtifactFrameIcon from '../ArtifactFrameIcon';
-import ArtifactSubLigne from '../ArtifactSubLigne';
-import { WHEEL_IMG } from '../RuneWheel';
-import Segmented from '../../ui/Segmented';
-import HelpPopover from '../HelpPopover';
-import OptimizerLeadInactif, { MotifHorsFlux } from './OptimizerLeadInactif';
-import {
-  Bouton,
-  BoutonIcone,
-  Champ,
-  ConfirmDialog,
-  Flottant,
-  FlottantAuto,
-  Interrupteur,
-  MobileSheet,
-  NumberField,
-  Pastille,
-  Selecteur,
-  ZoneCliquable,
-} from '../../ui';
-import MonsterSourcePicker from './MonsterSourcePicker';
-import OptimizerListPicker from './OptimizerListPicker';
-import ExclusionCandidateRow from './ExclusionCandidateRow';
-import RuneExclusionPicker from './RuneExclusionPicker';
-import SetComboPicker from './SetComboPicker';
-import BuildCandidateCard, { PlaceEnVerification, useHauteurDesCartes } from './BuildCandidateCard';
+import { type Selected as SelectionGear } from '../MonsterGear';
+import { useHauteurDesCartes } from './BuildCandidateCard';
 import DamageSetupModale from './DamageSetupModale';
-import EtatMonstre from './EtatMonstre';
+import BoutonValiderBuild from './optimizer/BoutonValiderBuild';
+import BandeauBuildValide from './optimizer/BandeauBuildValide';
+import type { EtatValidation } from './optimizer/types';
+import { CONFIGURABLE_SLOTS } from './optimizer/constantes';
+import MonstreEquipementTelephone from './optimizer/MonstreEquipementTelephone';
+import { type ExemplaireEtFicheProps } from './optimizer/ExemplaireEtFiche';
+import MonsterSourcePicker from './MonsterSourcePicker';
+import MonstreEquipement from './optimizer/MonstreEquipement';
+import Conditions from './optimizer/Conditions';
+import StatPrincipaleImposee from './optimizer/StatPrincipaleImposee';
+import SetDeRunes from './optimizer/SetDeRunes';
+import CriteresRecherche from './optimizer/CriteresRecherche';
+import MeilleursArtefacts from './optimizer/MeilleursArtefacts';
+import ArtefactsEtReliques from './optimizer/ArtefactsEtReliques';
+import CarteEtatMonstre from './optimizer/CarteEtatMonstre';
+import RunesDejaUtilisees from './optimizer/RunesDejaUtilisees';
+import ExclusionMonstrePrecis from './optimizer/ExclusionMonstrePrecis';
+import RunesImposees from './optimizer/RunesImposees';
+import ExclusionRunesContenu from './optimizer/ExclusionRunesContenu';
+import TitreExclusionRunes from './optimizer/TitreExclusionRunes';
+import TitreReglagesAvances from './optimizer/TitreReglagesAvances';
+import OptionsRechercheTelephone from './optimizer/OptionsRechercheTelephone';
+import EstimationPool from './optimizer/EstimationPool';
+import ObjectifEtActions from './optimizer/ObjectifEtActions';
+import ProgressionRecherche from './optimizer/ProgressionRecherche';
+import PaginationResultats from './optimizer/PaginationResultats';
+import AvisRechercheTronquee from './optimizer/AvisRechercheTronquee';
+import ConfirmationsLiberation from './optimizer/ConfirmationsLiberation';
+import ReglagesAvancesContenu from './optimizer/ReglagesAvancesContenu';
+import ChoixExemplaire from './optimizer/ChoixExemplaire';
+import MonstresDeLaListe, { type MonstresDeLaListeProps } from './optimizer/MonstresDeLaListe';
+import SelecteurListes from './optimizer/SelecteurListes';
+import EnteteResultats from './optimizer/EnteteResultats';
+import DiagnosticsSansResultat from './optimizer/DiagnosticsSansResultat';
+import GrilleResultats from './optimizer/GrilleResultats';
+import BandeDeTri, { type TriResultats } from './optimizer/TetesDeTri';
+import TableauResultats, { CARTES_SOUS_LE_SEUIL, TABLEAU_VISIBLE } from './optimizer/TableauResultats';
+import BuildCandidateCard from './BuildCandidateCard';
+import { setFormeResultats, useFormeResultats, type FormeResultats } from '../../hooks/useFormeResultats';
+import { libelleColonne } from '../../lib/filtresAffichage';
+import { Modale } from '../../ui';
+import MessageImportRecette from './optimizer/MessageImportRecette';
+import PageBureau from './optimizer/bureau/PageBureau';
+import ListeDeTravailBureau from './optimizer/bureau/ListeDeTravailBureau';
+import SetDeRunesCompact from './optimizer/bureau/SetDeRunesCompact';
+import PrincipalesImposeesBureau from './optimizer/bureau/PrincipalesImposeesBureau';
+import ConditionsBureau from './optimizer/bureau/ConditionsBureau';
+import EtatMonstreEssentiels from './optimizer/bureau/EtatMonstreEssentiels';
+import ArtefactsEtReliqueBureau from './optimizer/bureau/ArtefactsEtReliqueBureau';
+import MeilleursArtefactsBureau from './optimizer/bureau/MeilleursArtefactsBureau';
+import SetsAuraBureau from './optimizer/bureau/SetsAuraBureau';
+import ExclusionRunesBureau from './optimizer/bureau/ExclusionRunesBureau';
+import ReglagesAvancesBureau from './optimizer/bureau/ReglagesAvancesBureau';
+import ExemplaireBureau from './optimizer/bureau/ExemplaireBureau';
+import ObjectifEtRechercherBureau from './optimizer/bureau/ObjectifEtRechercherBureau';
+import ResultatsBureau from './optimizer/bureau/ResultatsBureau';
+import { attenteResultats, type ColonnesOuvertes } from '../../lib/optimizerColonnes';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -253,21 +234,6 @@ interface Props {
   onMonstreHorsVue?: (monstre: Monster | null) => void;
 }
 
-// ⚠️ Le plafond de CAPPED_STATS (voir lib/effects.ts) ne s'applique QU'À la
-// saisie d'une condition (minimum ou maximum) : la RECHERCHE, elle, ne doit
-// surtout pas exclure un build dont la somme brute dépasse 100 % — c'est un
-// résultat légitime, seule la demande d'un seuil > 100 % n'a pas de sens.
-const CAPPED_100 = CAPPED_STATS;
-
-// « Stats de base exclues » n'affecte QUE ces 4 stats (PV/ATQ/DEF/VIT) : elles
-// ont une base qui grandit avec le niveau/l'éveil et que les runes viennent
-// gonfler en % ou en plat. Taux Crit/Dgts Crit/RES/Précision partent d'une
-// petite valeur d'éveil fixe et restent TOUJOURS en TOTAL, quel que soit ce
-// réglage — demandé explicitement : elles « évoluent suivant la valeur
-// d'éveil des monstres », pas selon un mode bonus/total.
-const BASE_TOGGLE_STATS = new Set<StatKey>(['hp', 'atk', 'def', 'spd']);
-
-const CONFIGURABLE_SLOTS: (2 | 4 | 6)[] = [2, 4, 6];
 
 // Candidats de COMPTE pour une espèce précise, un tableau par source (Box/
 // RTA/Défenses siège/Offenses siège) — fonction MODULE (pas un Hook) : appelée
@@ -347,22 +313,6 @@ export function exemplaireAuMontage(
 // tableaux ne suffirait pas, `runeIds` n'est jamais garanti dans le même
 // ordre d'un calcul à l'autre.
 /**
- * L'état de validation d'un build affiché, vis-à-vis de celui qui est réservé.
- *
- * ⚠️ **Trois états, pas deux.** Comparer les seules runes rendait invalidable
- * un build aux MÊMES runes mais aux artéfacts DIFFÉRENTS : l'utilisateur
- * voyait des stats qui ne sont pas celles réservées, et le bouton disait
- * « Validé » sans rien offrir. Le cas est courant, puisque la paire
- * suit le critère de tri (voir docs/03-developpeur/optimizer/,
- * « Régime de la paire ») :
- * changer de tri change la paire, donc les stats, à runes identiques.
- *
- * Un artéfact entre dans les statistiques du monstre — deux paires
- * différentes, ce sont deux builds différents.
- */
-type EtatValidation = 'non' | 'oui' | 'artefacts';
-
-/**
  * Même ensemble d'ids ? Sert aux runes ET aux artéfacts — c'est la même
  * question, et un build validé mémorise les deux (`ValidatedBuild.runeIds`,
  * `ValidatedBuild.artifactIds`).
@@ -402,54 +352,11 @@ function memesIds(a: number[], b: number[]): boolean {
   return sa.every((v, i) => v === sb[i]);
 }
 
-// Équipement NUL, affiché tant qu'aucun monstre n'est choisi — demande
-// explicite de l'utilisateur : la fiche (stats, artéfacts, roue, relique)
-// reste TOUJOURS visible, vide plutôt qu'absente, pour que choisir un
-// monstre ne fasse jamais apparaître un bloc entier là où il n'y avait rien
-// (voir docs/03-developpeur/interface/, « un clic ne déplace jamais ce qu'on vient de
-// cliquer »). `MonsterGear` n'a besoin d'aucune adaptation : `computeStats`
-// sur une base à zéro renvoie des lignes à zéro, `ArtifactSlots`/`RuneWheel`
-// gèrent déjà nativement un tableau vide (voir leurs propres commentaires).
-const EMPTY_GEAR: GearSet = {
-  base: { hp: 0, atk: 0, def: 0, spd: 0, cr: 0, cd: 0, res: 0, acc: 0 },
-  runes: [],
-  artifacts: [],
-};
-
-function formatBig(n: number): string {
-  if (!Number.isFinite(n)) return '—';
-  if (n < 1_000_000_000) return Math.round(n).toLocaleString('fr-FR');
-  return n.toExponential(1);
-}
-
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
 // minimums de stats donnés. Voir docs/02-app/optimizer/.
-// Les deux crans de « Meilleurs artéfacts offensifs pour ce build ».
-//
-// ⚠️ Défini ici et non dans `runeBuildOptim.ts` avec `OBJECTIVE_LABELS` : ce
-// n'est PAS un objectif de recherche de runes — il ne change rien aux builds
-// trouvés, seulement la paire d'artéfacts proposée par-dessus l'un d'eux.
-const CRITERE_ARTEFACTS_LABELS: { key: 'brut' | 'reel'; label: string }[] = [
-  { key: 'brut', label: 'Dégâts supplémentaires' },
-  { key: 'reel', label: 'Dégâts réels' },
-];
-
-// ⚠️ **Largeur fixe et commune** aux quatre listes de la carte « Artéfacts
-// et reliques » (Attribut, Type, Principale, Propriété unique) — un
-// `<select>` natif sans largeur explicite prend celle de sa plus longue
-// option (« Soins et boucliers accordés en fonction des PV » pour la
-// relique). `truncate` tronque la valeur FERMÉE par « … » ; la liste
-// ouverte garde le texte complet (comportement natif du `<select>`).
-const LARGEUR_SELECTEUR_LISTE = 'w-44 truncate';
-// ⚠️ Même principe pour les LIBELLÉS des deux rangées (Attribut / Type et
-// Principale / Propriété unique / Niveau minimum) : une largeur commune,
-// dimensionnée sur le plus long (« Propriété unique »), sans quoi les
-// boutons de la seconde rangée ne tombent pas sous ceux de la première —
-// « Type » et « Propriété unique » doivent être alignés (demande explicite).
-const LARGEUR_LIBELLE_LISTE = 'w-28';
-
 const AUCUNE_RECOMMANDATION: Reco[] = [];
+const AUCUNE_CARTE: CarteClassement[] = [];
 
 export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATION, box, runes, artifacts, relics, relicUsageById, optimizer, onImporterEquipe, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu, onMonstreHorsVue }: Props) {
   const [rapportImport, setRapportImport] = useState<RapportImportOptimizer | null>(null);
@@ -476,6 +383,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     return rapport;
   }, [onImporterEquipe]);
   const metric = useRuneMetric();
+  // Réglage d'application : ce que le panneau de stats écrit de Taux Crit,
+  // RES et Précision, que les bornes des résultats comparent.
+  const afficherDepassement = useOvercapDisplay();
   // ⚠️ Ne sert PAS aux `Segmented` — ils se resserrent tout seuls
   // en mesurant la place qu'ils reçoivent (voir `Segmented.tsx`), ce qu'un
   // seuil de FENÊTRE ne pouvait pas voir. Reste utilisé par les vignettes
@@ -501,8 +411,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     setExcludeBase,
     optimiserArtefacts,
     setOptimiserArtefacts,
-    adapterArtefactsAuTri,
-    setAdapterArtefactsAuTri,
     artifactMainByKind,
     setArtifactMainByKind,
     relicMainChoice,
@@ -531,18 +439,18 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     setExcludeUsedScope,
     excludedSelectors,
     setExcludedSelectors,
-    adaptiveTrancheWeighting,
-    setAdaptiveTrancheWeighting,
     exhaustiveSearch,
     setExhaustiveSearch,
     verifierToutesLesCombinaisons,
     setVerifierToutesLesCombinaisons,
     sortBy,
     setSortBy,
+    sensTri,
+    setSensTri,
+    bornesResultats,
+    setBornesResultats,
     resultsPage,
     setResultsPage,
-    showAdvanced,
-    setShowAdvanced,
     slotFilterPreset,
     setSlotFilterPreset,
     diagnoseBlockingEnabled,
@@ -558,6 +466,10 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     effacerResultats,
     lireCombatMembre,
   } = optimizer;
+  // Les bornes que la vue applique et que l'écran montre : une borne
+  // d'« Efficience » posée sous l'autre mesure est mise de côté, sans
+  // conversion, et revient au retour à sa mesure (`bornesSousMesure`).
+  const bornesVue = useMemo(() => bornesSousMesure(bornesResultats, metric), [bornesResultats, metric]);
   const combatMembre = useMemo(() => lireCombatMembre(),
     // Le getter lit les refs vivantes du hook ; ces dépendances publient
     // leurs changements sans recopier le lead d'équipe dans l'état personnel.
@@ -893,18 +805,16 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     });
   }
 
-  // Basculer sur Haut/Extrême active « Rechercher jusqu'à épuisement complet »
-  // et « Prioriser les stats les plus difficiles » — un novice qui choisit un
-  // pré-filtrage large n'a aucune raison de savoir que ces deux réglages sont
-  // ce qui le rend réellement utile. Reste un COUP DE POUCE, pas un
-  // verrouillage : chaque interrupteur garde son `onChange` propre, remettre
-  // à false ensuite reste un clic normal dessus. Bas/Moyen ne les touchent
-  // pas dans l'autre sens — décochés une fois, ils le restent.
+  // Basculer sur Haut/Extrême active « Rechercher jusqu'à épuisement
+  // complet » — un novice qui choisit un pré-filtrage large n'a aucune raison
+  // de savoir que ce réglage est ce qui le rend réellement utile. Reste un
+  // COUP DE POUCE, pas un verrouillage : l'interrupteur garde son `onChange`
+  // propre, remettre à false ensuite reste un clic normal dessus. Bas/Moyen
+  // ne le touchent pas dans l'autre sens — décoché une fois, il le reste.
   function handleSlotFilterPresetChange(preset: typeof slotFilterPreset) {
     setSlotFilterPreset(preset);
     if (preset === 'haut' || preset === 'extreme') {
       setExhaustiveSearch(true);
-      setAdaptiveTrancheWeighting(true);
     }
   }
 
@@ -925,11 +835,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // mémorise que les identifiants.
   const artifactById = useMemo(() => new Map(artifacts.map((a) => [a.id, a])), [artifacts]);
 
-  // ⚠️ La page que la file sert en priorité : les builds qui rempliront les
-  // places « Vérification… » de la page affichée (`composition.aVerifier`).
-  // Elle est remplie APRÈS `composition` (plus bas) : une ref, parce
-  // que la file est déclarée AVANT elle et ne peut donc pas recevoir sa valeur.
-  const pageAfficheeRef = useRef<BuildCandidate[]>([]);
   // La grille des résultats : `useHauteurDesCartes` y mesure les cartes.
   const grilleResultatsRef = useRef<HTMLDivElement>(null);
 
@@ -1067,7 +972,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // `disabled` du `Segmented`, plus bas).
   // Un autre exemplaire de la MÊME espèce est désigné (puce de source,
   // zone D, même espèce rechoisie au bestiaire) : le choix de relique de
-  // l'utilisateur est gardé, sauf « Garder la relique équipée » sur un
+  // l'utilisateur est gardé, sauf « Comme équipée » sur un
   // exemplaire qui n'en porte pas — la recherche tournerait alors sans
   // relique, sans rien en dire.
   function reliqueCoherenteAvecExemplaire(relique: RelicDetail | undefined) {
@@ -1180,8 +1085,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   }
 
   // Bureau uniquement : ferme la désambiguïsation d'exemplaire (zone D) au
-  // clic extérieur — même patron que `avancesRef`/« Réglages avancés » plus
-  // bas. Au doigt, la zone D est un bloc INLINE (pas un `Flottant`), donc ce
+  // clic extérieur, comme HelpPopover.tsx. Au doigt, la zone D est un bloc INLINE (pas un `Flottant`), donc ce
   // garde n'a rien à fermer par-dessus autre chose.
   const zoneDRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -1487,15 +1391,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
    * ne passe et la recherche refuse de partir.
    */
   /**
-   * Le critère sur lequel la paire d’artéfacts est optimisée.
-   *
-   * ⚠️ **Le TRI si l’utilisateur le demande, l’OBJECTIF sinon.** Le tri est
-   * une VUE, l’optimisation une DÉCISION : les coupler d’office déplaçait la
-   * paire dès qu’on changeait de tri pour explorer. Voir
-   * `adapterArtefactsAuTri`.
+   * La paire d’artéfacts et la relique se choisissent sur l’OBJECTIF de la
+   * recherche, jamais sur le tri affiché : le tri est une vue, il ne résout
+   * aucun équipement (pour un autre critère, on relance la recherche).
    */
-  const critereArtefactsPaire = adapterArtefactsAuTri ? sortBy : objective;
-  const regimePaire = regimeArtefacts(critereArtefactsPaire);
+  const regimePaire = regimeArtefacts(objective);
   /**
    * Le régime EFFECTIF de l'équipement complet — paire ET relique (le bouton
    * gouverne les deux, aucun interrupteur parallèle) : sort
@@ -1536,14 +1436,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     () => ({ degats: contexteDegatsArtefacts, damageSetup, exclusive: contexteExclusive }),
     [contexteDegatsArtefacts, damageSetup, contexteExclusive]
   );
-  const refEhp = useMemo(
-    () => (selected ? scoreDeReference('ehp', selected.gear, contexteReference) : null),
-    [selected, contexteReference]
-  );
-  const refDegats = useMemo(
-    () => (selected ? scoreDeReference('degats_reels', selected.gear, contexteReference) : null),
-    [selected, contexteReference]
-  );
 
   const sortesFigees = useMemo<ArtifactKind[]>(() => sortesFigeesDe(artifactMainByKind), [artifactMainByKind]);
 
@@ -1556,7 +1448,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
 
   const artifactParams = useMemo(() => {
     // ⚠️ **Optimisation désactivée ≠ sans artéfact.** Les paramètres restent
-    // construits, avec « Garder l'artéfact équipé » IMPOSÉ des deux côtés : le
+    // construits, avec « Comme équipé » IMPOSÉ des deux côtés : le
     // monstre conserve les pièces qu'il porte réellement et leurs statistiques,
     // on cesse seulement d'en chercher d'autres. Le réglage retirait avant
     // TOUTE contribution d'artéfact, ce qui rendait les conditions minimales
@@ -1570,10 +1462,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     // `evaluerPourRegime` centralise ce contrat, partagé avec le site « au
     // fil de l'eau » plus bas et le CLI (`recipeToSearchParams.ts`).
     //
-    // ⚠️ **Le RÉGIME suit `objective`, jamais `regimePaire`/`sortBy`** : cette
+    // ⚠️ **Le RÉGIME suit `objective`, jamais le tri** : cette
     // paire sert à LANCER/BORNER la recherche avant qu'aucun résultat
-    // n'existe, alors que `regimePaire` répond à « qu'est-ce que je REGARDE
-    // en ce moment » (docs/03-developpeur/optimizer/, « Régime de
+    // n'existe (docs/03-developpeur/optimizer/, « Régime de
     // la paire »). `objective` (`Objective`,
     // runeBuildOptim.ts) ne peut jamais valoir `'hp'`/`'atk'`/`'def'` : seuls
     // `degats_reels`/`ehp`/`aucun` sont possibles ici.
@@ -1607,10 +1498,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         lignesVerrouillees,
         damageSetup,
         maxStats,
+        sortDegats: resolvedSkill?.skillCom2usId ?? null,
       }),
       evaluer,
     };
-  }, [selected, evaluateursFiche, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, artefactsReserves, lignesVerrouillees, damageSetup, maxStats]);
+  }, [selected, evaluateursFiche, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, artefactsReserves, lignesVerrouillees, damageSetup, maxStats, resolvedSkill]);
 
   const searchArtifacts = useMemo<ArtifactDetail[]>(
     () => (artifactParams ? paireRepresentative(artifactParams) : []),
@@ -1719,7 +1611,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
      */
     const explication =
       sortesFigees.length >= ARTIFACT_KINDS.length
-        ? 'Les deux emplacements sont sur « Garder l’artéfact équipé » : la paire est déjà décidée, il n’y a rien à chercher.'
+        ? 'Les deux emplacements sont sur « Comme équipé » : la paire est déjà décidée, il n’y a rien à chercher.'
         : scoreRetenu <= 0
           ? 'Aucun artéfact équipable n’apporte de dégâts supplémentaires pour ce critère.'
           : null;
@@ -1890,9 +1782,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // jamais affichée. Voir `diagnoseFeasibility` dans runeBuildOptim.ts pour
   // ce que « satisfiable » garantit et ne garantit PAS.
   const feasibilityDiagnosis = useMemo<StatFeasibility[]>(() => {
+    const fige = search.contexte?.recherche;
+    if (fige) return diagnoseFeasibility({ base: fige.base, artifacts: fige.artifacts, artifactBounds: fige.artifactBounds, relic: fige.relic, pool: fige.pool, requirement: fige.requirement, metric: fige.metric });
     if (!selected) return [];
     return diagnoseFeasibility({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement: requirementAvecAuras, metric });
-  }, [selected, searchArtifacts, searchArtifactBounds, pool, requirementAvecAuras, metric]);
+  }, [search.contexte, selected, searchArtifacts, searchArtifactBounds, pool, requirementAvecAuras, metric]);
   const impossibleFeasibility = useMemo(() => feasibilityDiagnosis.filter((f) => !f.satisfiable), [feasibilityDiagnosis]);
 
   // Palier 2 (voir `rankBlockingConditions` dans runeBuildOptim.ts) — bien
@@ -1903,24 +1797,18 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // de renvoyer 0 résultat — jamais à chaque frappe comme le palier 1.
   const blockingDiagnosis = useMemo<BlockingConditionsDiagnosis | null>(() => {
     if (!selected || !diagnoseBlockingEnabled) return null;
-    if (!result || result.candidates.length > 0) return null;
+    if (!result || result.nombre > 0) return null;
+    const fige = search.contexte?.recherche;
+    if (fige) return rankBlockingConditions({ base: fige.base, artifacts: fige.artifacts, artifactBounds: fige.artifactBounds, relic: fige.relic, pool: fige.pool, requirement: fige.requirement, metric: fige.metric });
     return rankBlockingConditions({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement: requirementAvecAuras, metric });
-  }, [selected, diagnoseBlockingEnabled, result, searchArtifacts, searchArtifactBounds, pool, requirementAvecAuras, metric]);
+  }, [search.contexte, selected, diagnoseBlockingEnabled, result, searchArtifacts, searchArtifactBounds, pool, requirementAvecAuras, metric]);
 
-  // `adaptiveTrancheWeighting` (toggle « Prioriser les stats les plus
-  // difficiles », voir SearchParams dans runeBuildOptim.ts) — réalloue le
-  // budget de rétention par tranche entre les stats demandées selon leur
-  // dispersion mesurée, au lieu d'un plafond uniforme. Désactivé (défaut) :
-  // comportement historique inchangé, coût nul (vérifié par mesure). Activé : recherche plus longue (+20 % de temps de
-  // construction mesuré en moyenne), pour les cas où la recherche normale
-  // ne trouve pas un build qui semble pourtant montable.
-  //
   // `exhaustiveSearch` (toggle « Rechercher jusqu'à épuisement complet ») :
   // remplace le filet de temps de 10 min (`HARD_TIMEOUT_MS`) par `Infinity` —
   // déjà un budget-temps VALIDE pour le moteur, pas un cas spécial ajouté ici
   // (le Worker sait déjà ignorer un `maxMs` non fini, voir `estimatePct` dans
   // runeBuildOptim.worker.ts). ⚠️ Ne retire QUE la limite de temps : le
-  // plafond de `maxCollected` (100 000 candidats, non exposé dans l'UI) reste
+  // plafond de `maxCollected` (1 000 000 candidats, non exposé dans l'UI) reste
   // actif — une recherche assez lâche pour en trouver plus s'arrêtera quand
   // même avant d'avoir visité tout l'espace. Désactivé par défaut : sans lui,
   // une recherche mal contrainte peut tourner très longtemps (le bouton
@@ -1934,9 +1822,12 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     }
     setSetPickerInvalid(false);
     setStoppedManually(false);
-    optimizer.poserTriRecherche(objective);
+    // Le tri de départ est la colonne de l'objectif ; Vitesse se trie par VIT.
+    const triDeDepart = triDesResultats(objective);
+    optimizer.poserTriRecherche(triDeDepart);
     setResultsPage(1);
-    run({
+    setBonusTableau(excludeBase);
+    const params: SearchParams = {
       base: selected.gear.base,
       artifacts: searchArtifacts,
       // ⚠️ La FAISABILITÉ se décide ici, plus sur `artifacts` — voir
@@ -1966,8 +1857,21 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // ⚠️ `undefined` hors de « Dégâts réels » — le moteur retombe alors sur
       // `OBJECTIVE_RELEVANT_STATS[objective]`, comportement inchangé.
       objectiveStats,
-      adaptiveTrancheWeighting,
-    });
+      // ⚠️ Toujours `false` : l'interrupteur « Prioriser les stats les plus
+      // difficiles » est retiré de l'écran (sans gain mesuré). Ni une
+      // session reprise ni une recette importée ne le réactivent.
+    };
+    const photo = contexteResultat({ params, fiche: selected.gear,
+      resolution: artifactParams && optimiserArtefacts ? { fiche: selected.gear, artifactParams,
+        regime: regimeEquipement, degats: contexteDegatsArtefacts, exclusive: contexteExclusive,
+        requirement: requirementAvecAuras, relicContext: params.relicContext } : null,
+      realDamage, damageSetup, exclusive: contexteExclusive, signature: signatureArtefacts, idInventaire: importDuCompte, idEspece: selected.monster.com2usId ?? null,
+      toutVerifier: verifierToutesLesCombinaisons });
+    // Les bornes posées restent : une nouvelle recherche se lit sous les mêmes filtres.
+    // Le tableau demande ses onze valeurs dès la première vue, comme l'effet
+    // de la vue plus bas (`colonnesCompletes`).
+    run(params, photo, { tri: triDeDepart, sens: 'desc', bornes: bornesVue, metric, page: 1, afficherDepassement,
+      ...(formeResultats === 'tableau' ? { colonnesCompletes: true } : {}) });
   }
 
   // Exporte la RECETTE de cette recherche (set, minimums, objectif,
@@ -1995,7 +1899,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       compterAurasResPre,
       metric,
       slotFilterPreset,
-      adaptiveTrancheWeighting,
+      // Toujours `false`, comme la recherche (`handleSearch`).
       exhaustiveSearch,
       verifierToutesLesCombinaisons,
       excludeUsedRunes,
@@ -2034,6 +1938,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // jamais mettre à jour l'état, donc le champ contrôlé revenait TOUJOURS
   // à l'ancien chiffre, rendant impossible de le vider avant de retaper.
   const [pageDraft, setPageDraft] = useState<string | null>(null);
+  // Le build ouvert en détail depuis le tableau des résultats (ses runes).
+  const [detailTableau, setDetailTableau] = useState<string | null>(null);
+  // « Stats totales / Stats bonus » du tableau des résultats : un réglage d'AFFICHAGE,
+  // distinct de « Stats de base exclues » (réglage de recherche). Il part de
+  // celui-ci, photographié au lancement (`handleSearch`), puis ne change que
+  // par l'utilisateur.
+  const [bonusTableau, setBonusTableau] = useState(excludeBase);
   const [importMsg, setImportMsg] = useState<MessageImport | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -2062,22 +1973,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     return () => clearTimeout(t);
   }, [rappelAuras]);
 
-  // « Réglages avancés » (bureau) : ancre du `FlottantAuto`, PAS un bloc
-  // inline — un panneau replié par défaut ne peut pas réserver sa place à
-  // l'avance sans perdre l'intérêt d'être replié, donc il flotte PAR-DESSUS
-  // la page plutôt que de pousser « Critères de recherche » en dessous
-  // (voir docs/03-developpeur/interface/, « un clic ne déplace jamais ce qu'on vient
-  // de cliquer »). Même patron que HelpPopover.tsx : ferme au clic extérieur.
-  const avancesRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!showAdvanced) return;
-    const onDown = (e: MouseEvent) => {
-      if (avancesRef.current && !avancesRef.current.contains(e.target as Node)) setShowAdvanced(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [showAdvanced, setShowAdvanced]);
-
   // ── Ouverture guidée vers l'interrupteur des auras RES/PRE
   // Ajouter Accuracy ou Tolerance aux auras externes (« État de mon
   // monstre ») ou le choisir comme set recherché guide vers « Compter les
@@ -2085,18 +1980,17 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // est `guideVersResPre` (aurasExternes.ts), prise au geste, jamais à
   // l'import ni au changement de monstre.
   // ⚠️ **Deux formes, une par format**, choisies par `SOUS_LG` comme le
-  // panneau lui-même (`MobileSheet`) et la carte du bureau (`hidden lg:block`) :
-  // - à la souris, la page défile jusqu'à l'ANCRE du flottant (`avancesRef`),
-  //   PUIS le flottant s'ouvre : `FlottantAuto` choisit son côté en mesurant
-  //   l'ancre à l'ouverture, et ouvert pendant le défilement il mesurerait une
-  //   position périmée. Le défilement peut déplacer la carte cliquée (accepté
-  //   par l'utilisateur, comme pour « Set de runes recherché ») ; le flottant
-  //   se referme au clic suivant hors de lui (effet ci-dessus) ;
+  // panneau lui-même (`MobileSheet`) et la page de bureau (`PageBureau`) :
+  // - au bureau, la colonne repliable « Aura, exclusion, avancés », où
+  //   l'interrupteur vit en ligne, s'ouvre (`guideComplements`, lu par
+  //   `PageBureau` : l'état des onglets se résout avec la largeur), puis
+  //   l'interrupteur est amené à l'écran (effet plus bas) ;
   // - au doigt, le panneau « Options de recherche » s'ouvre par-dessus la
   //   carte (demandé à App.tsx par `onOuvrirMenu`), puis son contenu défile
   //   jusqu'à l'interrupteur (effet plus bas).
   // L'interrupteur est surligné `DUREE_ATTENTION_MS` (3 s), au même token que
-  // le rappel ; il reste toujours rendu dans sa surface (`reglagesAvancesInner`).
+  // le rappel ; il reste rendu dans sa surface tant qu'elle est montée
+  // (panneau au téléphone, colonne ouverte au bureau).
   const sousLg = useMediaQuery(SOUS_LG);
   const [attentionResPre, setAttentionResPre] = useState<number | null>(null);
   useEffect(() => {
@@ -2104,97 +1998,48 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     const t = setTimeout(() => setAttentionResPre(null), DUREE_ATTENTION_MS);
     return () => clearTimeout(t);
   }, [attentionResPre]);
-  // Une ref par surface : les deux exemplaires de `reglagesAvancesInner`
-  // peuvent être montés ensemble (le flottant reste monté, masqué, sous `lg`).
-  const interrupteurResPreFlottantRef = useRef<HTMLDivElement>(null);
+  // Une ref par surface : la colonne « Aura, exclusion, avancés » au bureau,
+  // le panneau « Options » au doigt.
+  const interrupteurResPreBureauRef = useRef<HTMLDivElement>(null);
   const interrupteurResPrePanneauRef = useRef<HTMLDivElement>(null);
-  // Le défilement du bureau en attente de sa fin : annulé par un nouveau
-  // guidage ou au démontage, pour ne jamais ouvrir un flottant périmé.
-  const annulerDefilementGuide = useRef<(() => void) | null>(null);
-  useEffect(() => () => annulerDefilementGuide.current?.(), []);
-
-  // Défile jusqu'à `el` (patron de « Set de runes recherché » : `smooth`,
-  // `center`), PUIS appelle `suite` — à la fin du défilement (`scrollend`),
-  // ou au bout d'une seconde si l'événement n'arrive pas (navigateur qui ne le
-  // connaît pas). Déjà entièrement visible : rien à défiler, tout de suite.
-  function defilerPuis(el: HTMLElement, suite: () => void) {
-    annulerDefilementGuide.current?.();
-    const r = el.getBoundingClientRect();
-    if (r.top >= 0 && r.bottom <= window.innerHeight) {
-      suite();
-      return;
-    }
-    let filet = 0;
-    const annuler = () => {
-      document.removeEventListener('scrollend', fin);
-      window.clearTimeout(filet);
-      annulerDefilementGuide.current = null;
-    };
-    const fin = () => {
-      annuler();
-      suite();
-    };
-    document.addEventListener('scrollend', fin);
-    filet = window.setTimeout(fin, 1000);
-    annulerDefilementGuide.current = annuler;
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
+  // Les états des onglets du bureau (`PageBureau`) : `null` tant que
+  // l'utilisateur n'y a pas touché, l'état de départ suit alors la largeur.
+  // Local à l'écran, comme tout état d'ouverture (src/lib/optimizerColonnes.ts).
+  const [colonnesBureau, setColonnesBureau] = useState<ColonnesOuvertes | null>(null);
+  // Le jeton du guidage vers « Aura, exclusion, avancés ».
+  const [guideComplements, setGuideComplements] = useState<number | null>(null);
 
   function guiderVersResPre() {
     if (sousLg) {
-      annulerDefilementGuide.current?.();
       onOuvrirMenu();
       setAttentionResPre((n) => (n ?? 0) + 1);
       return;
     }
-    const ancre = avancesRef.current;
-    if (!ancre) return;
-    defilerPuis(ancre, () => {
-      setShowAdvanced(true);
-      setAttentionResPre((n) => (n ?? 0) + 1);
-    });
+    setGuideComplements((n) => (n ?? 0) + 1);
+    setAttentionResPre((n) => (n ?? 0) + 1);
   }
 
   // Puis l'interrupteur lui-même, une fois sa surface ouverte : au doigt, il
   // est le DERNIER réglage du panneau, sous « Exclusion de runes » ; au
-  // bureau, le bas du flottant peut dépasser de l'écran (`nearest` : le
-  // moindre défilement qui le montre). `requestAnimationFrame` : le flottant
-  // choisit sa place dans un effet de mise en page, à laisser finir avant de
-  // mesurer.
+  // bureau, le bas de la colonne peut dépasser de l'écran (`nearest` : le
+  // moindre défilement qui le montre). `requestAnimationFrame` : la colonne
+  // ouverte se met en page dans un effet, à laisser finir avant de mesurer.
   useEffect(() => {
     if (attentionResPre === null) return;
+    // Au bureau, l'interrupteur n'est rendu que colonne ouverte : l'effet se
+    // rejoue quand l'état des onglets change (`colonnesBureau`).
     const el = sousLg
       ? menuOuvert
         ? interrupteurResPrePanneauRef.current
         : null
-      : showAdvanced
-        ? interrupteurResPreFlottantRef.current
-        : null;
+      : interrupteurResPreBureauRef.current;
     if (!el) return;
-    const image = requestAnimationFrame(() =>
-      el.scrollIntoView({ behavior: 'smooth', block: sousLg ? 'center' : 'nearest' })
-    );
+    // Au bureau, en A3, c'est la colonne repliable qui défile, seule.
+    const image = requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: sousLg ? 'center' : 'nearest' });
+    });
     return () => cancelAnimationFrame(image);
-  }, [attentionResPre, sousLg, menuOuvert, showAdvanced]);
-
-  // « Exclusion de runes » (bureau) : même patron, mêmes raisons — repliée par
-  // défaut (demande explicite), donc dépliée hors flux pour ne pousser ni
-  // « Réglages avancés » en dessous ni la ligne d'estimation.
-  //
-  // ⚠️ État LOCAL et non remonté dans `useOptimizerState`, contrairement à
-  // `showAdvanced` : c'est de l'ouverture/fermeture d'écran, pas un critère de
-  // recherche. Rien à exporter dans une recette, rien à remettre à zéro au
-  // changement de monstre.
-  const exclusionRef = useRef<HTMLDivElement>(null);
-  const [showExclusion, setShowExclusion] = useState(false);
-  useEffect(() => {
-    if (!showExclusion) return;
-    const onDown = (e: MouseEvent) => {
-      if (exclusionRef.current && !exclusionRef.current.contains(e.target as Node)) setShowExclusion(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [showExclusion]);
+  }, [attentionResPre, sousLg, menuOuvert, colonnesBureau]);
 
   function importRecipe(file: File) {
     file.text().then((text) => {
@@ -2204,6 +2049,19 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         return;
       }
       optimizer.effacerProprietaireCriteres();
+      // ⚠️ Résolu dans TOUT le bestiaire (`allMonsters`), pas seulement les
+      // monstres possédés — la recherche « Monstre à optimiser » couvre
+      // tout le bestiaire, donc une
+      // recette reçue d'un autre joueur pour un monstre qu'on ne possède pas
+      // reste sélectionnable (repli sur ses stats de base 6★, voir
+      // `selected`) au lieu d'échouer.
+      const match = allMonsters.find((m) => m.com2usId === recipe.monsterCom2usId);
+      // Une recette d'une AUTRE espèce change de monstre : même chemin que
+      // `pickSpecies` et `choisirExemplaire` (`resetSearch`), AVANT les valeurs
+      // de la recette, qui l'emportent. Les filtres d'affichage (tri, sens,
+      // bornes) et les résultats appartiennent au monstre : ils tombent avec
+      // lui. Même espèce : rien n'est remis à zéro.
+      if (match && String(match.id) !== selectedId) resetSearch();
       optimizer.poserCriteresAutomatiques({ comboSets: recipe.requirement.sets, minStats: recipe.requirement.minStats,
         maxStats: recipe.requirement.maxStats ?? {}, mainStatsBySlot: recipe.requirement.mainStats ?? {} });
       // ⚠️ **Runes imposées : gardées SEULEMENT si elles existent dans CET
@@ -2243,7 +2101,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       optimizer.poserCriteresAutomatiques({ damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
         compterAurasResPre: recipe.compterAurasResPre ?? true });
       setSlotFilterPreset(recipe.slotFilterPreset);
-      setAdaptiveTrancheWeighting(recipe.adaptiveTrancheWeighting);
       // ⚠️ `?? false` : une recette exportée AVANT ce réglage ne porte pas ce
       // champ (`undefined`) — repli sur le défaut plutôt que de propager une
       // valeur non booléenne à l'état.
@@ -2266,7 +2123,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // ts) — un monstre absent ici est silencieusement ignoré, pas une erreur.
       setExcludedSelectors(recipe.excludedSelectors ?? []);
       optimizer.poserCriteresAutomatiques({ optimiserArtefacts: !recipe.ignoreArtifacts });
-      // ⚠️ « Garder l'artéfact équipé » ne se partage pas — la règle, son
+      // ⚠️ « Comme équipé » ne se partage pas — la règle, son
       // pourquoi et le repli sur une provenance inconnue vivent dans
       // `mainsPourCeCompte` (optimizerRecipe.ts), fonction pure et testée.
       const { mains, bascules } = mainsPourCeCompte(recipe, accountName);
@@ -2288,12 +2145,12 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // SUFFIXE du message d'import — un verrou perdu change réellement le
       // résultat, contrairement à un sélecteur d'exclusion introuvable.
       const suffixeLocks = locksIgnores > 0 ? ` ${locksIgnores} rune(s) imposée(s) ignorée(s) : absentes de ton inventaire.` : ''
-        // ⚠️ La bascule « Garder l'artéfact équipé » → « Libre » se DIT : elle
+        // ⚠️ La bascule « Comme équipé » → « Libre » se DIT : elle
         // change ce que la recherche va renvoyer, exactement comme un verrou
         // perdu. Une recette qui se comporte autrement que chez son auteur,
         // sans un mot, serait pire que la donnée transportée telle quelle.
-        + (bascules ? ` Cette recette vient d'un autre compte : « Garder l'artéfact équipé » est passé sur « Libre ».` : '')
-        + (relicBascule ? ` Cette recette vient d'un autre compte : « Garder la relique équipée » est passé sur « Libre ».` : '')
+        + (bascules ? ` Cette recette vient d'un autre compte : « Comme équipé » est passé sur « Libre ».` : '')
+        + (relicBascule ? ` Cette recette vient d'un autre compte : « Comme équipée » est passé sur « Libre ».` : '')
         // ⚠️ Ce que le parseur a CONVERTI (l'ancien mode critique « Moyenne »
         // → « Critique ») se dit aussi, mot pour mot
         // comme le CLI (`chargerRecette`) : jamais une conversion silencieuse.
@@ -2301,13 +2158,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // Un avertissement de conversion change le TON et la DURÉE du message :
       // token `warn`, sans effacement automatique (`messageImport.ts`).
       const avecAvertissement = (avertissements ?? []).length > 0;
-      // ⚠️ Résolu dans TOUT le bestiaire (`allMonsters`), pas seulement les
-      // monstres possédés — la recherche « Monstre à optimiser » couvre
-      // tout le bestiaire, donc une
-      // recette reçue d'un autre joueur pour un monstre qu'on ne possède pas
-      // reste sélectionnable (repli sur ses stats de base 6★, voir
-      // `selected`) au lieu d'échouer.
-      const match = allMonsters.find((m) => m.com2usId === recipe.monsterCom2usId);
       if (match) {
         // ⚠️ Une recette ne porte que l'ESPÈCE (`monsterCom2usId`), jamais un
         // exemplaire précis (voir le commentaire de `gearSource` plus haut) —
@@ -2343,63 +2193,24 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     });
   }
 
-  // Source des candidats affichés : le résultat FINAL une fois la recherche
-  // terminée, sinon l'aperçu EN DIRECT accumulé pendant qu'elle tourne (voir
-  // useBuildOptimSearch.ts) — pour voir des builds apparaître au fur et à
-  // mesure plutôt que d'attendre l'épuisement complet de l'espace de
-  // recherche. `null` tant qu'aucun des deux n'existe (recherche jamais
-  // lancée, ou encore en phase `building` — pas de candidat possible avant
-  // que l'appariement ait commencé).
-  const candidatesSource = result ? result.candidates : status === 'running' && progress?.phase === 'pairing' ? progress.candidates : null;
+  // La vue (tri et son sens, bornes, mesure, page) part au classeur, qui en
+  // compose la page ; l'écran n'en reçoit que l'instantané : vingt cartes au
+  // plus, comptes, versions. Aucun de ces réglages ne résout d'équipement,
+  // sauf la page demandée en naviguant (le classeur le distingue d'un
+  // changement de tri ou de borne).
+  // Cartes ou tableau : un réglage du bureau ; le téléphone garde les cartes.
+  // Le tableau demande les onze valeurs de chaque build (`colonnesCompletes`).
+  const formeChoisie = useFormeResultats();
+  const formeResultats: FormeResultats = sousLg ? 'cartes' : formeChoisie;
+  const { changerVue } = search;
+  useEffect(() => {
+    changerVue({ tri: sortBy, sens: sensTri, bornes: bornesVue, metric, page: resultsPage, afficherDepassement,
+      ...(formeResultats === 'tableau' ? { colonnesCompletes: true } : {}) });
+  }, [changerVue, sortBy, sensTri, bornesVue, metric, resultsPage, afficherDepassement, formeResultats]);
+  const instantane = search.classement;
+  const interrompu = search.classementInterrompu;
 
-  // Tri CLIENT, sans relancer la recherche : le moteur collecte déjà les
-  // stats complètes de chaque candidat valide (voir runeBuildOptim.ts).
-  // ⚠️ Liste COMPLÈTE, plus limitée à 20 — la pagination ci-dessous découpe
-  // cette liste en pages, pour pouvoir visualiser TOUS les builds trouvés
-  // (jusqu'à `MAX_COLLECTED`, voir runeBuildOptim.ts), pas seulement les
-  // meilleurs 20.
-  // ⚠️ Le tri vit dans `sortCandidates` (runeBuildOptim.ts), PAS ici — il
-  // était inline, donc invisible et irréutilisable pour tout autre
-  // consommateur. Les scripts CLI prenaient `candidates[0]` ou
-  // `slice(0, 20)` en croyant lire les meilleurs, alors que le moteur ne
-  // trie pas par l'objectif. Une seule porte, comme `damageRelevantStats`.
-  // ⚠️ La relique de l'ordre de BASE, SANS le cache de la file : la file lit
-  // cet ordre (`triees`), il ne peut donc jamais se nourrir de ses résultats.
-  // Mais une relique FIXE (`off`, `equipped`) est connue d'avance : son effet
-  // unique compte dès ici — cet ordre est affiché tel quel tant que
-  // la file n'a rien résolu, toujours quand l'optimisation d'artéfacts est
-  // coupée, et les cartes le comptent. En `recherche` : neutre (`en attente`).
-  const etatReliqueDeBase = useCallback(
-    (_c: BuildCandidate) => etatReliqueDuBuild(undefined, relicContextRecherche, selected?.gear.relic),
-    [relicContextRecherche, selected?.gear.relic]
-  );
-  const fullSortedCandidates = useMemo(
-    () =>
-      candidatesSource
-        ? sortCandidates(
-            candidatesSource,
-            sortBy,
-            optionsDeClassement({
-              realDamage,
-              damageSetup,
-              runeById,
-              metric,
-              aurasPropresDe,
-              // La paire SUPPOSÉE pour tous (`realDamage.artefacts`).
-              artefactsDuBuild: () => null,
-              etatReliqueDe: etatReliqueDeBase,
-              contexteExclusive,
-            })
-          )
-        : [],
-    [candidatesSource, sortBy, runeById, metric, realDamage, damageSetup, aurasPropresDe, etatReliqueDeBase, contexteExclusive]
-  );
-
-  const RESULTS_PAGE_SIZE = 20;
-
-  // ⚠️ `composition` (la page affichée) est définie PLUS BAS, après la file
-  // d'optimisation d'artéfacts : elle dépend du classement corrigé par les
-  // paires trouvées, qui n'existe qu'une fois la file déclarée.
+  const RESULTS_PAGE_SIZE = TAILLE_PAGE_CLASSEMENT;
 
   /**
    * Optimisation d'artéfacts des meilleurs builds, EN TEMPS MASQUÉ pendant que
@@ -2422,13 +2233,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         // cache intact quand on changeait le buff ATQ ou les PV de la cible.
         damageSetup,
         compterAurasResPre,
-        // ⚠️ Le TRI, pas l'objectif : c'est lui qui décide du critère
-        // de choix de la paire (voir `resoudreEquipement`). Changer de tri
-        // entre Dégâts réels et PV effectifs change donc la meilleure paire, et
-        // doit vider le cache. Entre Efficience et Vitesse, rien ne change —
-        // aucun artéfact n'entre dans ces deux scores — mais `sortBy` variant
-        // quand même, le cache est refait pour rien : coût borné (K builds en
-        // temps masqué), contre le risque d'afficher une paire périmée.
         // ⚠️ **Le RÉGIME EFFECTIF (`regimeEquipement`), jamais `regimePaire`
         // brut** :
         // `regimePaire` ne rabat PAS « Dégâts réels » sur `aucun` quand le
@@ -2467,7 +2271,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         // gardaient leur paire d'avant, même après une nouvelle recherche.
         // Un ensemble : l'ordre est sans effet.
         artefactsReserves,
-        // ⚠️ Un emplacement figé sur « Garder l'artéfact équipé » n'a qu'un
+        // ⚠️ Un emplacement figé sur « Comme équipé » n'a qu'un
         // candidat : la pièce que porte la fiche. Valider un build de CE
         // monstre, « Voir le runage réellement porté » ou changer d'exemplaire
         // de la même espèce la remplacent. Les sortes libres n'y
@@ -2483,292 +2287,91 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     [selected?.monster.com2usId, selected?.gear.relic, selected?.gear.artifacts, damageSetup, compterAurasResPre, regimeEquipement, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte, requirementAvecAuras, artefactsReserves, importDuCompte]
   );
 
-  /**
-   * Résout l'équipement d'UN build — paire ET relique, ensemble — pour la
-   * file : `resoudreEquipementDuBuild` (relicQueue.ts), la partie
-   * pure que `tests/relic-queue.test.ts` compare à l'oracle, avec l'entrée
-   * construite par `entreeResolutionDuBuild` — le producteur que le CLI
-   * appelle aussi : le build, le prédicat à relique
-   * fixe (`respecteConditionsPaireFixe` : minimums et maximums RES/PRE, les
-   * autres maximums restant hors filtre), les conditions complètes et
-   * le contexte relique de la recherche LANCÉE (jamais une
-   * relecture des trois champs).
-   *
-   * ⚠️ `null` quand l'optimisation est coupée : il n'y a alors qu'UNE paire
-   * possible (celle qui est portée), déjà comptée par `searchArtifacts`. La
-   * faire passer par la file lui ferait « choisir » entre un seul candidat,
-   * pour un résultat identique et cent tranches de temps masqué en pure
-   * perte.
-   *
-   * ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** : le régime
-   * effectif (`regimeEquipement`) suit `sortBy`, pas `objective`, quand
-   * « Adapter les artéfacts et reliques au tri » est activé. L'objectif fige
-   * le critère au lancement ; le tri, lui, peut changer après coup. Une paire
-   * optimisée pour les dégâts affichée dans une liste triée par PV effectifs
-   * montrerait une valeur qui n'est pas la meilleure atteignable.
-   */
-  // Les caches partagés par les builds de la file (`CachesResolution`) :
-  // profil de dégâts par paire et préfiltre. Neufs dès que la signature des
-  // réglages ou les paramètres de paires (donc l'inventaire) changent.
-  const cachesResolution = useMemo(() => nouveauxCachesResolution(), [signatureArtefacts, artifactParams]);
-  const resoudreEquipement = useMemo(() => {
-    if (!artifactParams || !selected || !optimiserArtefacts) return null;
-    return (c: BuildCandidate) =>
-      resoudreEquipementDuBuild(
-        entreeResolutionDuBuild({
-          fiche: selected.gear,
-          runes: runesDuBuild(c, runeById),
-          artifactParams,
-          regime: regimeEquipement,
-          degats: contexteDegatsArtefacts,
-          exclusive: contexteExclusive,
-          requirement: requirementAvecAuras,
-          relicContext: relicContextRecherche,
-          caches: cachesResolution,
-        })
-      );
-  }, [artifactParams, selected, optimiserArtefacts, runeById, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche, cachesResolution]);
+  // Les chiffres des cartes lisent la photographie et l'instantané du classeur.
+  const contexteResultatAffiche = search.contexte;
+  // Les runes et la mesure que la carte écrit sont celles que le classeur a
+  // jugées : les runes du contexte (le pool du lancement, mêmes données que
+  // l'inventaire jusqu'au prochain import, qui efface les résultats) et la
+  // mesure de la vue publiée. Une borne d'Efficience compare donc le chiffre
+  // même de la carte.
+  const runesDesCartes = contexteResultatAffiche ? runesDuContexte(contexteResultatAffiche) : runeById;
+  const mesureDesCartes = instantane?.vue.metric ?? metric;
+  const avecFile = instantane ? instantane.comptes.avecFile : contexteResultatAffiche?.resolution != null;
+  const aurasPropresDuResultat = useMemo(() => contexteResultatAffiche
+    ? aurasPropresParRunes(runesDuContexte(contexteResultatAffiche)) : aurasPropresDe,
+  [contexteResultatAffiche, aurasPropresDe]);
+  const publicationCouranteRef = useRef(instantane?.versions);
+  publicationCouranteRef.current = instantane?.versions;
+  const contexteReferenceResultat = useMemo(() => contexteResultatAffiche
+    ? { degats: contexteResultatAffiche.realDamage, damageSetup: contexteResultatAffiche.damageSetup, exclusive: contexteResultatAffiche.exclusive }
+    : contexteReference, [contexteResultatAffiche, contexteReference]);
+  const ficheDeReference = selected?.gear;
+  const refEhpResultat = useMemo(() => ficheDeReference ? scoreDeReference('ehp', ficheDeReference, contexteReferenceResultat) : null, [ficheDeReference, contexteReferenceResultat]);
+  const refDegatsResultat = useMemo(() => ficheDeReference ? scoreDeReference('degats_reels', ficheDeReference, contexteReferenceResultat) : null, [ficheDeReference, contexteReferenceResultat]);
 
-  // La MÊME résolution, hors du fil de l'écran : les mêmes
-  // arguments que `resoudreEquipement`, en données — `entreesSerialisables`
-  // ne retire que `evaluer`, le Worker reconstruit l'entrée par
-  // `entreeResolutionDuBuild`. ⚠️ Comparé par IDENTITÉ par la file : chaque
-  // nouvel objet est un contexte renvoyé au Worker (tout l'inventaire
-  // d'artéfacts) — mêmes dépendances que `resoudreEquipement`, sans
-  // `runeById` (les runes voyagent avec chaque demande) ni les caches (le
-  // Worker a les siens, neufs à chaque contexte). Les runes d'un build sortent
-  // du MÊME producteur que celles de `resoudreEquipement` (`runesDuBuild`) :
-  // jamais une seconde expression recopiée.
-  const entreesResolution = useMemo(() => {
-    if (!artifactParams || !selected || !optimiserArtefacts) return null;
-    return entreesSerialisables({
-      fiche: selected.gear,
-      artifactParams,
-      regime: regimeEquipement,
-      degats: contexteDegatsArtefacts,
-      exclusive: contexteExclusive,
-      requirement: requirementAvecAuras,
-      relicContext: relicContextRecherche,
-    });
-  }, [artifactParams, selected, optimiserArtefacts, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche]);
-  const resolutionHorsFil = useMemo<ResolutionHorsFil | null>(
-    () =>
-      entreesResolution
-        ? { entrees: entreesResolution, runesDe: (c: BuildCandidate) => runesDuBuild(c, runeById) }
-        : null,
-    [entreesResolution, runeById]
-  );
-
-  const fileArtefacts = useArtifactOptimQueue({
-    // ⚠️ La file lit l'ordre de BASE (paire supposée), jamais un ordre déjà
-    // corrigé par ses propres résultats : se nourrir de sa sortie créerait une
-    // boucle — chaque paire trouvée changerait le classement, donc le top K,
-    // donc la file.
-    triees: fullSortedCandidates,
-    // ⚠️ Accesseur : `composition` se calcule PLUS BAS (elle dépend du
-    // classement corrigé par cette file). Lu au moment de traiter, il voit
-    // toujours les builds qui rempliront les places en attente de la page
-    // réellement à l’écran.
-    pageAffichee: () => pageAfficheeRef.current,
-    // Paire ET relique, ensemble — les stats du résultat sont recalculées
-    // avec le couple retenu (voir `resoudreEquipement`) : sans ça, la carte
-    // montrerait des stats qui ne vont pas avec l'équipement affiché à côté,
-    // et un tri par ATQ porterait sur une valeur périmée.
-    resoudre: resoudreEquipement,
-    signature: signatureArtefacts,
-    // ⚠️ 300 en mode relique « recherche », 100 sinon, dès le
-    // lancement : le contexte de la recherche LANCÉE, jamais les réglages
-    // courants — les changer après coup ne change pas K. Des combinaisons
-    // CONFIRMÉES : la file continue au-delà des écartés ; et
-    // TOUT avec « Vérifier toutes les combinaisons trouvées », lu EN DIRECT
-    // (il ne change pas la recherche de runes, seulement jusqu'où la file
-    // vérifie — voir `cibleDeLaFile`).
-    K: cibleDeLaFile({ relicContext: relicContextRecherche, toutVerifier: verifierToutesLesCombinaisons }),
-    // Le Worker de résolution quand il est disponible ; `resoudre` reste le
-    // chemin de repli.
-    horsFil: resolutionHorsFil,
-  });
-
-  /**
-   * Le profil de dégâts des artéfacts DE CE BUILD, quand sa paire est connue.
-   *
-   * ⚠️ Doit accompagner partout le remplacement des stats : noter des stats
-   * recalculées avec la vraie paire en gardant les lignes d'effet de la paire
-   * supposée mélangerait deux modèles.
-   *
-   * Mémoïsé sur le cache : `artifactDamageProfile` est appelé à chaque
-   * comparaison de tri, soit O(n log n) fois sur des dizaines de milliers de
-   * candidats.
-   */
-  const profilsParBuild = useMemo(() => {
-    const m = new Map<string, ReturnType<typeof artifactDamageProfile>>();
-    for (const [cle, r] of fileArtefacts.parBuild) m.set(cle, artifactDamageProfile(r.artefacts));
-    return m;
-  }, [fileArtefacts.parBuild]);
-  const profilArtefactsDuBuild = (c: BuildCandidate) => profilsParBuild.get(cleBuild(c)) ?? null;
-
-  // L'état de la relique d'un candidat, tel que sa carte l'AFFICHE — et la
-  // relique dont son score compte l'effet unique : une seule expression pour
-  // les deux. ⚠️ Dépend de la PIÈCE de la fiche (l'objet), jamais
-  // de son identifiant : une relique réimportée avec un autre effet unique
-  // sous le même `rid` doit renoter.
-  const etatReliqueDe = useCallback(
-    (c: BuildCandidate) => etatReliqueDuBuild(fileArtefacts.parBuild.get(cleBuild(c)), relicContextRecherche, selected?.gear.relic),
-    [fileArtefacts.parBuild, relicContextRecherche, selected?.gear.relic]
-  );
-  /**
-   * Les options du classement AFFICHÉ (`affichees` ci-dessous) — partagées
-   * avec les cartes, qui affichent leur chiffre par `scoreDuCandidat` avec
-   * CET objet : la carte montre la valeur même qui l'a classée (la
-   * carte « Dégâts réels » recopiait `computeTotalDamage` sans la Conquête de
-   * la relique retenue, « PV effectifs » `pvEffectifs` sans Ténacité).
-   * Construites par `optionsDeClassement` (runeBuildOptim.ts), le producteur
-   * que le CLI et les tests appellent aussi : l'effet unique y compte dans
-   * les trois modes de relique.
-   */
-  const optionsDuTriAffiche = useMemo(
-    () =>
-      optionsDeClassement({
-        realDamage,
-        damageSetup,
-        runeById,
-        metric,
-        aurasPropresDe,
-        // ⚠️ Le profil de CE build, pas celui de la paire supposée : ses stats
-        // viennent d'être recalculées avec sa vraie paire, ses lignes d'effet
-        // doivent suivre. Sinon on note les stats d'un modèle avec les effets
-        // d'un autre.
-        artefactsDuBuild: profilArtefactsDuBuild,
-        etatReliqueDe,
-        contexteExclusive,
-      }),
-    // `profilArtefactsDuBuild` ne lit que `profilsParBuild`.
-    [profilsParBuild, realDamage, damageSetup, runeById, metric, aurasPropresDe, etatReliqueDe, contexteExclusive]
-  );
-
-  /**
-   * Le classement RÉEL : chaque build vu à travers sa vraie paire dès qu'elle
-   * est connue, puis retrié.
-   *
-   * ⚠️ **Un build optimisé peut donc passer devant, et c'est le comportement
-   * voulu** — plutôt qu'afficher un total supérieur à un rang inférieur, ce qui
-   * se lirait comme un défaut.
-   *
-   * ⚠️ Cette boucle « trier → optimiser → retrier » CONVERGE, elle ne
-   * s'emballe pas : optimiser un build ne peut que faire MONTER son score (la
-   * paire supposée fait partie des paires candidates, le maximum lui est donc
-   * toujours ≥). Un build optimisé monte ou reste ; un build non optimisé ne
-   * peut qu'être repoussé vers le bas. Aucun ne peut ENTRER dans les K premiers
-   * de ce fait — l'ensemble à traiter rétrécit, il ne s'élargit jamais.
-   *
-   * ⚠️ La file, elle, lit `fullSortedCandidates` (l'ordre de BASE) et non ce
-   * classement-ci : c'est ce qui borne le nombre de re-tris, et c'est ce qui
-   * fait que changer le tri d'affichage repriorise la file sans rien invalider
-   * (le cache est indexé par build).
-   *
-   * ⚠️ Les stats remplacées INCLUENT la relique retenue
-   * (`ResultatArtefacts.relique`) — c'est ici, AVANT `sortCandidates`, que
-   * la résolution exacte entre dans le classement ; un build qu'aucun couple
-   * (paire, relique) ne rend faisable est `conforme: false` et sort par le
-   * même filtre que les paires. En mode `recherche`, un candidat non encore
-   * résolu (« en attente ») garde ses stats SANS relique : son rang n'est
-   * pas exact tant que la file ne l'a pas traité — la page affichée passe
-   * en priorité.
-   */
-  // ⚠️ **Les builds qu'AUCUNE paire réelle ne rend équipables sont écartés
-  // ICI** (docs/03-developpeur/optimizer/, « Test conjoint exact à
-  // la validation finale »). Ils ont franchi la borne du moteur, calculée par stat
-  // isolée, sans qu'une paire puisse fournir les appoints simultanément.
-  // Un build pas encore résolu (absent du cache) reste dans ce classement —
-  // on ne sait pas encore —, mais il n'est plus MONTRÉ : la
-  // page n'affiche que les vérifiés (`compositionDePage`, plus bas), et la
-  // file résout en priorité ceux qui rempliront ses places en attente.
-  // ⚠️ `sortCandidates` est un tri
-  // STABLE, à score égal l'ordre d'entrée est préservé — mais cet ordre
-  // d'entrée (celui de l'appariement) n'a rien de canonique. Le départage
-  // (`ordonnerParDepartage`, `rid` croissant puis `cleBuild`, la convention
-  // du contrat, la même que l'oracle) est appliqué AVANT, sur les candidats
-  // conformes : le tri stable qui suit préserve ensuite CET ordre pour
-  // toute égalité de score, quel que soit l'ordre d'arrivée des Workers.
-  // Les trois étapes vivent dans `classementResolu` (artifactQueue.ts), que le
-  // CLI appelle aussi.
-  const affichees = useMemo(
-    () => classementResolu(fullSortedCandidates, fileArtefacts.parBuild, sortBy, optionsDuTriAffiche),
-    [fullSortedCandidates, fileArtefacts.parBuild, sortBy, optionsDuTriAffiche]
-  );
-
-  // Le compte du MOTEUR : les candidats du résultat à la fin, le compte de la
+  // Le compte du MOTEUR : le nombre du bilan à la fin, le compte de la
   // progression pendant l'appariement (non plafonné, contrairement à l'aperçu).
-  const trouvesParLeMoteur = result ? result.candidates.length : progress?.phase === 'pairing' ? progress.found : fullSortedCandidates.length;
-  // Le compte des TROUVÉES : trouvés par le moteur,
-  // moins les builds que la résolution a écartés — ces derniers mesurés comme
-  // reçus moins affichables, jamais lus dans le cache de la file (voir
-  // `compteAffichable`). `affichees` change à chaque publication du cache : le
-  // compte suit, en pleine recherche comme après. Seule source de la ligne de
-  // progression et de la ligne de raison ; l'en-tête et les
-  // pages lisent les CONFIRMÉES (`compteConfirmes`, ci-dessous).
-  const compteAffiche = useMemo(
-    () =>
-      compteAffichable({
-        trouves: trouvesParLeMoteur,
-        recus: fullSortedCandidates.length,
-        affichables: affichees.length,
-        modeRecherche: relicContextRecherche?.mode === 'recherche',
-      }),
-    [trouvesParLeMoteur, fullSortedCandidates.length, affichees.length, relicContextRecherche?.mode]
-  );
+  const recus = instantane?.comptes.recus ?? 0;
+  const trouvesParLeMoteur = result ? result.nombre : progress?.phase === 'pairing' ? progress.found : recus;
+  // Le compte des TROUVÉES : trouvés par le moteur moins les écartés de la
+  // résolution, mesurés comme reçus moins affichables (deux comptes de
+  // l'instantané), jamais lus dans le cache de la file (voir
+  // `compteAffichable`). Seule source de la ligne de progression et de la
+  // ligne de raison ; l'en-tête et les pages lisent les CONFIRMÉES.
+  const compteAffiche = compteAffichable({
+    trouves: trouvesParLeMoteur,
+    recus,
+    affichables: instantane?.comptes.affichables ?? 0,
+    modeRecherche: relicContextRecherche?.mode === 'recherche',
+  });
   // Le compte des CONFIRMÉES : les builds de cette recherche résolus ET
-  // conformes, lus dans le cache publié de la file — un compte qui ne baisse
-  // jamais pendant une recherche. Seule source de l'en-tête, du nombre de pages
-  // et des contrôles masqués sous « Aucune combinaison… ». Sans file
-  // (optimisation d'artéfacts coupée), les trouvés, comme avant.
-  const compteConfirmes = useMemo(
-    () =>
-      compteConfirme({
-        recus: fullSortedCandidates,
-        parBuild: resoudreEquipement != null ? fileArtefacts.parBuild : null,
-        trouves: trouvesParLeMoteur,
-        taillePage: RESULTS_PAGE_SIZE,
-        termine: result != null,
-      }),
-    [fullSortedCandidates, resoudreEquipement, fileArtefacts.parBuild, trouvesParLeMoteur, result]
-  );
-  const totalResultsPages = compteConfirmes.pages;
+  // conformes — un compte qui ne baisse jamais pendant une recherche. Seule
+  // source de l'en-tête, du nombre de pages et des contrôles masqués sous
+  // « Aucune combinaison… ». Sans file, les trouvés, comme avant.
+  const compteConfirmes = compteConfirmeDesComptes({
+    recus,
+    resolus: instantane?.comptes.resolus ?? 0,
+    confirmees: instantane?.comptes.confirmees ?? 0,
+    avecFile,
+    trouves: trouvesParLeMoteur,
+    taillePage: RESULTS_PAGE_SIZE,
+    termine: result != null,
+  });
+  // Sous une borne active, les pages sont celles de la vue filtrée (même
+  // règle des confirmées, sur les visibles et les potentiels) ; sans borne,
+  // celles de la recherche, comme avant. « / N+ » tant que d'autres pages
+  // peuvent encore apparaître, dans l'un comme dans l'autre (`pagesDesResultats`).
+  const filtreActif = (instantane?.filtre.bornes.actives.length ?? 0) > 0;
+  const pagesResultats = pagesDesResultats(compteConfirmes, filtreActif ? instantane!.filtre : null, avecFile, RESULTS_PAGE_SIZE);
+  const totalResultsPages = pagesResultats.pages;
 
   // ⚠️ CORRIGE la page courante, ne la remet PAS à 1 : un aperçu EN DIRECT
   // (pendant la phase d'appariement) grandit au fil de la recherche sans
   // que ce soit une NOUVELLE recherche — recommencer à la page 1 à chaque
   // candidat qui arrive rendrait la pagination inutilisable pendant qu'une
-  // recherche tourne. Seuls `handleSearch` (nouvelle recherche) et le choix
-  // de tri (classement entièrement différent) remettent explicitement à 1.
+  // recherche tourne. Seuls `handleSearch` (nouvelle recherche), le choix
+  // de tri et celui de la mesure (classement entièrement différent,
+  // useOptimizerState.ts) remettent explicitement à 1.
   // Le nombre de pages peut aussi DIMINUER (la page au-delà des confirmées disparaît quand ses derniers builds non
   // vérifiés sont écartés) : la page courante revient alors sur la dernière.
   useEffect(() => {
     setResultsPage((p) => Math.min(Math.max(p, 1), totalResultsPages));
   }, [totalResultsPages, setResultsPage]);
 
-  // La page affichée : les builds VÉRIFIÉS seuls,
-  // dans l'ordre réel, puis des places « Vérification… » jusqu'à ce que la page
-  // attend — une seule fonction pure, `compositionDePage`. Un build reçu de la
-  // recherche ne s'affiche pas avec sa paire supposée pour disparaître à la
-  // résolution : il apparaît une fois résolu et conforme, ou jamais. Sans file
-  // (optimisation d'artéfacts coupée), rien n'est à vérifier : la tranche du
-  // classement.
-  const composition = useMemo(
-    () =>
-      compositionDePage({
-        classement: affichees,
-        parBuild: resoudreEquipement != null ? fileArtefacts.parBuild : null,
-        page: resultsPage,
-        taillePage: RESULTS_PAGE_SIZE,
-      }),
-    [affichees, resoudreEquipement, fileArtefacts.parBuild, resultsPage]
-  );
-  // ⚠️ Renseignée à CHAQUE rendu : c’est ce qui fait qu’un changement de page
-  // repriorise la file sans rien relancer ni invalider. La file sert ces
-  // builds avant l'avance de fond (`prochainsATraiter`) ; vide quand la page est
-  // complète.
-  pageAfficheeRef.current = composition.aVerifier;
+  // La page affichée, composée par le classeur : les builds VÉRIFIÉS seuls,
+  // dans l'ordre réel, puis des places « Vérification… » (règle de
+  // `compositionDePage`). Un build reçu de la recherche ne s'affiche pas avec
+  // sa paire supposée pour disparaître à la résolution : il apparaît une fois
+  // résolu et conforme, ou jamais. Sans file, la tranche du classement.
+  // Classeur perdu : plus rien ne remplira les places, la page interrompue ne
+  // montre que ses cartes.
+  const cartes = instantane?.page.cartes ?? AUCUNE_CARTE;
+  const composition = useMemo(() => ({
+    cartes: cartes.map((c) => c.candidat),
+    premierRang: instantane?.page.premierRang ?? 1,
+    placesEnAttente: interrompu ? 0 : instantane?.page.placesEnAttente ?? 0,
+    aVerifier: [],
+  }), [cartes, instantane?.page.premierRang, instantane?.page.placesEnAttente, interrompu]);
   const hauteurCarte = useHauteurDesCartes(grilleResultatsRef);
 
   // Base « nue » du monstre choisi pour une stat — 0 tant qu'aucun monstre
@@ -2817,32 +2420,23 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     return out;
   }, [lists.members]);
 
-  // Contenu de la zone D (désambiguïsation d'exemplaire) — factorisé, PAS un
-  // composant à part : réutilisé tel quel dans le `Flottant` du bureau et le
-  // bloc en ligne du mobile (voir le rendu plus bas), qui ne diffèrent QUE
-  // par leur présentation (flottant vs en ligne), pas par leur contenu.
+  // Contenu de la zone D (désambiguïsation d'exemplaire) — construit UNE fois :
+  // réutilisé tel quel dans le `Flottant` du bureau et le bloc en ligne du
+  // mobile (voir le rendu plus bas), qui ne diffèrent QUE par leur
+  // présentation (flottant vs en ligne), pas par leur contenu.
+  // Le geste d'un exemplaire de la zone D : il devient l'exemplaire optimisé.
+  function choisirExemplaireZoneD(c: ExclusionCandidate) {
+    setSourceSelector(c.selector);
+    reliqueCoherenteAvecExemplaire(c.gear.relic);
+    setZoneDOpen(false);
+    inclureSelectionRecherche(c.selector, c.monster);
+  }
   const zoneDList =
-    candidatesBySource[gearSource].length === 0 ? (
-      <div className="px-3 py-2 text-ink-dim text-[12.5px]">Aucun exemplaire.</div>
-    ) : (
-      candidatesBySource[gearSource].map((c) => (
-        <button
-          key={exclusionSelectorKey(c.selector)}
-          type="button"
-          onClick={() => {
-            setSourceSelector(c.selector);
-            reliqueCoherenteAvecExemplaire(c.gear.relic);
-            setZoneDOpen(false);
-            inclureSelectionRecherche(c.selector, c.monster);
-          }}
-          className={`flex w-full items-center gap-3 px-3 text-left transition hoverable:bg-accent-soft ${
-            c.teamContext ? 'py-1' : 'py-1.5'
-          }`}
-        >
-          <ExclusionCandidateRow candidate={c} />
-        </button>
-      ))
-    );
+    <ChoixExemplaire
+      candidatesBySource={candidatesBySource}
+      gearSource={gearSource}
+      choisirExemplaireZoneD={choisirExemplaireZoneD}
+    />;
 
   // Zone C — les monstres de la liste ACTIVE : chaque ligne porte
   // directement son état validé, une section séparée ailleurs dans l'écran
@@ -3080,32 +2674,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // rebasculer vers l'équipement RÉEL sans quitter la liste ni changer
   // d'exemplaire. Factorisé, réutilisé aux deux endroits où la fiche
   // s'affiche (bureau/mobile).
-  const validatedBadge = ownValidatedBuild ? (
-    <div className="mb-2 flex items-center gap-1.5 rounded-lg bg-accent-soft px-2 py-1 text-[11px] font-semibold text-accent">
-      <CheckCircle2 size={13} className="flex-none" />
-      <span className="grid min-w-0 flex-1">
-        <span className={`col-start-1 row-start-1 ${showRealGear ? 'invisible' : ''}`} aria-hidden={showRealGear}>
-          Build validé affiché — pas l'équipement réellement porté
-        </span>
-        <span className={`col-start-1 row-start-1 ${showRealGear ? '' : 'invisible'}`} aria-hidden={!showRealGear}>
-          Équipement réellement porté affiché
-        </span>
-        {runesAbsentesValidees.length > 0 && <span role="status" className="text-warn">
-          Build conservé : {runesAbsentesValidees.length} rune(s) absente(s) du compte. Seules les runes présentes sont affichées et réservées.
-        </span>}
-        {artefactsAbsentsValides.length > 0 && <span role="status" className="text-warn">
-          Build conservé : {artefactsAbsentsValides.length} artéfact(s) absent(s) du compte. Seuls les artéfacts présents sont affichés et réservés.
-        </span>}
-      </span>
-      <BoutonIcone
-        cadre
-        libelle={showRealGear ? 'Revoir le build validé' : "Voir le runage réellement porté"}
-        icone={showRealGear ? <CheckCircle2 size={13} /> : <Eye size={13} />}
-        onClick={() => setShowRealGear((v) => !v)}
-        className="h-6 w-6 flex-none"
-      />
-    </div>
-  ) : null;
+  const validatedBadge = <BandeauBuildValide
+    ownValidatedBuild={ownValidatedBuild}
+    showRealGear={showRealGear}
+    runesAbsentesValidees={runesAbsentesValidees}
+    artefactsAbsentsValides={artefactsAbsentsValides}
+    setShowRealGear={setShowRealGear}
+  />;
 
   // Même bouton que sur une carte de résultat (`BuildCandidateCard`), sous
   // la fiche cette fois — demande explicite : valider un runage déjà
@@ -3124,1912 +2699,516 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
    * exact qu'on vient de corriger pour les builds validés.
    */
   const blocArtefactsSeuls = modeArtefactsSeuls && (
-    <div className="mt-2.5 rounded-lg border border-border-soft bg-panel2/60 px-2 py-1.5">
-      {(() => {
-        const enTete = (<>
-        {/* ⚠️ **« offensifs » reste dans le titre** : le segmenté
-            ci-dessous dit précisément ce que le bloc maximise, mais le mot
-            dit autre chose : ce bloc ne
-            cherche pas la meilleure paire dans l'absolu, il cherche la plus
-            offensive — et ses deux crans (dégâts bruts, dégâts du sort) sont
-            offensifs l'un comme l'autre. Sans lui, « meilleurs » se lirait
-            comme un verdict général, alors qu'un tank peut parfaitement
-            vouloir tout autre chose. */}
-        <span className="label">Meilleurs artéfacts offensifs pour ce build</span>
-        {/* ⚠️ **L'ABSOLU d'abord, l'écart ensuite** (demande explicite). Le
-            delta seul laissait sans réponse « combien cette paire me
-            rapporte-t-elle ? » : un gros gain sur une base nulle et un petit
-            gain sur une grosse base affichaient le même nombre.
-            ⚠️ L'absolu s'affiche TOUJOURS, même quand on porte déjà la
-            meilleure paire — c'est justement là qu'il est seul à dire quelque
-            chose, l'écart valant zéro. L'écart, lui, ne s'affiche que si la meilleure
-            paire n'est pas déjà portée et que l'écart n'est pas nul à
-            l'arrondi, en plus comme en moins (voir plus bas). */}
-        {/* ⚠️ Aucun chiffre quand il n'y a rien à proposer : un « 0 / coup »
-            se lirait comme un résultat, alors que rien n'a été cherché. */}
-        {modeArtefactsSeuls.explication == null && (
-          <span className="flex items-baseline gap-1.5 font-mono text-micro">
-            <span className="text-ink">
-              {Math.round(modeArtefactsSeuls.degatsParCoup).toLocaleString('fr-FR')}
-              {modeArtefactsSeuls.surLeReel ? ' dégâts' : ' / coup'}
-            </span>
-            {/* ⚠️ **L’écart s’affiche AUSSI quand il est négatif.** Il ne
-                l’était que s’il était positif : on cachait donc exactement
-                l’information défavorable, en laissant un absolu qui avait
-                l’air d’un gain.
-
-                ⚠️ Un écart négatif n’est PAS une anomalie : la paire
-                portée sort des candidates dès qu’une contrainte l’exclut —
-                une principale imposée, une ligne verrouillée, ou une pièce
-                déjà réservée par un autre monstre de la liste. Le nombre dit
-                alors ce que cette contrainte coûte, ce qui est précisément
-                ce qu’on veut savoir.
-
-                ⚠️ Test sur l’ARRONDI, pas sur la valeur brute : un écart
-                de 0,4 aurait affiché « +0 ». */}
-            {!modeArtefactsSeuls.dejaPorte && Math.round(modeArtefactsSeuls.gainBrutParCoup) !== 0 && (
-              <span className={modeArtefactsSeuls.gainBrutParCoup > 0 ? 'text-good' : 'text-bad'}>
-                {modeArtefactsSeuls.gainBrutParCoup > 0 ? '+' : '−'}
-                {Math.abs(Math.round(modeArtefactsSeuls.gainBrutParCoup)).toLocaleString('fr-FR')}
-              </span>
-            )}
-          </span>
-        )}
-        </>);
-        // Au téléphone, le bloc se replie derrière son titre (replié par
-        // défaut), comme « Gérer mes listes » ; le chiffre reste lisible.
-        return etroit ? (
-          <ZoneCliquable
-            onClick={() => setArtefactsOuverts((v) => !v)}
-            aria-expanded={artefactsOuverts}
-            className="flex w-full items-center gap-2 text-left"
-          >
-            <span className="flex min-w-0 flex-1 items-baseline justify-between gap-2">{enTete}</span>
-            <ChevronDown size={13} className={`flex-none text-ink-dim transition-transform ${artefactsOuverts ? 'rotate-180' : ''}`} />
-          </ZoneCliquable>
-        ) : (
-          <div className="flex items-baseline justify-between gap-2">{enTete}</div>
-        );
-      })()}
-      {(!etroit || artefactsOuverts) && <>
-      {/* ⚠️ Choisir « Dégâts réels » OUVRE la fenêtre du combat, comme le cran
-          homonyme de l'objectif de recherche : sans ce geste, le classement
-          reposerait sur un sort, une cible et un critique jamais choisis —
-          exactement ce qui avait fait RETIRER cette optimisation. */}
-      <Segmented<'brut' | 'reel'>
-        options={CRITERE_ARTEFACTS_LABELS}
-        value={critereArtefacts}
-        onChange={(v) => {
-          setCritereArtefacts(v);
-          if (v === 'reel') setSetupOuvert(true);
-        }}
-        size="sm"
-        // ⚠️ `w-fit` : le `flex-none` que `Segmented` pose en taille `sm` ne
-        // vaut que s'il est ENFANT d'un conteneur flex. Ici le parent est en
-        // flux de bloc, donc sa propre boîte flex prenait toute la largeur —
-        // deux crans étirés sur 700 px. Même piège que la grille Conditions,
-        // qui porte déjà ce `w-fit` pour la même raison.
-        className="mt-1 w-fit"
-      />
-      {modeArtefactsSeuls.reelIndisponible && (
-        <p className="mt-1 text-micro text-warn">
-          Aucun sort de ce monstre n’est calculable : classement sur les dégâts supplémentaires.
-        </p>
-      )}
-      {/* ⚠️ **Un seul emplacement figé : la proposition reste valable, mais
-          CONTRAINTE.** Sans cette ligne, « le meilleur » se lirait comme « le
-          meilleur de ton inventaire », alors qu'une moitié était imposée. La
-          question reste bonne — « à artéfact d'attribut donné, quel type ? » —
-          il faut juste dire qu'on y répond. */}
-      {modeArtefactsSeuls.explication == null && sortesFigees.length === 1 && (
-        // ⚠️ **Un BANDEAU, pas une phrase de bas de bloc.** La mention
-        // vivait en `text-ink-dimmer` sous le titre, loin du regard : on
-        // lisait la paire en croyant à deux propositions. Elle passe donc
-        // AU-DESSUS des pièces, dans une boîte qui se détache du bloc.
-        //
-        // ⚠️ **Neutre appuyé, pas `alerte`** : un
-        // réglage que l’utilisateur a lui-même posé n’est pas un
-        // avertissement. L’ambre reste réservé à ce qui réclame une action
-        // (« Valider les artéfacts ») — deux ambres de sens différents dans
-        // la même carte auraient dévalué les deux. Le contraste vient donc
-        // du contour (`border` plein là où le bloc porte `border-soft`) et
-        // de l’encre pleine, pas de la couleur.
-        //
-        // ⚠️ UN seul contour : ce bandeau est un FRÈRE des pièces, jamais
-        // une boîte posée sur une autre boîte déjà bordée.
-        <p className="mt-1.5 rounded border border-border bg-panel px-2 py-1 text-micro leading-tight text-ink">
-          <b className="font-semibold">
-            Emplacement {sortesFigees[0] === 'element' ? 'attribut' : 'type'} figé
-          </b>{' — '}
-          il est gardé tel que porté, pas optimisé. Seul l’emplacement{' '}
-          {sortesFigees[0] === 'element' ? 'type' : 'attribut'} est cherché ici.
-        </p>
-      )}
-      {/* ⚠️ **La raison passe DEVANT tout le reste.** Elle dit ce que
-          l'utilisateur a lui-même posé (un emplacement figé) ou ce que
-          l'inventaire ne peut pas donner — dans les deux cas, afficher une
-          proposition ou un « déjà porté » serait trompeur. */}
-      {modeArtefactsSeuls.explication != null ? (
-        <p className="mt-0.5 text-micro leading-tight text-ink-dim">{modeArtefactsSeuls.explication}</p>
-      ) : modeArtefactsSeuls.dejaPorte ? (
-        // ⚠️ Le dire plutôt que d'afficher « +0 » : « tu portes déjà les
-        // meilleurs » est une réponse, un zéro ressemble à une panne.
-        <p className="mt-0.5 text-micro text-ink-dim">
-          Tu portes déjà la meilleure paire disponible pour ce critère.
-        </p>
-      ) : modeArtefactsSeuls.paire.length === 0 ? (
-        <p className="mt-0.5 text-micro text-ink-dim">Aucun artéfact équipable ne correspond aux critères.</p>
-      ) : (
-        // ⚠️ **Le rendu du JEU, pas une ligne aplatie.** Les quatre
-        // sous-propriétés étaient jointes par des « · » sur une seule ligne qui
-        // repassait à la ligne n'importe où, avec un formatage maison
-        // (`artifactSubLabel(...).replace('X', …)`) — un second rendu de la
-        // même donnée, que rien ne rapprochait de l'inventaire ni du jeu.
-        // `ArtifactSubLigne` est PARTAGÉ avec la tuile d'inventaire :
-        // une ligne par propriété, la pastille de procs, la valeur en gras, le
-        // marqueur des propriétés modifiées.
-        // ⚠️ **Côte à côte, pas empilés** : une PAIRE se lit d'un coup d'œil,
-        // et l'empilement doublait la hauteur du bloc dans une carte déjà
-        // longue. `sm:` et non une largeur de conteneur : sous ce seuil la
-        // carte est pleine largeur mais étroite (téléphone), où deux colonnes
-        // couperaient les libellés longs — ils repassent alors l'un sous
-        // l'autre. `items-start` : l'artéfact qui a la principale la plus
-        // courte ne s'étire pas à la hauteur de l'autre.
-        <div className="mt-1.5 grid grid-cols-1 items-start gap-x-4 gap-y-2 sm:grid-cols-2">
-          {modeArtefactsSeuls.paire.map((a) => (
-            /* ⚠️ **Atténuation LÉGÈRE sur la pièce figée** — elle
-                n’est pas une proposition, elle est un fait. Le bandeau et le
-                marqueur le disent déjà ; ceci ne fait qu’établir la
-                hiérarchie, pour que l’œil tombe d’abord sur la moitié
-                réellement cherchée.
-
-                ⚠️ **80 %, et surtout PAS moins.** Le vocabulaire
-                « désactivé » de ce dépôt vit à 30-40 % (`Bouton`,
-                `NumberField`) : descendre là ferait lire « indisponible »
-                une pièce qui est justement celle qu’on portera. Rester
-                nettement au-dessus garde le sens « secondaire ». */
-            <div key={`${a.kind}-${a.id}`} className={`flex items-start gap-2 ${sortesFigees.includes(a.kind) ? 'opacity-80' : ''}`}>
-              <ArtifactFrameIcon artifact={a} size={24} />
-              <div className="min-w-0 flex-1">
-                {/* La principale en tête, comme sur une pièce en jeu : sans
-                    elle, on lisait quatre sous-propriétés sans savoir ce que
-                    l'artéfact apporte d'abord. */}
-                {/* ⚠️ **Le marqueur désigne LAQUELLE.** Le bandeau dit ce
-                    qui se passe, ce jeton dit sur quelle pièce — sans lui,
-                    il fallait retraduire « attribut » en « celle de
-                    gauche ». Même gabarit que la pastille de sorte de
-                    ArtifactLinesEditor : rien de nouveau dans la librairie. */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <p className="text-micro font-semibold leading-tight text-ink">{formatArtifactMain(a.main)}</p>
-                  {sortesFigees.includes(a.kind) && (
-                    <span className="shrink-0 rounded-full border border-border bg-panel px-1.5 py-px text-nano font-semibold text-ink-dim">
-                      figé
-                    </span>
-                  )}
-                </div>
-                <div className="mt-1 space-y-[3px]">
-                  {a.subs.map((s, i) => (
-                    <ArtifactSubLigne key={i} sub={s} />
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      {/* ⚠️ **Dire ce que le chiffre EST.** Le « +X % grâce aux artéfacts » des
-          cartes de résultat a été retiré précisément parce que personne ne
-          pouvait le nommer. Celui-ci se nomme : des dégâts BRUTS, par coup,
-          qui ne critent pas et ignorent la défense — donc calculables sans
-          choisir de sort ni décrire d'adversaire. */}
-      {/* ⚠️ Affichée dès qu'un chiffre l'est — donc AUSSI quand on porte déjà
-          la meilleure paire, puisque l'absolu s'affiche dans ce cas-là. Un
-          nombre sans sa légende serait exactement le défaut du « +X % grâce
-          aux artéfacts » qu'on a retiré. */}
-      {modeArtefactsSeuls.paire.length > 0 && (
-        <p className="mt-1 text-nano text-ink-dimmer">
-          {modeArtefactsSeuls.surLeReel
-            ? `Dégâts totaux de ${resolvedSkill ? `« ${resolvedSkill.nom} »` : 'ce sort'} contre l’adversaire décrit — ouvre « Dégâts réels » pour changer le sort, la cible ou le traitement du critique.`
-            : 'Dégâts supplémentaires bruts, à chaque coup — ils ne peuvent pas être critiques et ignorent la défense adverse, donc ce gain ne dépend ni du sort utilisé ni de la cible.'}
-        </p>
-      )}
-      {modeArtefactsSeuls.coutVerrousPct != null && (
-        // ⚠️ « sur ce build » n'est PAS une précaution de langage : la recherche
-        // de runes a elle aussi tourné sous le modèle contraint, donc sans les
-        // verrous d'AUTRES builds auraient pu émerger. Un libellé sans cette
-        // précision laisserait croire à un contrefactuel global qu'on ne
-        // calcule pas.
-        <p className="mt-1 text-micro text-warn">
-          Vos lignes verrouillées coûtent −{modeArtefactsSeuls.coutVerrousPct.toFixed(1)} % sur ce build.
-        </p>
-      )}
-      {/* ⚠️ **La proposition devient actionnable.** Le bloc calculait la
-          meilleure paire sans qu’on puisse la prendre : il fallait la
-          retrouver à la main dans l’inventaire. Le bouton n’apparaît qu’avec
-          une liste active — une réservation appartient toujours à une liste
-          — et jamais sur une pièce figée ou une absence de proposition. */}
-      {modeArtefactsSeuls.explication == null &&
-        modeArtefactsSeuls.paire.length > 0 &&
-        sourceSelector &&
-        lists.activeListId &&
-        (ownValidatedBuild || canValidateDisplayed) && (
-          <Bouton
-            onClick={handleValidateArtefacts}
-            disabled={artefactsProposesDejaReserves}
-            // ⚠️ Même code couleur que « Valider les artéfacts » des cartes
-            // de résultat : `alerte` signale un état des DONNÉES — ce qui est
-            // montré n’est pas ce qui est réservé. Une fois réservée, la
-            // paire repasse en `accent`, comme tout ce qui est validé.
-            ton={artefactsProposesDejaReserves ? 'accent' : 'alerte'}
-            fond="doux"
-            taille="sm"
-            pleineLargeur
-            icone={artefactsProposesDejaReserves ? <CheckCircle2 size={14} /> : undefined}
-            libelle={
-              artefactsProposesDejaReserves
-                ? 'Artéfacts validés'
-                : ownValidatedBuild
-                  ? 'Valider ces artéfacts'
-                  : 'Valider ce build avec ces artéfacts'
-            }
-            className="mt-2"
-          />
-        )}
-      </>}
-    </div>
+    <MeilleursArtefacts
+      modeArtefactsSeuls={modeArtefactsSeuls}
+      etroit={etroit}
+      setArtefactsOuverts={setArtefactsOuverts}
+      artefactsOuverts={artefactsOuverts}
+      critereArtefacts={critereArtefacts}
+      setCritereArtefacts={setCritereArtefacts}
+      setSetupOuvert={setSetupOuvert}
+      sortesFigees={sortesFigees}
+      resolvedSkill={resolvedSkill}
+      sourceSelector={sourceSelector}
+      lists={lists}
+      ownValidatedBuild={ownValidatedBuild}
+      canValidateDisplayed={canValidateDisplayed}
+      handleValidateArtefacts={handleValidateArtefacts}
+      artefactsProposesDejaReserves={artefactsProposesDejaReserves}
+    />
   );
 
   const validateBuildButton = (
+    <BoutonValiderBuild
+      handleValidateDisplayed={handleValidateDisplayed}
+      canValidateDisplayed={canValidateDisplayed}
+      matchesValidatedBuild={matchesValidatedBuild}
+      etatFiche={etatFiche}
+      displayedRuneConflicts={displayedRuneConflicts}
+    />
+  );
+
+  // Assemblage des cartes de réglage (composants d'`optimizer/`).
+  const listesBureau = (
+    <SelecteurListes
+      action={<OptimizerImportButton enLigne sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />}
+      lists={lists}
+      memberCounts={memberCountsByList}
+      titreSection
+    />
+  );
+
+  const listesTelephone = <SelecteurListes lists={lists} memberCounts={memberCountsByList} />;
+
+  // Le geste du set recherché.
+  function choisirSetsRecherches(next: string[]) {
+    setComboSets(next);
+    if (next.length > 0) setSetPickerInvalid(false);
+    // Ouverture guidée : Accuracy ou Tolerance
+    // CHOISI comme set recherché guide vers l'interrupteur des auras
+    // RES/PRE, sans toucher aux auras externes. Au geste seulement :
+    // l'import d'une recette pose `comboSets` sans passer par ici.
+    if (guideVersResPre({ setsRecherches: comboSets }, { setsRecherches: next })) guiderVersResPre();
+  }
+
+  const setDeRunes = (
+    <SetDeRunes
+      setPickerSectionRef={setPickerSectionRef}
+      setPickerInvalid={setPickerInvalid}
+      comboSets={comboSets}
+      onChangeSets={choisirSetsRecherches}
+    />
+  );
+
+  const statPrincipaleImposee = (
+    <StatPrincipaleImposee
+      mainStatsBySlot={mainStatsBySlot}
+      toggleMainStat={toggleMainStat}
+    />
+  );
+
+  const conditions = (
+    <Conditions
+      excludeBase={excludeBase}
+      setExcludeBase={setExcludeBase}
+      baseOf={baseOf}
+      artifactFloorOf={artifactFloorOf}
+      minStats={minStats}
+      maxStats={maxStats}
+      setMinStats={setMinStats}
+      setMaxStats={setMaxStats}
+    />
+  );
+
+  // Le geste d'un membre de la liste de travail (zone C) : il devient le
+  // monstre optimisé, avec ses critères.
+  function choisirMembreDeLaListe(m: OptimizerListMember, resolved: ReturnType<typeof resolveExclusionEntry>) {
+    if (!resolved) return;
+    const id = String(resolved.monster.id);
+    const key = exclusionSelectorKey(m.selector);
+    // L'action partagée valide l'identité puis restaure la
+    // mémoire ou la base complète, sans déclencher de guide.
+    const criteres = optimizer.choisirMembre(m.listId, m.selector);
+    setZoneDOpen(false);
+    // ⚠️ **Rappel des auras externes — ICI,
+    // dans le geste de la liste de travail, et nulle part
+    // ailleurs** : ni dans `resetSearch`, ni dans un effet sur
+    // `selectedId` — l'import d'une recette ou d'un compte pose
+    // aussi le monstre, et le bestiaire, les puces de source et
+    // la zone D restent sans rappel. Autre espèce OU autre exemplaire de la
+    // même espèce ; la décision lit la destination réellement
+    // appliquée, jamais les auras du membre précédent.
+    if (
+      criteres && doitRappeler(
+        'liste',
+        { espece: selectedId, exemplaire: ownSelectorKey, aurasExternes: damageSetup.setsAuraExternes },
+        { espece: id, exemplaire: key, aurasExternes: criteres.damageSetup.setsAuraExternes }
+      )
+    ) {
+      setRappelAuras((n) => (n ?? 0) + 1);
+    } else setRappelAuras(null);
+  }
+
+  const rapportZoneC = [...lists.rapportStockage, ...optimizer.rapportCriteres];
+  // La liste de travail (zone C), une fois : dans « Monstre & équipement » au
+  // téléphone, dans les essentiels au bureau.
+  const proprietesListe: MonstresDeLaListeProps = {
+    activeList,
+    activeMembers,
+    ajoutListe,
+    handleAddToList,
+    setEquipeOuverte,
+    lists,
+    optimizer,
+    exclusionData,
+    artifacts,
+    rapportZoneC,
+    groupesMembres,
+    runeById,
+    artifactById,
+    choisirMembreDeLaListe,
+    setReleaseConfirm,
+    setReleaseArtifactsConfirm,
+    setRemoveMemberConfirm,
+    rappelAuras: rappelAuras !== null,
+    listHasValidated,
+    setReleaseAllConfirm,
+  };
+  const zoneCContent = <MonstresDeLaListe {...proprietesListe} />;
+
+  // Le geste « Créer » de la fenêtre de création de liste : la liste créée,
+  // puis, selon l'intention qui l'a ouverte, l'ajout, la validation ou la
+  // recherche du monstre affiché.
+  function creerListeDepuisDialogue(valeur: string, contenu: ContenuListeOptimizer) {
+    const nom = valeur.trim();
+    const intent = addListPromptOpen;
+    setAddListPromptOpen(null);
+    if (!selected?.monster.com2usId || (!sourceSelector && intent !== 'recherche')) return;
+    const id = lists.createList(nom, contenu);
+    if (intent === 'recherche') {
+      inclureSelectionRecherche(sourceSelector, selected.monster, id);
+      return;
+    }
+    if (!sourceSelector) return;
+    if (intent === 'validate') {
+      if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds, selected.monster.com2usId);
+    } else {
+      lists.addMember(id, sourceSelector, selected.monster.com2usId);
+    }
+    if (intent !== 'validate' || canValidateDisplayed) optimizer.capturerMembre(id, sourceSelector);
+  }
+
+  // Ce que chaque carte de résultat reçoit de l'écran : sa paire, sa relique,
+  // ses chiffres de classement et ses gestes (comparer, valider).
+  function proprietesCarte(c: BuildCandidate, rang: number) {
+    const photo = contexteResultatAffiche;
+    const carte = cartes[rang];
+    const objectifDesCartes = photo?.recherche.objective ?? objective;
+    const triDesCartes = instantane?.vue.tri ?? sortBy;
+    // Les rangées « PV effectifs » et « Dégâts » de la carte : la valeur qui
+    // la classe, ou celle qu'une borne active juge (même règle que le classeur).
+    const montres = objectifsMontres(objectifDesCartes, triDesCartes, instantane?.filtre.bornes.actives ?? []);
+    const degatsDesCartes = photo ? photo.realDamage : realDamage;
+    const combatDesCartes = photo?.damageSetup ?? damageSetup;
+    const artefactsDesCartes = photo?.recherche.artifacts ?? searchArtifacts;
+    const artefactsDeLaCarte = carte?.resultat?.artefacts ?? artefactsDesCartes;
+    const versions = instantane?.versions;
+    // Classeur perdu : la page reste visible, aucun geste ne part.
+    const encoreCourante = () => versions != null && !interrompu
+      && publicationCouranteRef.current?.idRecherche === versions.idRecherche
+      && publicationCouranteRef.current?.revisionPubliee === versions.revisionPubliee;
+    return {
+      // ⚠️ La paire de CE build, jamais une paire commune : deux
+      // builds voisins n'appellent pas les mêmes artéfacts, et ce
+      // sont ces pièces-là qui ont servi à calculer ses stats.
+      // Le repli sur la paire SUPPOSÉE ne sert que sans file
+      // (optimisation coupée : la paire portée, la seule possible) —
+      // avec file, une carte affichée est résolue.
+      artifacts: artefactsDeLaCarte,
+      // ⚠️ **Seule source** :
+      // `etatReliqueDuBuild` lit l'équipement de la carte, jamais
+      // recalculé ici — `fixe` (hors mode `recherche`) n'affiche
+      // rien de nouveau, `rejete` n'arrive jamais jusqu'ici (le
+      // classement écarte déjà ces builds). Par
+      // `etatReliqueDe` : la relique que le score compte.
+      etatRelique: etatReliqueDuBuild(carte?.resultat ?? undefined, photo?.recherche.relicContext, photo?.fiche.relic),
+      ...(() => {
+        // ⚠️ Comparaison contre les stats de la FICHE — donc contre
+        // le build validé quand il en existe un, sans avoir à le
+        // redemander ici (voir `statsReference`).
+        const cle = c.runeIds.join('-');
+        const compare = compareKey === cle && statsReference != null;
+        return {
+          onCompare: statsReference ? () => { if (encoreCourante()) setCompareKey((k) => (k === cle ? null : cle)); } : undefined,
+          // ⚠️ Affichée dès que les PV effectifs sont le critère de
+          // CLASSEMENT — objectif OU tri —, exactement comme les
+          // dégâts réels : on peut avoir cherché sur un objectif puis
+          // re-trié par PV effectifs, auquel cas le chiffre qui
+          // ordonne les cartes doit être visible dessus.
+          // ⚠️ Le chiffre qui a CLASSÉ la carte : `scoreDuCandidat`
+          // avec les options du classement affiché, calculé par le
+          // classeur (Ténacité et points de la relique retenue compris).
+          pvEffectifs:
+            montres.ehp && carte?.pvEffectifs != null
+              ? (() => {
+                  const total = carte?.pvEffectifs as number;
+                  return { total, delta: compare && refEhpResultat != null ? total - refEhpResultat : undefined };
+                })()
+              : undefined,
+          metricDelta:
+            // La référence est dans la mesure courante : pas d'écart tant que
+            // la page publiée est encore dans l'autre.
+            compare && refMetric != null && mesureDesCartes === metric
+              ? candidateMetricTotal(c, runesDesCartes, mesureDesCartes) - refMetric
+              : undefined,
+          // ⚠️ Le delta est calculé PAR STAT contre la référence, et
+          // seulement pour la carte comparée : le faire pour les 20
+          // cartes de la page coûterait 20 fois plus pour 19 valeurs
+          // qu'on n'affiche pas.
+          comparaison:
+            compareKey === cle && statsReference
+              ? c.stats.map((ligne) => ({
+                  key: ligne.key,
+                  label: ligne.label,
+                  suffix: ligne.suffix,
+                  delta: ligne.total - (statsReference.find((r) => r.key === ligne.key)?.total ?? 0),
+                }))
+              : undefined,
+        };
+      })(),
+      // ⚠️ Affiché dès qu'un sort est résolu ET que c'est bien le
+      // critère de classement courant (objectif OU tri) — pas
+      // seulement quand `objective` vaut « Dégâts réels » : on peut
+      // avoir lancé la recherche sur un autre objectif puis re-trier
+      // par dégâts réels, auquel cas le chiffre qui ordonne les
+      // cartes doit être visible dessus.
+      degatsReels:
+        degatsDesCartes && montres.degats && carte?.degatsReels != null
+          ? (() => {
+              // ⚠️ Le chiffre qui a CLASSÉ la carte : `scoreDuCandidat`
+              // avec les options du classement affiché, calculé par le
+              // classeur — profil d'artéfacts de CE build et Conquête de
+              // sa relique retenue compris. Une recopie de
+              // `computeTotalDamage` omettait la Conquête que le tri compte.
+              const total = carte?.degatsReels as number;
+              return {
+                total,
+                partPvCible: combatDesCartes.enemyHp > 0 ? (total / combatDesCartes.enemyHp) * 100 : 0,
+                // ⚠️ L'écart se calcule contre les dégâts de la
+                // RÉFÉRENCE (`refDegatsResultat`) : la fiche notée avec SES
+                // stats, SA paire d'artéfacts et SA relique — jamais
+                // contre le total d'un autre candidat, jamais avec
+                // la paire de la recherche.
+                delta:
+                  compareKey === c.runeIds.join('-') && refDegatsResultat != null
+                    ? total - refDegatsResultat
+                    : undefined,
+              };
+            })()
+          : undefined,
+      // « Valider » — réserve les 6 runes RÉELLES de CE
+      // candidat pour `sourceSelector`, qu'il pointe un exemplaire
+      // réel OU un sélecteur `unowned` (monstre non possédé,
+      // demande explicite — « essayer des runages de teams sans
+      // avoir mis à jour son json » : les runes trouvées restent de
+      // VRAIES runes du compte, réservables comme n'importe quel
+      // autre build validé). Absent uniquement si `sourceSelector`
+      // est `null` (aucune espèce choisie, ou possédée ailleurs
+      // sans exemplaire encore désambiguïsé — zone D).
+      // ⚠️ Exige `sourceSelector` non nul ET une liste active (un build
+      // validé appartient TOUJOURS à une liste, voir
+      // ValidatedBuild). Valider ajoute aussi implicitement le
+      // monstre à la liste s'il n'y était pas déjà (voir
+      // `validateBuild`, useOptimizerLists.ts).
+      onValidate:
+        sourceSelector && lists.activeListId
+          ? () => {
+              // ⚠️ Garde de DERNIÈRE minute en plus du bouton
+              // désactivé : le clic peut partir d'un rendu périmé.
+              if (!encoreCourante() || conflitsDeRunes(c.runeIds).length > 0) return;
+              // ⚠️ La paire DE CE CANDIDAT, pas celle du monstre
+              // affiché : c’est elle que la carte montre et qui a
+              // servi à calculer ses stats.
+              lists.validateBuild(
+                lists.activeListId!,
+                sourceSelector,
+                c.runeIds,
+                artefactsDeLaCarte.map((a) => a.id),
+                selected!.monster.com2usId!
+              );
+              optimizer.capturerMembre(lists.activeListId!, sourceSelector);
+            }
+          : undefined,
+      // ⚠️ La paire QUE CETTE CARTE MONTRE — celle de la file si
+      // elle l'a trouvée, la représentative sinon. Exactement la
+      // même expression que `onValidate` ci-dessus : comparer autre
+      // chose que ce qu'on validerait rendrait le libellé menteur.
+      validated: etatValidation(
+        c.runeIds,
+        artefactsDeLaCarte.map((a) => a.id)
+      ),
+      inactif: interrompu,
+      // La valeur triée, mise en avant sur la carte (le tri publié).
+      colonneTriee: triDesCartes,
+      conflit: (() => {
+        const conflits = conflitsDeRunes(c.runeIds);
+        if (conflits.length === 0) return null;
+        const noms = [...new Set(conflits.map((x) => x.monsterName))];
+        return `${conflits.length > 1 ? 'Runes déjà réservées' : 'Rune déjà réservée'} dans cette liste pour ${noms.join(', ')}`;
+      })(),
+    };
+  }
+
+  // Ce que les deux formats partagent hors des réglages : les résultats et
+  // les fenêtres (modales, dialogues), écrits une fois.
+  const resultatsPresents = result != null || recus > 0;
+
+  // ── Tri, filtres d'affichage, forme ────────────────────────────────────
+  // Changer de tri, de sens ou de borne repart de la page 1, sans demander de
+  // page : le classeur ne résout rien pour un changement de vue.
+  const triAffiche: TriResultats = { tri: sortBy, sens: sensTri };
+  const trier = (t: TriResultats) => { setSortBy(t.tri); setSensTri(t.sens); setResultsPage(1); };
+  const poserBorne = (colonne: ColonneResultat, cote: 'min' | 'max', valeur: number | null) => {
+    setBornesResultats((prev) => avecBorne(prev, colonne, cote, valeur, metric));
+    setResultsPage(1);
+  };
+  // Effacer ne touche que les bornes montrées : une borne mise de côté sous
+  // l'autre mesure reste pour son retour.
+  const effacerFiltres = () => { setBornesResultats((prev) => bornesMisesDeCote(prev, metric)); setResultsPage(1); };
+  // « Dégâts réels » n'a de valeur qu'avec un sort calculable pour le résultat affiché.
+  const degatsDuResultat = contexteResultatAffiche ? contexteResultatAffiche.realDamage : realDamage;
+  const colonneLibre = (c: ColonneResultat) => colonneDisponible(c, degatsDuResultat);
+  // La vue vide sous les filtres, dite à la place des cartes ou des lignes :
+  // ni corrigée en silence (minimum > maximum), ni confondue avec « Aucune
+  // combinaison… », qui reste le constat sur la recherche entière.
+  const vueVide = (() => {
+    const f = instantane?.filtre;
+    if (!f?.vide) return null;
+    if (f.vide === 'bornes-contradictoires') {
+      const c = f.bornes.contradictoires[0], b = instantane!.vue.bornes?.[c];
+      return `Vue vide : le minimum de ${libelleColonne(c, mesureDesCartes)} (${b?.min?.toLocaleString('fr-FR')}) dépasse son maximum (${b?.max?.toLocaleString('fr-FR')}).`;
+    }
+    return 'Aucune combinaison confirmée ne passe ces filtres.';
+  })();
+  // Le détail d'une ligne du tableau (`detailTableau`) : la carte telle
+  // quelle, dans une modale. Retenu par les runes du build : une nouvelle page
+  // sans lui la ferme.
+  const indexDetail = detailTableau ? composition.cartes.findIndex((c) => c.runeIds.join('-') === detailTableau) : -1;
+  // Un build sorti de la page ferme son détail pour de bon : il ne se rouvrira
+  // pas de lui-même s'il y revient.
+  useEffect(() => { if (detailTableau && indexDetail < 0) setDetailTableau(null); }, [detailTableau, indexDetail]);
+  const proprietesGrille = {
+    runeById: runesDesCartes,
+    relicUsageById,
+    metric: mesureDesCartes,
+    openDetailKey,
+    onToggleDetail: (key: string) => {
+      const versions = instantane?.versions, courantes = publicationCouranteRef.current;
+      if (!versions || versions.idRecherche !== courantes?.idRecherche || versions.revisionPubliee !== courantes.revisionPubliee) return;
+      setOpenDetailKey((cur) => (cur === key ? null : key));
+    },
+  };
+
+  const blocResultats = (
     <>
-      <Bouton
-        onClick={handleValidateDisplayed}
-        disabled={!canValidateDisplayed || matchesValidatedBuild}
-        // ⚠️ Même code couleur que les cartes de résultat (BuildCandidateCard) :
-        // `alerte` sur « Valider les artéfacts », parce qu'il signale un état
-        // des DONNÉES — ce qui est affiché n'est pas ce qui est réservé.
-        ton={etatFiche === 'oui' ? 'accent' : etatFiche === 'artefacts' ? 'alerte' : 'neutre'}
-        fond={etatFiche === 'non' ? 'plein' : 'doux'}
-        taille="sm"
-        pleineLargeur
-        icone={matchesValidatedBuild ? <CheckCircle2 size={14} /> : undefined}
-        // ⚠️ Trois libellés, pas deux : mêmes runes + autre paire, il reste
-        // quelque chose à valider — les artéfacts. Voir `EtatValidation`.
-        libelle={etatFiche === 'oui' ? 'Validé' : etatFiche === 'artefacts' ? 'Valider les artéfacts' : 'Valider ce build'}
-        className="mt-2.5"
-      />
-      {/* Message listant les runes déjà utilisées — demande explicite,
-          « il faut afficher quelles runes sont déjà utilisées dans la
-          liste ». Absent si déjà validé (le bandeau `validatedBadge`
-          suffit alors, ce build EST la réservation). */}
-      {displayedRuneConflicts.length > 0 && !matchesValidatedBuild && (
-        <p className="mt-1.5 text-[11px] text-warn">
-          {displayedRuneConflicts.length > 1 ? 'Runes déjà réservées' : 'Rune déjà réservée'} dans cette liste :{' '}
-          {displayedRuneConflicts.map((c, i) => (
-            <span key={i}>
-              {i > 0 && ', '}
-              {c.slot != null ? `emplacement ${c.slot}` : 'une rune'} ({c.monsterName})
-            </span>
-          ))}
-          .
-        </p>
+      {resultatsPresents && (
+        // Le conteneur nommé `resultats` : le tableau ne paraît qu'à partir de
+        // sa largeur minimale mesurée (`TABLEAU_VISIBLE`), les cartes dessous.
+        <div className="@container/resultats" data-forme-resultats={formeResultats}>
+          <EnteteResultats
+            result={result}
+            compteConfirmes={compteConfirmes}
+            avecFile={avecFile}
+            tri={triAffiche}
+            trier={trier}
+            metric={mesureDesCartes}
+            disponible={colonneLibre}
+            enAttente={instantane?.enAttente ?? 0}
+            interrompu={interrompu}
+            compteAffiche={compteAffiche}
+            bureau={!sousLg}
+            filtres={{ bornes: bornesVue, poserBorne, effacer: effacerFiltres, filtre: instantane?.filtre ?? null }}
+            {...(sousLg ? {} : { forme: formeResultats, setForme: setFormeResultats, bonus: bonusTableau, setBonus: setBonusTableau })}
+          />
+  
+          <DiagnosticsSansResultat
+            bureau={!sousLg}
+            result={result}
+            feasibilityDiagnosis={feasibilityDiagnosis}
+            impossibleFeasibility={impossibleFeasibility}
+            blockingDiagnosis={blockingDiagnosis}
+            diagnoseBlockingEnabled={diagnoseBlockingEnabled}
+            runeById={contexteResultatAffiche ? runesDuContexte(contexteResultatAffiche) : runeById}
+            metric={instantane?.vue.metric ?? metric}
+            objective={contexteResultatAffiche?.recherche.objective ?? objective}
+            aurasPropresDe={aurasPropresDuResultat}
+            damageSetup={contexteResultatAffiche?.damageSetup ?? damageSetup}
+          />
+  
+          {(result?.truncated || instantane?.arretMemoire) && (
+            <AvisRechercheTronquee result={result} stoppedManually={stoppedManually} arretMemoire={instantane?.arretMemoire} />
+          )}
+  
+          {/* ⚠️ minmax calibré à 360px pour que DEUX cartes tiennent par
+              ligne dans le conteneur `max-w-3xl` (768px, voir plus haut) :
+              2×360 + le gap (12px) = 732px, sous les 768px disponibles. Les
+              cartes affichent stats + artéfacts + roue sur une seule LIGNE
+              (voir BuildCandidateCard.tsx), calibrées pour tenir dans cette
+              largeur (`WHEEL_SCALE`/`ARTIFACT_SCALE` = 0,45). */}
+          {/* ⚠️ Les cartes VÉRIFIÉES, puis les places « Vérification… »
+              (`composition`) : aucune carte non vérifiée, pendant la
+              recherche comme après. Une place a la hauteur d'une carte
+              (`useHauteurDesCartes`), pour que rien ne saute quand la carte
+              arrive. */}
+          {/* Les cartes : au bureau, la bande de onze têtes de tri au-dessus
+              (le téléphone trie par sa liste, dans l'en-tête). En forme
+              tableau, elles ne paraissent que sous la largeur du tableau. */}
+          {!compteConfirmes.aucune && (
+            <div className={formeResultats === 'tableau' ? CARTES_SOUS_LE_SEUIL : undefined}>
+              {/* Le tableau choisi, mais la zone est plus étroite que lui :
+                  on le dit, plutôt que de laisser « Tableau » sans effet visible. */}
+              {formeResultats === 'tableau' && (
+                <p className="mb-2 text-xs text-ink-dim" data-tableau-trop-etroit="">
+                  Trop étroit pour le tableau : cartes affichées
+                </p>
+              )}
+              {!sousLg && (
+                <BandeDeTri courant={triAffiche} trier={trier} metric={mesureDesCartes} disponible={colonneLibre}
+                  bornee={(c) => bornesVue[c]?.min != null || bornesVue[c]?.max != null} inactif={interrompu} />
+              )}
+              {vueVide ? (
+                <p className="mb-3 rounded-lg border border-dashed border-border-soft px-3 py-6 text-center text-xs text-ink-dim" data-vue-vide="">{vueVide}</p>
+              ) : (
+                <GrilleResultats
+                  bureau={!sousLg}
+                  grilleResultatsRef={grilleResultatsRef}
+                  composition={composition}
+                  {...proprietesGrille}
+                  proprietesCarte={proprietesCarte}
+                  hauteurCarte={hauteurCarte}
+                />
+              )}
+            </div>
+          )}
+          {formeResultats === 'tableau' && !compteConfirmes.aucune && (
+            <div className={TABLEAU_VISIBLE}>
+              <TableauResultats
+                cartes={cartes}
+                premierRang={composition.premierRang}
+                placesEnAttente={composition.placesEnAttente}
+                runeById={runesDesCartes}
+                metric={mesureDesCartes}
+                afficherDepassement={instantane?.vue.afficherDepassement ?? afficherDepassement}
+                tri={triAffiche}
+                trier={trier}
+                bornes={bornesVue}
+                poserBorne={poserBorne}
+                disponible={colonneLibre}
+                ouvrirDetail={(i) => { if (!interrompu) setDetailTableau(composition.cartes[i].runeIds.join('-')); }}
+                vide={vueVide}
+                inactif={interrompu}
+                enBonus={bonusTableau}
+                base={contexteResultatAffiche?.recherche.base ?? selected?.gear.base ?? {}}
+              />
+            </div>
+          )}
+          {indexDetail >= 0 && (
+            <Modale onClose={() => setDetailTableau(null)} labelledBy="optimizer-detail-build" croix largeur="max-w-[420px]"
+              titre={`Build n° ${composition.premierRang + indexDetail}`}>
+              <BuildCandidateCard
+                rank={composition.premierRang + indexDetail}
+                candidate={composition.cartes[indexDetail]}
+                bureau
+                {...proprietesGrille}
+                {...proprietesCarte(composition.cartes[indexDetail], indexDetail)}
+              />
+            </Modale>
+          )}
+  
+          {/* Pagination — remplace l'ancienne troncature dure à 20 : la
+              liste complète (jusqu'à MAX_COLLECTED, un million, voir runeBuildOptim.ts)
+              reste consultable, 20 par page. Flèches précédent/suivant +
+              saisie directe du numéro de page (même convention que les
+              champs numériques de l'app : `type="text"` + `inputMode=
+              "numeric"`, jamais de flèches natives de navigateur — voir
+              NumberField.tsx). */}
+          {totalResultsPages > 1 && (
+            <PaginationResultats
+              setResultsPage={setResultsPage}
+              resultsPage={resultsPage}
+              inactif={interrompu}
+              pageDraft={pageDraft}
+              setPageDraft={setPageDraft}
+              totalResultsPages={totalResultsPages}
+              pagesPeuventMonter={pagesResultats.pagesPeuventMonter}
+            />
+          )}
+        </div>
       )}
     </>
   );
-
-  const rapportZoneC = [...lists.rapportStockage, ...optimizer.rapportCriteres];
-  const zoneCContent = (
-    <div className="rounded-lg border border-border-soft bg-panel2/60 p-2.5">
-      <div className="mb-1.5 flex items-baseline justify-between gap-2">
-        <p className="text-[12px] font-semibold text-ink-dim truncate">
-          {activeList ? `Monstres de « ${activeList.name} »` : 'Monstres de la liste'}
-        </p>
-        {activeList && <span className="flex-none text-[11px] text-ink-dimmer">{activeMembers.length}</span>}
-      </div>
-
-      {/* Le rapport des critères se lit hors du flux, depuis une icône à place
-          réservée au bout de la ligne d'annonce ; la liste garde la hauteur. */}
-      <OptimizerBackupBar debut={<><Bouton
-        trait="pointille"
-        taille="sm"
-        pleineLargeur
-        icone={<Plus size={14} />}
-        libelle={ajoutListe.libelle}
-        title={ajoutListe.libelle}
-        disabled={!ajoutListe.actif}
-        onClick={handleAddToList}
-        className="min-w-0 [&>span]:min-w-0 [&>span]:truncate"
-      />
-      <Bouton libelle="Lier une équipe" title="Lier une équipe" taille="sm" pleineLargeur disabled={!activeList}
-        onClick={() => activeList && setEquipeOuverte({ listId: activeList.id, equipe: null })} /></>} listes={lists} optimizer={optimizer} data={exclusionData} artifactIds={new Set(artifacts.map(a => a.id))}
-        fin={<span className="inline-flex h-6 w-6 flex-none compact:h-10 compact:w-10">
-          {rapportZoneC.length > 0 && <MotifHorsFlux titre="Rapport des critères" messages={rapportZoneC}
-            libelle={`Rapport des critères : ${rapportZoneC.length} message${rapportZoneC.length > 1 ? 's' : ''}`} />}
-        </span>} />
-      <div className="sr-only" role="status" aria-label="Rapport des critères">
-        {rapportZoneC.map((message, index) => <p key={index}>{message}</p>)}
-      </div>
-
-      {activeMembers.length === 0 ? (
-        <p className="px-0.5 py-3 text-center text-[12px] italic text-ink-dim">
-          {activeList ? "Aucun monstre dans cette liste pour l'instant." : 'Choisis ou crée une liste ci-dessus.'}
-        </p>
-      ) : (
-        <div className="mt-1 max-h-[308px] space-y-1 overflow-y-auto">
-          {groupesMembres.filter(g => g.members.length > 0).map((g, numero) => {
-            const membres = g.members.map(m => {
-              const resolved = resolveExclusionEntry(m.selector, exclusionData);
-              const lead = resolved ? leadEffectifMembreOptimizer(lists, m.listId, m.selector, resolved.monster.element) : null;
-              return { m, resolved, motif: g.equipe?.lead && lead?.type === 'aucun' ? lead.motif : undefined };
-            });
-            const inactifs = membres.filter(m => m.motif).length;
-            return <section key={g.equipe?.id ?? 'sans-equipe'} aria-label={g.equipe ? `Équipe ${numero + 1}` : 'Sans équipe'} className={`space-y-0.5 ${g.equipe ? `rounded-lg p-1.5 ${numero % 2 === 0 ? 'bg-equipe-a' : 'bg-equipe-b'}` : ''}`}>
-            {g.equipe && <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-1 py-0.5">
-              {/* Lead, numéro et leader se lisent sur une seule ligne. */}
-              <span className="flex h-7 items-center whitespace-nowrap">
-                {g.equipe.lead ? <LeadPill ls={g.equipe.lead} titre={`Lead de l’équipe : +${g.equipe.lead.amount} % ${STAT_LABEL[g.equipe.lead.stat ?? ''] ?? g.equipe.lead.stat ?? ''} · ${g.equipe.lead.area === 'Guild' ? 'Guilde' : g.equipe.lead.area === 'Dungeon' ? 'Donjon' : g.equipe.lead.area === 'Arena' ? 'Arène' : g.equipe.lead.area === 'Element' ? 'Élément' : 'Général'}`} /> : <span className="text-xs text-ink-dim">Sans lead</span>}
-              </span>
-              <span title={`Équipe ${numero + 1}${g.equipe.leader ? ` · Leader : ${resolveExclusionEntry(g.equipe.leader, exclusionData)?.monster.name ?? 'Introuvable'}` : ''}`} className="min-w-0 truncate text-xs font-semibold text-ink">Équipe {numero + 1}
-                {g.equipe.leader && <span className="ml-1 font-normal text-ink-dim">· Leader : {resolveExclusionEntry(g.equipe.leader, exclusionData)?.monster.name ?? 'Introuvable'}</span>}
-              </span>
-              <span className="inline-grid whitespace-nowrap text-micro text-warn">
-                <span className="invisible col-start-1 row-start-1" aria-hidden>⚠ 5 leads inactifs</span>
-                <span className={`col-start-1 row-start-1 ${inactifs ? '' : 'invisible'}`} aria-hidden={!inactifs}>⚠ {inactifs} lead{inactifs > 1 ? 's' : ''} inactif{inactifs > 1 ? 's' : ''}</span>
-              </span>
-              <Bouton taille="xs" fond="vide" libelle="Modifier l’équipe" onClick={() => setEquipeOuverte({ listId: g.equipe!.listId, equipe: g.equipe })} />
-            </div>}
-            {!g.equipe && <p className="py-1 text-xs font-semibold text-ink-dim">Sans équipe</p>}
-          {membres.map(({ m, resolved, motif }) => {
-            const key = exclusionSelectorKey(m.selector);
-            const build = findValidatedBuild(lists.validated, lists.activeListId, key);
-            const absentes = build ? runesManquantesDuBuild(build, runeById) : [];
-            const artsAbsents = build ? artefactsManquantsDuBuild(build, artifactById) : [];
-            return (
-              <div key={key} className="flex flex-wrap items-center gap-x-2 rounded-lg border border-border-soft bg-panel/60 px-2 py-1.5">
-                <ZoneCliquable
-                  imbrique
-                  disabled={!resolved}
-                  onClick={() => {
-                    if (!resolved) return;
-                    const id = String(resolved.monster.id);
-                    // L'action partagée valide l'identité puis restaure la
-                    // mémoire ou la base complète, sans déclencher de guide.
-                    const criteres = optimizer.choisirMembre(m.listId, m.selector);
-                    setZoneDOpen(false);
-                    // ⚠️ **Rappel des auras externes — ICI,
-                    // dans le geste de la liste de travail, et nulle part
-                    // ailleurs** : ni dans `resetSearch`, ni dans un effet sur
-                    // `selectedId` — l'import d'une recette ou d'un compte pose
-                    // aussi le monstre, et le bestiaire, les puces de source et
-                    // la zone D restent sans rappel. Autre espèce OU autre exemplaire de la
-                    // même espèce ; la décision lit la destination réellement
-                    // appliquée, jamais les auras du membre précédent.
-                    if (
-                      criteres && doitRappeler(
-                        'liste',
-                        { espece: selectedId, exemplaire: ownSelectorKey, aurasExternes: damageSetup.setsAuraExternes },
-                        { espece: id, exemplaire: key, aurasExternes: criteres.damageSetup.setsAuraExternes }
-                      )
-                    ) {
-                      setRappelAuras((n) => (n ?? 0) + 1);
-                    } else setRappelAuras(null);
-                  }}
-                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
-                >
-                  <MonsterAvatar monster={resolved?.monster ?? null} size={24} className="flex-none" />
-                  <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-ink">
-                    {resolved?.monster.name ?? 'Introuvable'}
-                    {m.selector.source === 'unowned' && (
-                      <span className="ml-1 text-[10px] font-normal text-ink-dimmer">(non possédé)</span>
-                    )}
-                  </span>
-                </ZoneCliquable>
-                <OptimizerLeadInactif motif={motif} />
-                {build ? (
-                  <>
-                    <span className={`flex flex-none items-center gap-1 text-[10.5px] font-semibold ${absentes.length || artsAbsents.length ? 'text-warn' : 'text-accent'}`}
-                      title={absentes.length || artsAbsents.length ? 'Build conservé ; les pièces absentes du compte ne sont plus réservées.' : undefined}>
-                      <CheckCircle2 size={12} />
-                      {absentes.length || artsAbsents.length ? [absentes.length ? `${absentes.length} rune(s) absente(s)` : '',
-                        artsAbsents.length ? `${artsAbsents.length} artéfact(s) absent(s)` : ''].filter(Boolean).join(' · ') : 'Validé'}
-                    </span>
-                    {/* ⚠️ **L’icône disait le contraire de l’action.** Ce
-                        bouton LIBÈRE, et portait le `CheckCircle2` de la
-                        validation — le même pictogramme que le badge
-                        « Validé » posé juste à sa gauche. Il porte désormais
-                        la roue barrée d’une interdiction, celle d’« Exclure
-                        les runes déjà utilisées » : du point de vue du
-                        monstre, libérer, c’est lui retirer ses runes. */}
-                    <BoutonIcone
-                      cadre
-                      libelle="Libérer ce build (runes et artéfacts)"
-                      icone={
-                        <IconeInterdite cadre={false} taille={16}>
-                          <img src={WHEEL_IMG} alt="" className="h-3.5 w-3.5 object-contain" />
-                        </IconeInterdite>
-                      }
-                      onClick={() => setReleaseConfirm({ listId: m.listId, selector: m.selector })}
-                      className="h-6 w-6 flex-none"
-                    />
-                    {/* ⚠️ **Rendre la PAIRE sans défaire le runage.** Un
-                        artéfact physique ne se porte que sur un monstre à la
-                        fois : on veut souvent le récupérer pour un autre sans
-                        renoncer au runage déjà planifié. Affiché seulement
-                        s’il y a quelque chose à rendre — un bouton qui ne
-                        ferait rien serait pire qu’un bouton absent. */}
-                    {(build.artifactIds ?? []).length > 0 && (
-                      <BoutonIcone
-                        cadre
-                        libelle="Libérer les artéfacts (le runage reste réservé)"
-                        icone={
-                          <IconeInterdite cadre={false} taille={16}>
-                            <GameIcon name="artifact" size={13} />
-                          </IconeInterdite>
-                        }
-                        onClick={() => setReleaseArtifactsConfirm({ listId: m.listId, selector: m.selector })}
-                        className="h-6 w-6 flex-none"
-                      />
-                    )}
-                  </>
-                ) : (
-                  <span className="flex-none text-[10.5px] text-ink-dimmer">pas encore validé</span>
-                )}
-                <BoutonIcone
-                  cadre
-                  libelle="Retirer de la liste"
-                  icone={<Trash2 size={14} className="text-ink-dim" />}
-                  onClick={() =>
-                    build
-                      ? setRemoveMemberConfirm({ listId: m.listId, selector: m.selector })
-                      : lists.removeMember(m.listId, m.selector)
-                  }
-                  className="h-6 w-6 flex-none"
-                />
-              </div>
-            );
-          })}
-          </section>; })}
-        </div>
-      )}
-
-      {/* ⚠️ **Le rappel des auras, AUSSI sous la liste**
-          — là où l'on vient de cliquer : « État de mon monstre » est souvent
-          hors de l'écran à ce moment, toujours au téléphone. Le MÊME rappel que la boîte des
-          auras : même état (`rappelAuras`, posé par le seul `onClick` d'un
-          membre ci-dessus), donc même minuterie (`DUREE_ATTENTION_MS`) —
-          jamais un second minuteur ni une seconde condition —, même message,
-          même token (`warn` / `warn-soft`, un seul contour de 1 px).
-          Rendu SANS condition du rappel, invisible le reste du temps : sa
-          place est réservée sous la liste, rien ne bouge quand il paraît ni
-          quand il s'efface (docs/03-developpeur/interface/, réponse n° 1). Monté avec
-          la liste seulement : sans membre, aucun clic ne peut le poser.
-          Pas d'`aria-live` : la boîte des auras, montée en permanence,
-          l'annonce déjà — deux régions liraient deux fois la même phrase.
-          Commun aux deux formats : au téléphone, il vit dans le dépliement
-          de la zone C, ouvert au moment du clic. */}
-      {activeMembers.length > 0 && (
-        <p
-          className={`mt-1 rounded-lg border border-warn bg-warn-soft px-2 py-1 text-xs font-semibold text-warn ${
-            rappelAuras !== null ? 'animate-[apparition_200ms_var(--ease-out)]' : 'invisible'
-          }`}
-        >
-          Pense à vérifier les sets d&apos;aura externes.
-        </p>
-      )}
-
-      {listHasValidated && activeList && (
-        <Bouton
-          ton="neutre"
-          fond="vide"
-          trait="plein"
-          taille="sm"
-          pleineLargeur
-          icone={<Unlock size={13} />}
-          libelle={`Libérer toutes les runes de « ${activeList.name} »`}
-          onClick={() => setReleaseAllConfirm(activeList.id)}
-          className="mt-2"
-        />
-      )}
-    </div>
-  );
-
-  return (
-    // ⚠️ **Pleine largeur**, comme RTA/Siège/Mon compte — l'ancienne colonne
-    // bornée à 768 px était le seul écran de l'app à s'en imposer une, et
-    // empilait ~2 000 px de réglages à faire défiler sur un écran large à
-    // moitié vide. La raison d'origine (« une ligne "libellé … champ" étalée
-    // sur tout l'écran devient un aller-retour du regard ») reste vraie et
-    // est traitée AUTREMENT : ce ne sont pas les lignes qui s'étirent, ce
-    // sont les COLONNES qui se juxtaposent (voir la grille ci-dessous) — la
-    // longueur de chaque ligne reste courte.
-    <div className="space-y-5">
-      {/* ⚠️ Pas de `useStickyState`/case à fermer, contrairement à
-          MobileNotice : ce n'est pas un avertissement ponctuel mais un statut
-          qui reste vrai tant que l'outil est en rodage — il doit rester
-          visible à chaque visite, pas disparaître après un premier clic. */}
-      <div className="flex items-start gap-2.5 rounded-xl border border-warn/60 bg-warn/10 px-3 py-2.5">
-        <FlaskConical size={16} className="mt-0.5 flex-none text-warn" />
-        <p className="flex-1 text-xs leading-relaxed text-ink-dim">
-          <b className="text-ink">Optimizer en bêta.</b> L'outil est encore en rodage : le moteur de
-          recherche peut mettre du temps sur des critères serrés ou manquer un build sur un cas
-          inhabituel — vérifie toujours le résultat avant de re-runer.
-        </p>
-      </div>
-
-      <p className="text-sm text-ink-dim">
-        Recherche parmi tes runes possédées ; rien n'est appliqué à ton compte, l'outil est purement
-        indicatif — c'est à toi de re-runer dans le jeu.
-      </p>
-
-      {/* ── UNE SEULE grille, à partir de `xl`, pour tout l'écran de
-          réglages (Monstre, Critères, Artéfacts, État de mon monstre,
-          Exclusion, Réglages avancés) ────────────────────────────────────
-          ⚠️ **Disposition au bureau** (`xl:grid-cols-[1.35fr_1fr]`) : rangée 1
-          = Monstre & équipement, PLEINE LARGEUR (`xl:col-span-2`). Colonne 1,
-          rangées 2 à 5 (`row-span-4`) = Critères de recherche. Colonne 2,
-          de haut en bas : Artéfacts et reliques (rangée 2), État de mon
-          monstre (3), Exclusion de runes (4), Réglages avancés (5). Rangée 6,
-          pleine largeur = estimation.
-          ⚠️ **Placement EXPLICITE (`col-start`/`row-start`/`row-span`) sur
-          CHAQUE bloc** — l'ordre du DOM peut alors rester celui de l'ordre
-          d'USAGE (1. monstre, 2. objectif, 3. critères, puis
-          optionnellement exclusion/réglages avancés) SANS dicter l'ordre
-          VISUEL au bureau. Sous `xl`, une seule colonne : ces classes ne
-          s'appliquent plus, l'ordre du DOM (= l'ordre d'usage) devient
-          l'ordre de lecture.
-          ⚠️ **Réglages avancés reste EMPILÉ sous Exclusion de runes**
-          (colonne 2, rangées 4 et 5) : son contenu déplié n'est pas un bloc
-          INLINE qui grandit la carte, mais un **`FlottantAuto`** qui flotte
-          PAR-DESSUS la page — la carte elle-même garde toujours la même
-          hauteur repliée, donc aucune rangée ne bouge quand on déplie, quel
-          que soit l'endroit où le bloc vit dans la grille. Voir
-          `avancesRef`/`showAdvanced` plus bas, et
-          [design/mouvement-et-gestes.md](../../../docs/03-developpeur/interface/design/mouvement-et-gestes.md) : « un clic ne déplace
-          jamais ce qu'on vient de cliquer » — un panneau replié par défaut
-          ne peut pas réserver sa place à l'avance sans perdre l'intérêt
-          d'être replié, donc il sort du flux (flottant), l'autre option
-          prévue par cette règle.
-          ⚠️ `items-start` : sans lui, chaque bloc s'étire à la hauteur de sa
-          rangée et les cartes courtes se retrouvent avec un grand vide
-          bordé.
-          ⚠️ **Colonne 1 en `1.35fr`, pas une largeur en pixels** : une
-          colonne bornée à `minmax(480px,560px)` est trop étroite pour la
-          rangée d'équipement (recherche 224 + stats 200 + artéfacts 58 + roue
-          208 + relique ≈ 800 px) — la roue puis la relique passeraient à la
-          ligne, cette dernière finissant hors du cadre. En `fr`, la colonne
-          suit la largeur réelle de l'écran (≈ 700 px à `xl`, ≈ 965 px sur un
-          1920), et « Critères de recherche » (`w-fit`, même colonne) se
-          serre sur son contenu. */}
-      {/* `minmax(0,1fr)` sous `xl` : la colonne unique suit l'écran. Une
-          colonne implicite grandissait jusqu'au contenu le plus large (la
-          roue de la fiche, `w-max`), décentrant la page au téléphone. */}
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 items-start xl:grid-cols-[1.35fr_1fr]">
-      {/* Étape 1 — carte À PART, en tête du DOM. ⚠️ **La fiche reste
-          TOUJOURS affichée, vide (`EMPTY_GEAR`) tant qu'aucun monstre n'est
-          choisi**, plutôt que de n'apparaître qu'au clic : l'espace qu'elle
-          occupe est réservé d'avance (voir docs/03-developpeur/interface/). */}
-      {/* ⚠️ Carte en PLEINE LARGEUR (`xl:col-span-2`, `xl:row-start-1`) : la
-          fiche stats/artéfacts/runes/relique vit DANS cette carte (colonne
-          interne de droite, sous les puces) et a besoin de la largeur des
-          DEUX colonnes de la page pour tenir stats+artéfacts+roue+relique sur
-          une seule ligne sans repasser à la ligne. « Exclusion de runes » et
-          « Réglages avancés » occupent la colonne 2, rangées 4 et 5 (voir
-          plus bas). */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-span-2 xl:row-start-1">
-        <div className="mb-3 flex items-center gap-2">
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
-            <GameIcon name="monster" size={15} />
-          </div>
-          <p className="text-[13.5px] font-bold text-ink">Monstre &amp; équipement</p>
-        </div>
-        {/* ⚠️ Bureau et mobile ont des dispositions RÉELLEMENT DIFFÉRENTES
-            ici, une par bloc `hidden`/`lg:hidden`, pas l'une déclinée de
-            l'autre (voir docs/02-app/optimizer/) : recherche +
-            puces CÔTE À CÔTE avec zones C/D en encarts fixes sur bureau,
-            contre 3 blocs empilés avec un dépliement propre chacun au
-            doigt. La fiche (zone E) a deux `<MonsterGear>`, un par format (ici,
-            et dans le bloc 3 du téléphone), branchés sur le MÊME état
-            (`selectionFiche`) — son contenu ne change pas entre les deux
-            formats. */}
-        {/* ⚠️ Carte en PLEINE LARGEUR — nécessaire pour que la fiche
-            stats/artéfacts/roue/relique, déplacée ici SOUS les puces
-            (colonne de droite), tienne sur une seule ligne sans repasser à
-            la ligne (gabarit réel : ~200px stats + ~60px artéfacts + ~210px
-            roue + ~60px relique).
-            ⚠️ **`lg:grid-cols-[1.35fr_1fr]`, PAS `lg:grid-cols-2`** (demande
-            explicite) : la séparation entre « Monstre à optimiser » et
-            « Exemplaire » s'aligne ainsi avec celle des deux colonnes
-            PRINCIPALES de la grille (`xl:grid-cols-[1.35fr_1fr]`, voir le
-            commentaire d'ouverture de la grille) — un seul ratio de
-            colonnes pour tout l'écran, pas deux proportions différentes
-            qui se contrediraient visuellement l'une sous l'autre. */}
-        <div className="hidden lg:grid lg:grid-cols-[1.35fr_1fr] lg:items-start lg:gap-6">
-          {/* Zone A (recherche — résout une ESPÈCE dans tout le bestiaire,
-              possédée ou non) + liste active
-              + zone C (monstres de cette liste), à GAUCHE. */}
-          <div>
-            <p className="label mb-1.5">Monstre à optimiser</p>
-            {/* ⚠️ Mode BESTIAIRE (voir MonsterSourcePicker.tsx) : résout une
-                ESPÈCE (nom, icône, stats de base,
-                sorts) dans TOUT le bestiaire — la recherche ne se fait pas
-                PAR SOURCE (les 4 puces ne cherchent pas). Choisir
-                un résultat pose l'espèce et tente une résolution Box
-                silencieuse (`pickSpecies`, jamais en cas d'ambiguïté — voir
-                sa définition). */}
-            <MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />
-            {/* La sélection garde sa place même vide : l'import ne déplace pas les contrôles de liste. */}
-            <div className="mt-3 h-8 flex items-center gap-2">
-              {selected && <>
-                <MonsterAvatar monster={selected.monster} size={32} />
-                <span className="min-w-0 line-clamp-1 font-semibold text-[14px]" title={selected.monster.name}>{selected.monster.name}</span>
-              </>}
-            </div>
-            {/* ⚠️ Aucune liste FIXE (Box/RTA/Défense siège ne sont pas des
-                cas spéciaux, voir
-                docs/02-app/optimizer/,
-                « Créer, valider et réserver dans une liste ») —
-                tout est créé/renommé/supprimé par l'utilisateur. Flotte par-
-                dessus zone C, ne la pousse jamais (voir OptimizerListPicker.tsx). */}
-            <div className="mt-3">
-              <OptimizerListPicker
-                action={<OptimizerImportButton enLigne sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />}
-                lists={lists.lists}
-                activeListId={lists.activeListId}
-                memberCounts={memberCountsByList}
-                listContents={lists.listContents}
-                onSelect={lists.setActiveListId}
-                onCreate={lists.createList}
-                onEdit={lists.editList}
-                onDelete={lists.deleteList}
-              />
-            </div>
-            <div className="mt-3">{zoneCContent}</div>
-          </div>
-
-          {/* Zone B (les 4 puces — choisissent l'EXEMPLAIRE de l'espèce
-              déjà choisie à gauche dans un « contenu » précis) + zone D
-              (désambiguïsation
-              d'exemplaire, en `Flottant` sous les puces — ex. 2 équipes de
-              siège) + fiche, à DROITE. */}
-          <div className="flex flex-col gap-3">
-            <div ref={zoneDRef} className="relative">
-              <p className="label mb-1.5">Exemplaire</p>
-              {/* ⚠️ Puce individuellement grisée si l'espèce n'est PAS
-                  possédée dans CETTE source précise, tout le contrôle grisé
-                  si elle ne l'est dans AUCUNE des 4 — voir l'axe `disabled` par option, ajouté à
-                  Segmented.tsx pour ce cas précis. ⚠️ **`value={null}`
-                  quand le build VALIDÉ est ACTUELLEMENT affiché**
-                  (`matchesValidatedBuild`, PAS `ownValidatedBuild` seul —
-                  la bascule « voir le runage réellement porté »,
-                  `showRealGear`, peut en montrer l'équipement réel, qui
-                  LUI reste la source réelle d'une puce) **ou quand
-                  `sourceSelector` est `unowned`** (monstre non possédé,
-                  demande explicite) : dans les deux cas, aucune puce ne
-                  doit s'allumer — voir l'axe `value: T | null` ajouté à
-                  Segmented.tsx pour ce cas précis. */}
-              <Segmented
-                options={sourceOptions}
-                value={matchesValidatedBuild || unowned ? null : gearSource}
-                onChange={pickSource}
-                disabled={allSourcesEmpty}
-                size="lg"
-              />
-              {zoneDOpen && (
-                <Flottant aria-label="Choisir l'exemplaire" rembourrage="aucun" className="max-h-[300px] overflow-y-auto">
-                  {zoneDList}
-                </Flottant>
-              )}
-            </div>
-            <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
-              {validatedBadge}
-              <MonsterGear
-                gear={selected?.gear ?? EMPTY_GEAR}
-                selection={selectionFiche}
-                onSelectionChange={setSelectionFiche}
-                relicUsageById={relicUsageById}
-              />
-              {validateBuildButton}
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile : 3 blocs empilés, chacun son propre
-            dépliement — pas les zones fixes ci-dessus. */}
-        <div className="lg:hidden space-y-3">
-          {/* Bloc 1 — recherche TOUJOURS visible, liste active
-              rattachée EN DESSOUS en dépliement (`zoneCOpen`, repliée par
-              défaut). */}
-          <div>
-            <p className="label mb-1.5">Monstre à optimiser</p>
-            <MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />
-            <div ref={ligneMonstreTelephoneRef} className="mt-3 h-8 flex items-center gap-2">
-              {selected && <>
-                <MonsterAvatar monster={selected.monster} size={32} />
-                <span className="min-w-0 line-clamp-1 font-semibold text-[14px]" title={selected.monster.name}>{selected.monster.name}</span>
-              </>}
-            </div>
-            <div className="mt-3">
-              <OptimizerImportButton sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />
-            </div>
-            <ZoneCliquable
-              onClick={() => setZoneCOpen((v) => !v)}
-              aria-expanded={zoneCOpen}
-              className={`-mx-1 mt-3 flex w-[calc(100%+0.5rem)] items-center gap-1.5 rounded-md px-1 text-[12.5px] font-semibold transition-colors duration-300 motion-reduce:transition-none ${eclatImport ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
-            >
-              Gérer mes listes
-              <ChevronDown size={13} className={`ml-auto transition-transform ${zoneCOpen ? 'rotate-180' : ''}`} />
-            </ZoneCliquable>
-            {zoneCOpen && (
-              <div className={`-mx-1 mt-2 space-y-3 rounded-lg px-1 py-1 transition-colors duration-300 motion-reduce:transition-none ${eclatImport ? 'bg-accent-soft' : ''}`}>
-                <OptimizerListPicker
-                  lists={lists.lists}
-                  activeListId={lists.activeListId}
-                  memberCounts={memberCountsByList}
-                  listContents={lists.listContents}
-                  onSelect={lists.setActiveListId}
-                  onCreate={lists.createList}
-                  onEdit={lists.editList}
-                  onDelete={lists.deleteList}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Bloc 2 — puces TOUJOURS visibles, zone D rattachée EN DESSOUS
-              en dépliement (`zoneDOpen`, EN LIGNE plutôt qu'en `Flottant` —
-              un panneau flottant se prête mal à un écran étroit). */}
-          <div>
-            <p className="label mb-1.5">Exemplaire</p>
-            <Segmented
-              options={sourceOptions}
-              value={matchesValidatedBuild || unowned ? null : gearSource}
-              onChange={pickSource}
-              disabled={allSourcesEmpty}
-              size="lg"
-            />
-            {zoneDOpen && <div className="mt-2 rounded-lg border border-border-soft overflow-hidden">{zoneDList}</div>}
-            {/* Les ajouts ne déplacent pas la puce qui les déclenche. */}
-            {zoneCOpen && <div className="mt-3">{zoneCContent}</div>}
-          </div>
-
-          {/* Bloc 3 — fiche stats/artéfacts/runes/relique (même composant
-              `MonsterGear` que RTA/Siège), bandeau « build validé » +
-              bouton « Valider ce build » en plus, voir leur commentaire
-              plus haut (`validatedBadge`/`validateBuildButton`). */}
-          <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
-            {validatedBadge}
-            <MonsterGear
-              gear={selected?.gear ?? EMPTY_GEAR}
-              selection={selectionFiche}
-              onSelectionChange={setSelectionFiche}
-              relicUsageById={relicUsageById}
-            />
-              {validateBuildButton}
-          </div>
-        </div>
-      </div>
-
-      {/* Étape 3. ⚠️ **`w-fit` RETIRÉ** (demande explicite) : sans lui, la
-          carte profite de toute la largeur de la colonne 1 plutôt que de se
-          serrer sur son contenu — même patron que « Monstre & équipement »
-          (carte haute à gauche, cartes plus courtes empilées à sa droite).
-          ⚠️ **`xl:row-span-4`** : la colonne 2 empile QUATRE cartes —
-          Artéfacts et reliques (2, bloc Relique fusionné dedans),
-          État de mon monstre (3), Exclusion
-          de runes (4), Réglages avancés (5). Ce nombre suit la colonne d'EN
-          FACE, il ne décrit pas le contenu de celle-ci : toute carte ajoutée
-          ou retirée à droite se répercute ici, et sur la rangée de la ligne
-          d'estimation (pleine largeur, toujours en dernier). */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2 xl:row-span-4">
-        <div className="mb-3 flex items-center gap-2">
-          {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
-              cible générique pour « plusieurs critères ajustables », et
-              distinct du `Target` déjà utilisé plus bas pour un réglage
-              précis (« Prioriser les stats les plus difficiles »). */}
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
-            <SlidersHorizontal size={13} className="text-accent" />
-          </div>
-          <p className="text-[13.5px] font-bold text-ink">Critères de recherche</p>
-        </div>
-        {/* ⚠️ **Deux colonnes** (demande explicite) : Set de runes recherché
-            + Statistique principale imposée à GAUCHE (les deux contraintes
-            qui portent sur les runes elles-mêmes), Artéfacts + Conditions à
-            DROITE — vérifié sur un écran réel (capture d'écran) qu'il reste
-            assez de place pour « Objectif de recherche » à côté, malgré la
-            carte élargie par cette deuxième colonne. `items-start` : la
-            colonne la plus courte ne s'étire pas à la hauteur de l'autre.
-            Sous `lg`, retour à l'empilement (ordre du DOM inchangé : Set,
-            Statistique principale, Artéfacts, Conditions). */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
-        {/* ⚠️ **Trait vertical entre les deux colonnes** (demande explicite,
-            capture d'écran à l'appui) — `lg:border-r` posé sur la colonne de
-            GAUCHE uniquement (pas de `border-l` en plus sur la droite : deux
-            traits à 1 px l'un de l'autre se liraient comme un contour flou,
-            voir docs/03-developpeur/interface/). `lg:pr-6` : le trait respire du même
-            écart que `lg:gap-6` sur le conteneur, sans quoi il collerait au
-            texte de gauche. UNIQUEMENT à partir de `lg` — sous ce seuil, les
-            deux « colonnes » s'empilent (`flex-col`), un trait vertical n'y
-            aurait aucun sens. */}
-        <div className="lg:border-r lg:border-border-soft lg:pr-6">
-      {/* ⚠️ `max-w-md` — SEUL rempart (la carte elle-même n'a pas de
-          `w-fit`, voir le commentaire d'ouverture de cette carte) : sans lui, ce
-          bloc se laisserait pousser jusqu'à la largeur disponible de la
-          piste de grille, beaucoup plus large que ce set n'en a besoin. */}
-      <div
-        ref={setPickerSectionRef}
-        className={`max-w-md ${
-          setPickerInvalid
-            ? 'rounded-lg border border-bad bg-bad/15 p-2 -m-2 transition'
-            : 'transition'
-        }`}
-      >
-        <p className="label mb-1.5">Set de runes recherché</p>
-        <SetComboPicker
-          sets={comboSets}
-          onChange={(next) => {
-            setComboSets(next);
-            if (next.length > 0) setSetPickerInvalid(false);
-            // Ouverture guidée : Accuracy ou Tolerance
-            // CHOISI comme set recherché guide vers l'interrupteur des auras
-            // RES/PRE, sans toucher aux auras externes. Au geste seulement :
-            // l'import d'une recette pose `comboSets` sans passer par ici.
-            if (guideVersResPre({ setsRecherches: comboSets }, { setsRecherches: next })) guiderVersResPre();
-          }}
-        />
-        {setPickerInvalid && (
-          <p className="mt-1.5 text-micro font-semibold text-bad">
-            Sélectionne au moins un set avant de lancer la recherche.
-          </p>
-        )}
-      </div>
-
-      {/* ⚠️ Trait horizontal entre Set de runes recherché et Statistique
-          principale imposée (demande explicite) — `mt-4 border-t pt-4`
-          remplace le `space-y-4` qu'avait le conteneur parent (sinon la
-          marge automatique ET la bordure s'additionneraient, doublant
-          l'écart visuel). */}
-      <div className="mt-4 border-t border-border-soft pt-4">
-        <div className="mb-2.5 flex items-center gap-1.5">
-          <p className="label">Statistique principale imposée (slots pairs)</p>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          {CONFIGURABLE_SLOTS.map((slot) => (
-            <div key={slot} className="flex items-center gap-2 flex-wrap">
-              <span className="text-micro text-ink-dim w-14">Slot {slot}</span>
-              {SLOT_MAIN_OPTIONS[slot].map((code) => {
-                const active = (mainStatsBySlot[slot] ?? []).includes(code);
-                return (
-                  <Pastille
-                    key={code}
-                    actif={active}
-                    onClick={() => toggleMainStat(slot, code)}
-                    libelle={RUNE_EFFECT[code]?.label ?? code}
-                  />
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
-        </div>
-
-        <div>
-      {/* ⚠️ Le bloc « Artéfacts » vivait ICI, en tête de cette colonne, au-
-          dessus de Conditions. Déplacé dans sa PROPRE carte (colonne 2,
-          rangée 2 — voir plus bas) : son interrupteur « Ignorer les
-          statistiques » masquait sélecteurs et lignes verrouillées d'un coup,
-          ce qui faisait REMONTER Conditions sous le doigt. Cette colonne ne
-          porte donc plus que Conditions, et le trait qui les séparait a
-          disparu avec lui — un trait en TÊTE de colonne, sans rien au-dessus,
-          ne sépare plus rien. */}
-      <div>
-        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-          <p className="label">Conditions</p>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-ink-dim">Stats de base exclues</span>
-            <HelpPopover title="Stats de base exclues">
-              <b className="text-ink">PV/ATQ/DEF/VIT</b> : activé, la valeur est ce que l'équipement (runes ET
-              artéfacts comptés) doit apporter <b className="text-ink">au-dessus de la base</b> du monstre. Désactivé,
-              elle porte sur le total. <b className="text-ink">Taux Crit/Dgts Crit/RES/Précision</b> restent toujours
-              en total, quel que soit ce réglage — ils partent de la valeur d'éveil du monstre.
-            </HelpPopover>
-            <Interrupteur
-              actif={excludeBase}
-              onChange={setExcludeBase}
-              aria-label="Stats de base exclues des conditions PV/ATQ/DEF/VIT"
-            />
-          </div>
-        </div>
-        {/* ⚠️ `boxWidth` fixe sur CHAQUE NumberField ci-dessous (voir
-            NumberField.tsx) : sans ça, un champ avec suffixe « % » serait
-            TOUJOURS plus large qu'un champ sans suffixe à largeur de texte
-            égale (le suffixe prend de la place en plus), et les colonnes
-            Min/Max ne s'aligneraient pas d'une stat à l'autre. */}
-        {/* ⚠️ `gap-x` réduit sous `sm` : trois colonnes plus deux écarts de
-            16 px ne laissaient plus de place aux champs sur 348 px utiles. */}
-        {/* ⚠️ `w-fit` : sans lui, un conteneur `grid` en bloc prend TOUTE la
-            largeur de son parent, et les colonnes `auto` (Min/Max) SE
-            PARTAGENT l'espace libre restant (comportement CSS Grid par
-            défaut dès qu'aucune piste n'est en `fr`) — sur une carte large,
-            Min et Max se retrouvaient étirés à des dizaines de pixels l'un
-            de l'autre. `w-fit` borne la grille à son contenu réel : les
-            colonnes redeviennent SERRÉES, quelle que soit la largeur de la
-            carte qui l'entoure. Demande explicite : « resserré ». */}
-        <div className="grid w-fit grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4">
-          {/* ⚠️ En-têtes Min/Max AU DOIGT seulement. Sur téléphone, le libellé
-              « Min »/« Max » collé à chaque champ faisait déborder la rangée
-              (label + 2 champs + 2 mots > largeur utile) ; on les masque et on
-              pose ces deux en-têtes une seule fois. Au bureau (`sm:`), chaque
-              champ garde son libellé à côté et ces en-têtes disparaissent —
-              rendu inchangé. */}
-          <span className="sm:hidden" aria-hidden />
-          <span className="label sm:hidden text-center">Min</span>
-          <span className="label sm:hidden text-center">Max</span>
-          {RECO_STATS.map((st) => {
-            const affectedByToggle = BASE_TOGGLE_STATS.has(st.key);
-            const base = baseOf(st.key);
-            const capped = CAPPED_100.has(st.key);
-            const bonusMode = affectedByToggle && excludeBase;
-            const ceiling = capped ? (bonusMode ? 100 - base : 100) : undefined;
-            // ⚠️ Plancher affiché/autorisé, PAS la même chose que `base` (qui
-            // sert à la conversion affichage↔stockage, voir `baseOf`) : avec
-            // zéro rune, un monstre a déjà AU MOINS ce bonus/total en jeu
-            // (base nue + artéfacts éventuellement comptés) — voir
-            // `artifactFloorOf`. En mode bonus, seul l'artéfact compte (la
-            // base nue est déjà soustraite par la conversion elle-même) ; en
-            // mode total, base ET artéfact s'additionnent.
-            const floor = artifactFloorOf(st.key, base, bonusMode);
-
-            const minTotal = minStats[st.key] ?? null;
-            const minDisplayed = minTotal == null ? null : bonusMode ? minTotal - base : minTotal;
-            const maxTotalVal = maxStats[st.key] ?? null;
-            const maxDisplayed = maxTotalVal == null ? null : bonusMode ? maxTotalVal - base : maxTotalVal;
-
-            return (
-              <Fragment key={st.key}>
-                <span className="text-xs text-ink">{st.label}</span>
-                <div className="flex items-center gap-1.5">
-                  <NumberField
-                    value={minDisplayed}
-                    onChange={(v) =>
-                      setMinStats((prev) => {
-                        const next = { ...prev };
-                        if (v == null) delete next[st.key];
-                        else next[st.key] = bonusMode ? v + base : v;
-                        return next;
-                      })
-                    }
-                    allowEmpty
-                    // ⚠️ Le total (ou le bonus, artéfacts comptés) ne descend
-                    // jamais sous ce plancher — même sans la moindre rune, il
-                    // est déjà garanti (base nue en mode total, artéfacts en
-                    // mode bonus).
-                    min={floor}
-                    max={ceiling}
-                    placeholder={String(floor)}
-                    suffix={st.suffix || undefined}
-                    boxWidth="w-24"
-                    ariaLabel={`${st.label} minimum`}
-                    title="Minimum"
-                  />
-                  <span className="hidden sm:inline text-ink-dim text-micro">Min</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <NumberField
-                    value={maxDisplayed}
-                    onChange={(v) =>
-                      setMaxStats((prev) => {
-                        const next = { ...prev };
-                        if (v == null) delete next[st.key];
-                        else next[st.key] = bonusMode ? v + base : v;
-                        return next;
-                      })
-                    }
-                    allowEmpty
-                    min={floor}
-                    max={ceiling}
-                    placeholder={capped ? String(ceiling) : '—'}
-                    suffix={st.suffix || undefined}
-                    boxWidth="w-24"
-                    // ⚠️ **Un maximum sous le minimum retombe au défaut**
-                    // (demande explicite) : la condition serait insatisfaisable
-                    // par construction, et la recherche renverrait « 0 build »
-                    // sans que rien ne dise pourquoi.
-                    //
-                    // ⚠️ À la SORTIE du champ, jamais à la frappe : on ne
-                    // saurait pas distinguer un « 5 » définitif d'un « 50 » en
-                    // cours d'écriture — c'est le même piège que celui que
-                    // `NumberField` documente déjà pour le bornage par `min`.
-                    //
-                    // ⚠️ On EFFACE plutôt que de remonter à la valeur du
-                    // minimum : le champ retrouve alors son placeholder, donc
-                    // son défaut (le plafond pour une stat bornée à 100,
-                    // « aucun maximum » sinon). Le corriger silencieusement en
-                    // « max = min » poserait une contrainte que l'utilisateur
-                    // n'a pas demandée, et qui ne laisse passer qu'une valeur.
-                    onBlur={() => {
-                      const mn = minStats[st.key];
-                      const mx = maxStats[st.key];
-                      if (mn == null || mx == null || mx >= mn) return;
-                      setMaxStats((prev) => {
-                        const next = { ...prev };
-                        delete next[st.key];
-                        return next;
-                      });
-                    }}
-                    ariaLabel={`${st.label} maximum`}
-                    title="Maximum"
-                  />
-                  <span className="hidden sm:inline text-ink-dim text-micro">Max</span>
-                </div>
-              </Fragment>
-            );
-          })}
-        </div>
-        <div className="flex justify-end mt-1.5">
-          <Bouton
-            fond="vide"
-            trait="aucun"
-            taille="sm"
-            onClick={() => {
-              setMinStats({});
-              setMaxStats({});
-            }}
-            icone={<RotateCcw size={13} />}
-            libelle="Réinitialiser les conditions"
-            className="text-ink-dim hoverable:text-bad"
-          />
-        </div>
-      </div>
-
-        </div>
-        </div>
-      </div>
-
-      {/* Carte À PART, PAS un bloc dans « Critères de recherche » : une
-          carte dédiée Artéfacts.
-          ⚠️ 1. L'interrupteur « Ignorer les statistiques » masque d'un coup
-          les sélecteurs ET les lignes verrouillées. Tant que le bloc vivait
-          en tête de la colonne de droite de « Critères de recherche », ce
-          clic faisait REMONTER « Conditions » — un clic qui déplace ce qui le
-          suit, interdit par docs/03-developpeur/interface/. Isolé ici, il ne déplace
-          plus que ce qui suit la carte entière.
-          2. `xl:col-start-2 xl:row-start-2` — SOUS « Exemplaire », à la place
-          libérée par « Objectif de recherche » (parti rejoindre le bouton
-          Rechercher) : le bloc se lit « ces artéfacts, sur CE build », il doit
-          toucher l'exemplaire qui fixe les runes.
-          ⚠️ **Pas en pleine largeur** : essayé, capturé, rejeté — la pleine
-          largeur projette la puce de sorte, le champ de minimum et la croix à
-          ~1 400 px de leur propre libellé, soit une saccade d'un bout à
-          l'autre de l'écran pour lire UNE ligne verrouillée.
-          ⚠️ Le placement de grille est en `xl:` UNIQUEMENT : au doigt, l'ordre
-          est celui du DOM, d'où cette carte déclarée juste après « Critères de
-          recherche ». Les deux formats sont servis par le même JSX. */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-2">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          {/* Même gabarit d'en-tête que les autres cartes (icône encadrée 6×6
-              + titre 13,5 px) : `GameIcon name="artifact"` existait déjà et
-              n'était pas utilisé ici — pas une icône de plus à inventer. */}
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
-            <GameIcon name="artifact" size={15} />
-          </div>
-          {/* ⚠️ Titre étendu à la relique (voir le bloc « Relique »
-              ci-dessous) : le titre suit l'interrupteur, qui porte déjà les
-              deux mots — à confirmer par l'utilisateur au premier rendu. */}
-          <p className="text-[13.5px] font-bold text-ink">Artéfacts et reliques</p>
-          <HelpPopover title="Artéfacts et reliques">
-            <b className="text-ink">« Libre »</b> cherche parmi tous tes artéfacts équipables ; une{' '}
-            <b className="text-ink">principale</b> restreint la recherche à ceux qui la portent.{' '}
-            <b className="text-ink">« Garder l&apos;artéfact équipé »</b> conserve la pièce entière portée sur le
-            build affiché ci-dessus, sans rien chercher.
-            <br />
-            <br />
-            La paire retenue suit le <b className="text-ink">tri</b> affiché — trier par PV effectifs ne choisit
-            pas les mêmes artéfacts que trier par dégâts.
-          </HelpPopover>
-          {/* `ml-auto` plutôt qu'un `justify-between` sur la rangée : le titre
-              et son aide restent collés, l'interrupteur part à droite — même
-              lecture qu'avant, dans le gabarit d'en-tête de carte. */}
-          <div className="ml-auto flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-ink-dim">Activer l&apos;optimisation d&apos;artéfacts et reliques</span>
-            <HelpPopover title="Activer l&apos;optimisation d&apos;artéfacts et reliques">
-              Activé (défaut), chaque build reçoit la meilleure paire d&apos;artéfacts ET la meilleure relique
-              parmi les tiennes, selon les réglages ci-dessous.
-              <br />
-              <br />
-              Désactivé, le monstre <b className="text-ink">garde les artéfacts et la relique qu&apos;il porte</b>,
-              statistiques comprises — on cesse simplement d&apos;en chercher d&apos;autres. Utile pour composer un
-              runage autour des pièces déjà en place.
-            </HelpPopover>
-            <Interrupteur
-              actif={optimiserArtefacts}
-              onChange={setOptimiserArtefacts}
-              aria-label="Activer l'optimisation d'artéfacts et reliques"
-            />
-          </div>
-        </div>
-        {/* Rangée Attribut/Type — la relique a rejoint le bas de la carte
-            (le bloc Relique
-            FERME la carte, plus de variante `xl:border-l`, voir plus bas). */}
-        {optimiserArtefacts && (
-          <div className="flex flex-wrap gap-3">
-            {ARTIFACT_KINDS.map(({ key, label }) => (
-              <div key={key} className="flex items-center gap-1.5">
-                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>{label}</span>
-                {/* ⚠️ **`'libre'`, parce que c'est ce que le MOTEUR fait**
-                    d'une clé absente (`candidatsParSorte`, artifactOptim.ts).
-                    Ce sélecteur affichait « Garder l'artéfact équipé » tant
-                    qu'aucun choix n'avait été fait, pendant que la recherche
-                    cherchait librement : l'écran annonçait le contraire de ce
-                    qui se passait, et tout ce qui se fiait à cet affichage
-                    (les emplacements « figés », donc l'éditeur de verrous)
-                    raisonnait sur un état faux. Le défaut se lit désormais au
-                    même endroit pour tout le monde. */}
-                <Selecteur
-                  value={String(artifactMainByKind[key] ?? 'libre')}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    const next: ArtifactMainChoice =
-                      raw === 'equipped' || raw === 'libre' ? raw : (Number(raw) as 100 | 101 | 102);
-                    setArtifactMainByKind((prev) => ({ ...prev, [key]: next }));
-                  }}
-                  taille="sm"
-                  surface="panel2"
-                  pleineLargeur={false}
-                  className={LARGEUR_SELECTEUR_LISTE}
-                >
-                  {/* ⚠️ « Garder l'artéfact équipé », et non « Comme équipé » :
-                      ce choix conserve la PIÈCE entière — le pool tombe à un
-                      seul candidat, l'exemplaire porté avec ses quatre
-                      sous-propriétés (voir `candidatsParSorte`,
-                      artifactOptim.ts). L'ancien libellé, posé au milieu de
-                      trois statistiques principales, se lisait « la
-                      principale, comme équipé ». Signalé à l'usage. */}
-                  <option value="equipped">Garder l&apos;artéfact équipé</option>
-                  {/* ⚠️ « Libre » n’a de sens qu’avec une recherche d’artéfacts : il n’a
-                      été ajouté qu’une fois celle-ci construite, pour ne pas laisser
-                      une option morte dans le sélecteur. */}
-                  <option value="libre">Libre</option>
-                  {ARTIFACT_MAIN_OPTIONS.map((o) => (
-                    <option key={o.code} value={o.code}>
-                      {o.label}
-                    </option>
-                  ))}
-                  {/* ⚠️ Pas de « Aucun ». Retiré : vider UN emplacement pendant
-                      que l'autre cherche ne correspond à rien en jeu, et « ne
-                      pas compter les artéfacts » se dit d'un seul geste avec
-                      l'interrupteur ci-dessus, pour les deux à la fois.
-                      L'emplacement peut toujours RESTER vide si la recherche
-                      n'a rien de mieux à y mettre — c'est l'imposer par sorte
-                      qui n'avait pas de sens. */}
-                </Selecteur>
-              </div>
-            ))}
-          </div>
-        )}
-        {/* Sous les sélecteurs, et jamais au-dessus : les lignes
-            verrouillées se lisent comme un raffinement du choix de pièce, pas
-            comme une condition indépendante. Masqué avec le reste quand les
-            artéfacts sont ignorés — un verrou n'aurait alors aucun effet, et
-            une saisie sans effet est pire qu'une saisie absente. */}
-        {optimiserArtefacts && (
-          <div className="mt-3">
-            <ArtifactLinesEditor
-              lignes={lignesVerrouillees}
-              onChange={setLignesVerrouillees}
-              diagnostic={diagnosticVerrous}
-              figees={sortesFigees}
-            />
-          </div>
-        )}
-        {/* ⚠️ **Le résultat rejoint ses commandes.** « Meilleurs artéfacts pour
-            ce build » vivait sous la fiche d'équipement, avec une raison qui
-            TIENT TOUJOURS : la fiche montre l'équipement RÉEL, on n'y
-            substitue pas une proposition. Elle est satisfaite autrement — la
-            fiche dit ce qu'on PORTE, cette carte voisine ce qu'on DEVRAIT
-            porter, et elles restent côte à côte sous « Exemplaire ». Laisser
-            les réglages ici et le résultat là-bas aurait séparé la cause de
-            son effet.
-            ⚠️ Rendu UNE seule fois désormais : il était interpolé deux fois
-            (branche bureau et branche téléphone de « Monstre & équipement »),
-            alors qu'un grep de son libellé n'en montrait qu'une — cette carte
-            n'a pas de jumelle masquée. */}
-        {blocArtefactsSeuls}
-        {/* ⚠️ **Relique — ferme la carte, PAS une carte propre** (les variantes à droite de la rangée Attribut/Type, ou
-            en carte à part, sont écartées). Trait horizontal sous « Meilleurs artéfacts », un seul
-            contour, puis le sous-titre et sa rangée — même JSX pour les deux
-            formats, ordinateur et téléphone : la rangée se replie seule via
-            `flex-wrap` comme la rangée Attribut/Type juste au-dessus. Même
-            interrupteur que les listes d'artéfacts : masqué
-            avec elles plutôt que grisé à part — pas de carte séparée à
-            expliquer, donc pas de texte « Coupée avec… ». */}
-        {optimiserArtefacts && (
-          <div className="mt-3 border-t border-border-soft pt-3">
-            <div className="flex items-center gap-1">
-              <span className="label">Relique</span>
-              <HelpPopover title="Relique">
-                Les soins et boucliers (Régénération) ne sont mesurés par aucun objectif, donc jamais notés.
-                <br />
-                <br />
-                <b className="text-ink">« Garder la relique équipée »</b> conserve la pièce entière portée sur
-                le build affiché ci-dessus, sans rien chercher.
-              </HelpPopover>
-            </div>
-            <div className="mt-1.5 flex flex-wrap gap-3">
-              <div className="flex items-center gap-1.5">
-                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>Principale</span>
-                <Selecteur
-                  value={String(relicMainChoice)}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    const next: RelicMainChoice =
-                      raw === 'equipped' || raw === 'libre' ? raw : (Number(raw) as 100 | 101 | 102);
-                    setRelicMainChoice(next);
-                  }}
-                  taille="sm"
-                  surface="panel2"
-                  pleineLargeur={false}
-                  className={LARGEUR_SELECTEUR_LISTE}
-                >
-                  <option value="equipped">Garder la relique équipée</option>
-                  <option value="libre">Libre</option>
-                  {RELIC_MAIN_OPTIONS.map((o) => (
-                    <option key={o.code} value={o.code}>
-                      {o.label}
-                    </option>
-                  ))}
-                </Selecteur>
-              </div>
-              {/* Groupés : « Niveau minimum » reste à côté de « Propriété unique » quand la carte le permet. */}
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
-              <div className="flex items-center gap-1.5">
-                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>Propriété unique</span>
-                {/* ⚠️ **Sans effet avec « Garder la relique équipée »** (la
-                    pièce est fixée) — désactivé plutôt que retiré ; la raison
-                    reste dans l'infobulle, sans texte à côté qui prendrait
-                    la place de « Niveau minimum ». */}
-                <Selecteur
-                  value={String(relicUniqueChoice)}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    setRelicUniqueChoice(raw === 'libre' ? 'libre' : Number(raw));
-                  }}
-                  taille="sm"
-                  surface="panel2"
-                  pleineLargeur={false}
-                  className={LARGEUR_SELECTEUR_LISTE}
-                  disabled={relicMainChoice === 'equipped'}
-                  title={relicMainChoice === 'equipped' ? 'Sans effet : la relique équipée est fixée' : undefined}
-                >
-                  <option value="libre">Libre</option>
-                  {/* ⚠️ Libellé DÉRIVÉ de `RELIC_UNIQUE` (`relicUniqueEffectLabel`,
-                      effects.ts) — « <effet> en fonction <stat> » avec les mots du
-                      jeu des deux moitiés, jamais une table séparée
-                      (game-data-curation). Même libellé que sur la carte candidat
-                      (RelicSlot → `RelicDetailBox` → `formatRelicUnique`, qui
-                      reste la phrase COMPLÈTE, trop longue pour un sélecteur). */}
-                  {Object.keys(RELIC_UNIQUE)
-                    .map(Number)
-                    .map((type) => (
-                      <option key={type} value={type}>
-                        {relicUniqueEffectLabel(type)}
-                      </option>
-                    ))}
-                </Selecteur>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {/* Au bureau, libellé court et champ à deux chiffres : la rangée
-                    tient à côté de « Propriété unique ». */}
-                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE} lg:w-auto`} title="Niveau minimum">
-                  <span className="lg:hidden">Niveau minimum</span><span className="hidden lg:inline">Niveau min.</span>
-                </span>
-                {/* ⚠️ Filtre d'ENTRÉE sur le pool de reliques cherché, jamais
-                    un critère de classement (la dominance départage les
-                    reliques qui passent le seuil). Sans effet tant que
-                    « Principale » ne vaut pas « Libre » ou une principale
-                    forcée — pas désactivé pour autant : la combinaison
-                    reste rare, et un champ qui apparaît/disparaît selon un
-                    AUTRE champ de la même carte serait plus déroutant que
-                    sans effet à l'occasion (contrairement à « Propriété
-                    unique », désactivée seulement par « Garder la relique
-                    équipée », qui la rend vraiment inerte). */}
-                <NumberField
-                  value={relicMinUpgrade}
-                  onChange={(v) => setRelicMinUpgrade(v ?? DEFAULT_RELIC_MIN_UPGRADE)}
-                  min={0}
-                  max={15}
-                  width="w-8"
-                  title="Niveau minimum de la relique — filtre d'entrée sur le pool cherché, jamais un critère de classement"
-                />
-              </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ⚠️ **Carte à part, sous « Artéfacts et reliques »** — ces cinq
-          réglages ne sont PAS des réglages d'artéfact ni de relique. Ils
-          décrivent le monstre : buffs reçus, leader skill d'équipe,
-          compétences d'invocateur. Ils vivaient en bas de la carte
-          Artéfacts, séparés par un simple trait, ce qui laissait croire
-          qu'ils la servaient — alors qu'ils changent les statistiques du
-          monstre tout court, donc aussi bien les dégâts supplémentaires que
-          n'importe quel calcul de dégâts réels.
-          ⚠️ **Toujours visible, indépendamment de l'objectif de recherche** :
-          les laisser dans la fenêtre « Dégâts réels » les rendait invisibles à
-          qui optimise l'efficience, alors qu'ils s'appliquaient quand même.
-          ⚠️ `xl:col-start-2 xl:row-start-3` — la colonne 2 passe donc à QUATRE
-          cartes empilées, d'où le `row-span-4` de « Critères de recherche » et
-          le décalage d'une rangée de tout ce qui suit. */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3">
-        <EtatMonstre
-          setup={damageSetup}
-          maj={majDamageSetup}
-          equipe={combatMembre.equipe !== null}
-          motifLead={combatMembre.motif}
-          etroit={etroit}
-          artefacts={artefactsDegats}
-          rappelAuras={rappelAuras !== null}
-          onGuiderResPre={guiderVersResPre}
-          rappelsBuffs={rappelsBuffs}
-        />
-      </div>
-
-      {/* ⚠️ « Objectif de recherche » N'EST PAS ICI — il est dans la carte
-          du bouton Rechercher, plus bas : *quoi* chercher et *chercher* vont
-          ensemble, et sa description de combat est en fenêtre (voir
-          DamageSetupModale.tsx). La colonne 2 rangée 2 est à la carte
-          « Artéfacts ». */}
-
-      {/* ── Réglages avancés + Exclusion de runes ──────────────────────
-          Contenu factorisé une fois, affiché deux fois : en cartes en
-          ligne au bureau (ordre : Exclusion de runes, puis Réglages
-          avancés), dans le panneau « Options » au doigt — jamais dupliqué.
-          Même patron que RunesOptim.tsx (voir MobileSheet plus bas).
-          ⚠️ **Fragment, PAS un `<div>`** : les deux cartes desktop qu'il
-          rend (Exclusion de runes, Réglages avancés) doivent devenir des
-          ENFANTS DIRECTS de la grille pour se placer chacune dans sa propre
-          rangée (`xl:row-start-4`/`xl:row-start-5`, colonne 2, sous
-          Artéfacts et État de mon monstre) — un `<div>` intermédiaire les aurait fait
-          compter comme UNE seule cellule de grille. `MobileSheet` (portail)
-          et le paragraphe d'estimation n'ont pas besoin de cette
-          contrainte, voir leurs commentaires plus bas. */}
-      <>
-      {(() => {
-        // ⚠️ `dansPanneau` : seule la version DANS LE PANNEAU affiche « Pool de
-        // runes = X » à côté du pré-filtrage — sur la page principale, la
-        // même info existe déjà juste en dessous (voir plus bas), à un
-        // défilement de distance. Dans le panneau, cette page est masquée par
-        // le voile : sans ce doublon local, aucun moyen de voir l'effet du
-        // réglage qu'on vient de toucher sans d'abord refermer le panneau.
-        const reglagesAvancesInner = (dansPanneau: boolean) => (
-          /* ⚠️ **DEUX colonnes dès que la place le permet** (demande explicite)
-              — le pré-filtrage et son avertissement d'un côté, les
-              interrupteurs de l'autre.
-              ⚠️ `auto-fit`/`minmax` et NON un point de rupture d'écran
-              (`sm:`/`xl:`) : ce qui décide ici est la largeur du PANNEAU, pas
-              celle de la fenêtre. Le panneau prend la largeur de sa carte
-              (`largeurAncre`), qui dépend elle-même de la colonne de grille —
-              une même fenêtre peut donc donner un panneau large ou étroit. En
-              dessous de ~520 px, une seule colonne ; au-delà, deux. Ça vaut
-              aussi pour le panneau « Options » au doigt, sans une seule classe
-              conditionnelle. */
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3">
-          {/* ⚠️ Mêmes classes de boîte que les trois groupes d'« État de mon
-              monstre » (EtatMonstre.tsx) : deux façons de cadrer un groupe
-              dans cet écran se liraient comme deux natures différentes. */}
-          <div className="rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
-            <p className="text-[11.5px] text-ink-dim mb-1">Pré-filtrage par emplacement</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Segmented
-                options={SLOT_FILTER_PRESETS}
-                value={slotFilterPreset}
-                onChange={handleSlotFilterPresetChange}
-                // Dans le panneau « Options » : pleine largeur, comme les autres
-                // contrôles du tiroir. En ligne au bureau : serré à son contenu.
-                size={dansPanneau ? 'lg' : undefined}
-                className={dansPanneau ? '' : 'w-fit'}
-              />
-              {dansPanneau && estimate && (
-                <span className="font-mono text-micro text-ink-dim">
-                  Pool de runes = {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))}
-                </span>
-              )}
-            </div>
-            <p className="mt-1 text-micro text-warn max-w-[280px]">
-              ⚠️ {SLOT_FILTER_PRESETS.find((p) => p.key === slotFilterPreset)?.hint}
-            </p>
-          </div>
-
-          {/* ⚠️ `divide-y` et non un `border-t` par interrupteur : un trait ne
-              se pose qu'ENTRE deux voisins, jamais au-dessus du premier. Avec
-              des bordures individuelles, le premier interrupteur portait un
-              trait en tête de colonne — anodin quand tout était empilé sous le
-              pré-filtrage, mais lu comme une ligne perdue une fois le groupe
-              posé en colonne à côté. */}
-          <div className="divide-y divide-border rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
-            {/* Toggle, même patron que « Prioriser les stats les plus
-                difficiles » : désactivé par défaut, lu par `handleSearch` au
-                clic sur « Rechercher », jamais un bouton qui lance sa propre
-                recherche. */}
-            <div className="flex items-center justify-between gap-2 py-3 first:pt-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11.5px] text-ink-dim">Rechercher jusqu'à épuisement complet</span>
-                <HelpPopover title="Rechercher jusqu'à épuisement complet">
-                  Retire la limite de temps de 10 minutes : la recherche continue tant qu'il reste des combinaisons
-                  à examiner. Peut prendre très longtemps sur une recherche avec peu de conditions — le bouton{' '}
-                  <b className="text-ink">« Arrêter »</b> reste disponible et garde le meilleur trouvé jusque-là.
-                  Le plafond de 100 000 résultats collectés, lui, reste actif.
-                </HelpPopover>
-              </div>
-              <Interrupteur
-                actif={exhaustiveSearch}
-                onChange={setExhaustiveSearch}
-                aria-label="Rechercher jusqu'à épuisement complet"
-              />
-            </div>
-
-            <div className="flex items-center justify-between gap-2 py-3">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11.5px] text-ink-dim">Diagnostic approfondi sur 0 résultat</span>
-                <HelpPopover title="Diagnostic approfondi sur 0 résultat">
-                  Après une recherche à 0 résultat, identifie quelle condition posée libère le plus de candidats si
-                  on la retire — <b className="text-ink">un indice, pas une preuve</b>.
-                </HelpPopover>
-              </div>
-              <Interrupteur
-                actif={diagnoseBlockingEnabled}
-                onChange={setDiagnoseBlockingEnabled}
-                aria-label="Diagnostic approfondi sur 0 résultat"
-              />
-            </div>
-
-            {/* Déplacé depuis son ancien emplacement (juste avant les
-                boutons d'action) — même toggle, même logique, regroupé ici
-                avec les autres réglages secondaires. */}
-            <div className="flex items-center justify-between gap-2 py-3 last:pb-0">
-              <div className="flex items-center gap-1.5">
-                <Target size={15} className="text-ink-dim" />
-                <span className="text-[11.5px] text-ink-dim">Prioriser les stats les plus difficiles</span>
-                <HelpPopover title="Prioriser les stats les plus difficiles">
-                  Peut trouver un build qu'une recherche normale rate quand une stat est rare, au prix d'une
-                  recherche plus longue.
-                </HelpPopover>
-              </div>
-              <Interrupteur
-                actif={adaptiveTrancheWeighting}
-                onChange={setAdaptiveTrancheWeighting}
-                aria-label="Prioriser les stats les plus difficiles"
-              />
-            </div>
-
-            {/* « Vérifier toutes les combinaisons trouvées » : désactivé par défaut, lu EN DIRECT par la file
-                (`cibleDeLaFile`), jamais par `handleSearch` — il ne change pas
-                la recherche de runes, seulement jusqu'où la file vérifie.
-                MASQUÉ sans optimisation d'artéfacts : sans file, rien n'est
-                vérifié, et une saisie sans effet est pire qu'une saisie
-                absente (même règle que « Adapter les artéfacts et reliques
-                au tri »). L'interrupteur qui le masque vit dans une autre
-                carte : rien ne bouge sous le clic. */}
-            {optimiserArtefacts && (
-              <div className="flex items-center justify-between gap-2 py-3 last:pb-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11.5px] text-ink-dim">Vérifier toutes les combinaisons trouvées</span>
-                  <HelpPopover title="Vérifier toutes les combinaisons trouvées">
-                    Par défaut, la vérification des artéfacts et de la relique s'arrête dès que{' '}
-                    <b className="text-ink">100 combinaisons sont confirmées</b> (300 quand la relique est cherchée) :
-                    les suivantes ne sont vérifiées que si tu ouvres leur page.
-                    <br />
-                    <br />
-                    Activé, toutes les combinaisons trouvées sont vérifiées, au-delà de ces confirmées : le compte
-                    devient complet, mais cela peut prendre plusieurs minutes.
-                  </HelpPopover>
-                </div>
-                <Interrupteur
-                  actif={verifierToutesLesCombinaisons}
-                  onChange={setVerifierToutesLesCombinaisons}
-                  aria-label="Vérifier toutes les combinaisons trouvées"
-                />
-              </div>
-            )}
-
-            {/* « Compter les effets d'auras Tolerance et Précision dans les
-                conditions » (libellé de l'utilisateur) :
-                activé par défaut, branché sur `compterAurasResPre`, qu'une
-                recette porte déjà et que la recherche lit au clic sur
-                « Rechercher » (`avecAurasConditions`).
-                ⚠️ **Rendu SANS condition**, même sans aucune aura RES/PRE
-                saisie : les activations Tolerance/Accuracy PROPRES d'un build
-                comptent aussi, et un réglage qui apparaît et disparaît avec
-                la saisie d'une autre carte ne se retrouve pas. Ce contenu est
-                commun aux deux formats — le flottant du bureau et le panneau
-                « Options » au doigt.
-                ⚠️ EN DERNIER : la rangée conditionnelle du dessus
-                (« Vérifier toutes… ») ne le décale qu'au geste d'une autre
-                carte, jamais sous le clic.
-                ⚠️ **Cible de l'ouverture guidée** : le
-                cadre intérieur porte le surlignage d'attention, au même token
-                que le rappel (`warn` / `warn-soft`). Il existe EN PERMANENCE,
-                transparent : se colorer ne bouge rien. Intérieur et non sur la
-                rangée elle-même, dont le trait du haut vient de `divide-y` :
-                un contour posé dessus en ferait deux superposés. `-mx-1` le
-                tient à 4 px du cadre de la boîte ; `px-[3px]` + 1 px de bord
-                gardent le libellé aligné sur ceux du dessus, et `py-2` +
-                `py-[3px]` + 1 px refont les 12 px de `py-3`. Une ref par
-                surface (flottant, panneau), pour y défiler. */}
-            <div className="py-2 last:pb-0">
-              <div
-                ref={dansPanneau ? interrupteurResPrePanneauRef : interrupteurResPreFlottantRef}
-                className={`-mx-1 flex items-center justify-between gap-3 rounded-md border px-[3px] py-[3px] transition-colors duration-200 ${
-                  attentionResPre !== null ? 'border-warn bg-warn-soft' : 'border-transparent'
-                }`}
-              >
-                <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                  <span className="min-w-0 text-[11.5px] text-ink-dim">
-                    Compter les effets d'auras Tolerance et Précision dans les conditions
-                  </span>
-                  <HelpPopover title="Compter les effets d'auras Tolerance et Précision dans les conditions">
-                    Activé, chaque set <b className="text-ink">Tolerance</b> ou <b className="text-ink">Accuracy</b> ajoute
-                    8 points de RES ou de Précision aux <b className="text-ink">minimums et aux maximums</b> de ces deux
-                    conditions : ceux des autres monstres, saisis dans « État de mon monstre », et ceux que forment les
-                    runes de chaque build.
-                    <br />
-                    <br />
-                    Désactivé, ces deux conditions portent sur les statistiques sans aucune aura. Les dégâts et les PV
-                    effectifs comptent les auras dans les deux cas.
-                  </HelpPopover>
-                </div>
-                <span className="flex-none">
-                  <Interrupteur
-                    actif={compterAurasResPre}
-                    onChange={setCompterAurasResPre}
-                    aria-label="Compter les effets d'auras Tolerance et Précision dans les conditions"
-                  />
-                </span>
-              </div>
-            </div>
-          </div>
-          </div>
-        );
-
-        const reglagesAvancesTitre = (
-          <>
-            {/* Clé à molette, distincte des curseurs de « Critères de
-                recherche » (forme différente, pas seulement une couleur) —
-                même traitement accent que les autres en-têtes de carte. */}
-            <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
-              <Wrench size={13} className="text-accent" />
-            </div>
-            Réglages avancés
-          </>
-        );
-
-        const dejaUtiliseesBlock = (
-          <div>
-            <div className="flex flex-wrap items-center gap-1.5 mb-2">
-              {/* Roue de runes (le fond derrière les runes des résultats de
-                  build, RuneWheel.tsx), barrée du symbole « interdit » —
-                  même traitement que l'icône « Exclusion de runes » : ce
-                  réglage retire des runes DÉJÀ PORTÉES de la recherche. */}
-              <IconeInterdite>
-                <img src={WHEEL_IMG} alt="" className="h-4 w-4 object-contain" />
-              </IconeInterdite>
-              <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes déjà utilisées</span>
-              <HelpPopover title="Exclure les runes déjà utilisées">
-                Par défaut, la recherche considère TOUT l'inventaire, runes déjà portées ailleurs comprises. Active ce
-                réglage pour retirer de la recherche les runes déjà portées par d'AUTRES monstres dans le périmètre
-                choisi ci-dessous (un seul à la fois) — un build réellement montable sans déruner quelqu'un. Le monstre
-                recherché lui-même n'est jamais exclu de ses propres runes.
-              </HelpPopover>
-              <Interrupteur actif={excludeUsedRunes} onChange={setExcludeUsedRunes} aria-label="Exclure les runes déjà utilisées" />
-            </div>
-            <Segmented
-              options={AUTO_EXCLUSION_SCOPES}
-              value={excludeUsedScope}
-              onChange={setExcludeUsedScope}
-              disabled={!excludeUsedRunes}
-              size="lg"
-            />
-          </div>
-        );
-
-        // Exclusion MANUELLE — se superpose à « Exclure les runes déjà
-        // utilisées », ne la remplace pas (voir optimizerExclusion.ts).
-        // Choisir un monstre ici, dans n'importe laquelle des 4 sources,
-        // retire ses runes ACTUELLEMENT équipées du pool considéré, en plus
-        // de l'exclusion automatique éventuelle.
-        // ⚠️ **Pas de paramètre `dansPanneau`** : `Segmented` mesure lui-même
-        // la place qu'il reçoit et se resserre tout seul, au bureau comme au
-        // doigt (voir Segmented.tsx). Le bloc est donc identique dans les
-        // deux rendus.
-        const monstrePrecisBlock = (
-          <div>
-            <div className="mb-2.5 flex items-center gap-1.5">
-              {/* Même icône que « Monstre & équipement » (GameIcon
-                  "monster"), barrée du symbole « interdit » — même
-                  traitement que l'icône « Exclusion de runes » plus bas :
-                  cette action RETIRE le monstre choisi du pool de runes. */}
-              <IconeInterdite>
-                {/* ⚠️ L'artwork du monstre n'est pas parfaitement centré dans
-                    son canevas — invisible seul, ça se voit à côté du cercle
-                    « interdit », lui parfaitement centré par positionnement
-                    absolu. Léger recalage manuel, propre à cet usage précis. */}
-                <GameIcon name="monster" size={13} className="-translate-x-[1.5px]" />
-              </IconeInterdite>
-              <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes d'un monstre</span>
-            </div>
-            <RuneExclusionPicker
-              data={exclusionData}
-              excludeOwnUnitKey={selectedUnitKey}
-              excludeOwnCom2usId={selected?.monster.com2usId ?? null}
-              selected={excludedSelectors}
-              onChange={setExcludedSelectors}
-            />
-          </div>
-        );
-
-        // ⚠️ **Runes imposées** — déplacé depuis « Critères de recherche »
-        // (demande explicite) : verrouille un emplacement sur UNE rune
-        // précise, ce slot n'a plus qu'un seul candidat, les cinq autres
-        // restent optimisés normalement. Le cas d'usage réel est « je garde
-        // CETTE rune, cherche les cinq autres autour » — d'où un choix
-        // limité aux runes que le monstre PORTE DÉJÀ (celles de
-        // « Monstre & équipement »), et non un second sélecteur parmi les
-        // milliers de runes de l'inventaire : désigner une rune qu'on ne
-        // porte pas n'a pas de sens pour ce geste-là.
-        // ⚠️ Techniquement une RÉDUCTION DE POOL, pas une contrainte de plus
-        // — voir `BuildRequirement.lockedRunes` (runeBuildOptim.ts) : le
-        // moteur n'a rien appris de la notion de verrou, il travaille juste
-        // sur un pool où ce slot ne contient plus qu'une rune. Regroupé
-        // avec l'exclusion : même thème (agir sur le POOL de runes à partir
-        // de l'exemplaire recherché), même carte.
-        const runesImposeesBlock = (
-          <div>
-            <div className="mb-2.5 flex items-center gap-1.5">
-              <p className="label" data-intitule-conserve>Conserver ces slots dans l'optimisation</p>
-              <HelpPopover title="Conserver ces slots dans l'optimisation">
-                Verrouille un emplacement sur la rune que le monstre porte déjà : la recherche gardera
-                <b className="text-ink"> exactement cette rune</b> et n'optimisera que les autres. Utile pour
-                conserver une rune que tu ne veux pas déruner. Les emplacements laissés libres sont optimisés
-                normalement.
-              </HelpPopover>
-            </div>
-            {!selected || selected.gear.runes.length === 0 ? (
-              <p className="text-micro text-ink-dim">Aucune rune équipée sur cet exemplaire — rien à conserver.</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {[1, 2, 3, 4, 5, 6].map((slot) => {
-                  const portee = selected.gear.runes.find((r) => r.slot === slot);
-                  const verrouille = lockedRunes[slot] != null;
-                  if (!portee) {
-                    return (
-                      <span
-                        key={slot}
-                        className="rounded-full border border-border bg-panel2 px-2.5 py-1 text-micro text-ink-dimmer opacity-50"
-                        title={`Aucune rune en emplacement ${slot}`}
-                      >
-                        Slot {slot} —
-                      </span>
-                    );
-                  }
-                  return (
-                    <Pastille
-                      key={slot}
-                      actif={verrouille}
-                      onClick={() =>
-                        setLockedRunes((prev) => {
-                          const next = { ...prev };
-                          if (next[slot] != null) delete next[slot];
-                          else next[slot] = portee.id;
-                          return next;
-                        })
-                      }
-                      icone={<RuneIcon setKey={portee.set} size={13} filter={runeSetIconFilter(verrouille)} />}
-                      libelle={`Slot ${slot} · ${RUNE_EFFECT[portee.main.code]?.label ?? portee.main.code}`}
-                      title={
-                        verrouille
-                          ? `Libérer l'emplacement ${slot}`
-                          : `Imposer cette rune en emplacement ${slot} (le pool de ce slot tombe à 1)`
-                      }
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-
-        // ⚠️ `dansPanneau` : dans le panneau, « Exclure les runes d'un
-        // monstre » passe AU-DESSUS de « Exclure les runes déjà utilisées »
-        // (demande explicite — c'est le réglage le plus utilisé au doigt),
-        // et les deux restent EMPILÉS (jamais côte à côte, même sur un
-        // panneau assez large pour `sm:` — la largeur calibrée de la
-        // colonne de gauche, pensée pour la carte du bureau, ne vaudrait
-        // plus rien ici). Au bureau, ordre et grille inchangés. « Runes
-        // imposées », un mécanisme DISTINCT (verrou, pas exclusion), suit en
-        // dernier après un séparateur, pleine largeur dans les deux cas.
-        const exclusionRunesInner = (dansPanneau: boolean) => (
-          <>
-            <p className="mb-3 pl-8 text-[11px] text-ink-dim">Deux réglages indépendants, qui se superposent.</p>
-
-            {dansPanneau ? (
-              // ⚠️ `space-y-4` (blocs) et non `flex flex-col` : sous
-              // `[data-tiroir]`, `align-items: flex-start` raboterait ces deux
-              // blocs — et donc leurs contrôles pleine largeur — à leur contenu.
-              <div className="space-y-4">
-                {monstrePrecisBlock}
-                {dejaUtiliseesBlock}
-              </div>
-            ) : (
-              // Côte à côte à partir de `sm` — cette carte vit maintenant
-              // dans la colonne LARGE (`1fr`) de la grille de réglages, aux
-              // côtés de « Monstre & équipement » (voir le commentaire
-              // d'ouverture de la grille), largement assez pour ce layout
-              // interne. ⚠️ Un `xl:grid-cols-1` a existé ici le temps d'une
-              // révision antérieure de la mise en page, où cette carte se
-              // retrouvait confinée à une colonne étroite (340-400px) —
-              // retiré avec cette colonne, voir historique. Colonne de
-              // gauche plus étroite (toggle + 3 options) que celle de droite
-              // (recherche + liste), pas un 50/50 aveugle.
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(200px,260px)_1fr] sm:gap-5">
-                <div className="sm:border-r sm:border-border-soft sm:pr-5">{dejaUtiliseesBlock}</div>
-                {monstrePrecisBlock}
-              </div>
-            )}
-
-            <div className="mt-4 border-t border-border-soft pt-4">{runesImposeesBlock}</div>
-          </>
-        );
-
-        const exclusionRunesTitre = (
-          <>
-            {/* Icône « Runes » de Mon compte (même GameIcon que le menu),
-                barrée du vrai symbole « interdit » (cercle barré, comme le
-                curseur non-cliquable) plutôt qu'un simple trait — l'exclusion
-                RETIRE des runes de la recherche. */}
-            <IconeInterdite taille={22}>
-              <GameIcon name="rune" size={13} />
-            </IconeInterdite>
-            <p className="text-[13.5px] font-bold text-ink">Exclusion de runes</p>
-          </>
-        );
-
-        return (
-          <>
-            {/* Bureau : « Réglages avancés », colonne 2, rangée 5 — SOUS
-                « Exclusion de runes » (ordre inversé sur demande explicite,
-                voir le commentaire d'Exclusion ci-dessous) — ⚠️ **`relative`**
-                : ancre du `FlottantAuto` ci-dessous, qui se positionne en
-                `absolute` par rapport à CETTE carte, pas à la page. La carte
-                elle-même ne change JAMAIS de hauteur au dépliement — son
-                contenu déplié flotte par-dessus, il ne s'ajoute plus au DOM
-                en flux normal. */}
-            <div
-              ref={avancesRef}
-              className="hidden lg:block relative rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-5"
-            >
-              <ZoneCliquable
-                onClick={() => setShowAdvanced((v) => !v)}
-                aria-expanded={showAdvanced}
-                className="flex w-full items-center gap-1.5 text-sm font-bold text-ink"
-              >
-                {reglagesAvancesTitre}
-                <ChevronDown
-                  size={14}
-                  className={`ml-auto text-ink-dim transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
-                />
-              </ZoneCliquable>
-              {/* ⚠️ `largeurAncre` : le panneau prend EXACTEMENT la largeur de
-                  la carte qui l'ancre, et la suit quand l'écran change de
-                  taille. Les 340 px d'origine en faisaient à peu près la
-                  moitié — une largeur en dur ne peut pas suivre une carte dont
-                  la largeur dépend de la fenêtre.
-                  ⚠️ `hauteur` reste une ESTIMATION, et volontairement
-                  généreuse : elle ne sert qu'à choisir le côté AVANT que le
-                  contenu existe. La surestimer biaise le placement vers le
-                  haut, sans conséquence ; la sous-estimer ouvre du mauvais
-                  côté. `max-h-[70vh] overflow-y-auto` reste le garde-fou sur
-                  une fenêtre basse. */}
-              <FlottantAuto ouvert={showAdvanced} ancre={avancesRef} largeurAncre hauteur={420} rembourrage="md">
-                <div className="max-h-[70vh] overflow-y-auto">{reglagesAvancesInner(false)}</div>
-              </FlottantAuto>
-            </div>
-
-            {/* Bureau : « Exclusion de runes », colonne 2, rangée 3 — SOUS
-                « Objectif de recherche » (même colonne, rangée 2, voir son
-                commentaire) — ordre inversé avec « Réglages avancés » sur
-                demande explicite. Masquée au doigt (voir le panneau plus
-                bas). */}
-            {/* ⚠️ **Repliée par défaut** (demande explicite), et dépliée en
-                FLOTTANT hors flux — jamais un bloc qui s'ajoute.
-                C'est la contrainte de docs/03-developpeur/interface/ : la carte
-                elle-même ne change JAMAIS de hauteur, donc « Réglages
-                avancés » juste en dessous et la ligne d'estimation ne
-                bougent pas d'un pixel quand on l'ouvre. Un dépliement en
-                flux les aurait poussés au moment précis du clic.
-                ⚠️ Patron RÉUTILISÉ tel quel de « Réglages avancés » (ancre
-                `ref` + `ZoneCliquable` + `FlottantAuto` + fermeture au clic
-                extérieur) plutôt que réécrit : deux mécanismes de dépliement
-                voisins auraient divergé, et celui-là avait déjà été corrigé
-                une fois pour cette même raison. */}
-            <div
-              ref={exclusionRef}
-              className="hidden lg:block relative rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-4"
-            >
-              <ZoneCliquable
-                onClick={() => setShowExclusion((v) => !v)}
-                aria-expanded={showExclusion}
-                className="flex w-full items-center gap-2 text-sm font-bold text-ink"
-              >
-                {exclusionRunesTitre}
-                <ChevronDown
-                  size={14}
-                  className={`ml-auto text-ink-dim transition-transform ${showExclusion ? 'rotate-180' : ''}`}
-                />
-              </ZoneCliquable>
-              {/* `largeurAncre` comme « Réglages avancés » — voir son
-                  commentaire juste au-dessus.
-                  ⚠️ `hauteur` plus généreuse (560) : ce contenu porte deux
-                  réglages d'exclusion, le picker de monstre et la liste des
-                  runes imposées. Estimation seulement. */}
-              <FlottantAuto ouvert={showExclusion} ancre={exclusionRef} largeurAncre hauteur={560} rembourrage="md">
-                <div className="max-h-[70vh] overflow-y-auto">{exclusionRunesInner(false)}</div>
-              </FlottantAuto>
-            </div>
-
-            {/* ⚠️ Placée en rangée 6 (`xl:col-span-2`, pleine largeur) : ni
-                dans la colonne Critères (rangées 2-5) ni dans la colonne
-                Artéfacts/État/Exclusion/Avancés (rangées 2-5), cette ligne
-                d'estimation n'a pas sa place dans une cellule précise —
-                simple info sous tout le reste. Ne bouge plus JAMAIS au
-                dépliement de Réglages avancés, désormais un flottant hors
-                flux plutôt qu'un bloc qui poussait tout ce qui suivait. */}
-            {estimate && (
-              <p className="font-mono text-micro text-ink-dim xl:col-span-2 xl:row-start-6">
-                {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))} runes gardées après pré-filtrage
-                (pool par emplacement : {estimate.perSlot.join(' + ')})
-              </p>
-            )}
-
-            {/* Doigt : panneau « Options de recherche », ordre Exclusion de
-                runes → Réglages avancés, jamais replié (ouvrir le panneau EST
-                déjà le geste « je veux voir les options »). Chaque groupe
-                dans son propre cadre (`bg-panel2`) : deux unités visuelles
-                distinctes, pas juste un trait de séparation entre deux blocs
-                de texte. */}
-            <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Options de recherche">
-              {/* ⚠️ `space-y-3` et NON `flex flex-col` : le corps du panneau
-                  porte `data-tiroir`, et index.css y pose
-                  `[data-tiroir] .flex-col { align-items: flex-start }` — écrit
-                  pour les rangées d'actions, mais qui rabote ici les deux cartes
-                  à la largeur de leur contenu au lieu de les étirer. En blocs
-                  (`space-y`), les cartes reprennent d'elles-mêmes toute la
-                  largeur du panneau. Même piège que MobileNavSheet. */}
-              <div className="space-y-3">
-                <div className="rounded-lg border border-border-soft bg-panel2 p-3">
-                  <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
-                  {exclusionRunesInner(true)}
-                </div>
-                <div className="rounded-lg border border-border-soft bg-panel2 p-3">
-                  <div className="mb-3 flex items-center gap-1.5 text-[13px] font-bold text-ink">
-                    {reglagesAvancesTitre}
-                  </div>
-                  {reglagesAvancesInner(true)}
-                </div>
-              </div>
-            </MobileSheet>
-          </>
-        );
-      })()}
-      </>
-      {/* fin de la grille de réglages — tout ce qui suit reprend la pleine
-          largeur : la barre d'actions, la progression et les résultats
-          (une grille de cartes qui, elle, PROFITE de la largeur). */}
-      </div>
-
-      {/* ⚠️ Rendue HORS de la grille de réglages : un enfant direct de la
-          grille compterait comme une cellule à part entière. Elle n'a de toute
-          façon aucune place à prendre dans le flux — c'est tout son objet. */}
+  const modaleDegats = (
+    <>
       {setupOuvert && (
         <DamageSetupModale
           onClose={() => setSetupOuvert(false)}
@@ -5057,235 +3236,490 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           critInterdit={critInterdit}
         />
       )}
+    </>
+  );
+  const fenetresListes = (
+    <>
+      <ConfirmationsLiberation
+        lists={lists}
+        releaseConfirm={releaseConfirm}
+        setReleaseConfirm={setReleaseConfirm}
+        releaseArtifactsConfirm={releaseArtifactsConfirm}
+        setReleaseArtifactsConfirm={setReleaseArtifactsConfirm}
+        releaseAllConfirm={releaseAllConfirm}
+        setReleaseAllConfirm={setReleaseAllConfirm}
+        removeMemberConfirm={removeMemberConfirm}
+        setRemoveMemberConfirm={setRemoveMemberConfirm}
+      />
+      {addListPromptOpen && (
+        <OptimizerCreateListDialog
+          listes={lists.lists}
+          libelleAction={addListPromptOpen === 'validate' ? 'Créer et valider' : addListPromptOpen === 'recherche' ? 'Créer' : 'Créer et ajouter'}
+          onValider={creerListeDepuisDialogue}
+          onCancel={() => setAddListPromptOpen(null)}
+        />
+      )}
+      {equipeOuverte && <OptimizerEquipeDialog contexte={lists} listId={equipeOuverte.listId} equipe={equipeOuverte.equipe}
+        data={exclusionData} onValider={lists.setTeams} onClose={() => setEquipeOuverte(null)} />}
+    </>
+  );
 
-      <div className="rounded-xl border border-border bg-panel p-3 shadow-lg">
-        {/* ⚠️ **L'objectif vit avec le bouton qui lance la recherche**, plus
-            dans une cellule de la grille de réglages. Il y était « une carte
-            À PART » parce qu'il portait AUSSI la description du combat, qui
-            réclamait de la place ; celle-ci partie en fenêtre, il ne reste
-            qu'un segmenté à quatre crans — et *quoi* chercher se lit mieux
-            juste au-dessus de *chercher* que parmi les critères.
-            ⚠️ Titre en `label`, sans le carré d'icône accentué qu'il portait
-            comme en-tête de carte : ce n'en est plus une, c'est une section
-            dans celle des actions — même traitement que « Set de runes
-            recherché » ou « Conditions ». */}
-        <div className="mb-3">
-          <div className="mb-1.5 flex items-center gap-1.5">
-            <p className="label">Objectif de recherche</p>
-            <HelpPopover title="Objectif de recherche">
-              Ce que la recherche maximise. <b className="text-ink">Dégâts réels</b> : les dégâts d&apos;un sort
-              précis contre l&apos;adversaire décrit.
-            </HelpPopover>
-          </div>
-          {/* ⚠️ Choisir « Dégâts réels » OUVRE la description du combat, il ne
-              fait pas que la révéler. La carte apparaissait auparavant sous
-              l'objectif, et rien n'obligeait à la regarder : on pouvait classer
-              des milliers de builds sur un sort, une cible et un mode de
-              critique jamais choisis. Le geste devient explicite — cet objectif
-              ne se choisit plus sans voir ses hypothèses. */}
-          <Segmented
-            options={OBJECTIVE_LABELS}
-            value={objective}
-            onChange={(o) => {
-              setObjective(o);
-              if (o === 'degats_reels') setSetupOuvert(true);
-            }}
-            size="lg"
+  // « Exemplaire » et la fiche : dans « Monstre & équipement » au téléphone,
+  // dans sa carte de la colonne de droite au bureau.
+  const proprietesExemplaire: ExemplaireEtFicheProps = {
+    zoneDRef,
+    sourceOptions,
+    matchesValidatedBuild,
+    unowned,
+    gearSource,
+    pickSource,
+    allSourcesEmpty,
+    zoneDOpen,
+    zoneDList,
+    validatedBadge,
+    selected,
+    selectionFiche,
+    setSelectionFiche,
+    relicUsageById,
+    validateBuildButton,
+  };
+
+  // ── Format bureau : la page en colonnes (`PageBureau`) ─────────────────
+  // Le format se décide comme partout (`SOUS_LG`, relu dans un volet) ;
+  // l'agencement, ensuite, sur la largeur du conteneur de l'écran. Les mêmes
+  // contenus que le téléphone, dans leurs formes de bureau
+  // (src/components/outils/optimizer/bureau/) : le téléphone garde la grille
+  // ci-dessous, inchangée.
+  // ⚠️ **Les fenêtres (modales, dialogues) hors des deux arbres**, à une place
+  // fixe : changer de format (fenêtre ou volet redimensionné) remonte la page,
+  // jamais une fenêtre ouverte, qui garde son brouillon. Elles passent toutes
+  // par un portail : leur place ici ne change rien au DOM de la page.
+  const pageBureau = sousLg ? null : (
+      <PageBureau
+        liste={
+          <ListeDeTravailBureau
+            listes={listesBureau}
+            recherche={<MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />}
+            monstreActif={selected?.monster ?? null}
+            liste={proprietesListe}
           />
-          {/* Le résumé remplace la carte dans le flux ET sert de porte de
-              réouverture : sans lui, une fenêtre fermée rendrait les
-              hypothèses inatteignables autant qu'invisibles. */}
-          {objective === 'degats_reels' && (
-            <ZoneCliquable
-              onClick={() => setSetupOuvert(true)}
-              className="mt-2.5 flex w-full items-center gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5 text-left"
-              aria-label="Modifier la description du combat"
-            >
-              <Swords size={13} className="flex-none text-ink-dim" />
-              <span className="text-micro leading-tight text-ink-dim">{resumeCombat}</span>
-              <Pencil size={12} className="ml-auto flex-none text-ink-dim" />
-            </ZoneCliquable>
-          )}
-        </div>
-
-        {/* ⚠️ Rangée d'actions inchangée — mêmes classes qu'avant que
-            l'objectif ne la rejoigne : elle était la carte entière, elle en
-            devient la seconde moitié. Une rangée à part, et non un `flex-wrap`
-            commun avec l'objectif : le segmenté et les boutons se seraient
-            réarrangés l'un autour de l'autre au gré de la largeur. */}
-        <div className="flex flex-wrap items-center gap-3">
-        {/* ⚠️ `comboSets.length === 0` reste HORS de `disabled` — un bouton
-            HTML natif `disabled` ne déclenche JAMAIS `onClick` (règle du
-            DOM, pas un oubli), ce qui aurait rendu le défilement vers « Set
-            de runes recherché » plus haut inatteignable : plus aucun clic
-            ne pouvait jamais arriver jusqu'à `handleSearch`. Grisé
-            visuellement à la place (mêmes classes que `disabled:*`,
-            appliquées manuellement) tout en restant cliquable, pour que le
-            clic sur un set manquant décale toujours vers la section fautive
-            plutôt que de ne rien faire silencieusement. */}
-        <Bouton
-          ton="accent"
-          onClick={handleSearch}
-          disabled={!selected || status === 'running'}
-          title={selected && status !== 'running' && comboSets.length === 0 ? 'Choisis d\'abord un set de runes recherché' : undefined}
-          icone={<Search size={15} />}
-          libelle={status === 'running' ? 'Recherche…' : 'Rechercher'}
-          className={comboSets.length === 0 ? 'opacity-40 cursor-not-allowed' : ''}
-        />
-
-        {/* Exporte les réglages de CETTE recherche (set, minimums, objectif…),
-            jamais le pool de runes ni le compte — pour reproduire fidèlement
-            un cas signalé, partager une recherche entre joueurs (chacun
-            l'applique à son propre inventaire), ou la réutiliser depuis un
-            script. Voir src/lib/optimizerRecipe.ts. */}
-        <Bouton
-          onClick={exportRecipe}
-          disabled={!selected || comboSets.length === 0}
-          title="Télécharger les réglages de cette recherche en fichier .json (set, minimums, objectif…) — pour la partager ou la reproduire, jamais tes runes ni ton compte."
-          icone={<Upload size={14} />}
-          libelle="Exporter les paramètres de recherche"
-          libelleCourt="Exporter"
-        />
-
-        {/* Reprend une recette importée (fichier reçu d'un autre joueur, ou
-            gardée de côté) — remplit les réglages et sélectionne le monstre
-            si son com2usId existe dans CETTE box. Aucune confirmation :
-            remplacer les réglages en cours n'est pas plus destructeur que
-            les modifier à la main un par un. */}
-        <Bouton
-          onClick={() => importFileRef.current?.click()}
-          title="Reprendre les réglages d'un fichier .json exporté depuis l'Optimizer (le tien ou celui d'un autre joueur)."
-          icone={<Download size={14} />}
-          libelle="Importer les paramètres de recherche"
-          libelleCourt="Importer"
-        />
-        <input
-          ref={importFileRef}
-          type="file"
-          accept=".json,application/json"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            e.target.value = ''; // permet de réimporter le même fichier
-            if (f) importRecipe(f);
-          }}
-        />
-
-        {status === 'running' && (
-          <Bouton
-            ton="danger"
-            fond="vide"
-            onClick={() => {
-              setStoppedManually(true);
-              stop();
-            }}
-            title="Arrêter la recherche et garder ce qui a déjà été trouvé"
-            icone={<Square size={13} />}
-            libelle="Arrêter"
+        }
+        set={
+          <SetDeRunesCompact
+            setPickerSectionRef={setPickerSectionRef}
+            setPickerInvalid={setPickerInvalid}
+            comboSets={comboSets}
+            onChangeSets={choisirSetsRecherches}
+          />
+        }
+        conditions={
+          <ConditionsBureau
+            excludeBase={excludeBase}
+            setExcludeBase={setExcludeBase}
+            baseOf={baseOf}
+            artifactFloorOf={artifactFloorOf}
+            minStats={minStats}
+            maxStats={maxStats}
+            setMinStats={setMinStats}
+            setMaxStats={setMaxStats}
+          />
+        }
+        principales={<PrincipalesImposeesBureau mainStatsBySlot={mainStatsBySlot} toggleMainStat={toggleMainStat} />}
+        etat={
+          <EtatMonstreEssentiels
+            setup={damageSetup}
+            maj={majDamageSetup}
+            equipe={combatMembre.equipe !== null}
+            motifLead={combatMembre.motif}
+            etroit={etroit}
+            rappelsBuffs={rappelsBuffs}
+          />
+        }
+        artefacts={
+          <ArtefactsEtReliqueBureau
+            optimiserArtefacts={optimiserArtefacts}
+            setOptimiserArtefacts={setOptimiserArtefacts}
+            artifactMainByKind={artifactMainByKind}
+            setArtifactMainByKind={setArtifactMainByKind}
+            lignesVerrouillees={lignesVerrouillees}
+            setLignesVerrouillees={setLignesVerrouillees}
+            diagnosticVerrous={diagnosticVerrous}
+            sortesFigees={sortesFigees}
+            relicMainChoice={relicMainChoice}
+            setRelicMainChoice={setRelicMainChoice}
+            relicUniqueChoice={relicUniqueChoice}
+            setRelicUniqueChoice={setRelicUniqueChoice}
+            relicMinUpgrade={relicMinUpgrade}
+            setRelicMinUpgrade={setRelicMinUpgrade}
+          />
+        }
+        meilleurs={modeArtefactsSeuls && (
+          <MeilleursArtefactsBureau
+            modeArtefactsSeuls={modeArtefactsSeuls}
+            setArtefactsOuverts={setArtefactsOuverts}
+            artefactsOuverts={artefactsOuverts}
+            critereArtefacts={critereArtefacts}
+            setCritereArtefacts={setCritereArtefacts}
+            setSetupOuvert={setSetupOuvert}
+            sortesFigees={sortesFigees}
+            resolvedSkill={resolvedSkill}
+            sourceSelector={sourceSelector}
+            lists={lists}
+            ownValidatedBuild={ownValidatedBuild}
+            canValidateDisplayed={canValidateDisplayed}
+            handleValidateArtefacts={handleValidateArtefacts}
+            artefactsProposesDejaReserves={artefactsProposesDejaReserves}
           />
         )}
-        </div>
+        auras={<SetsAuraBureau setup={damageSetup} maj={majDamageSetup} rappel={rappelAuras !== null} onGuiderResPre={guiderVersResPre} />}
+        exclusion={
+          <ExclusionRunesBureau
+            monstrePrecisBlock={
+              <ExclusionMonstrePrecis
+                exclusionData={exclusionData}
+                selectedUnitKey={selectedUnitKey}
+                selected={selected}
+                excludedSelectors={excludedSelectors}
+                setExcludedSelectors={setExcludedSelectors}
+                bureau
+              />
+            }
+            dejaUtiliseesBlock={
+              <RunesDejaUtilisees
+                excludeUsedRunes={excludeUsedRunes}
+                setExcludeUsedRunes={setExcludeUsedRunes}
+                excludeUsedScope={excludeUsedScope}
+                setExcludeUsedScope={setExcludeUsedScope}
+                bureau
+              />
+            }
+            runesImposeesBlock={<RunesImposees selected={selected} lockedRunes={lockedRunes} setLockedRunes={setLockedRunes} bureau />}
+          />
+        }
+        avances={
+          <ReglagesAvancesBureau>
+            <ReglagesAvancesContenu
+              slotFilterPreset={slotFilterPreset}
+              handleSlotFilterPresetChange={handleSlotFilterPresetChange}
+              dansPanneau={false}
+              estimate={estimate}
+              exhaustiveSearch={exhaustiveSearch}
+              setExhaustiveSearch={setExhaustiveSearch}
+              diagnoseBlockingEnabled={diagnoseBlockingEnabled}
+              setDiagnoseBlockingEnabled={setDiagnoseBlockingEnabled}
+              optimiserArtefacts={optimiserArtefacts}
+              verifierToutesLesCombinaisons={verifierToutesLesCombinaisons}
+              setVerifierToutesLesCombinaisons={setVerifierToutesLesCombinaisons}
+              interrupteurResPrePanneauRef={interrupteurResPrePanneauRef}
+              interrupteurResPreBureauRef={interrupteurResPreBureauRef}
+              attentionResPre={attentionResPre}
+              compterAurasResPre={compterAurasResPre}
+              setCompterAurasResPre={setCompterAurasResPre}
+              bureau
+            />
+          </ReglagesAvancesBureau>
+        }
+        // La colonne de droite : « Exemplaire », le bloc « Objectif et
+        // Rechercher » (estimation, objectif, lancement, message d'import,
+        // progression compacte) et les résultats, que la page place.
+        exemplaire={<ExemplaireBureau {...proprietesExemplaire} />}
+        objectif={(presentation) => (
+          <ObjectifEtRechercherBureau
+            {...presentation}
+            estimation={estimate ? <EstimationPool estimate={estimate} /> : null}
+            messageImport={<MessageImportRecette message={importMsg} />}
+            progression={{ progress, refusal, compteAffiche }}
+            objective={objective}
+            setObjective={setObjective}
+            setSetupOuvert={setSetupOuvert}
+            resumeCombat={resumeCombat}
+            handleSearch={handleSearch}
+            selected={selected}
+            status={status}
+            comboSets={comboSets}
+            exportRecipe={exportRecipe}
+            importFileRef={importFileRef}
+            importRecipe={importRecipe}
+            setStoppedManually={setStoppedManually}
+            stop={stop}
+          />
+        )}
+        resultats={<ResultatsBureau attente={attenteResultats(selected != null, resultatsPresents, status)}>{blocResultats}</ResultatsBureau>}
+        colonnes={colonnesBureau}
+        onColonnes={setColonnesBureau}
+        rappelAuras={rappelAuras !== null}
+        guideComplements={guideComplements}
+      />
+  );
+
+  // ── Format téléphone ───────────────────────────────────────────────────
+  // Une colonne, dans l'ordre d'usage : le DOM est l'ordre de lecture. Rendu
+  // sous `SOUS_LG` seulement : aucune classe `lg:`/`xl:` n'y a d'effet.
+  return (
+    <>
+    {pageBureau ?? (
+    <div className="space-y-5">
+      {/* La phrase d'introduction, au téléphone seulement : la page de bureau
+          n'a rien au-dessus de ses colonnes. */}
+      <p className="text-sm text-ink-dim">
+        Recherche parmi tes runes possédées ; rien n'est appliqué à ton compte, l'outil est purement
+        indicatif — c'est à toi de re-runer dans le jeu.
+      </p>
+
+      {/* Les cartes de réglage, une par rangée. `minmax(0,1fr)` : la colonne
+          suit l'écran — une colonne implicite grandissait jusqu'au contenu le
+          plus large (la roue de la fiche, `w-max`), décentrant la page. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 items-start">
+      {/* Étape 1 — carte À PART, en tête du DOM. ⚠️ **La fiche reste
+          TOUJOURS affichée, vide (`EMPTY_GEAR`) tant qu'aucun monstre n'est
+          choisi**, plutôt que de n'apparaître qu'au clic : l'espace qu'elle
+          occupe est réservé d'avance (voir docs/03-developpeur/interface/). */}
+      <MonstreEquipement>
+          <MonstreEquipementTelephone
+            allMonsters={allMonsters}
+            pickSpecies={pickSpecies}
+            ligneMonstreTelephoneRef={ligneMonstreTelephoneRef}
+            selected={selected}
+            sourcesImport={sourcesImport}
+            importerDepuisEcran={importerDepuisEcran}
+            rapportImport={rapportImport}
+            setZoneCOpen={setZoneCOpen}
+            zoneCOpen={zoneCOpen}
+            eclatImport={eclatImport}
+            listesTelephone={listesTelephone}
+            sourceOptions={sourceOptions}
+            matchesValidatedBuild={matchesValidatedBuild}
+            unowned={unowned}
+            gearSource={gearSource}
+            pickSource={pickSource}
+            allSourcesEmpty={allSourcesEmpty}
+            zoneDOpen={zoneDOpen}
+            zoneDList={zoneDList}
+            zoneCContent={zoneCContent}
+            validatedBadge={validatedBadge}
+            selectionFiche={selectionFiche}
+            setSelectionFiche={setSelectionFiche}
+            relicUsageById={relicUsageById}
+            validateBuildButton={validateBuildButton}
+          />
+      </MonstreEquipement>
+
+      {/* Étape 3. */}
+      <CriteresRecherche
+        setDeRunes={setDeRunes}
+        statPrincipaleImposee={statPrincipaleImposee}
+        conditions={conditions}
+      />
+
+      {/* Carte À PART, PAS un bloc dans « Critères de recherche » : une
+          carte dédiée Artéfacts. ⚠️ L'interrupteur « Ignorer les
+          statistiques » masque d'un coup les sélecteurs ET les lignes
+          verrouillées : dans « Critères de recherche », ce clic ferait
+          REMONTER « Conditions » — un clic qui déplace ce qui le suit,
+          interdit par docs/03-developpeur/interface/. Isolé ici, il ne déplace
+          que ce qui suit la carte entière. */}
+      <ArtefactsEtReliques
+        optimiserArtefacts={optimiserArtefacts}
+        setOptimiserArtefacts={setOptimiserArtefacts}
+        artifactMainByKind={artifactMainByKind}
+        setArtifactMainByKind={setArtifactMainByKind}
+        lignesVerrouillees={lignesVerrouillees}
+        setLignesVerrouillees={setLignesVerrouillees}
+        diagnosticVerrous={diagnosticVerrous}
+        sortesFigees={sortesFigees}
+        blocArtefactsSeuls={blocArtefactsSeuls}
+        relicMainChoice={relicMainChoice}
+        setRelicMainChoice={setRelicMainChoice}
+        relicUniqueChoice={relicUniqueChoice}
+        setRelicUniqueChoice={setRelicUniqueChoice}
+        relicMinUpgrade={relicMinUpgrade}
+        setRelicMinUpgrade={setRelicMinUpgrade}
+      />
+
+      {/* ⚠️ **Carte à part, sous « Artéfacts et relique »** — ces cinq
+          réglages ne sont PAS des réglages d'artéfact ni de relique. Ils
+          décrivent le monstre : buffs reçus, leader skill d'équipe,
+          compétences d'invocateur. Ils vivaient en bas de la carte
+          Artéfacts, séparés par un simple trait, ce qui laissait croire
+          qu'ils la servaient — alors qu'ils changent les statistiques du
+          monstre tout court, donc aussi bien les dégâts supplémentaires que
+          n'importe quel calcul de dégâts réels.
+          ⚠️ **Toujours visible, indépendamment de l'objectif de recherche** :
+          les laisser dans la fenêtre « Dégâts réels » les rendait invisibles à
+          qui optimise l'efficience, alors qu'ils s'appliquaient quand même. */}
+      <CarteEtatMonstre
+        setup={damageSetup}
+        maj={majDamageSetup}
+        equipe={combatMembre.equipe !== null}
+        motifLead={combatMembre.motif}
+        etroit={etroit}
+        rappelAuras={rappelAuras !== null}
+        onGuiderResPre={guiderVersResPre}
+        rappelsBuffs={rappelsBuffs}
+      />
+
+      {/* ⚠️ « Objectif de recherche » N'EST PAS ICI — il est dans la carte
+          du bouton Rechercher, plus bas : *quoi* chercher et *chercher* vont
+          ensemble, et sa description de combat est en fenêtre (voir
+          DamageSetupModale.tsx). */}
+
+      {/* ── Réglages avancés + Exclusion de runes : dans le panneau
+          « Options » (`MobileSheet`, en portail), avec la ligne
+          d'estimation. ⚠️ **Fragment, PAS un `<div>`** : la ligne
+          d'estimation est une rangée de la grille. */}
+      <>
+      {(() => {
+        // ⚠️ `dansPanneau` : la version DANS LE PANNEAU affiche « Pool de
+        // runes = X » à côté du pré-filtrage — la page, où la même info existe
+        // déjà, est masquée par le voile : sans ce doublon local, aucun moyen
+        // de voir l'effet du réglage qu'on vient de toucher sans d'abord
+        // refermer le panneau.
+        // ⚠️ **DEUX colonnes dès que la place le permet** (demande explicite)
+        // — le pré-filtrage d'un côté, les interrupteurs de l'autre — par
+        // `auto-fit`/`minmax`, NON un point de rupture d'écran : ce qui décide
+        // est la largeur du panneau, pas celle de la fenêtre.
+        const reglagesAvancesPanneau = (
+          <ReglagesAvancesContenu
+            slotFilterPreset={slotFilterPreset}
+            handleSlotFilterPresetChange={handleSlotFilterPresetChange}
+            dansPanneau
+            estimate={estimate}
+            exhaustiveSearch={exhaustiveSearch}
+            setExhaustiveSearch={setExhaustiveSearch}
+            diagnoseBlockingEnabled={diagnoseBlockingEnabled}
+            setDiagnoseBlockingEnabled={setDiagnoseBlockingEnabled}
+            optimiserArtefacts={optimiserArtefacts}
+            verifierToutesLesCombinaisons={verifierToutesLesCombinaisons}
+            setVerifierToutesLesCombinaisons={setVerifierToutesLesCombinaisons}
+            interrupteurResPrePanneauRef={interrupteurResPrePanneauRef}
+            interrupteurResPreBureauRef={interrupteurResPreBureauRef}
+            attentionResPre={attentionResPre}
+            compterAurasResPre={compterAurasResPre}
+            setCompterAurasResPre={setCompterAurasResPre}
+          />
+        );
+
+        const reglagesAvancesTitre = (
+          <TitreReglagesAvances />
+        );
+
+        const dejaUtiliseesBlock = (
+          <RunesDejaUtilisees
+            excludeUsedRunes={excludeUsedRunes}
+            setExcludeUsedRunes={setExcludeUsedRunes}
+            excludeUsedScope={excludeUsedScope}
+            setExcludeUsedScope={setExcludeUsedScope}
+          />
+        );
+
+        // Exclusion MANUELLE — se superpose à « Exclure les runes déjà
+        // utilisées », ne la remplace pas (voir optimizerExclusion.ts).
+        // Choisir un monstre ici, dans n'importe laquelle des 4 sources,
+        // retire ses runes ACTUELLEMENT équipées du pool considéré, en plus
+        // de l'exclusion automatique éventuelle. `Segmented` mesure lui-même
+        // la place qu'il reçoit et se resserre tout seul (voir Segmented.tsx).
+        const monstrePrecisBlock = (
+          <ExclusionMonstrePrecis
+            exclusionData={exclusionData}
+            selectedUnitKey={selectedUnitKey}
+            selected={selected}
+            excludedSelectors={excludedSelectors}
+            setExcludedSelectors={setExcludedSelectors}
+          />
+        );
+
+        // ⚠️ **Runes imposées** — déplacé depuis « Critères de recherche »
+        // (demande explicite) : verrouille un emplacement sur UNE rune
+        // précise, ce slot n'a plus qu'un seul candidat, les cinq autres
+        // restent optimisés normalement. Le cas d'usage réel est « je garde
+        // CETTE rune, cherche les cinq autres autour » — d'où un choix
+        // limité aux runes que le monstre PORTE DÉJÀ (celles de
+        // « Monstre & équipement »), et non un second sélecteur parmi les
+        // milliers de runes de l'inventaire : désigner une rune qu'on ne
+        // porte pas n'a pas de sens pour ce geste-là.
+        // ⚠️ Techniquement une RÉDUCTION DE POOL, pas une contrainte de plus
+        // — voir `BuildRequirement.lockedRunes` (runeBuildOptim.ts) : le
+        // moteur n'a rien appris de la notion de verrou, il travaille juste
+        // sur un pool où ce slot ne contient plus qu'une rune. Regroupé
+        // avec l'exclusion : même thème (agir sur le POOL de runes à partir
+        // de l'exemplaire recherché), même carte.
+        const runesImposeesBlock = (
+          <RunesImposees
+            selected={selected}
+            lockedRunes={lockedRunes}
+            setLockedRunes={setLockedRunes}
+          />
+        );
+
+        // L'ordre et l'empilement des trois réglages : ExclusionRunesContenu.tsx.
+        const exclusionRunesPanneau = (
+          <ExclusionRunesContenu
+            monstrePrecisBlock={monstrePrecisBlock}
+            dejaUtiliseesBlock={dejaUtiliseesBlock}
+            runesImposeesBlock={runesImposeesBlock}
+          />
+        );
+
+        const exclusionRunesTitre = (
+          <TitreExclusionRunes />
+        );
+
+        return (
+          <>
+            {/* La ligne d'estimation, sous toutes les cartes. */}
+            {estimate && (
+              <EstimationPool
+                estimate={estimate}
+              />
+            )}
+
+            {/* Doigt : panneau « Options de recherche », ordre Exclusion de
+                runes → Réglages avancés, jamais replié (ouvrir le panneau EST
+                déjà le geste « je veux voir les options »). Chaque groupe
+                dans son propre cadre (`bg-panel2`) : deux unités visuelles
+                distinctes, pas juste un trait de séparation entre deux blocs
+                de texte. */}
+            <OptionsRechercheTelephone
+              menuOuvert={menuOuvert}
+              onFermerMenu={onFermerMenu}
+              exclusionRunesTitre={exclusionRunesTitre}
+              exclusionRunesPanneau={exclusionRunesPanneau}
+              reglagesAvancesTitre={reglagesAvancesTitre}
+              reglagesAvancesPanneau={reglagesAvancesPanneau}
+            />
+          </>
+        );
+      })()}
+      </>
+      {/* fin de la grille de réglages — tout ce qui suit reprend la pleine
+          largeur : la barre d'actions, la progression et les résultats
+          (une grille de cartes qui, elle, PROFITE de la largeur). */}
       </div>
 
-      {importMsg && (
-        <p className={`text-[12.5px] ${classeMessageImport(importMsg)}`} role="status">
-          {importMsg.text}
-        </p>
-      )}
+      <ObjectifEtActions
+        objective={objective}
+        setObjective={setObjective}
+        setSetupOuvert={setSetupOuvert}
+        resumeCombat={resumeCombat}
+        handleSearch={handleSearch}
+        selected={selected}
+        status={status}
+        comboSets={comboSets}
+        exportRecipe={exportRecipe}
+        importFileRef={importFileRef}
+        importRecipe={importRecipe}
+        setStoppedManually={setStoppedManually}
+        stop={stop}
+      />
 
-      {/* ⚠️ Deux phases distinctes affichées différemment, pas une seule
-          barre continue : `building` (construction des compartiments, avant
-          même de savoir combien de paires il y aura à explorer) et `pairing`
-          (l'ancienne barre, inchangée) ne partagent pas la même notion de
-          progression — les mélanger sous un seul repère aurait été plus
-          trompeur qu'utile (la barre aurait pu reculer en changeant de
-          phase). Avant ce correctif, `progress` restait `null` pendant toute
-          la phase `building` (jusqu'à ~1 minute sur un compte réel à
-          beaucoup de conditions) : la barre affichait 0 % sans bouger et le
-          texte « 0 combinaisons examinées », sans dire qu'un TRAVAIL était
-          en cours — voir docs/02-app/optimizer/,
-          « Barre de progression ». */}
-      {/* ⚠️ Deux barres empilées, une par moitié, pas une seule — depuis leur
-          construction EN PARALLÈLE (deux Workers, voir
-          runeBuildOptim.worker.ts), A et B avancent en même temps ; une seule
-          barre ne pourrait montrer que la dernière moitié à avoir posté un
-          message, faisant croire à tort que l'autre est à l'arrêt. */}
-      {status === 'running' && progress?.phase === 'building' && (
-        <div className="space-y-2">
-          {(['A', 'B'] as const).map((half) => {
-            const h = progress.halves[half];
-            return (
-              <div key={half}>
-                <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
-                  <div
-                    className="h-full bg-accent/60 transition-[width] duration-150 ease-out"
-                    style={{ width: `${Math.round((h?.pct ?? 0) * 100)}%` }}
-                  />
-                </div>
-                <p className="mt-1 font-mono text-micro text-ink-dim">
-                  Préparation — moitié {half} :{' '}
-                  {h ? `${h.scanned.toLocaleString('fr-FR')} / ${h.total.toLocaleString('fr-FR')} runes` : 'en attente…'}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      {status === 'running' && (progress === null || progress.phase === 'pairing') && (
-        <div>
-          <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
-            <div
-              className="h-full bg-accent transition-[width] duration-150 ease-out"
-              style={{ width: `${Math.round((progress?.pct ?? 0) * 100)}%` }}
-            />
-          </div>
-          {/* ⚠️ Le dénominateur ici est `totalPairs` (voir `totalPairCount`),
-              la taille EXACTE de l'espace à épuiser — un plafond de nœuds a
-              longtemps coexisté avec lui, écarté d'ici parce qu'il
-              grandissait en cours de route et aurait fait RECULER la barre.
-              C'est ce choix de l'interface qui a fini par emporter sa
-              suppression du moteur. */}
-          <p className="mt-1 font-mono text-micro text-ink-dim">
-            {progress === null
-              ? 'Préparation…'
-              : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${compteAffiche.compte.toLocaleString('fr-FR')} trouvée(s)`}
-          </p>
-          {progress !== null && (
-            <p className="mt-0.5 font-mono text-[11px] font-bold text-star">
-              Attendez la fin de la recherche pour être sûr de trouver votre build optimal.
-            </p>
-          )}
-          {progress !== null && (
-            <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
-              Le budget de recherche s'élargit automatiquement tant qu'il reste du temps et que le plafond de
-              résultats (100 000) n'est pas atteint — pas seulement tant que rien n'est trouvé.
-            </p>
-          )}
-        </div>
-      )}
+      <MessageImportRecette message={importMsg} />
 
-      {status === 'error' && (
-        <p className="text-xs text-bad">La recherche a échoué. Réessaie avec des critères moins stricts.</p>
-      )}
-
-      {/* ⚠️ Refus NOMMÉ : `search.status ===
-          'refused'` et `search.refusal.vide` sont la SEULE source de ce
-          texte — un par raison, jamais un pool recalculé pour deviner
-          pourquoi. `'refused'` se traite ici comme `'error'` l'est
-          juste au-dessus, à la place du lancement. */}
-      {status === 'refused' && refusal && (
-        <p className="text-xs text-bad">
-          {refusal.vide === 'seuil'
-            ? 'Aucune relique éligible : abaisse le niveau minimum.'
-            : refusal.vide === 'principale'
-              ? 'Aucune relique de cette principale dans ton inventaire.'
-              : refusal.vide === 'type'
-                ? 'Aucune relique de cette propriété unique dans ton inventaire.'
-                : refusal.vide === 'inventaire'
-                  ? "Aucune relique dans le compte importé : réimporte le compte, ou coupe l'optimisation d'artéfacts et reliques."
-                  : 'Ce monstre ne porte pas de relique.'}
-        </p>
-      )}
+      <ProgressionRecherche
+        status={status}
+        progress={progress}
+        refusal={refusal}
+        compteAffiche={compteAffiche}
+      />
 
       {/* ⚠️ S'affiche AUSSI pendant la phase d'appariement, dès qu'au moins
           un candidat est trouvé (`sortedCandidates` vient alors de l'aperçu
@@ -5294,623 +3728,14 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           que d'attendre l'épuisement complet de l'espace de recherche.
           `result === null` tant que rien n'est trouvé : rien à montrer de
           plus utile que les barres de progression déjà affichées. */}
-      {(result || fullSortedCandidates.length > 0) && (
-        <div>
-          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-            {/* ⚠️ Le compte des CONFIRMÉES (`compteConfirmes`) :
-                seulement les builds vérifiés (résolus et conformes), un
-                compte qui ne baisse jamais pendant une recherche. « Aucune
-                combinaison… » seulement quand tout est vérifié sans aucune
-                confirmée. La ligne de progression garde les trouvées :
-                l'infobulle dit la différence. */}
-            <div className="flex items-center gap-1.5">
-              <p className="label">
-                {result
-                  ? compteConfirmes.aucune
-                    ? 'Aucune combinaison ne répond à ces critères'
-                    : `${compteConfirmes.confirmees.toLocaleString('fr-FR')} combinaison(s) confirmée(s)`
-                  : `${compteConfirmes.confirmees.toLocaleString('fr-FR')} combinaison(s) confirmée(s) pour l'instant — recherche en cours…`}
-              </p>
-              {/* Seulement quand une file vérifie : sans elle, confirmées et
-                  trouvées sont le même nombre. */}
-              {resoudreEquipement != null && !compteConfirmes.aucune && (
-                <HelpPopover title="Combinaisons confirmées">
-                  Une combinaison est <b className="text-ink">confirmée</b> quand ses artéfacts et sa relique ont
-                  été vérifiés avec les pièces de ton inventaire : elle tient vraiment toutes les conditions.
-                  <br />
-                  <br />
-                  Le nombre « trouvée(s) » de la barre de progression compte tout ce que la recherche a retenu stat
-                  par stat : une estimation optimiste, pas encore vérifiée. Une partie de ces combinaisons est
-                  écartée à la vérification.
-                  <br />
-                  <br />
-                  La vérification s'arrête à 100 confirmées (300 quand la relique est cherchée) ; « Vérifier toutes
-                  les combinaisons trouvées », dans les réglages avancés, va jusqu'au bout.
-                </HelpPopover>
-              )}
-            </div>
-            {/* ⚠️ **Le tri est une VUE, l’optimisation d’artéfacts une
-                DÉCISION.** Les coupler d’office déplaçait la paire dès qu’on
-                changeait de tri pour explorer — alors qu’on veut souvent
-                garder celle qui maximise les PV effectifs tout en regardant
-                les builds classés par une stat.
-
-                ⚠️ MASQUÉ quand l’optimisation est désactivée : il n’y a alors
-                qu’une paire possible, celle qui est portée. Une saisie sans
-                effet est pire qu’une saisie absente — même règle que les
-                sélecteurs de principale et les sous-propriétés verrouillées. */}
-            {optimiserArtefacts && !compteConfirmes.aucune && (
-              <div className="ml-auto flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-ink-dim">Adapter les artéfacts et reliques au tri</span>
-                <HelpPopover title="Adapter les artéfacts et reliques au tri">
-                  Activé (défaut), chaque build reçoit les artéfacts ET la relique qui maximisent le{' '}
-                  <b className="text-ink">critère de tri</b> affiché : trier par ATQ ne retient pas les mêmes
-                  pièces que trier par PV effectifs.
-                  <br />
-                  <br />
-                  Désactivé, les artéfacts et la relique restent ceux qui servent l’<b className="text-ink">objectif de la
-                  recherche</b>, quel que soit le tri. Utile pour parcourir les résultats classés autrement sans
-                  que l’équipement bouge — et « Valider les artéfacts » propose alors toujours le même.
-                  <br />
-                  <br />
-                  Sans effet sur Efficience, Vitesse, Taux CRIT, Dgts CRIT, Résistance et Précision : aucun
-                  artéfact ni aucune propriété de relique n’entre dans ces classements.
-                </HelpPopover>
-                <Interrupteur
-                  actif={adapterArtefactsAuTri}
-                  onChange={setAdapterArtefactsAuTri}
-                  aria-label="Adapter les artéfacts et reliques au tri"
-                />
-              </div>
-            )}
-            {/* Masqués (avec « Adapter… ») seulement quand tout est vérifié
-                sans aucune confirmée. */}
-            {!compteConfirmes.aucune && (
-              <Selecteur
-                value={sortBy}
-                onChange={(e) => {
-                  setSortBy(e.target.value as OptimizerSortKey);
-                  // Classement entièrement différent : la page courante
-                  // n'a plus le même sens, on repart du meilleur résultat.
-                  setResultsPage(1);
-                }}
-                taille="sm"
-                surface="panel"
-                pleineLargeur={false}
-              >
-                <optgroup label="Stats">
-                  {RECO_STATS.map((st) => (
-                    <option key={st.key} value={st.key}>
-                      Trier par {st.label}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Objectifs">
-                  {/* ⚠️ « Dégâts réels » n'est proposé que si un sort est
-                      réellement calculable pour ce monstre : sans sort, ce
-                      tri n'aurait aucune formule à appliquer et laisserait la
-                      liste dans son ordre précédent, sans rien dire. */}
-                  {OBJECTIVE_LABELS.filter((o) => o.key !== 'degats_reels' || realDamage).map((o) => (
-                    <option key={o.key} value={o.key}>
-                      {o.label}
-                    </option>
-                  ))}
-                </optgroup>
-              </Selecteur>
-            )}
-          </div>
-
-          {/* Combien la file doit encore vérifier : les builds des
-              places en attente de la page, puis l'avance de fond vers K
-              confirmées — le compte
-              ci-dessus les inclut, la page ne les
-              montre qu'une fois vérifiés. `enAttente` est le reste de la file,
-              tenu par le hook pour l'affichage. ⚠️ Rangée TOUJOURS présente
-              quand la file tourne : quand elle se vide, l'espace insécable
-              garde sa hauteur, et la grille ne remonte pas. */}
-          {resoudreEquipement != null && (
-            <p className="mb-2 text-xs text-ink-dim">
-              {fileArtefacts.enAttente > 0
-                ? `${fileArtefacts.enAttente.toLocaleString('fr-FR')} combinaison(s) en vérification…`
-                : ' '}
-            </p>
-          )}
-
-          {/* ⚠️ Zéro dû aux seuls builds écartés par la résolution :
-              le moteur a trouvé, aucun couple réel ne tient. Sous « Aucune combinaison… » seulement — tout vérifié, aucune
-              confirmée —, la ligne qu'elle explique. Les blocs ci-dessous
-              (diagnostic, « suffirait ») gardent leur condition, moteur vide :
-              leurs chiffres viennent des bornes du moteur. */}
-          {compteConfirmes.aucune && compteAffiche.raison && (
-            <p className="mb-3 text-xs text-ink-dim">{compteAffiche.raison}</p>
-          )}
-
-          {/* ⚠️ Diagnostic affiché UNIQUEMENT sur 0 résultat — voir
-              `diagnoseFeasibility` dans runeBuildOptim.ts pour ce qu'il
-              prouve exactement. Deux cas : au moins une condition
-              PROUVÉE hors de portée (rouge, liste précise) ; ou aucune ne
-              l'est individuellement (message neutre — le blocage vient de
-              leur combinaison ou de la recherche elle-même, pas d'une seule
-              stat identifiable). */}
-          {result?.candidates.length === 0 && feasibilityDiagnosis.length > 0 && (
-            <div className="mb-3 rounded-lg border border-border bg-panel p-3">
-              {impossibleFeasibility.length > 0 ? (
-                <>
-                  <p className="mb-1.5 text-xs font-semibold text-bad">
-                    {impossibleFeasibility.length === 1
-                      ? 'Une condition est'
-                      : `${impossibleFeasibility.length} conditions sont`}{' '}
-                    mathématiquement hors de portée, quel que soit le runage choisi :
-                  </p>
-                  <ul className="space-y-1">
-                    {impossibleFeasibility.map((f) => {
-                      const st = RECO_STATS.find((s) => s.key === f.key)!;
-                      return (
-                        <li key={`${f.key}-${f.kind}`} className="text-xs text-ink-dim">
-                          <span className="font-semibold text-ink">{st.label}</span>{' '}
-                          {f.kind === 'min'
-                            ? `minimum demandé ${f.requested}${st.suffix} — maximum atteignable ${f.bound}${st.suffix} avec ce pool, ce set et ces statistiques principales.`
-                            : `maximum demandé ${f.requested}${st.suffix} — ${f.bound}${st.suffix} déjà garanti sans la moindre rune (base, artéfacts, bonus de set).`}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </>
-              ) : (
-                <p className="text-xs text-ink-dim">
-                  Aucune condition n'est, à elle seule, mathématiquement hors de portée — le blocage
-                  vient probablement de leur <b className="text-ink">combinaison</b> (rare qu'un seul
-                  build satisfasse tout à la fois), ou du pré-filtrage de la recherche elle-même. Essaie
-                  de desserrer une condition, ou un pré-filtrage plus large (Réglages avancés).
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* ⚠️ Palier 2 — voir `rankBlockingConditions` dans
-              runeBuildOptim.ts : un INDICE (pas une preuve, contrairement au
-              palier 1 ci-dessus), désactivé par défaut (coûte plus cher).
-              Deux affichages selon l'état de la bascule : le classement s'il
-              est activé, une invitation discrète sinon. */}
-          {result?.candidates.length === 0 &&
-            (blockingDiagnosis && blockingDiagnosis.impacts.length > 0 ? (
-              <div className="mb-3 rounded-lg border border-border bg-panel p-3">
-                <p className="mb-1.5 text-xs font-semibold text-ink">
-                  Diagnostic approfondi — pool le plus restreint : {blockingDiagnosis.baselineMinSlot} candidat(s)
-                  actuellement.
-                </p>
-                <ul className="space-y-1">
-                  {blockingDiagnosis.impacts.map((imp) => {
-                    const st = RECO_STATS.find((s) => s.key === imp.key)!;
-                    return (
-                      <li key={`${imp.key}-${imp.kind}`} className="text-xs text-ink-dim">
-                        {imp.delta == null ? (
-                          <>
-                            <span className="font-semibold text-ink">{st.label}</span> ({imp.kind === 'min' ? '≥' : '≤'}{' '}
-                            {imp.requested}
-                            {st.suffix}) : aucun gain, même desserrée entièrement.
-                          </>
-                        ) : (
-                          <>
-                            <span className="font-semibold text-ink">{st.label}</span>{' '}
-                            {imp.kind === 'min' ? `−${imp.delta}` : `+${imp.delta}`}
-                            {st.suffix} suffit ({imp.kind === 'min' ? '≥' : '≤'} {imp.threshold}
-                            {st.suffix}) : {imp.poolMinSlotAtThreshold} candidat(s).
-                          </>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-                <p className="mt-1.5 text-micro text-ink-dim">
-                  Un indice, pas une preuve — basé sur le pré-filtrage sûr, pas sur une recherche complète.
-                </p>
-              </div>
-            ) : (
-              !diagnoseBlockingEnabled && (
-                <p className="mb-3 text-[11px] text-ink-dim">
-                  Astuce : active le diagnostic approfondi (Réglages avancés) pour identifier quelle
-                  condition libère le plus de candidats.
-                </p>
-              )
-            ))}
-
-          {/* ⚠️ Quasi-succès à l'appariement — sous-produit GRATUIT de la
-              vraie recherche (`pairBuckets`, jamais recalculé), affiché
-              SYSTÉMATIQUEMENT (contrairement au palier 2 ci-dessus, dont le
-              coût réel justifie un réglage) : voir docs/03-developpeur/optimizer/,
-              « Quasi-succès à l'appariement ». Ne voit que ce que la recherche a
-              RÉELLEMENT exploré avant troncature — une paire encore plus
-              proche, jamais atteinte, resterait invisible. */}
-          {result?.candidates.length === 0 && (result.globalNearMiss || result.nearMissByCondition.length > 0) && (() => {
-            // ⚠️ Même vocabulaire que le palier 2 ci-dessus (« −15 suffit ») :
-            // un seul réflexe de lecture
-            // pour tout l'écran diagnostic, plutôt que deux formulations
-            // (« manque »/« suffit ») pour la même idée de desserrage.
-            // ⚠️ Le score affiché doit être celui que l'utilisateur reconnaît
-            // des cartes de résultat (`BuildCandidateCard.tsx`) : la moyenne
-            // PAR RUNE (pas la somme brute), formatée par `formatRuneMetric`
-            // (« 140.2% », jamais un nombre nu) ; « PV effectifs » en plus
-            // quand c'est l'objectif choisi — sinon un nombre sans légende
-            // reconnaissable ressemble à une erreur, pas à un score (« 1309.0 »
-            // affiché pour une recherche PV effectifs n'aurait aucun rapport
-            // avec ce qui est cherché).
-            const nearMissScoreText = (miss: NearMiss): string => {
-              const moyenne = candidateMetricTotal(miss, runeById, metric) / 6;
-              const base = `${metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} ${formatRuneMetric(moyenne, metric)}`;
-              if (objective !== 'ehp') return base;
-              return `${base}, PV effectifs ${Math.round(pvEffectifs(miss.stats, aurasPropresDe(miss), damageSetup)).toLocaleString('fr-FR')}`;
-            };
-            const suffiraitText = (s: StatShortfall) => {
-              const st = RECO_STATS.find((r) => r.key === s.key)!;
-              const nouveauSeuil = s.kind === 'min' ? s.requested - s.shortfall : s.requested + s.shortfall;
-              return (
-                <span key={`${s.key}-${s.kind}`}>
-                  <span className="font-semibold text-ink">{st.label}</span> {s.kind === 'min' ? '−' : '+'}
-                  {s.shortfall}
-                  {st.suffix} suffirait ({s.kind === 'min' ? '≥' : '≤'} {nouveauSeuil}
-                  {st.suffix})
-                </span>
-              );
-            };
-            return (
-              <div className="mb-3 rounded-lg border border-border bg-panel p-3">
-                <p className="mb-1.5 text-xs font-semibold text-ink">Quoi ajuster pour trouver des builds</p>
-                {result.globalNearMiss && (
-                  <p className="mb-1.5 text-xs text-ink-dim">
-                    Build le plus proche, toutes conditions confondues :{' '}
-                    {result.globalNearMiss.shortfalls.map((s, i) => (
-                      <span key={`${s.key}-${s.kind}`}>
-                        {i > 0 ? ', ' : ''}
-                        {suffiraitText(s)}
-                      </span>
-                    ))}{' '}
-                    — {nearMissScoreText(result.globalNearMiss)}.
-                  </p>
-                )}
-                {result.nearMissByCondition.length > 0 && (
-                  <>
-                    <p className="mb-1 text-xs text-ink-dim">
-                      Par condition (satisfait tout le reste, ne manque que celle-ci) :
-                    </p>
-                    <ul className="space-y-1">
-                      {result.nearMissByCondition.map(({ key, kind, miss }: { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }) => (
-                        <li key={`${key}-${kind}`} className="text-xs text-ink-dim">
-                          {suffiraitText(miss.shortfalls[0])} — {nearMissScoreText(miss)}.
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-                <p className="mt-1.5 text-micro text-ink-dim">
-                  Ne voit que ce que la recherche a réellement exploré avant troncature — une paire encore
-                  plus proche, jamais atteinte, resterait invisible.
-                </p>
-              </div>
-            );
-          })()}
-
-          {result?.truncated && (
-            <p className="mb-2 text-micro text-warn">
-              {stoppedManually
-                ? `Recherche arrêtée après examen de ${result.explored.toLocaleString('fr-FR')} combinaisons — voici le meilleur trouvé jusque-là.`
-                : `Recherche interrompue après examen de ${result.explored.toLocaleString('fr-FR')} combinaisons — resserre tes critères pour un résultat exhaustif.`}
-            </p>
-          )}
-
-          {/* ⚠️ minmax calibré à 360px pour que DEUX cartes tiennent par
-              ligne dans le conteneur `max-w-3xl` (768px, voir plus haut) :
-              2×360 + le gap (12px) = 732px, sous les 768px disponibles. Les
-              cartes affichent stats + artéfacts + roue sur une seule LIGNE
-              (voir BuildCandidateCard.tsx), calibrées pour tenir dans cette
-              largeur (`WHEEL_SCALE`/`ARTIFACT_SCALE` = 0,45). */}
-          {/* ⚠️ Les cartes VÉRIFIÉES, puis les places « Vérification… »
-              (`composition`) : aucune carte non vérifiée, pendant la
-              recherche comme après. Une place a la hauteur d'une carte
-              (`useHauteurDesCartes`), pour que rien ne saute quand la carte
-              arrive. */}
-          <div ref={grilleResultatsRef} className="grid grid-cols-[repeat(auto-fill,minmax(min(360px,100%),1fr))] gap-3">
-            {composition.cartes.map((c, i) => (
-              <BuildCandidateCard
-                key={c.runeIds.join('-')}
-                rank={composition.premierRang + i}
-                candidate={c}
-                runeById={runeById}
-                // ⚠️ La paire de CE build, jamais une paire commune : deux
-                // builds voisins n'appellent pas les mêmes artéfacts, et ce
-                // sont ces pièces-là qui ont servi à calculer ses stats.
-                // Le repli sur la paire SUPPOSÉE ne sert que sans file
-                // (optimisation coupée : la paire portée, la seule possible) —
-                // avec file, une carte affichée est résolue.
-                artifacts={fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts}
-                // ⚠️ **Seule source** :
-                // `etatReliqueDuBuild` lit le cache de la file, jamais
-                // recalculé ici — `fixe` (hors mode `recherche`) n'affiche
-                // rien de nouveau, `rejete` n'arrive jamais jusqu'ici (le
-                // classement écarte déjà ces builds). Par
-                // `etatReliqueDe` : la relique que le score compte.
-                etatRelique={etatReliqueDe(c)}
-                relicUsageById={relicUsageById}
-                // Plus de mention « artéfacts pas encore optimisés » : avec
-                // file, une carte n'apparaît qu'une fois résolue ; sans file,
-                // rien n'est à attendre.
-                metric={metric}
-                openDetailKey={openDetailKey}
-                onToggleDetail={(key: string) => setOpenDetailKey((cur) => (cur === key ? null : key))}
-                {...(() => {
-                  // ⚠️ Comparaison contre les stats de la FICHE — donc contre
-                  // le build validé quand il en existe un, sans avoir à le
-                  // redemander ici (voir `statsReference`).
-                  const cle = c.runeIds.join('-');
-                  const compare = compareKey === cle && statsReference != null;
-                  return {
-                    onCompare: statsReference ? () => setCompareKey((k) => (k === cle ? null : cle)) : undefined,
-                    // ⚠️ Affichée dès que les PV effectifs sont le critère de
-                    // CLASSEMENT — objectif OU tri —, exactement comme les
-                    // dégâts réels : on peut avoir cherché sur un objectif puis
-                    // re-trié par PV effectifs, auquel cas le chiffre qui
-                    // ordonne les cartes doit être visible dessus.
-                    // ⚠️ `scoreDuCandidat` avec les options du classement
-                    // affiché : le chiffre qui a CLASSÉ la carte, Ténacité et
-                    // points de la relique retenue compris.
-                    pvEffectifs:
-                      objective === 'ehp' || sortBy === 'ehp'
-                        ? (() => {
-                            const total = scoreDuCandidat(c, 'ehp', optionsDuTriAffiche)!;
-                            return { total, delta: compare && refEhp != null ? total - refEhp : undefined };
-                          })()
-                        : undefined,
-                    metricDelta:
-                      compare && refMetric != null
-                        ? candidateMetricTotal(c, runeById, metric) - refMetric
-                        : undefined,
-                    // ⚠️ Le delta est calculé PAR STAT contre la référence, et
-                    // seulement pour la carte comparée : le faire pour les 20
-                    // cartes de la page coûterait 20 fois plus pour 19 valeurs
-                    // qu'on n'affiche pas.
-                    comparaison:
-                      compareKey === cle && statsReference
-                        ? c.stats.map((ligne) => ({
-                            key: ligne.key,
-                            label: ligne.label,
-                            suffix: ligne.suffix,
-                            delta: ligne.total - (statsReference.find((r) => r.key === ligne.key)?.total ?? 0),
-                          }))
-                        : undefined,
-                  };
-                })()}
-                // ⚠️ Affiché dès qu'un sort est résolu ET que c'est bien le
-                // critère de classement courant (objectif OU tri) — pas
-                // seulement quand `objective` vaut « Dégâts réels » : on peut
-                // avoir lancé la recherche sur un autre objectif puis re-trier
-                // par dégâts réels, auquel cas le chiffre qui ordonne les
-                // cartes doit être visible dessus.
-                degatsReels={
-                  realDamage && (objective === 'degats_reels' || sortBy === 'degats_reels')
-                    ? (() => {
-                        // ⚠️ Le chiffre qui a CLASSÉ la carte : `scoreDuCandidat`
-                        // avec les options du classement affiché — profil
-                        // d'artéfacts de CE build et Conquête de sa relique
-                        // retenue compris. Une recopie de `computeTotalDamage`
-                        // omettait la Conquête que le tri compte.
-                        const total = scoreDuCandidat(c, 'degats_reels', optionsDuTriAffiche)!;
-                        return {
-                          total,
-                          partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0,
-                          // ⚠️ L'écart se calcule contre les dégâts de la
-                          // RÉFÉRENCE (`refDegats`) : la fiche notée avec SES
-                          // stats, SA paire d'artéfacts et SA relique — jamais
-                          // contre le total d'un autre candidat, jamais avec
-                          // la paire de la recherche.
-                          delta:
-                            compareKey === c.runeIds.join('-') && refDegats != null
-                              ? total - refDegats
-                              : undefined,
-                        };
-                      })()
-                    : undefined
-                }
-                // « Valider » — réserve les 6 runes RÉELLES de CE
-                // candidat pour `sourceSelector`, qu'il pointe un exemplaire
-                // réel OU un sélecteur `unowned` (monstre non possédé,
-                // demande explicite — « essayer des runages de teams sans
-                // avoir mis à jour son json » : les runes trouvées restent de
-                // VRAIES runes du compte, réservables comme n'importe quel
-                // autre build validé). Absent uniquement si `sourceSelector`
-                // est `null` (aucune espèce choisie, ou possédée ailleurs
-                // sans exemplaire encore désambiguïsé — zone D).
-                // ⚠️ Exige `sourceSelector` non nul ET une liste active (un build
-                // validé appartient TOUJOURS à une liste, voir
-                // ValidatedBuild). Valider ajoute aussi implicitement le
-                // monstre à la liste s'il n'y était pas déjà (voir
-                // `validateBuild`, useOptimizerLists.ts).
-                onValidate={
-                  sourceSelector && lists.activeListId
-                    ? () => {
-                        // ⚠️ Garde de DERNIÈRE minute en plus du bouton
-                        // désactivé : le clic peut partir d'un rendu périmé.
-                        if (conflitsDeRunes(c.runeIds).length > 0) return;
-                        // ⚠️ La paire DE CE CANDIDAT, pas celle du monstre
-                        // affiché : c’est elle que la carte montre et qui a
-                        // servi à calculer ses stats.
-                        lists.validateBuild(
-                          lists.activeListId!,
-                          sourceSelector,
-                          c.runeIds,
-                          (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id),
-                          selected!.monster.com2usId!
-                        );
-                        optimizer.capturerMembre(lists.activeListId!, sourceSelector);
-                      }
-                    : undefined
-                }
-                // ⚠️ La paire QUE CETTE CARTE MONTRE — celle de la file si
-                // elle l'a trouvée, la représentative sinon. Exactement la
-                // même expression que `onValidate` ci-dessus : comparer autre
-                // chose que ce qu'on validerait rendrait le libellé menteur.
-                validated={etatValidation(
-                  c.runeIds,
-                  (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id)
-                )}
-                conflit={(() => {
-                  const conflits = conflitsDeRunes(c.runeIds);
-                  if (conflits.length === 0) return null;
-                  const noms = [...new Set(conflits.map((x) => x.monsterName))];
-                  return `${conflits.length > 1 ? 'Runes déjà réservées' : 'Rune déjà réservée'} dans cette liste pour ${noms.join(', ')}`;
-                })()}
-              />
-            ))}
-            {Array.from({ length: composition.placesEnAttente }, (_, j) => (
-              <PlaceEnVerification
-                key={`verification-${composition.premierRang + composition.cartes.length + j}`}
-                rank={composition.premierRang + composition.cartes.length + j}
-                hauteur={hauteurCarte}
-              />
-            ))}
-          </div>
-
-          {/* Pagination — remplace l'ancienne troncature dure à 20 : la
-              liste complète (jusqu'à MAX_COLLECTED, voir runeBuildOptim.ts)
-              reste consultable, 20 par page. Flèches précédent/suivant +
-              saisie directe du numéro de page (même convention que les
-              champs numériques de l'app : `type="text"` + `inputMode=
-              "numeric"`, jamais de flèches natives de navigateur — voir
-              NumberField.tsx). */}
-          {totalResultsPages > 1 && (
-            <div className="mt-4 flex items-center justify-center gap-3">
-              <BoutonIcone
-                cadre
-                libelle="Page précédente"
-                icone={<ChevronLeft size={16} />}
-                onClick={() => setResultsPage((p) => Math.max(1, p - 1))}
-                disabled={resultsPage <= 1}
-                className="h-8 w-8"
-              />
-
-              <div className="flex items-center gap-1.5 font-mono text-[12.5px] text-ink-dim">
-                <span>Page</span>
-                <Champ
-                  inputMode="numeric"
-                  value={pageDraft ?? String(resultsPage)}
-                  aria-label="Aller à la page"
-                  pleineLargeur={false}
-                  onChange={(e) => {
-                    const brut = e.target.value.trim();
-                    // ⚠️ La chaîne VIDE est un état de brouillon valide (tout
-                    // sélectionner puis taper) — contrairement à l'ancienne
-                    // version, ne JAMAIS `return` sans mettre à jour l'état
-                    // ici, sinon le champ contrôlé revient aussitôt à
-                    // l'ancienne valeur et le chiffre ne peut plus disparaître.
-                    if (brut !== '' && !/^\d+$/.test(brut)) return; // frappe invalide ignorée
-                    setPageDraft(brut);
-                  }}
-                  onBlur={() => {
-                    if (pageDraft !== null && pageDraft !== '') {
-                      setResultsPage(Math.min(Math.max(Number(pageDraft), 1), totalResultsPages));
-                    }
-                    setPageDraft(null);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                  }}
-                  className="w-11 px-1 py-1 text-center"
-                />
-                <span>/ {totalResultsPages}</span>
-              </div>
-
-              <BoutonIcone
-                cadre
-                libelle="Page suivante"
-                icone={<ChevronRight size={16} />}
-                onClick={() => setResultsPage((p) => Math.min(totalResultsPages, p + 1))}
-                disabled={resultsPage >= totalResultsPages}
-                className="h-8 w-8"
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Confirmations de libération — demande explicite de l'utilisateur.
-          `Modale` est portalisée : sa position dans l'arbre n'a pas
-          d'importance pour son rendu. */}
-      {releaseConfirm && (
-        <ConfirmDialog
-          titre="Libérer ce build validé ?"
-          message="Ces 6 runes ET la paire d’artéfacts redeviendront disponibles pour les autres monstres de cette liste."
-          libelleAction="Libérer"
-          onConfirm={() => {
-            lists.releaseBuild(releaseConfirm.listId, releaseConfirm.selector);
-            setReleaseConfirm(null);
-          }}
-          onCancel={() => setReleaseConfirm(null)}
-        />
-      )}
-      {releaseArtifactsConfirm && (
-        <ConfirmDialog
-          titre="Libérer les artéfacts validés ?"
-          message="Cette paire redeviendra disponible pour les autres monstres de cette liste. Les 6 runes du build restent réservées."
-          libelleAction="Libérer"
-          onConfirm={() => {
-            lists.releaseArtifacts(releaseArtifactsConfirm.listId, releaseArtifactsConfirm.selector);
-            setReleaseArtifactsConfirm(null);
-          }}
-          onCancel={() => setReleaseArtifactsConfirm(null)}
-        />
-      )}
-      {releaseAllConfirm && (
-        <ConfirmDialog
-          titre="Libérer toutes les runes validées de cette liste ?"
-          message="Tous les builds validés de cette liste seront libérés d'un coup — leurs runes redeviennent disponibles."
-          libelleAction="Tout libérer"
-          destructif
-          onConfirm={() => {
-            lists.releaseAllInList(releaseAllConfirm);
-            setReleaseAllConfirm(null);
-          }}
-          onCancel={() => setReleaseAllConfirm(null)}
-        />
-      )}
-      {removeMemberConfirm && (
-        <ConfirmDialog
-          titre="Retirer ce monstre de la liste ?"
-          message="Ses runes validées seront aussi libérées — elles redeviennent disponibles pour les recherches des autres monstres de cette liste."
-          libelleAction="Retirer"
-          destructif
-          onConfirm={() => {
-            lists.removeMember(removeMemberConfirm.listId, removeMemberConfirm.selector);
-            setRemoveMemberConfirm(null);
-          }}
-          onCancel={() => setRemoveMemberConfirm(null)}
-        />
-      )}
-      {addListPromptOpen && (
-        <OptimizerCreateListDialog
-          listes={lists.lists}
-          libelleAction={addListPromptOpen === 'validate' ? 'Créer et valider' : addListPromptOpen === 'recherche' ? 'Créer' : 'Créer et ajouter'}
-          onValider={(valeur, contenu) => {
-            const nom = valeur.trim();
-            const intent = addListPromptOpen;
-            setAddListPromptOpen(null);
-            if (!selected?.monster.com2usId || (!sourceSelector && intent !== 'recherche')) return;
-            const id = lists.createList(nom, contenu);
-            if (intent === 'recherche') {
-              inclureSelectionRecherche(sourceSelector, selected.monster, id);
-              return;
-            }
-            if (!sourceSelector) return;
-            if (intent === 'validate') {
-              if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds, selected.monster.com2usId);
-            } else {
-              lists.addMember(id, sourceSelector, selected.monster.com2usId);
-            }
-            if (intent !== 'validate' || canValidateDisplayed) optimizer.capturerMembre(id, sourceSelector);
-          }}
-          onCancel={() => setAddListPromptOpen(null)}
-        />
-      )}
-      {equipeOuverte && <OptimizerEquipeDialog contexte={lists} listId={equipeOuverte.listId} equipe={equipeOuverte.equipe}
-        data={exclusionData} onValider={lists.setTeams} onClose={() => setEquipeOuverte(null)} />}
+      {blocResultats}
     </div>
+    )}
+    {/* ⚠️ Rendues HORS de la page (et de la grille de réglages, dont un
+        enfant direct compterait comme une cellule) : elles n'ont aucune place
+        à prendre dans le flux — c'est tout leur objet. */}
+    {modaleDegats}
+    {fenetresListes}
+    </>
   );
 }

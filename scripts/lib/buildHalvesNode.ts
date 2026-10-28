@@ -1,6 +1,8 @@
-// Construction des DEUX moitiés EN PARALLÈLE, côté Node — la coquille de
-// lancement, pendant de ce que `runeBuildOptim.worker.ts` fait avec deux Web
-// Workers.
+// Construction des moitiés EN PARALLÈLE, côté Node — la coquille de
+// lancement, pendant de ce que `runeBuildOptim.worker.ts` fait avec ses Web
+// Workers de moitié : un fil par moitié ET par préréglage construit (2 à 8,
+// préréglages emboîtés), par le même orchestrateur
+// (`construireMoitiesEmboiteesTypees`).
 //
 // ⚠️ **Pourquoi ça ne peut pas rester séquentiel dans un outil de mesure.**
 // Construire A puis B dans le même fil ne fausse pas qu'un affichage : le
@@ -18,11 +20,11 @@
 // Lushen d11, Ciri défense). Négligeable seulement en moyenne.
 //
 // ⚠️ **Le travail lui-même n'est PAS dupliqué** : `build-half-worker.ts` est
-// le même fichier que celui de `perf-battery.ts`, qui appelle le vrai
-// `buildBuckets`. Ce qui vit ici est uniquement le bundling et le spawn —
-// exactement le découpage retenu pour l'appariement (`spawnSliceNode.ts` vs
-// `pairSliceInWorker`), où la LOGIQUE est partagée et seule la coquille de
-// plateforme diffère.
+// le même fichier que celui de `perf-battery.ts`, qui appelle la vraie
+// construction de production (`construireMoitieTypee`). Ce qui vit ici est
+// uniquement le bundling et le spawn — exactement le découpage retenu pour
+// l'appariement (`appariementRapideNode.ts` vs `lancerTravailleurNavigateur`),
+// où la LOGIQUE est partagée et seule la coquille de plateforme diffère.
 //
 // ⚠️ `perf-battery.ts` garde sa propre coquille, délibérément : son cache de
 // bundle est indexé par PID parce que chaque cas y tourne dans son propre
@@ -31,10 +33,11 @@
 // référence pour un gain nul.
 //
 // ⚠️ **Sur un PETIT cas, paralléliser coûte plus que ça ne rapporte** —
-// mesuré : deux fils à 25 et 24 ms pour un temps de phase de 127 ms, le spawn
-// et la copie des compartiments pesant plus que le travail lui-même. Ce n'est
-// PAS une raison de conditionner la parallélisation à la taille : la
-// production lance ses deux Web Workers dans TOUS les cas, et un harnais qui
+// mesuré (à deux fils, avant les préréglages emboîtés) : deux fils à 25 et
+// 24 ms pour un temps de phase de 127 ms, le spawn et la copie des
+// compartiments pesant plus que le travail lui-même. Ce n'est PAS une raison
+// de conditionner la parallélisation à la taille : la production lance ses
+// Web Workers de moitié dans TOUS les cas, et un harnais qui
 // choisirait autrement cesserait de mesurer la production. Le surcoût est donc
 // reproduit tel quel — et rendu visible, `msA`/`msB` étant rapportés à côté du
 // temps réel de la phase.
@@ -45,12 +48,14 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { build } from 'esbuild';
 import { Bucket, PreparedSearch, SearchParams } from '../../src/lib/runeBuildOptim';
+import { construireMoitiesEmboiteesTypees } from '../../src/lib/constructionEmboitee';
+import { CompartimentType, objetsDesCompartiments } from '../../src/lib/demiBuildsTypes';
 // ⚠️ `import type` IMPÉRATIF : `build-half-worker.ts` exécute du code au
 // chargement (`workerData`, `parentPort!`) — c'est un point d'entrée de fil,
 // jamais un module à importer. Même précaution que perf-battery.ts.
 import type { BuildHalfWorkerData, BuildHalfWorkerResult, MemoireMoitie, ProgressionMoitie } from './build-half-worker';
 
-// Bundlé UNE FOIS par exécution, réutilisé par les deux fils — le coût
+// Bundlé UNE FOIS par exécution, réutilisé par tous les fils — le coût
 // d'esbuild ne doit jamais entrer dans un temps de construction mesuré.
 let cheminBundle: string | null = null;
 
@@ -82,8 +87,8 @@ function lancerFil(chemin: string, data: BuildHalfWorkerData): Promise<BuildHalf
 }
 
 export interface MoitiesConstruites {
-  bucketsA: Bucket[];
-  bucketsB: Bucket[];
+  bucketsA: CompartimentType[];
+  bucketsB: CompartimentType[];
   /** Coût INTERNE à chaque fil — diagnostic, jamais la durée de la phase. */
   msA: number;
   msB: number;
@@ -108,10 +113,14 @@ export interface MoitiesConstruites {
 }
 
 /**
- * ⚠️ Reproduit la topologie réelle : les deux `Worker` sont lancés AVANT le
- * premier `await`, donc vraiment concurrents. Les créer dans un `await`
- * successif les rendrait séquentiels tout en donnant l'apparence du
- * parallélisme — c'est la précaution que `perf-battery.ts` documente déjà.
+ * ⚠️ Reproduit la topologie réelle (`construireMoitiesEmboiteesTypees`, le même
+ * orchestrateur que `runeBuildOptim.worker.ts`) : un fil par moitié ET par
+ * préréglage construit (préréglages emboîtés), tous lancés AVANT le premier
+ * `await`, donc vraiment concurrents. Les créer dans un `await` successif
+ * les rendrait séquentiels tout en donnant l'apparence du parallélisme —
+ * c'est la précaution que `perf-battery.ts` documente déjà. `msA`,
+ * `memoireA`, `progressionA` (et B) sont ceux du fil du préréglage de la
+ * recherche ; les préréglages plus étroits ne sont jamais horodatés.
  */
 export async function construireMoitiesEnParallele(
   prepared: PreparedSearch,
@@ -124,32 +133,23 @@ export async function construireMoitiesEnParallele(
    */
   horodaterProgression = false
 ): Promise<MoitiesConstruites> {
-  const commun = {
-    filtered: prepared.filtered,
-    distinctKeys: prepared.distinctKeys,
-    constrainedKeys: prepared.constrainedKeys,
-    retentionKeys: prepared.retentionKeys,
-    minEntries: prepared.minEntries,
-    bucketCap: prepared.bucketCap,
-    jokerCredit: prepared.jokerCredit,
-    requiredPieces: prepared.requiredPieces,
-    base: prepared.base,
-    objectiveKeys: prepared.objectiveKeys,
-    // ⚠️ Relayés depuis `params` : sans eux, le worker retomberait sur le
-    // défaut interne de `buildBuckets` et ignorerait silencieusement ce que
-    // la recette demandait — trou déjà rencontré côté navigateur.
-    adaptiveTrancheWeighting: params.adaptiveTrancheWeighting,
-    combosOrderMode: params.combosOrderMode,
-    horodaterProgression,
-  };
+  const propres: Partial<Record<'A' | 'B', BuildHalfWorkerResult>> = {};
   const t0 = performance.now();
-  const [a, b] = await Promise.all([
-    lancerFil(chemin, { ...commun, half: 'A', slotIdxs: [0, 1, 2], otherHalfMaxSets: prepared.maxSetsForA }),
-    lancerFil(chemin, { ...commun, half: 'B', slotIdxs: [3, 4, 5], otherHalfMaxSets: prepared.maxSetsForB }),
-  ]);
+  // ⚠️ `combosOrderMode` relayé depuis `params` : sans lui, le fil
+  // retomberait sur le défaut interne de la construction et ignorerait
+  // silencieusement ce que la recette demandait.
+  const { bucketsA, bucketsB } = await construireMoitiesEmboiteesTypees(prepared, params.combosOrderMode, async (requete) => {
+    // Le fil du préréglage de la recherche (rang 0), celui qui porte le pool entier.
+    const propre = requete.rangPrereglage === 0;
+    const r = await lancerFil(chemin, { ...requete, horodaterProgression: horodaterProgression && propre });
+    if (propre) propres[requete.half] = r;
+    return r.buckets;
+  });
+  const a = propres.A!;
+  const b = propres.B!;
   return {
-    bucketsA: a.buckets,
-    bucketsB: b.buckets,
+    bucketsA,
+    bucketsB,
     msA: a.ms,
     msB: b.ms,
     memoireA: a.memoire,
@@ -158,4 +158,13 @@ export async function construireMoitiesEnParallele(
     progressionB: b.progression,
     wallMs: performance.now() - t0,
   };
+}
+
+/** Oracle et diagnostics qui lisent encore les runes des HalfCombo. */
+export async function construireMoitiesObjetsEnParallele(
+  ...args: Parameters<typeof construireMoitiesEnParallele>
+): Promise<Omit<MoitiesConstruites, 'bucketsA' | 'bucketsB'> & { bucketsA: Bucket[]; bucketsB: Bucket[] }> {
+  const r = await construireMoitiesEnParallele(...args);
+  return { ...r, bucketsA: objetsDesCompartiments(r.bucketsA, args[0].filtered),
+    bucketsB: objetsDesCompartiments(r.bucketsB, args[0].filtered) };
 }

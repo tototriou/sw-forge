@@ -9,7 +9,6 @@
 // d'infrastructure de test React : le hook (`useArtifactOptimQueue`) se
 // contrôle sur la source ; le délai réel au navigateur ne se mesure pas ici.
 
-import { readFileSync } from 'node:fs';
 import { BuildCandidate } from '../src/lib/runeBuildOptim';
 import { VoieDeLaFile, cleBuild, prochainsATraiter, voieDeLaFile } from '../src/lib/artifactQueue';
 import { egal, ok, titre } from './outils';
@@ -19,14 +18,6 @@ const build = (...runeIds: number[]) => ({ runeIds }) as unknown as BuildCandida
 // la conformité ne changeant la fenêtre que pour un écarté.
 type Cache = Map<string, { conforme: boolean }>;
 const cache = (...cles: string[]): Cache => new Map(cles.map((c) => [c, { conforme: true }]));
-
-// Un bloc de code du hook, de sa déclaration à sa fermeture au même retrait.
-function bloc(src: string, debut: string, fin: string): string {
-  const i = src.indexOf(debut);
-  if (i < 0) return '';
-  const j = src.indexOf(fin, i + debut.length);
-  return j < 0 ? '' : src.slice(i, j + fin.length);
-}
 
 export function testVoieDeLaFile() {
   titre('File de résolution — la voie de la prochaine tranche');
@@ -87,48 +78,6 @@ export function testVoieDeLaFile() {
     egal(voie([build(1), build(2), build(7)], deja), 'page', 'piège — un nouveau candidat entre dans la page : idem');
   }
 
-  titre('File de résolution — le hook, contrôlé sur la source');
-
-  // Fins de ligne ramenées à `\n` (le hook est en CRLF), puis sans les
-  // commentaires : seul le code compte.
-  const brut = readFileSync('src/hooks/useArtifactOptimQueue.ts', 'utf8').replace(/\r\n/g, '\n');
-  const hook = brut.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
-
-  const immediat = bloc(hook, 'function planifierImmediat(', '\n}\n');
-  const inactif = bloc(hook, 'function planifierInactif(', '\n}\n');
-  ok(immediat.length > 0 && inactif.length > 0, 'les deux planificateurs existent');
-  ok(!/requestIdleCallback/.test(immediat) && /MessageChannel/.test(immediat),
-    'voie prioritaire : `MessageChannel` (repli `setTimeout`), jamais `requestIdleCallback`');
-  ok(/requestIdleCallback\(faire, \{ timeout: 1000 \}\)/.test(inactif), 'voie de fond : `requestIdleCallback`, comme avant');
-  egal((hook.match(/requestIdleCallback\(/g) ?? []).length, 1, '`requestIdleCallback` n’est appelé qu’à un endroit, la voie de fond');
-
-  egal((hook.match(/\blet planifie\b/g) ?? []).length, 1, 'une seule tâche en attente, toutes voies confondues');
-  const reveiller = bloc(hook, 'const reveiller = () => {', '\n    };');
-  ok(/voieDeLaFile\(aTraiter\(\), pageRef\.current\(\), cacheRef\.current\)/.test(reveiller), 'réveil : la voie vient de `voieDeLaFile`');
-  ok(/if \(voie === 'aucune'\) \{[^}]*return setEnAttente\(0\);\s*\}/.test(reveiller), 'réveil : rien à traiter, rien de planifié');
-  // Une relance de l'effet (K qui change) qui trouve la file vide doit
-  // publier les écritures retenues.
-  ok(/if \(voie === 'aucune'\) \{\s*if \(nonPublieeRef\.current\) publier\(true\);/.test(reveiller),
-    'réveil : file vide sur une écriture retenue → publication forcée, comme le chemin Worker');
-  ok(/const nonPublieeRef = useRef\(false\);/.test(hook), 'le drapeau d’écriture retenue survit à une relance de l’effet (ref)');
-  const publier = bloc(hook, 'const publier = (forcer: boolean) => {', '\n    };');
-  ok(/nonPublieeRef\.current = true;\s*return;/.test(publier) && /nonPublieeRef\.current = false;\s*setParBuild/.test(publier),
-    'publier : la cadence pose le drapeau, la publication le lève');
-  ok(/if \(planifie && \(planifie\.voie === voie \|\| planifie\.voie === 'page'\)\) return;/.test(reveiller),
-    'réveil idempotent : une tâche de même voie, ou de la page, déjà programmée suffit');
-  ok(/planifie\?\.annuler\(\);[\s\S]*voie === 'page' \? planifierImmediat : planifierInactif/.test(reveiller),
-    'piège : une tranche de fond en attente est ANNULÉE avant de replanifier en voie prioritaire');
-
-  const tranche = bloc(hook, 'const tranche = () => {', '\n    };');
-  egal((tranche.match(/faire\(suivant\)/g) ?? []).length, 1, 'tranche : un seul build résolu');
-  ok(!/\bwhile\b|\bfor\s*\(/.test(tranche), 'tranche : aucune boucle qui garde le fil');
-  ok(/const voieApres = voieDeLaFile\(restants\.slice\(1\), page, cacheRef\.current\);/.test(tranche)
-    && /publier\(voieApres === 'aucune' \|\| \(voie === 'page' && voieApres !== 'page'\)\);/.test(tranche),
-    'tranche : publication forcée au dernier build non résolu de la page (et au dernier de la file)');
-  ok(/const PUBLICATION_MS = 400;/.test(hook), 'cadence de publication : 400 ms, inchangée');
-
-  const nettoyage = bloc(hook, 'return () => {', '\n    };');
-  ok(/vivant = false;[\s\S]*planifie\?\.annuler\(\);/.test(nettoyage), 'nettoyage : la tâche en attente est annulée, quelle que soit sa voie');
-  ok(/\}, \[resoudre, signature, K\]\);/.test(hook) && !/triees\.length\]/.test(hook),
-    'dépendances de l’effet inchangées : `triees.length` n’y revient pas');
+  // L'écran ne garde ni file ni cache : il envoie sa vue au classeur et n'en
+  // reçoit que l'instantané (testClassementBranchementApp).
 }

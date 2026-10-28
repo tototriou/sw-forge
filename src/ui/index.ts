@@ -89,6 +89,12 @@ export type { OptionProps } from './Option';
 // avec neuf appelants.
 export { default as Segmented } from './Segmented';
 
+// De VRAIS onglets au-dessus d'un contenu : celui qui est ouvert se fond dans
+// la ligne de base. ⚠️ Pas un `Segmented` (un mode dans une rangée de
+// réglages) : les onglets disent quel contenu on regarde.
+export { default as Onglets } from './Onglets';
+export type { OngletOption, OngletsProps } from './Onglets';
+
 export { default as Interrupteur } from './Interrupteur';
 export type { InterrupteurProps } from './Interrupteur';
 

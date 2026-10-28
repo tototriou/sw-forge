@@ -21,10 +21,10 @@ Fichiers : [RtaSection.tsx](src/components/rta/RtaSection.tsx) ·
 ## Filtre par section — au téléphone
 
 **Au doigt**, une rangée
-de pastilles en tête des sections — **« Tous »**, puis **« Non classé »** et
-chaque section de set, chacune avec son **nombre de monstres** (et l'icône de
-son set). **Une seule à la fois** : en choisir une n'affiche que cette
-section ; « Tous » les rend toutes.
+d'**onglets** (`Onglets`, la librairie UI) en tête des sections — **« Tous »**,
+puis **« Non classé »** et chaque section de set, chacun avec son **nombre de
+monstres** (et l'icône de son set). **Un seul ouvert** : il n'affiche que sa
+section, qu'il coiffe ; « Tous » les rend toutes.
 
 - ⚠️ **Un filtre d'AFFICHAGE, rien d'autre** : l'ordre de tour, les
   compteurs, la prépa elle-même ne changent pas — on regarde une section, on

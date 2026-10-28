@@ -6,7 +6,7 @@ import BuildsRapides from '../../src/components/account/BuildsRapides';
 import { REGLAGE_BUILDS_RAPIDES_DEFAUT, setReglageBuildsRapides } from '../../src/hooks/useBuildsRapides';
 import { BROKEN } from '../../src/lib/buildsRapides';
 import { egal, ok, titre } from '../outils';
-import { rendre, texteVisible } from './outils-rendu';
+import { onglets, rendre, texteVisible } from './outils-rendu';
 
 function rune(id: number, slot: number, set: string, vit: number): RuneDetail {
   return {
@@ -33,7 +33,10 @@ export function testRenduBuildsRapides() {
   ok(t.endsWith('Violent + Broken Aucun build possible avec tes runes.'), 'une combinaison impossible le dit');
   // Les deux régimes sont du CSS : les onglets disparaissent à partir de `xl`,
   // et sous `xl` seule la combinaison choisie reste — ici la première.
-  ok(html.includes('xl:hidden" role="group"'), 'la rangée d’onglets s’efface à partir de xl');
+  ok(/role="tablist"[^>]*aria-label="Combinaison affichée"[^>]*class="[^"]*xl:hidden/.test(html), 'de vrais onglets (`Onglets`), qui s’effacent à partir de xl');
+  const combos = onglets(html);
+  egal(combos.map((o) => o.texte), ['Swift + Will 267', 'Violent + Broken —'], 'un onglet par combinaison, avec la VIT de son #1');
+  egal(combos.filter((o) => o.ouvert).map((o) => o.texte), ['Swift + Will 267'], 'la première ouverte par défaut');
   egal((html.match(/<section class="hidden xl:block"/g) ?? []).length, 1, 'sous xl, la seconde combinaison est masquée, pas la première');
 
   setReglageBuildsRapides({ combos: [], nombre: 5 });

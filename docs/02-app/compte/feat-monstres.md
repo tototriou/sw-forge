@@ -196,8 +196,9 @@ mais **leurs compétences diffèrent** : Bellenus voit son S2 passer de
 **3.0 à 2.0 × ATQ** et son passif changer entièrement. Dédupliquer sans plus
 ferait donc perdre la moitié de l'information.
 
-La fiche porte un **contrôle à cran** — « Forme de base » / « Forme
-transformée » — qui recharge stats, lead et compétences.
+La fiche porte deux **onglets** (`Onglets`, la librairie UI) — « Forme de
+base » / « Forme transformée » — qui rechargent stats, lead et compétences :
+l'onglet ouvert coiffe la fiche du dessous, qui change avec lui.
 
 - Les libellés sont **« base » / « transformée »**, pas les noms : ils sont
   **identiques** des deux côtés. C'est le rang qui distingue, comme dans le jeu

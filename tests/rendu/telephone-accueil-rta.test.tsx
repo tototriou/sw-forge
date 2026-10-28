@@ -9,7 +9,7 @@ import { useRtaState } from '../../src/hooks/useRtaState';
 import type { Monster, RtaState } from '../../src/types';
 import type { RtaSub } from '../../src/App';
 import { egal, faussLocalStorage, monstersJson, ok, titre } from '../outils';
-import { auTelephone, boutons, rendre, texteVisible, valeurs } from './outils-rendu';
+import { auTelephone, boutons, onglets, rendre, texteVisible, valeurs } from './outils-rendu';
 
 const MONSTRES = monstersJson() as Monster[];
 const id = (nom: string, el: string) =>
@@ -96,11 +96,14 @@ export function testRenduTelephoneRta() {
 export function testRenduTelephoneRtaFiltre() {
   titre('rendu téléphone · RTA — filtre par section');
   const html = rendreRta('prepa', false);
-  ok(valeurs(html, 'aria-label').includes('Afficher une section'), 'la rangée de pastilles est nommée');
-  const b = boutons(html);
-  ok(b.some((x) => x.texte === 'Tous 3' && x.presse === true), '« Tous », enclenché, avec le nombre de monstres');
-  for (const p of ['Non classé 1', 'Swift 1', 'Violent 1', 'Despair 0', 'Autre 0'])
-    ok(b.some((x) => x.texte === p && x.presse === false), `« ${p} »`);
+  ok(/role="tablist"[^>]*aria-label="Afficher une section"|aria-label="Afficher une section"[^>]*role="tablist"/.test(html), 'de vrais onglets (`Onglets`), rangée nommée');
+  const sections = onglets(html);
+  egal(
+    sections.map((o) => o.texte),
+    ['Tous 3', 'Non classé 1', 'Swift 1', 'Violent 1', 'Despair 0', 'Autre 0'],
+    '« Tous », « Non classé », puis chaque section, avec son nombre de monstres'
+  );
+  egal(sections.filter((o) => o.ouvert).map((o) => o.texte), ['Tous 3'], '« Tous » ouvert par défaut');
   ok(texteVisible(html).endsWith('1 Chasun 267 2 Veromos 205 3 Galleon 125'), 'l\'ordre de tour reste entier');
 }
 

@@ -512,7 +512,14 @@ change pas la note, au bit près.
 sorts dont la note BAISSE quand l'un des canaux ci-dessus ou une ligne
 d'artéfact augmente seul. Le producteur ne pose aucune dominance pour eux
 (`dominanceReliques` à `null`, `relicQueue.ts`) : toutes leurs reliques sont
-notées, au niveau build comme par paire. Aujourd'hui, Ceres, Last Shot
+notées, au niveau build comme par paire. Le préfiltre des artéfacts, qui
+suppose R lui aussi, n'applique pas sa dominance sur ces sorts
+(`ArtifactSearchParams.sansDominance`, posé par `parametresArtefactsFiche`
+depuis le sort noté, la même liste) : sans cela, une pièce à principale de
+PV plus grande écartait une pièce qui note mieux. Vérifié sur le vrai profil
+de Ceres par `testResolutionDominanceReliques` : résolution égale à la force
+brute (chaque relique × chaque paire), témoin à dominance forcée qui perd
+la meilleure note. Aujourd'hui, Ceres, Last Shot
 (5812) : son bonus de +50 % quand les PV de la cible dépassent 2 fois ses PV
 propres s'éteint quand ses PV montent. La liste est dressée sur le corpus
 des monstres que propose l'Optimizer (`formesJouables`) par

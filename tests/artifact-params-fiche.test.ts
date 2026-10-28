@@ -17,7 +17,8 @@
 import { ArtifactArchetype, ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ElementKey, GearSet, RelicDetail, RuneDetail } from '../src/types';
 import type { ArtifactMainChoice } from '../src/hooks/useOptimizerState';
 import { buildOptimizerRecipe, OptimizerRecipe } from '../src/lib/optimizerRecipe';
-import { DEFAULT_DAMAGE_SETUP, codesAmplificationActifs, type DamageSetup } from '../src/lib/damage';
+import { DEFAULT_DAMAGE_SETUP, codesAmplificationActifs, monsterDamageSkills, resolveDamageSkill, type DamageSetup } from '../src/lib/damage';
+import { loadMonsterSkills } from '../scripts/lib/skillsData';
 import { StatKey } from '../src/lib/effects';
 import { BuildCandidate } from '../src/lib/runeBuildOptim';
 import { candidatsParSorte, chercherPaires, paireRepresentative, type ChoixPrincipale, type LigneVerrouillee } from '../src/lib/artifactOptim';
@@ -40,6 +41,8 @@ export interface EntreesMemoArtifactParams {
   lignesVerrouillees: LigneVerrouillee[];
   damageSetup: DamageSetup;
   maxStats: Partial<Record<StatKey, number>>;
+  // Lu par le mémo d'après seulement (le sort noté, exception à la règle R).
+  resolvedSkill: { skillCom2usId: number } | null;
 }
 
 // `sortesFigees` d'avant (OptimizerSection.tsx, mémo voisin), recopié tel quel.
@@ -73,6 +76,8 @@ export function artifactParamsAvant(e: EntreesMemoArtifactParams) {
 /* ── Fixture : Lushen (vent / attaque), un build porté ─────────────────── */
 
 const LUSHEN = 13413;
+// Le sort par défaut de Lushen, résolu comme l'écran (`resolvedSkill`) ; hors `EXCEPTIONS_REGLE_R`.
+const SORT_LUSHEN = resolveDamageSkill(monsterDamageSkills(loadMonsterSkills(LUSHEN)), null)!.skillCom2usId;
 const BASE = { hp: 10000, atk: 1000, def: 500, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 
 function rune(id: number, slot: number): RuneDetail {
@@ -113,6 +118,7 @@ function entreesEcran(recipe: OptimizerRecipe, loaded: LoadedMonster, evaluer: (
     lignesVerrouillees: recipe.lignesVerrouillees ?? [],
     damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
     maxStats: recipe.requirement.maxStats ?? {},
+    resolvedSkill: { skillCom2usId: SORT_LUSHEN },
   };
 }
 
@@ -165,7 +171,7 @@ export function testArtefactsFicheParamsCliVerrous() {
 // Le corps du mémo `artifactParams` APRÈS l'extraction du producteur, recopié tel quel — le
 // contrôle de source ci-dessous vérifie que l'écran porte exactement ce texte.
 function artifactParamsApres(e: EntreesMemoArtifactParams) {
-  const { selected, evaluateursFiche, optimiserArtefacts, artifactMainByKind, artifacts, artefactsReserves, lignesVerrouillees, damageSetup, maxStats } = e;
+  const { selected, evaluateursFiche, optimiserArtefacts, artifactMainByKind, artifacts, artefactsReserves, lignesVerrouillees, damageSetup, maxStats, resolvedSkill } = e;
   if (!selected || !evaluateursFiche) return null;
   const espece = selected.monster;
   const evaluer = evaluateursFiche.representatif;
@@ -180,6 +186,7 @@ function artifactParamsApres(e: EntreesMemoArtifactParams) {
       lignesVerrouillees,
       damageSetup,
       maxStats,
+      sortDegats: resolvedSkill?.skillCom2usId ?? null,
     }),
     evaluer,
   };
@@ -221,7 +228,7 @@ export function testArtefactsFicheParamsEcran() {
   const ecarts: string[] = [];
   for (const optimiserArtefacts of [true, false]) for (const artifactMainByKind of choix) for (const lignesVerrouillees of verrous)
     for (const artefactsReserves of reserves) for (const damageSetup of setups) for (const maxStats of maximums) {
-      const e: EntreesMemoArtifactParams = { selected, evaluateursFiche: { representatif: evaluer }, optimiserArtefacts, artifactMainByKind, artifacts: inventaire, artefactsReserves, lignesVerrouillees, damageSetup, maxStats };
+      const e: EntreesMemoArtifactParams = { selected, evaluateursFiche: { representatif: evaluer }, optimiserArtefacts, artifactMainByKind, artifacts: inventaire, artefactsReserves, lignesVerrouillees, damageSetup, maxStats, resolvedSkill: { skillCom2usId: SORT_LUSHEN } };
       const avant = artifactParamsAvant(e)!, apres = artifactParamsApres(e)!;
       const nom = JSON.stringify({ optimiserArtefacts, artifactMainByKind, lignesVerrouillees, reserves: [...artefactsReserves], damageSetup: damageSetup === DEFAULT_DAMAGE_SETUP ? 'défaut' : damageSetup, maxStats });
       combinaisons++;
@@ -254,9 +261,14 @@ export function testArtefactsFicheParamsEcran() {
   egal(memo,
     'const artifactParams = useMemo(() => { if (!selected || !evaluateursFiche) return null; const espece = selected.monster; const evaluer = evaluateursFiche.representatif; '
     + 'return { ...parametresArtefactsFiche({ porteur: { element: espece.element, archetype: espece.archetype }, inventaire: artifacts, reserves: artefactsReserves, equipes: selected.gear.artifacts, '
-    + 'optimiserArtefacts, principaleParSorte: artifactMainByKind, lignesVerrouillees, damageSetup, maxStats, }), evaluer, }; '
-    + '}, [selected, evaluateursFiche, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, artefactsReserves, lignesVerrouillees, damageSetup, maxStats]);',
-    'écran : le mémo artifactParams appelle le producteur, avec les dépendances d’avant (sortesFigees compris)');
+    + 'optimiserArtefacts, principaleParSorte: artifactMainByKind, lignesVerrouillees, damageSetup, maxStats, sortDegats: resolvedSkill?.skillCom2usId ?? null, }), evaluer, }; '
+    + '}, [selected, evaluateursFiche, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, artefactsReserves, lignesVerrouillees, damageSetup, maxStats, resolvedSkill]);',
+    'écran : le mémo artifactParams appelle le producteur, avec les dépendances d’avant (sortesFigees compris) et le sort noté');
+  // Le sort noté en exception à la règle R (Ceres, Last Shot) retire la
+  // dominance du préfiltre ; les autres gardent les champs d'avant.
+  const ceres = artifactParamsApres({ ...entreesEcran(recette({}), loaded, evaluer), resolvedSkill: { skillCom2usId: 5812 } })!;
+  egal(ceres.sansDominance, true, 'écran : Ceres, Last Shot → sansDominance');
+  ok(!('sansDominance' in artifactParamsApres(entreesEcran(recette({}), loaded, evaluer))!), 'écran : Lushen → aucun champ sansDominance');
   egal((ecran.match(/parametresArtefactsFiche\(/g) ?? []).length, 1, 'écran : un seul appel au producteur — dans ce mémo');
   ok(ecran.includes('const sortesFigees = useMemo<ArtifactKind[]>(() => sortesFigeesDe(artifactMainByKind), [artifactMainByKind]);'),
     'écran : sortesFigees vient de la même définition que la neutralisation (sortesFigeesDe), mêmes dépendances');

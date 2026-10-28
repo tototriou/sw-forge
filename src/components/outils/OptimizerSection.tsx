@@ -1494,10 +1494,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         lignesVerrouillees,
         damageSetup,
         maxStats,
+        sortDegats: resolvedSkill?.skillCom2usId ?? null,
       }),
       evaluer,
     };
-  }, [selected, evaluateursFiche, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, artefactsReserves, lignesVerrouillees, damageSetup, maxStats]);
+  }, [selected, evaluateursFiche, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, artefactsReserves, lignesVerrouillees, damageSetup, maxStats, resolvedSkill]);
 
   const searchArtifacts = useMemo<ArtifactDetail[]>(
     () => (artifactParams ? paireRepresentative(artifactParams) : []),

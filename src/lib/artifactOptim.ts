@@ -217,6 +217,21 @@ export interface ArtifactSearchParams {
    */
   maxStatsActifs?: StatKey[];
   /**
+   * Aucune dominance au préfiltre : tous les candidats qui passent
+   * l'obligation sont parcourus.
+   *
+   * ⚠️ **La dominance suppose la règle de jeu R** (les dégâts ne baissent
+   * jamais quand une principale ou une ligne d'artéfact monte). Un sort qui la
+   * contredit (`EXCEPTIONS_REGLE_R`, resolutionRapide.ts : Ceres, Last Shot,
+   * dont le bonus s'éteint quand les PV propres montent) ferait écarter une
+   * pièce plus faible qui note pourtant mieux. Posé par
+   * `parametresArtefactsFiche` (artifactFiche.ts) depuis le sort noté, la
+   * même liste que celle qui retire la dominance des reliques.
+   *
+   * Absent : la dominance s'applique, comportement d'avant.
+   */
+  sansDominance?: boolean;
+  /**
    * Chiffrer aussi ce que les verrous coûtent SUR CE BUILD.
    *
    * ⚠️ **Ce n'est pas gratuit, et ça ne peut pas l'être** : on ne peut pas à la
@@ -378,7 +393,8 @@ export function preFiltrerCandidats(
   kind: ArtifactKind,
   lignes: LigneVerrouillee[] = [],
   pertinence?: Pertinence,
-  maxStatsActifs?: StatKey[]
+  maxStatsActifs?: StatKey[],
+  sansDominance = false
 ): (ArtifactDetail | null)[] {
   const obligatoires = seuilsObligatoires(lignes, kind);
   const verrous = lignes.filter((l) => l.min > 0);
@@ -421,7 +437,10 @@ export function preFiltrerCandidats(
   // principale reste donc DANS le vecteur (comparaison inchangée quand les
   // deux artéfacts s'y valent), mais la paire devient INCOMPARABLE dès qu'ils
   // y diffèrent : ni domine, ni dominé.
-  const dims = pertinence ? [...new Set([...pertinence.croissants, ...codesVerrouilles])] : null;
+  // ⚠️ **Sous `sansDominance`, AUCUNE dominance non plus** : le sort noté
+  // contredit la règle R (`ArtifactSearchParams.sansDominance`), une
+  // principale plus grande peut y noter moins.
+  const dims = pertinence && !sansDominance ? [...new Set([...pertinence.croissants, ...codesVerrouilles])] : null;
   const MAINS = [100, 101, 102];
   const plafonnees = new Set(maxStatsActifs ?? []);
   const mainsExclues = MAINS.filter((m) => plafonnees.has(ARTIFACT_MAIN[m]!.stat));
@@ -583,7 +602,7 @@ function candidatsPourRecherche(
 ): (ArtifactDetail | null)[] {
   const complets = candidatsParSorte(params, kind);
   const lignes = params.avecCoutDesVerrous ? [] : (params.lignesVerrouillees ?? []);
-  return preFiltrerCandidats(complets, kind, lignes, pertinence, params.maxStatsActifs);
+  return preFiltrerCandidats(complets, kind, lignes, pertinence, params.maxStatsActifs, params.sansDominance);
 }
 
 // Au plus tant de listes en mémoire (`MemoPreFiltre`) : deux sortes par
@@ -617,7 +636,7 @@ export class MemoPreFiltre {
   candidats(params: ArtifactSearchParams, kind: ArtifactKind, pertinence: Pertinence): (ArtifactDetail | null)[] {
     const entrees = [
       params.inventaire, params.equipes, params.porteur, params.principaleParSorte,
-      params.lignesVerrouillees, params.avecCoutDesVerrous, params.maxStatsActifs,
+      params.lignesVerrouillees, params.avecCoutDesVerrous, params.maxStatsActifs, params.sansDominance,
     ];
     if (!this.entrees || entrees.some((v, i) => v !== this.entrees![i])) {
       this.parCle.clear();

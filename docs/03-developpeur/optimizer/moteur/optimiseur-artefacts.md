@@ -173,7 +173,9 @@ validés de la liste active ; il impose `'equipped'` des deux côtés quand
 l'optimisation d'artéfacts est désactivée ; il vide les lignes verrouillées
 sans optimisation ou quand les deux sortes sont figées (une seule paire
 possible, qu'un verrou écarterait sans rechange) ; il fournit
-`codesAmplification` et `maxStatsActifs`.
+`codesAmplification` et `maxStatsActifs`, et `sansDominance` quand le sort
+noté (`sortDegats`, celui du profil de dégâts, quel que soit l'objectif) est
+en exception à la règle R (§ Pré-filtrage exact ci-dessous).
 
 `ArtifactDetail.id` porte l'identifiant com2us de la pièce : c'est ce qui
 rend une paire mémorisable dans un build validé et ses pièces réservables.
@@ -227,6 +229,13 @@ complète de `candidatsParSorte`, élaguée par `preFiltrerCandidats`. N'est
     « au moins aussi bon ». Retirer la principale du vecteur ne suffirait
     pas, le départage des ex æquo éliminerait l'un des deux.
   - L'emplacement vide n'est jamais soumis à la dominance.
+  - ⚠️ La dominance suppose la règle de jeu R (une principale ou une ligne
+    plus grande ne baisse jamais la note). Sous `sansDominance` — le sort
+    noté est dans `EXCEPTIONS_REGLE_R` (resolutionRapide.ts), la liste qui
+    retire aussi la dominance des reliques ; aujourd'hui Ceres, Last Shot,
+    dont le bonus s'éteint quand les PV propres montent — elle ne s'applique
+    pas : seuls l'obligation et le parcours complet restent
+    ([reliques.md § Dominance des reliques dans la résolution](reliques.md#dominance-des-reliques-dans-la-résolution)).
 
 Les listes élaguées se mémoïsent d'un build à l'autre d'une même file
 (`MemoPreFiltre`) :

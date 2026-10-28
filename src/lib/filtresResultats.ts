@@ -4,14 +4,19 @@
 // d'affichage par colonne »). Ce ne sont pas des conditions de recherche :
 // rien ici ne résout, ne renote ni ne relance.
 
-import { COLONNES_RESULTATS, type ColonneResultat } from './colonnesResultats';
+import { COLONNES_RESULTATS, COLONNES_SELON_MESURE, borneSousMesure, type ColonneResultat } from './colonnesResultats';
 import type { StatKey } from './effects';
 import type { OptimMetric } from './runeOptim';
 import { scoreDuCandidat, statTotal, type BuildCandidate, type OptionsDeClassement } from './runeBuildOptim';
 import { chiffresMesureRune, displayedTotal, entierAffiche, moyenneParRune } from './valeursAffichees';
 
-/** Une borne par sens ; `null` = sans borne. */
-export interface BorneColonne { min: number | null; max: number | null }
+/**
+ * Une borne par sens ; `null` = sans borne. `mesure` : sur une colonne qui
+ * suit la mesure des runes (`COLONNES_SELON_MESURE`, colonnesResultats.ts)
+ * seulement, la mesure sous laquelle la borne a été posée ; absente d'une
+ * borne écrite avant, réputée la mesure courante (`borneSousMesure`).
+ */
+export interface BorneColonne { min: number | null; max: number | null; mesure?: OptimMetric }
 export type BornesResultats = Partial<Record<ColonneResultat, BorneColonne>>;
 
 /**
@@ -66,36 +71,23 @@ function lireBorne(v: unknown): number | null {
 }
 
 /**
- * Les bornes après la saisie d'un côté d'une colonne. Un côté absent
- * (`undefined`, admis à la relecture d'une mémoire : `bornesBienFormees`) vaut
- * `null` : la colonne sans aucune borne disparaît, et la borne gardée a
- * toujours ses deux côtés écrits.
+ * Les bornes après la saisie d'un côté d'une colonne, sous la mesure
+ * `mesure`. Un côté absent (`undefined`, admis à la relecture d'une mémoire :
+ * `bornesBienFormees`) vaut `null` : la colonne sans aucune borne disparaît,
+ * et la borne gardée a toujours ses deux côtés écrits. Sur une colonne qui
+ * suit la mesure, la borne saisie retient `mesure` ; une borne mise de côté
+ * (posée sous l'autre mesure, que l'écran ne montre pas) n'entre pas dans la
+ * saisie : elle reste telle quelle tant que la saisie n'écrit aucun nombre,
+ * et cède la place à la borne saisie sinon (une borne par colonne).
  */
-export function avecBorne(bornes: BornesResultats, colonne: ColonneResultat, cote: 'min' | 'max', valeur: number | null): BornesResultats {
-  const actuelle = bornes[colonne];
+export function avecBorne(bornes: BornesResultats, colonne: ColonneResultat, cote: 'min' | 'max', valeur: number | null, mesure: OptimMetric): BornesResultats {
+  const actuelle = borneSousMesure(colonne, bornes[colonne], mesure) ? bornes[colonne] : undefined;
   const suivante: BorneColonne = { min: actuelle?.min ?? null, max: actuelle?.max ?? null, [cote]: valeur };
+  if (COLONNES_SELON_MESURE.includes(colonne)) suivante.mesure = mesure;
+  if (suivante.min === null && suivante.max === null && actuelle === undefined) return bornes;
   const next = { ...bornes };
   if (suivante.min === null && suivante.max === null) delete next[colonne];
   else next[colonne] = suivante;
-  return next;
-}
-
-/**
- * Les colonnes dont l'échelle suit la mesure des runes : « Efficience » vaut
- * une moyenne d'efficience en % ou un Score SW entier. Une borne posée sous
- * une mesure n'a aucun sens sous l'autre.
- */
-export const COLONNES_SELON_MESURE: readonly ColonneResultat[] = ['efficience'];
-
-/**
- * Les bornes après un changement de mesure des runes : celles des
- * `COLONNES_SELON_MESURE` tombent, devenues sans objet ; les autres restent.
- * Sans borne à retirer, les mêmes bornes (même objet).
- */
-export function bornesApresChangementDeMesure(bornes: BornesResultats): BornesResultats {
-  if (!COLONNES_SELON_MESURE.some((c) => bornes[c] !== undefined)) return bornes;
-  const next = { ...bornes };
-  for (const c of COLONNES_SELON_MESURE) delete next[c];
   return next;
 }
 

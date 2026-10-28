@@ -42,6 +42,7 @@ export const testRenduFiltresResultatsCartes = () => transition('filtres-ecran')
 export const testRenduTelephoneFiltresResultatsCartes = () => transition('filtres-ecran', true);
 export const testFiltresBranchementApp = () => transition('filtres-branchement');
 export const testFiltresBranchementAppTelephone = () => transition('filtres-branchement', true);
+export const testRenduFiltresResultatsMesure = () => transition('filtres-mesure');
 
 async function inclusion(genre: 'ajout' | 'fiche' | 'carte', telephone = false) {
   titre(`rendu · Optimizer mémoire — inclusion par clic ${genre}${telephone ? ' au téléphone' : ''}`);

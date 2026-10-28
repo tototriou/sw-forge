@@ -424,15 +424,28 @@ tri ; ../feat-listes-equipes-et-sauvegarde.md § Mémoires des membres).
   la borne compare le total. Les conditions de recherche, elles, jugent
   toujours le total brut. Changer ce réglage ne reclasse la vue que sous une
   borne de l'une de ces trois colonnes.
-- **Changer de mesure retire la borne d'Efficience.** La colonne change
-  d'échelle (moyenne d'efficience en %, ou Score SW entier) : une borne
-  posée sous une mesure n'a aucun sens sous l'autre. Au passage Efficience
-  ↔ Score SW, réglage global changé depuis n'importe quelle page, elle tombe
-  (`bornesApresChangementDeMesure`, filtresResultats.ts, appelé par un effet
-  de useOptimizerState.ts), et la mémoire du membre affiché la perd avec
-  elle ; les bornes des autres colonnes restent. ⚠️ La mémoire d'un autre
-  membre garde la sienne : rien n'y dit sous quelle mesure elle a été posée,
-  et elle revient au retour sur ce membre.
+- **La borne d'Efficience garde sa mesure.** La colonne change d'échelle
+  avec la mesure (moyenne d'efficience en %, ou Score SW entier), et les deux
+  n'ont pas de rapport fixe : l'Efficience compte la principale et double
+  les maximums des plates, le Score SW ne lit que les sous-stats et pondère
+  les plates à 0,35 (effects.ts). Aucune conversion, donc : la borne retient
+  la mesure sous laquelle elle a été posée (`BorneColonne.mesure`, écrite
+  par `avecBorne`, filtresResultats.ts). Sous l'autre mesure, réglage global
+  changé depuis n'importe quelle page, elle est **mise de côté** : elle
+  n'entre pas dans la vue envoyée au classeur et la colonne ne la montre
+  pas (`bornesSousMesure`, colonnesResultats.ts, appelé par
+  OptimizerSection.tsx) ; au retour à sa mesure, elle revient telle quelle.
+  Cela vaut pour le membre affiché comme pour la mémoire de chaque membre,
+  qui porte la mesure avec la borne (session comprise). Sous l'autre mesure,
+  une saisie vide dans la colonne laisse la borne mise de côté ; un nombre
+  saisi pose une borne neuve sous la mesure courante, qui la remplace (une
+  borne par colonne) ; « Effacer » ne retire que les bornes montrées
+  (`bornesMisesDeCote`). ⚠️ **Compatibilité** : une borne d'Efficience
+  enregistrée avant que la borne retienne sa mesure (mémoire, session) est
+  réputée posée sous la mesure courante à son chargement ; au premier
+  changement de mesure, elle prend celle qui s'achève (`bornesAvecMesure` :
+  au rendu pour les bornes affichées, useOptimizerState.ts ; par un effet
+  pour toutes les mémoires, `fixerMesureDesBornes`, useOptimizerLists.ts).
 - **Un build non vérifié n'est jamais jugé sur ses stats provisoires** :
   sa paire et sa relique peuvent encore changer PV, ATQ, DEF et les deux
   objectifs. Il reste « potentiel » (il garde sa place dans la pagination et

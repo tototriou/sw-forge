@@ -213,9 +213,13 @@ par nom, elle ne le remplace pas ; les deux se combinent.
 - **Avertissements** : un `new Worker(…)` dont la cible ne se résout pas
   (hors `{ eval: true }`, qui porte du code) ne fait entrer aucun module par
   ce site ; la sortie le dit (« Avertissements (n) », et leur nombre sous
-  `--silencieux`), sans changer la sélection. Aujourd'hui, les deux lanceurs
-  Node de paquets construits par esbuild, dont le point d'entrée est suivi
-  par son site `entryPoints`.
+  `--silencieux`), sans changer la sélection. Une liste tolérée
+  (`WORKERS_NON_RESOLUS_TOLERES`, selection.ts) en tait certains, chacun
+  avec sa raison, repéré par son fichier et le texte de son argument :
+  aujourd'hui les deux lanceurs Node de paquets construits par esbuild, dont
+  le point d'entrée est suivi par son site `entryPoints`. Un site nouveau
+  reste averti, comme un second site au même argument ; une entrée qui ne
+  correspond plus à aucun site est dite en avertissement.
 - **Fichiers sans effet** (`*.md`, `tests/banc/**`, `.gitignore`) : ne retiennent que les
   vérifications qui lisent le dépôt entier (`depot`) ou un chemin non
   déterminable (`opaque`). Une retenue générale ne certifie jamais la

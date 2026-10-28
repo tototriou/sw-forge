@@ -497,7 +497,8 @@ formats). Les libellés et unités viennent de `filtresAffichage.ts` ;
   point ou virgule), comme la carte l'écrit (`NumberField decimales`,
   `decimalesColonne`) ; Score SW et les autres colonnes, des entiers.
 - **Page interrompue** : têtes, choix de forme, « Filtrer » et « Effacer »
-  désactivés, comme « Comparer » et « Valider ».
+  désactivés, comme « Comparer » et « Valider » ; le « + » des pages
+  s'éteint à sa place (plus aucune page ne viendra).
 
 ### Cartes ou tableau
 

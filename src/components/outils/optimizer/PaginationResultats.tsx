@@ -11,12 +11,14 @@ export interface PaginationResultatsProps {
   // D'autres pages peuvent encore apparaître : le nombre s'écrit « / N+ »
   // (`pagesDesResultats`).
   pagesPeuventMonter?: boolean;
-  // Classement perdu : la page reste visible, la navigation est désactivée.
+  // Classement perdu : la page reste visible, la navigation est désactivée,
+  // et le « + » s'éteint (plus aucune page ne viendra).
   inactif?: boolean;
 }
 
 export default function PaginationResultats({ setResultsPage, resultsPage, pageDraft, setPageDraft, totalResultsPages, pagesPeuventMonter = false,
   inactif = false }: PaginationResultatsProps) {
+  const plus = pagesPeuventMonter && !inactif;
   return (
     <div className="mt-4 flex items-center justify-center gap-3">
       <BoutonIcone
@@ -64,7 +66,7 @@ export default function PaginationResultats({ setResultsPage, resultsPage, pageD
             ne déplace pas la flèche qu'on vient de cliquer. */}
         <span className="font-mono">
           / {totalResultsPages}
-          <span className={pagesPeuventMonter ? undefined : 'invisible'} aria-hidden={!pagesPeuventMonter}>+</span>
+          <span className={plus ? undefined : 'invisible'} aria-hidden={!plus}>+</span>
         </span>
       </div>
 

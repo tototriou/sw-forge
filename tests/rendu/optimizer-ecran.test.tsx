@@ -196,15 +196,17 @@ export function testRenduOptimizerResultatsEntete() {
   // « + » garde sa place, invisible, une fois tout vérifié. L'écran entier ne
   // la montre pas en rendu serveur (rien n'y est vérifié, une seule page) :
   // elle est rendue seule.
-  const pagination = (pagesPeuventMonter: boolean) => rendre(
+  const pagination = (pagesPeuventMonter: boolean, inactif = false) => rendre(
     <PaginationResultats setResultsPage={() => {}} resultsPage={1} pageDraft={null} setPageDraft={() => {}} totalResultsPages={16}
-      pagesPeuventMonter={pagesPeuventMonter} />,
+      pagesPeuventMonter={pagesPeuventMonter} inactif={inactif} />,
   );
   const plus = (html: string) => html.match(/<span\b([^>]*)>\+<\/span>/)?.[1] ?? null;
-  const ouverte = pagination(true), exacte = pagination(false);
+  const ouverte = pagination(true), exacte = pagination(false), interrompue = pagination(true, true);
   ok(/\/ 16<span\b[^>]*>\+<\/span>/.test(ouverte) && !/invisible/.test(plus(ouverte) ?? 'invisible'), 'il reste des non vérifiées : « / 16+ », collé au nombre');
   ok(/class="invisible"/.test(plus(exacte) ?? '') && /aria-hidden="true"/.test(plus(exacte) ?? ''),
     'tout vérifié : « / 16 », le « + » garde sa place, invisible et tu (la flèche suivante ne bouge pas)');
+  ok(/class="invisible"/.test(plus(interrompue) ?? '') && /aria-hidden="true"/.test(plus(interrompue) ?? ''),
+    'page interrompue : plus aucune page ne viendra, le « + » s’éteint à sa place');
 }
 
 // La ligne de la file, sous l'en-tête : le reste de la file en vérification,

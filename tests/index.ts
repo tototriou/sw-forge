@@ -391,7 +391,8 @@ import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerIdentiteEn
   testRenduTelephoneMemoireOptimizerClicAjouter, testRenduTelephoneMemoireOptimizerClicValiderFiche,
   testRenduRattachementOptimizer, testRenduTelephoneRattachementOptimizer, testRenduRattachementOptimizerDemonte,
   testRenduFiltresResultatsMemoire, testRenduFiltresResultatsCarteContexte, testRenduFiltresResultatsCartes,
-  testRenduTelephoneFiltresResultatsCartes, testFiltresBranchementApp, testFiltresBranchementAppTelephone } from './rendu/optimizer-memoire.test';
+  testRenduTelephoneFiltresResultatsCartes, testFiltresBranchementApp, testFiltresBranchementAppTelephone,
+  testRenduFiltresResultatsMesure } from './rendu/optimizer-memoire.test';
 import { testRenduBestiaire, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
 import { testAlignementVersion } from './alignement-version.test';
 import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi, testRenduTelephoneRtaFiltre } from './rendu/telephone-accueil-rta.test';
@@ -491,6 +492,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelephoneFiltresResultatsCartes', testRenduTelephoneFiltresResultatsCartes],
   ['testFiltresBranchementApp', testFiltresBranchementApp],
   ['testFiltresBranchementAppTelephone', testFiltresBranchementAppTelephone],
+  ['testRenduFiltresResultatsMesure', testRenduFiltresResultatsMesure],
   ['testRenduMemoireOptimizerClicAjouter', testRenduMemoireOptimizerClicAjouter],
   ['testRenduMemoireOptimizerClicValiderFiche', testRenduMemoireOptimizerClicValiderFiche],
   ['testRenduMemoireOptimizerClicValiderInclut', testRenduMemoireOptimizerClicValiderInclut],

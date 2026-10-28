@@ -1,8 +1,8 @@
 import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 import { StatKey } from '../lib/effects';
 import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
-import type { ColonneResultat } from '../lib/colonnesResultats';
-import { bornesApresChangementDeMesure, type BornesResultats } from '../lib/filtresResultats';
+import { bornesAvecMesure, type ColonneResultat } from '../lib/colonnesResultats';
+import type { BornesResultats } from '../lib/filtresResultats';
 import type { SensTri } from '../lib/tri';
 import { DamageSetup } from '../lib/damage';
 import { appliquerCriteres, baseCompleteCriteres, criteresApresChangementEspece, defaultRelicMainChoice, photoCriteres, type CriteresOptimizer } from '../lib/criteresOptimizer';
@@ -454,9 +454,21 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   // repart de 1 dans le même rendu. Sans cela, le classeur recevrait une
   // mesure nouvelle sur une page au-delà de ce que le fond vérifie, et ses
   // places « Vérification… » resteraient sans aucun travail pour les remplir.
+  //
+  // Une borne d'« Efficience » retient la mesure sous laquelle elle a été
+  // posée (Efficience et Score SW n'ont pas de rapport fixe : aucune
+  // conversion) ; sous l'autre, l'écran la met de côté (`bornesSousMesure`,
+  // OptimizerSection.tsx), et elle revient au retour. Une borne écrite sans
+  // mesure (mémoire d'avant) vaut sous la mesure courante : au changement,
+  // elle prend celle qui s'achève, ici dans le même rendu pour les bornes
+  // affichées, plus bas par un effet pour les mémoires.
   const mesure = useRuneMetric();
   const [mesureDeLaPage, setMesureDeLaPage] = useState(mesure);
-  if (mesureDeLaPage !== mesure) { setMesureDeLaPage(mesure); setResultsPage(1); }
+  if (mesureDeLaPage !== mesure) {
+    setMesureDeLaPage(mesure); setResultsPage(1);
+    const fixees = bornesAvecMesure(bornesResultats, mesureDeLaPage);
+    if (fixees !== bornesResultats) setBornesResultats(fixees);
+  }
   const [slotFilterPreset, setSlotFilterPreset] = useState<SlotFilterPresetKey>('moyen');
   const [diagnoseBlockingEnabled, setDiagnoseBlockingEnabled] = useState(false);
   const [stoppedManually, setStoppedManually] = useState(false);
@@ -742,19 +754,19 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   // Les callbacks utilisent le dernier contexte publié, y compris lorsqu'un
   // geste a été groupé avec une mutation des listes dans le même rendu.
   useEffect(() => { reconcilierMembre(); synchroniserLeads(); });
-  // La borne d'« Efficience » change d'échelle avec la mesure (Efficience ↔
-  // Score SW, réglage global changé depuis n'importe quelle page) : elle tombe
-  // au changement, devenue sans objet (`bornesApresChangementDeMesure`), par
-  // le setter de saisie pour que la mémoire du membre la perde aussi. Un
-  // effet, pas un ajustement au rendu : la mémoire ne s'écrit pas en rendant.
-  const mesureDesBornes = useRef(mesure);
-  function retirerBornesSansObjet() {
-    if (mesureDesBornes.current === mesure) return;
-    mesureDesBornes.current = mesure;
-    const bornes = vivant.current.criteres.bornesResultats;
-    if (bornesApresChangementDeMesure(bornes) !== bornes) saisie('bornesResultats', setBornesResultats)(bornesApresChangementDeMesure);
+  // Au changement de mesure, les mémoires de tous les membres fixent la
+  // mesure de leurs bornes d'Efficience écrites sans elle (mémoires d'avant) :
+  // celle qui s'achève (`fixerMesureDesBornes`). Les bornes affichées l'ont
+  // fixée au rendu, plus haut ; un effet ici, la mémoire ne s'écrit pas en
+  // rendant.
+  const mesureDesMemoires = useRef(mesure);
+  function fixerMesureDesMemoires() {
+    if (mesureDesMemoires.current === mesure) return;
+    const precedente = mesureDesMemoires.current;
+    mesureDesMemoires.current = mesure;
+    vivant.current.contexte?.lists.fixerMesureDesBornes(precedente);
   }
-  useEffect(() => { retirerBornesSansObjet(); });
+  useEffect(() => { fixerMesureDesMemoires(); });
 
   function resetSearch(motif: 'monstre' | 'compte' = 'monstre') {
     effacerProprietaireCriteres();

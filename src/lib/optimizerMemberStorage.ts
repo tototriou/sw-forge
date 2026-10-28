@@ -3,7 +3,8 @@ import { baseCompleteCriteres, photoCriteres, type CriteresOptimizer } from './c
 import { OPTIMIZER_RECIPE_VERSION, parseOptimizerRecipe } from './optimizerRecipe';
 import { normaliserCompetencesInvocateur } from './competencesInvocateur';
 import { rattacherStockageOptimizer } from './optimizerRattachement';
-import { bornesBienFormees, triDesResultats, type ColonneResultat } from './colonnesResultats';
+import { bornesAvecMesure, bornesBienFormees, triDesResultats, type ColonneResultat } from './colonnesResultats';
+import type { OptimMetric } from './runeOptim';
 export type { RapportReverificationOptimizer } from './optimizerRattachement';
 import {
   exclusionSelectorKey, resolveExclusionEntry,
@@ -233,6 +234,24 @@ export function enregistrerMemoireMembre(memories: DonneesMembresOptimizer['memo
   const copie = new Map(memories);
   copie.set(cle, { ...membre, selector: { ...membre.selector }, criteres: photoCriteres(criteres, { type: 'personnel' }) });
   return { memories: copie, rapport: [] };
+}
+
+/**
+ * Les mémoires dont chaque borne d'une colonne qui suit la mesure des runes
+ * retient sa mesure : une borne écrite sans elle (mémoire d'avant), réputée
+ * jusqu'ici posée sous la mesure courante, prend `mesure`, celle qui
+ * s'achève. Appelé au changement de mesure, avant que l'autre ne s'applique.
+ * Rien à fixer : les mêmes mémoires (même objet).
+ */
+export function memoiresAvecMesureDesBornes(memories: DonneesMembresOptimizer['memories'], mesure: OptimMetric): DonneesMembresOptimizer['memories'] {
+  let copie: DonneesMembresOptimizer['memories'] | null = null;
+  for (const [cle, m] of memories) {
+    const bornes = bornesAvecMesure(m.criteres.bornesResultats, mesure);
+    if (bornes === m.criteres.bornesResultats) continue;
+    copie ??= new Map(memories);
+    copie.set(cle, { ...m, criteres: { ...m.criteres, bornesResultats: bornes } });
+  }
+  return copie ?? memories;
 }
 
 /** Même revérification pure pour un réimport et la reprise d'un état sauvegardé. */

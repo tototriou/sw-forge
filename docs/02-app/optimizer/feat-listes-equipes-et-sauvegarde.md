@@ -224,8 +224,13 @@ personnels, comme le tri : la saisie les écrit dans la mémoire du membre,
 le retour sur lui les rétablit, un autre monstre part sans borne en
 décroissant. Une mémoire écrite avant eux se relit avec ces défauts, sans
 rejet ni avertissement (`CHAMPS_AJOUTES`) ; présents mais mal formés (sens
-inconnu, colonne inconnue, borne non numérique), ils font rejeter la mémoire
-(`bornesBienFormees`, colonnesResultats.ts).
+inconnu, colonne inconnue, borne non numérique, mesure inconnue ou posée
+sur une autre colonne qu'Efficience), ils font rejeter la mémoire
+(`bornesBienFormees`, colonnesResultats.ts). La borne d'Efficience porte la
+mesure sous laquelle elle a été posée (`mesure`, `eff` ou `score`) : sous
+l'autre mesure, la mémoire la garde sans qu'elle s'applique ; une borne
+écrite sans mesure prend, au premier changement de mesure, celle qui
+s'achève (ecran/resultats.md § Filtres d'affichage par colonne).
 
 Le réglage retiré `adapterArtefactsAuTri` (« Adapter les artéfacts et
 reliques au tri ») d'une mémoire historique est retiré à la lecture, vrai ou

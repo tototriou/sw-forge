@@ -13,7 +13,7 @@ import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
 import { contexteResultat, runesDuContexte } from '../../lib/contexteResultat';
 import { TAILLE_PAGE_CLASSEMENT, type CarteClassement } from '../../lib/classementCompact';
-import { triDesResultats } from '../../lib/colonnesResultats';
+import { bornesMisesDeCote, bornesSousMesure, triDesResultats } from '../../lib/colonnesResultats';
 import { avecBorne, colonneDisponible, objectifsMontres } from '../../lib/filtresResultats';
 import type { ColonneResultat } from '../../lib/colonnesResultats';
 import {
@@ -466,6 +466,10 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     effacerResultats,
     lireCombatMembre,
   } = optimizer;
+  // Les bornes que la vue applique et que l'écran montre : une borne
+  // d'« Efficience » posée sous l'autre mesure est mise de côté, sans
+  // conversion, et revient au retour à sa mesure (`bornesSousMesure`).
+  const bornesVue = useMemo(() => bornesSousMesure(bornesResultats, metric), [bornesResultats, metric]);
   const combatMembre = useMemo(() => lireCombatMembre(),
     // Le getter lit les refs vivantes du hook ; ces dépendances publient
     // leurs changements sans recopier le lead d'équipe dans l'état personnel.
@@ -1866,7 +1870,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     // Les bornes posées restent : une nouvelle recherche se lit sous les mêmes filtres.
     // Le tableau demande ses onze valeurs dès la première vue, comme l'effet
     // de la vue plus bas (`colonnesCompletes`).
-    run(params, photo, { tri: triDeDepart, sens: 'desc', bornes: bornesResultats, metric, page: 1, afficherDepassement,
+    run(params, photo, { tri: triDeDepart, sens: 'desc', bornes: bornesVue, metric, page: 1, afficherDepassement,
       ...(formeResultats === 'tableau' ? { colonnesCompletes: true } : {}) });
   }
 
@@ -2200,9 +2204,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const formeResultats: FormeResultats = sousLg ? 'cartes' : formeChoisie;
   const { changerVue } = search;
   useEffect(() => {
-    changerVue({ tri: sortBy, sens: sensTri, bornes: bornesResultats, metric, page: resultsPage, afficherDepassement,
+    changerVue({ tri: sortBy, sens: sensTri, bornes: bornesVue, metric, page: resultsPage, afficherDepassement,
       ...(formeResultats === 'tableau' ? { colonnesCompletes: true } : {}) });
-  }, [changerVue, sortBy, sensTri, bornesResultats, metric, resultsPage, afficherDepassement, formeResultats]);
+  }, [changerVue, sortBy, sensTri, bornesVue, metric, resultsPage, afficherDepassement, formeResultats]);
   const instantane = search.classement;
   const interrompu = search.classementInterrompu;
 
@@ -3025,10 +3029,12 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const triAffiche: TriResultats = { tri: sortBy, sens: sensTri };
   const trier = (t: TriResultats) => { setSortBy(t.tri); setSensTri(t.sens); setResultsPage(1); };
   const poserBorne = (colonne: ColonneResultat, cote: 'min' | 'max', valeur: number | null) => {
-    setBornesResultats((prev) => avecBorne(prev, colonne, cote, valeur));
+    setBornesResultats((prev) => avecBorne(prev, colonne, cote, valeur, metric));
     setResultsPage(1);
   };
-  const effacerFiltres = () => { setBornesResultats({}); setResultsPage(1); };
+  // Effacer ne touche que les bornes montrées : une borne mise de côté sous
+  // l'autre mesure reste pour son retour.
+  const effacerFiltres = () => { setBornesResultats((prev) => bornesMisesDeCote(prev, metric)); setResultsPage(1); };
   // « Dégâts réels » n'a de valeur qu'avec un sort calculable pour le résultat affiché.
   const degatsDuResultat = contexteResultatAffiche ? contexteResultatAffiche.realDamage : realDamage;
   const colonneLibre = (c: ColonneResultat) => colonneDisponible(c, degatsDuResultat);
@@ -3081,7 +3087,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             interrompu={interrompu}
             compteAffiche={compteAffiche}
             bureau={!sousLg}
-            filtres={{ bornes: bornesResultats, poserBorne, effacer: effacerFiltres, filtre: instantane?.filtre ?? null }}
+            filtres={{ bornes: bornesVue, poserBorne, effacer: effacerFiltres, filtre: instantane?.filtre ?? null }}
             {...(sousLg ? {} : { forme: formeResultats, setForme: setFormeResultats, bonus: bonusTableau, setBonus: setBonusTableau })}
           />
   
@@ -3128,7 +3134,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               )}
               {!sousLg && (
                 <BandeDeTri courant={triAffiche} trier={trier} metric={mesureDesCartes} disponible={colonneLibre}
-                  bornee={(c) => bornesResultats[c]?.min != null || bornesResultats[c]?.max != null} inactif={interrompu} />
+                  bornee={(c) => bornesVue[c]?.min != null || bornesVue[c]?.max != null} inactif={interrompu} />
               )}
               {vueVide ? (
                 <p className="mb-3 rounded-lg border border-dashed border-border-soft px-3 py-6 text-center text-xs text-ink-dim" data-vue-vide="">{vueVide}</p>
@@ -3155,7 +3161,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 afficherDepassement={instantane?.vue.afficherDepassement ?? afficherDepassement}
                 tri={triAffiche}
                 trier={trier}
-                bornes={bornesResultats}
+                bornes={bornesVue}
                 poserBorne={poserBorne}
                 disponible={colonneLibre}
                 ouvrirDetail={(i) => { if (!interrompu) setDetailTableau(composition.cartes[i].runeIds.join('-')); }}

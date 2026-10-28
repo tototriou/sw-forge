@@ -9,6 +9,7 @@ import type { BancEcran } from './optimizer-ecran-preuves';
 import type { GearSet } from '../../src/types';
 import { computeStats } from '../../src/lib/stats';
 import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs } from '../../src/lib/candidatsCompacts';
+import { setRuneMetric } from '../../src/hooks/useRuneMetric';
 
 type Preuves = [boolean, string][];
 const visible = (e: Element) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden';
@@ -274,5 +275,85 @@ export async function preuvesFiltresBranchement(b: BancEcran & { fiche: () => Ge
     await b.geste(() => b.etat().effacerResultats());
     restaurer();
   }
+  return preuves;
+}
+
+/**
+ * testRenduFiltresResultatsMesure : une borne d'Efficience garde sa mesure,
+ * sur deux membres. « Second » la pose au clavier sous Efficience, avec la
+ * vraie recherche et le vrai classeur ; sous Score SW, elle ne filtre rien et
+ * le champ ne la montre pas ; au retour, elle revient telle quelle.
+ * « Premier » porte une borne écrite sans mesure (mémoire d'avant) : au
+ * changement, sa mémoire prend la mesure qui s'achève, et la borne est mise
+ * de côté sous l'autre comme celle de « Second ».
+ */
+export async function preuvesFiltresMesure(b: BancEcran & { fiche: () => GearSet }): Promise<Preuves> {
+  const preuves: Preuves = [];
+  const memoire = (selector: typeof b.premier) => b.listes().memories.get(cleMemoireMembre('a', selector))?.criteres.bornesResultats;
+  await b.geste(() => setRuneMetric('eff'));
+  await b.geste(() => b.etat().choisirMembre('a', b.premier));
+  const ancienne = { efficience: { min: 999, max: null } };
+  await b.geste(() => b.etat().setBornesResultats(ancienne));
+  preuves.push([json(memoire(b.premier)) === json(ancienne), `Premier : borne d'Efficience écrite sans mesure, comme une mémoire d'avant (${json(memoire(b.premier))})`]);
+
+  await b.geste(() => b.etat().choisirMembre('a', b.second));
+  await b.geste(() => b.etat().setComboSets(['energy']));
+  await b.geste(() => b.etat().setOptimiserArtefacts(false));
+  const envois: DemandeDeRecherche[] = [], restaurer = observerRechercheTest(envois);
+  try {
+    await b.geste(() => bouton('Rechercher')!.click());
+    await attendreDemandeTest(envois, 1);
+    const demande = envois[0];
+    preuves.push([!!demande?.classement, 'recherche lancée, port du classeur ouvert']);
+    if (!demande?.classement) return preuves;
+    const fiche = b.fiche();
+    const colonnes = creerColonnesCandidats();
+    ajouterObjetCandidat(colonnes, { runeIds: fiche.runes.map((r) => r.id), stats: computeStats(fiche), effTotal: 0 });
+    const [bloc] = extraireBlocs(colonnes);
+    const { port, idRecherche } = demande.classement;
+    port.postMessage({ type: 'candidats', idRecherche, sequence: 0, bloc });
+    port.postMessage({ type: 'sceller', idRecherche, nombre: 1, derniereSequence: 0,
+      bilan: { explored: 1, truncated: false, nearMissByCondition: [], globalNearMiss: null } });
+    for (let t = 0; t < 100 && cartesVisibles() === 0; t++) await attendre(100);
+    preuves.push([cartesVisibles() === 1, 'le build publié par le classeur']);
+
+    await b.geste(() => bouton("Filtrer l'affichage")!.click());
+    await attendre(200);
+    await b.geste(() => saisirChamp(champ('Efficience minimum affiché')!, '999'));
+    for (let t = 0; t < 100 && cartesVisibles() > 0; t++) await attendre(100);
+    const posee = { efficience: { min: 999, max: null, mesure: 'eff' } };
+    preuves.push([cartesVisibles() === 0 && json(b.etat().bornesResultats) === json(posee) && json(memoire(b.second)) === json(posee),
+      `Second, sous Efficience : Efficience ≥ 999 saisie, le build masqué ; la borne retient « eff », dans l'état et la mémoire (${json(b.etat().bornesResultats)})`]);
+
+    await b.geste(() => setRuneMetric('score'));
+    for (let t = 0; t < 100 && cartesVisibles() === 0; t++) await attendre(100);
+    const champScore = champ('Score SW minimum affiché');
+    preuves.push([cartesVisibles() === 1 && texteDe('[data-ligne-comptes]').startsWith('Aucun filtre'),
+      `Second, sous Score SW : la borne ne filtre rien, le build revient (« ${texteDe('[data-ligne-comptes]')} »)`]);
+    preuves.push([!!champScore && champScore.value === '' && !!bouton("Filtrer l'affichage") && !bouton("Filtrer l'affichage (1)"),
+      `Second, sous Score SW : le champ ne montre aucune borne (« ${champScore?.value} »), « Filtrer l'affichage » sans compte`]);
+    preuves.push([json(b.etat().bornesResultats) === json(posee) && json(memoire(b.second)) === json(posee),
+      `Second, sous Score SW : la borne mise de côté, intacte dans l'état et la mémoire (${json(b.etat().bornesResultats)})`]);
+    preuves.push([json(memoire(b.premier)) === json({ efficience: { min: 999, max: null, mesure: 'eff' } }),
+      `Premier : sa mémoire d'avant a pris la mesure qui s'achève, « eff » (${json(memoire(b.premier))})`]);
+
+    await b.geste(() => setRuneMetric('eff'));
+    for (let t = 0; t < 100 && cartesVisibles() > 0; t++) await attendre(100);
+    preuves.push([cartesVisibles() === 0 && champ('Efficience minimum affiché')?.value === '999' && json(b.etat().bornesResultats) === json(posee),
+      `Second, de retour sous Efficience : la borne revient telle quelle (« ${champ('Efficience minimum affiché')?.value} »), le build masqué de nouveau`]);
+    preuves.push([envois.length === 1, `aucun changement de mesure n'a relancé de recherche (${envois.length} demande)`]);
+  } finally {
+    await b.geste(() => b.etat().effacerResultats());
+    restaurer();
+  }
+
+  // Les deux membres, sous Score SW puis de retour sous Efficience.
+  await b.geste(() => setRuneMetric('score'));
+  await b.geste(() => b.etat().choisirMembre('a', b.premier));
+  const dePremier = { efficience: { min: 999, max: null, mesure: 'eff' } };
+  preuves.push([json(b.etat().bornesResultats) === json(dePremier), `Premier, choisi sous Score SW : sa borne restaurée telle quelle, mise de côté (${json(b.etat().bornesResultats)})`]);
+  await b.geste(() => setRuneMetric('eff'));
+  preuves.push([json(b.etat().bornesResultats) === json(dePremier) && json(memoire(b.premier)) === json(dePremier),
+    `Premier, de retour sous Efficience : la borne intacte (${json(b.etat().bornesResultats)})`]);
   return preuves;
 }

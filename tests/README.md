@@ -33,6 +33,14 @@ l'application
 dont [rendu/optimizer-ecran-navigateur.test.ts](rendu/optimizer-ecran-navigateur.test.ts)),
 soit par le banc d'affichage, plus bas, hors de la suite.
 
+Pour « Exemplaire », [optimizer-recherche.test.ts](rendu/optimizer-recherche.test.ts)
+vérifie aux deux formats les vues et l'aperçu sans effet sur l'équipement
+optimisé (artéfacts et relique transmis compris), la comparaison avec la
+fiche regardée et sa validation pour le membre. Le choix successif et la
+ligne indisponible au clavier comme à la souris vivent dans
+[optimizer-recherche.test.ts](rendu/optimizer-recherche.test.ts) ; la
+décision d'ajout pure dans [liste-exemplaires.test.ts](liste-exemplaires.test.ts).
+
 Les premières vérifications ciblaient les endroits où une erreur est à la
 fois **grave et invisible** — ils restent le cœur de la suite :
 

@@ -25,6 +25,10 @@ exemplaires, sont dans [equipement-actuel.md](equipement-actuel.md).
    Box d'abord, dans l'ordre de la zone D, puis RTA, Défenses siège et
    Offenses siège ; une espèce absente des quatre sources s'ajoute une fois,
    par son sélecteur non possédé (`unowned`), sur les seules stats de base.
+   Si l'espèce a des exemplaires Box, eux seuls comptent comme copies à
+   ajouter : une Box entièrement membre désactive la ligne, même si des
+   presets RTA ou siège existent. Sans exemplaire Box, les représentants
+   absents de la liste se parcourent dans l'ordre RTA, Défenses, Offenses.
    Avec deux Lushen en Box, choisir deux fois « Lushen » ajoute « Box 1 »,
    puis « Box 2 ». L'exemplaire ajouté devient le membre affiché et
    l'exemplaire **réellement optimisé**. ⚠️ **Quand tous les exemplaires de

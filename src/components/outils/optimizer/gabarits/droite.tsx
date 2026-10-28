@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { Segmented } from '../../../../ui';
 import ExemplaireBureau, { LARGEUR_EXEMPLAIRE } from '../bureau/ExemplaireBureau';
 import ObjectifEtRechercherBureau, { LARGEUR_OBJECTIF_ETROIT, LARGEUR_OBJECTIF_LARGE_MIN, type FormeObjectif } from '../bureau/ObjectifEtRechercherBureau';
 import ResultatsBureau, { LARGEUR_RESULTATS_MIN, type AttenteResultats } from '../bureau/ResultatsBureau';
@@ -56,10 +57,12 @@ function ExemplaireGabarit({ ctx, mode }: { ctx: ContexteGabarits; mode: 'vide' 
     : undefined;
   return (
     <ExemplaireBureau
-      zoneDRef={zone} sourceOptions={options} matchesValidatedBuild={valide != null && !reel} unowned={false} gearSource={source}
+      zoneDRef={zone} sourceOptions={options} gearSource={source}
+      vuesExemplaire={<Segmented options={[{ key: 'actuel', label: 'Build actuel' }, { key: 'valide', label: 'Build validé', disabled: !valide }]}
+        value={valide && !reel ? 'valide' : 'actuel'} onChange={v => setReel(v === 'actuel')} />}
       pickSource={(s) => { setSource(s); setOuvert(candidats[s].length > 1); }} allSourcesEmpty={options.every((o) => o.disabled)}
       zoneDOpen={ouvert} zoneDList={<ChoixExemplaire candidatesBySource={candidats} gearSource={source} choisirExemplaireZoneD={() => setOuvert(false)} />}
-      validatedBadge={<BandeauBuildValide ownValidatedBuild={valide} showRealGear={reel} runesAbsentesValidees={[]} artefactsAbsentsValides={[]} setShowRealGear={setReel} />}
+      validatedBadge={<BandeauBuildValide ownValidatedBuild={valide} showRealGear={reel} runesAbsentesValidees={[]} artefactsAbsentsValides={[]} />}
       selected={exemplaire ? { monster: exemplaire.monster, gear: exemplaire.gear } : null} selectionFiche={selection} setSelectionFiche={setSelection}
       relicUsageById={{}}
       validateBuildButton={<BoutonValiderBuild handleValidateDisplayed={rien} canValidateDisplayed={exemplaire != null}

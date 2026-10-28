@@ -52,8 +52,8 @@ async function inclusion(genre: 'ajout' | 'fiche' | 'carte', telephone = false) 
     const avant = await page.evaluate(async genre => (globalThis as unknown as { bancOptimizer: Banc }).bancOptimizer.preparerInclusion(genre), genre);
     for (const [condition, texte] of avant) ok(condition, texte);
     if (genre === 'ajout') {
-      if (telephone) await page.getByRole('button', { name: 'Gérer mes listes' }).click();
-      await page.getByRole('button', { name: 'Ajouter Second à « Alpha »', exact: true }).click();
+      await page.getByRole('combobox', { name: 'Rechercher un monstre…' }).fill('Second');
+      await page.getByRole('option').filter({ hasText: 'Second' }).click();
     } else {
       if (genre === 'carte') await page.getByRole('button', { name: 'Rechercher', exact: true }).click();
       const boutons = page.getByRole('button', { name: 'Valider ce build', exact: true });

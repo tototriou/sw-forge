@@ -94,15 +94,10 @@ const stockage = (membres: unknown[], valides: unknown[] = []) => ({
 });
 
 export function testRenduOptimizerListeDeTravail() {
-  titre('rendu · Optimizer — liste de travail : bouton d’ajout et rappel des auras');
-  const rien = bouton(rendreOptimizer({}), 'Ajouter à la liste');
-  ok(rien?.desactive === true && rien.title === 'Ajouter à la liste', 'aucun monstre choisi : « Ajouter à la liste », désactivé, libellé en infobulle');
-  const sansListe = bouton(rendreOptimizer(AVEC_MONSTRE), 'Créer une liste et y ajouter Devilmon');
-  ok(sansListe?.desactive === false && sansListe.title === 'Créer une liste et y ajouter Devilmon', 'sans liste : créer et ajouter, actif');
-  const avecListe = bouton(rendreOptimizer({ ...AVEC_MONSTRE, sourceSelector: membre }, false, stockage([])), 'Ajouter Devilmon à « Alpha »');
-  ok(avecListe?.desactive === false && avecListe.title === 'Ajouter Devilmon à « Alpha »', 'liste active : ajouter à « Alpha », actif');
-  const deja = bouton(rendreOptimizer({ ...AVEC_MONSTRE, sourceSelector: membre }, false, stockage([membre])), 'Déjà dans « Alpha »');
-  ok(deja?.desactive === true, 'exemplaire déjà membre (seul exemplaire Box) : « Déjà dans « Alpha » », désactivé');
+  titre('rendu · Optimizer — liste de travail : ajout par recherche et rappel des auras');
+  for (const html of [rendreOptimizer({}), rendreOptimizer(AVEC_MONSTRE), rendreOptimizer({ ...AVEC_MONSTRE, sourceSelector: membre }, false, stockage([membre]))]) {
+    ok(!boutons(html).some(b => /^(Ajouter |Créer une liste et y ajouter|Déjà dans)/.test(b.texte)), 'zone C : aucun bouton d’ajout, avec ou sans membre et liste');
+  }
 
   const valide = { listId: 'a', selector: membre, runeIds: [1, 2, 3, 4, 5, 6], artifactIds: [], com2usId: BOX[0].monster.com2usId };
   // La zone C rendue : du bouton « Liste active » qui nomme la liste

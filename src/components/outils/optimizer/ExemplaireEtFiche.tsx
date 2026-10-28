@@ -9,9 +9,8 @@ import { EMPTY_GEAR } from './constantes';
 export interface ExemplaireEtFicheProps {
   zoneDRef: RefObject<HTMLDivElement>;
   sourceOptions: { label: string; disabled: boolean; key: ExclusionSource; }[];
-  matchesValidatedBuild: boolean;
-  unowned: boolean;
-  gearSource: ExclusionSource;
+  vuesExemplaire: ReactNode;
+  gearSource: ExclusionSource | null;
   pickSource: (source: ExclusionSource) => void;
   allSourcesEmpty: boolean;
   zoneDOpen: boolean;
@@ -35,7 +34,7 @@ const FICHE_DEPLIEE_LA_PLUS_LARGE = 564;
 
 type Largeurs = { place: number; deplie: number; replie: number };
 
-export default function ExemplaireEtFiche({ zoneDRef, sourceOptions, matchesValidatedBuild, unowned, gearSource, pickSource, allSourcesEmpty, zoneDOpen, zoneDList, validatedBadge, selected, selectionFiche, setSelectionFiche, relicUsageById, validateBuildButton }: ExemplaireEtFicheProps) {
+export default function ExemplaireEtFiche({ zoneDRef, sourceOptions, vuesExemplaire, gearSource, pickSource, allSourcesEmpty, zoneDOpen, zoneDList, validatedBadge, selected, selectionFiche, setSelectionFiche, relicUsageById, validateBuildButton }: ExemplaireEtFicheProps) {
   // ⚠️ **Un seul état, garde d'égalité** (même raison que la mesure de
   // MonsterGear) : la boîte de la fiche change de largeur, la fiche se
   // remesure, et seul un état inchangé arrête la boucle. La place est celle
@@ -69,22 +68,13 @@ export default function ExemplaireEtFiche({ zoneDRef, sourceOptions, matchesVali
     <div ref={racineRef} className="flex flex-col gap-3">
       <div ref={zoneDRef} className="relative">
         <p className="label mb-1.5">Exemplaire</p>
-        {/* ⚠️ Puce individuellement grisée si l'espèce n'est PAS
-            possédée dans CETTE source précise, tout le contrôle grisé
-            si elle ne l'est dans AUCUNE des 4 — voir l'axe `disabled` par option, ajouté à
-            Segmented.tsx pour ce cas précis. ⚠️ **`value={null}`
-            quand le build VALIDÉ est ACTUELLEMENT affiché**
-            (`matchesValidatedBuild`, PAS `ownValidatedBuild` seul —
-            la bascule « voir le runage réellement porté »,
-            `showRealGear`, peut en montrer l'équipement réel, qui
-            LUI reste la source réelle d'une puce) **ou quand
-            `sourceSelector` est `unowned`** (monstre non possédé,
-            demande explicite) : dans les deux cas, aucune puce ne
-            doit s'allumer — voir l'axe `value: T | null` ajouté à
-            Segmented.tsx pour ce cas précis. */}
+        {vuesExemplaire}
+        <p className="label mb-1.5 mt-2">Voir aussi</p>
+        {/* Seule la source regardée en aperçu est allumée. Une source sans
+            autre exemplaire que celui du membre reste désactivée. */}
         <Segmented
           options={sourceOptions}
-          value={matchesValidatedBuild || unowned ? null : gearSource}
+          value={gearSource}
           onChange={pickSource}
           disabled={allSourcesEmpty}
           size="lg"

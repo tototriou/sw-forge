@@ -290,7 +290,7 @@ export function testAurasEcranRappel() {
   const clic = entre(ecran, 'if (!resolved) return;', 'else setRappelAuras(null);');
   // La restauration est l'action de l'état partagé ; le rappel reste
   // uniquement dans le geste explicite de cette ligne.
-  const chemin = entre(ecran, 'function choisirExemplaire(', 'function handleAddToList(');
+  const chemin = entre(ecran, 'function choisirExemplaire(', 'const ligneMonstreTelephoneRef');
   ok(clic.includes('optimizer.choisirMembre(m.listId, m.selector);')
     && chemin.includes('setSelectedId(id);') && chemin.includes('effacerResultats()'),
   'source : le geste d’un membre de la liste de travail (zone C) est localisé');

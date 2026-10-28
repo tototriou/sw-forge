@@ -67,6 +67,7 @@ course que rien ne garantit de gagner.
 |-----------|-------|------|
 | [RtaSearch](../../../src/components/rta/RtaSearch.tsx) | RTA | Un monstre déjà en prépa reste affiché mais non sélectionnable |
 | [MonsterPicker](../../../src/components/MonsterPicker.tsx) | Siège, recommandations | Les monstres pris sont filtrés en amont (`excludeIds`) |
+| [MonsterSourcePicker](../../../src/components/outils/MonsterSourcePicker.tsx) | Optimizer | Une espèce dont tous les exemplaires sont membres reste affichée avec sa raison ; clavier et souris refusent son ajout |
 
 [SearchBar](../../../src/components/SearchBar.tsx) n'est **pas** concerné : c'est un
 filtre de liste sans suggestions, il n'y a rien à sélectionner.

@@ -157,17 +157,12 @@ export async function preuvesActionsZoneC(b: BancRetouches): Promise<[boolean, s
   await b.geste(() => b.listes().renameList('a', 'Une liste au nom suffisamment long pour exiger une troncature des actions'));
   const ligne = [...document.querySelectorAll<HTMLElement>('[aria-label="Actions de la liste"]')].find(visible)!;
   const actions = [...ligne.querySelectorAll<HTMLButtonElement>('button')];
-  const [ajout,lier,sauver,reprendre] = actions;
-  const rects=actions.map(e=>e.getBoundingClientRect()), texte=ajout.querySelector('span')!;
+  const [lier,sauver,reprendre] = actions;
+  const rects=actions.map(e=>e.getBoundingClientRect());
   const preuves: [boolean,string][] = [
-    [actions.length===4 && lier.textContent==='Lier une équipe' && sauver.textContent?.trim()==='Sauvegarder' && reprendre.textContent?.trim()==='Reprendre', 'quatre actions réunies dans leur ordre'],
+    [actions.length===3 && lier.textContent==='Lier une équipe' && sauver.textContent?.trim()==='Sauvegarder' && reprendre.textContent?.trim()==='Reprendre', 'trois actions réunies dans leur ordre, ajout par la recherche'],
     [innerWidth>=1024 ? rects.every(r=>r.y===rects[0].y) : new Set(rects.map(r=>r.y)).size===2, 'actions : une ligne au bureau, deux lignes compactes au téléphone'],
-    [ajout.title===ajout.textContent?.trim() && getComputedStyle(texte).textOverflow==='ellipsis' && texte.scrollWidth>texte.clientWidth, 'libellé long tronqué avec texte complet en infobulle'],
   ];
-  const avant=ajout.getBoundingClientRect();
-  await b.geste(()=>ajout.click());
-  const apres=ajout.getBoundingClientRect();
-  preuves.push([avant.x===apres.x && avant.y===apres.y, 'ajouter le prochain exemplaire garde son bouton immobile']);
   const a=sauver.getBoundingClientRect();
   await b.geste(()=>sauver.click());
   const z=sauver.getBoundingClientRect();

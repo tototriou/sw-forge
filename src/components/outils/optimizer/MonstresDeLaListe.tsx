@@ -1,8 +1,8 @@
 import OptimizerBackupBar from '../OptimizerBackupBar';
 import { Bouton, ZoneCliquable, BoutonIcone } from '../../../ui';
-import { Plus, CheckCircle2, Trash2, Unlock } from 'lucide-react';
+import { CheckCircle2, Trash2, Unlock } from 'lucide-react';
 import OptimizerLeadInactif, { MotifHorsFlux } from '../OptimizerLeadInactif';
-import { resolveExclusionEntry, exclusionSelectorKey, findValidatedBuild, runesManquantesDuBuild, artefactsManquantsDuBuild, type OptimizerList, type OptimizerListMember, type EtatAjoutListe, type ExclusionSourceData, type ExclusionSelector } from '../../../lib/optimizerExclusion';
+import { resolveExclusionEntry, exclusionSelectorKey, findValidatedBuild, runesManquantesDuBuild, artefactsManquantsDuBuild, type OptimizerList, type OptimizerListMember, type ExclusionSourceData, type ExclusionSelector } from '../../../lib/optimizerExclusion';
 import { leadEffectifMembreOptimizer } from '../../../lib/equipesOptimizer';
 import LeadPill, { STAT_LABEL } from '../../siege/LeadPill';
 import MonsterAvatar from '../../MonsterAvatar';
@@ -18,8 +18,6 @@ import { type ArtifactDetail, type RuneDetail, type Monster, type GearSet } from
 export interface MonstresDeLaListeProps {
   activeList: OptimizerList | null;
   activeMembers: OptimizerListMember[];
-  ajoutListe: EtatAjoutListe;
-  handleAddToList: () => void;
   setEquipeOuverte: Dispatch<SetStateAction<{ listId: string; equipe: EquipeOptimizer | null; } | null>>;
   lists: UseOptimizerLists;
   optimizer: OptimizerState;
@@ -44,7 +42,7 @@ export interface MonstresDeLaListeProps {
   enTete?: ReactNode;
 }
 
-export default function MonstresDeLaListe({ activeList, activeMembers, ajoutListe, handleAddToList, setEquipeOuverte, lists, optimizer, exclusionData, artifacts, rapportZoneC, groupesMembres, runeById, artifactById, choisirMembreDeLaListe, setReleaseConfirm, setReleaseArtifactsConfirm, setRemoveMemberConfirm, rappelAuras, listHasValidated, setReleaseAllConfirm, enTete }: MonstresDeLaListeProps) {
+export default function MonstresDeLaListe({ activeList, activeMembers, setEquipeOuverte, lists, optimizer, exclusionData, artifacts, rapportZoneC, groupesMembres, runeById, artifactById, choisirMembreDeLaListe, setReleaseConfirm, setReleaseArtifactsConfirm, setRemoveMemberConfirm, rappelAuras, listHasValidated, setReleaseAllConfirm, enTete }: MonstresDeLaListeProps) {
   // Au bureau (`enTete`), le titre nomme toujours le champ qui le suit, sur
   // deux lignes, sans le nom de la liste ni son compte : « Liste active » la
   // nomme juste au-dessus (décision de l'utilisateur). L'espace avant le
@@ -78,19 +76,8 @@ export default function MonstresDeLaListe({ activeList, activeMembers, ajoutList
 
       {/* Le rapport des critères se lit hors du flux, depuis une icône à place
           réservée au bout de la ligne d'annonce ; la liste garde la hauteur. */}
-      <OptimizerBackupBar debut={<><Bouton
-        trait="pointille"
-        taille="sm"
-        pleineLargeur
-        icone={<Plus size={14} />}
-        libelle={ajoutListe.libelle}
-        title={ajoutListe.libelle}
-        disabled={!ajoutListe.actif}
-        onClick={handleAddToList}
-        className="min-w-0 [&>span]:min-w-0 [&>span]:truncate"
-      />
-      <Bouton libelle="Lier une équipe" title="Lier une équipe" taille="sm" pleineLargeur disabled={!activeList}
-        onClick={() => activeList && setEquipeOuverte({ listId: activeList.id, equipe: null })} /></>} listes={lists} optimizer={optimizer} data={exclusionData} artifactIds={new Set(artifacts.map(a => a.id))}
+      <OptimizerBackupBar debut={<Bouton libelle="Lier une équipe" title="Lier une équipe" taille="sm" pleineLargeur disabled={!activeList}
+        onClick={() => activeList && setEquipeOuverte({ listId: activeList.id, equipe: null })} />} listes={lists} optimizer={optimizer} data={exclusionData} artifactIds={new Set(artifacts.map(a => a.id))}
         fin={<span className="inline-flex h-6 w-6 flex-none compact:h-10 compact:w-10">
           {rapportZoneC.length > 0 && <MotifHorsFlux titre="Rapport des critères" messages={rapportZoneC}
             libelle={`Rapport des critères : ${rapportZoneC.length} message${rapportZoneC.length > 1 ? 's' : ''}`} />}

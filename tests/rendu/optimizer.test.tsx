@@ -123,7 +123,7 @@ export function testRenduOptimizerVide() {
   ok(valeurs(html, 'placeholder').includes('Rechercher un monstre…'), 'la recherche du monstre à optimiser');
   ok(/Liste active Aucune liste — choisir ou créer .*Importer une équipe.* Ajouter un monstre à la liste/.test(t) && !t.includes('Monstres de la liste'),
     'les listes de travail : liste active et import sur une ligne, puis la zone des membres, dont le titre nomme le champ qui le suit');
-  ok(t.includes(`Exemplaire ${SOURCES}`), 'l\'exemplaire, avec ses quatre sources');
+  ok(['Exemplaire', 'Build actuel', 'Build validé', 'Voir aussi', SOURCES].every(libelle => t.includes(libelle)), 'l\'exemplaire, ses vues et ses quatre sources d’aperçu');
   ok(bouton(html, 'Valider ce build')?.desactive === true, '« Valider ce build » désactivé sans résultat');
   ok(bouton(html, 'Rechercher')?.desactive === true, '« Rechercher » désactivé sans monstre');
   ok(!t.includes('Set de runes recherché 0/6 runes') && !!bouton(html, 'Set de runes recherché : Aucun'),
@@ -147,7 +147,7 @@ export function testRenduOptimizerMonstre() {
   ok(t.includes('PV 1 500 +180 ATQ 700 +160 DEF 500 — VIT 101 +80 Taux Crit 15% Dmg Crit 113% RES 78% Précision 7%'),
     'ses stats : base et bonus de l\'équipement pour PV, ATQ, DEF et VIT, le total pour les autres');
   ok(t.includes('Relique PV +11%'), 'sa relique');
-  ok(!!bouton(html, 'Créer une liste et y ajouter Devilmon'), 'l\'ajouter à une nouvelle liste');
+  ok(bouton(html, 'Build validé')?.desactive === true, 'Build validé indisponible sans build réservé');
   // Replié (rendu serveur : la forme compacte), le titre ne porte pas le
   // compte ; la grille de la surface porte le sien.
   ok(!t.includes('Set de runes recherché 4/6 runes') && !!bouton(html, 'Set de runes recherché : Violent') && t.includes('4/6 runes'),

@@ -1,4 +1,7 @@
 import { testWorktreeMesureCycle, testWorktreeMesureRefus, testWorktreeMesureLienPhysique } from './worktree-mesure.test';
+import { testRenduExemplaireApercuEtBuildActuelEquipementOptimise, testRenduTelephoneExemplaireApercuEtBuildActuelEquipementOptimise,
+  testRenduExemplaireComparerFicheApercu, testRenduTelephoneExemplaireComparerFicheApercu,
+  testRenduExemplaireValidationDepuisApercu, testRenduTelephoneExemplaireValidationDepuisApercu } from './rendu/optimizer-recherche.test';
 // Point d'entrée des vérifications — `npm test`.
 //
 // ⚠️ L'ORDRE compte un peu : `persistance` installe un faux `localStorage`
@@ -260,7 +263,8 @@ import { testRenduOptimizerEquipeImpossibleZeroLibre, testRenduTelephoneOptimize
   testRenduOptimizerEquipeImpossibleDeuxDontUnLie, testRenduTelephoneOptimizerEquipeImpossibleDeuxDontUnLie } from './rendu/optimizer-equipe-impossible.test';
 import { testRenduOptimizerRechercheBoxResolu, testRenduTelephoneOptimizerRechercheBoxResolu,
   testRenduOptimizerRechercheDejaMembre, testRenduTelephoneOptimizerRechercheDejaMembre,
-  testRenduOptimizerRechercheExemplaireSuivant, testRenduTelephoneOptimizerRechercheExemplaireSuivant } from './rendu/optimizer-recherche.test';
+  testRenduOptimizerRechercheExemplaireSuivant, testRenduTelephoneOptimizerRechercheExemplaireSuivant,
+  testRenduExemplaireLigneIndisponibleClavierSouris, testRenduTelephoneExemplaireLigneIndisponibleClavierSouris } from './rendu/optimizer-recherche.test';
 import { testRenduOptimizerRechercheSourceRta, testRenduTelephoneOptimizerRechercheSourceRta,
   testRenduOptimizerRechercheSourceSiege, testRenduTelephoneOptimizerRechercheSourceSiege,
   testRenduOptimizerRechercheDesambiguise, testRenduTelephoneOptimizerRechercheDesambiguise,
@@ -456,6 +460,14 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduOptimizerRechercheDejaMembre', testRenduOptimizerRechercheDejaMembre],
   ['testRenduTelephoneOptimizerRechercheDejaMembre', testRenduTelephoneOptimizerRechercheDejaMembre],
   ['testRenduOptimizerRechercheExemplaireSuivant', testRenduOptimizerRechercheExemplaireSuivant],
+  ['testRenduExemplaireLigneIndisponibleClavierSouris', testRenduExemplaireLigneIndisponibleClavierSouris],
+  ['testRenduTelephoneExemplaireLigneIndisponibleClavierSouris', testRenduTelephoneExemplaireLigneIndisponibleClavierSouris],
+  ['testRenduExemplaireApercuEtBuildActuelEquipementOptimise', testRenduExemplaireApercuEtBuildActuelEquipementOptimise],
+  ['testRenduTelephoneExemplaireApercuEtBuildActuelEquipementOptimise', testRenduTelephoneExemplaireApercuEtBuildActuelEquipementOptimise],
+  ['testRenduExemplaireComparerFicheApercu', testRenduExemplaireComparerFicheApercu],
+  ['testRenduTelephoneExemplaireComparerFicheApercu', testRenduTelephoneExemplaireComparerFicheApercu],
+  ['testRenduExemplaireValidationDepuisApercu', testRenduExemplaireValidationDepuisApercu],
+  ['testRenduTelephoneExemplaireValidationDepuisApercu', testRenduTelephoneExemplaireValidationDepuisApercu],
   ['testRenduTelephoneOptimizerRechercheExemplaireSuivant', testRenduTelephoneOptimizerRechercheExemplaireSuivant],
   ['testOptimizerCompetencesContenu', testOptimizerCompetencesContenu],
   ['testRenduOptimizerRechercheCreation', testRenduOptimizerRechercheCreation],

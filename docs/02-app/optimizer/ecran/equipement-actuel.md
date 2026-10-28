@@ -30,6 +30,13 @@ Deux équipements, à ne pas confondre :
   ([../feat-listes-et-reservation.md](../feat-listes-et-reservation.md)) et
   « Valider ce build ».
 
+Dans `OptimizerSection`, `selected` résout l'équipement optimisé et
+`selectionAffichee` l'équipement de la fiche. La construction des paramètres
+de recherche et du contexte des résultats lit seulement le premier ; les
+statistiques de référence, la comparaison et la validation de la fiche
+lisent seulement le second. Les preuves aux deux formats sont dans
+[optimizer-recherche.test.ts](../../../../tests/rendu/optimizer-recherche.test.ts).
+
 ## Vues et aperçu
 
 1. **Deux vues** : `Segmented` « Build actuel » · « Build validé ».
@@ -95,9 +102,11 @@ l'écran le revérifie dès le premier rendu (`exemplaireAuMontage`,
 enregistré par un `useLayoutEffect`) : s'il ne se résout plus
 (`resolveExclusionEntry` — compte réimporté, équipe de siège supprimée) ou
 n'est pas de l'espèce choisie, il est remplacé par le **PREMIER exemplaire
-Box** de l'espèce (`boxCandidates[0]`), source Box — la même règle que la
-recherche (voir [recherche-du-monstre.md](recherche-du-monstre.md)) —, ou
-par `unownedSelectorIfNoneOwned` si la box n'en compte aucun. ⚠️ **Limite
+Box** de l'espèce (`boxCandidates[0]`), source Box — la même règle qu'à
+l'import d'une recette —, ou par `unownedSelectorIfNoneOwned` si la box
+n'en compte aucun. La recherche suit sa propre règle : le prochain
+exemplaire absent de la liste (voir
+[recherche-du-monstre.md](recherche-du-monstre.md)). ⚠️ **Limite
 connue** : ce choix d'exemplaire ne fait PAS partie de la recette exportée
 (`OptimizerRecipe` ne porte que l'espèce, `monsterCom2usId`) — réimporter
 une recette lancée sur un exemplaire RTA/siège retombe sur la box par

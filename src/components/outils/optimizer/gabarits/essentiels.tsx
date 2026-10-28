@@ -10,7 +10,7 @@ import MonsterSourcePicker from '../../MonsterSourcePicker';
 import OptimizerImportButton from '../../OptimizerImportButton';
 import { listesInertes, optimizerInerte } from './inertes';
 import type { ContexteGabarits, Gabarit } from './types';
-import { etatAjoutListe, exclusionSelectorKey, resolveExclusionEntry, type OptimizerListMember } from '../../../../lib/optimizerExclusion';
+import { exclusionSelectorKey, resolveExclusionEntry, type OptimizerListMember } from '../../../../lib/optimizerExclusion';
 import { leadEffectifMembreOptimizer } from '../../../../lib/equipesOptimizer';
 import { artifactConditionFloor, relicConditionFloor } from '../../../../lib/artifactConditionFloor';
 import { type DamageSetup } from '../../../../lib/damage';
@@ -83,8 +83,7 @@ function ListeGabarit({ ctx, mode }: { ctx: ContexteGabarits; mode: 'vide' | 're
       monstreActif={actif}
       liste={{
         activeList, activeMembers, groupesMembres, lists, optimizer, exclusionData: ctx.exclusionData, artifacts: ctx.artifacts,
-        ajoutListe: etatAjoutListe({ monstre: actif?.name ?? null, selecteur: null, listeActiveId: lists.activeListId, nomListe: activeList?.name ?? '', membres: lists.members, candidatsBox: [] }),
-        handleAddToList: rien, setEquipeOuverte: rien, rapportZoneC: mode === 'reelle' ? [...ctx.lists.rapportStockage, ...ctx.optimizer.rapportCriteres] : [],
+        setEquipeOuverte: rien, rapportZoneC: mode === 'reelle' ? [...ctx.lists.rapportStockage, ...ctx.optimizer.rapportCriteres] : [],
         runeById, artifactById, choisirMembreDeLaListe: (_m, resolved) => setActif(resolved?.monster ?? null),
         setReleaseConfirm: rien, setReleaseArtifactsConfirm: rien, setRemoveMemberConfirm: rien, rappelAuras: false,
         listHasValidated: activeList != null && lists.validated.some((v) => v.listId === activeList.id), setReleaseAllConfirm: rien,

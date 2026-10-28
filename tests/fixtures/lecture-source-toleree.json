@@ -832,12 +832,6 @@
       "statut": "stock"
     },
     {
-      "fichier": "tests/liste-exemplaires.test.ts",
-      "cible": "src/hooks/useOptimizerState.ts",
-      "occurrences": 1,
-      "statut": "stock"
-    },
-    {
       "fichier": "tests/migration-stockage.test.ts",
       "cible": "src",
       "occurrences": 1,

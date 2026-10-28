@@ -75,14 +75,16 @@ export default async function testOptimizerCriteresCaracterisation() {
       const contexte = {
         ...transitions, ...avant, optimizer: avant, box: [], exclusionData: {}, ownSelectorKey: 'box:10',
         lists: { activeListId: 'a', members: [] }, setAddListPromptOpen: () => {}, inclureSelectionRecherche: () => {},
-        speciesCandidatesBySource: () => ({ box: [{ selector, gear: { relic } }] }),
-        unownedSelectorIfNoneOwned: () => null,
+        disponibiliteEspece: () => ({ suivant: selector, raison: null }),
         resolveExclusionEntry: () => ({ gear: { relic } }), exclusionSelectorKey,
         defaultRelicMainChoice, relicMainChoiceApresChangementExemplaire,
-        reliqueCoherenteAvecExemplaire: () => avant.setRelicMainChoice((c) => relicMainChoiceApresChangementExemplaire(c, relic as never, true)),
         setZoneDOpen: (v: boolean) => { zoneOuverte = v; },
+        setApercu: () => {},
       };
-      const fonction = fonctionDeSource(ECRAN, geste, contexte);
+      const choisirExemplaire = fonctionDeSource(ECRAN, 'choisirExemplaire', contexte);
+      const fonction = geste === 'pickSpecies'
+        ? fonctionDeSource(ECRAN, geste, { ...contexte, choisirExemplaire })
+        : choisirExemplaire;
       const monster = { id: Number(espece), com2usId: 101 };
       if (geste === 'pickSpecies') fonction(monster); else fonction(selector, monster);
       const apres = banc.rendre();
@@ -97,7 +99,7 @@ export default async function testOptimizerCriteresCaracterisation() {
       egal(apres.objective, autreEspece ? 'efficience' : 'degats_reels', `${libelle} : objectif`);
       egal(apres.compterAurasResPre, false, `${libelle} : auras conservées`);
       egal(apres.critereArtefacts, geste === 'pickSpecies' && autreEspece ? 'brut' : 'reel', `${libelle} : cran d’artéfacts`);
-      egal(banc.effacements(), autreEspece || (geste === 'choisirExemplaire' && !memeCle) ? 1 : 0, `${libelle} : effacement`);
+      egal(banc.effacements(), autreEspece || !memeCle ? 1 : 0, `${libelle} : effacement`);
       egal(valeurs(apres, GLOBAUX), valeurs(avant, GLOBAUX), `${libelle} : globaux conservés`);
       ok(!zoneOuverte, `${libelle} : zone D fermée`);
     }
@@ -107,7 +109,7 @@ export default async function testOptimizerCriteresCaracterisation() {
   const avant = banc.rendre();
   fonctionDeSource(ECRAN, 'choisirExemplaire', {
     ...avant, optimizer: avant, selectedId: '1', ownSelectorKey: 'box:10', exclusionData: {}, exclusionSelectorKey,
-    resolveExclusionEntry: () => ({ gear: {} }), relicMainChoiceApresChangementExemplaire, setZoneDOpen: () => {},
+    resolveExclusionEntry: () => ({ gear: {} }), relicMainChoiceApresChangementExemplaire, setZoneDOpen: () => {}, setApercu: () => {},
   })({ source: 'unowned', com2usId: 101 }, { id: 1 });
   egal(banc.rendre().relicMainChoice, 'libre', 'même espèce : équipée sans relique devient libre');
   egal(banc.rendre().gearSource, 'box', 'non possédé : dernière source réelle conservée');

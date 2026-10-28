@@ -864,6 +864,10 @@ crédits.
 Une allocation que le moteur JavaScript refuse dans le classeur
 (`estEchecAllocation` : `RangeError` d'allocation, pas une longueur invalide)
 passe par `reprendreSurMemoire` au lieu de perdre le propriétaire.
+⚠️ Seule la forme de V8 (`Array buffer allocation failed` : Chromium,
+application de bureau) est établie ; celle de Firefox et de Safari n'a pas
+été relevée, et un refus qu'elle ne reconnaît pas reste une faute du
+classeur (page gardée, marquée interrompue).
 `CorpsClassement.arreterSurMemoire` abandonne la tâche qui allouait, garde
 l'index déjà construit (au plus l'aperçu des 3 000 premiers trouvés quand le
 refus tombe pendant la collecte ou au scellé), ne l'agrandit plus

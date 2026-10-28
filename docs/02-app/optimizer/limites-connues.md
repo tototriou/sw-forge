@@ -68,7 +68,10 @@ ici.
   recherche ou à sa fin), cesse de vérifier en fond, arrête la
   recherche si elle collecte encore, et l'écran dit « Arrêt : mémoire — N
   builds gardés sur M trouvés ». Rien n'est retenté ; une nouvelle
-  recherche repart entière. Un appareil qui manque de mémoire peut aussi
+  recherche repart entière. Ce refus n'est reconnu à coup sûr que sous
+  Chromium et dans l'application de bureau : sous Firefox ou Safari, dont
+  la forme du refus n'a pas été relevée, il peut interrompre le classement
+  (page gardée, « Classement interrompu »). Un appareil qui manque de mémoire peut aussi
   fermer l'onglet sans que l'app puisse l'en empêcher : ce cas-là n'a pas
   de reprise.
 - **Aucun bonus de set ne pèse au pré-filtrage ni à la rétention.** Une

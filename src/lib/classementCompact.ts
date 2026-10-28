@@ -878,7 +878,11 @@ export interface ArretMemoire { gardes: number; trouves: number }
 /**
  * Une allocation refusée par le moteur JavaScript (`RangeError: Array buffer
  * allocation failed` dans V8), distincte d'une longueur invalide, qui est un
- * défaut du code et reste une erreur.
+ * défaut du code et reste une erreur. ⚠️ Seule la forme de V8 (Chromium,
+ * application de bureau) est établie ; `out of memory` vise les autres moteurs
+ * sans relevé de leur forme. Un refus d'une autre forme (Firefox, Safari) n'est
+ * pas reconnu : il passe la recherche en erreur, page gardée et marquée
+ * interrompue, comme toute faute du classeur.
  */
 export function estEchecAllocation(e: unknown): boolean {
   return e instanceof RangeError && /allocation failed|out of memory/i.test(e.message);

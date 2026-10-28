@@ -426,9 +426,11 @@ relique. Le classement en a une aussi : `optionsDuContexte` pose sur les
 options de `optionsDeClassement` (champ `reglage`) celle de son contexte de
 résultat, une par contexte, que `scorerPour` passe à `objectiveScore` puis à
 `computeTotalDamage` sans memo de stats (une note par candidat) ; les notes
-de base, du tri et des cartes la partagent. Le contexte est gelé
-(`copierDonnees`) : la précondition (entrées jamais modifiées) tient par
-construction. `optionsDeClassement` appelé directement n'en pose aucune,
+de base, du tri et des cartes la partagent. La précondition (entrées
+jamais modifiées) tient dans l'écran parce que le contexte y est gelé
+(`copierDonnees`) ; dans le Worker de classement, il arrive par
+`postMessage`, une copie non gelée que seul le corps du classement tient et
+qu'il ne modifie pas. `optionsDeClassement` appelé directement n'en pose aucune,
 parce que l'API directe peut modifier sort ou réglage en place. Elle
 retient :
 

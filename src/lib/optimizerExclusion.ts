@@ -106,9 +106,9 @@ export interface ExclusionSourceData {
 //   (`speciesCandidatesBySource`, `OptimizerSection.tsx`) : `requireRunes:
 //   false` — BUG signalé (« un monstre dans un deck d'offense siège mais non
 //   runé ne voit pas son exemplaire affiché ») : un monstre ASSIGNÉ à un
-//   slot RTA/siège avec ZÉRO rune (`slot.gear` existe toujours dès qu'un
-//   monstre y est placé, voir `buildGear`/`importAccount.ts` — seul
-//   `runes.length` peut être 0) doit rester un exemplaire choisissable, même
+//   slot RTA/siège avec ZÉRO rune (`slot.gear` posé par l'import du compte,
+//   voir `buildGear`/`importAccount.ts`, ou absent pour un monstre placé à
+//   la main : `equipementPlace`) doit rester un exemplaire choisissable, même
 //   principe que Box qui autorise déjà « construire un build depuis rien »
 //   (voir le filtre Box séparé de `speciesCandidatesBySource`, jamais passé
 //   par CETTE fonction).
@@ -124,6 +124,16 @@ export interface ExclusionSourceData {
 //   principe que `autoExcludedRuneIds`/`isOwn` plus bas — RTA et un slot de
 //   siège n'ont qu'UNE seule entrée par monstre, donc la bonne granularité
 //   est directement l'espèce, pas une clé d'entrée qui n'existe pas ici.
+// L'équipement d'un monstre de la prépa RTA ou d'un slot de siège. Seul
+// l'import du compte en pose un : un monstre placé à la main n'en a pas, et
+// se lit alors comme un monstre non possédé — stats de base 6★ niveau max,
+// sans rune ni artéfact (branche `unowned` de `resolveSelectorRaw`). Sans
+// ce repli, il n'était ni exportable vers l'Optimizer ni affichable dans
+// sa liste.
+function equipementPlace(monster: Monster | undefined, gear: GearSet | undefined): GearSet | undefined {
+  return gear ?? (monster ? { base: monsterBaseStats(monster), runes: [], artifacts: [] } : undefined);
+}
+
 export function exclusionCandidatesFor(source: ExclusionSource, data: ExclusionSourceData, excludeOwnUnitKey: string | null, excludeOwnCom2usId: number | null, requireRunes = true): ExclusionCandidate[] {
   const out: ExclusionCandidate[] = [];
   if (source === 'box') {
@@ -136,11 +146,12 @@ export function exclusionCandidatesFor(source: ExclusionSource, data: ExclusionS
   }
   if (source === 'rta') {
     for (const entry of Object.values(data.rtaEntries)) {
-      if (!entry.gear || (requireRunes && entry.gear.runes.length === 0)) continue;
       const monster = data.monsterById.get(entry.monsterId);
       if (!monster) continue;
+      const gear = equipementPlace(monster, entry.gear)!;
+      if (requireRunes && gear.runes.length === 0) continue;
       if (excludeOwnCom2usId != null && monster.com2usId === excludeOwnCom2usId) continue;
-      out.push({ selector: { source: 'rta', monsterId: entry.monsterId }, monster, gear: entry.gear });
+      out.push({ selector: { source: 'rta', monsterId: entry.monsterId }, monster, gear });
     }
     return out;
   }
@@ -152,12 +163,13 @@ export function exclusionCandidatesFor(source: ExclusionSource, data: ExclusionS
     const teamNumber = teamIndex + 1;
     const teamSlots = team.slots.map((s) => (s.monsterId ? (data.monsterById.get(s.monsterId) ?? null) : null));
     team.slots.forEach((slot, slotIndex) => {
-      if (!slot.gear || (requireRunes && slot.gear.runes.length === 0)) return;
       if (slot.monsterId == null) return;
       const monster = data.monsterById.get(slot.monsterId);
       if (!monster) return;
+      const gear = equipementPlace(monster, slot.gear)!;
+      if (requireRunes && gear.runes.length === 0) return;
       if (excludeOwnCom2usId != null && monster.com2usId === excludeOwnCom2usId) return;
-      out.push({ selector: { source, teamId: team.id, slotIndex }, monster, gear: slot.gear, teamContext: { teamNumber, slots: teamSlots } });
+      out.push({ selector: { source, teamId: team.id, slotIndex }, monster, gear, teamContext: { teamNumber, slots: teamSlots } });
     });
   });
   return out;
@@ -177,7 +189,7 @@ function resolveSelectorRaw(sel: ExclusionSelector, data: ExclusionSourceData): 
   if (sel.source === 'rta') {
     const entry = data.rtaEntries[sel.monsterId];
     const monster = entry ? data.monsterById.get(entry.monsterId) : undefined;
-    return { monster, gear: entry?.gear };
+    return { monster, gear: equipementPlace(monster, entry?.gear) };
   }
   if (sel.source === 'unowned') {
     // `monsterById` couvre TOUT le bestiaire (voir OptimizerSection.tsx,
@@ -192,7 +204,7 @@ function resolveSelectorRaw(sel: ExclusionSelector, data: ExclusionSourceData): 
   const teams = sel.source === 'siege-defense' ? data.siegeDefenseTeams : data.siegeOffenseTeams;
   const slot = teams.find((t) => t.id === sel.teamId)?.slots[sel.slotIndex];
   const monster = slot?.monsterId != null ? data.monsterById.get(slot.monsterId) : undefined;
-  return { monster, gear: slot?.gear };
+  return { monster, gear: equipementPlace(monster, slot?.gear) };
 }
 
 // Résout UN sélecteur vers son monstre + son équipement — pour l'affichage

@@ -147,7 +147,10 @@ export function testImportSpeedTuneAvecDeckOrigine() {
     const team = source === 'defense' ? data.siegeDefenseTeams[0] : data.siegeOffenseTeams[0];
     delete team.slots[0].gear;
     const invalide = importerSpeedTuneOptimizer([ligne(1)], lead, data, origine);
-    egal(invalide.membres.length, 0, 'slot du deck sans équipement non remplacé par Box');
+    // Un slot sans équipement (monstre placé à la main) se résout aux stats de
+    // base de son espèce : il reste le slot du deck, jamais une copie Box.
+    egal(invalide.membres.map(m => m.selector), [{ source: source === 'defense' ? 'siege-defense' : 'siege-offense', teamId: team.id, slotIndex: 0 }],
+      'slot du deck sans équipement gardé, non remplacé par Box');
   }
 }
 export function testImportSpeedTuneSansDeckOrigine() {
@@ -243,8 +246,8 @@ export function testImportSpeedTuneCompositionCopies() {
   ok(modifie.membres.every(m => m.selector.source === 'box'), 'multiplicités différentes refusées malgré les mêmes espèces');
   delete data.siegeDefenseTeams[0].slots[0].gear;
   const invalide = importerSpeedTuneOptimizer([ligne(1), ligne(1), ligne(2)], lead, data);
-  egal(invalide.ignores.length, 1, 'slot du deck retrouvé sans équipement signalé');
-  ok(invalide.membres.every(m => m.selector.source === 'siege-defense'), 'aucune copie Box substituée au slot introuvable');
+  egal(invalide.ignores.length, 0, 'slot du deck retrouvé sans équipement gardé, aux stats de base de son espèce');
+  ok(invalide.membres.length === 3 && invalide.membres.every(m => m.selector.source === 'siege-defense'), 'aucune copie Box substituée au slot sans équipement');
 }
 
 export const verificationsImportSpeedTune: [string, () => void][] = [

@@ -48,8 +48,7 @@ Choix assumés :
   documentent une dépendance d'effet exclue volontairement.
 - Globales : navigateur sous `src/`, Node pour `bureau/`, `scripts/`,
   `tests/`, `.claude/` et la racine, les deux pour les pilotes Playwright
-  (`.claude/skills/**`, `scripts/preuve-session-site.mjs`), dont une partie du
-  code s'exécute dans la page.
+  (`.claude/skills/**`), dont une partie du code s'exécute dans la page.
 - Dans `tests/`, les règles sur les expressions régulières littérales, `any`,
   `require` et `?.…!` sont coupées : les tests comparent du texte source et
   manipulent des objets partiels.

@@ -41,6 +41,11 @@ focus au bouton), Tab referme ; un clic dehors aussi.
 ⚠️ **Les entrées restent dans le DOM, menu fermé** (`hidden`) : un bouton ne
 quitte jamais le DOM selon l'état de l'écran, et c'est ce qui laisse les tests
 de rendu retrouver chaque action, son état et sa raison.
+⚠️ **La liste défile au-delà de `min(70dvh, 480px)`** : les invocateurs d'un
+dossier SW Exporter peuvent être des dizaines, et une liste sans plafond
+sortait de l'écran. Le rembourrage est sur la zone qui défile, pas sur le
+`Flottant` : le filet des entrées `danger` reste dedans, sans défilement
+horizontal.
 ⚠️ **Monté à son PREMIER usage**, contre la règle du deuxième (« Quand ajouter
 quelque chose ») : l'écrire dans l'écran en ferait un contrôle MAISON — ce que
 la règle qui gouverne tout le reste interdit — et plusieurs écrans en posent
@@ -355,6 +360,13 @@ popup d'édition, formulaire ancré, liste de résultats d'une recherche.
 autour de son ancre : vers la gauche si l'ancre est près du bord droit, vers le
 haut si elle est près du bas. Puis il **borne sa position au viewport**, en
 gardant la surface ancrée à ce qui l'a ouverte.
+
+> **`onFermer`** : fourni, un appui (`pointerdown`) n'importe où hors de la
+> surface la referme — c'est ainsi que se ferme le détail d'une rune, d'un
+> artéfact ou d'une relique, partout dans l'app. ⚠️ **L'ancre est exclue** :
+> la pièce qui a ouvert la surface garde sa propre bascule (sinon l'appui
+> fermerait, puis le clic rouvrirait). Une autre pièce est dehors : l'appui
+> ferme le détail ouvert, le clic ouvre le sien.
 
 > ⚠️ **Sans rembourrage par défaut** (`rembourrage="aucun"`), à la différence
 > de `Flottant` : il sert aussi aux LISTES, dont les entrées touchent le bord.

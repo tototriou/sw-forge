@@ -308,7 +308,7 @@ function Cellule({
         {art.intangible && <ArtifactGlyph name="intangible" size={10} className="flex-none opacity-80" />}
       </ZoneCliquable>
       {!ficheEnLigne && (
-        <FlottantAuto ouvert={ouverte} ancre={ancre} largeur={300} hauteur={260} rembourrage="md">
+        <FlottantAuto ouvert={ouverte} ancre={ancre} largeur={300} hauteur={260} rembourrage="md" onFermer={onBasculer}>
           <ArtifactDetailBox artifact={art} encadre={false} />
         </FlottantAuto>
       )}

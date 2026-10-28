@@ -155,8 +155,9 @@ Contenu actuel, dans l'ordre :
     [feat-import-compte/persistance.md](../feat-import-compte/persistance.md)) ;
   - **Date de l'export chargé**, sous le réglage — c'est là qu'on se pose la
     question de la fraîcheur des données ;
-  - **Session** → « Sauvegarder » : tout l'état de l'app dans un fichier
-    (voir [feat-sauvegarde-session.md](../feat-sauvegarde-session.md)) ;
+  - **Session** → « Sauvegarder » : tout l'état de l'app dans un fichier —
+    dans l'**application de bureau seulement** (voir
+    [feat-sauvegarde-session.md](../feat-sauvegarde-session.md)) ;
   - **Dossier SW Blacksmith** → « Retirer », « Choisir… » — dans
     l'**application de bureau seulement** : le dossier dont le
     sous-dossier `sessions` reçoit les sessions ;

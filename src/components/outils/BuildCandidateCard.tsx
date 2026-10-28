@@ -256,6 +256,9 @@ export default function BuildCandidateCard({
                 largeur={220}
                 hauteur={120}
                 rembourrage="md"
+                // Appelé seulement quand ce détail est ouvert : basculer sa
+                // clé le referme.
+                onFermer={() => onToggleDetail(cleRelique)}
               >
                 {/* Non-null : `RelicSlot` n'invoque `renderOverlay` que
                     dans sa branche « relique présente ». */}
@@ -413,6 +416,7 @@ export default function BuildCandidateCard({
                       largeur={260}
                       hauteur={320}
                       rembourrage="md"
+                      onFermer={() => onToggleDetail(cleArtefact(a.kind))}
                     >
                       <ArtifactDetailBox artifact={a} encadre={false} />
                     </FlottantAuto>
@@ -434,6 +438,7 @@ export default function BuildCandidateCard({
                       largeur={260}
                       hauteur={320}
                       rembourrage="md"
+                      onFermer={() => onToggleDetail(cleRune(r.slot))}
                     >
                       <RuneDetailBox rune={r} encadre={false} />
                     </FlottantAuto>

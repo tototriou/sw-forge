@@ -228,7 +228,9 @@ les combinaisons affichées sont vérifiées en premier, avec leur meilleur
 fois la recherche finie et tout vérifié sans aucune confirmée — la file
 va jusqu'au dernier build trouvé faute de K confirmées (voir
 ../../../03-developpeur/optimizer/moteur/artefacts.md § Quand ce choix a lieu) ; alors seulement « Trier par » se masque,
-comme sur un moteur vide.
+comme sur un moteur vide. Jamais après un arrêt sur la mémoire : le
+classement n'a pas gardé tout le trouvé, l'avis « Arrêt : mémoire » le dit,
+et l'en-tête compte les trouvées du moteur, les mêmes que cet avis.
 **Les pages suivent les confirmées** : les pages des confirmées, plus
 une tant qu'il reste des builds non vérifiés qui n'ont pas de place sur
 la dernière — ses places « Vérification… » se résolvent quand on
@@ -242,7 +244,9 @@ quand le plafond « une page au-delà des confirmées » coupe des non
 vérifiés (`⌈(confirmées + non vérifiés) / 20⌉` dépasse les pages
 écrites, par exemple 300 confirmées et 1 000 non vérifiées, la
 vérification s'étant arrêtée à K confirmées), ou quand le moteur a trouvé
-plus de combinaisons qu'il n'en a été reçu ; sinon le nombre exact, même
+plus de combinaisons qu'il n'en a été reçu, pendant la recherche seulement
+(`aRecevoir` : après un arrêt sur la mémoire, le reste trouvé ne sera
+jamais reçu) ; sinon le nombre exact, même
 s'il reste des non vérifiés qui ne peuvent que le faire baisser (45
 confirmées et 10 non vérifiées : « / 3 », 3 est déjà le maximum). La
 confirmation en fond juge ensuite toutes les trouvées : en fin de fond,
@@ -487,8 +491,8 @@ formats). Les libellés et unités viennent de `filtresAffichage.ts` ;
   sous la même règle, appliquée à la vue : ses confirmées sont les
   visibles (`filtre.comptes.visiblesConfirmes`), ses non vérifiés les
   potentiels (`potentielsNonVerifies`) — un non vérifié déjà masqué
-  (échec démontré) ne compte pas — ; ou une trouvée pas encore reçue
-  (`trouvesMoteur` au-delà de `recusActifs`).
+  (échec démontré) ne compte pas — ; ou une trouvée qui arrivera encore
+  (`aRecevoir`, la règle de la recherche).
 - **Décimales** : une borne d'Efficience admet une décimale (« 78.8 »,
   point ou virgule), comme la carte l'écrit (`NumberField decimales`,
   `decimalesColonne`) ; Score SW et les autres colonnes, des entiers.

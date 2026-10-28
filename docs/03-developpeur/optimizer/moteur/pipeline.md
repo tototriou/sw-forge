@@ -876,7 +876,9 @@ l'arrêt se comptent (`trouves`) sans être gardés ni notés : aucun ordre au
 fil ne se recrée. Pendant la collecte, le classeur poste
 `ARRET_MEMOIRE` à la recherche, qui s'arrête comme sur « Arrêter »
 (`routerMessageDuClasseur`) et scelle ce qu'elle a. L'instantané porte
-`arretMemoire` (`gardes`, `trouves`), que l'écran annonce. L'arrêt vaut
+`arretMemoire` (`gardes`, `trouves`), que l'écran annonce ; le bilan de
+l'écran compte `trouves`, le « + » des pages s'éteint (le reste trouvé ne
+sera jamais reçu) et « Aucune combinaison… » ne s'affiche pas. L'arrêt vaut
 pour une recherche ; une seconde panne pendant la même recherche n'est pas
 reprise (propriétaire perdu). Rien ne devine la mémoire de l'appareil. Un
 onglet tué par le système pour manque de mémoire n'a pas de reprise.

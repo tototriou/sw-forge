@@ -216,7 +216,7 @@ export function testRenduOptimizerLigneFile() {
   const entete = (avecFile: boolean, enAttente: number) => rendre(
     <EnteteResultats
       result={{ nombre: 3, explored: 10, truncated: false, nearMissByCondition: [], globalNearMiss: null }}
-      compteConfirmes={{ confirmees: 1, nonVerifies: 2, pages: 1, pagesPeuventMonter: true, aucune: false }}
+      compteConfirmes={{ confirmees: 1, nonVerifies: 2, pages: 1, pagesPeuventMonter: true, aRecevoir: false, aucune: false }}
       avecFile={avecFile}
       tri={{ tri: 'atk', sens: 'desc' }}
       trier={() => {}}

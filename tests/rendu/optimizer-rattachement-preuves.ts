@@ -22,7 +22,7 @@ export async function preuvesRattachementOptimizer(c: Contexte, demonte = false)
   const preuves: [boolean, string][] = [], verifier = (condition: boolean, texte: string) => preuves.push([condition, texte]);
   await c.geste(() => c.etat().choisirMembre('a', c.premier));
   await c.geste(() => {
-    c.listes().validateBuild('a', c.premier, c.runes().map(r => r.id), [], 10101);
+    c.listes().validateBuild('a', c.premier, c.runes().map(r => r.id), [], undefined, 10101);
     c.etat().setMinStats({ spd: 255 });
   });
   const origine = acquerirIdentitesMembres(c.listes(), c.data());

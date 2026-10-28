@@ -834,6 +834,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // Jumeau de `runeById` : sert à rejouer la paire d'un build validé, qui n'en
   // mémorise que les identifiants.
   const artifactById = useMemo(() => new Map(artifacts.map((a) => [a.id, a])), [artifacts]);
+  // Même rôle pour la relique d'un build validé.
+  const relicById = useMemo(() => new Map(relics.map((r) => [r.id, r])), [relics]);
 
   // La grille des résultats : `useHauteurDesCartes` y mesure les cartes.
   const grilleResultatsRef = useRef<HTMLDivElement>(null);
@@ -1199,12 +1201,19 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           const validatedArts = (ownValidatedBuild.artifactIds ?? [])
             .map((id) => artifactById.get(id))
             .filter((a): a is ArtifactDetail => !!a);
+          // ⚠️ **La relique aussi** : la carte validée comptait la relique
+          // retenue par la recherche, la fiche la relique portée — « Comparer »
+          // ce build à lui-même donnait alors un écart. Même repli que la
+          // paire : relique portée si le build n'en mémorise pas, ou si elle
+          // a quitté l'inventaire.
+          const validatedRelic = ownValidatedBuild.reliqueId !== undefined ? relicById.get(ownValidatedBuild.reliqueId) : undefined;
           return {
             monster: resolved.monster,
             gear: {
               ...resolved.gear,
               runes: validatedRunes,
               artifacts: validatedArts.length > 0 ? validatedArts : resolved.gear.artifacts,
+              relic: validatedRelic ?? resolved.gear.relic,
             },
           };
         }
@@ -1213,7 +1222,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     }
     if (!speciesMonster) return null;
     return { monster: speciesMonster, gear: { base: monsterBaseStats(speciesMonster), runes: [], artifacts: [] } };
-  }, [sourceSelector, exclusionData, speciesMonster, ownValidatedBuild, runeById, artifactById, showRealGear]);
+  }, [sourceSelector, exclusionData, speciesMonster, ownValidatedBuild, runeById, artifactById, relicById, showRealGear]);
 
   // Un réimport du compte remet les critères à zéro (`resetSearch('compte')`,
   // App.tsx) sans connaître le monstre resté sélectionné : le défaut de
@@ -2572,8 +2581,18 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
    * dès que la paire affichée n'est pas vide — c'est vrai, et ça permet de
    * les compléter au lieu de les laisser figés sans recours.
    */
-  const etatValidation = (runeIds: number[], artifactIds: number[]): EtatValidation => {
+  // La relique du build validé, que la fiche le montre ou que « Voir le runage
+  // réellement porté » montre la portée : même repli que dans `selected`.
+  const reliqueValidee = ownValidatedBuild
+    ? (ownValidatedBuild.reliqueId !== undefined ? relicById.get(ownValidatedBuild.reliqueId) : undefined) ?? selected?.gear.relic
+    : undefined;
+  const etatValidation = (runeIds: number[], artifactIds: number[], reliqueId: number | undefined): EtatValidation => {
     if (!ownValidatedBuild || !memesIds(ownValidatedBuild.runeIds, runeIds)) return 'non';
+    // ⚠️ Une autre relique, c'est un autre build : « Valider » le remplace
+    // entier. La référence est la relique que la fiche montre pour ce build
+    // (mémorisée, sinon portée) — un build validé avant `reliqueId` reste
+    // « Validé » tant que la carte compte la même relique que sa fiche.
+    if (reliqueId !== reliqueValidee?.id) return 'non';
     // ⚠️ **Le MÊME filtre que `validateBuild`** (useOptimizerLists.ts) : les
     // ids ≤ 0 désignent une pièce SYNTHÉTIQUE, absente du compte, et ne sont
     // jamais mémorisés. Comparer sans ce filtre laisserait le bouton bloqué
@@ -2582,7 +2601,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     const reels = artifactIds.filter((id) => id > 0);
     return memesIds(ownValidatedBuild.artifactIds ?? [], reels) ? 'oui' : 'artefacts';
   };
-  const etatFiche = etatValidation(displayedRuneIds, displayedArtifactIds);
+  const etatFiche = etatValidation(displayedRuneIds, displayedArtifactIds, selected?.gear.relic?.id);
   // ⚠️ « Déjà réservé À L'IDENTIQUE » — donc plus rien à faire. Un build aux
   // mêmes runes mais à une autre paire N'EN FAIT PAS partie : il reste à
   // valider, sur ses artéfacts.
@@ -2650,7 +2669,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     const ids = modeArtefactsSeuls.paire.map((a) => a.id);
     if (ownValidatedBuild) lists.validateArtifacts(lists.activeListId, sourceSelector, ids);
     else if (canValidateDisplayed) {
-      lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, ids, selected!.monster.com2usId!);
+      lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, ids, selected!.gear.relic?.id, selected!.monster.com2usId!);
       optimizer.capturerMembre(lists.activeListId, sourceSelector);
     }
   }
@@ -2661,7 +2680,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       setAddListPromptOpen('validate');
       return;
     }
-    lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, displayedArtifactIds, selected!.monster.com2usId!);
+    lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, displayedArtifactIds, selected!.gear.relic?.id, selected!.monster.com2usId!);
     optimizer.capturerMembre(lists.activeListId, sourceSelector);
   }
 
@@ -2851,7 +2870,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     }
     if (!sourceSelector) return;
     if (intent === 'validate') {
-      if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds, selected.monster.com2usId);
+      if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds, selected.gear.relic?.id, selected.monster.com2usId);
     } else {
       lists.addMember(id, sourceSelector, selected.monster.com2usId);
     }
@@ -2877,6 +2896,10 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     const encoreCourante = () => versions != null && !interrompu
       && publicationCouranteRef.current?.idRecherche === versions.idRecherche
       && publicationCouranteRef.current?.revisionPubliee === versions.revisionPubliee;
+    const etatRelique = etatReliqueDuBuild(carte?.resultat ?? undefined, photo?.recherche.relicContext, photo?.fiche.relic);
+    // La relique que la carte compte : celle que « Valider » mémorise et que
+    // le badge « Validé » compare.
+    const reliqueDeLaCarte = 'relique' in etatRelique ? etatRelique.relique?.id : undefined;
     return {
       // ⚠️ La paire de CE build, jamais une paire commune : deux
       // builds voisins n'appellent pas les mêmes artéfacts, et ce
@@ -2891,7 +2914,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // rien de nouveau, `rejete` n'arrive jamais jusqu'ici (le
       // classement écarte déjà ces builds). Par
       // `etatReliqueDe` : la relique que le score compte.
-      etatRelique: etatReliqueDuBuild(carte?.resultat ?? undefined, photo?.recherche.relicContext, photo?.fiche.relic),
+      etatRelique,
       ...(() => {
         // ⚠️ Comparaison contre les stats de la FICHE — donc contre
         // le build validé quand il en existe un, sans avoir à le
@@ -2986,14 +3009,15 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               // ⚠️ Garde de DERNIÈRE minute en plus du bouton
               // désactivé : le clic peut partir d'un rendu périmé.
               if (!encoreCourante() || conflitsDeRunes(c.runeIds).length > 0) return;
-              // ⚠️ La paire DE CE CANDIDAT, pas celle du monstre
-              // affiché : c’est elle que la carte montre et qui a
-              // servi à calculer ses stats.
+              // ⚠️ La paire et la relique DE CE CANDIDAT, pas celles du
+              // monstre affiché : ce sont elles que la carte montre et
+              // qui ont servi à calculer ses stats.
               lists.validateBuild(
                 lists.activeListId!,
                 sourceSelector,
                 c.runeIds,
                 artefactsDeLaCarte.map((a) => a.id),
+                reliqueDeLaCarte,
                 selected!.monster.com2usId!
               );
               optimizer.capturerMembre(lists.activeListId!, sourceSelector);
@@ -3005,7 +3029,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       // chose que ce qu'on validerait rendrait le libellé menteur.
       validated: etatValidation(
         c.runeIds,
-        artefactsDeLaCarte.map((a) => a.id)
+        artefactsDeLaCarte.map((a) => a.id),
+        reliqueDeLaCarte
       ),
       inactif: interrompu,
       // La valeur triée, mise en avant sur la carte (le tri publié).

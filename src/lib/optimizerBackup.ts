@@ -53,7 +53,8 @@ export function lirePointOptimizer(brut: string | null): LecturePointOptimizer {
     membres.add(cle);
   }
   for (const b of h.validated) {
-    if (!cibleValide(b) || !objet(b) || !idsValides(b.runeIds) || (b.artifactIds !== undefined && !idsValides(b.artifactIds))) return refus;
+    if (!cibleValide(b) || !objet(b) || !idsValides(b.runeIds) || (b.artifactIds !== undefined && !idsValides(b.artifactIds))
+      || (b.reliqueId !== undefined && !idsValides([b.reliqueId]))) return refus;
     const cle = `${b.listId}|${exclusionSelectorKey(b.selector)}`;
     if (!membres.has(cle) || builds.has(cle)) return refus;
     builds.add(cle);

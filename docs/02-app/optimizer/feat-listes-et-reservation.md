@@ -63,14 +63,26 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 
   Un build validé (`ValidatedBuild`, optimizerExclusion.ts) est un
   **instantané** : sa liste (`listId`, obligatoire), son exemplaire
-  (`selector`), les identifiants de ses 6 runes et de sa paire — jamais
+  (`selector`), les identifiants de ses 6 runes, de sa paire et de sa
+  relique (`reliqueId`) — jamais
   une référence recalculée depuis l'équipement courant, puisqu'on réserve
   un build trouvé, pas encore monté en jeu. Il est unique par paire
   (liste, exemplaire) : le même exemplaire peut porter un build différent
   dans deux listes (`useOptimizerLists.ts`). Une carte est « Validé » quand
-  ses runes et sa paire sont celles réservées, comparées comme ensembles
+  ses runes, sa paire et sa relique sont celles du build validé, runes et
+  paire comparées comme ensembles
   (`memesIds`, OptimizerSection.tsx : l'ordre des identifiants n'est pas
   garanti d'un calcul à l'autre).
+
+  ⚠️ **La RELIQUE du build est mémorisée, pas réservée.** C'est celle que
+  la carte montre : retenue par la recherche quand la relique se cherche
+  dans l'inventaire, portée sinon. Une relique s'équipe sur plusieurs
+  monstres à la fois (occupation `n / 150`) : rien à retirer de
+  l'inventaire des autres. Sans elle, la fiche d'un build validé gardait la
+  relique portée, et « Comparer » ce build à lui-même donnait un écart (la
+  carte comptait la relique de la recherche). Même runes et même paire avec
+  une autre relique, c'est un autre build : la carte propose « Valider ce
+  build », qui le remplace entier.
 
   ⚠️ **Les ARTÉFACTS du build sont réservés eux aussi**, et mémorisés avec
   lui. Un artéfact physique ne se porte que sur UN monstre à la fois,
@@ -93,8 +105,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   AUJOURD'HUI plutôt que celle retenue par la recherche. ⚠️ Un build validé
   sans identifiant d'artéfact (enregistré avant qu'ils en aient un) retombe
   sur les artéfacts réels ; il faut le revalider. Le jeter serait une
-  perte de données pour un simple affichage. Base et relique restent
-  celles de l'exemplaire réel : seules runes et artéfacts sont substitués.
+  perte de données pour un simple affichage. De même, un build validé sans
+  relique mémorisée (enregistré avant ce champ), ou dont la relique a
+  quitté l'inventaire, garde la relique portée. La base reste celle de
+  l'exemplaire réel : runes, artéfacts et relique sont substitués.
 
   ⚠️⚠️ **LA GARDE ANTI-DOUBLE-RÉSERVATION EST SUR LES DEUX CHEMINS** : sous
   la **fiche** (`displayedRuneConflicts`) et sur la carte de résultat. Ne
@@ -314,7 +328,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   - ⚠️ **La référence est la fiche affichée**, ce qui couvre les deux cas
     *sans les distinguer* : le build validé s'il y en a un, sinon le build
     actuel. `selected.gear` **est** déjà le build validé quand il
-    en existe un — runes ET artéfacts substitués — et l'équipement réel
+    en existe un — runes, artéfacts et relique substitués — et l'équipement réel
     sinon. Refaire cette résolution côté comparaison la dupliquerait, et
     raterait « Voir le runage réellement porté », qui la désactive exprès.
   - Un seul build comparé à la fois : ils partagent la même référence, deux

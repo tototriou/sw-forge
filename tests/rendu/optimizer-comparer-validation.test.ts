@@ -4,15 +4,15 @@ import { egal, ok, titre } from '../outils';
 import type * as Banc from './optimizer-comparer-validation-banc';
 
 const BANC = 'tests/rendu/optimizer-comparer-validation-banc.tsx';
-const banc = (page: Page) => page.evaluate(() =>
-  (globalThis as unknown as { bancOptimizer: typeof Banc }).bancOptimizer.monter());
+const banc = (page: Page, variante: Banc.VarianteRelique) => page.evaluate((v) =>
+  (globalThis as unknown as { bancOptimizer: typeof Banc }).bancOptimizer.monter(v), variante);
 
-async function verifier(telephone: boolean) {
-  const format = telephone ? 'téléphone' : 'ordinateur';
+async function verifier(telephone: boolean, variante: Banc.VarianteRelique = 'fixe') {
+  const format = `${telephone ? 'téléphone' : 'ordinateur'}${variante === 'recherche' ? ', relique recherchée' : ''}`;
   titre(`rendu · Comparer puis Valider — référence courante et contexte figé, ${format}`);
   const { browser, page } = await navigateurOptimizer(telephone, BANC);
   try {
-    const { indice, labels } = await banc(page);
+    const { indice, labels, reliqueCarte } = await banc(page, variante);
     const cartes = page.locator('[data-carte-resultat]');
     if (await cartes.count() <= indice) throw new Error(`Cartes absentes : ${await page.locator('body').innerText()}`);
     const carte = cartes.nth(indice);
@@ -49,6 +49,7 @@ async function verifier(telephone: boolean) {
       `${format} : les scores de la recherche restent ceux de la photographie`);
     const etat = await page.evaluate(() => (globalThis as unknown as { bancOptimizer: typeof Banc }).bancOptimizer.etatApresValidation());
     ok(etat.valide && etat.runesValidees.length === 6, `${format} : le clic réel réserve les six runes dans la vraie liste`);
+    egal(etat.reliqueValidee, reliqueCarte, `${format} : le build validé mémorise la relique de la carte`);
     ok(etat.photoConservee && etat.ordreConserve && etat.contexteVivantDistinct,
       `${format} : photographie et ordre conservés malgré un contexte de saisie différent`);
   } finally { await browser.close(); }
@@ -56,3 +57,5 @@ async function verifier(telephone: boolean) {
 
 export async function testRenduOptimizerComparerValidationBureau() { await verifier(false); }
 export async function testRenduOptimizerComparerValidationTelephone() { await verifier(true); }
+export async function testRenduOptimizerComparerValidationReliqueBureau() { await verifier(false, 'recherche'); }
+export async function testRenduOptimizerComparerValidationReliqueTelephone() { await verifier(true, 'recherche'); }

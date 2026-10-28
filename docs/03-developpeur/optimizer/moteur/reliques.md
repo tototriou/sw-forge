@@ -540,8 +540,11 @@ l'utilisateur (non relevée en jeu) : le test vérifie que le code la suit.
 seule question : ce build a-t-il au moins un couple (paire, relique)
 faisable ? Même entrée que la résolution, même verdict, et pour un build
 rejeté le MÊME résultat, champ pour champ (une seule écriture du rejet pour
-les deux) ; mêmes erreurs. Elle s'arrête au premier couple faisable et ne
+les deux) ; la même erreur sur un pool de reliques vide en mode
+`recherche`. Elle s'arrête au premier couple faisable et ne
 note rien : ni paire, ni sonde de pertinence, donc aucun calcul de dégâts.
+⚠️ Sans note, une note NaN ne se voit pas : là où la résolution lève parce
+que toutes les notes faisables sont NaN, la confirmation confirme.
 La file de l'écran s'en sert pour confirmer en fond les builds qu'elle ne
 note pas ([pipeline.md § File de résolution](pipeline.md#file-de-résolution)).
 

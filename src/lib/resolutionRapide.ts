@@ -986,7 +986,8 @@ function partagerConditions(r: Pick<BuildRequirement, 'minStats' | 'maxStats' | 
  * faisable existe-t-il ? Aucune paire notée — aucun appel à `evaluer`,
  * aucune sonde de pertinence. Même entrée que `resoudreEquipementDuBuild` ;
  * même verdict (`conforme`) ; pour un build rejeté, le même résultat, champ
- * pour champ ; mêmes erreurs (pool de reliques vide en mode `recherche`).
+ * pour champ ; la même erreur sur un pool de reliques vide en mode
+ * `recherche`, mais pas celle des notes NaN (écart accepté, plus bas).
  *
  * Le jugement même de la résolution, sans ce qui ne change pas le verdict :
  * - par réglage (`CachesResolutionRapide`, une fois par file) : les apports

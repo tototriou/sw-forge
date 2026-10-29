@@ -383,6 +383,11 @@ la prépa RTA au téléphone
 > par le conteneur, que l'onglet ouvert recouvrirait d'une marge négative,
 > serait rognée par le défilement horizontal.
 >
+> ⚠️ **La largeur d'un onglet ne dépend jamais de son état** : le libellé en
+> gras garde sa place dans les deux états, par une copie invisible superposée
+> au libellé visible, hors de l'arbre d'accessibilité. Fermer un onglet ne
+> décale donc aucun voisin ; le nom accessible n'est annoncé qu'une fois.
+>
 > ⚠️ **Au doigt, la rangée défile de côté** au lieu de passer à la ligne : sur
 > deux lignes, il n'y a plus de ligne de base unique, et l'on ne sait plus quel
 > onglet coiffe le contenu.

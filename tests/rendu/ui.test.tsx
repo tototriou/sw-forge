@@ -293,4 +293,18 @@ export function testRenduUiOnglets() {
   egal(lus.filter((o) => o.focusable).map((o) => o.texte), ['Feu'], 'seul l’onglet ouvert est dans l’ordre de tabulation');
   ok(lus[2].desactive && lus[2].title === 'Aucun artéfact de ce groupe', 'un onglet indisponible : affiché, désactivé, avec sa raison');
   ok(!/border-2|ring-/.test(html), 'contour unique de 1 px : ni bordure double, ni anneau');
+  const reserves = (source: string) => [...source.matchAll(/<span\b([^>]*data-reserve-onglet[^>]*)>([\s\S]*?)<\/span>/g)];
+  egal(reserves(html).map(([, , texte]) => texteVisible(texte)), ['Eau', 'Feu', 'Vent'],
+    'chaque libellé garde sa réserve, y compris les onglets fermés et désactivés');
+  ok(reserves(html).every(([, attributs]) => /aria-hidden="true"/.test(attributs)
+    && /invisible/.test(attributs) && /font-semibold/.test(attributs)
+    && /col-start-1 row-start-1/.test(attributs)),
+  'réserve invisible, en gras, superposée et hors du nom accessible');
+  const autre = rendre(<Onglets aria-label="Attribut des artéfacts" valeur="eau" onChange={rien}
+    options={[{ cle: 'eau', libelle: 'Eau' }, { cle: 'feu', libelle: 'Feu' }, { cle: 'vent', libelle: 'Vent', desactive: true }]} />);
+  egal(reserves(autre).map(([, attributs, texte]) => [attributs, texte]),
+    reserves(html).map(([, attributs, texte]) => [attributs, texte]), 'les réserves restent identiques quand l’onglet ouvert change');
+  const compose = rendre(<Onglets aria-label="Builds" valeur="builds" onChange={rien}
+    options={[{ cle: 'builds', libelle: <><span>Builds</span><b>2</b></> }]} />);
+  egal(onglets(compose).map(o => o.texte), ['Builds 2'], 'un libellé composé ne se lit qu’une fois, sans sa copie invisible');
 }

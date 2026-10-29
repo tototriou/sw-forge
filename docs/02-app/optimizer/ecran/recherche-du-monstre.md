@@ -199,7 +199,7 @@ l'autre, sans carte commune :
 2. **« Exemplaire »**, sous la liste de travail (`ExemplaireBureau`) : les
    vues « Build actuel » · « Build validé », les puces d'aperçu, la zone D
    en flottant (300 px de haut au plus, qui défile), puis la fiche,
-   toujours repliée ([equipement-actuel.md](equipement-actuel.md)).
+   dépliée à la façon des cartes de résultat ([equipement-actuel.md](equipement-actuel.md)).
 
 ## Au téléphone : trois blocs empilés
 

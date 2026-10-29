@@ -62,9 +62,10 @@ ni bandeau ni phrase d'introduction.
    « Rechercher un monstre… » et le monstre actif) ; puis « Exemplaire » :
    ses deux vues, ses puces d'aperçu et la fiche
    ([equipement-actuel.md](equipement-actuel.md)). ⚠️ **La fiche y est
-   toujours repliée** (artéfacts, roue de runes et relique sous les
-   statistiques : 356 px mesurés avec une relique ATQ ou DEF à deux
-   chiffres), pour tenir dans les 358 px de contenu du panneau.
+   dépliée, à la façon des cartes de résultat** (décision de l'utilisateur) :
+   panneau de statistiques resserré, artéfacts et roue à sa droite, relique
+   sous la roue, le groupe réduit pour tenir dans les 358 px de contenu du
+   panneau.
 2. **« Critères »**, place de 320 px (panneau de 312) : « Set de runes
    recherché », « Conditions », « Statistique principale imposée (slots
    pairs) », puis « État de mon monstre », réduit aux buffs et au lead, l'un
@@ -505,8 +506,8 @@ les contrôles du panneau prennent toute la largeur.** Points tenus :
 - **Grille Conditions** : « Min »/« Max » collés à chaque champ feraient
   déborder la rangée (libellé + deux `NumberField` + deux mots > largeur utile).
   Au doigt, ces mots sont masqués et remplacés par **deux en-têtes de colonne**
-  posés une fois ; au bureau (`sm:`), chaque champ garde son libellé à côté et
-  les en-têtes disparaissent.
+  posés une fois ; la variante de « Critères » au bureau fait de même (voir
+  [conditions-et-reglages.md](conditions-et-reglages.md)).
 - **Panneau « Options » — tout prend la largeur.** Les conteneurs empilés du
   panneau sont en **`space-y-*` (blocs), pas `flex flex-col`** : le corps du
   panneau porte `data-tiroir`, où index.css pose

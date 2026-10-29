@@ -150,10 +150,11 @@ d'aucune adaptation, `computeStats` sur une base à zéro renvoie déjà des
 lignes à zéro, et `ArtifactSlots`/`RuneWheel` gèrent nativement un tableau
 vide.
 
-⚠️ **Au bureau, la fiche est toujours repliée** (artéfacts, roue de runes
-et relique sous les statistiques ; décision de l'utilisateur) : 356 px
-mesurés avec une relique ATQ ou DEF à deux chiffres, dans les 358 px de
-contenu de la colonne « Monstre ». Le bandeau d'aperçu ou du build validé,
-au-dessus, et « Valider ce build », dessous, ont la largeur de la fiche
-telle qu'affichée (décision de l'utilisateur) : d'un bord à l'autre de sa
-rangée la plus large.
+⚠️ **Au bureau, la fiche est dépliée à la façon des cartes de résultat**
+(décision de l'utilisateur ; axe `carte` de `MonsterGear`, la disposition de
+`BuildCandidateCard`) : le panneau de statistiques resserré à gauche ; à sa
+droite, les artéfacts et la roue, la relique sous la roue ; ce groupe est
+réduit, d'une échelle continue, pour tenir à côté du panneau dans les
+358 px de contenu de la colonne « Monstre ». Le bandeau d'aperçu ou du build
+validé, au-dessus, et « Valider ce build », dessous, prennent la largeur de
+la section.

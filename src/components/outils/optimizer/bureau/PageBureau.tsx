@@ -280,8 +280,11 @@ export default function PageBureau(props: PageBureauProps) {
   const section = (contenu: ReactNode, forme = 'min-w-[294px] flex-[1_1_294px]') => (
     <div className={`${forme} max-w-[420px]`}>{contenu}</div>
   );
+  // ⚠️ `px-2` : les lignes surlignées (une option avancée, le set refusé)
+  // débordent de 8 px de leur section (`-mx-2`, `-m-2`) ; sans cette marge,
+  // une section pleine largeur les faisait sortir de la pile.
   const contenuPile = (cle: ColonneReglage) => (
-    <div data-colonne={cle} className="flex flex-wrap items-start justify-center gap-4">
+    <div data-colonne={cle} className="flex flex-wrap items-start justify-center gap-4 px-2">
       {cle === 'criteres'
         ? <>
             {section(<SetDeplieContext.Provider value={contextePile}>{props.set}</SetDeplieContext.Provider>, 'min-w-[155px] flex-[1_1_155px]')}

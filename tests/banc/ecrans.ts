@@ -117,6 +117,8 @@ export interface Etat {
   atteint: Cible[] | Record<Format, Cible[]>;
   /** Restriction explicite à certaines tailles, sans multiplier les écrans. */
   tailles?: string[];
+  /** Optimizer en tableau : la page choisit sa configuration pour lui laisser la place. */
+  tableau?: true;
 }
 
 export interface Ecran {
@@ -242,6 +244,15 @@ const OPT_RESULTATS: Etape[] = [
   { attendre: bouton('Rechercher'), delaiMs: 30000 },
   { montrer: repere('[data-carte-resultat]:first-child') },
 ];
+// Les mêmes résultats dans l'une ou l'autre forme : le tableau quand il tient,
+// les cartes sinon.
+const RESULTAT_2 = '[data-carte-resultat]:nth-child(2), [data-tableau-resultats] tbody tr:nth-child(2)';
+const OPT_RESULTATS_FORME: Etape[] = [
+  ...OPT_LISTE, OPT_IMPORT,
+  { cliquer: bouton('Rechercher') },
+  { attendre: repere(RESULTAT_2), delaiMs: 30000 },
+  { attendre: bouton('Rechercher'), delaiMs: 30000 },
+];
 const OPT_CARTES = [...OPT_MEMBRES, repere('[data-carte-resultat]:first-child'), repere('[data-carte-resultat]:nth-child(2)')];
 
 function tailleOptimizer(id: string, largeur: number, hauteur: number, optimizer: Taille['optimizer']): Taille {
@@ -259,7 +270,8 @@ function attenduOptimizer(largeur: number, volet = false): NonNullable<Taille['o
   return {
     configuration, conteneur: [largeur, largeur + 1],
     groupe: configuration === 'colonnes' ? [] : configuration === 'criteres-et-groupe' ? ['Artéfacts', 'Options'] : ['Critères', 'Artéfacts', 'Options'],
-    ...(configuration === 'deux-piles' ? { set: 'compact' as const } : {}),
+    // En deux piles, le set est toujours déplié.
+    ...(configuration === 'deux-piles' ? { set: 'deplie' as const } : {}),
     ...(volet ? { volet: true as const } : {}),
   };
 }
@@ -278,7 +290,8 @@ export const TAILLES_OPTIMIZER: Taille[] = [
 ];
 const OPT_BUREAU = TAILLES_OPTIMIZER.filter(t => t.format === 'ordinateur').map(t => t.id);
 const OPT_TOUTES = TAILLES_OPTIMIZER.filter(t => t.optimizer?.configuration === 'colonnes').map(t => t.id);
-const OPT_COMPACTS = TAILLES_OPTIMIZER.filter(t => t.optimizer?.set === 'compact').map(t => t.id);
+// Le set compact : « Critères » trop basse pour le déplier (fenêtre de 730 px).
+const OPT_COMPACTS = ['bureau-portable'];
 
 // Écran des recommandations rempli : le fichier synthétique
 // `tests/fixtures/recommandations-banc.json` (3 listes, 6 decks), chargé par le
@@ -399,10 +412,11 @@ export const ECRANS: Ecran[] = [
         preparation: OPT_RESULTATS, atteint: OPT_CARTES,
       },
       {
-        // Le tableau à partir de sa largeur minimale, les cartes en dessous :
-        // la ligne de comptes est présente dans les deux formes.
-        id: 'resultats-tableau', libelle: 'résultats en tableau (cartes sous la largeur du tableau)', tailles: OPT_BUREAU,
-        preparation: [...OPT_RESULTATS, { cliquer: bouton('Tableau') }],
+        // Le tableau, choisi dans les Paramètres avant la recherche : la page
+        // range ses réglages pour lui laisser sa largeur, les cartes restent
+        // quand il ne tient pas. La ligne de comptes est dans les deux formes.
+        id: 'resultats-tableau', libelle: 'résultats en tableau (cartes sous la largeur du tableau)', tailles: OPT_BUREAU, tableau: true,
+        preparation: [{ cliquer: bouton('Paramètres') }, { cliquer: bouton('Tableau') }, { cliquer: bouton('Fermer les paramètres') }, ...OPT_RESULTATS_FORME],
         atteint: [...OPT_MEMBRES, repere('[data-ligne-comptes]'), repere('[data-forme-resultats="tableau"]')],
       },
       {

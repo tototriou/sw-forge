@@ -331,6 +331,12 @@ export async function verifierOptimizer(page, attendu, guidageSet = false) {
     const pile = racine.querySelector('[data-zone="pile-droite"]');
     const colonnes = [...racine.querySelectorAll('[data-colonne]')].map(el => ({
       nom: el.dataset.colonne, ...rect(el), contenu: el.scrollWidth, interieur: el.clientWidth,
+      // Le premier élément qui dépasse le bord droit : de quoi corriger sans rejouer.
+      depasse: (() => {
+        const bord = el.getBoundingClientRect().right;
+        const fautif = [...el.querySelectorAll('*')].find(e => e.getBoundingClientRect().right > bord + 1);
+        return fautif ? `${fautif.tagName.toLowerCase()}.${String(fautif.className).slice(0, 80)} « ${(fautif.textContent ?? '').trim().slice(0, 40)} »` : null;
+      })(),
     }));
     const setsVisibles = [...racine.querySelectorAll('[data-set-optimizer]')].filter(el => {
       const s = getComputedStyle(el), r = el.getBoundingClientRect();
@@ -397,11 +403,13 @@ export async function verifierOptimizer(page, attendu, guidageSet = false) {
   if (observe.nombreSetsVisibles > 1) refuser('plusieurs sets visibles : cible du guidage ambiguë');
   const [min, max] = attendu.conteneur;
   if (observe.largeur < min - 0.5 || observe.largeur >= max - 0.5) refuser(`conteneur ${observe.largeur} px hors [${min}, ${max}[`);
-  if (observe.configuration !== attendu.configuration) refuser(`${observe.configuration} au lieu de ${attendu.configuration}`);
-  if (JSON.stringify(observe.groupe) !== JSON.stringify(attendu.groupe)) refuser(`onglets ${JSON.stringify(observe.groupe)} au lieu de ${JSON.stringify(attendu.groupe)}`);
+  // `tableau` : la configuration est celle que la page choisit pour lui.
+  if (!attendu.tableau && observe.configuration !== attendu.configuration) refuser(`${observe.configuration} au lieu de ${attendu.configuration}`);
+  if (!attendu.tableau && JSON.stringify(observe.groupe) !== JSON.stringify(attendu.groupe)) refuser(`onglets ${JSON.stringify(observe.groupe)} au lieu de ${JSON.stringify(attendu.groupe)}`);
+  const configuration = attendu.tableau ? observe.configuration : attendu.configuration;
   // La fiche se lit dépliée, comme une carte de résultat : équipement à côté des stats.
   if (observe.fiche !== 'depliee' || !observe.exemplaireDansMonstre) refuser('Exemplaire doit être déplié dans Monstre');
-  if (attendu.set && observe.set && observe.set !== attendu.set) refuser(`set ${observe.set} au lieu de ${attendu.set}`);
+  if (!attendu.tableau && attendu.set && observe.set && observe.set !== attendu.set) refuser(`set ${observe.set} au lieu de ${attendu.set}`);
   if (!observe.setGuideVisible || (guidageSet && (observe.nombreSetsVisibles !== 1 || !observe.setInvalide))) {
     refuser(`le guidage sans set ne montre pas le set (${JSON.stringify({ nombre: observe.nombreSetsVisibles, surligne: observe.setInvalide, set: observe.setRect, surface: observe.surfaceSet, visible: observe.surfaceVisible })})`);
   }
@@ -411,9 +419,10 @@ export async function verifierOptimizer(page, attendu, guidageSet = false) {
   if (attendu.volet && (observe.volets.length !== 2 || Math.abs(observe.volets[0].largeur - observe.volets[1].largeur) > 1)) refuser('les deux volets ne sont pas à parts égales');
   const noms = observe.colonnes.map(c => c.nom);
   if (new Set(noms).size !== noms.length) refuser('un réglage est monté deux fois');
-  if (observe.colonnes.some(c => c.contenu > c.interieur + 1)) refuser('une colonne déborde horizontalement');
-  if (attendu.configuration === 'colonnes' && JSON.stringify(noms) !== JSON.stringify(['criteres', 'artefacts', 'complements'])) refuser('les trois colonnes de réglages ne sont pas visibles');
-  if (attendu.configuration === 'deux-piles' && (!observe.pile || !observe.monstre || Math.abs(observe.pile.y - observe.monstre.y) > 1 || observe.pile.x <= observe.monstre.x)) refuser('les deux piles ne sont pas côte à côte');
+  const deborde = observe.colonnes.find(c => c.contenu > c.interieur + 1);
+  if (deborde) refuser(`une colonne déborde horizontalement (${deborde.nom} : ${deborde.depasse ?? 'élément non trouvé'})`);
+  if (configuration === 'colonnes' && JSON.stringify(noms) !== JSON.stringify(['criteres', 'artefacts', 'complements'])) refuser('les trois colonnes de réglages ne sont pas visibles');
+  if (configuration === 'deux-piles' && (!observe.pile || !observe.monstre || Math.abs(observe.pile.y - observe.monstre.y) > 1 || observe.pile.x <= observe.monstre.x)) refuser('les deux piles ne sont pas côte à côte');
   return observe;
 }
 

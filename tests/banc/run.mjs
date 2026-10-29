@@ -493,7 +493,11 @@ async function principal(etat) {
             if (prep.length) await attendrePose(page);
             await verifierAtteint(page, atteintPour(st, format));
             resultat.medias = await page.evaluate(medias);
-            resultat.optimizer = await verifierOptimizer(page, taille.optimizer, st.id === 'guidage-set');
+            // En tableau, la page choisit une autre configuration que celle de
+            // la taille (testOptimizerColonnesTableau la prouve) : le banc garde
+            // ses autres contrôles, pas celui de la configuration.
+            const attenduOptimizer = st.tableau && taille.optimizer ? { ...taille.optimizer, tableau: true } : taille.optimizer;
+            resultat.optimizer = await verifierOptimizer(page, attenduOptimizer, st.id === 'guidage-set');
           } catch (err) {
             resultat.statut = 'non atteint';
             resultat.cause =

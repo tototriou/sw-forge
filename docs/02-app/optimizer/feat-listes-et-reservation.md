@@ -145,7 +145,8 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   au téléphone, juste sous les puces d'aperçu
   dans « Monstre & équipement » : chaque monstre de la liste active, son
   statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable
-  pour rappeler son exemplaire et ses critères personnels mémorisés dans la
+  pour rappeler son exemplaire (la carte du monstre affiché est mise en
+  évidence : contour et fond de l'accent) et ses critères personnels mémorisés dans la
   recherche. Sans mémoire applicable, les critères prennent les défauts
   complets de l'Optimizer, même pour la même espèce ; les résultats affichés
   sont effacés. Voir

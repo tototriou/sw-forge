@@ -28,6 +28,9 @@ export interface MonstresDeLaListeProps {
   runeById: Map<number, RuneDetail>;
   artifactById: Map<number, ArtifactDetail>;
   choisirMembreDeLaListe: (m: OptimizerListMember, resolved: { monster: Monster; gear: GearSet; } | null) => void;
+  // Clé (`exclusionSelectorKey`) de l'exemplaire affiché : sa carte est
+  // mise en évidence dans la liste.
+  membreChoisi: string | null;
   setReleaseConfirm: Dispatch<SetStateAction<{ listId: string; selector: ExclusionSelector; } | null>>;
   setReleaseArtifactsConfirm: Dispatch<SetStateAction<{ listId: string; selector: ExclusionSelector; } | null>>;
   setRemoveMemberConfirm: Dispatch<SetStateAction<{ listId: string; selector: ExclusionSelector; } | null>>;
@@ -42,7 +45,7 @@ export interface MonstresDeLaListeProps {
   enTete?: ReactNode;
 }
 
-export default function MonstresDeLaListe({ activeList, activeMembers, setEquipeOuverte, lists, optimizer, exclusionData, artifacts, rapportZoneC, groupesMembres, runeById, artifactById, choisirMembreDeLaListe, setReleaseConfirm, setReleaseArtifactsConfirm, setRemoveMemberConfirm, rappelAuras, listHasValidated, setReleaseAllConfirm, enTete }: MonstresDeLaListeProps) {
+export default function MonstresDeLaListe({ activeList, activeMembers, setEquipeOuverte, lists, optimizer, exclusionData, artifacts, rapportZoneC, groupesMembres, runeById, artifactById, choisirMembreDeLaListe, membreChoisi, setReleaseConfirm, setReleaseArtifactsConfirm, setRemoveMemberConfirm, rappelAuras, listHasValidated, setReleaseAllConfirm, enTete }: MonstresDeLaListeProps) {
   // Au téléphone, le titre nomme la liste et son compte ; au bureau
   // (`enTete`), aucun titre : « Liste active » nomme la liste juste au-dessus.
   const titre = (
@@ -114,10 +117,15 @@ export default function MonstresDeLaListe({ activeList, activeMembers, setEquipe
             const build = findValidatedBuild(lists.validated, lists.activeListId, key);
             const absentes = build ? runesManquantesDuBuild(build, runeById) : [];
             const artsAbsents = build ? artefactsManquantsDuBuild(build, artifactById) : [];
+            const choisi = key === membreChoisi;
             return (
               // Chaque monstre garde sa carte, au bureau aussi (décision de
               // l'utilisateur : plus lisible que des lignes sous un trait).
-              <div key={key} data-membre-optimizer={resolved?.monster.com2usId} className="flex flex-wrap items-center gap-x-2 rounded-lg border border-border-soft bg-panel/60 px-2 py-1.5">
+              // Le monstre affiché se repère d'un coup d'œil (décision de
+              // l'utilisateur) : seules les couleurs du contour et du fond
+              // changent, la carte ne bouge pas.
+              <div key={key} data-membre-optimizer={resolved?.monster.com2usId} aria-current={choisi || undefined}
+                className={`flex flex-wrap items-center gap-x-2 rounded-lg border px-2 py-1.5 ${choisi ? 'border-accent/60 bg-accent-soft' : 'border-border-soft bg-panel/60'}`}>
                 <ZoneCliquable
                   imbrique
                   disabled={!resolved}

@@ -84,7 +84,7 @@ function ListeGabarit({ ctx, mode }: { ctx: ContexteGabarits; mode: 'vide' | 're
       liste={{
         activeList, activeMembers, groupesMembres, lists, optimizer, exclusionData: ctx.exclusionData, artifacts: ctx.artifacts,
         setEquipeOuverte: rien, rapportZoneC: mode === 'reelle' ? [...ctx.lists.rapportStockage, ...ctx.optimizer.rapportCriteres] : [],
-        runeById, artifactById, choisirMembreDeLaListe: (_m, resolved) => setActif(resolved?.monster ?? null),
+        runeById, artifactById, choisirMembreDeLaListe: (_m, resolved) => setActif(resolved?.monster ?? null), membreChoisi: null,
         setReleaseConfirm: rien, setReleaseArtifactsConfirm: rien, setRemoveMemberConfirm: rien, rappelAuras: false,
         listHasValidated: activeList != null && lists.validated.some((v) => v.listId === activeList.id), setReleaseAllConfirm: rien,
       }}

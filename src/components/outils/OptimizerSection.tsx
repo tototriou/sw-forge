@@ -2789,6 +2789,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     runeById,
     artifactById,
     choisirMembreDeLaListe,
+    membreChoisi: ownSelectorKey,
     setReleaseConfirm,
     setReleaseArtifactsConfirm,
     setRemoveMemberConfirm,

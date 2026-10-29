@@ -125,8 +125,8 @@ export function testRenduOptimizerVide() {
   ok(!t.includes('Réglages avancés') && !t.includes('Exclusion de runes') && !t.includes('Sets d\'aura des autres monstres'),
     '« Réglages avancés », « Exclusion de runes » et les sets d\'aura attendent l\'ouverture de leur colonne');
   ok(valeurs(html, 'placeholder').includes('Rechercher un monstre…'), 'la recherche du monstre à optimiser');
-  ok(/Liste active Aucune liste — choisir ou créer .*Importer une équipe.* Ajouter un monstre à la liste/.test(t) && !t.includes('Monstres de la liste'),
-    'les listes de travail : liste active et import sur une ligne, puis la zone des membres, dont le titre nomme le champ qui le suit');
+  ok(/Liste active Aucune liste — choisir ou créer .*Importer une équipe/.test(t) && !t.includes('Ajouter un monstre à la liste') && !t.includes('Monstres de la liste'),
+    'les listes de travail : liste active et import sur une ligne, puis la zone des membres, sans titre au-dessus de la recherche');
   ok(['Exemplaire', 'Build actuel', 'Build validé', 'Voir aussi', SOURCES].every(libelle => t.includes(libelle)), 'l\'exemplaire, ses vues et ses quatre sources d’aperçu');
   ok(bouton(html, 'Valider ce build')?.desactive === true, '« Valider ce build » désactivé sans résultat');
   ok(bouton(html, 'Rechercher')?.desactive === true, '« Rechercher » désactivé sans monstre');
@@ -152,10 +152,10 @@ export function testRenduOptimizerMonstre() {
     'ses stats : base et bonus de l\'équipement pour PV, ATQ, DEF et VIT, le total pour les autres');
   ok(t.includes('Relique PV +11%'), 'sa relique');
   ok(bouton(html, 'Build validé')?.desactive === true, 'Build validé indisponible sans build réservé');
-  // Replié (rendu serveur : la forme compacte), le titre ne porte pas le
-  // compte ; la grille de la surface porte le sien.
-  ok(!t.includes('Set de runes recherché 4/6 runes') && !!bouton(html, 'Set de runes recherché : Violent') && t.includes('4/6 runes'),
-    'le set choisi et son coût en runes, dans la grille de la surface');
+  // Déplié (rendu serveur), le titre ne porte pas le compte ; la grille, sous
+  // le jeton du set choisi, porte le sien.
+  ok(t.includes('Set de runes recherché Violent 4/6 runes Set principal Set secondaire') && !bouton(html, 'Set de runes recherché : Violent'),
+    'le set choisi et son coût en runes, dans la grille dépliée');
   ok(!!b.find((x) => x.ariaLabel === 'Retirer Violent'), 'retirer le set choisi');
   for (const set of ['Swift', 'Despair', 'Rage', 'Fatal', 'Vampire'])
     ok(b.find((x) => x.ariaLabel === set)?.desactive === true, `${set} (4 pièces) désactivé : il ne reste pas la place`);
@@ -165,8 +165,9 @@ export function testRenduOptimizerMonstre() {
     'la statistique principale imposée, une liste par slot');
   ok(t.includes('Conditions Stats de base exclues'), 'les conditions, stats de base exclues');
   ok(
-    t.includes('Min Max PV Min Max ATQ Min Max DEF Min Max VIT Min Max Taux Crit % Min % Max Dmg Crit % Min % Max RES % Min % Max Précision % Min % Max'),
-    `un minimum et un maximum pour chacune des huit stats (${STATS_CONDITIONS.join(', ')})`,
+    // Variante bureau : « Min » et « Max » en en-têtes de colonnes, une fois.
+    t.includes('Min Max PV ATQ DEF VIT Taux Crit % % Dmg Crit % % RES % % Précision % %'),
+    `un minimum et un maximum pour chacune des huit stats, sous les en-têtes Min et Max (${STATS_CONDITIONS.join(', ')})`,
   );
   ok(!!bouton(html, 'Réinitialiser les conditions'), 'réinitialiser les conditions');
   // ⚠️ La v1.14.0 a fait entrer la relique dans ce

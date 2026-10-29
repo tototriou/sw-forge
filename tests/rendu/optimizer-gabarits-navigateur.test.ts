@@ -1,5 +1,6 @@
 import { navigateurOptimizer } from './optimizer-navigable-banc';
 import { egal, ok, titre } from '../outils';
+import { colonnesCoffre } from '../../src/lib/coffreSets';
 
 // Le sens des listes à choix multiples des essentiels du bureau, après de vrais
 // clics : un rendu serveur n'exécute aucun gestionnaire.
@@ -16,8 +17,11 @@ export async function testRenduOptimizerGabaritsGestes() {
     const ouvert = async () => (await declencheur.getAttribute('aria-expanded')) === 'true';
     await declencheur.click();
     ok(await ouvert(), 'set : la liste s’ouvre au clic');
-    // La grille ouverte, dans son coffre en creux : Set secondaire sur 4
-    // colonnes, les deux groupes au même écart des deux bords du coffre.
+    // La grille ouverte, dans son coffre en creux : les colonnes que la largeur
+    // du coffre permet (`colonnesCoffre`), les deux groupes au même écart des
+    // deux bords du coffre. La surface prend la largeur de son ancre après son
+    // premier placement : on attend que le coffre ait relu sa largeur.
+    await page.waitForTimeout(150);
     const coffre = await page.evaluate(() => {
       const titreSecondaire = [...document.querySelectorAll('p')].find((p) => p.textContent === 'Set secondaire')!;
       const groupe = titreSecondaire.parentElement!, boite = groupe.parentElement!;
@@ -28,10 +32,12 @@ export async function testRenduOptimizerGabaritsGestes() {
         principales: getComputedStyle(boite.firstElementChild!.querySelector('.grid')!).gridTemplateColumns.split(' ').length,
         gauche: Math.round(premier.left - b.left - parseFloat(s.paddingLeft)), droite: Math.round(b.right - parseFloat(s.paddingRight) - dernier.right),
         contour: s.borderTopWidth, fond: s.backgroundColor,
+        contenu: boite.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight),
       };
     });
-    ok(coffre.principales === 3 && coffre.colonnes === 4 && Math.abs(coffre.gauche - coffre.droite) <= 1 && coffre.contour === '0px' && coffre.fond !== 'rgba(0, 0, 0, 0)',
-      `set : coffre centré, sans contour, grilles de 3 + 4 colonnes (${JSON.stringify(coffre)})`);
+    const attendues = colonnesCoffre(coffre.contenu);
+    ok(coffre.principales === attendues.principal && coffre.colonnes === attendues.secondaire && Math.abs(coffre.gauche - coffre.droite) <= 1 && coffre.contour === '0px' && coffre.fond !== 'rgba(0, 0, 0, 0)',
+      `set : coffre centré, sans contour, grilles de ${attendues.principal} + ${attendues.secondaire} colonnes selon sa largeur (${JSON.stringify(coffre)})`);
     await page.getByRole('button', { name: 'Violent', exact: true }).click();
     await page.waitForTimeout(100);
     ok(await ouvert(), 'set : la liste reste ouverte après un set de 4 (Violent)');
@@ -118,28 +124,28 @@ export async function testRenduOptimizerGabaritsLargeurs() {
   const { browser, page } = await navigateurOptimizer(false, 'tests/rendu/optimizer-gabarits-banc.tsx');
   const monterA = (nom: string, largeur: number) => `globalThis.bancOptimizer.monter(${JSON.stringify(nom)}, ${largeur})`;
   try {
-    // La fiche reste repliée au bureau, même si son contenant s'élargit.
+    // La fiche se lit dépliée, comme une carte de résultat : le groupe à côté
+    // du panneau de stats, dans la section, et « Valider ce build » sur toute
+    // la largeur de la section.
     const fiche = () => page.evaluate(() => {
+      const section = document.querySelector('[data-fiche-optimizer]')!.getBoundingClientRect();
       const bouton = document.querySelector('[data-valider]')!.getBoundingClientRect();
-      const racine = document.querySelector('[data-valider]')!.parentElement!.querySelector('.flex-wrap')!;
+      const racine = document.querySelector('[data-fiche-optimizer] .flex-nowrap')!;
       const [stats, groupe] = [...racine.children].map((e) => e.getBoundingClientRect());
       const r = (n: number) => Math.round(n);
-      // [gauche, droite, haut, bas]
-      return { bouton: [r(bouton.left), r(bouton.right)], stats: [r(stats.left), r(stats.right), r(stats.top), r(stats.bottom)], groupe: [r(groupe.left), r(groupe.right), r(groupe.top)] };
+      return {
+        section: [r(section.left), r(section.right)], bouton: [r(bouton.left), r(bouton.right)],
+        stats: [r(stats.left), r(stats.right), r(stats.top), r(stats.bottom)], groupe: [r(groupe.left), r(groupe.right), r(groupe.top)],
+      };
     });
-    await page.evaluate(monterA('exemplaire', 598));
-    await page.waitForTimeout(100);
-    const largeFiche = await fiche();
-    const largeurFiche = Math.max(largeFiche.stats[1] - largeFiche.stats[0], largeFiche.groupe[1] - largeFiche.groupe[0]);
-    ok(largeFiche.groupe[2] >= largeFiche.stats[3] && Math.abs(largeFiche.bouton[1] - largeFiche.bouton[0] - largeurFiche) <= 1,
-      `exemplaire à 598 px : fiche repliée, Valider à la largeur de la plus large rangée (${JSON.stringify(largeFiche)})`);
-    await page.evaluate(monterA('exemplaire', 420));
-    await page.waitForTimeout(100);
-    const replie = await fiche();
-    const plusLarge = Math.max(replie.stats[1] - replie.stats[0], replie.groupe[1] - replie.groupe[0]);
-    ok(replie.groupe[2] >= replie.stats[3] && Math.abs(replie.bouton[1] - replie.bouton[0] - plusLarge) <= 1,
-      `exemplaire à 420 px : fiche repliée, « Valider ce build » à la largeur de sa rangée la plus large, ${plusLarge} px (${JSON.stringify(replie)})`);
-    ok(JSON.stringify(replie) === JSON.stringify(largeFiche), 'exemplaire : élargir son contenant ne change ni la fiche ni le bouton');
+    for (const largeur of [358, 598]) {
+      await page.evaluate(monterA('exemplaire', largeur));
+      await page.waitForTimeout(100);
+      const f = await fiche();
+      ok(f.groupe[0] >= f.stats[1] && f.groupe[2] < f.stats[3] && f.stats[0] >= f.section[0] - 1 && f.groupe[1] <= f.section[1] + 1
+        && f.bouton[0] === f.section[0] && f.bouton[1] === f.section[1],
+      `exemplaire à ${largeur} px : fiche dépliée dans la section, « Valider ce build » sur toute sa largeur (${JSON.stringify(f)})`);
+    }
 
     // « Rechercher », forme large : à droite d'« Exporter » · « Importer » sur
     // leur rangée ; dessous, pleine largeur, quand la rangée fait moins de 448 px.

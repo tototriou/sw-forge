@@ -82,7 +82,7 @@ sans relance automatique ni reconstruction d'un résultat depuis l'écran.
     `auto-fill` en fait tenir deux dès que la grille dépasse deux fois 360 px
     plus le creux, davantage sur un écran large. Plus étroite, la grille
     garde une carte, à toute sa largeur : au bureau, la colonne de droite
-    descend jusqu'à 356 px de contenu (fiche d'« Exemplaire » repliée), où
+    descend jusqu'à 356 px de contenu, où
     la carte tient sans déborder (mesuré, relique comprise). La bascule base+bonus ↔ total ne
     déplace jamais les artéfacts, la roue ou la relique voisins : `StatPanel` a une **largeur
     fixe** (`w-[200px]`, voir [rta/feat-sections-runes.md](../../rta/feat-sections-runes.md)).

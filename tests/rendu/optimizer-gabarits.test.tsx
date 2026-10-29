@@ -82,9 +82,11 @@ export function testRenduOptimizerGabaritsComposants() {
     && aDroiteDuTitre(deplieViolent) === '' && (texteVisible(deplieViolent).match(/4\/6 runes/g) ?? []).length === 1
     && aDroiteDuTitre(rendre(<SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid={false} comboSets={['violent']} onChangeSets={rien} />)) === '',
   'set déplié : la grille du téléphone à la place de la liste, son compte le seul, rien à droite du titre (compact : rien non plus)');
-  ok(/class="mt-2 grid gap-0 grid-cols-\[auto_auto\] justify-center rounded-lg bg-panel2 p-2"/.test(deplieViolent) && /grid grid-cols-3 gap-1/.test(deplieViolent) && /grid grid-cols-4 gap-1/.test(deplieViolent)
+  // Avant toute mesure (rendu serveur), 3 + 4 colonnes au prorata de la largeur du coffre.
+  ok(/class="mt-2 grid gap-0 rounded-lg bg-panel2 p-2" style="grid-template-columns:minmax\(min-content,3fr\) minmax\(min-content,4fr\)"/.test(deplieViolent)
+    && /grid-template-columns:repeat\(3, minmax\(2rem, 1fr\)\)/.test(deplieViolent) && /grid-template-columns:repeat\(4, minmax\(2rem, 1fr\)\)/.test(deplieViolent)
     && !/class="mt-2 grid gap-0 [^"]*border/.test(deplieViolent),
-  'set déplié : coffre en creux, centré, principal sur 3 colonnes et secondaire sur 4');
+  'set déplié : coffre en creux, sur toute sa largeur, principal sur 3 colonnes et secondaire sur 4 avant mesure');
   ok(aDroiteDuTitre(deplie(true, [])) === message, 'set déplié refusé : le message à droite du titre');
   const repete = rendre(<SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid={false} comboSets={['blade', 'blade', 'fight']} onChangeSets={rien} />);
   ok(!!bouton(repete, 'Set de runes recherché : Blade, Blade, Fight'), 'set : un même set choisi deux fois se résume deux fois');
@@ -148,7 +150,7 @@ export function testRenduOptimizerGabaritsVue() {
   const vide = texteVisible(liste.split('data-etat="vide"')[1].split('data-etat=')[0]);
   // Au bureau, la liste active se lit au bouton « Liste active » ; le titre de la carte nomme le champ, jamais la liste.
   ok(vide.includes('Aucun monstre dans cette liste pour l\'instant.') && vide.includes('Liste active Défense G3 - ')
-    && vide.includes('Ajouter un monstre à la liste') && !vide.includes('Monstres de « Défense G3 »'), 'liste vide : la liste active, sans membre');
+    && !vide.includes('Ajouter un monstre à la liste') && !vide.includes('Monstres de « Défense G3 »'), 'liste vide : la liste active, sans membre ni titre au-dessus de la recherche');
   const remplie = liste.split('data-etat="remplie"')[1].split('data-etat=')[0];
   ok(texteVisible(remplie).includes('Équipe 1') && texteVisible(remplie).includes('Sans équipe'), 'liste remplie : une équipe et des membres sans équipe');
   ok(/placeholder="Rechercher un monstre/.test(remplie), 'liste : « Rechercher un monstre… » dans la carte de la liste');

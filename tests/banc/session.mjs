@@ -399,7 +399,8 @@ export async function verifierOptimizer(page, attendu, guidageSet = false) {
   if (observe.largeur < min - 0.5 || observe.largeur >= max - 0.5) refuser(`conteneur ${observe.largeur} px hors [${min}, ${max}[`);
   if (observe.configuration !== attendu.configuration) refuser(`${observe.configuration} au lieu de ${attendu.configuration}`);
   if (JSON.stringify(observe.groupe) !== JSON.stringify(attendu.groupe)) refuser(`onglets ${JSON.stringify(observe.groupe)} au lieu de ${JSON.stringify(attendu.groupe)}`);
-  if (observe.fiche !== 'repliee' || !observe.exemplaireDansMonstre) refuser('Exemplaire doit être replié dans Monstre');
+  // La fiche se lit dépliée, comme une carte de résultat : équipement à côté des stats.
+  if (observe.fiche !== 'depliee' || !observe.exemplaireDansMonstre) refuser('Exemplaire doit être déplié dans Monstre');
   if (attendu.set && observe.set && observe.set !== attendu.set) refuser(`set ${observe.set} au lieu de ${attendu.set}`);
   if (!observe.setGuideVisible || (guidageSet && (observe.nombreSetsVisibles !== 1 || !observe.setInvalide))) {
     refuser(`le guidage sans set ne montre pas le set (${JSON.stringify({ nombre: observe.nombreSetsVisibles, surligne: observe.setInvalide, set: observe.setRect, surface: observe.surfaceSet, visible: observe.surfaceVisible })})`);

@@ -253,35 +253,29 @@ export default function PageBureau(props: PageBureauProps) {
     if (guideCriteres != null) onOnglet(ongletOuvert(courant.current.groupe, courant.current.actif, 'criteres'));
   }, [guideCriteres, onOnglet]);
   const setDeplie = useSetDeplie(!disposition.deuxPiles);
-  // En deux piles, la pile défile d'un bloc : le set se déplie dès que
-  // « Critères » pose deux sections par rangée (le set à côté des
-  // Conditions), mesuré sur la largeur de ses sections.
-  const [pileCriteresLarge, setPileCriteresLarge] = useState(false);
-  const observateurPile = useRef<ResizeObserver | null>(null);
-  const pileCriteres = useCallback((el: HTMLDivElement | null) => {
-    observateurPile.current?.disconnect();
-    observateurPile.current = null;
-    if (!el || typeof ResizeObserver === 'undefined') return;
-    const lire = () => setPileCriteresLarge(el.clientWidth >= 2 * 294 + 16);
-    lire();
-    observateurPile.current = new ResizeObserver(lire);
-    observateurPile.current.observe(el);
-  }, []);
-  const contextePile = useMemo(() => ({ deplie: pileCriteresLarge, reporterEcart: () => {} }), [pileCriteresLarge]);
+  // En deux piles, la pile défile d'un bloc : la hauteur ne compte pas, le
+  // set est toujours déplié, et sa grille passe sur plus de lignes quand la
+  // pile se resserre.
+  const contextePile = useMemo(() => ({ deplie: true, reporterEcart: () => {} }), []);
   const contenus: Record<ColonneReglage, ReactNode> = {
     criteres: <><SetDeplieContext.Provider value={setDeplie.contexte}>{props.set}</SetDeplieContext.Provider>{props.conditions}{props.principales}{props.etat}</>,
     artefacts: <>{props.artefacts}{props.meilleurs}</>,
     complements: <>{props.auras}{props.exclusion}{props.avances}</>,
   };
-  // En deux piles seulement, les sections fixes se partagent les rangées
-  // tant que 294 px chacune tiennent. Leur ordre reste celui du DOM.
+  // En deux piles seulement, les sections se partagent les rangées tant que
+  // 294 px chacune tiennent, centrées dans le panneau ; chacune s'élargit pour
+  // remplir sa rangée sans s'étirer au-delà de 420 px (640 pour le set, dont
+  // la grille gagne des colonnes). Leur ordre reste celui du DOM.
+  const section = (contenu: ReactNode, large = false) => (
+    <div className={`min-w-[294px] flex-[1_1_294px] ${large ? 'max-w-[640px]' : 'max-w-[420px]'}`}>{contenu}</div>
+  );
   const contenuPile = (cle: ColonneReglage) => (
-    <div ref={cle === 'criteres' ? pileCriteres : undefined} data-colonne={cle} className="flex flex-wrap items-start gap-4">
+    <div data-colonne={cle} className="flex flex-wrap items-start justify-center gap-4">
       {cle === 'criteres'
-        ? <><div className="w-[294px]"><SetDeplieContext.Provider value={contextePile}>{props.set}</SetDeplieContext.Provider></div><div className="w-[294px]">{props.conditions}</div><div className="w-[294px]">{props.principales}</div><div className="w-[294px]">{props.etat}</div></>
+        ? <>{section(<SetDeplieContext.Provider value={contextePile}>{props.set}</SetDeplieContext.Provider>, true)}{section(props.conditions)}{section(props.principales)}{section(props.etat)}</>
         : cle === 'artefacts'
-          ? <><div className="w-[294px]">{props.artefacts}</div>{props.meilleurs && <div className="w-[294px]">{props.meilleurs}</div>}</>
-          : <><div className="w-[294px]">{props.auras}</div><div className="w-[294px]">{props.exclusion}</div><div className="w-[294px]">{props.avances}</div></>}
+          ? <>{section(props.artefacts)}{props.meilleurs && section(props.meilleurs)}</>
+          : <>{section(props.auras)}{section(props.exclusion)}{section(props.avances)}</>}
     </div>
   );
   // La ligne de base des onglets s'arrête au rayon du coin haut droit du

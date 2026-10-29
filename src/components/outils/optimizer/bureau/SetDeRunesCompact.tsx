@@ -82,7 +82,7 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
           ) : null}
         </div>
         {deplie ? (
-          <div className="mx-auto max-w-md"><SetComboPicker sets={comboSets} onChange={onChangeSets} reserverJetons coffre /></div>
+          <SetComboPicker sets={comboSets} onChange={onChangeSets} reserverJetons coffre />
         ) : (
         <SelecteurMultiple
           libelle="Set de runes recherché"
@@ -112,7 +112,7 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
       {page && (
         <div aria-hidden className="pointer-events-none h-0 overflow-hidden">
           <div className="invisible">
-            <div ref={copieGrille} className="mx-auto max-w-md"><SetComboPicker sets={[]} onChange={() => {}} reserverJetons coffre /></div>
+            <div ref={copieGrille}><SetComboPicker sets={[]} onChange={() => {}} reserverJetons coffre /></div>
             <div ref={copieListe}>
               <SelecteurMultiple libelle="Set de runes recherché" vide="Aucun" surface={null} />
             </div>

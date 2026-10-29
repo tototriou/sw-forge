@@ -241,7 +241,11 @@ colonne. Chaque configuration vaut sur une plage `[a, b[` :
   une seule pile qui défile, le groupe d'onglets, le bloc « Objectif et
   Rechercher », puis les résultats. Les deux piles valent jusqu'au plus
   petit conteneur de bureau (752 px) : la pile de droite y prend ce qui
-  reste, 352 px au moins, sans débordement.
+  reste, 352 px au moins, sans débordement. ⚠️ **Dans le panneau du
+  groupe, les sections se partagent les rangées**, 294 px au moins
+  chacune, **centrées**, et s'élargissent pour remplir leur rangée sans
+  dépasser 420 px — 640 pour le set de runes, toujours déplié, dont la
+  grille gagne des colonnes (décision de l'utilisateur).
 
 Chaque seuil se pose là où la configuration suivante tient : 1 768 =
 « Monstre » 384 + trois fois (gouttière 16 + 320) + gouttière 16 +
@@ -285,8 +289,8 @@ fois. Au bureau, chacun est une section de 294 px du panneau, sans en-tête
 (ni titre, ni icône, ni phrase d'accroche : le téléphone garde les siens
 dans le panneau « Options »), à la suite de « Sets d'aura des autres
 monstres » : empilés dans une colonne ou un groupe de 320 px ; côte à côte,
-tant qu'ils tiennent, quand le groupe prend la largeur de la pile de droite
-(deux piles).
+tant qu'ils tiennent, centrés et élargis jusqu'à 420 px, quand le groupe
+prend la largeur de la pile de droite (deux piles).
 
 « Exclusion de runes » garde au bureau l'ordre empilé du panneau : « Exclure
 les runes d'un monstre », puis « Exclure les runes déjà utilisées », puis,

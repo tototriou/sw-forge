@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import { Onglets } from '../../../../ui';
-import { HAUT_FIXE, PANNEAU, SECTIONS, coinsDuPanneau } from './panneau';
+import { COIN_RACCORD, HAUT_FIXE, HAUT_FIXE_RACCORD, PANNEAU, SECTIONS, coinsDuPanneau } from './panneau';
 import { type PartieObjectif } from './ObjectifEtRechercherBureau';
 import { SetDeplieContext } from './setDeplie';
 import { configurationBureau, ongletOuvert, LARGEURS_BUREAU, RETRAIT_PANNEAU, type ColonneReglage } from '../../../../lib/optimizerColonnes';
@@ -143,7 +143,8 @@ function Colonne({ place, children, surMesure, zone, colonne, raccord = false }:
         mesureRef.current?.({ boite: b.clientHeight, naturelle: dernier.getBoundingClientRect().bottom - i.getBoundingClientRect().top
           + (parseFloat(s.paddingBottom) || 0) + (parseFloat(s.borderBottomWidth) || 0) });
       }
-      setCoins(coinsDuPanneau(i.getBoundingClientRect().width, parseFloat(getComputedStyle(i).borderTopLeftRadius) || 0));
+      const s = getComputedStyle(i);
+      setCoins(coinsDuPanneau(i.getBoundingClientRect().width, parseFloat(s.borderTopRightRadius) || 0, parseFloat(s.borderTopLeftRadius) || 0));
     };
     lire();
     const obs = new ResizeObserver(lire);
@@ -156,7 +157,7 @@ function Colonne({ place, children, surMesure, zone, colonne, raccord = false }:
       style={{ width: place == null ? '100%' : place + 6, clipPath: coins }}>
       <div ref={interieur}
         style={{ width: place == null ? 'calc(100% - 4px)' : place - RETRAIT_PANNEAU }}
-        className={`flex min-h-full flex-col ${PANNEAU} ${HAUT_FIXE} ${SECTIONS} ${raccord ? 'rounded-t-none before:rounded-t-none' : ''}`}>
+        className={`flex min-h-full flex-col ${PANNEAU} ${raccord ? HAUT_FIXE_RACCORD : HAUT_FIXE} ${SECTIONS}`}>
         {children}
       </div>
     </div>
@@ -268,7 +269,9 @@ export default function PageBureau(props: PageBureauProps) {
           : <><div className="w-[294px]">{props.auras}</div><div className="w-[294px]">{props.exclusion}</div><div className="w-[294px]">{props.avances}</div></>}
     </div>
   );
-  const onglets = <Onglets aria-label="Réglages de recherche" valeur={actif ?? 'criteres'}
+  // La ligne de base des onglets s'arrête au rayon du coin haut droit du
+  // panneau, qui la prolonge en arrondi (`HAUT_FIXE_RACCORD`, `COIN_RACCORD`).
+  const onglets = <Onglets aria-label="Réglages de recherche" valeur={actif ?? 'criteres'} className="pr-[var(--radius-xl)]"
     options={disposition.groupe.map(cle => ({ cle, ...NOMS[cle] }))} onChange={onOnglet} />;
   // Comme une colonne fixe, le groupe prend 326 px dans sa piste de 320 :
   // panneau 312 + écart 4 + barre 10, puis 10 px libres jusqu'à la piste
@@ -278,7 +281,7 @@ export default function PageBureau(props: PageBureauProps) {
       style={disposition.deuxPiles ? undefined : { width: LARGEURS_BUREAU.reglage + 6 }}>
       <div className="flex-none" style={disposition.deuxPiles ? undefined : { width: LARGEURS_BUREAU.reglage - RETRAIT_PANNEAU }}>{onglets}</div>
       {disposition.deuxPiles
-        ? <div role="tabpanel" aria-label={NOMS[actif].title} className={`${PANNEAU} rounded-t-none border-t-0`}>{contenuPile(actif)}</div>
+        ? <div role="tabpanel" aria-label={NOMS[actif].title} className={`${PANNEAU} ${COIN_RACCORD}`}>{contenuPile(actif)}</div>
         : <div role="tabpanel" aria-label={NOMS[actif].title} className="min-h-0 flex-1">
             <Colonne place={LARGEURS_BUREAU.reglage} colonne={actif} raccord surMesure={actif === 'criteres' ? setDeplie.surMesure : undefined}>{contenus[actif]}</Colonne>
           </div>}

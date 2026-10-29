@@ -118,6 +118,11 @@ export default function MonstresDeLaListe({ activeList, activeMembers, setEquipe
             const absentes = build ? runesManquantesDuBuild(build, runeById) : [];
             const artsAbsents = build ? artefactsManquantsDuBuild(build, artifactById) : [];
             const choisi = key === membreChoisi;
+            // ⚠️ Sur le voile du monstre affiché, le gris le plus clair, l'ambre
+            // et la braise passent sous 4,5:1 : ses textes secondaires prennent
+            // le gris moyen, les pictogrammes gardent leur couleur.
+            const encreFaible = choisi ? 'text-ink-dim' : 'text-ink-dimmer';
+            const couleurStatut = absentes.length || artsAbsents.length ? 'text-warn' : 'text-accent';
             return (
               // Chaque monstre garde sa carte, au bureau aussi (décision de
               // l'utilisateur : plus lisible que des lignes sous un trait).
@@ -139,16 +144,16 @@ export default function MonstresDeLaListe({ activeList, activeMembers, setEquipe
                   <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-ink">
                     {resolved?.monster.name ?? 'Introuvable'}
                     {m.selector.source === 'unowned' && (
-                      <span className="ml-1 text-[10px] font-normal text-ink-dimmer">(non possédé)</span>
+                      <span className={`ml-1 text-[10px] font-normal ${encreFaible}`}>(non possédé)</span>
                     )}
                   </span>
                 </ZoneCliquable>
                 <OptimizerLeadInactif motif={motif} />
                 {build ? (
                   <>
-                    <span className={`flex flex-none items-center gap-1 text-[10.5px] font-semibold ${absentes.length || artsAbsents.length ? 'text-warn' : 'text-accent'}`}
+                    <span className={`flex flex-none items-center gap-1 text-[10.5px] font-semibold ${choisi ? 'text-ink-dim' : couleurStatut}`}
                       title={absentes.length || artsAbsents.length ? 'Build conservé ; les pièces absentes du compte ne sont plus réservées.' : undefined}>
-                      <CheckCircle2 size={12} />
+                      <CheckCircle2 size={12} className={couleurStatut} />
                       {absentes.length || artsAbsents.length ? [absentes.length ? `${absentes.length} rune(s) absente(s)` : '',
                         artsAbsents.length ? `${artsAbsents.length} artéfact(s) absent(s)` : ''].filter(Boolean).join(' · ') : 'Validé'}
                     </span>
@@ -191,7 +196,7 @@ export default function MonstresDeLaListe({ activeList, activeMembers, setEquipe
                     )}
                   </>
                 ) : (
-                  <span className="flex-none text-[10.5px] text-ink-dimmer">pas encore validé</span>
+                  <span className={`flex-none text-[10.5px] ${encreFaible}`}>pas encore validé</span>
                 )}
                 <BoutonIcone
                   cadre

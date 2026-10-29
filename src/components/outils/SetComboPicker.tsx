@@ -125,7 +125,14 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false,
       </div>
 
       {!full && (
-        <div ref={coffreRef} className={`mt-2 grid gap-0 ${coffre ? 'grid-cols-[auto_auto] justify-center rounded-lg bg-panel2 p-2' : 'grid-cols-[auto_1fr] rounded-lg border border-border bg-panel p-2'}`}>
+        <div
+          ref={coffreRef}
+          className={`mt-2 grid gap-0 ${coffre ? 'rounded-lg bg-panel2 p-2' : 'grid-cols-[auto_1fr] rounded-lg border border-border bg-panel p-2'}`}
+          // Dans le coffre, les deux compartiments se partagent toute la
+          // largeur au prorata de leurs colonnes : toutes les cases ont la
+          // même largeur, d'un compartiment à l'autre.
+          style={coffre ? { gridTemplateColumns: `minmax(0,${colonnes.principal}fr) minmax(0,${colonnes.secondaire}fr)` } : undefined}
+        >
           {/* ⚠️ Toujours 2 colonnes, jamais empilé sous un seuil de largeur :
               chaque groupe passe déjà à la ligne en interne (`flex-wrap`), la
               séparation verticale gagne de la place sur le plan VERTICAL —
@@ -139,8 +146,9 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false,
               carte « Critères de recherche » compactée. Set secondaire (17
               sets) récupère cette largeur libérée, ce qui réduit son nombre
               de lignes — c'est lui qui pèse sur la hauteur.
-              ⚠️ **Dans le coffre (bureau), 3 + 4 colonnes au plus**, les
-              deux groupes centrés ; quand le coffre se resserre, le set
+              ⚠️ **Dans le coffre (bureau), 3 + 4 colonnes au plus**, qui
+              prennent toute la largeur du coffre, chaque rune centrée dans sa
+              case (décision de l'utilisateur) ; quand le coffre se resserre, le set
               principal passe d'abord à 2 colonnes, puis le set secondaire à
               3, puis à 2, puis le set principal à 1 (`colonnesCoffre`,
               décision de l'utilisateur) : la
@@ -153,8 +161,8 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false,
             <div key={groupLabel} className={i > 0 ? 'border-l border-border-soft pl-3' : 'pr-3'}>
               <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-ink-dimmer">{groupLabel}</p>
               <div
-                className={coffre ? 'grid w-max gap-1' : i === 0 ? 'grid grid-cols-3 gap-1' : 'flex flex-wrap gap-1'}
-                style={coffre ? { gridTemplateColumns: `repeat(${i === 0 ? colonnes.principal : colonnes.secondaire}, 2rem)` } : undefined}
+                className={coffre ? 'grid justify-items-center gap-1' : i === 0 ? 'grid grid-cols-3 gap-1' : 'flex flex-wrap gap-1'}
+                style={coffre ? { gridTemplateColumns: `repeat(${i === 0 ? colonnes.principal : colonnes.secondaire}, minmax(2rem, 1fr))` } : undefined}
               >
                 {group.map((s) => {
                   const fits = canAddSet(sets, s.key);

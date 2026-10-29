@@ -53,7 +53,10 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    place ») en flottant : rien ne bouge dessous. ⚠️ **Au bureau, la grille
    est la même dépliée et dans la liste ouverte** (décision de
    l'utilisateur) : dans son coffre en creux (`coffre`), Set principal sur
-   3 colonnes et Set secondaire sur 4 au plus, les deux groupes centrés.
+   3 colonnes et Set secondaire sur 4 au plus. ⚠️ **Les deux compartiments
+   prennent toute la largeur du coffre**, au prorata de leurs colonnes, et
+   chaque rune est centrée dans sa case : toutes les cases ont la même
+   largeur (décision de l'utilisateur).
    ⚠️ **Quand le coffre se resserre, la grille perd des colonnes et
    s'allonge vers le bas** (décision de l'utilisateur) : le set principal
    passe d'abord à 2 colonnes, puis le set secondaire à 3, puis à 2, puis

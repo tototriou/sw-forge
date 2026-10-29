@@ -66,12 +66,15 @@ const PROPRES: AurasPropres = { fight: 1, determination: 1, enhance: 0, accuracy
 // chaque contexte, paires dans l'ordre de `paires`), relevée le 2026-10-28 sur
 // l'arbre de b7a09c03 — l'ancien calcul, avant `PreparationReglage` — avec ces
 // mêmes entrées et ces mêmes données ; le code courant la rend à l'identique.
+// Relevée de nouveau le 2026-10-29 après l'actualisation SWARFARM (52 monstres
+// ajoutés, compétences rafraîchies), sans changement de code : 12 170 → 12 426
+// contextes.
 // ⚠️ Un écart veut dire qu'une note a changé. Voulu (modèle de dégâts, données
 // SWARFARM régénérées) : relever l'empreinte de nouveau (le message d'échec
 // la donne) et le dire dans le commit. Sinon : un défaut du code commun au
 // calcul avec et sans memo.
 const EMPREINTE_ANCIEN_CALCUL = {
-  contextes: 12170, notes: 304250, sha256: 'ed2dd8e3b58c342151f0f139ecfdfd3b22b99734b8c5057cea8422a5a758533a',
+  contextes: 12426, notes: 310650, sha256: 'b20cf0953bb872f25bc79702a7ba31920f77a5e8b0fb95de192fa9822e9968f6',
 };
 
 // Quatre pièces par sorte, deux principales par sorte : des paires partagent

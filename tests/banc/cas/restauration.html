@@ -18,23 +18,23 @@
 </style>
 </head>
 <body>
-<!-- Relecture n° 10 (Codex) : une ligne `-mx-1` SANS attribut `style` ; la mesure ne doit pas lui en laisser un. -->
+<!-- Cas de relecture : une ligne `-mx-1` SANS attribut `style` ; la mesure ne doit pas lui en laisser un. -->
 <div id="sans-style-parent" class="bloc" data-attendu="">
   <div id="sans-style-ligne" class="-mx-1 ligne" data-attendu=""><span class="temoin-style"></span></div>
 </div>
-<!-- Relecture n° 9 (Codex), premier temps : une ligne `-mx-1` dont le décalage et la marge sont en transition ; la
+<!-- Cas de relecture, premier temps : une ligne `-mx-1` dont le décalage et la marge sont en transition ; la
      relecture ne lit pas une valeur intermédiaire — le parent n'est pas signalé. -->
 <div id="lente-parent" class="bloc" data-attendu="">
   <div id="lente-ligne" class="-mx-1 ligne lente" data-attendu=""></div>
 </div>
-<!-- Relecture n° 8 (Codex) : l'icône ne déclare que `transition-duration` ; la remise en état ne la perd pas. -->
+<!-- Cas de relecture : l'icône ne déclare que `transition-duration` ; la remise en état ne la perd pas. -->
 <div class="bloc">
   <span id="duree-avatar" class="avatar" data-portrait data-attendu="">
     <span class="image"></span>
     <img data-pastille="element" id="duree-icone" class="icone" src="elements/fire.png" alt="" style="transition-duration: 200ms" data-attendu="">
   </span>
 </div>
-<!-- Relecture n° 9 (Codex), second temps : l'icône a `transition: right 1s` ; la remise en état ne relance aucune
+<!-- Cas de relecture, second temps : l'icône a `transition: right 1s` ; la remise en état ne relance aucune
      transition (vérifié par cas.mjs : aucune animation de plus). -->
 <div class="bloc">
   <span id="transition-avatar" class="avatar" data-portrait data-attendu="">

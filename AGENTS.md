@@ -37,9 +37,9 @@ commit** que le code.
 | --- | --- |
 | Runtime | **Node ≥ 24** (`.nvmrc`), npm, ESM (`"type": "module"`) |
 | App | **React 18** + **TypeScript 5**, **sans router** : routage par `window.location.hash` (`src/App.tsx`) |
-| Build & style | **Vite 5**, **Tailwind 3** (PostCSS + autoprefixer, déclarés dans `vite.config.ts` avec le plugin de l'écran partagé `scripts/lib/postcssVolets.ts`), tokens CSS dans `src/index.css` |
+| Build & style | **Vite 5**, **Tailwind 3** (PostCSS + autoprefixer, déclarés dans `vite.config.ts` avec le plugin de l'écran partagé `scripts/lib/postcssVolets.ts` ; requêtes de conteneur `@container` par `@tailwindcss/container-queries`), tokens CSS dans `src/index.css` |
 | Dépendances runtime | `lucide-react` (icônes), `framer-motion` (animation), `react-resizable-panels` (séparateur de l'écran partagé, derrière `src/ui/DeuxVolets.tsx`) — aucune mesure d'audience |
-| Calcul lourd | **Web Workers** (`src/workers/`) : recherche de l'Optimizer, résolution de l'équipement |
+| Calcul lourd | **Web Workers** (`src/workers/`) : recherche de l'Optimizer, classement, résolution de l'équipement |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé), tous deux opt-in |
 | Bureau | **Electron** + `electron-builder` + `electron-updater` (`bureau/`, hors de `src/`) |
 | Tests | lanceur maison `tests/run.mjs` (registre `tests/index.ts`), `fake-indexeddb`, rendu par `react-dom/server` |
@@ -58,7 +58,7 @@ src/
   hooks/         # état et persistance (usePersistence, useOptimizerState, useSpeedTune…)
   lib/           # calcul pur, testé : vitesse (speed.ts), runes, artéfacts, reliques, dégâts réels
                  # (damage.ts), moteur de l'Optimizer (runeBuildOptim.ts), import de compte, session
-  workers/       # Web Workers de l'Optimizer (recherche, appariement parallèle, résolution)
+  workers/       # Web Workers de l'Optimizer (recherche, appariement parallèle, classement, résolution)
   data/          # contenu statique (journal des versions releases.ts)
 bureau/          # application de bureau Electron (main, protocole, session, SW Exporter, mise à jour)
 public/          # icônes, portraits, données SWARFARM (public/data, régénérées par npm run fetch-data)
@@ -78,10 +78,14 @@ npm run lint                   # ESLint sur tout le dépôt
 npx tsc --noEmit               # types : src/, scripts/ et tests/
 node tests/run.mjs <filtre>    # les vérifications d'une zone (ex. speed-tune) ; plusieurs filtres possibles
 node tests/run.mjs --depuis origin/<base>   # celles que touchent les fichiers modifiés depuis la base
+node tests/run.mjs --lister <filtre>        # prévisualise la sélection finale sans lancer de vérification
+node tests/run.mjs --max-entrees 30 <filtre> # refuse avant lancement si la sélection dépasse 30 entrées
+node tests/run.mjs --silencieux …           # sortie réduite aux échecs et au bilan (ajoutable aux lignes ci-dessus)
 node tests/banc/run.mjs --ecrans <id>       # le banc d'affichage, aux deux formats (il construit l'app)
 npm test                       # TOUTES les vérifications — seulement avant une fusion sur main ou dans une release
 npm run test:suivi [-- …]      # les mêmes, suivies en direct dans le terminal (--web : aussi dans le navigateur)
 npm run fetch-data             # régénère les données SWARFARM de public/data
+node scripts/inventaire-competences.mjs --aide   # balayer les compétences du corpus, formule retenue par l'app
 npm run bureau                 # l'application de bureau en développement
 npm run bureau:preuve          # la vérification de l'application de bureau
 ```
@@ -111,8 +115,8 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 | `src/pages/SiegePage.tsx`, `src/components/siege/`, les `reco…` et `siege…` de `src/lib/` | [siege/](docs/02-app/siege/README.md) |
 | `src/pages/AccountPage.tsx`, `src/components/account/`, `src/lib/runeOptim.ts`, `src/lib/artifacts.ts` | [compte/](docs/02-app/compte/README.md) |
 | `src/pages/OutilsPage.tsx`, la garde d'accès aux outils | [outils/](docs/02-app/outils/README.md) |
-| les `Optimizer…` de `src/components/outils/`, `src/hooks/useOptimizerState.ts`, `src/hooks/useOptimizerLists.ts`, les `optimizer…` de `src/lib/`, `src/lib/equipesOptimizer.ts`, `src/lib/importEquipes.ts` | [optimizer/](docs/02-app/optimizer/README.md) |
-| `src/lib/runeBuildOptim.ts`, `src/lib/artifactOptim.ts`, `src/lib/relicOptim.ts`, `src/lib/relicQueue.ts`, `src/workers/` | [03-developpeur/optimizer/](docs/03-developpeur/optimizer/README.md) |
+| les `Optimizer…` de `src/components/outils/`, `src/components/outils/optimizer/`, `src/hooks/useOptimizerState.ts`, `src/hooks/useOptimizerLists.ts`, les `optimizer…` de `src/lib/`, `src/lib/equipesOptimizer.ts`, `src/lib/importEquipes.ts` | [optimizer/](docs/02-app/optimizer/README.md) |
+| `src/lib/runeBuildOptim.ts`, `src/lib/rechercheRunes.ts`, `src/lib/constructionRapide.ts`, `src/lib/appariementRapide.ts`, `src/lib/validationRapide.ts`, `src/lib/appariementRapideParallele.ts`, `src/lib/travailleurAppariement.ts`, `src/lib/demiBuildsTypes.ts`, `src/lib/candidatsCompacts.ts`, `src/lib/classementCompact.ts`, `src/lib/artifactOptim.ts`, `src/lib/relicOptim.ts`, `src/lib/relicQueue.ts`, `src/workers/` | [03-developpeur/optimizer/](docs/03-developpeur/optimizer/README.md) |
 | `src/lib/damage.ts`, `src/components/outils/DamageSetupCard.tsx` | [degats-reels/](docs/02-app/degats-reels/README.md) |
 | `src/components/outils/SpeedTuningSection.tsx`, `src/hooks/useSpeedTune.ts`, les `speedTune…` de `src/lib/` | [speed-tuning/](docs/02-app/speed-tuning/README.md) |
 | `src/lib/speed.ts`, `src/lib/stats.ts` | [transverse/feat-calcul-vitesse.md](docs/02-app/transverse/feat-calcul-vitesse.md) |
@@ -159,7 +163,6 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 - **Aucune boîte native** (`confirm()`, `prompt()` : ESLint les refuse) : une confirmation passe
   par `src/ui/Dialogs.tsx`, et son défaut est l'action sans perte.
 - **Aucune couleur Tailwind native, aucune valeur en dur** : tout passe par les tokens.
-- **Passe responsive en cours** : ne pas rustiner le mobile écran par écran.
 
 ## Travail
 
@@ -212,7 +215,8 @@ modifiés (`--depuis`, `--plage`), le manifeste et le banc d'affichage :
 ## Hooks Git et CI
 
 - **`pre-commit` refuse** : une erreur ESLint dans le code indexé, un commit sur `main`, un chemin
-  privé dans l'index (`.history/`, `.vscode/`), un fichier de plus de 5 Mo (un export de compte).
+  privé dans l'index (`.history/`, `.vscode/`), un fichier de plus de 5 Mo (un export de compte),
+  une référence à `src/` non déclarée dans un test.
 - **`commit-msg` refuse** un sujet hors de la forme `type(portée): description`, un corps collé au
   sujet et un message qui commence par un BOM.
 - **`post-checkout` et `post-merge` rappellent `npm ci`** quand `package-lock.json` change ; ils ne

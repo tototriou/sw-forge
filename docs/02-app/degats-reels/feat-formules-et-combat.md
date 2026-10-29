@@ -43,7 +43,7 @@ utilisée » : il n'est ni proposé ni affiché refusé, et un passif de la mêm
 table n'est jamais un passif offensif. La table `SORTS_SANS_ATTAQUE_PAR_ID`
 ([damage.ts](../../../src/lib/damage.ts)) est curée par identifiant, une
 prose citée par ligne, jamais une détection de la prose. Elle compte
-36 sorts actifs : 25 boucliers (dont Frieren `24909`, Gandalf, Old Wood,
+35 sorts actifs : 24 boucliers (dont Frieren `24909`, Gandalf, Old Wood,
 les Air Shield, Force Field, Protection Field, Beneficial Hammering), Trade
 `7414`, Destiny Dice `12115` et Forbidden Galdr `13111`. Ce dernier est un
 effet de PV sans coup. Huit autres sont confirmés par l'utilisateur, parmi
@@ -155,6 +155,24 @@ Dégâts = ( Mult × Crit × FacteurDéf + Additionnel ) × Réductions × coups
 comme le décrit [../mecaniques/](../mecaniques/) ; aucun bonus d'effet
 n'est exposé en v1) : buff d'attaque **+50 %**, buff de défense **+70 %**,
 buff de vitesse **+30 %**, réduction de défense **×0,3**, marque **+25 %**.
+
+**Une paire d'artéfacts après l'autre.** Le choix des artéfacts appelle
+`computeTotalDamage` sur des milliers de paires pour un même build. Son
+dernier paramètre, facultatif, est un `MemoCombat`, créé par l'évaluateur de
+paires (`evaluerPourRegime`) : il calcule une fois ce que le calcul relit à
+l'identique d'une paire à l'autre — les stats au début du combat, les stats
+de combat (par tableau de stats et par amplifications de buff de la paire).
+Ce qui ne dépend que du réglage — chronologie des poses entre les coups,
+passifs qui comptent et leurs réglages, découpe du sort en tronçons, et les
+termes de l'équation lus sur le seul réglage (invocateur, lead, PV et VIT de
+la cible, réductions, mitigation sans DEF ignorée…) — vit dans sa
+préparation du réglage (`PreparationReglage`), partagée par toute la
+recherche. Rien de l'équation ne change : chaque valeur retenue est celle de
+l'expression sur les mêmes entrées, au bit près, sans aucune somme ni aucun
+produit réassocié (`tests/memo-combat.test.ts`, contre le calcul sans memo
+et contre une empreinte figée des notes de l'ancien calcul, d'avant la
+préparation). Détail :
+[moteur/artefacts.md § Partage entre les builds d'une file](../../03-developpeur/optimizer/moteur/artefacts.md#partage-entre-les-builds-dune-file).
 
 
 ## Ignore DEF à partir d'un coup choisi — les Blade Dancers
@@ -304,21 +322,22 @@ l'écran ne l'écrit jamais lui-même.
 
 - **Affichage seul** : aucun calcul ne lit la table, le total n'en dépend
   pas. Aucune mention sur les cartes de résultats.
-- **Quatre sources, 31 identifiants** : les six ignore DEF comptés en
+- **Quatre sources, 31 identifiants** : les cinq ignore DEF comptés en
   permanence alors que le jeu les conditionne (Madness Judgement ×2,
-  Unlimited Power, Start of Attacking, Thunder Strike, Sword of Discharge —
+  Start of Attacking, Thunder Strike, Sword of Discharge —
   total gardé avec la mention tant que leur condition n'est pas modélisée) ; les sorts
   dont une perte de PV, un bonus selon les PV détruits ou retirés, ou la
   détonation de bombes déjà posées est décidée « comptée » mais pas encore
   codée (« pas encore comptée ») ; les parts que l'utilisateur a décidé de
   ne **pas** calculer, dites à l'écran (Daniel, Jasmine, Lavender, Espresso
   Cookie, et Hibiscus par la règle des jumeaux collab : « n'est pas
-  calculée ») ; enfin deux parts connues du jeu, non modélisées, que
-  l'utilisateur a demandé de marquer :
+  calculée ») ; enfin les parts connues du jeu, non modélisées :
   l'équilibrage ATQ/DEF d'Internal Force de début de combat sur les deux
-  sorts de dégâts de Leona (Justice Strike, Fury of Punishment) et le bonus
+  sorts de dégâts de Leona (Justice Strike, Fury of Punishment), le bonus
   de dégâts selon la VIT contre les ennemis plus lents de Summary Justice
-  (Theonia) — « pas encore compté ».
+  (Theonia), marqués à la demande de l'utilisateur, et le bonus de 25 % par
+  effet sur la cible de la phase de zone de Fatal Mortar Bullet (Scarlett)
+  — « pas encore compté ».
 - **Écartés parce que le total est complet par décision** : Devil's Bargain
   (la prose se trompe), les détonations de dégâts continus et les bombes à
   retardement (hors total).

@@ -62,10 +62,9 @@ les coups. La forme d'une piste et des relevés en jeu est celle de
 
 ### Ignore DEF conditionnel
 
-- **Constat** : six sorts comptent l'ignore DEF en permanence et portent
+- **Constat** : cinq sorts comptent l'ignore DEF en permanence et portent
   « Calcul partiel » (`CALCUL_PARTIEL_PAR_ID`, `src/lib/damage.ts`) :
-  Madness Judgement (`13406`, `13410`), Unlimited Power (`15511`), Start of
-  Attacking (`13611`), Thunder Strike (`7713`), Sword of Discharge
+  Madness Judgement (`13406`, `13410`), Start of Attacking (`13611`), Thunder Strike (`7713`), Sword of Discharge
   (`6013`) ; calcul trop favorable. Meteor Strike (`19215`) et Black Meteor
   (`19615`) ignorent la DEF sur tout le sort dès qu'un effet nocif est
   présent ; Bull's Eye, Wipe Out, Shadow Arrow et Dark Dragon Attack
@@ -81,8 +80,7 @@ les coups. La forme d'une piste et des relevés en jeu est celle de
 - **Bloque** : un changement de code, et des relevés. Madness Judgement
   contre ~3 000 de DEF, sans puis avec Brise DEF à 100 % de PV, puis 75,
   50, 20 % : PV lus avant ou après l'auto-dégât, et loi linéaire ou non.
-  Unlimited Power, premier coup, PV de la cible 100, 50, 20 %, DEF ~3 000
-  puis 300 ou moins. Ezio ou Patrick feu, S1 contre ~3 000 de DEF, avec
+  Ezio ou Patrick feu, S1 contre ~3 000 de DEF, avec
   buff à 100 % de PV puis variantes. Hors inventaire, facultatif : Silver
   Chakram, une vingtaine d'attaques avec puis sans effet nocif.
 
@@ -92,7 +90,9 @@ les coups. La forme d'une piste et des relevés en jeu est celle de
   après tout coup critique du tour, n'est pas curé ; la frappe de Moria 2A
   pendant son S3 non plus. Deadly Swing ne garantit le critique sous 30 %
   de PV de la cible que sur `6258` (`CONDITIONS_COMBAT_PAR_ID_CONNUS`),
-  pas sur `6207`, `6208`, `6209`, `6257`, `6272`, `6273`, de même prose.
+  pas sur `6207`, `6208`, `6209` (Sath, Hiva et Prom éveillés) ni `6257`
+  (Sath 2A), de même prose. `6272` et `6273`, portés par des formes non
+  obtenables, sont hors curation.
 - **Idée** : Energy Punch suit le mode critique, un par coup du sort en
   « Critique », aucun en « Non critique »
   ([02-app/degats-reels/](../02-app/degats-reels/)) ; un sort ne
@@ -265,8 +265,9 @@ les coups. La forme d'une piste et des relevés en jeu est celle de
 - **Idée** : la forme choisissable dans la modale, puisqu'elle change les
   sorts disponibles, et jamais comme une entrée de plus de l'Optimizer :
   Lord of Hell (runes et ATQ de Liliana, puis +50 %), Bellenus, Taranys,
-  Pater, Beast Riders, Indra. Anges jumeaux : le sort de la forme archer
-  choisi seul, sans le Horn lancé avant ([02-app/degats-reels/](../02-app/degats-reels/)).
+  Pater, Beast Riders, Indra. Les anges jumeaux n'en dépendent pas : les
+  tirs de leur forme archer sont déjà proposés seuls
+  ([02-app/degats-reels/feat-competences-auxiliaires.md](../02-app/degats-reels/feat-competences-auxiliaires.md)).
 - **Bloque** : un changement de code ; l'assiette des passifs de forme
   (piste « Assiette des « +X % » de passif »).
 

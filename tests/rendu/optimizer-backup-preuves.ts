@@ -5,6 +5,7 @@ import type { ArtifactDetail, RuneDetail, SiegeTeam } from '../../src/types';
 import { exclusionSelectorKey, otherValidatedArtifactIds, type ExclusionSelector, type ExclusionSourceData } from '../../src/lib/optimizerExclusion';
 import { cleMemoireMembre, reverifierStockageOptimizer } from '../../src/lib/optimizerMemberStorage';
 import { OPTIMIZER_BACKUP_STORAGE_KEY } from '../../src/lib/optimizerBackup';
+import { listeActiveLue } from './optimizer-listes-preuves';
 
 interface Banc {
   etat: () => OptimizerState; listes: () => UseOptimizerLists; data: () => ExclusionSourceData;
@@ -32,7 +33,7 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
       lead: { stat: 'HP', amount: 33, area: 'Guild', element: null } }]);
     b.etat().setMinStats({ spd: 230 });
     b.etat().setExcludeBase(false);
-    b.listes().validateBuild('a', b.premier, b.runes().map(r => r.id), b.arts().map(a => a.id), 10101);
+    b.listes().validateBuild('a', b.premier, b.runes().map(r => r.id), b.arts().map(a => a.id), undefined, 10101);
   });
   const sansMemoire = nom.startsWith('point-sans-memoire');
   const leadSecond = () => b.listes().memories.get(cleMemoireMembre('a', b.second))?.criteres.damageSetup.leaderSkill;
@@ -42,6 +43,7 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
   const minimumSansMemoire = minimum();
   const barre = annonce().closest<HTMLElement>('[aria-label="Point de sauvegarde des listes"]')!;
   barre.scrollIntoView({ block: 'center' });
+  const listeLue = (nom: string) => listeActiveLue(nom, () => barre.parentElement!.textContent!);
   verifier(bouton('Reprendre', barre).disabled && annonce().textContent === 'Aucun point de sauvegarde.', 'sans point : annonce visible et reprise désactivée');
   verifier(bouton('Sauvegarder', barre).title.includes('automatiquement'), 'bouton : conservation automatique expliquée');
   const cibles = [bouton('Sauvegarder', barre), bouton('Reprendre', barre), annonce(), bouton('Lier une équipe')];
@@ -68,15 +70,15 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
     verifier(!b.listes().memories.has(cle), 'point sauvegardé sur le membre sélectionné sans mémoire');
     await b.geste(() => b.listes().setActiveListId('b'));
     await b.geste(() => b.etat().choisirMembre('b', b.premier));
-    verifier(barre.parentElement!.textContent!.includes('Monstres de « Bêta »') && minimum() === '90',
+    verifier(listeLue('Bêta') && minimum() === '90',
       'avant reprise : liste Bêta et ses critères lus à l’écran');
     if (nom === 'point-sans-memoire-liste-supprimee') {
       await b.geste(() => b.listes().deleteList('a'));
-      verifier(!b.listes().lists.some(l => l.id === 'a') && barre.parentElement!.textContent!.includes('Monstres de « Bêta »'),
+      verifier(!b.listes().lists.some(l => l.id === 'a') && listeLue('Bêta'),
         'Alpha supprimée avant reprise, Bêta reste affichée');
     }
     const dialog = await ouvrirReprise(); await b.geste(() => bouton('Reprendre', dialog).click());
-    verifier(barre.parentElement!.textContent!.includes('Monstres de « Alpha »') && minimum() === minimumSansMemoire,
+    verifier(listeLue('Alpha') && minimum() === minimumSansMemoire,
       'reprise depuis Bêta : Alpha et la base du membre sans mémoire affichées');
     const p = b.etat().proprietaireCriteres;
     verifier(p?.listId === 'a' && exclusionSelectorKey(p.selector) === exclusionSelectorKey(b.troisieme) && p.com2usId === 10101,
@@ -118,7 +120,7 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
     const point = localStorage.getItem(OPTIMIZER_BACKUP_STORAGE_KEY);
     dialog = await ouvrirReprise(); await b.geste(() => bouton('Reprendre', dialog).click());
     verifier(minimum() === '250', 'reprise dans la même liste : VIT sauvegardée affichée, pas les critères remplacés');
-    verifier(barre.parentElement!.textContent!.includes('Monstres de « Alpha »') && !!bouton('Modifier l’équipe'), 'nom et équipe sauvegardés rendus à l’écran');
+    verifier(listeLue('Alpha') && !!bouton('Modifier l’équipe'), 'nom et équipe sauvegardés rendus à l’écran');
     verifier(b.listes().lists.length === 2 && b.listes().validated.length === 1 && b.listes().listContents.get('a') === 'guilde', 'liste supprimée, build et contenu repris ensemble');
     verifier(localStorage.getItem(OPTIMIZER_BACKUP_STORAGE_KEY) === point, 'reprise et suppression de liste gardent le point');
     await b.geste(() => b.etat().setMinStats({ spd: 260 }));
@@ -127,7 +129,7 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
   } else if (nom === 'point-reimport') {
     await b.geste(() => b.etat().choisirMembre('a', b.siege));
     await b.geste(() => { b.etat().setMinStats({ spd: 275 }); b.etat().setExcludeBase(false);
-      b.listes().validateBuild('a', b.siege, b.runes().map(r => r.id), [71, 72], 10101); });
+      b.listes().validateBuild('a', b.siege, b.runes().map(r => r.id), [71, 72], undefined, 10101); });
     await b.geste(() => bouton('Sauvegarder', barre).click());
     await b.geste(() => bouton('Remplacer', document.querySelector('[role="dialog"]')!).click());
     const point = localStorage.getItem(OPTIMIZER_BACKUP_STORAGE_KEY);
@@ -164,7 +166,7 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
     await b.geste(() => { b.changerBox([]); b.changerRunes([]); b.changerArtefacts([]); b.listes().deleteList('a'); });
     const dialog = await ouvrirReprise(); await b.geste(() => bouton('Reprendre', dialog).click());
     verifier(rapport().textContent!.includes('Compte vide') && rapport().textContent!.includes('sans revérification'), 'compte vide annoncé sur l’écran');
-    verifier(barre.parentElement!.textContent!.includes('Monstres de « Alpha »') && b.listes().members.length === 10 && b.listes().validated.length === 1,
+    verifier(listeLue('Alpha') && b.listes().members.length === 10 && b.listes().validated.length === 1,
       'compte vide : liste, membres et build repris sans retrait');
     verifier(localStorage.getItem(OPTIMIZER_BACKUP_STORAGE_KEY) === brut, 'compte vide : point intact');
     verifier(b.etat().proprietaireCriteres === null, 'membre introuvable : aucun propriétaire attribué');

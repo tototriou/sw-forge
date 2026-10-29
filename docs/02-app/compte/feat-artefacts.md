@@ -191,14 +191,108 @@ au-dessus des tuiles.
 [ArtifactsSummary.tsx](src/components/account/ArtifactsSummary.tsx), de haut
 en bas : six **chiffres clés** (Artéfacts, Eff. moy. · Attribut, Eff. moy. ·
 Type, Meilleur score, ≥ 90 % d'eff., Quad rolls), puis **Distribution
-d'efficience** et **Raretés**, **Par attribut et par type**, **Quad rolls ·
-sur quelle propriété**.
+d'efficience** et **Raretés**, le **Top 10 par propriété** (section
+suivante), et **tout en bas** **Quad rolls · sur quelle propriété** — aux deux
+formats.
 
 ⚠️ **À la SOURIS** (même gabarit que le Résumé des runes) : un en-tête
 « Résumé » et le nombre d'artéfacts, puis les six chiffres clés en **un
 bandeau** (`Kpi bandeau`, cases séparées par un filet). Au doigt, les six
 chiffres clés forment **une carte** sur deux colonnes (même traitement que le
 Résumé des runes, voir [feat-runes/resume.md](feat-runes/resume.md)).
+
+## Top 10 par propriété — `ArtifactsTop`, dans le Résumé
+
+[ArtifactsTop.tsx](src/components/account/ArtifactsTop.tsx), calcul pur
+[artifactsTop.ts](src/lib/artifactsTop.ts) : pour un **groupe** d'artéfacts,
+les **10 meilleures valeurs de chaque propriété secondaire**. Une **section
+du Résumé**, pas une vue à part : elle s'ouvre par son intitulé « Top 10 par
+propriété » et l'effectif du groupe, **aux deux formats** — dans le Résumé,
+la barre du haut dit « Résumé », pas ce qu'est ce bloc.
+
+- **Le groupe** : des **onglets** (`Onglets`, la librairie UI) côte à côte —
+  Eau · Feu · Vent · Lumière · Ténèbres · Attaque · Défense · PV · Support,
+  chacun avec l'icône de son attribut ou de son type. Un seul ouvert : il
+  coiffe les tableaux du dessous. Retenu entre deux visites
+  (`artefacts.top.groupe`, Eau par défaut) ; un groupe retenu devenu vide
+  (autre compte) cède la place au premier qui a des artéfacts.
+  - ⚠️ **Un intangible compte dans TOUS les groupes de sa sorte** : il se pose
+    sur n'importe quel monstre, donc un intangible d'attribut figure dans les
+    tableaux des cinq attributs, un intangible de type dans ceux des quatre
+    types. Son attribut ou son type lu n'est jamais utilisé (com2us envoie
+    98). Dans une cellule, le **glyphe intangible du jeu** le signale, et
+    l'infobulle le dit.
+  - Un onglet **sans artéfact** reste affiché, **désactivé**, avec la raison
+    en infobulle (« Aucun artéfact de ce groupe dans l'inventaire »).
+- **La stat principale** : trois pastilles **à bascule**, `PV` · `ATQ` ·
+  `DEF`, sous les groupes — « mes réductions de dégâts reçus, sur des
+  artéfacts PV ou DEF ». Libellés d'`ARTIFACT_MAIN`, et l'icône en couleur
+  de la cellule sur chaque pastille.
+  - ⚠️ **Cumulables**, et non un contrôle à cran comme dans la Liste : on veut
+    garder PV et DEF ensemble.
+  - ⚠️ **Liste BLANCHE, tout coché par défaut** — même règle que la rareté de
+    la Liste : une stat cochée est affichée, n'en cocher aucune revient à ne
+    rien vouloir voir : les tableaux restent, tout en croix.
+  - Retenues entre deux visites (`artefacts.top.principales`). L'effectif de
+    l'en-tête suit le filtre.
+- **Un tableau par famille** : « Réduction des dégâts reçus », **puis**
+  « Augmentation des dégâts infligés », « Augmentation des dégâts
+  critiques », « Augmentation des soins », « Augmentation de la précision »,
+  « Effet de renforcement », « Dégâts supplémentaires en proportion de »,
+  « Dégâts critiques selon la cible », puis « Autres sous-propriétés ».
+  Chaque propriété est une **colonne**.
+  - ⚠️ **Tous les tableaux, tout le temps** : chaque famille et chaque
+    colonne que la sorte du groupe peut porter, même sans artéfact, et
+    **toujours 10 rangs** — une **croix** (« Aucun artéfact ») là où il n'y en
+    a pas. Les tableaux ne bougent jamais d'un onglet ou d'un filtre à
+    l'autre : une colonne vide se lit (« je n'ai rien là »), une colonne qui
+    disparaît décale les autres et ne dit pas ce qui manque.
+  - Seules les propriétés **impossibles** pour la sorte sont écartées
+    (`artifactSubKinds`) : un artéfact d'attribut ne porte jamais
+    « Augmentation des soins », ce tableau serait vide à jamais. Un onglet
+    d'attribut montre les dégâts reçus et infligés, un onglet de type les
+    dégâts critiques, soins et précision par compétence ; les familles
+    communes (renforcement, dégâts proportionnels, dégâts critiques selon la
+    cible, autres) figurent dans les deux.
+  - ⚠️ **Les dégâts REÇUS d'abord**, puis les infligés : l'inverse de la
+    recherche du jeu (§ 3 bis de [feat-calcul-artefacts.md](feat-calcul-artefacts.md)),
+    à dessein — c'est la ligne qu'on cherche d'abord sur un artéfact
+    d'attribut. Le reste suit l'ordre du jeu.
+  - ⚠️ **Le nom EN ENTIER dans le titre du tableau, le seul élément qui varie
+    dans la colonne** : « Augmentation des dégâts infligés », puis « Feu »,
+    « Eau »… ; « [Comp.2] » sous « Augmentation des soins » ; « ATQ » sous
+    « Dégâts supplémentaires en proportion de ». Le jeu abrège ses libellés
+    (« Aug. des dgts infl. au Feu ») faute de place sur sa fiche ; le titre a
+    la place, et répété dans cinq colonnes, le nom noyait ce qui les
+    distingue. Une colonne sans élément propre (« Autres sous-propriétés »,
+    dégâts critiques selon la cible) porte le nom complet de la propriété
+    (`artifactSubName`), sur trois lignes au plus — et tous les en-têtes de
+    sa famille prennent alors la même hauteur, pour garder les rangs alignés.
+  - « Effet aug. VIT » et « Effet aug. taux CRIT » ne sont **pas** des
+    « Effet renforcement » dans le jeu : ils tombent sous les autres.
+- **Une colonne classe SA propriété seule**, sur la valeur brute de la ligne.
+  ⚠️ Jamais une colonne contre une autre : deux propriétés n'ont pas
+  d'échelle commune ([feat-calcul-artefacts.md](feat-calcul-artefacts.md)).
+  Ex æquo : le meilleur **score** de l'artéfact devant, puis l'identifiant.
+- **Une cellule** : l'icône de la **stat principale** et la valeur **telle
+  que le jeu l'écrit** (« +21% », « -26% » pour des dégâts reçus, « 0.3% »).
+  Infobulle : le rang, la stat principale, « intangible » s'il l'est. Un clic
+  ouvre la **fiche** de l'artéfact (`ArtifactDetailBox`), un second la
+  ferme ; une seule ouverte à la fois.
+  - ⚠️ **L'icône est EN COULEUR** — ♥ PV rouge (`text-fire`), ⚔ ATQ à l'encre,
+    🛡 DEF bleu (`text-water`), comme les outils de référence du jeu : sur dix
+    rangs serrés, c'est la teinte qu'on repère d'un coup d'œil.
+- ⚠️ **Des tableaux SERRÉS** : chaque carte prend la largeur de son tableau
+  (`w-fit`), les colonnes ont une largeur fixe (4,5 rem ; 7 rem pour un nom
+  complet), les rangs 20 px. Étirées sur la page, les colonnes écartaient
+  l'icône de sa valeur et noyaient dix rangs dans le vide.
+- ⚠️ **À la SOURIS** : les cartes se suivent sur la ligne tant qu'elles
+  tiennent, et leurs colonnes
+  passent à la ligne si la place manque ; la fiche **flotte** à côté de la
+  valeur (`FlottantAuto`).
+- ⚠️ **Au DOIGT** : chaque tableau **défile de côté dans sa carte** — la page,
+  elle, ne défile jamais horizontalement — et la fiche s'ouvre **sous le
+  tableau** : ce défilement couperait une surface ancrée à une cellule.
 
 ## Données sous-jacentes
 

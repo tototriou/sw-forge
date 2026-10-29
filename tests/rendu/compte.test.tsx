@@ -11,7 +11,7 @@ import type { BoxItem } from '../../src/lib/applyAccount';
 import type { ArtifactDetail, EffectLine, Monster } from '../../src/types';
 import { egal, faussLocalStorage, monstersJson, ok, titre } from '../outils';
 import { runesUtiliseesVides } from '../../src/lib/importAccount';
-import { boutons, rendre, texteVisible, valeurs } from './outils-rendu';
+import { boutons, onglets, rendre, texteVisible, valeurs } from './outils-rendu';
 
 const MONSTRES = monstersJson() as Monster[];
 const monstre = (nom: string, el: string) =>
@@ -104,8 +104,7 @@ export function testRenduCompteArtefactsResume() {
   ok(t.includes('Distribution d\'efficience Attribut Type ≥ 90 % 0 0 80 – 90 % 0 0 70 – 80 % 1 0 60 – 70 % 0 0 50 – 60 % 1 0 < 50 % 3 3'), 'la distribution, attribut et type côte à côte');
   ok(t.includes('Raretés Attribut 5 Légendaire 4 Héroïque 1 Type 3 Légendaire 2 Rare 1'), 'les raretés, par sorte');
   ok(t.includes('Stats principales ATQ 2 1 PV 2 1 DEF 1 1'), 'les stats principales, par sorte');
-  ok(t.includes('Par attribut et par type Feu 1 moy. 45.8 % max 45.8 %') && t.includes('Défense 1 moy. 3.6 % max 3.6 %'), 'par attribut et par type : nombre, moyenne, maximum');
-  ok(t.includes('— 1 moy. 44.2 % max 44.2 %'), 'l\'intangible compté à part (« — »)');
+  ok(!t.includes('Par attribut et par type'), 'plus de carte « Par attribut et par type » (le Top 10 par propriété la remplace)');
   ok(t.includes('Quad rolls · sur quelle propriété Aucun quad roll dans l\'inventaire.'), 'quad rolls : le cas vide, expliqué');
 }
 
@@ -126,6 +125,81 @@ export function testRenduCompteArtefactsListe() {
   ok(t.includes('8 artéfacts (5 attribut · 3 type)'), 'le compte, par sorte');
   ok(t.includes('PV +1500 Légendaire 71.9% 1 Dgts de bombe +8% 2 Dgts CRIT reçus -5%'), 'le meilleur en tête : stat principale, rareté, efficience, propriétés avec leurs rolls');
   ok(t.includes('DEF +60 Rare 3.6%'), 'le moins bon en fin de liste');
+}
+
+// La vue « Top 10 » : le groupe Eau par défaut — l'artéfact d'eau n° 2 et
+// l'intangible d'attribut n° 7, qui compte pour TOUS les attributs —, les
+// groupes en ONGLETS, tous les tableaux de la sorte affichés, une croix par
+// rang vide, et les valeurs telles que le jeu les écrit.
+export function testRenduCompteArtefactsTop() {
+  titre('rendu · Mon compte · Artéfacts — Top 10');
+  // ⚠️ Dans le RÉSUMÉ, en dernier : plus une vue à part.
+  const html = rendreCompte('artefacts', 'resume');
+  const t = texteVisible(html);
+  const b = boutons(html);
+  ok(
+    t.includes('Top 10 par propriété 2 artéfacts'),
+    'au Résumé : l’intitulé de la section et l’effectif du groupe, intangible compris'
+  );
+  ok(
+    t.indexOf('Raretés') < t.indexOf('Top 10 par propriété') &&
+      t.indexOf('Top 10 par propriété') < t.indexOf('Quad rolls · sur quelle propriété'),
+    'la section vient après les raretés, et les quad rolls tout en bas'
+  );
+  ok(!texteVisible(rendreCompte('artefacts', 'liste')).includes('Top 10 par propriété'), 'pas dans la Liste');
+
+  // Les groupes : des onglets (role="tab"), pas des pastilles.
+  const groupes = onglets(html);
+  egal(
+    groupes.map((o) => o.texte),
+    ['Eau', 'Feu', 'Vent', 'Lumière', 'Ténèbres', 'Attaque', 'Défense', 'PV', 'Support'],
+    'les groupes en onglets, côte à côte, sans « Intangible » (ils sont dans les tableaux)'
+  );
+  egal(groupes.filter((o) => o.ouvert).map((o) => o.texte), ['Eau'], 'onglet « Eau » ouvert par défaut, et lui seul');
+  ok(
+    groupes.find((o) => o.texte === 'PV')?.desactive === true &&
+      groupes.find((o) => o.texte === 'PV')?.title === 'Aucun artéfact de ce groupe dans l’inventaire',
+    'onglet « PV » sans artéfact : affiché, désactivé, avec la raison'
+  );
+  ok(groupes.filter((o) => o.texte !== 'PV').every((o) => !o.desactive), 'les autres onglets disponibles');
+
+  ok(t.includes('Stat principale PV ATQ DEF'), 'filtre « Stat principale » : PV · ATQ · DEF');
+  for (const s of ['PV', 'ATQ', 'DEF'])
+    ok(
+      b.filter((x) => x.texte === s && x.presse === true).length === 1,
+      `stat principale « ${s} » : une bascule, cochée par défaut (liste blanche)`
+    );
+
+  // TOUS les tableaux de la sorte attribut, même vides ; aucun de type.
+  for (const famille of [
+    'Réduction des dégâts reçus',
+    'Augmentation des dégâts infligés',
+    'Effet de renforcement',
+    'Dégâts supplémentaires en proportion de',
+    'Dégâts critiques selon la cible',
+    'Autres sous-propriétés',
+  ])
+    ok(t.includes(famille), `tableau « ${famille} », affiché`);
+  ok(!t.includes('Augmentation des soins'), 'aucun tableau impossible pour un attribut (soins par compétence)');
+  ok(t.indexOf('Réduction des dégâts reçus') < t.indexOf('Augmentation des dégâts infligés'), 'dégâts reçus d’abord, puis infligés');
+
+  // Une colonne : toujours 10 rangs, une croix là où il n'y a pas d'artéfact.
+  const colonne = (code: number) => html.split(`data-colonne-top="${code}"`)[1]?.split('data-colonne-top=')[0] ?? '';
+  const rangs = (code: number) => (colonne(code).match(/<li\b/g) ?? []).length;
+  const vides = (code: number) => (colonne(code).match(/data-case-vide/g) ?? []).length;
+  ok(rangs(300) === 10 && vides(300) === 10, '« Feu » des dégâts infligés, sans artéfact : 10 croix');
+  ok(rangs(204) === 10 && vides(204) === 9, '« ATQ » de l’effet de renforcement : la valeur de l’intangible, puis 9 croix');
+  ok(colonne(204).includes('+6%'), 'l’intangible dans les tableaux de l’Eau : « Effet de renforcement » › « ATQ » +6%');
+  ok(colonne(219).includes('6%'), '« Dégâts supplémentaires en proportion de » › « ATQ » 6%');
+  ok(colonne(214).includes('-5%'), 'valeur signée comme dans le jeu : -5 % de dégâts CRIT reçus');
+  ok(/aria-label="Aucun artéfact"/.test(colonne(300)), 'une croix se nomme « Aucun artéfact »');
+
+  ok(b.some((x) => x.texte === '+8%' && x.title === 'n° 1 · principale PV'), 'une valeur ouvre sa fiche : son rang et la stat principale en infobulle');
+  ok(b.some((x) => x.texte === '+6%' && x.title === 'n° 1 · principale ATQ · intangible'), 'un intangible : dit dans l’infobulle');
+  ok(valeurs(html, 'alt').includes('intangible'), 'et marqué par le glyphe intangible du jeu');
+  const icones = valeurs(html, 'aria-label');
+  ok(icones.includes('PV') && icones.includes('ATQ'), 'l’icône de la stat principale (cœur PV, épées ATQ) devant la valeur, nommée');
+  ok(/class="[^"]*text-fire[^"]*"[^>]*aria-label="PV"|aria-label="PV"[^>]*class="[^"]*text-fire/.test(html), 'le cœur PV en couleur');
 }
 
 // « Effacer les filtres » dans la box et la liste

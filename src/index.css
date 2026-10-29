@@ -38,6 +38,9 @@
   /* Bandes d'équipes alternées, indépendantes de la sélection et de l'élément. */
   --equipe-a: 255 237 221;
   --equipe-b: 220 234 239;
+  /* Contour du monstre affiché dans sa bande d'équipe : la teinte de la bande, saturée. */
+  --equipe-a-trait: 222 140 80;
+  --equipe-b-trait: 96 150 175;
   /* Barres de l'application (barre latérale, barre du haut). En Atelier,
      la toile la confond avec `panel` : elle se
      détache du fond de page par sa bordure. */
@@ -262,6 +265,8 @@
   --forge-panel2: 46 44 42;
   --forge-equipe-a: 58 36 21;
   --forge-equipe-b: 27 45 56;
+  --forge-equipe-a-trait: 168 98 52;
+  --forge-equipe-b-trait: 70 128 160;
   --forge-border: 90 84 77;
   --forge-border-soft: 58 55 52;
   --forge-ink: 237 227 209;
@@ -365,6 +370,8 @@
     --panel2: var(--forge-panel2);
     --equipe-a: var(--forge-equipe-a);
     --equipe-b: var(--forge-equipe-b);
+    --equipe-a-trait: var(--forge-equipe-a-trait);
+    --equipe-b-trait: var(--forge-equipe-b-trait);
     --border: var(--forge-border);
     --border-soft: var(--forge-border-soft);
     --ink: var(--forge-ink);
@@ -425,6 +432,8 @@
   --panel2: var(--forge-panel2);
   --equipe-a: var(--forge-equipe-a);
   --equipe-b: var(--forge-equipe-b);
+  --equipe-a-trait: var(--forge-equipe-a-trait);
+  --equipe-b-trait: var(--forge-equipe-b-trait);
   --border: var(--forge-border);
   --border-soft: var(--forge-border-soft);
   --ink: var(--forge-ink);
@@ -680,6 +689,25 @@ a[data-bouton]:active {
   transform: translateY(1px);
 }
 
+/* ---- Couche supérieure des flottants ------------------------------------- */
+/* `Flottant` passe dans la couche supérieure (`popover="manual"`), et la
+   feuille du navigateur y impose sa mise en forme : centré (`inset: 0`,
+   `margin: auto`), cadre, rembourrage, `color: CanvasText`, fond `Canvas`.
+   ⚠️ Sous `:where()`, de spécificité nulle : n'importe quelle classe de
+   l'écran (`p-1`, `border`, `bg-panel`) l'emporte, la règle ne fait que
+   rendre la main aux classes. */
+:where([popover]) {
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  border: 0 solid;
+  color: inherit;
+  background-color: transparent;
+  overflow: visible;
+  width: auto;
+  height: auto;
+}
+
 /* ---- Entrée d'un popover ------------------------------------------------ */
 /* ⚠️ Jamais depuis `scale(0)` : rien dans le monde réel n'apparaît de nulle
    part. On part de 0.96 avec une opacité nulle, et l'origine est posée sur
@@ -768,6 +796,23 @@ html:has([data-ecran-partage]) {
 }
 html:has([data-ecran-partage]) body {
   min-height: 0;
+}
+
+/* ⚠️ **Optimizer à hauteur de fenêtre : la FENÊTRE ne défile pas non plus.**
+   Au format bureau, dès que l'Optimizer a des colonnes (`data-page-fenetre`,
+   posé par sa page), il tient dans la partie visible et chaque colonne défile
+   seule : sans la hauteur minimale de `body`, qui ferait défiler la fenêtre
+   de 3 rem. Voir docs/02-app/optimizer/ecran/README.md, « Défilement ». */
+html:has([data-page-fenetre]) {
+  overflow: hidden;
+}
+html:has([data-page-fenetre]) body {
+  min-height: 0;
+}
+/* Ni le pied de page de l'app (`data-pied-de-page`, App.tsx) : les colonnes
+   vont jusqu'au bas de la fenêtre. */
+html:has([data-page-fenetre]) [data-pied-de-page] {
+  display: none;
 }
 
 /* ---- Cibles TACTILES ---------------------------------------------------- */

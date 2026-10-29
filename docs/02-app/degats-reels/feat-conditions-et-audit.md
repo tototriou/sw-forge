@@ -181,9 +181,10 @@ Les autres conditions binaires affichent aussi leur gain près de
 l'interrupteur, sans imposer de relire le résumé du sort.
 
 Les lignes « Effet renforcement ATQ/DEF » et « Effet aug. VIT » des artéfacts
-amplifient les buffs du monstre optimisé, pas la VIT de l'adversaire. Leur
-rappel apparaît auprès des buffs dans « État de mon monstre », seulement
-quand le buff correspondant est actif ; rien de tel ne figure sous « VIT
+amplifient les buffs du monstre optimisé, pas la VIT de l'adversaire. Le
+calcul en tient compte ; aucune phrase ne l'annonce, ni dans « État de mon
+monstre » (elle portait sur la paire d'artéfacts représentative de la
+recherche, inconnue du joueur : décision de l'utilisateur), ni sous « VIT
 adversaire ».
 
 Ghost Slash (S1 des Onimusha, deux coups) peut poser Brise DEF sur chacun
@@ -283,25 +284,10 @@ pose entre les coups. Test : `testSuiteDuSortVoitLesPosesP4b`.
 
 ## Formules de l'API pour les sorts à formule vide
 
-Trois S3 dont la fiche porte `formule: ""` reçoivent la formule de leur
-« compétence auxiliaire » (`other_skill`) de l'API SWARFARM, vérifiée à la
-source (la valeur de l'API vaut par défaut, sauf si la prose la contredit :
-[valeurs curées](valeurs-de-jeu-curees.md), « Valeurs connues par l'API seule ») :
-
-| Sort · identifiant · formes | Formule (auxiliaire) | Portée retenue | Note |
-| --- | --- | --- | --- |
-| Cursed Tombstone · `21114` · Ramon `31414` (`31404` non éveillé) | `2.7*{ATK} + 0.29*{MAX HP}` (4592) | mono-cible | la donnée dit `aoe: true` (fiche et auxiliaire), la prose « Attacks the enemy » : la prose l'emporte (`PORTEE_CORRIGEE_PAR_ID`) |
-| Purification, Cooperation! · `21415` · Nezuko Kamado `31915` (`31905` et `32015` non proposées par `formesJouables`) | `4.5*{ATK}` (4626) | mono-cible | les attaques des deux alliés (« Ally Attack ») sont hors calcul : dégâts d'autres monstres |
-| Rite of Ashes · `22015` · Vermilion Bird Dancer `32615` (`32605` non éveillé) | `4.5*{ATK}` (4710) | mono-cible | idem |
-
-Les améliorations « Damage » de la fiche s'y appliquent (+15 %, +20 %). La
-garde « formule vide » de `skillDamageProfile` porte sur la formule
-**retenue**, après `FORMULES_CUREES_PAR_ID`, jamais sur celle de la fiche
-(sinon ces trois sorts ne seraient pas proposés), comme pour un passif : une fiche à formule vide sans formule curée reste sans profil.
-Devenus le dernier sort calculable, ils sont aussi le sort par défaut de ces
-monstres. Hors périmètre : les sorts « Horn » des Anges jumeaux (forme de
-soutien sans dégât : [valeurs curées](valeurs-de-jeu-curees.md), « Anges jumeaux »), qui restent sans profil. Test :
-`testDegatsFormulesApi` (`node tests/run.mjs formulesapi`).
+Une fiche à `formule: ""` reçoit la formule de sa compétence auxiliaire
+(Tempest, Ramon, Nezuko, Vermilion Bird Dancer, Legolas, Elder Horn) : la
+règle, ses gardes et la table des sorts concernés sont dans
+[feat-competences-auxiliaires.md](feat-competences-auxiliaires.md#la-formule-dun-sort-dont-la-fiche-est-vide).
 
 ## Portée corrigée par la prose (`PORTEE_CORRIGEE_PAR_ID`)
 

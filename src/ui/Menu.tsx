@@ -167,9 +167,19 @@ export default function Menu({ libelle, elements, largeur = 'w-60', declencheur:
         cote={cote}
         role="menu"
         aria-label={libelle}
-        className={`p-1 ${ouvert ? '' : 'hidden'}`}
+        className={ouvert ? '' : 'hidden'}
       >
-        <div id={id} onKeyDown={clavier} className="flex flex-col gap-px">
+        {/* ⚠️ **La liste DÉFILE au-delà d'une hauteur plafonnée** : les
+            invocateurs d'un dossier SW Exporter peuvent être des dizaines, et
+            une liste sans plafond sortait de l'écran sans moyen d'atteindre la
+            fin. Le `p-1` est ICI, sur la zone qui défile, et non sur le
+            `Flottant` : le filet `-mx-1` reste dans son rembourrage, sans
+            barre de défilement horizontale. */}
+        <div
+          id={id}
+          onKeyDown={clavier}
+          className="flex max-h-[min(70dvh,480px)] flex-col gap-px overflow-y-auto p-1"
+        >
           {normaux.map((el) => (
             <Entree key={el.cle} el={el} fermer={() => fermer(false)} />
           ))}

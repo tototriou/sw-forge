@@ -10,7 +10,7 @@ export interface BancRetouches {
 }
 const visible = (e: Element) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden';
 export const bouton = (nom: string, racine: ParentNode = document) => [...racine.querySelectorAll<HTMLButtonElement>('button')]
-  .find(e => visible(e) && (e.textContent?.trim() === nom || e.getAttribute('aria-label') === nom))!;
+  .find(e => visible(e) && ((e.querySelector('[data-libelle-onglet]') ?? e).textContent?.trim() === nom || e.getAttribute('aria-label') === nom))!;
 export async function deplierListes(b: BancRetouches) {
   const gerer = bouton('Gérer mes listes');
   if (gerer?.getAttribute('aria-expanded') === 'false') await b.geste(() => gerer.click());
@@ -50,10 +50,9 @@ export async function preuvesCreationObligatoire(b: BancRetouches): Promise<[boo
 }
 
 export async function preuvesEtatAuras(b: BancRetouches): Promise<[boolean, string][]> {
+  if (innerWidth >= 1024) return preuvesEtatAurasBureau(b);
   const titre = [...document.querySelectorAll<HTMLElement>('p')].find(e=>visible(e) && e.textContent==='État de mon monstre')!;
   const carte=titre.parentElement!.parentElement!;
-  // La page réelle conserve une colonne à côté des critères et de la navigation.
-  if (innerWidth>=1024) carte.style.width='27rem';
   const ajout = bouton("Ajouter un set d'aura");
   const buffs = bouton('Buff ATQ')?.parentElement;
   const lead = document.querySelector('[aria-label="Type de leader skill"]')?.parentElement?.parentElement;
@@ -64,11 +63,41 @@ export async function preuvesEtatAuras(b: BancRetouches): Promise<[boolean, stri
   await b.geste(() => ajout.click());
   const apres = ajout.getBoundingClientRect();
   return [
-    [innerWidth >= 1024 ? a.y === f.y && a.y === l.y : a.y >= Math.max(f.bottom, l.bottom),
-      `auras : même rangée au bureau, empilement au téléphone (${JSON.stringify({a:a.y,l:l.y,f:f.y})})`],
+    [a.y >= Math.max(f.bottom, l.bottom), `auras : empilement au téléphone (${JSON.stringify({a:a.y,l:l.y,f:f.y})})`],
     [avant.x === apres.x && avant.y === apres.y, 'ajouter une aura garde le bouton immobile'],
     [document.documentElement.scrollWidth <= innerWidth, 'cartes de contexte sans débordement'],
     [[...aura.querySelectorAll<HTMLElement>('*')].filter(visible).every(e=>e.getBoundingClientRect().right<=carte.getBoundingClientRect().right),
+      'colonne réelle : les contrôles des auras restent dans la carte'],
+  ];
+}
+
+// Au bureau, « État de mon monstre » est réduit aux buffs et au lead, dans
+// les essentiels ; les sets d'aura des autres monstres ont leur carte en tête
+// de la colonne repliable « Aura, exclusion, avancés », ouverte par son onglet.
+async function preuvesEtatAurasBureau(b: BancRetouches): Promise<[boolean, string][]> {
+  const essentiels = document.querySelector<HTMLElement>('[data-colonne="criteres"]');
+  const etat = essentiels?.querySelector<HTMLElement>('section[aria-label="État de mon monstre"]');
+  const buffs = etat ? bouton('Buff ATQ', etat) : undefined;
+  const lead = etat?.querySelector('[aria-label="Type de leader skill"]');
+  const onglet = [...document.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
+    .find(e => e.querySelector('[data-libelle-onglet]')?.textContent?.trim() === 'Options');
+  if (!etat || !buffs || !lead || !onglet) return [[false, 'état du monstre (buffs, lead) dans les essentiels, et l’onglet de sa colonne']];
+  const avantOnglet = onglet.getBoundingClientRect();
+  if (onglet.getAttribute('aria-selected') !== 'true') await b.geste(() => onglet.click());
+  const apresOnglet = onglet.getBoundingClientRect();
+  const carte = document.querySelector<HTMLElement>('[data-colonne="complements"] section[aria-label="Sets d\'aura des autres monstres"]');
+  const ajout = carte ? bouton("Ajouter un set d'aura", carte) : undefined;
+  if (!carte || !ajout) return [[false, 'la carte des sets d’aura, en tête de sa colonne ouverte']];
+  const avant = ajout.getBoundingClientRect();
+  await b.geste(() => ajout.click());
+  const apres = ajout.getBoundingClientRect();
+  return [
+    [!etat.textContent?.includes('Sets d\'aura des autres monstres') && carte.closest('[data-colonne="complements"]')!.querySelector('section') === carte,
+      'bureau : buffs et lead dans les essentiels, les sets d’aura en tête de la colonne « Aura, exclusion, avancés »'],
+    [avantOnglet.x === apresOnglet.x && avantOnglet.y === apresOnglet.y, 'ouvrir la colonne garde l’onglet immobile'],
+    [avant.x === apres.x && avant.y === apres.y, 'ajouter une aura garde le bouton immobile'],
+    [document.documentElement.scrollWidth <= innerWidth, 'cartes de contexte sans débordement'],
+    [[...carte.querySelectorAll<HTMLElement>('*')].filter(visible).every(e=>e.getBoundingClientRect().right<=carte.getBoundingClientRect().right),
       'colonne réelle : les contrôles des auras restent dans la carte'],
   ];
 }
@@ -129,17 +158,12 @@ export async function preuvesActionsZoneC(b: BancRetouches): Promise<[boolean, s
   await b.geste(() => b.listes().renameList('a', 'Une liste au nom suffisamment long pour exiger une troncature des actions'));
   const ligne = [...document.querySelectorAll<HTMLElement>('[aria-label="Actions de la liste"]')].find(visible)!;
   const actions = [...ligne.querySelectorAll<HTMLButtonElement>('button')];
-  const [ajout,lier,sauver,reprendre] = actions;
-  const rects=actions.map(e=>e.getBoundingClientRect()), texte=ajout.querySelector('span')!;
+  const [lier,sauver,reprendre] = actions;
+  const rects=actions.map(e=>e.getBoundingClientRect());
   const preuves: [boolean,string][] = [
-    [actions.length===4 && lier.textContent==='Lier une équipe' && sauver.textContent?.trim()==='Sauvegarder' && reprendre.textContent?.trim()==='Reprendre', 'quatre actions réunies dans leur ordre'],
+    [actions.length===3 && lier.textContent==='Lier une équipe' && sauver.textContent?.trim()==='Sauvegarder' && reprendre.textContent?.trim()==='Reprendre', 'trois actions réunies dans leur ordre, ajout par la recherche'],
     [innerWidth>=1024 ? rects.every(r=>r.y===rects[0].y) : new Set(rects.map(r=>r.y)).size===2, 'actions : une ligne au bureau, deux lignes compactes au téléphone'],
-    [ajout.title===ajout.textContent?.trim() && getComputedStyle(texte).textOverflow==='ellipsis' && texte.scrollWidth>texte.clientWidth, 'libellé long tronqué avec texte complet en infobulle'],
   ];
-  const avant=ajout.getBoundingClientRect();
-  await b.geste(()=>ajout.click());
-  const apres=ajout.getBoundingClientRect();
-  preuves.push([avant.x===apres.x && avant.y===apres.y, 'ajouter le prochain exemplaire garde son bouton immobile']);
   const a=sauver.getBoundingClientRect();
   await b.geste(()=>sauver.click());
   const z=sauver.getBoundingClientRect();

@@ -53,25 +53,26 @@ function stats(valeurs: Partial<Record<StatKey, number>>): StatRow[] {
   return cles.map((key) => ({ key, label: key, base: 0, bonus: valeurs[key] ?? 0, total: valeurs[key] ?? 0, suffix: '' }));
 }
 
-// Huit identifiants, onze formes ;
-// les cinq candidats écartés restent hors famille.
+// Cinq identifiants, sept formes ;
+// les cinq candidats écartés restent hors famille, et les trois Blade Surge
+// portés par les seuls Magic Knights non éveillés (et l'Imperfect Magic Knight
+// non obtenable) aussi : hors curation.
 const FAMILLE: Record<number, number[]> = {
-  10601: [19801],
   10602: [19802, 19812],
-  10603: [19803, 19823],
   10604: [19804, 19814],
-  10605: [19805],
   10616: [19811],
   10618: [19813],
   10620: [19815],
 };
-const HORS_FAMILLE = [11015, 18314, 23507, 23508, 23510];
-// Les autres porteurs d'une séquence curée : les quatre séquences dont la phase
-// de zone vient de l'API, testées dans
+const HORS_FAMILLE = [11015, 18314, 23507, 23508, 23510, 10601, 10603, 10605];
+// Les autres porteurs d'une séquence curée : les six séquences dont la phase
+// de zone vient de la compétence auxiliaire, testées dans
 // `degats-valeurs-api.test.ts`. Listés ici pour que le balayage du corpus
 // continue de voir tout porteur inattendu.
 const SEQUENCES_API: Record<number, number[]> = {
+  9515: [18715],
   13311: [22911],
+  13312: [22912],
   13314: [22914],
   14113: [24203, 24213],
   14613: [24703, 24713],
@@ -110,7 +111,7 @@ function artefacts(subs: { code: number; value: number }[]): ArtifactDamageProfi
 const proche = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
 
 export default function testDegatsBladeSurge() {
-  titre('Blade Surge — la séquence curée couvre les huit identifiants et onze formes');
+  titre('Blade Surge — la séquence curée couvre les cinq identifiants et sept formes');
 
   // Balayage du corpus ENTIER, pas seulement de la liste : un sort porteur de
   // séquence hors famille, ou un porteur manquant, se verrait ici.
@@ -125,10 +126,10 @@ export default function testDegatsBladeSurge() {
     }
   }
   for (const formes of Object.values(porteurs)) formes.sort((a, b) => a - b);
-  egal(porteurs, { ...FAMILLE, ...SEQUENCES_API }, 'corpus : exactement les huit identifiants Blade Surge (et leurs onze formes) et les quatre séquences à valeur de l’API portent une séquence');
-  egal(Object.keys(FAMILLE).flatMap((id) => porteurs[Number(id)] ?? []).length, 11, 'corpus : onze formes pour Blade Surge');
+  egal(porteurs, { ...FAMILLE, ...SEQUENCES_API }, 'corpus : exactement les cinq identifiants Blade Surge (et leurs sept formes) et les six séquences à phase d’auxiliaire portent une séquence');
+  egal(Object.keys(FAMILLE).flatMap((id) => porteurs[Number(id)] ?? []).length, 7, 'corpus : sept formes pour Blade Surge');
   egal([...idsCapables].sort((a, b) => a - b), Object.keys({ ...FAMILLE, ...SEQUENCES_API }).map(Number).sort((a, b) => a - b),
-    'capacité « autres ennemis » : les huit identifiants Blade Surge et les quatre séquences à valeur de l’API, aucun autre sort du corpus');
+    'capacité « autres ennemis » : les cinq identifiants Blade Surge et les six séquences à phase d’auxiliaire, aucun autre sort du corpus');
   for (const id of HORS_FAMILLE) {
     ok(!cibleSecondairePriseEnCharge(id), `hors famille : ${id} sans cible secondaire`);
   }
@@ -196,7 +197,7 @@ export default function testDegatsBladeSurge() {
       'clé « visee » = clé absente'
     );
 
-    // Les onze formes, chacune par son propre identifiant : visée / autres
+    // Les sept formes, chacune par son propre identifiant : visée / autres
     // ennemis = (0,5 × 2 + 3,0) / 3,0 sans artéfact.
     for (const [id, formes] of Object.entries(FAMILLE)) {
       for (const forme of formes) {

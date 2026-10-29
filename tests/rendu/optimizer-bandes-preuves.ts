@@ -29,7 +29,10 @@ export async function preuvesBandesEquipes(b: Banc): Promise<[boolean, string][]
   const lignes = [...cartes(a), ...cartes(autre), ...cartes(libres)];
   const hauteur = cartes(libres)[0].getBoundingClientRect().height;
   verifier(lignes.length === 5 && lignes.every(e => e.getBoundingClientRect().height === hauteur), 'toutes les cartes liées ont la hauteur d’une carte libre');
-  verifier(cartes(libres).every(e => e.className === cartes(a)[0].className), 'cartes liées et libres : même aspect');
+  // La carte du monstre affiché (`aria-current`) a son propre aspect.
+  const ordinaire = (e: Element) => !e.hasAttribute('aria-current');
+  const reference = cartes(a).find(ordinaire)!;
+  verifier(cartes(libres).filter(ordinaire).every(e => e.className === reference.className), 'cartes liées et libres : même aspect');
   verifier(a.contains(a.querySelector('img[src*="leader_skill_"]')) && a.textContent!.includes('Leader : Premier')
     && cartes(a).length === 2 && [...a.querySelectorAll('button')].some(e => e.textContent === 'Modifier l’équipe'), 'bande : numéro, leader, LeadPill, modifier et deux cartes');
   const centre = (e: Element) => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; };
@@ -51,16 +54,37 @@ export async function preuvesBandesEquipes(b: Banc): Promise<[boolean, string][]
     const t = luminance(texte), f = luminance(fond);
     return (Math.max(t, f) + 0.05) / (Math.min(t, f) + 0.05);
   };
+  const composite = (g: Element, carte: Element) => {
+    const fond = rgb(getComputedStyle(g).backgroundColor), surface = rgb(getComputedStyle(carte).backgroundColor);
+    return fond.map((v, i) => surface[i] * (surface[3] ?? 1) + v * (1 - (surface[3] ?? 1)));
+  };
   const contrastes = [a, autre].flatMap(g => {
-    const fond = rgb(getComputedStyle(g).backgroundColor);
-    const carte = cartes(g)[0], surface = rgb(getComputedStyle(carte).backgroundColor);
-    const composite = fond.map((v, i) => surface[i] * (surface[3] ?? 1) + v * (1 - (surface[3] ?? 1)));
+    const fond = rgb(getComputedStyle(g).backgroundColor), carte = composite(g, cartes(g).find(ordinaire)!);
     return ['--ink', '--ink-dim', '--ink-dimmer', '--warn'].flatMap(nom => {
       const texte = rgb(jeton(nom));
-      return [ratio(texte, fond), ratio(texte, composite)];
+      return [ratio(texte, fond), ratio(texte, carte)];
     });
   });
   verifier(contrastes.every(r => r >= 4.5), `encres des bandes et des cartes : contraste minimal ${Math.min(...contrastes).toFixed(2)}:1`);
+  // Sur le voile du monstre affiché, les encres de texte qu'il garde, relevées
+  // sur ses textes posés à même le voile (pas ceux de l'avatar, sur son fond).
+  const choisie = cartes(a).find(e => !ordinaire(e));
+  const surLeVoile = (e: Element) => {
+    for (let p: Element | null = e; p && p !== choisie; p = p.parentElement) if (rgb(getComputedStyle(p).backgroundColor)[3] !== 0) return false;
+    return true;
+  };
+  const encresChoisie = choisie ? [...new Set([...choisie.querySelectorAll<HTMLElement>('span')]
+    .filter(e => visible(e) && surLeVoile(e) && [...e.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent!.trim()))
+    .map(e => getComputedStyle(e).color))].map(c => ratio(rgb(c), composite(a, choisie))) : [];
+  // La mise en évidence elle-même : contour du trait de sa bande, fond distinct
+  // d'une carte ordinaire comme de la bande.
+  const styleChoisie = choisie ? getComputedStyle(choisie) : null;
+  verifier(!!styleChoisie && styleChoisie.borderTopColor === jeton('--equipe-a-trait')
+    && styleChoisie.backgroundColor !== getComputedStyle(reference).backgroundColor
+    && composite(a, choisie!).join() !== rgb(styleA.backgroundColor).slice(0, 3).join(),
+  `monstre affiché : contour et fond aux couleurs de sa bande (${styleChoisie?.borderTopColor} · ${styleChoisie?.backgroundColor})`);
+  verifier(!!choisie && encresChoisie.length > 0 && encresChoisie.every(r => r >= 4.5),
+    `monstre affiché : carte mise en évidence, ses textes lisibles (${encresChoisie.map(r => r.toFixed(2)).join(' / ')})`);
   verifier([a, autre].every(e => ['Top', 'Right', 'Bottom', 'Left'].every(cote => getComputedStyle(e).getPropertyValue(`border-${cote.toLowerCase()}-width`) === '0px')), 'bandes sans contour');
   verifier(!a.querySelector('[aria-label^="Lead inactif"]') && !autre.querySelector('[aria-label^="Lead inactif"]'), 'lead actif : aucune icône ni cible accessible');
   const geometrie = () => JSON.stringify(lignes.map(e => {

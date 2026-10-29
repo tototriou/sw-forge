@@ -101,6 +101,25 @@
 //   texte sur plusieurs lignes garde l'espacement de fin des autres) ; un
 //   texte suivi d'un élément, ou dans un `inline`, se mesure comme avant
 //   (tests/banc/cas/espacement-final.html).
+// - cases de roue : sous le PREMIER ancêtre dont l'image de fond est
+//   `rune-wheel.png`, un excédent ne relève pas de « contenu » s'il vient
+//   UNIQUEMENT de transformations de descendants (transform, translate,
+//   rotate ou scale). Les cadres pivotés et les icônes décalées de RuneWheel
+//   occupent volontairement plus que leur case, tout en restant dans la roue.
+//   La roue doit elle-même ne déborder sur aucun axe, et les boîtes
+//   transformées ET tous leurs descendants visibles doivent rester dans son
+//   rectangle (tolérance commune de 1 px sur les quatre côtés). On ne cherche
+//   jamais une autre roue ni un contenant plus large si ce contrôle échoue.
+//   Un essai sur la page intacte neutralise les seules transformations de ces
+//   descendants : l'excédent doit disparaître EN ENTIER et aucune boîte hors
+//   des sous-arbres transformés ne doit bouger (0,5 px). Sinon rien n'est levé.
+//   Les styles et transitions sont rendus à l'identique. Aucune autre règle,
+//   ni le contenu de la roue elle-même, n'est exclue.
+//   ⚠️ Limites : exception volontairement liée à cette image de fond, pas aux
+//   transformations en général ; elle compare des rectangles, sans lire les
+//   pixels transparents, les ombres ou les filtres. Un cadre dont seul le
+//   rectangle transparent sort de la roue reste donc signalé. Les deux cas :
+//   tests/banc/cas/roue-cadre-pivote.html et roue-transformation-sortante.html.
 //
 // Exclusions, chacune LOCALE (l'élément exclu n'est signalé par aucune règle ;
 // ses ancêtres restent mesurés, et sont signalés s'il les élargit) :
@@ -147,7 +166,7 @@
 //   l'élément, sans un pixel de dessin) ne compte ni dans la mesure de son
 //   élément ni dans celle de ses ancêtres hors `html`. La règle « page », elle,
 //   le COMPTE : un `::after` qui élargit la page laisse un défilement latéral
-//   au téléphone (décision D9 de l'utilisateur ; relevé
+//   au téléphone (règle voulue par l'utilisateur ; relevé
 //   tests/banc/cas/zone-tactile-page.html : `isMobile` élargit la fenêtre de
 //   mise en page à 373 px pour 360). Au second passage, sa règle « contenu »
 //   et celle de ses ancêtres se relisent ce pseudo-élément retiré ; la page,
@@ -185,7 +204,7 @@
 //   nombre d'exemplaires) : son contact avec SON portrait est permis, jamais
 //   avec le reste — ni un ancêtre au-delà du portrait, ni une autre pastille,
 //   ni la couronne, ni rien d'autre que ce qui est dessiné dans le cadre du
-//   portrait. Décisions D11 et D15 de l'utilisateur ; aucune généralisation à
+//   portrait. Règle voulue par l'utilisateur ; aucune généralisation à
 //   un autre élément absolu à décalage négatif (halo, superposition
 //   `-inset-px`, bouton en coin hors de sa liste — exception suivante), qui
 //   se mesure comme les autres.
@@ -193,7 +212,7 @@
 //     par `src/` (MonsterAvatar.tsx, ElementIcon.tsx, siege/LeadPill.tsx),
 //     sur l'élément positionné lui-même, avec une valeur de la liste
 //     explicite PASTILLES_RECONNUES : `element`, `lead`, `exemplaires`. PAS
-//     `couronne` (D15 : la couronne n'est pas posée sur le portrait) : elle
+//     `couronne` (la couronne n'est pas posée sur le portrait) : elle
 //     se mesure comme tout élément, son dépassement compte, et elle est « le
 //     reste » pour les pastilles. Rien n'est reconnu par son image ni par sa
 //     forme : une icône d'élément sans repère se mesure comme les autres (son
@@ -244,7 +263,7 @@
 //     coupe celle d'aucun élément visible (au sens plus haut, `visibility`
 //     visible) DU MÊME PLAN qui n'est ni un de ses ancêtres, ni un de ses
 //     descendants, ni le contenu de son portrait — coupe : intersection de
-//     plus de 1 px de large ET de haut. Contenu du portrait (D14 : ce qui est
+//     plus de 1 px de large ET de haut. Contenu du portrait (ce qui est
 //     dessiné dans le cadre du portrait en fait partie) : le CADRE — premier
 //     élément enfant du portrait, en flux (ni `absolute` ni `fixed`), sans
 //     `data-pastille` : la structure fixe de MonsterAvatar, dont les deux
@@ -254,7 +273,7 @@
 //     portrait d'un jumeau collab (`absolute inset-0` dans le cadre,
 //     `CollabPortrait.tsx`) en fait donc partie. Tout autre descendant du
 //     portrait est « le reste » et se compare : une autre pastille (deux
-//     pastilles d'un même portrait ne se touchent pas, D15), la couronne,
+//     pastilles d'un même portrait ne se touchent pas), la couronne,
 //     un élément sans repère, enveloppé ou non dans un cadre positionné
 //     (relectures Codex n° 5 et 17, tests/banc/cas/coin-pastille.html,
 //     pastille-*.html). Sans cadre reconnu, le portrait n'a pas de contenu :
@@ -439,6 +458,9 @@
 // pastille, `right: 0` en ligne avec `!important` (voir plus haut). Le
 // signalement garde ses valeurs du premier passage ;
 // `depassement` porte celui qui reste, `page.relue` la largeur de page relue.
+// Les cases de roue ont leur essai séparé AVANT ces neutralisations :
+// transformations des descendants remises à `none`, puis restaurées ; seul
+// leur signalement « contenu » entièrement expliqué par cet essai est levé.
 // Remise en état : chaque neutralisation en ligne pose aussi `transition:
 // none !important` — une transition sur la propriété neutralisée (`transition:
 // translate 1s`) ferait lire une valeur intermédiaire. Chaque élément touché
@@ -633,7 +655,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
   };
 
   // Pastille du portrait (tête) : la liste explicite des repères reconnus —
-  // pas `couronne` (D15).
+  // pas `couronne`, qui n'est pas posée sur le portrait.
   const PASTILLES_RECONNUES = new Set(['element', 'lead', 'exemplaires']);
   // Bouton en coin (tête) : la liste explicite de ses membres.
   const BOUTONS_EN_COIN = new Set(['retirer-rta', 'modifier-defense']);
@@ -1161,7 +1183,16 @@ export function mesurer(options: { detail: boolean }): Mesure {
   const relirePage = scrollWidth > largeur + TOLERANCE && margesNegatives.length > 0;
   const leves = new Set<Signalement>();
   let decoratifsEnPlace = 0;
-  if (aRelire.length > 0 || relirePage) {
+  const estRoue = (el: Element) => /url\(["']?[^)]*\/rune-wheel\.png["']?\)/.test(style(el).backgroundImage);
+  const roueDe = (el: Element): Element | null => {
+    if (estRoue(el)) return null;
+    for (let a = el.parentElement; a; a = a.parentElement) {
+      if (estRoue(a)) return a;
+    }
+    return null;
+  };
+  const casesDeRoue = signalements.filter((s) => s.regle === 'contenu' && roueDe(elementDe.get(s) as Element));
+  if (aRelire.length > 0 || relirePage || casesDeRoue.length > 0) {
     const restaurer: (() => void)[] = [];
     // Remise en état (tête) : une pose garde l'attribut `style` d'avant, tel
     // quel, et coupe les transitions de l'élément le temps de la relecture.
@@ -1207,6 +1238,37 @@ export function mesurer(options: { detail: boolean }): Mesure {
       Math.abs(a.top - b.top) > 0.5 ||
       Math.abs(a.width - b.width) > 0.5 ||
       Math.abs(a.height - b.height) > 0.5;
+    // Un essai par case, sur la page intacte : aucune autre exception ne
+    // peut faire passer un excédent mixte pour une simple transformation.
+    for (const signalement of casesDeRoue) {
+      const el = elementDe.get(signalement) as Element;
+      const roue = roueDe(el) as Element;
+      if (roue.scrollWidth - roue.clientWidth > TOLERANCE || roue.scrollHeight - roue.clientHeight > TOLERANCE) continue;
+      const limites = boites.get(roue);
+      if (!limites) continue;
+      const transformes = Array.from(el.querySelectorAll('*')).filter((d) => {
+        if (!boites.has(d)) return false;
+        const s = style(d);
+        return s.transform !== 'none' || s.translate !== 'none' || s.rotate !== 'none' || s.scale !== 'none';
+      });
+      if (transformes.length === 0) continue;
+      const sousArbre = (d: Element) => transformes.some((t) => t.contains(d));
+      const dansLaRoue = visibles.filter(sousArbre).every((d) => {
+        const r = boites.get(d) as DOMRect;
+        return r.left >= limites.left - TOLERANCE && r.right <= limites.right + TOLERANCE
+          && r.top >= limites.top - TOLERANCE && r.bottom <= limites.bottom + TOLERANCE;
+      });
+      if (!dansLaRoue) continue;
+      const essai: Pose[] = [];
+      try {
+        for (const d of transformes) essai.push(poser(d, { transform: 'none', translate: 'none', rotate: 'none', scale: 'none' }));
+        if (depasse(el) <= TOLERANCE && visibles.every((d) => sousArbre(d) || !bouge(boites.get(d) as DOMRect, d.getBoundingClientRect()))) {
+          leves.add(signalement);
+        }
+      } finally {
+        rendre(essai);
+      }
+    }
     const retirable = (d: Element) => {
       for (const x of Array.from(d.querySelectorAll('*'))) {
         if (x.getClientRects().length > 0 && style(x).pointerEvents !== 'none') return false;
@@ -1226,7 +1288,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
     const retirables = decoratifsVus.filter(retirable);
     decoratifsEnPlace = decoratifsVus.length - retirables.length;
     try {
-      // (1) La page : marges négatives seules (D9 ne vaut pas pour elle, un
+      // (1) La page : marges négatives seules (la zone tactile y compte, un
       // décoratif est coupé avant `html`, une pastille s'arrête à son portrait).
       for (const { el, marge, gauche } of margesNegatives) {
         poses.push(poser(el, { 'margin-left': `${gauche - marge}px`, 'margin-right': '0px' }));

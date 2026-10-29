@@ -196,8 +196,9 @@ mais **leurs compétences diffèrent** : Bellenus voit son S2 passer de
 **3.0 à 2.0 × ATQ** et son passif changer entièrement. Dédupliquer sans plus
 ferait donc perdre la moitié de l'information.
 
-La fiche porte un **contrôle à cran** — « Forme de base » / « Forme
-transformée » — qui recharge stats, lead et compétences.
+La fiche porte deux **onglets** (`Onglets`, la librairie UI) — « Forme de
+base » / « Forme transformée » — qui rechargent stats, lead et compétences :
+l'onglet ouvert coiffe la fiche du dessous, qui change avec lui.
 
 - Les libellés sont **« base » / « transformée »**, pas les noms : ils sont
   **identiques** des deux côtés. C'est le rang qui distingue, comme dans le jeu
@@ -228,6 +229,12 @@ l'unique point d'entrée [monsterSkills.ts](src/lib/monsterSkills.ts).
 - Le script tourne **après** `fetch-monsters.mjs` dans la CI : il ne génère que
   pour les monstres présents dans `monsters.json`, donc lancé avant il manquerait
   les nouveaux.
+- **Les compétences auxiliaires** sont rangées sous la compétence à laquelle
+  elles se rattachent (`Competence.auxiliaires`). SWARFARM les relie par
+  `other_skill` sans les lister sur aucun monstre ; elles portent le ratio d'une
+  seconde phase, d'un coup en plus, d'une riposte, de la forme archer des anges
+  jumeaux. Le sens du lien est gardé (`versCeSort`, `depuisCeSort`, `mutuel`) ;
+  ce qu'elles valent pour les dégâts est décidé dans `damage.ts`.
 - `chargerDetail` **ne lève jamais** : une fiche indisponible n'est pas une
   erreur d'application. Les absences sont **mémorisées** aussi — sans quoi un
   monstre sans fiche relancerait une requête vouée au 404 à chaque ouverture.

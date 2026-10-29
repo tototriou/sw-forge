@@ -7,7 +7,8 @@ import { setPersistence } from '../../src/hooks/usePersistence';
 import OptimizerSection from '../../src/components/outils/OptimizerSection';
 import { baseCompleteCriteres, photoCriteres } from '../../src/lib/criteresOptimizer';
 import { cleMemoireMembre, ecrireMembresOptimizer, OPTIMIZER_MEMBERS_STORAGE_KEY, type MemoireMembreOptimizer } from '../../src/lib/optimizerMemberStorage';
-import type { Monster, RtaEntry, SiegeTeam, RuneDetail, ArtifactDetail } from '../../src/types';
+import type { Monster, RtaEntry, SiegeTeam, RuneDetail, ArtifactDetail, RelicDetail } from '../../src/types';
+import { preuvesExemplaireLecture } from './optimizer-exemplaire-lecture-preuves';
 import type { BoxItem } from '../../src/lib/applyAccount';
 import type { ExclusionSelector, ExclusionSourceData } from '../../src/lib/optimizerExclusion';
 import { buildOptimizerRecipe } from '../../src/lib/optimizerRecipe';
@@ -23,6 +24,10 @@ import { preuvesRechercheCreationOptimizer, preuvesEditionListeOptimizer, preuve
 import { preuvesRechercheOptimizer } from './optimizer-recherche-preuves';
 import { preuvesCreationObligatoire, preuvesEtatAuras, preuvesEnteteEquipe, preuvesDialogueElement, preuvesActionsZoneC } from './optimizer-retouches-preuves';
 import { preuvesEquipeImpossible } from './optimizer-equipe-impossible-preuves';
+import { preuvesReglagesAvances, preuvesGuidage, preuvesRappelDeuxRendus, preuvesListesEcran, preuvesMessageImport, preuvesResultats } from './optimizer-ecran-preuves';
+import { rechercheClasseeTest } from './optimizer-classement-banc';
+import { preuvesCarteContexte, preuvesFiltresBranchement, preuvesFiltresEcran, preuvesFiltresMemoire, preuvesFiltresMesure } from './optimizer-filtres-preuves';
+import { bornesSousMesure } from '../../src/lib/colonnesResultats';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -45,7 +50,10 @@ let afficher: (oui: boolean) => void, changerBox: (box: BoxItem[]) => void;
 let changerRunes: (runes: RuneDetail[]) => void, compteActuel: ExclusionSourceData, runesActuelles: RuneDetail[];
 let changerArtefacts: (arts: ArtifactDetail[]) => void, artefactsActuels: ArtifactDetail[];
 let changerDefenses: (teams: SiegeTeam[]) => void;
+let changerReliques: (reliques: RelicDetail[]) => void;
 let avecPoint = false;
+let menuOuvert = false, changerMenu: (ouvert: boolean) => void;
+let rechercheForcee: Record<string, unknown> | null = null, rafraichir: () => void;
 const artefactsPoint: ArtifactDetail[] = [
   { id: 71, kind: 'element', element: 'fire', level: 15, rarity: 5, main: { code: 100, value: 1500 }, subs: [] },
   { id: 72, kind: 'archetype', archetype: 'attack', level: 15, rarity: 5, main: { code: 101, value: 100 }, subs: [] },
@@ -72,25 +80,39 @@ function Banc() {
   changerRunes = setInventaire; runesActuelles = inventaire;
   const [arts, setArts] = useState(() => avecPoint ? artefactsPoint : []);
   changerArtefacts = setArts; artefactsActuels = arts;
+  const [reliques, setReliques] = useState<RelicDetail[]>([]);
+  changerReliques = setReliques;
   const [defenses, setDefenses] = useState(siegeDefenseTeams);
   changerDefenses = setDefenses;
   listes = useOptimizerLists();
   const data: ExclusionSourceData = { box: compte, rtaEntries, siegeDefenseTeams: defenses, siegeOffenseTeams, monsterById: new Map(monstres.map(m => [String(m.id), m])) };
   compteActuel = data;
   etat = useOptimizerState({ lists: listes, data, runeIds: new Set(inventaire.map(r => r.id)) });
-  return visible ? <OptimizerSection box={compte} runes={inventaire} artifacts={arts} relics={[]} relicUsageById={{}}
-    optimizer={etat} onImporterEquipe={etat.importerEquipe} lists={listes} allMonsters={monstres} rtaEntries={rtaEntries} siegeDefenseTeams={defenses} siegeOffenseTeams={siegeOffenseTeams}
-    accountName="Synthétique" menuOuvert={false} onFermerMenu={() => {}} onOuvrirMenu={() => {}} /> : <div>Autre onglet</div>;
+  // Le panneau « Options » du téléphone, tenu ici comme App.tsx le tient.
+  const [menu, setMenu] = useState(false);
+  menuOuvert = menu; changerMenu = setMenu;
+  // Un résultat de recherche posé à la main : le banc n'a pas le Worker de la recherche.
+  const [, setTic] = useState(0);
+  rafraichir = () => setTic(n => n + 1);
+  const optimizer = rechercheForcee ? { ...etat, search: { ...etat.search, ...rechercheForcee } } as OptimizerState : etat;
+  return visible ? <OptimizerSection box={compte} runes={inventaire} artifacts={arts} relics={reliques} relicUsageById={{}}
+    optimizer={optimizer} onImporterEquipe={etat.importerEquipe} lists={listes} allMonsters={monstres} rtaEntries={rtaEntries} siegeDefenseTeams={defenses} siegeOffenseTeams={siegeOffenseTeams}
+    accountName="Synthétique" menuOuvert={menu} onFermerMenu={() => setMenu(false)} onOuvrirMenu={() => setMenu(true)} /> : <div>Autre onglet</div>;
 }
 
 export async function geste(action: () => void) {
   flushSync(action);
   await new Promise(r => setTimeout(r, 0));
+  // Une mise à jour posée hors d'un événement (le `.then` d'une lecture de
+  // fichier) passe par l'ordonnanceur de React, sur un `MessageChannel` :
+  // `flushSync` ne la vide pas, on attend donc un tour de ce canal.
+  await new Promise(r => { const c = new MessageChannel(); c.port1.onmessage = () => { c.port1.close(); r(null); }; c.port2.postMessage(null); });
   flushSync(() => {});
 }
 
 export async function monter(avecRapport = false) {
   localStorage.clear();
+  rechercheForcee = null;
   const criteres = baseCompleteCriteres(undefined);
   criteres.minStats = { spd: 230 }; criteres.comboSets = ['swift']; criteres.critereArtefacts = 'reel';
   criteres.damageSetup.enemyDef = 2222; criteres.lockedRunes = { 1: 999 };
@@ -121,7 +143,7 @@ export async function monter(avecRapport = false) {
 
 export async function scenario(nom: string): Promise<[boolean, string][]> {
   avecPoint = nom.startsWith('point-');
-  avecRunes = nom.startsWith('rattachement') || avecPoint;
+  avecRunes = nom.startsWith('rattachement') || avecPoint || nom === 'ecran-resultats' || nom.startsWith('filtres-');
   await monter(nom === 'zone-c');
   if (nom.startsWith('recherche-auto-')) return preuvesRechercheOptimizer({ etat: () => etat, listes: () => listes,
     data: () => compteActuel, changerBox, changerDefenses, geste, premier, second, troisieme }, nom.slice('recherche-auto-'.length));
@@ -135,6 +157,30 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   if (avecPoint) return preuvesPointOptimizer({ etat: () => etat, listes: () => listes, data: () => compteActuel,
     runes: () => runesActuelles, arts: () => artefactsActuels, changerBox, changerRunes, changerArtefacts, changerDefenses, geste, premier, second, troisieme, siege }, nom);
   const bancEquipes = { etat: () => etat, listes: () => listes, geste, premier, second, troisieme };
+  const bancEcran = { ...bancEquipes, menuOuvert: () => menuOuvert, fermerMenu: () => changerMenu(false),
+    forcerRecherche: (r: Record<string, unknown> | null) => {
+      const fiche = compteActuel.box.find((item) => item.monster.id === Number(etat.selectedId))?.gear;
+      if (r && !fiche) throw new Error('Résultat du banc sans fiche sélectionnée');
+      rechercheForcee = r ? rechercheClasseeTest(r, { fiche: fiche!, pool: runesActuelles, optimiser: etat.optimiserArtefacts,
+        requirement: { sets: etat.comboSets, minStats: etat.minStats }, setup: etat.damageSetup,
+        toutVerifier: etat.verifierToutesLesCombinaisons,
+        vue: { tri: etat.sortBy, sens: etat.sensTri, bornes: bornesSousMesure(etat.bornesResultats, 'eff'), metric: 'eff', page: etat.resultsPage },
+      }, true) : null;
+      rafraichir();
+    } };
+  if (nom.startsWith('exemplaire-lecture-')) return preuvesExemplaireLecture({ ...bancEcran, data: () => compteActuel,
+    changerBox, changerRunes, changerArtefacts, changerReliques }, nom.slice('exemplaire-lecture-'.length));
+  if (nom === 'ecran-reglages-avances') return preuvesReglagesAvances(bancEcran, () => changerMenu(true));
+  if (nom === 'ecran-guidage') return preuvesGuidage(bancEcran);
+  if (nom === 'ecran-rappel') return preuvesRappelDeuxRendus(bancEcran);
+  if (nom === 'ecran-listes') return preuvesListesEcran(bancEcran);
+  if (nom === 'ecran-message-import') return preuvesMessageImport(bancEcran);
+  if (nom === 'ecran-resultats') return preuvesResultats(bancEcran);
+  if (nom === 'filtres-memoire') return preuvesFiltresMemoire(bancEcran);
+  if (nom === 'filtres-carte-contexte') return preuvesCarteContexte({ ...bancEcran, changerRunes });
+  if (nom === 'filtres-ecran') return preuvesFiltresEcran(bancEcran);
+  if (nom === 'filtres-branchement') return preuvesFiltresBranchement({ ...bancEcran, fiche: () => compteActuel.box.find((i) => i.key === '22')!.gear! });
+  if (nom === 'filtres-mesure') return preuvesFiltresMesure({ ...bancEcran, fiche: () => compteActuel.box.find((i) => i.key === '22')!.gear! });
   if (nom.startsWith('equipe-impossible-')) return preuvesEquipeImpossible(bancEquipes,nom.slice('equipe-impossible-'.length));
   if (nom === 'creation-obligatoire') return preuvesCreationObligatoire(bancEquipes);
   if (nom === 'etat-auras') return preuvesEtatAuras(bancEquipes);
@@ -201,7 +247,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     await geste(() => { listes.addMember('a', second, monstres[1].com2usId!); etat.capturerMembre('a', second); });
     verifier(memoire('a', second)?.criteres.minStats.spd === 160 && etat.proprietaireCriteres?.com2usId === 10102, 'ajout : capture et propriétaire');
     await geste(() => { etat.setSourceSelector(troisieme); etat.setSelectedId('1'); listes.removeMember('a', troisieme); });
-    await geste(() => { listes.validateBuild('a', troisieme, [1, 2, 3, 4, 5, 6], [], monstres[0].com2usId!); etat.capturerMembre('a', troisieme); });
+    await geste(() => { listes.validateBuild('a', troisieme, [1, 2, 3, 4, 5, 6], [], undefined, monstres[0].com2usId!); etat.capturerMembre('a', troisieme); });
     verifier(!!memoire('a', troisieme), 'validation avec inclusion : capture');
     await geste(() => { const id = listes.createList('Nouvelle', 'guilde'); listes.addMember(id, troisieme, monstres[0].com2usId!); etat.capturerMembre(id, troisieme); });
     verifier(etat.proprietaireCriteres?.listId === listes.activeListId && !!memoire(listes.activeListId!, troisieme), 'création et ajout : capture au même geste');
@@ -242,7 +288,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     const recette = buildOptimizerRecipe({ monsterCom2usId: 10101, monsterName: 'Premier',
       damageSetup: baseCompleteCriteres(undefined).damageSetup,
       requirement: { sets: ['swift'], minStats: { spd: 310 } }, objective: 'vitesse', metric: 'eff',
-      slotFilterPreset: 'moyen', adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+      slotFilterPreset: 'moyen', exhaustiveSearch: false,
       excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [], ignoreArtifacts: false, artifactMainByKind: {} });
     let resoudre!: (texte: string) => void;
     const textOriginal = File.prototype.text;
@@ -270,7 +316,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     await cliquer(2);
     verifier(rappel() && etat.damageSetup.setsAuraExternes?.[0]?.set === 'accuracy',
       'clic autre exemplaire : rappel des auras de la destination, même si le membre précédent n’en avait aucune');
-    verifier(JSON.stringify(memoire('a', troisieme)) === memoireAvant && !etat.showAdvanced && !document.querySelector('[role="dialog"]'),
+    verifier(JSON.stringify(memoire('a', troisieme)) === memoireAvant && !document.querySelector('[data-colonne="complements"]') && !document.querySelector('[role="dialog"]'),
       'rappel : mémoire intacte, aucune ouverture guidée ni fenêtre du combat');
     await cliquer(1);
     verifier(!rappel() && !etat.damageSetup.setsAuraExternes?.length, 'destination sans auras : aucun rappel, précédent rappel effacé');
@@ -301,7 +347,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   } else if (nom === 'saisies') {
     const valeurs = {
       comboSets: ['violent'], minStats: { spd: 245 }, maxStats: { res: 80 }, excludeBase: false,
-      optimiserArtefacts: false, adapterArtefactsAuTri: false, artifactMainByKind: { element: 100 },
+      optimiserArtefacts: false, artifactMainByKind: { element: 100 },
       relicMainChoice: 101, relicUniqueChoice: 1, lignesVerrouillees: [{ code: 206, min: 5 }],
       mainStatsBySlot: { 2: [8] }, lockedRunes: { 1: 888 }, objective: 'vitesse',
       damageSetup: { ...baseCompleteCriteres(undefined).damageSetup, enemyDef: 1234 }, sortBy: 'hp',
@@ -335,7 +381,12 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     const marqueNouvelle = ligne.querySelector('[aria-label="Critères mémorisés"]');
     const fin = ligne.getBoundingClientRect();
     verifier(!marqueNouvelle && fin.x === avant.x && fin.y === avant.y && fin.width === avant.width, 'première saisie : aucune marque et ligne toujours à la même place');
-    verifier(getComputedStyle(groupe).borderTopWidth === '1px' && getComputedStyle(ligne.parentElement!).borderTopWidth === '1px', 'contours de la zone et des lignes : 1 px');
+    // Au bureau (la liste porte la place du monstre actif), la liste est une
+    // section du panneau de sa colonne, sans carte autour ; chaque monstre garde
+    // la sienne. Au téléphone, la liste garde aussi sa carte.
+    const auBureau = !!groupe.querySelector('[data-monstre-actif]');
+    verifier(getComputedStyle(groupe).borderTopWidth === (auBureau ? '0px' : '1px') && getComputedStyle(ligne.parentElement!).borderTopWidth === '1px',
+      auBureau ? 'bureau : la liste sans carte autour, chaque monstre dans sa carte de 1 px' : 'contours de la zone et des lignes : 1 px');
   }
   return preuves;
 }

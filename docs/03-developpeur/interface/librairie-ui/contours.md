@@ -48,6 +48,10 @@ flottant) plutôt que par une copie retouchée. Le rembourrage passe alors au
 flottant (`rembourrage="md"`) : sans cadre, la carte n'a pas de bord à en
 tenir éloigné.
 
+Les panneaux de colonne de l'Optimizer au bureau suivent la règle, sans
+exception : contour de 1 px, aucune bande de couleur (décision de
+l'utilisateur). Détail : [fiche de l'écran de l'Optimizer](../../../02-app/optimizer/ecran/README.md#panneaux-et-sections).
+
 **Deux exceptions, et elles ne sont pas des contours :**
 
 - Le **`ring-offset`** de la palette est un *écart*, pas un second trait : sans

@@ -1,0 +1,46 @@
+import { RECO_STATS } from '../../../types';
+import { type StatFeasibility } from '../../../lib/runeBuildOptim';
+
+export interface DiagnosticFaisabiliteProps {
+  impossibleFeasibility: StatFeasibility[];
+  // Au bureau, sans encadré, sous un trait fin : une section du panneau de la
+  // colonne de droite (voir `DiagnosticsSansResultat`).
+  bureau?: boolean;
+}
+
+export default function DiagnosticFaisabilite({ impossibleFeasibility, bureau = false }: DiagnosticFaisabiliteProps) {
+  return (
+    <div className={bureau ? 'mb-3 border-t border-border-soft pt-3' : 'mb-3 rounded-lg border border-border bg-panel p-3'}>
+      {impossibleFeasibility.length > 0 ? (
+        <>
+          <p className="mb-1.5 text-xs font-semibold text-bad">
+            {impossibleFeasibility.length === 1
+              ? 'Une condition est'
+              : `${impossibleFeasibility.length} conditions sont`}{' '}
+            mathématiquement hors de portée, quel que soit le runage choisi :
+          </p>
+          <ul className="space-y-1">
+            {impossibleFeasibility.map((f) => {
+              const st = RECO_STATS.find((s) => s.key === f.key)!;
+              return (
+                <li key={`${f.key}-${f.kind}`} className="text-xs text-ink-dim">
+                  <span className="font-semibold text-ink">{st.label}</span>{' '}
+                  {f.kind === 'min'
+                    ? `minimum demandé ${f.requested}${st.suffix} — maximum atteignable ${f.bound}${st.suffix} avec ce pool, ce set et ces statistiques principales.`
+                    : `maximum demandé ${f.requested}${st.suffix} — ${f.bound}${st.suffix} déjà garanti sans la moindre rune (base, artéfacts, bonus de set).`}
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      ) : (
+        <p className="text-xs text-ink-dim">
+          Aucune condition n'est, à elle seule, mathématiquement hors de portée — le blocage
+          vient probablement de leur <b className="text-ink">combinaison</b> (rare qu'un seul
+          build satisfasse tout à la fois), ou de la profondeur de la recherche elle-même. Essaie
+          de desserrer une condition, ou une profondeur de recherche plus grande (Réglages avancés).
+        </p>
+      )}
+    </div>
+  );
+}

@@ -4,7 +4,9 @@ import { baseCompleteCriteres, photoCriteres } from '../../src/lib/criteresOptim
 import { cleMemoireMembre } from '../../src/lib/optimizerMemberStorage';
 import { exclusionSelectorKey, type ExclusionSelector } from '../../src/lib/optimizerExclusion';
 import { buildOptimizerRecipe } from '../../src/lib/optimizerRecipe';
-import { searchBuilds, type SearchParams } from '../../src/lib/runeBuildOptim';
+import type { DemandeDeRecherche } from '../../src/workers/runeBuildOptim.worker';
+import { searchBuilds } from '../../src/lib/rechercheRunes';
+import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs, tamponsCandidats } from '../../src/lib/candidatsCompacts';
 
 interface BancMemoire {
   etat: () => OptimizerState;
@@ -37,8 +39,8 @@ export async function preuvesSupplementaires(nom: string, b: BancMemoire): Promi
     const valeurs = { relicMinUpgrade: 12, excludeUsedRunes: true, excludeUsedScope: 'siege-defense',
       // Une autre copie reste une exclusion légitime pour les deux membres
       // restaurés ; exclure la cible testerait sa purge d'auto-exemption.
-      excludedSelectors: [{ source: 'box', unitKey: '33' }], adaptiveTrancheWeighting: true, exhaustiveSearch: true,
-      verifierToutesLesCombinaisons: true, slotFilterPreset: 'haut', showAdvanced: true, diagnoseBlockingEnabled: true };
+      excludedSelectors: [{ source: 'box', unitKey: '33' }], exhaustiveSearch: true,
+      verifierToutesLesCombinaisons: true, slotFilterPreset: 'haut', diagnoseBlockingEnabled: true };
     for (const [champ, valeur] of Object.entries(valeurs)) {
       await b.geste(() => (b.etat() as unknown as Record<string, (v: unknown) => void>)[`set${champ[0].toUpperCase()}${champ.slice(1)}`](valeur));
     }
@@ -76,7 +78,7 @@ export async function preuvesSupplementaires(nom: string, b: BancMemoire): Promi
     const recette = buildOptimizerRecipe({ monsterCom2usId: 99999, monsterName: 'Absent du bestiaire',
       damageSetup: baseCompleteCriteres(undefined).damageSetup,
       requirement: { sets: ['swift'], minStats: { spd: 310 } }, objective: 'vitesse', metric: 'eff',
-      slotFilterPreset: 'moyen', adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+      slotFilterPreset: 'moyen', exhaustiveSearch: false,
       excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [], ignoreArtifacts: false, artifactMainByKind: {} });
     let resoudre!: (texte: string) => void;
     const original = File.prototype.text;
@@ -109,7 +111,7 @@ export async function preparerClicInclusion(genre: string, b: BancMemoire): Prom
   await b.geste(() => {
     b.etat().setComboSets(['energy', 'energy', 'energy']);
     b.etat().setMinStats({ spd: 25 }); b.etat().setMaxStats({ res: 80 });
-    b.etat().setObjective('vitesse'); b.etat().setSortBy('vitesse');
+    b.etat().setObjective('vitesse'); b.etat().setSortBy('spd');
     b.etat().setOptimiserArtefacts(false); b.etat().setCritereArtefacts('brut');
     b.etat().setCompterAurasResPre(false);
   });
@@ -117,15 +119,36 @@ export async function preparerClicInclusion(genre: string, b: BancMemoire): Prom
   autresMemoiresAvantClic = memoires(b);
   if (genre === 'carte') {
     // Le transport seul est remplacé : le vrai moteur calcule ce minuscule
-    // inventaire et le vrai hook reçoit son résultat avant le clic de carte.
-    globalThis.Worker = class {
+    // inventaire et le vrai hook reçoit son résultat avant le clic de carte,
+    // dans le protocole réel : blocs et scellement sur le port du classeur.
+    const WorkerNatif = globalThis.Worker;
+    class RechercheSimulee {
       onmessage: ((e: MessageEvent) => void) | null = null;
       onerror = null;
-      postMessage(params: SearchParams) {
-        const resultat = searchBuilds(params);
-        queueMicrotask(() => this.onmessage?.(new MessageEvent('message', { data: { type: 'result', ...resultat } })));
+      private port: MessagePort | null = null;
+      private actif = true;
+      postMessage(demande: DemandeDeRecherche | { credit: true }) {
+        if (!('params' in demande)) return;
+        if (!demande.classement) throw new Error('Port du classeur absent du banc de recherche');
+        const { port, idRecherche } = demande.classement;
+        this.port = port;
+        const { candidates, ...bilan } = searchBuilds(demande.params);
+        const colonnes = creerColonnesCandidats();
+        for (const c of candidates) ajouterObjetCandidat(colonnes, c);
+        const nombre = colonnes.length;
+        queueMicrotask(() => {
+          if (!this.actif) return;
+          const blocs = extraireBlocs(colonnes);
+          blocs.forEach((bloc, sequence) => port.postMessage({ type: 'candidats', idRecherche, sequence, bloc }, tamponsCandidats([bloc])));
+          port.postMessage({ type: 'sceller', idRecherche, nombre, derniereSequence: blocs.length - 1, bilan });
+          this.onmessage?.(new MessageEvent('message', { data: { type: 'result', nombre, ...bilan } }));
+        });
       }
-      terminate() { this.onmessage = null; }
+      terminate() { this.actif = false; this.onmessage = null; this.port?.close(); }
+    }
+    globalThis.Worker = function(url: string | URL, options?: WorkerOptions) {
+      return new URL(url, location.href).pathname.endsWith('/runeBuildOptim.worker.ts')
+        ? new RechercheSimulee() : new WorkerNatif(url, options);
     } as unknown as typeof Worker;
   }
   return [[b.etat().proprietaireCriteres === null, 'avant clic : aucun propriétaire'],

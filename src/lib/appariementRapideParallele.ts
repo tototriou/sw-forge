@@ -1,0 +1,603 @@
+// L'appariement PARALLÈLE de production : répartition À LA DEMANDE du noyau
+// `appariementRapide.ts` entre plusieurs Workers (navigateur :
+// `src/workers/appariementRapide.worker.ts` ; Node :
+// `scripts/lib/appariement-rapide-worker.ts`), à partir du seuil et avec le
+// nombre de Workers de `src/workers/parallelPairing.ts`. Neutre : le
+// lancement d'un Worker est INJECTÉ (`LancerTravailleur`), ce module
+// n'importe ni `worker_threads` ni `self`.
+// Voir docs/03-developpeur/optimizer/moteur/parallelisation.md.
+//
+// Le coordinateur groupe les LIGNES (un comboA ouvert face à un compartiment
+// B ouvert), relevées une fois dans l'ordre exact de `pairBuckets` avec les
+// prédicats de production (`releverLignes`), en MORCEAUX contigus plus fins
+// que les compartiments. Chaque Worker reçoit les tableaux typés une seule fois
+// (transférés), puis des morceaux à la demande.
+//
+// ⚠️ **La fusion se fait dans l'ORDRE DES MORCEAUX**, donc dans l'ordre
+// séquentiel : le résultat est celui de `pairBuckets` séquentiel, quel que
+// soit le nombre de Workers — plafond de candidats GLOBAL compris (aucune
+// part du plafond par Worker). Coupé par le temps ou par l'arrêt manuel, il
+// en est une SOUS-SUITE, préfixe exact jusqu'au premier morceau coupé : les
+// morceaux suivants déjà partis se fusionnent encore. Le quasi-succès
+// se rejoue à partir des améliorations de chaque morceau, avec la règle de
+// production (remplacé seulement si strictement meilleur) : une tentative qui
+// n'améliore pas son propre morceau ne peut pas améliorer l'état global, donc
+// le rejeu redonne l'état séquentiel exact.
+
+import { BuildCandidate, NearMiss, PreparedSearch, SearchParams, SearchResult } from './runeBuildOptim';
+import { ColonnesCandidats, LIGNES_PAR_BLOC, SortieCandidats, creerColonnesCandidats, fusionnerCandidats } from './candidatsCompacts';
+import { Compartiment } from './demiBuildsTypes';
+import {
+  AvancementMorceau,
+  CompteursNoyau,
+  EntreeQuasiSucces,
+  EspaceAppariement,
+  InitTravailleur,
+  Morceau,
+  ReleveLignes,
+  ResultatAppariementRapide,
+  ResultatMorceau,
+  compteursVides,
+  copierCompartiments,
+  releverLignes,
+  tamponsDe,
+  verifierEtEncoder,
+} from './appariementRapide';
+
+/** Un Worker lancé, vu par le coordinateur. */
+export interface PoigneeTravailleur<C = BuildCandidate[]> {
+  envoyer(message: Morceau, transfert: ArrayBuffer[]): void;
+  /** Les blocs et bilans des morceaux, jamais un avancement : celui-ci passe par `surAvancement`. */
+  surMessage(rappel: (message: ResultatMorceau<C>) => void): void;
+  /**
+   * L'avancement d'un morceau en cours, pour l'affichage seul (sans crédit).
+   * Absent (Workers simulés des tests), la progression affichée n'avance
+   * qu'avec les morceaux reçus.
+   */
+  surAvancement?(rappel: (avancement: AvancementMorceau) => void): void;
+  acquitter?(): void;
+  surErreur(rappel: (erreur: unknown) => void): void;
+  /** L'arrêt manuel : le morceau en cours rend ce qu'il a trouvé, les suivants rien (`servirAppariement`). */
+  arreter(): void;
+  terminer(): void;
+}
+
+export type LancerTravailleur<C = BuildCandidate[]> = (init: InitTravailleur, transfert: ArrayBuffer[]) => PoigneeTravailleur<C>;
+
+/** Morceaux visés par Worker (équilibrage à la demande) et plancher de taille, en paires. */
+export const MORCEAUX_PAR_TRAVAILLEUR = 64;
+export const TAILLE_MIN_MORCEAU = 2_000_000;
+/** Morceaux en vol par Worker (le suivant attend déjà quand l'un se termine). */
+export const EN_VOL_PAR_TRAVAILLEUR = 2;
+/**
+ * Réception compacte, par producteur : lignes de candidats reçues et non
+ * fusionnées, au plus quatre blocs pleins. Le crédit n'est rendu que s'il
+ * reste la place d'un bloc plein de plus : la borne vaut pour le message que
+ * le crédit autorise.
+ */
+export const LIGNES_EN_ATTENTE_PAR_TRAVAILLEUR = 4 * LIGNES_PAR_BLOC;
+/**
+ * Messages reçus et non fusionnés, au plus, par producteur, bilans vides
+ * compris. Un bilan court ne coûte presque rien en lignes : compter les
+ * places en messages laissait quatre petits bilans bloquer un Worker
+ * derrière un morceau de tête lent.
+ */
+export const MESSAGES_EN_ATTENTE_PAR_TRAVAILLEUR = 16;
+
+export interface ResultatParallele<C = BuildCandidate[]> extends ResultatAppariementRapide<C> {
+  /**
+   * `arret` : l'arrêt déterministe des tests et du banc ; `manuel` :
+   * « Arrêter » ; `erreur` : un Worker a échoué (le résultat ne voyage alors
+   * que dans `ErreurAppariementParallele`).
+   */
+  motif: 'aucun' | 'maxCollected' | 'maxMs' | 'arret' | 'manuel' | 'erreur';
+  morceaux: number;
+  morceauxTraites: number;
+  /** Morceaux traités par Worker : l'équilibrage tel qu'il s'est fait. */
+  parTravailleur: number[];
+  /** Paires du plus gros morceau (granularité de la répartition). */
+  plusGrosMorceau: number;
+  /** Le découpage du plan seul : le contrat et l'encodage le précèdent. */
+  msPlanification: number;
+}
+
+/**
+ * Le message d'une erreur de Worker : `Error`, `ErrorEvent` du navigateur
+ * (qui a un `message`), `Event` sans message (`messageerror` : son `type`,
+ * jamais « [object Event] »), ou autre chose.
+ */
+export function messageDe(erreur: unknown): string {
+  if (erreur instanceof Error) return erreur.message;
+  if (typeof erreur === 'object' && erreur !== null) {
+    if ('message' in erreur && typeof erreur.message === 'string' && erreur.message !== '') return erreur.message;
+    if ('type' in erreur && typeof erreur.type === 'string') return `événement ${erreur.type}`;
+  }
+  return String(erreur);
+}
+
+/**
+ * L'erreur d'un Worker, qui porte ce qui a été fusionné jusque-là
+ * (`resultat` : les morceaux contigus reçus avant l'erreur, tronqué, motif
+ * `erreur`) : tous les Workers sont terminés, et l'appelant rend ce qui a été
+ * trouvé plutôt qu'un résultat vide. Un rejet, pas un résultat : un appelant
+ * qui l'ignore échoue au lieu de prendre une recherche en panne pour une
+ * recherche coupée.
+ */
+export class ErreurAppariementParallele<C extends SortieCandidats = BuildCandidate[]> extends Error {
+  constructor(
+    /** Ce que le Worker a signalé (`ErrorEvent`, `Error`, sortie de code non nul). */
+    readonly erreur: unknown,
+    readonly resultat: ResultatParallele<C>
+  ) {
+    super(`un Worker d’appariement a échoué (${messageDe(erreur)}) : ${resultat.candidates.length} candidat(s) fusionné(s) avant l’erreur`);
+    this.name = 'ErreurAppariementParallele';
+  }
+}
+
+/**
+ * Le résultat que le Worker principal poste quand l'appariement parallèle
+ * lève : ce qui a été fusionné avant l'erreur d'un Worker
+ * (`ErreurAppariementParallele`), sinon (refus hors contrat, plan incohérent,
+ * levés avant tout Worker) un résultat vide ; tronqué dans les deux cas.
+ */
+export function resultatApresErreur<C extends SortieCandidats = BuildCandidate[]>(erreur: unknown, vide: C = [] as unknown as C): SearchResult<C> {
+  if (erreur instanceof ErreurAppariementParallele) return enResultatDeRecherche((erreur as ErreurAppariementParallele<C>).resultat);
+  return { candidates: vide, explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null };
+}
+
+/**
+ * Le gestionnaire `onerror` d'un Worker enfant au navigateur : il ANNULE
+ * l'événement (`preventDefault`) puis le remet au coordinateur. Non annulé,
+ * le standard HTML signale l'erreur à nouveau dans la portée qui a créé le
+ * Worker — le Worker de recherche —, d'où elle remonterait au `onerror` du
+ * hook (statut `error`), en concurrence avec le résultat posté.
+ */
+export function erreurDeWorkerEnfant(rappel: (erreur: unknown) => void): (evenement: { preventDefault(): void }) => void {
+  return (evenement) => {
+    evenement.preventDefault();
+    rappel(evenement);
+  };
+}
+
+/**
+ * Le plan : les morceaux dans l'ordre de `pairBuckets`, découpés sur le relevé
+ * des lignes (`releverLignes`, le même que celui qui a donné `totalPairCount`
+ * et le régime) : aucun prédicat n'est réévalué. La somme des tailles vaut
+ * `releve.total`, le banc le vérifie ; les drapeaux d'un morceau sont la
+ * tranche du relevé qui couvre ses segments, dans une copie qu'il possède
+ * (elle est transférée au Worker).
+ */
+export function planifierMorceaux(
+  prepared: PreparedSearch,
+  bucketsA: Compartiment[],
+  bucketsB: Compartiment[],
+  cible: number,
+  releve: ReleveLignes = releverLignes(prepared, bucketsA, bucketsB)
+): Morceau[] {
+  const morceaux: Morceau[] = [];
+  let segments: number[] = [];
+  let offset = 0;
+  let taille = 0;
+  let debutDrapeaux = 0;
+  let pos = 0;
+  const fermer = () => {
+    if (segments.length === 0) return;
+    morceaux.push({
+      type: 'morceau', id: morceaux.length, offset, taille,
+      segments: Int32Array.from(segments), drapeaux: releve.drapeaux.slice(debutDrapeaux, pos),
+    });
+    offset += taille;
+    taille = 0;
+    segments = [];
+    debutDrapeaux = pos;
+  };
+  const { paires, drapeaux } = releve;
+  for (let p = 0; p < paires.length; p += 2) {
+    const iA = paires[p];
+    const iB = paires[p + 1];
+    const nA = bucketsA[iA].combos.length;
+    const nB = bucketsB[iB].combos.length;
+    let aDebut = 0;
+    for (let a = 0; a < nA; a++) {
+      if (drapeaux[pos++]) taille += nB;
+      if (taille >= cible) {
+        segments.push(iA, iB, aDebut, a + 1);
+        aDebut = a + 1;
+        fermer();
+      }
+    }
+    if (aDebut < nA) segments.push(iA, iB, aDebut, nA);
+  }
+  fermer();
+  // Un dernier morceau peut ne porter que des lignes fermées (taille 0) : sans effet.
+  return morceaux;
+}
+
+export interface OptionsParallele<C extends SortieCandidats = BuildCandidate[]> {
+  collecte?: C;
+  params: SearchParams;
+  prepared: PreparedSearch;
+  bucketsA: Compartiment[];
+  bucketsB: Compartiment[];
+  /** `totalPairCount` déjà calculé par l'appelant, celui qui a choisi le régime. */
+  totalPaires: number;
+  /**
+   * Ce que l'appelant a calculé pour choisir le régime (`analyserEspace`) :
+   * relevé des lignes, d'où se découpe le plan, contrat et encodage. Absent,
+   * ils se calculent ici. `releve.total` vaut `totalPaires`.
+   */
+  espace?: EspaceAppariement;
+  travailleurs: number;
+  lancer: LancerTravailleur<C>;
+  startedAt: number;
+  /** Arrêt déterministe : l'état au point de passage `traitees = arretTraitees`. */
+  arretTraitees?: number;
+  /** Tests seulement : la validation de référence dans chaque Worker. */
+  forcerValidation?: 'reference';
+  /** Taille visée d'un morceau, en paires (défaut : `totalPaires / (travailleurs × 64)`, au moins 2 M). */
+  cibleMorceau?: number;
+  /**
+   * Rappelé UNE fois, avant tout travail, avec l'arrêt manuel coopératif :
+   * plus aucun morceau n'est distribué, chaque Worker arrête le sien à sa
+   * prochaine ligne (dans les `TRANCHE_MS` de `servirAppariement`) et répond
+   * sans calculer à ceux qui attendent ; tout ce qui revient se fusionne, et
+   * le résultat est tronqué (motif `manuel`). Le module ne connaît pas le
+   * registre d'arrêt de l'appelant : il le lui donne.
+   */
+  surControle?: (controle: { arreter: () => void }) => void;
+  /**
+   * Après réception/fusion : les paires traitées et la liste des candidats des
+   * morceaux FUSIONNÉS, dans l'ordre séquentiel — les mêmes comptes que le
+   * résultat, dont la dernière progression est l'état final. La liste ne fait
+   * que grandir : un aperçu en est toujours un préfixe du résultat. À
+   * l'appelant d'espacer ses messages et de ne transmettre que les nouveaux.
+   *
+   * `avancement`, pour l'AFFICHAGE seul : les paires parcourues par tous les
+   * morceaux, fusionnés ou non (reçus, ou en cours d'après leur dernier
+   * avancement). Il ne recule jamais, vaut au moins `traitees`, au plus
+   * `totalPaires`, et finit à `traitees` sur une recherche menée au bout ;
+   * après un plafond ou un arrêt déterministe, il reste figé, et peut
+   * dépasser les paires traitées du résultat. Rien ne se décide dessus.
+   */
+  surProgression?: (traitees: number, candidats: C, avancement: number) => void | Promise<void>;
+}
+
+/**
+ * ⚠️ Suppose le contrat numérique tenu (`verifierContrat` nul) : hors
+ * contrat, l'appelant apparie en séquentiel (`apparier`, qui retombe sur
+ * `pairBuckets` en rendant la main), jamais ici, où un repli synchrone
+ * bloquerait l'arrêt et la progression.
+ */
+export async function apparierRapideEnParallele(o: OptionsParallele<ColonnesCandidats>): Promise<ResultatParallele<ColonnesCandidats>> {
+  const { prepared, bucketsA, bucketsB } = o;
+  let arrete = false;
+  let surArret: (() => void) | null = null;
+  o.surControle?.({
+    arreter: () => {
+      arrete = true;
+      surArret?.();
+    },
+  });
+  // Le contrat et l'encodage que l'appelant a calculés pour choisir le régime
+  // (`analyserEspace`), sinon calculés ici, en une lecture des demi-builds.
+  const { motifContrat, compartiments } = o.espace ?? verifierEtEncoder(prepared, bucketsA, bucketsB);
+  if (motifContrat) throw new Error(`appariement parallèle hors contrat numérique (${motifContrat}) : l'appelant apparie en séquentiel`);
+  const { maxCollected, maxMs } = prepared;
+  const overBudget = () => Date.now() - o.startedAt > maxMs;
+  const t0 = Date.now();
+  const ct = compartiments!;
+  const cible = o.cibleMorceau ?? Math.max(TAILLE_MIN_MORCEAU, Math.ceil(o.totalPaires / (o.travailleurs * MORCEAUX_PAR_TRAVAILLEUR)));
+  const plan = planifierMorceaux(prepared, bucketsA, bucketsB, cible, o.espace?.releve);
+  const msPlanification = Date.now() - t0;
+  const totalPlan = plan.reduce((s, m) => s + m.taille, 0);
+  if (totalPlan !== o.totalPaires) throw new Error(`plan de ${totalPlan} paires ≠ totalPairCount ${o.totalPaires}`);
+  const arret = o.arretTraitees != null && o.arretTraitees < totalPlan ? o.arretTraitees : undefined;
+  // Seuls les morceaux qui contiennent une paire de position < arret servent,
+  // et chacun s'arrête de lui-même au point de passage `arret`.
+  const aDistribuer = arret == null ? plan : plan.filter((m) => m.offset + 1 < arret).map((m) => ({ ...m, limite: arret }));
+
+  // `lignes` : ce que le message occupe dans la réception de son producteur.
+  const resultats: { r: ResultatMorceau<ColonnesCandidats>; w: number; lignes: number }[][] = Array.from({ length: aDistribuer.length }, () => []);
+  const parTravailleur: number[] = new Array(o.travailleurs).fill(0);
+  let validationsTypees = 0;
+  let validationsReference = 0;
+
+  // État fusionné, dans l'ordre des morceaux. `traitees` et `visitees`
+  // décrivent le MÊME périmètre : les paires des morceaux fusionnés, coupées
+  // au candidat qui atteint le plafond (`sautees` = leur différence, jamais
+  // négative). Un compte, pas une position : un morceau tronqué par le temps
+  // ou par l'arrêt manuel n'a pas traité toutes ses paires, et les suivants
+  // se fusionnent quand même.
+  const candidates = o.collecte ?? creerColonnesCandidats();
+  const nearMissByCondition = new Map<string, EntreeQuasiSucces>();
+  let globalNearMiss: NearMiss | null = null;
+  let globalDistance = Infinity;
+  const compteurs: CompteursNoyau = compteursVides();
+  let traitees = 0;
+  let visitees = 0;
+  let prochainAFusionner = 0;
+  // Ce qui termine la FUSION (plafond global, arrêt déterministe), et ce qui
+  // termine seulement la DISTRIBUTION (filet de temps, arrêt manuel) : sous
+  // ces deux-là, tout morceau déjà parti se reçoit et se fusionne encore,
+  // jusqu'au plafond — l'arrêt garde tout ce qui a été trouvé.
+  let plafond = false;
+  let limiteAtteinte = false;
+  let tempsEcoule = false;
+  let morceauxComplets = 0;
+  const fusionTerminee = () => plafond || limiteAtteinte;
+
+  // La progression AFFICHÉE, distincte de `traitees` : la fusion attend le
+  // morceau de tête, alors que les suivants sont souvent déjà reçus. `vus`
+  // garde, par morceau, le plus grand compte de paires parcourues connu (bloc,
+  // bilan ou avancement en cours, tous cumulés dans leur morceau), et
+  // `vusTotal` leur somme. Rien ne se décide dessus : seul `traitees` coupe.
+  const vus = new Float64Array(aDistribuer.length);
+  let vusTotal = 0;
+  let avancementAffiche = 0;
+  const voir = (id: number, parcourues: number) => {
+    if (id < 0 || id >= vus.length || parcourues <= vus[id]) return;
+    vusTotal += parcourues - vus[id];
+    vus[id] = parcourues;
+  };
+  // Figé dès que la fusion est terminée : ce qui arrive ensuite est jeté.
+  const avancement = () => {
+    avancementAffiche = Math.max(avancementAffiche, traitees, fusionTerminee() ? 0 : Math.min(totalPlan, vusTotal));
+    return avancementAffiche;
+  };
+
+  let traiteesMorceau = 0, visitesMorceau = 0;
+  let compteursMorceau = compteursVides();
+  const fusionner = (r: ResultatMorceau<ColonnesCandidats>, m: Morceau): void => {
+    if (fusionTerminee()) return;
+    // Coupe au plafond : le candidat qui l'atteint, sa position incluse.
+    const nombre = Math.min(r.candidats.length, Math.max(1, maxCollected - candidates.length));
+    fusionnerCandidats(candidates, r.candidats, nombre);
+    const coupe = nombre > 0 && candidates.length >= maxCollected ? nombre - 1 : -1;
+    const limitePos = coupe >= 0 ? r.positions[coupe] : Infinity;
+    for (const e of r.ameliorations) {
+      if (e.pos > limitePos) break;
+      if (e.type === 'condition') {
+        const existing = nearMissByCondition.get(e.cle);
+        if (!existing || e.entree.miss.shortfalls[0].shortfall < existing.miss.shortfalls[0].shortfall) nearMissByCondition.set(e.cle, e.entree);
+      } else if (e.distance < globalDistance) {
+        globalDistance = e.distance;
+        globalNearMiss = e.miss;
+      }
+    }
+    for (const k of Object.keys(compteurs) as (keyof CompteursNoyau)[]) compteurs[k] += r.compteurs[k] - compteursMorceau[k];
+    compteursMorceau = r.compteurs;
+    if (coupe >= 0) {
+      traitees += limitePos - m.offset - traiteesMorceau;
+      visitees += r.visitesAuCandidat[coupe] - visitesMorceau;
+      plafond = true;
+      return;
+    }
+    traitees += r.traitees - traiteesMorceau;
+    visitees += r.visitees - visitesMorceau;
+    traiteesMorceau = r.traitees;
+    visitesMorceau = r.visitees;
+    if (r.issue === 'complet') morceauxComplets++;
+    if (r.issue === 'limite') {
+      limiteAtteinte = true;
+    } else if (arret != null && r.issue === 'complet' && m.offset + r.traitees === arret - 1) {
+      // Le point de passage `arret` tombe sur la première paire du morceau
+      // suivant, jamais distribué : elle compte comme dans `pairBuckets`
+      // (`explored` avance avant le jugement), sans être jugée.
+      traitees += 1;
+      limiteAtteinte = true;
+    }
+  };
+
+  const tampons = (dernier: boolean) => {
+    // Le coordinateur ne lit plus ces colonnes après le plan : le dernier
+    // Worker en prend possession, les autres ont une copie indépendante.
+    const copie = dernier ? ct : copierCompartiments(ct);
+    return { copie, transfert: tamponsDe(copie) };
+  };
+  const nbTravailleurs = Math.max(1, Math.min(o.travailleurs, aDistribuer.length));
+  const poignees: PoigneeTravailleur<ColonnesCandidats>[] = [];
+  const enVolParTravailleur = new Array(nbTravailleurs).fill(0) as number[];
+  const enAttenteParTravailleur = new Array(nbTravailleurs).fill(0) as number[];
+  const lignesEnAttente = new Array(nbTravailleurs).fill(0) as number[];
+  const creditDiffere = new Array(nbTravailleurs).fill(false) as boolean[];
+  // Place pour un message de plus : au plus un bloc plein de lignes.
+  const placeLibre = (w: number) => enAttenteParTravailleur[w] < MESSAGES_EN_ATTENTE_PAR_TRAVAILLEUR
+    && lignesEnAttente[w] + LIGNES_PAR_BLOC <= LIGNES_EN_ATTENTE_PAR_TRAVAILLEUR;
+  let prochainADistribuer = 0;
+  // L'erreur d'un Worker termine l'attente comme une fin : l'état fusionné
+  // jusque-là est rendu, porté par `ErreurAppariementParallele`.
+  let enErreur: { erreur: unknown } | null = null;
+
+  let receptions = Promise.resolve();
+  const attendreMorceaux = () => new Promise<void>((resolve) => {
+    let enVol = 0;
+    let termine = false;
+    const finir = () => {
+      if (termine) return;
+      termine = true;
+      resolve();
+    };
+    // Arrêt manuel : plus rien ne part, et chaque Worker arrête son morceau
+    // en cours à sa prochaine ligne (il rend ce qu'il a trouvé) et répond sans
+    // calculer aux morceaux en attente (`servirAppariement`).
+    surArret = () => {
+      for (const p of poignees) p.arreter();
+      // Des bilans peuvent être reçus mais pas encore fusionnés par la pompe.
+      if (enVol === 0 && !pompeEnCours && resultats.every((file) => file.length === 0)) finir();
+    };
+    const distributionTerminee = () => fusionTerminee() || tempsEcoule || arrete || overBudget();
+    const distribuer = (w: number) => {
+      if (distributionTerminee()) return;
+      if (enVolParTravailleur[w] >= EN_VOL_PAR_TRAVAILLEUR) return;
+      if (prochainADistribuer >= aDistribuer.length) return;
+      const m = aDistribuer[prochainADistribuer++];
+      enVol++;
+      enVolParTravailleur[w]++;
+      poignees[w].envoyer(m, [m.segments.buffer as ArrayBuffer, m.drapeaux.buffer as ArrayBuffer]);
+    };
+    const libererPlace = (w: number, lignes: number) => {
+      enAttenteParTravailleur[w]--;
+      lignesEnAttente[w] -= lignes;
+      if (creditDiffere[w] && placeLibre(w)) {
+        creditDiffere[w] = false;
+        poignees[w].acquitter!();
+      }
+    };
+    let pompeEnCours = false;
+    let enVolArretes = false;
+    let receptionsANotifier = 0;
+    const prefixeDisponible = () => prochainAFusionner < resultats.length && resultats[prochainAFusionner].length > 0;
+    const programmerFusion = () => {
+      if (pompeEnCours || termine) return;
+      pompeEnCours = true;
+      // Un seul réveil, sans retenir les réponses dans une chaîne de fermetures.
+      receptions = Promise.resolve().then(async () => {
+        try {
+          while (!termine && (receptionsANotifier > 0 || prefixeDisponible())) {
+            receptionsANotifier = 0;
+            let blocsFusionnes = 0;
+            while (!fusionTerminee() && prefixeDisponible() && blocsFusionnes < nbTravailleurs) {
+              const entree = resultats[prochainAFusionner].shift()!;
+              fusionner(entree.r, aDistribuer[prochainAFusionner]);
+              libererPlace(entree.w, entree.lignes);
+              blocsFusionnes++;
+              if (entree.r.issue === 'suite') continue;
+              prochainAFusionner++;
+              traiteesMorceau = 0; visitesMorceau = 0; compteursMorceau = compteursVides();
+            }
+            if (fusionTerminee()) {
+              for (let i = prochainAFusionner; i < resultats.length; i++) {
+                for (const entree of resultats[i]) libererPlace(entree.w, entree.lignes);
+                resultats[i] = [];
+              }
+              // Plus rien ne se fusionnera : les morceaux encore en vol
+              // rendent la main à leur ligne suivante au lieu d'aller au
+              // bout d'un parcours jeté, que le coordinateur attendrait.
+              if (!enVolArretes) {
+                enVolArretes = true;
+                for (const p of poignees) p.arreter();
+              }
+            }
+            // La publication compacte est bornée à W blocs, indépendamment
+            // des réponses reçues pendant l'attente de la page.
+            await o.surProgression?.(traitees, candidates, avancement());
+            if (termine) return;
+            for (let k = 0; k < EN_VOL_PAR_TRAVAILLEUR; k++) for (let t = 0; t < nbTravailleurs; t++) distribuer(t);
+            if ((distributionTerminee() || prochainADistribuer >= aDistribuer.length) && enVol === 0 && !prefixeDisponible()) finir();
+          }
+        } catch (erreur: unknown) {
+          enErreur = { erreur }; finir();
+        } finally {
+          pompeEnCours = false;
+          if (receptionsANotifier > 0) programmerFusion();
+        }
+      });
+    };
+    if (aDistribuer.length === 0 || arrete) {
+      finir();
+      return;
+    }
+    for (let w = 0; w < nbTravailleurs; w++) {
+      const { copie, transfert } = tampons(w === nbTravailleurs - 1);
+      const p = o.lancer(
+        { params: o.params, startedAt: o.startedAt, compartiments: copie, collecteCompacte: true, ...(o.forcerValidation ? { forcerValidation: o.forcerValidation } : {}) },
+        transfert
+      );
+      poignees.push(p);
+      if (!p.acquitter) throw new Error('Lanceur compact sans acquittement');
+      p.surErreur((e) => {
+        if (termine) return;
+        // Fusion déjà terminée (plafond, arrêt déterministe) : le résultat est
+        // complet pour sa coupe, et le morceau en vol qui a échoué aurait été
+        // jeté. L'attente se termine sans erreur, le motif reste le sien.
+        if (!fusionTerminee()) enErreur = { erreur: e };
+        finir();
+      });
+      p.surMessage((r) => {
+        try {
+          // Après une erreur, aucun message suivant n'étend le préfixe rendu.
+          if (termine) return;
+          const terminal = r.issue !== 'suite';
+          if (terminal) {
+            enVol--;
+            enVolParTravailleur[w]--;
+            parTravailleur[w]++;
+            if (r.validationTypee) validationsTypees++;
+            else validationsReference++;
+          }
+          if (creditDiffere[w] || !placeLibre(w)) throw new Error('Bloc reçu sans place de réception');
+          // Un message du chemin compact porte au plus un bloc plein ; un
+          // résultat de morceau entier (scénarios de test) compte pour un bloc.
+          const lignes = Math.min(r.candidats.length, LIGNES_PAR_BLOC);
+          resultats[r.id].push({ r, w, lignes });
+          voir(r.id, r.traitees);
+          enAttenteParTravailleur[w]++;
+          lignesEnAttente[w] += lignes;
+          if (placeLibre(w)) p.acquitter!();
+          else creditDiffere[w] = true;
+          if (r.issue === 'temps') tempsEcoule = true;
+          receptionsANotifier++;
+          programmerFusion();
+        } catch (erreur: unknown) { enErreur = { erreur }; finir(); }
+      });
+      // L'avancement d'un morceau en cours : affiché, jamais fusionné, sans
+      // crédit ni place de réception. Il réveille la pompe pour être publié.
+      p.surAvancement?.((a) => {
+        if (termine || fusionTerminee()) return;
+        voir(a.id, a.traitees);
+        receptionsANotifier++;
+        programmerFusion();
+      });
+    }
+    for (let k = 0; k < EN_VOL_PAR_TRAVAILLEUR; k++) for (let w = 0; w < nbTravailleurs; w++) distribuer(w);
+    // Rien de parti (filet de temps déjà dépassé) : aucun message ne viendra
+    // terminer l'attente.
+    if (enVol === 0 && prochainADistribuer === 0) finir();
+  });
+  try {
+    await attendreMorceaux();
+    // Une erreur peut arriver pendant le transfert vers le propriétaire : finir
+    // cette publication avant le bilan, sans fusionner les messages suivants.
+    await receptions;
+  } finally {
+    surArret = null;
+    for (const p of poignees) p.terminer();
+  }
+
+  const motif: ResultatParallele<ColonnesCandidats>['motif'] = enErreur
+    ? 'erreur'
+    : plafond
+      ? 'maxCollected'
+      : limiteAtteinte
+        ? 'arret'
+        : morceauxComplets === aDistribuer.length
+          ? 'aucun'
+          : tempsEcoule || !arrete
+            ? 'maxMs'
+            : 'manuel';
+
+  const truncated = motif !== 'aucun';
+  const resultat: ResultatParallele<ColonnesCandidats> = {
+    candidates, explored: traitees, truncated,
+    nearMissByCondition: Array.from(nearMissByCondition.values()), globalNearMiss,
+    traitees, visitees, sautees: traitees - visitees, chemin: 'noyau',
+    // Chaque Worker décide sur le même pool et le même contrat : un mélange serait une anomalie, dite.
+    cheminValidation: validationsReference === 0 ? 'typee' : 'reference',
+    ...(validationsReference > 0 ? { motifValidation: `${validationsReference} morceau(x) validé(s) par la référence, ${validationsTypees} typé(s)` } : {}),
+    compteurs,
+    motif, morceaux: plan.length, morceauxTraites: parTravailleur.reduce((s, v) => s + v, 0), parTravailleur,
+    plusGrosMorceau: plan.reduce((s, m) => Math.max(s, m.taille), 0), msPlanification,
+  };
+  if (enErreur) throw new ErreurAppariementParallele((enErreur as { erreur: unknown }).erreur, resultat);
+  return resultat;
+}
+
+/**
+ * Le `SearchResult` que rend la recherche : `explored` = paires traitées, et
+ * rien des compteurs propres au noyau. Le motif ne voyage pas : l'ordre étant
+ * séquentiel et le plafond global, il se déduit du plafond comme en
+ * séquentiel (`evaluerCompletude`, harnais).
+ */
+export function enResultatDeRecherche<C>(r: ResultatParallele<C>): SearchResult<C> {
+  return { candidates: r.candidates, explored: r.explored, truncated: r.truncated, nearMissByCondition: r.nearMissByCondition, globalNearMiss: r.globalNearMiss };
+}

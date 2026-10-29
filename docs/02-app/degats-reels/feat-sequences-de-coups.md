@@ -48,47 +48,56 @@ groupes. Pour Blade Surge, l’empreinte (`0.5*{ATK}`, `coups: 2`,
 
 **Couverture, en deux unités :**
 
-- **8 identifiants** : `10601`, `10602`, `10603`, `10604`, `10605`, `10616`,
-  `10618`, `10620` ;
-- **11 formes du corpus** : Magic Knight eau `19801`, feu `19802`, vent
-  `19803`, lumière `19804`, ténèbres `19805` ; Lapis `19811`, Astar `19812`,
-  Lupinus `19813`, Iris `19814`, Lanett `19815` ; Imperfect Magic Knight vent
-  `19823`. Les Magic Knights non éveillés ne sont pas sélectionnables dans
-  l’Optimizer : `10601` et `10605`, portés par eux seuls, ne sont couverts que
-  par la table et le test.
+- **5 identifiants** : `10602`, `10604`, `10616`, `10618`, `10620` ;
+- **7 formes du corpus** : Lapis `19811`, Astar `19812`, Lupinus `19813`,
+  Iris `19814`, Lanett `19815`, et les Magic Knights non éveillés feu `19802`
+  et lumière `19804`, qui partagent l’identifiant d’Astar et d’Iris.
+- **Hors curation** : `10601`, `10603` et `10605`, portés par les seuls
+  Magic Knights non éveillés eau, vent et ténèbres et par l’Imperfect Magic
+  Knight vent `19823`, non obtenable — une forme non jouable ne se curate pas
+  ([valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md)). Le test les tient
+  hors de la famille.
 
 Cinq candidats écartés (`11015`, `18314`, `23507`, `23508`, `23510`)
 restent hors table, comme les sorts voisins de même catégorie, d’une autre
-mécanique.
+mécanique : le coup en plus d'Exploding Hands (`11015`) et de Guilty
+Sentence (`23507`, `23508`, `23510`) s'ajoute sur interrupteur
+([compétences auxiliaires](feat-competences-auxiliaires.md)).
 
 ### Séquences à valeur de l’API
 
-Quatre sorts frappent d’abord l’ennemi, puis tous les ennemis ; la phase de
-zone n’est chiffrée que par la « compétence auxiliaire » (`other_skill`) de
-l’API SWARFARM, absente de l’import du corpus. Règle ([valeurs curées](valeurs-de-jeu-curees.md), « Valeurs
-connues par l'API seule ») : la valeur de l’API par défaut, sauf si la prose la contredit — aucune des
-quatre proses ne la contredit. Phases et portées viennent de la prose
-(« Attacks the enemy … Afterwards, … all enemies »).
+Six sorts frappent d’abord l’ennemi, puis tous les ennemis ; la phase de
+zone n’est chiffrée que par la [compétence auxiliaire](feat-competences-auxiliaires.md)
+du sort. Le groupe 2 de la table ne recopie pas ce ratio : il le lit dans
+l’auxiliaire (`formule: AUXILIAIRE`), et le sort est refusé, avec sa raison,
+si l’auxiliaire manque. Règle ([valeurs curées](valeurs-de-jeu-curees.md), « Valeurs
+connues par l'API seule ») : la valeur de l’API par défaut, sauf si la prose la contredit — aucune
+de ces proses ne la contredit. Phases et portées viennent de la prose
+(« Attacks the enemy … Afterwards, … all enemies »), sauf pour Kuna, dont
+l’utilisateur a donné l’ordre (2026-10-17).
 
-| Identifiant · sort · formes | Empreinte (`formule`, `coups`, `aoe`) | Groupe 1 | Groupe 2 | Source du groupe 2 |
-| --- | --- | --- | --- | --- |
-| `13311` Fatal Extinctive Bullet · Abigail `22911` | `3.5*{ATK}`, 1, non | `3.5*{ATK}` ×1, mono-cible | `4.5*{ATK}` ×1, zone | auxiliaire 2476 |
-| `13314` Fatal Armor Bullet · Emily `22914` | `3.5*{ATK}`, 1, non | `3.5*{ATK}` ×1, mono-cible | `4.5*{ATK}` ×1, zone | auxiliaire 2478 |
-| `14113` Head Press · M. BISON `24213` (`24203` non éveillé) | `4.0*{ATK}`, 2, non | `4.0*{ATK}` ×1, mono-cible | `5.2*{ATK}` ×1, zone | auxiliaire 2762 |
-| `14613` Great Sword of the End · Sagar `24713` (`24703` non éveillé) | `4.0*{ATK}`, 2, oui | `4.0*{ATK}` ×1, mono-cible | `5.2*{ATK}` ×1, zone | auxiliaire 2830 |
+| Identifiant · sort · formes | Empreinte (`formule`, `coups`, `aoe`) | Groupe 1 | Groupe 2 (auxiliaire) |
+| --- | --- | --- | --- |
+| `13311` Fatal Extinctive Bullet · Abigail `22911` | `3.5*{ATK}`, 1, non | `3.5*{ATK}` ×1, mono-cible | `4.5*{ATK}` ×1, zone (13316) |
+| `13312` Fatal Mortar Bullet · Scarlett `22912` | `3.5*{ATK}`, 1, non | `3.5*{ATK}` ×1, mono-cible | `4.5*{ATK}` ×1, zone (13317) ; le +25 % par effet sur la cible n’est pas compté (« Calcul partiel ») |
+| `13314` Fatal Armor Bullet · Emily `22914` | `3.5*{ATK}`, 1, non | `3.5*{ATK}` ×1, mono-cible | `4.5*{ATK}` ×1, zone (13319) |
+| `14113` Head Press · M. BISON `24213` (`24203` non éveillé) | `4.0*{ATK}`, 2, non | `4.0*{ATK}` ×1, mono-cible | `5.2*{ATK}` ×1, zone (14116) |
+| `14613` Great Sword of the End · Sagar `24713` (`24703` non éveillé) | `4.0*{ATK}`, 2, oui | `4.0*{ATK}` ×1, mono-cible | `5.2*{ATK}` ×1, zone (14616) |
+| `9515` Undefeated Warrior · Kuna `18715` | `3.8*{ATK}`, 1, oui | `3.8*{ATK}` ×1, mono-cible | `3.0*{ATK}` ×1, zone (9516) |
 
-L’empreinte de Head Press et de Sagar ne coïncide pas avec leur premier
-groupe : `coups: 2` y compte les deux phases, et `aoe: true` de Sagar est la
-portée de la phase de zone. Ces deux sorts n’existent comme séquences que
-grâce à la garde par empreinte.
+L’empreinte de Head Press, de Sagar et de Kuna ne coïncide pas avec leur
+premier groupe : `coups: 2` y compte les deux phases, et `aoe: true` de Sagar
+et de Kuna est la portée de la phase de zone. Ces trois sorts n’existent
+comme séquences que grâce à la garde par empreinte.
 
 Les lignes d’artéfact et la cible secondaire suivent les règles par groupe
 ci-dessous, appliquées par le calcul générique : 224 sur la phase 1, 411 sur
 le premier coup du tour, le cran « Dégâts sur les autres ennemis » calcule
 la seule phase de zone.
 
-⚠️ **Non établi, nommé** : les skillups de la fiche (+25 % pour Abigail et
-Emily, +15 % pour M. BISON et Sagar) s’appliquent aux deux phases, parce que
+⚠️ **Non établi, nommé** : les skillups de la fiche (+25 % pour Abigail,
+Scarlett et Emily, +15 % pour M. BISON et Sagar, +20 % pour Kuna)
+s’appliquent aux deux phases, parce que
 le calcul recopie le profil sur chaque groupe ; rien ne l’a confirmé pour
 ces sorts, contrairement à Blade Surge. Sur la phase 1 seule, Abigail et
 Emily vaudraient `3,5 × 1,25 + 4,5 = 8,875` × ATQ au lieu de `10`, M. BISON
@@ -206,16 +215,16 @@ refus quand la fiche ne porte plus l’empreinte (dont le premier groupe de
 Head Press et de Sagar, qu’une garde sur le premier groupe aurait exigé).
 
 `tests/degats-blade-surge.test.ts` (`node tests/run.mjs bladesurge`) :
-balayage du corpus (les 8 identifiants et 11 formes de Blade Surge, les
+balayage du corpus (les 5 identifiants et 7 formes de Blade Surge, les
 quatre séquences à valeur de l’API, aucun autre porteur),
 refus d’une curation périmée, montant des deux crans écrit à la main sur les
-onze formes, apport exact de 224, 400 et 411 dans chaque cran, PV propres à
+sept formes, apport exact de 224, 400 et 411 dans chaque cran, PV propres à
 chaque cran pour 222/223 comparés au chemin ordinaire d’un sort d’un seul
 groupe, part additionnelle par coup, classement et clonage du réglage.
 
 `tests/blade-surge-propagation.test.ts` (même filtre) :
 `testBladeSurgeRecette` — valeur absente, les deux crans acceptés sur les
-huit identifiants, refus avec chemin (champ mal typé, clé invalide, valeur
+cinq identifiants, refus avec chemin (champ mal typé, clé invalide, valeur
 hors de l’union, sort sans coup de zone curé), aller-retour export/import,
 resets au changement d’espèce et à l’import de compte ;
 `testBladeSurgeEcran` — libellés des crans, garde de capacité en tête du

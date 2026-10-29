@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Wrench } from 'lucide-react';
 import { ArtifactDetail, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../types';
 import { BoxItem } from '../lib/applyAccount';
@@ -7,6 +8,13 @@ import { UseOptimizerLists } from '../hooks/useOptimizerLists';
 import { ToolSub } from '../App';
 import OptimizerSection from '../components/outils/OptimizerSection';
 import SpeedTuningSection from '../components/outils/SpeedTuningSection';
+import { estAdresseGabarits } from '../lib/optimizerGabarits';
+
+// La vue des gabarits de l'Optimizer (docs/03-developpeur/vue-des-gabarits.md),
+// en DÉVELOPPEMENT seulement : `import.meta.env.DEV` est remplacé à la
+// construction, et en production la branche et son import dynamique
+// disparaissent.
+const VueGabarits = import.meta.env.DEV ? lazy(() => import('../components/outils/optimizer/gabarits/VueGabarits')) : null;
 
 interface Props {
   recommandations?: Reco[];
@@ -92,6 +100,18 @@ export default function OutilsPage({ recommandations, sub, box, runes, artifacts
         </p>
         {loadState === 'loading' && <p className="mt-3 text-xs">Chargement des monstres…</p>}
       </div>
+    );
+  }
+
+  // ⚠️ L'adresse se lit ici, sans `App.tsx` : `parseHash` mène déjà
+  // `#/outils/optimizer/gabarits` à l'Optimizer, et chaque changement d'adresse
+  // rend de nouveau la page.
+  if (VueGabarits && sub === 'optimizer' && estAdresseGabarits(window.location.hash)) {
+    return (
+      <Suspense fallback={null}>
+        <VueGabarits ctx={{ optimizer, lists, box, runes, artifacts, relics, allMonsters,
+          exclusionData: { box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById: new Map(allMonsters.map((m) => [String(m.id), m])) } }} />
+      </Suspense>
     );
   }
 

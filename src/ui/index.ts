@@ -73,6 +73,12 @@ export { default as NumberField } from './NumberField';
 export { default as Selecteur } from './Selecteur';
 export type { SelecteurProps } from './Selecteur';
 
+// Liste À CHOIX MULTIPLES : fermée, le résumé de ce qui est choisi ; ouverte, une
+// `Case` par option dans un flottant. ⚠️ L'axe que `Selecteur` (choix unique) ne
+// couvre pas, sans la ligne entière que prend une rangée de `Pastille`.
+export { default as SelecteurMultiple } from './SelecteurMultiple';
+export type { SelecteurMultipleProps, OptionChoixMultiple } from './SelecteurMultiple';
+
 export { default as Option } from './Option';
 export type { OptionProps } from './Option';
 
@@ -82,6 +88,12 @@ export type { OptionProps } from './Option';
 // s'EXCLUENT, ce que le cadre commun dit sans un mot. Vivait dans `components/`
 // avec neuf appelants.
 export { default as Segmented } from './Segmented';
+
+// De VRAIS onglets au-dessus d'un contenu : celui qui est ouvert se fond dans
+// la ligne de base. ⚠️ Pas un `Segmented` (un mode dans une rangée de
+// réglages) : les onglets disent quel contenu on regarde.
+export { default as Onglets } from './Onglets';
+export type { OngletOption, OngletsProps } from './Onglets';
 
 export { default as Interrupteur } from './Interrupteur';
 export type { InterrupteurProps } from './Interrupteur';

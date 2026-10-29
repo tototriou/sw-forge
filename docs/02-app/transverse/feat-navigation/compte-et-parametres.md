@@ -115,6 +115,10 @@ Contenu actuel, dans l'ordre :
     [design/reglage-du-theme.md](../../../03-developpeur/interface/design/reglage-du-theme.md) ;
   - **Score** → `Efficience` / `Score SW` (voir
     [compte/feat-runes/mesure.md](../../compte/feat-runes/mesure.md)) ;
+  - **Résultats de l'Optimizer** → `Cartes` / `Tableau`, au bureau seulement
+    (voir [optimizer/ecran/resultats.md](../../optimizer/ecran/resultats.md#cartes-ou-tableau)) :
+    en tableau, la page de l'Optimizer range ses réglages pour lui laisser
+    la place, d'où ce réglage ici plutôt qu'au-dessus des résultats ;
   - **Builds les plus rapides** → un bouton « Choisir… », et en `hint` le
     résumé du réglage (« 9 combinaisons · 5 builds par combinaison, au Résumé
     des runes. »). Il ouvre une **fenêtre** (`DialogueBuildsRapides`) : une
@@ -155,8 +159,9 @@ Contenu actuel, dans l'ordre :
     [feat-import-compte/persistance.md](../feat-import-compte/persistance.md)) ;
   - **Date de l'export chargé**, sous le réglage — c'est là qu'on se pose la
     question de la fraîcheur des données ;
-  - **Session** → « Sauvegarder » : tout l'état de l'app dans un fichier
-    (voir [feat-sauvegarde-session.md](../feat-sauvegarde-session.md)) ;
+  - **Session** → « Sauvegarder » : tout l'état de l'app dans un fichier —
+    dans l'**application de bureau seulement** (voir
+    [feat-sauvegarde-session.md](../feat-sauvegarde-session.md)) ;
   - **Dossier SW Blacksmith** → « Retirer », « Choisir… » — dans
     l'**application de bureau seulement** : le dossier dont le
     sous-dossier `sessions` reçoit les sessions ;

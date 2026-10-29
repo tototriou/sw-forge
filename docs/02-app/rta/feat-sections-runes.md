@@ -21,10 +21,10 @@ Fichiers : [RtaSection.tsx](src/components/rta/RtaSection.tsx) ·
 ## Filtre par section — au téléphone
 
 **Au doigt**, une rangée
-de pastilles en tête des sections — **« Tous »**, puis **« Non classé »** et
-chaque section de set, chacune avec son **nombre de monstres** (et l'icône de
-son set). **Une seule à la fois** : en choisir une n'affiche que cette
-section ; « Tous » les rend toutes.
+d'**onglets** (`Onglets`, la librairie UI) en tête des sections — **« Tous »**,
+puis **« Non classé »** et chaque section de set, chacun avec son **nombre de
+monstres** (et l'icône de son set). **Un seul ouvert** : il n'affiche que sa
+section, qu'il coiffe ; « Tous » les rend toutes.
 
 - ⚠️ **Un filtre d'AFFICHAGE, rien d'autre** : l'ordre de tour, les
   compteurs, la prépa elle-même ne changent pas — on regarde une section, on
@@ -191,7 +191,13 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
 - **L'encadré de stats entier est cliquable** (`role="button"`, pas un bouton
   séparé) et bascule entre deux affichages du même tableau :
   - **Base + bonus** (par défaut) : base en blanc, bonus en **vert**
-    (`text-good`).
+    (`text-good`). ⚠️ **PV, ATQ, DEF et VIT seulement** : Taux Crit, Dmg
+    Crit, RES et Précision s'affichent **toujours en total**, à la place de
+    la base, colonne du bonus vide (`STATS_AVEC_BASE`, stats.ts ; décision
+    de l'utilisateur pour toute l'app — leur base est une petite valeur
+    d'éveil fixe, comme « Stats de base exclues » de l'Optimizer le traitait
+    déjà). Vaut pour toutes les fiches (RTA, ami, siège, Optimizer) et les
+    cartes de résultat.
   - **Total** (base + bonus additionnés) au clic : une seule colonne, dans le
     **même vert** que le bonus ci-dessus — **sauf Taux Crit, RES ou
     Précision** (`CAPPED_STATS` dans [effects.ts](src/lib/effects.ts)) qui
@@ -221,7 +227,9 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   `StatPanel` a une **largeur fixe** (`w-[200px]`, pas `w-fit`) : sans elle,
   la bascule base+bonus ↔ total changerait la largeur de l'encadré et
   pousserait la roue/les artéfacts/la relique voisins d'un côté à l'autre au
-  clic.
+  clic. Seules les cartes de résultat de l'Optimizer, au bureau et à la
+  souris, la posent plus étroite (174 px, fixe elle aussi :
+  [resultats.md](../optimizer/ecran/resultats.md)).
 - ⚠️ **Détail d'une rune/artéfact/relique en popover flottant, pas EN
   LIGNE** : inséré dans un bloc sous la roue, il agrandirait toute la fiche à
   chaque clic (le cadre de stats/roue/artéfacts/relique se décalerait).
@@ -230,6 +238,9 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   l'élément cliqué ; la relique (pas de composant partagé, un seul
   emplacement) porte le même dispositif posé à la main dans `MonsterGear.tsx`.
   Le cadre entier ne bouge donc jamais, sur RTA, Siège et l'Optimizer.
+  Le détail se referme en recliquant la pièce, ou par un appui n'importe où
+  hors de lui (`onFermer` de `FlottantAuto`) ; une autre pièce cliquée ouvre
+  directement la sienne.
 
 ## Pré-classement à l'import
 

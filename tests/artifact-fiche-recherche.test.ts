@@ -3,7 +3,7 @@
 // le pool brut ; sa NOTE est scoreDeReference, indépendante du nouveau
 // producteur et vérifiée contre des attentes chiffrées dans artifact-fiche.
 import type { ArtifactDetail, GearSet, RuneDetail } from '../src/types';
-import { artifactDamageProfile, aurasPropresDesRunes } from '../src/lib/damage';
+import { artifactDamageProfile, aurasPropresDesRunes, statsDuLanceurLuesParLaNote } from '../src/lib/damage';
 import { activeSets } from '../src/lib/effects';
 import { computeStats, statsParPaire } from '../src/lib/stats';
 import { evaluerPourRegime, type DegatsContext } from '../src/lib/artifactEvaluation';
@@ -12,8 +12,9 @@ import { bornesArtefacts, paireRepresentative, type ArtifactSearchParams } from 
 import { candidatAvecSaPaire, cleBuild, type ResultatArtefacts } from '../src/lib/artifactQueue';
 import { etatReliqueDuBuild, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { aurasPropresParRunes, optionsDeClassement, respecteConditionsPaireFixe,
-  scoreDeReference, scoreDuCandidat, searchBuilds, sortCandidates,
+  scoreDeReference, scoreDuCandidat, sortCandidates,
   type SearchParams, type SearchResult } from '../src/lib/runeBuildOptim';
+import { searchBuilds } from '../src/lib/rechercheRunes';
 import { mulberry32 } from '../scripts/lib/randomPool';
 import { BASE_FICHE, DEGATS_FICHE, REF_FICHE, CONTEXTE_FICHE, artFiche, gearFiche, relFiche } from './artifact-fiche.test';
 import { egal, ok, titre } from './outils';
@@ -35,6 +36,8 @@ export function classerFicheCollectee(params: SearchParams, resultat: SearchResu
           degats, { relique, setup: degats.setup, element: degats.element }) }),
       respecteConditions: (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), params.requirement, propres),
       requirement: params.requirement, regimeAucun: false, regimeDeStat: false, relicContext: params.relicContext,
+      // « Dégâts réels » : la dominance des reliques, comme le producteur de l'app.
+      dominanceReliques: { setup: degats.setup, element: degats.element, lues: statsDuLanceurLuesParLaNote(degats) },
     }));
   }
   const opts = optionsDeClassement({

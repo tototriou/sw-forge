@@ -22,8 +22,8 @@ qui ne peuvent pas être converties. Les critères partiels utilisent l’objet
 ## F1 — Importer depuis l’Optimizer
 
 Lorsque l’Optimizer est monté avec un compte, « Importer une équipe » est
-toujours affiché dans « Monstre & équipement »,
-près du sélecteur de liste, au bureau et au téléphone, même lorsque
+toujours affiché près du sélecteur de liste, dans la liste de travail au
+bureau, dans « Monstre & équipement » au téléphone, même lorsque
 « Gérer mes listes » est replié. Sans membre résolvable dans aucune
 source, le bouton est désactivé et son `title` en donne la raison.
 Sans compte, l’écran vide existant remplace l’Optimizer et ne montre pas ce bouton.
@@ -166,6 +166,16 @@ Le slot 0 désigne le leader et fournit son `leaderSkill`, jamais le nombre
 s’il est inactif en Guilde ou sans effet calculé. Le contenu de liste est `guilde`.
 Un slot vide n’est pas un monstre ignoré ; une espèce inconnue, une identité
 inutilisable ou un exemplaire sans équipement résolvable est signalé.
+
+Seul l’import du compte pose un équipement sur un slot de siège ou une
+entrée de la prépa RTA. Un monstre placé à la main n’en a pas : il se résout
+comme un monstre non possédé, aux stats de base 6★ niveau max de son espèce,
+sans rune ni artéfact, sous le sélecteur de sa source
+(`resolveExclusionEntry`, `src/lib/optimizerExclusion.ts`). Une équipe
+composée à la main s’exporte donc entière, et ses monstres paraissent dans la
+liste de l’Optimizer. « Sans équipement résolvable » ne désigne plus que le
+slot dont le monstre est inconnu ; un monstre créé de toutes pièces, sans
+identité d’espèce, reste ignoré pour son identité.
 
 `importerPrepaRtaOptimizer` propose « Prépa RTA », prend toutes les entrées
 et leurs sélecteurs RTA, sans aucune équipe ni lead importé. Les sections

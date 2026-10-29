@@ -1,6 +1,6 @@
 # Harnais de diagnostic — cas connus et scripts voisins
 
-Voir aussi : mode-d-emploi.md, extensions.md, ../verification.md.
+Voir aussi : mode-d-emploi.md, extensions.md, ../verification/README.md.
 
 [mode-d-emploi.md](mode-d-emploi.md) décrit un run du harnais,
 [extensions.md](extensions.md) ses instruments et son
@@ -13,7 +13,7 @@ porte chaque garantie (`fichier:lignes`).
 `--cas=<index|nom|tous>` fait tourner le harnais, l'un après l'autre, sur des
 cas réels de `scripts/lib/perfShared.ts` (`CASES`, la fixture de
 `scripts/perf-battery.ts`), par `scripts/lib/diagnosticLot.ts`
-(`scripts/diagnostic-harness.ts:52-58`). A-passif au sens littéral : le
+(`scripts/diagnostic-harness.ts:54-60`). A-passif au sens littéral : le
 module n'appelle aucune fonction du moteur, il boucle sur des runs du
 harnais. `ResultatLot` contient N `ResultatHarnais` sans en modifier un, et
 `OptionsLot = Omit<ConfigHarnais, 'source'>` est écrit en soustraction, pour
@@ -25,9 +25,9 @@ ponctuation mis à plat, un fragment de libellé suffit — jamais au résultat 
 un nom inconnu est refusé en listant les cas, un nom ambigu en listant ceux
 qu'il désigne, un indice hors bornes, signe compris, avant de lire un cas
 indéfini (`resoudreSelectionCas`, `scripts/lib/diagnosticLot.ts:120-182`,
-`tests/diagnostic-harness.test.ts:914-960`). `--cas` est une source à lui
+`tests/diagnostic-harness.test.ts:928-974`). `--cas` est une source à lui
 seul : il refuse `--synthetique`, `--compte` et `--recette`
-(`scripts/diagnostic-harness.ts:878-887`). Un cas dont l'export de compte
+(`scripts/diagnostic-harness.ts:866-875`). Un cas dont l'export de compte
 manque — ces exports ne sont pas suivis — est refusé au palier 1, fichier
 nommé, jamais sauté ni remplacé par un pool synthétique
 (`verifierComptesDisponibles`, `scripts/lib/diagnosticLot.ts:184-204`).
@@ -45,17 +45,17 @@ résolue : aucun appelant n'hérite d'un nettoyage.
 **Ce qu'un lot autorise.** Les runs sont indépendants, sans état partagé ni
 agrégation (`executerLot`, `scripts/lib/diagnosticLot.ts:283-315`), et chaque
 cas imprime la sortie qu'il aurait seul, palier 1 et avertissement de
-comparaison des temps compris (`scripts/diagnostic-harness.ts:869-945`). Le
+comparaison des temps compris (`scripts/diagnostic-harness.ts:857-933`). Le
 coût s'annonce avant d'être payé — cas nommés, point d'arrêt, nombre de
 recherches — et `--apercu` rend les N paliers 1 sans rien exécuter
 (`annoncerLot`, `scripts/lib/diagnosticLot.ts:321-358`,
-`tests/diagnostic-harness.test.ts:962-975`). Le récapitulatif imprime la
+`tests/diagnostic-harness.test.ts:976-989`). Le récapitulatif imprime la
 condition commune, puis `AVERTISSEMENT_LOT` AVANT le tableau : une
 différence entre deux lignes est une différence entre deux CAS, jamais
 l'effet d'un paramètre ; comparer deux conditions demande de les entrelacer
 (extensions.md § Le différentiel : l'oracle). L'avertissement part
 aussi dans `--json` (`ResultatLot.avertissementLot`,
-`scripts/lib/diagnosticLot.ts:364-403`, `tests/diagnostic-harness.test.ts:977-1030`).
+`scripts/lib/diagnosticLot.ts:364-403`, `tests/diagnostic-harness.test.ts:991-1044`).
 Les colonnes suivent le point d'arrêt ; les temps y sont des minimums, dont
 la dispersion se lit dans le bloc de chaque cas (`rendreRecapLot`,
 `scripts/lib/diagnosticLot.ts:408-515`).
@@ -94,25 +94,37 @@ la recherche du nom sur tout le dépôt.
 | `scripts/pair-bound-diag.ts` | `estimatePairBound`, majorant de `totalPairs` calculable avant la construction | rien. Ne pas l'afficher au palier 1 : trop lâche, il ne certifierait le régime séquentiel que sur des cas déjà faciles (`scripts/pair-bound-diag.ts:12-18`) |
 | `scripts/optimizer-bucket-rank-diag.ts` | une rune isolée figure-t-elle dans au moins un demi-build retenu : morte au pré-filtrage, ou à la rétention | `--suivre` d'un identifiant s'arrête au pré-filtrage ; de trois, il rend le demi-build exact. `scripts/optimizer-find-rune.ts` trouve l'identifiant |
 | `scripts/optimizer-bucket-list-diag.ts` | le catalogue des compartiments d'une moitié, ce qui devance la cible compris | le rang du compartiment seul |
-| `scripts/monster-search-multicount-diag.ts` | l'ensemble des builds trouvés, pas un top | le top rendu et, avec un build cible, le cardinal ; `metric` et `adaptiveTrancheWeighting` ne se surchargent pas |
+| `scripts/monster-search-multicount-diag.ts` | l'ensemble des builds trouvés, pas un top | le top rendu et, avec un build cible, le cardinal ; `metric` ne se surcharge pas |
 | `scripts/rune-owner-diag.ts` | le porteur d'une rune dans la box, sans toucher au moteur | l'étage 0 dit une rune absente du pool d'entrée, pas qui la porte |
-| `scripts/optimizer-deck10-final-diag.ts`, `scripts/combos-order-mode-real-account-diag.ts` | l'instant de découverte et la courbe de rendement, aux mêmes jalons ; le second apparie en séquentiel et lit ses comptes sous `maxMs` | `decouverteBuildCible` (extensions.md § Instant de découverte et dispersion par tranche) |
+| `scripts/optimizer-deck10-final-diag.ts`, `scripts/combos-order-mode-real-account-diag.ts` | l'instant de découverte et la courbe de rendement, aux mêmes jalons ; le second apparie en séquentiel et lit ses comptes sous `maxMs` | `decouverteBuildCible` (extensions.md § Instant de découverte d'un build cible) |
 | `scripts/optimum-speed-diag.ts` | la comparaison de deux VERSIONS du code, copié dans le `git worktree` d'un ancien commit | son `foundExplored`, un compte de paires que `scripts/perf-battery-compare.ts` ne rend pas, est `decouverteBuildCible` |
 | `scripts/optimum-speed-targets.ts` | une vérité terrain : par couple de compartiments, les paires dans l'ordre de leur somme de `relevanceScore`, par un tas, sans matérialiser le produit cartésien ; au-delà de `HEAP_BUDGET` paires examinées, le refus de conclure (`scripts/optimum-speed-targets.ts:97-183`) | aucun optimum ; un run complet à `bucketCap` maximal classe toutes les paires quand il reste atteignable |
-| `scripts/retention-dispersion-diag.ts` | un CV sur les demi-builds retenus, compartiments aplatis, principale comprise | le CV que le moteur utilise : `dispersionTranches` |
-| `scripts/bucket-cap-scaling-diag.ts` | une table préréglage × formule de `bucketCap`, sur une paire d'artéfacts fabriquée | la survie du build équipé, préréglage par préréglage, sur les cas réels : `scripts/perf-battery.ts` en `--monotonicity` (`checkMonotonicityForCase`, `scripts/lib/perfShared.ts:134-155`) ; une formule se rejoue par `--slotFilterCap` et `--bucketCap` |
-| `scripts/stress-tranche-weighting-attainable-diag.ts` | un pool à principales forcées et runes injectées, que la source synthétique ne construit pas ; le rang par contribution d'une seule stat | le CV par `dispersionTranches` ; des principales imposées se posent sur un compte réel |
+| `scripts/bucket-cap-scaling-diag.ts` | une table préréglage × formule de `bucketCap`, sur une paire d'artéfacts fabriquée | la survie du build équipé, préréglage par préréglage, sur les cas réels : `scripts/perf-battery.ts` en `--monotonicity` (`checkMonotonicityForCase`, `scripts/lib/perfShared.ts:136-159`, sur la construction de production, préréglages emboîtés compris) ; une formule se rejoue par `--slotFilterCap` et `--bucketCap` |
 | `scripts/filterslot-topk-diag.ts` | la différence symétrique entre deux IMPLÉMENTATIONS de `filterSlot` | rien : le harnais décrit un run, pas l'écart entre deux implémentations |
 
 **Références recopiées.** Une copie d'une fonction du moteur ne se maintient
 pas seule, et aucun `tsc` ne le signale. `filterSlotOld`, la référence de
 `scripts/filterslot-topk-diag.ts`, n'a pas l'élagage `hasFreeSlots` de
-`filterSlot` (`src/lib/runeBuildOptim.ts:1583-1585`) ; `retentionScoreLocal`
-recopie `retentionScore`, que le moteur n'exporte pas
-(`scripts/retention-dispersion-diag.ts:84-84`). Trois scripts portent dans
+`filterSlot` (`src/lib/runeBuildOptim.ts:1586-1588`). Deux scripts portent dans
 leur en-tête une référence que leur exécution ne reproduit plus — lire cet
 en-tête avant de se fier à leur sortie : `scripts/bucket-cap-scaling-diag.ts`
-(`scripts/bucket-cap-scaling-diag.ts:60-74`),
-`scripts/stress-tranche-weighting-attainable-diag.ts`
-(`scripts/stress-tranche-weighting-attainable-diag.ts:53-64`),
+(`scripts/bucket-cap-scaling-diag.ts:57-71`) et
 `scripts/filterslot-topk-diag.ts` (`scripts/filterslot-topk-diag.ts:37-53`).
+
+## Worktrees de comparaison
+
+Le comparateur `scripts/perf-battery-compare.ts` utilise
+`scripts/lib/worktreeMesure.ts` pour créer un worktree détaché temporaire et
+lier les seuls chemins explicitement demandés. Aucun fichier suivi ou
+emplacement existant ne peut être remplacé par un lien.
+
+Le retrait vérifie la propriété du worktree, son identité Git, sa révision
+et chaque lien déclaré avant de délier quoi que ce soit. Une cible changée,
+un lien inattendu ou une incohérence laisse le worktree en place et nomme
+le chemin à examiner. Aucun retrait récursif ne suit une jonction. Les
+deux bras du comparateur doivent être terminés avant ce nettoyage.
+
+Un arrêt brutal peut laisser un worktree et son manifeste dans le dossier
+temporaire ; ils restent à examiner avant toute suppression. Les liens
+physiques partagent les fichiers sources : leur usage est en lecture seule.
+Le gestionnaire ne surveille pas des processus lancés hors de son appelant.

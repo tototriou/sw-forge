@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ArtifactDetail, ArtifactKind, ELEMENTS, ElementKey } from '../../types';
+import { ArtifactDetail, ArtifactKind } from '../../types';
 import {
   RARITY_META,
   ARTIFACT_MAIN,
@@ -8,6 +8,7 @@ import {
 } from '../../lib/effects';
 import { artifactScore, artifactEfficiency, maxRolls, isFullStack } from '../../lib/artifacts';
 import { Kpi, Panel, pct, fmt, CARTE_CHIFFRES_DOIGT } from './SummaryBits';
+import ArtifactsTop from './ArtifactsTop';
 
 interface Props {
   artifacts: ArtifactDetail[];
@@ -40,15 +41,6 @@ const EFF_BUCKETS: { min: number; label: string }[] = [
 // mûr porte réellement sur ses monstres joués (2 artéfacts par monstre).
 const TOP_N = 100;
 
-const elementLabel = (k?: ElementKey) => ELEMENTS.find((e) => e.key === k)?.label ?? '—';
-
-const ARCHETYPE_LABEL: Record<string, string> = {
-  attack: 'Attaque',
-  defense: 'Défense',
-  hp: 'PV',
-  support: 'Support',
-};
-
 // ⚠️ Les deux sortes se lisent EN COLONNES, jamais en sections empilées. Un
 // artéfact d'attribut et un de type ne portent pas les mêmes propriétés (codes
 // 300-399 contre 400-499, aucun recouvrement) : il faut les distinguer. Mais
@@ -68,7 +60,6 @@ function analyse(arts: ArtifactDetail[]) {
   const buckets = EFF_BUCKETS.map(() => 0);
   const byRarity = new Map<number, number>();
   const byMain = new Map<number, number>();
-  const byGroup = new Map<string, { n: number; sum: number; best: number }>();
 
   // Quad rolls, ventilés PAR PROPRIÉTÉ : sur quelles stats les tirages
   // parfaits sont-ils tombés.
@@ -86,14 +77,6 @@ function analyse(arts: ArtifactDetail[]) {
     buckets[bi < 0 ? EFF_BUCKETS.length - 1 : bi] += 1;
 
     byRarity.set(a.rarity, (byRarity.get(a.rarity) ?? 0) + 1);
-
-    const g =
-      a.kind === 'element' ? elementLabel(a.element) : (ARCHETYPE_LABEL[a.archetype ?? ''] ?? '—');
-    const cur = byGroup.get(g) ?? { n: 0, sum: 0, best: 0 };
-    cur.n += 1;
-    cur.sum += eff;
-    if (eff > cur.best) cur.best = eff;
-    byGroup.set(g, cur);
 
     byMain.set(a.main.code, (byMain.get(a.main.code) ?? 0) + 1);
 
@@ -126,9 +109,6 @@ function analyse(arts: ArtifactDetail[]) {
     over90: sortedEff.filter((e) => e >= 90).length,
     buckets,
     rarities: [5, 4, 3, 2, 1].map((r) => ({ rarity: r, n: byRarity.get(r) ?? 0 })),
-    groups: [...byGroup.entries()]
-      .map(([label, v]) => ({ label, ...v }))
-      .sort((x, y) => y.n - x.n),
     mains: [...byMain.entries()].map(([code, n]) => ({ code, n })).sort((x, y) => y.n - x.n),
     fullStack,
     // Les propriétés sur lesquelles les quad rolls sont tombés, du plus
@@ -313,33 +293,10 @@ export default function ArtifactsSummary({ artifacts }: Props) {
         </Panel>
       </div>
 
-      {/* ---- Par attribut / par type — deux colonnes, un seul panneau ---- */}
-      <Panel title="Par attribut et par type">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-          {KINDS.flatMap((k) =>
-            s.par[k.key].groups.map((g) => (
-              <div
-                key={`${k.key}-${g.label}`}
-                className="rounded-lg border border-border bg-panel2 px-3 py-2"
-                style={{ borderLeft: `3px solid ${k.tone}` }}
-              >
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="label truncate">{g.label}</span>
-                  <span className="font-mono text-xs text-ink">{g.n}</span>
-                </div>
-                <div className="mt-1 font-mono text-xs text-ink-dim">
-                  moy. <b className="text-ink">{fmt(g.sum / g.n)} %</b>
-                </div>
-                <div className="font-mono text-micro text-ink-dim">
-                  max <b className="text-star">{fmt(g.best)} %</b>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </Panel>
+      {/* Le Top 10 par propriété, avant les quad rolls, aux deux formats. */}
+      <ArtifactsTop artifacts={artifacts} />
 
-      {/* ---- Quad rolls, par propriété ------------------------------------ */}
+      {/* ---- Quad rolls, par propriété — tout en bas ---------------------- */}
       {/* Les 4 améliorations tombées sur UNE SEULE ligne : le meilleur tirage
           possible, puisque la valeur d'une propriété est poussée au maximum au
           lieu d'être éparpillée. Ce panneau dit SUR QUOI ils sont tombés.
@@ -399,10 +356,6 @@ export default function ArtifactsSummary({ artifacts }: Props) {
             })}
           </div>
         )}
-        <p className="mt-3 border-t border-border pt-3 text-micro leading-relaxed text-ink-dim">
-          ⚠️ Un quad roll n'existe qu'en <b>légendaire</b> : c'est la seule
-          rareté qui distribue 4 améliorations.
-        </p>
       </Panel>
     </div>
   );

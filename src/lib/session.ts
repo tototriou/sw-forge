@@ -22,6 +22,7 @@ import { PREFIXE_FICHIER } from '../marque';
 import { OPTIMIZER_MEMBERS_STORAGE_KEY } from './optimizerMemberStorage';
 import { OPTIMIZER_BACKUP_STORAGE_KEY } from './optimizerBackup';
 import { lireCompetencesInvocateur } from './competencesInvocateur';
+import { triDesResultats } from './colonnesResultats';
 import { CLE_ECRAN_PARTAGE } from './volets';
 
 export const FORMAT_SESSION = formatExport('session');
@@ -51,6 +52,7 @@ export const CLES_SESSION = [
   'swblacksmith-adversaire-reference-v1',
   // Du JSON, relu et validé par son hook (`lireReglageBuildsRapides`).
   'swblacksmith-builds-rapides-v1',
+  'swblacksmith-optimizer-resultats-forme-v1',
 ] as const;
 
 // La forme de chaque valeur, telle que son hook l'ÉCRIT. ⚠️ Pas toutes du
@@ -60,6 +62,7 @@ const VALEURS_PERMISES: Partial<Record<(typeof CLES_SESSION)[number], readonly s
   'swblacksmith-rune-metric-v1': ['eff', 'score'],
   'swblacksmith-overcap-display-v1': ['0', '1'],
   'swblacksmith-adversaire-reference-v1': ['0', '1'],
+  'swblacksmith-optimizer-resultats-forme-v1': ['cartes', 'tableau'],
 };
 
 // Une valeur du stockage est-elle de la forme que son hook relit ? Les
@@ -150,6 +153,8 @@ export function decoder(valeur: unknown): unknown {
 function garderChampsOptimizer(o: Record<string, unknown>): Record<string, unknown> {
   const garde: Record<string, unknown> = {};
   for (const champ of CHAMPS_OPTIMIZER_SESSION) if (champ in o) garde[champ] = o[champ];
+  // Un tri « vitesse » se relit VIT : l'objectif Vitesse n'est plus une colonne de tri.
+  if (garde.sortBy === 'vitesse') garde.sortBy = triDesResultats(garde.sortBy);
   if (garde.damageSetup && typeof garde.damageSetup === 'object' && !Array.isArray(garde.damageSetup)) {
     const setup = garde.damageSetup as Record<string, unknown>;
     const mode = lireCompetencesInvocateur(setup.summonerSkills);
@@ -190,6 +195,22 @@ export function composerSession(s: SourcesSession): Session {
 
 // Compact : le compte pèse quelques Mo, l'indentation les doublerait.
 export const ecrireSession = (session: Session): string => JSON.stringify({ ...session, version: VERSION_SESSION });
+
+// ── Changements non enregistrés ─────────────────────────────────────────
+// Avant un changement de compte (application de bureau), l'app propose de
+// sauvegarder si le travail a changé depuis la dernière sauvegarde.
+
+// L'empreinte du TRAVAIL d'une session : tout, sauf sa date, la version de
+// l'app et le compte — un instantané du jeu, que l'export redonne.
+export const empreinteTravail = (s: Session): string => JSON.stringify({ stockage: s.stockage, outils: s.outils });
+
+// `derniere` : l'empreinte de la dernière sauvegarde, `null` sans sauvegarde
+// depuis le lancement. Alors tout travail que le changement de compte
+// remplacerait (`aDuTravail`) compte comme non enregistré : demander pour
+// rien coûte un clic, ne pas demander peut coûter la prépa.
+export function travailNonSauvegarde(empreinte: string, derniere: string | null, aDuTravail: boolean): boolean {
+  return derniere === null ? aDuTravail : empreinte !== derniere;
+}
 
 // `swblacksmith-session-2026-10-06-15h42.json`, à l'heure locale.
 export function nomFichierSession(d: Date): string {

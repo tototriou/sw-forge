@@ -78,13 +78,11 @@ async function main() {
     // (`OptimizerSection.tsx`, `handleSearch`) : PAS de `maxCollected` ici,
     // volontairement — la prod ne le passe JAMAIS, même en mode exhaustif
     // (`exhaustiveSearch` ne touche QUE `maxMs`, décision actée), donc le
-    // défaut réel `MAX_COLLECTED=100 000` doit s'appliquer tel quel. Une
+    // défaut réel `MAX_COLLECTED` (1 000 000, runeBuildOptim.ts) doit s'appliquer tel quel. Une
     // première version de ce script le forçait à `MAX_SAFE_INTEGER` — un
     // vrai écart de fidélité, pas un détail (voir le skill
     // `optimizer-perf-testing`/section « Fidélité des scripts diagnostics »
-    // d'`algo-verify`). `adaptiveTrancheWeighting` explicite à `false` pour
-    // la même raison : ce prototype ne teste PAS ce réglage, jamais implicite.
-    // `maxMs` reste infini : seul champ que `exhaustiveSearch` fait
+    // d'`algo-verify`). `maxMs` reste infini : seul champ que `exhaustiveSearch` fait
     // réellement varier en prod, donc le seul qu'on a le droit de diverger
     // du défaut d'écran ici.
     const params: SearchParams = {
@@ -97,7 +95,6 @@ async function main() {
       objective: c.objective,
       slotFilterCap: SLOT_FILTER_CAP,
       maxMs: Number.POSITIVE_INFINITY,
-      adaptiveTrancheWeighting: false,
     };
     const prepared = prepareSearch(params);
     if (!prepared) {

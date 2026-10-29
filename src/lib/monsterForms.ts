@@ -5,8 +5,9 @@
 // renvoyait donc trois, dont deux qu'on ne joue jamais.
 //
 // ⚠️ **`formesJouables` : les sélecteurs seulement, jamais le Bestiaire.**
-// Celui-ci est une base qu'on consulte : y masquer les formes non éveillées
-// empêcherait de lire leurs stats ou de comparer une forme à l'autre. Ici on
+// Celui-ci est une base qu'on consulte : la forme éveillée qu'une 2A remplace
+// s'y lit toujours, et ses deux filtres de formes se relâchent pour montrer
+// les non éveillées et les non obtenables (`filtrerFormesBestiaire`). Ici on
 // choisit un monstre à jouer, ce n'est pas la même question.
 //
 // ⚠️ `sansDoublonDeTransformation` fait EXCEPTION et s'applique **partout,
@@ -31,35 +32,53 @@ export function estEveille(m: Monster): boolean {
   return m.stars > m.naturalStars;
 }
 
-// Formes proposables : les éveillées, et **la 2A seule** quand elle existe.
+// Une forme est OBTENABLE quand un joueur peut la posséder — `obtainable` de
+// SWARFARM, donné tel quel. Ne le sont pas : les formes de boss (Azazel,
+// Mouth of Sauron…), les anciens doublons (les Ifrit éveillés `17111`-`17115`,
+// qui doublaient Veromos et ses frères), les formes transformées, les
+// placeholders à nom coréen.
 //
-// ⚠️ Deux règles, pas une :
+// ⚠️ Champ absent = obtenable : un monstre créé à la main n'existe que parce
+// que l'utilisateur l'a saisi, et des données antérieures au champ ne doivent
+// pas tout faire disparaître.
+export function estObtenable(m: Monster): boolean {
+  return m.obtainable !== false;
+}
+
+// Les deux filtres de formes du Bestiaire, cochés par défaut.
+//
+// ⚠️ **Plus larges que `formesJouables`** : la forme éveillée qu'une 2A
+// remplace reste affichée — elle se joue, on la possède avant le second éveil.
+// « Jouables » veut dire obtenables (`estObtenable`), « éveillées » veut dire
+// premier ou second éveil (`estEveille`) : chacun relâché seul montre ce que
+// l'autre garde caché.
+export interface FiltresFormes {
+  jouablesSeulement: boolean;
+  eveilleesSeulement: boolean;
+}
+
+export function filtrerFormesBestiaire(monsters: Monster[], f: FiltresFormes): Monster[] {
+  if (!f.jouablesSeulement && !f.eveilleesSeulement) return monsters;
+  return monsters.filter(
+    (m) => (!f.jouablesSeulement || estObtenable(m)) && (!f.eveilleesSeulement || estEveille(m))
+  );
+}
+
+// Formes proposables : les obtenables éveillées, et **la 2A seule** quand elle
+// existe.
+//
+// ⚠️ Trois règles, pas une :
 //   1. les formes NON éveillées disparaissent — on ne les joue pas ;
-//   2. quand un monstre a un second éveil, il REMPLACE sa forme éveillée
+//   2. les formes non OBTENABLES aussi — personne ne les possède ;
+//   3. quand un monstre a un second éveil, il REMPLACE sa forme éveillée
 //      simple. Les deux portent le même nom et la même icône d'élément : les
 //      laisser côte à côte oblige à deviner laquelle est laquelle, alors que
 //      c'est la 2A qu'on joue.
 //
 // Le regroupement se fait sur (nom, élément) : deux monstres homonymes
 // d'éléments différents restent bien deux entrées distinctes.
-//
-// ⚠️ **Les formes de BOSS sont écartées, par une liste d'identifiants.**
-// Azazel,
-// Kazuya Mishima, True Devil Kazuya, The Witch-king of Angmar et Solide (6 étoiles,
-// rareté naturelle 1, prose « the boss's ») ne se jouent pas. Aucune règle
-// déduite des champs : ces cinq-là, citées, et pas d'autre.
-export const FORMES_DE_BOSS_ECARTEES: ReadonlySet<number> = new Set([
-  2003503, // Azazel
-  2003601, // Kazuya Mishima
-  2003705, // True Devil Kazuya
-  2004003, // The Witch-king of Angmar
-  2004103, // Solide
-]);
-
 export function formesJouables(monsters: Monster[]): Monster[] {
-  const eveilles = monsters.filter(
-    (m) => estEveille(m) && !(m.com2usId != null && FORMES_DE_BOSS_ECARTEES.has(m.com2usId))
-  );
+  const eveilles = monsters.filter((m) => estEveille(m) && estObtenable(m));
   // Noms+élément pour lesquels une 2A existe.
   const avec2A = new Set<string>();
   for (const m of eveilles) {

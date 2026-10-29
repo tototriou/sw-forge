@@ -34,6 +34,11 @@ export interface Monster {
   stars: number | null; // grade obtenable (base_stars) — utilisé par le Bestiaire
   naturalStars: number | null; // rareté naturelle réelle (nat 1..5)
   secondAwaken: boolean; // monstre à second éveil (double éveil / 2A)
+  // Forme qu'un joueur peut posséder (`obtainable` chez SWARFARM). `false` pour
+  // les formes de boss, les anciens doublons, les formes transformées et les
+  // placeholders. ⚠️ Optionnel : absent d'un monstre créé à la main, qui compte
+  // comme obtenable — il n'existe que parce que l'utilisateur l'a saisi.
+  obtainable?: boolean;
   image: string | null;
   stats: MonsterStats;
   leaderSkill: LeaderSkill | null;

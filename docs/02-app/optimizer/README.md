@@ -41,14 +41,14 @@ partagés avec `MonsterGear.tsx` (RTA/Siège/« Équipement actuel »), voir
 
 | Le changement touche… | Lire |
 | --- | --- |
-| la mise en page de `src/components/outils/OptimizerSection.tsx` : grille, panneaux dépliants, largeur, changement d'onglet | [ecran/README.md](ecran/README.md) |
-| « Monstre à optimiser », `src/components/outils/MonsterSourcePicker.tsx` | [ecran/recherche-du-monstre.md](ecran/recherche-du-monstre.md) |
+| la mise en page de `src/components/outils/OptimizerSection.tsx` : format, page de bureau en colonnes (`src/components/outils/optimizer/bureau/`, `src/lib/optimizerColonnes.ts`), grille du téléphone, changement d'onglet | [ecran/README.md](ecran/README.md) |
+| la recherche du monstre et la liste de travail du bureau, `src/components/outils/MonsterSourcePicker.tsx` | [ecran/recherche-du-monstre.md](ecran/recherche-du-monstre.md) |
 | « Meilleurs artéfacts offensifs pour ce build », `src/components/ArtifactSubLigne.tsx` | [ecran/meilleurs-artefacts-offensifs.md](ecran/meilleurs-artefacts-offensifs.md) |
 | « Équipement actuel » | [ecran/equipement-actuel.md](ecran/equipement-actuel.md) |
 | l'objectif de recherche, `src/components/outils/DamageSetupCard.tsx`, `src/components/outils/DamageSetupModale.tsx` | [ecran/objectif-de-recherche.md](ecran/objectif-de-recherche.md) |
 | le set recherché et les principales imposées, `src/components/outils/SetComboPicker.tsx` | [ecran/set-et-principale.md](ecran/set-et-principale.md) |
-| la carte « Artéfacts » | [ecran/artefacts.md](ecran/artefacts.md) |
-| la carte « Relique », `src/components/RelicSlot.tsx` | [ecran/relique.md](ecran/relique.md) |
+| la carte « Artéfacts et relique » | [ecran/artefacts.md](ecran/artefacts.md) |
+| le bloc « Relique », `src/components/RelicSlot.tsx` | [ecran/relique.md](ecran/relique.md) |
 | « État de mon monstre », `src/components/outils/EtatMonstre.tsx`, `src/lib/aurasExternes.ts`, `src/lib/buffsDePassif.ts` | [ecran/etat-de-mon-monstre.md](ecran/etat-de-mon-monstre.md) |
 | les sous-propriétés verrouillées | [ecran/sous-proprietes-verrouillees.md](ecran/sous-proprietes-verrouillees.md) |
 | les conditions, l'inventaire et les réglages avancés | [ecran/conditions-et-reglages.md](ecran/conditions-et-reglages.md) |
@@ -68,7 +68,7 @@ Chaque sujet de l'application vit dans son fichier, dans ce dossier ; le
 moteur et sa vérification vivent côté développeur :
 
 - **Par où commencer** — [routage-par-tache.md](routage-par-tache.md) : quelles sections lire d'abord selon ce qu'on touche
-- **Écran** — [ecran/README.md](ecran/README.md) (contrôles, grille, panneaux dépliants, adaptation à la largeur, survie à un changement d'onglet), puis une page par carte :
+- **Écran** — [ecran/README.md](ecran/README.md) (contrôles, colonnes du bureau et groupe d'onglets, grille du téléphone, adaptation à la largeur, survie à un changement d'onglet), puis une page par boîte :
   - [Recherche du monstre à optimiser](ecran/recherche-du-monstre.md)
   - [Meilleurs artéfacts offensifs pour ce build](ecran/meilleurs-artefacts-offensifs.md)
   - [Équipement actuel](ecran/equipement-actuel.md)

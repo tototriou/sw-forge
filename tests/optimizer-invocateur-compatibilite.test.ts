@@ -17,7 +17,7 @@ export function testOptimizerContenuInvocateurCompatibilite() {
   egal(lireCompetencesInvocateur('inconnu'), null, 'mode inconnu refusé');
   const recette = buildOptimizerRecipe({ monsterCom2usId: 14104, monsterName: 'Lushen', damageSetup: ancien,
     requirement: { sets: ['swift'], minStats: {} }, objective: 'degats_reels', metric: 'eff', slotFilterPreset: 'moyen',
-    adaptiveTrancheWeighting: false, exhaustiveSearch: false, excludeUsedRunes: false, excludeUsedScope: 'box',
+    exhaustiveSearch: false, excludeUsedRunes: false, excludeUsedScope: 'box',
     excludedSelectors: [], ignoreArtifacts: false, artifactMainByKind: {} });
   egal(recette.damageSetup.summonerSkills, 'normal', 'écriture de recette canonique');
   const legacy = { ...recette, damageSetup: ancien };

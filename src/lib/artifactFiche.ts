@@ -16,9 +16,10 @@ import {
   type CanalExclusive, type DegatsContext,
 } from './artifactEvaluation';
 import { apportExclusive, statsAvecApport } from './relicExclusive';
+import { estExceptionRegleR } from './resolutionRapide';
 
 /**
- * Les emplacements figés sur « Garder l'artéfact équipé ». Une sorte absente
+ * Les emplacements figés sur « Comme équipé ». Une sorte absente
  * vaut « Libre ». Lue par l'éditeur de verrous (grisé) et par
  * `parametresArtefactsFiche` (neutralisation) : une seule définition.
  */
@@ -62,13 +63,21 @@ export const AUCUN_ARTEFACT_RESERVE: ReadonlySet<number> = new Set();
  *   monstre à la fois. Le CLI et le différentiel n'ont pas de liste :
  *   `AUCUN_ARTEFACT_RESERVE`. Sans réservation, l'inventaire est rendu
  *   tel quel (même tableau).
- * - `optimiserArtefacts` faux : « Garder l'artéfact équipé » IMPOSÉ des deux
+ * - `optimiserArtefacts` faux : « Comme équipé » IMPOSÉ des deux
  *   côtés. Le monstre garde ses pièces et leurs stats ; rien n'est cherché.
  * - `damageSetup` : celui du canal exclusive, d'où viennent les codes
  *   d'amplification de buff (`codesAmplificationActifs`) — sans eux, une
  *   amplification est éliminée par dominance alors qu'elle vaut des dégâts.
  * - `maxStats` : les maximums de la recherche ; seuls ceux réellement posés
  *   (> 0) retirent leur stat de la dominance.
+ * - `sortDegats` : le sort que note la « Dégâts réels » des évaluateurs
+ *   (`skillCom2usId` du profil de dégâts), `null` sans sort calculable. Un
+ *   sort en exception à la règle R (`estExceptionRegleR`, resolutionRapide.ts,
+ *   la liste qui retire aussi la dominance des reliques) retire la dominance
+ *   du préfiltre (`sansDominance`). Il se lit sur le sort, pas sur l'objectif :
+ *   l'écran pose une note de dégâts sur ces mêmes paramètres hors de
+ *   l'objectif « Dégâts réels » (« Meilleurs artéfacts offensifs ») ; une
+ *   dominance en moins sous une autre note ne coûte que du temps.
  */
 export function parametresArtefactsFiche(e: {
   porteur: PorteurArtefact;
@@ -80,6 +89,7 @@ export function parametresArtefactsFiche(e: {
   lignesVerrouillees: LigneVerrouillee[];
   damageSetup: DamageSetup;
   maxStats: Partial<Record<StatKey, number>>;
+  sortDegats: number | null;
 }): Omit<ArtifactSearchParams, 'evaluer'> & Required<Pick<ArtifactSearchParams, 'lignesVerrouillees' | 'codesAmplification' | 'maxStatsActifs'>> {
   return {
     porteur: e.porteur,
@@ -98,6 +108,8 @@ export function parametresArtefactsFiche(e: {
       e.optimiserArtefacts && sortesFigeesDe(e.principaleParSorte).length < ARTIFACT_KINDS.length ? e.lignesVerrouillees : [],
     codesAmplification: codesAmplificationActifs(e.damageSetup),
     maxStatsActifs: (Object.keys(e.maxStats) as StatKey[]).filter((k) => (e.maxStats[k] ?? 0) > 0),
+    // Absent hors exception : les paramètres des autres sorts restent ceux d'avant, champ pour champ.
+    ...(e.sortDegats != null && estExceptionRegleR(e.sortDegats) ? { sansDominance: true } : {}),
   };
 }
 

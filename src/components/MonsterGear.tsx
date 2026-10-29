@@ -25,7 +25,8 @@ interface Props {
   // composants qui l'exposent déjà nativement (voir leurs propres fichiers,
   // déjà utilisés à échelle réduite par `BuildCandidateCard.tsx`). `StatPanel`
   // reste à sa largeur FIXE (`w-[200px]`, voir son commentaire de tête) : elle
-  // ne bouge JAMAIS, quel que soit l'appelant — un panneau qui rétrécirait ici
+  // ne bouge JAMAIS — seules les cartes de résultat de l'Optimizer au bureau
+  // la posent plus étroite (`serre`), fixe elle aussi — un panneau qui rétrécirait ici
   // recréerait exactement le déplacement au clic base+bonus↔total que sa
   // largeur fixe existe pour empêcher. `undefined` = taille normale
   // (comportement historique inchangé pour RTA/Siège, seuls appelants avant
@@ -51,6 +52,19 @@ interface Props {
   // `undefined` pour RTA, Siège, speed tuning, le sélecteur d'exclusion —
   // aucune ligne de compteur n'y apparaît.
   relicUsageById?: Record<number, number>;
+  // Largeurs NATURELLES de la fiche, à pleine échelle : `deplie`, panneau de
+  // statistiques et groupe sur une rangée ; `replie`, sa rangée la plus large
+  // une fois le groupe passé à la ligne. SEUL l'Optimizer au bureau la lit,
+  // pour poser « Valider ce build » à la largeur de la fiche telle
+  // qu'affichée ; les autres écrans ne la fournissent pas.
+  onLargeursNaturelles?: (l: { deplie: number; replie: number }) => void;
+  // Disposition des cartes de résultat (`BuildCandidateCard`) : panneau de
+  // statistiques resserré (`serre`), relique sous la roue, et le groupe
+  // artéfacts + roue + relique réduit pour tenir À CÔTÉ du panneau, même à
+  // la souris. SEUL « Exemplaire » de l'Optimizer au bureau la demande : la
+  // colonne « Monstre » n'a que 358 px, et la fiche s'y lit dépliée
+  // (décision de l'utilisateur) plutôt qu'en deux rangées.
+  carte?: boolean;
 }
 
 export default function MonsterGear({
@@ -60,6 +74,8 @@ export default function MonsterGear({
   selection,
   onSelectionChange,
   relicUsageById,
+  onLargeursNaturelles,
+  carte = false,
 }: Props) {
   const stats = computeStats(gear);
   const [selInterne, setSelInterne] = useState<Selected>(null);
@@ -117,6 +133,10 @@ export default function MonsterGear({
   // L'arrondi de l'échelle sert le même but : sans lui, deux mesures
   // équivalentes à 10⁻¹⁵ près relanceraient un tour.
   const [mesure, setMesure] = useState<{ w: number; h: number; s: number } | null>(null);
+  // Lu dans la mesure sans la relancer : le parent passe en général une
+  // fonction neuve à chaque rendu.
+  const largeursRef = useRef(onLargeursNaturelles);
+  largeursRef.current = onLargeursNaturelles;
 
   useLayoutEffect(() => {
     const racine = racineRef.current;
@@ -129,6 +149,20 @@ export default function MonsterGear({
       // mesure se mordrait la queue.
       const naturelW = groupe.offsetWidth;
       const naturelH = groupe.offsetHeight;
+      // Le panneau garde sa largeur fixe et le groupe sa largeur de contenu
+      // (`w-max`, `transform` hors layout) : ces deux largeurs ne dépendent
+      // pas de la place reçue, le parent peut s'en servir pour la choisir.
+      // 8 : l'écart `gap-2` du conteneur, comme plus bas. ⚠️ **Largeur du
+      // groupe arrondie au pixel SUPÉRIEUR** (largeur calculée, fractionnaire,
+      // insensible au `transform` comme `offsetWidth`) : `offsetWidth`
+      // arrondit au plus proche, et une boîte posée à 352 pour un groupe de
+      // 352,4 px fait passer le groupe à la ligne — la fiche se replie alors
+      // que la place de la fiche dépliée lui est donnée.
+      const panneauW = statPanelRef.current?.offsetWidth ?? 0;
+      const groupeW = Math.ceil(parseFloat(getComputedStyle(groupe).width) || naturelW);
+      if (groupeW > 0 && panneauW > 0) {
+        largeursRef.current?.({ deplie: panneauW + 8 + groupeW, replie: Math.max(panneauW, groupeW) });
+      }
       // ⚠️ **Deux façons de calculer la place disponible, format par format —
       // demande explicite au doigt (« la fiche de stats, les artéfacts, les
       // runes ainsi que la relique tiennent alignés ensemble »), jamais
@@ -148,7 +182,9 @@ export default function MonsterGear({
       //   stats sur LA MÊME ligne — le vrai `flex-wrap` l'aurait alors
       //   renvoyé à la ligne suivante, l'empêchant justement de rester
       //   aligné avec panneau/artéfacts/roue/relique.
-      const dispo = auDoigt ? racine.clientWidth - (statPanelRef.current?.offsetWidth ?? 0) - 8 : racine.clientWidth;
+      // `carte` : à côté du panneau, comme au doigt, à la souris aussi.
+      const aCote = auDoigt || carte;
+      const dispo = aCote ? racine.clientWidth - (statPanelRef.current?.offsetWidth ?? 0) - 8 : racine.clientWidth;
       if (naturelW <= 0 || dispo <= 0) return;
       // ⚠️ **Formule CONTINUE, sans branche — un saut entre deux calculs
       // (« serré à côté » / « repli pleine largeur ») a été tenté puis
@@ -161,7 +197,7 @@ export default function MonsterGear({
       // sur cette même hauteur : un aller-retour sans fin, pas un cas rare.
       // Un simple `Math.max` (plancher) est CONTINU — jamais deux branches de
       // calcul qui se disputent le même seuil, jamais de saut.
-      const s = Math.round(Math.max(auDoigt ? 0.55 : 0, Math.min(1, dispo / naturelW)) * 1000) / 1000;
+      const s = Math.round(Math.max(aCote ? 0.55 : 0, Math.min(1, dispo / naturelW)) * 1000) / 1000;
       setMesure((prev) =>
         prev && prev.w === naturelW && prev.h === naturelH && prev.s === s ? prev : { w: naturelW, h: naturelH, s }
       );
@@ -171,7 +207,7 @@ export default function MonsterGear({
     ro.observe(racine);
     ro.observe(groupe);
     return () => ro.disconnect();
-  }, [auDoigt]);
+  }, [auDoigt, carte]);
 
   // ⚠️ À l'échelle 1 (le cas de très loin le plus courant), AUCUN style n'est
   // posé : le rendu reste alors strictement identique à ce qu'il était avant
@@ -202,7 +238,7 @@ export default function MonsterGear({
     ) : null;
 
   return (
-    <div ref={racineRef} className="flex flex-row flex-wrap items-center justify-center gap-2">
+    <div ref={racineRef} className={`flex flex-row items-center justify-center gap-2 ${carte ? 'flex-nowrap' : 'flex-wrap'}`}>
       {/* Panneau de stats — voir StatPanel.tsx (base+bonus ↔ total au clic,
           largeur fixe pour ne jamais déplacer artéfacts/roue/relique).
           ⚠️ **Reste sur la MÊME ligne qu'artéfacts/roue/relique, même au
@@ -215,7 +251,7 @@ export default function MonsterGear({
           mesurer sa largeur réelle pour le calcul ci-dessus plutôt que de
           recopier sa constante ici, qui pourrait diverger un jour. */}
       <div ref={statPanelRef} className="flex-none">
-        <StatPanel stats={stats} spdCible={spdCible} />
+        <StatPanel stats={stats} spdCible={spdCible} serre={carte} />
       </div>
 
       {/* ⚠️ Artéfacts, roue et relique sur UNE SEULE ligne, quelle que soit la
@@ -279,7 +315,11 @@ export default function MonsterGear({
         // dépendance circulaire) — non généralisée ici à l'époque, l'erreur
         // qui a produit ce bug.
         style={reduit ? { transform: `scale(${mesure!.s})`, transformOrigin: 'top left' } : undefined}
-        className="flex w-max flex-none items-center justify-center gap-2 compact:gap-1.5"
+        // `carte` à la souris : artéfacts | roue, puis la relique sous la roue,
+        // comme `BuildCandidateCard` (la colonne de la roue vaut sa largeur).
+        className={carte && !auDoigt
+          ? 'grid w-max flex-none grid-cols-[auto_min-content] items-center gap-1'
+          : 'flex w-max flex-none items-center justify-center gap-2 compact:gap-1.5'}
       >
       {/* Artéfacts — détail dans un flottant ANCRÉ à l'emplacement (souris) ou
           en ligne sous la roue (doigt) : voir `detail` plus haut.
@@ -315,6 +355,7 @@ export default function MonsterGear({
                   largeur={260}
                   hauteur={320}
                   rembourrage="md"
+                  onFermer={() => setSel(null)}
                 >
                   <ArtifactDetailBox artifact={a} encadre={false} />
                 </FlottantAuto>
@@ -346,6 +387,7 @@ export default function MonsterGear({
                   largeur={260}
                   hauteur={320}
                   rembourrage="md"
+                  onFermer={() => setSel(null)}
                 >
                   {/* Pleine taille : ce flottant n'existe qu'à la souris, où
                       la carte ne se resserre pas d'elle-même.
@@ -374,6 +416,7 @@ export default function MonsterGear({
           ⚠️ **`RelicSlot`, partagé avec la carte candidat de l'Optimizer**
  — voir RelicSlot.tsx : LE modèle
           que la carte candidat reprend, jamais une copie. */}
+      <div className={carte && !auDoigt ? 'col-start-2 flex justify-center' : 'contents'}>
       <RelicSlot
         relic={gear.relic}
         selected={isSel({ kind: 'relic' })}
@@ -388,6 +431,7 @@ export default function MonsterGear({
                   largeur={220}
                   hauteur={120}
                   rembourrage="md"
+                  onFermer={() => setSel(null)}
                 >
                   {/* Non-null : `RelicSlot` n'invoque `renderOverlay` que dans
                       sa branche « relique présente ». */}
@@ -396,6 +440,7 @@ export default function MonsterGear({
               )
         }
       />
+      </div>
       </div>
       </div>
 

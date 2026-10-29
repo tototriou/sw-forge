@@ -20,6 +20,14 @@ import { useMediaQuery, SOUS_LG } from '../hooks/useMediaQuery';
 // `z-index` lui appartiennent — jamais un `<div absolute z-…>` maison). C'est ce
 // que la version manuscrite réécrivait un contrôle à la fois, chaque fois un peu
 // différemment. Voir docs/03-developpeur/interface/.
+//
+// ⚠️ **Dans une boîte qui défile seule, la bulle n'est pas rognée** (une aide
+// de 340 px ancrée au bord droit d'une colonne de l'Optimizer) : `Flottant`
+// la pose en couche supérieure, au-dessus de tout `overflow` d'ancêtre, la
+// recale au défilement et la masque quand le bouton sort de ce qui le montre.
+// Aucun portail : la bulle reste dans le bouton, et le clic extérieur se teste
+// sur lui seul.
+
 export default function HelpPopover({
   title,
   children,
@@ -39,7 +47,8 @@ export default function HelpPopover({
   const auDoigt = useMediaQuery(SOUS_LG);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Ferme la bulle au clic à l'extérieur.
+  // Ferme la bulle au clic à l'extérieur du bouton et de la bulle, qui est
+  // dans le bouton.
   // ⚠️ Popover SEULEMENT : le panneau montant a son propre voile et sa croix, et
   // cet écouteur l'aurait refermé au premier appui à l'intérieur.
   useEffect(() => {

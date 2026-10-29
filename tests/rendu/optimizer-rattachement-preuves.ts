@@ -22,7 +22,7 @@ export async function preuvesRattachementOptimizer(c: Contexte, demonte = false)
   const preuves: [boolean, string][] = [], verifier = (condition: boolean, texte: string) => preuves.push([condition, texte]);
   await c.geste(() => c.etat().choisirMembre('a', c.premier));
   await c.geste(() => {
-    c.listes().validateBuild('a', c.premier, c.runes().map(r => r.id), [], 10101);
+    c.listes().validateBuild('a', c.premier, c.runes().map(r => r.id), [], undefined, 10101);
     c.etat().setMinStats({ spd: 255 });
   });
   const origine = acquerirIdentitesMembres(c.listes(), c.data());
@@ -54,7 +54,7 @@ export async function preuvesRattachementOptimizer(c: Contexte, demonte = false)
   verifier([...document.querySelectorAll('[role="status"]')].some(e => visible(e) && e.textContent?.includes('1 rune(s) absente(s)')), 'fiche : marque explicite du build incomplet');
   verifier(document.body.textContent!.includes('Build conservé ;') || [...document.querySelectorAll('[title]')].some(e => e.getAttribute('title')?.includes('Build conservé ;')),
     'zone C : build conservé et réservation dite');
-  const bouton = [...document.querySelectorAll<HTMLElement>('[aria-label="Voir le runage réellement porté"]')].find(visible)!;
+  const bouton = [...document.querySelectorAll<HTMLElement>('button')].find(e => visible(e) && e.textContent?.trim() === 'Build actuel')!;
   const avant = bouton.getBoundingClientRect();
   await c.geste(() => bouton.click());
   const apres = bouton.getBoundingClientRect();

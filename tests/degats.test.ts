@@ -2940,7 +2940,6 @@ export default function testDegats() {
     damageSetup: { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: s3!.skillCom2usId, defBreak: true },
     metric: 'eff',
     slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false,
     exhaustiveSearch: false,
     excludeUsedRunes: false,
     excludeUsedScope: 'rta',

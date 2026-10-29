@@ -1,5 +1,4 @@
 import { useSyncExternalStore } from 'react';
-import { StatKey, CAPPED_STATS } from '../lib/effects';
 
 // **Paramètre global de l'application** (menu ⚙, comme la mesure Efficience/
 // Score) — pas une préférence par page : un réglage qui concerne plusieurs
@@ -60,8 +59,6 @@ export function useOvercapDisplay(): boolean {
 
 // Valeur à AFFICHER pour un total, selon le réglage : bornée à 100 % pour les
 // stats plafonnées (Taux Crit/RES/Précision) quand l'overcap est masqué,
-// inchangée sinon (stats non plafonnées, ou overcap affiché).
-export function displayedTotal(key: StatKey, total: number, showOvercap: boolean): number {
-  if (!showOvercap && CAPPED_STATS.has(key)) return Math.min(total, 100);
-  return total;
-}
+// inchangée sinon. Une seule expression, dans src/lib/ : les bornes des
+// résultats de l'Optimizer, dans le Worker de classement, la lisent aussi.
+export { displayedTotal } from '../lib/valeursAffichees';

@@ -147,12 +147,13 @@ fenêtre sur place**, sans quitter le Résumé.
   sous l'autre, chacune sous son titre (symboles des sets, « Swift + Will ») :
   la largeur porte 4 cartes par ligne, 5 à partir de 1536 px.
 - ⚠️ **Sous `xl`, un ONGLET par combinaison**, et sous la rangée, les seuls
-  builds de l'onglet choisi : 9 combinaisons × 5 builds à la suite y feraient
-  trop de cartes. La rangée **passe à la ligne** : jamais une bande qui défile
-  à l'horizontale (demandé). Ce sont des `Bouton` à état (`actif`) et non un
-  `Segmented`, qui ne passe pas à la ligne. Chaque onglet porte les symboles
-  des sets, « Swift + Will », et la **VIT de son #1** (« — » sans build) : on
-  compare les combinaisons sans les ouvrir une à une. L'onglet choisi survit à
+  builds de l'onglet ouvert : 9 combinaisons × 5 builds à la suite y feraient
+  trop de cartes. Ce sont de **vrais onglets** (`Onglets`, la librairie UI) :
+  l'onglet ouvert se fond dans la ligne de base et coiffe les builds du
+  dessous. Quand ils ne tiennent pas sur une rangée, ils **défilent de côté**,
+  comme partout où l'app pose des onglets (choix de Thomas). Chaque onglet
+  porte les symboles des sets, « Swift + Will », et la **VIT de son #1** (« — »
+  sans build) : on compare les combinaisons sans les ouvrir une à une. L'onglet choisi survit à
   la navigation (`useStickyState`) ; une combinaison retirée du réglage ramène
   au premier.
 - Les deux régimes sont **un seul rendu, basculé en CSS** : chaque combinaison

@@ -106,8 +106,9 @@ export async function testOptimizerCritereArtefactsNavigation() {
   fonctionDeSource('src/components/outils/OptimizerSection.tsx', 'pickSpecies', {
     ...apres, optimizer: apres, selectedId: '1', box: [], exclusionData: {},
     lists: { activeListId: 'a', members: [] }, setAddListPromptOpen: () => {}, inclureSelectionRecherche: () => {},
-    speciesCandidatesBySource: () => ({ box: [] }), unownedSelectorIfNoneOwned: () => null,
-    criteresApresChangementEspece, setZoneDOpen: () => {},
+    disponibiliteEspece: () => ({ suivant: { source: 'unowned', monsterId: '2' }, raison: null }),
+    resolveExclusionEntry: () => null,
+    criteresApresChangementEspece, setZoneDOpen: () => {}, setApercu: () => {},
   })({ id: 2, com2usId: 101 });
   egal(banc.rendre().critereArtefacts, 'brut', 'bestiaire : le vrai setter partagé reçoit le défaut');
 }

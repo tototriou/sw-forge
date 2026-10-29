@@ -106,9 +106,9 @@ export interface ExclusionSourceData {
 //   (`speciesCandidatesBySource`, `OptimizerSection.tsx`) : `requireRunes:
 //   false` — BUG signalé (« un monstre dans un deck d'offense siège mais non
 //   runé ne voit pas son exemplaire affiché ») : un monstre ASSIGNÉ à un
-//   slot RTA/siège avec ZÉRO rune (`slot.gear` existe toujours dès qu'un
-//   monstre y est placé, voir `buildGear`/`importAccount.ts` — seul
-//   `runes.length` peut être 0) doit rester un exemplaire choisissable, même
+//   slot RTA/siège avec ZÉRO rune (`slot.gear` posé par l'import du compte,
+//   voir `buildGear`/`importAccount.ts`, ou absent pour un monstre placé à
+//   la main : `equipementPlace`) doit rester un exemplaire choisissable, même
 //   principe que Box qui autorise déjà « construire un build depuis rien »
 //   (voir le filtre Box séparé de `speciesCandidatesBySource`, jamais passé
 //   par CETTE fonction).
@@ -124,6 +124,16 @@ export interface ExclusionSourceData {
 //   principe que `autoExcludedRuneIds`/`isOwn` plus bas — RTA et un slot de
 //   siège n'ont qu'UNE seule entrée par monstre, donc la bonne granularité
 //   est directement l'espèce, pas une clé d'entrée qui n'existe pas ici.
+// L'équipement d'un monstre de la prépa RTA ou d'un slot de siège. Seul
+// l'import du compte en pose un : un monstre placé à la main n'en a pas, et
+// se lit alors comme un monstre non possédé — stats de base 6★ niveau max,
+// sans rune ni artéfact (branche `unowned` de `resolveSelectorRaw`). Sans
+// ce repli, il n'était ni exportable vers l'Optimizer ni affichable dans
+// sa liste.
+function equipementPlace(monster: Monster | undefined, gear: GearSet | undefined): GearSet | undefined {
+  return gear ?? (monster ? { base: monsterBaseStats(monster), runes: [], artifacts: [] } : undefined);
+}
+
 export function exclusionCandidatesFor(source: ExclusionSource, data: ExclusionSourceData, excludeOwnUnitKey: string | null, excludeOwnCom2usId: number | null, requireRunes = true): ExclusionCandidate[] {
   const out: ExclusionCandidate[] = [];
   if (source === 'box') {
@@ -136,11 +146,12 @@ export function exclusionCandidatesFor(source: ExclusionSource, data: ExclusionS
   }
   if (source === 'rta') {
     for (const entry of Object.values(data.rtaEntries)) {
-      if (!entry.gear || (requireRunes && entry.gear.runes.length === 0)) continue;
       const monster = data.monsterById.get(entry.monsterId);
       if (!monster) continue;
+      const gear = equipementPlace(monster, entry.gear)!;
+      if (requireRunes && gear.runes.length === 0) continue;
       if (excludeOwnCom2usId != null && monster.com2usId === excludeOwnCom2usId) continue;
-      out.push({ selector: { source: 'rta', monsterId: entry.monsterId }, monster, gear: entry.gear });
+      out.push({ selector: { source: 'rta', monsterId: entry.monsterId }, monster, gear });
     }
     return out;
   }
@@ -152,12 +163,13 @@ export function exclusionCandidatesFor(source: ExclusionSource, data: ExclusionS
     const teamNumber = teamIndex + 1;
     const teamSlots = team.slots.map((s) => (s.monsterId ? (data.monsterById.get(s.monsterId) ?? null) : null));
     team.slots.forEach((slot, slotIndex) => {
-      if (!slot.gear || (requireRunes && slot.gear.runes.length === 0)) return;
       if (slot.monsterId == null) return;
       const monster = data.monsterById.get(slot.monsterId);
       if (!monster) return;
+      const gear = equipementPlace(monster, slot.gear)!;
+      if (requireRunes && gear.runes.length === 0) return;
       if (excludeOwnCom2usId != null && monster.com2usId === excludeOwnCom2usId) return;
-      out.push({ selector: { source, teamId: team.id, slotIndex }, monster, gear: slot.gear, teamContext: { teamNumber, slots: teamSlots } });
+      out.push({ selector: { source, teamId: team.id, slotIndex }, monster, gear, teamContext: { teamNumber, slots: teamSlots } });
     });
   });
   return out;
@@ -177,7 +189,7 @@ function resolveSelectorRaw(sel: ExclusionSelector, data: ExclusionSourceData): 
   if (sel.source === 'rta') {
     const entry = data.rtaEntries[sel.monsterId];
     const monster = entry ? data.monsterById.get(entry.monsterId) : undefined;
-    return { monster, gear: entry?.gear };
+    return { monster, gear: equipementPlace(monster, entry?.gear) };
   }
   if (sel.source === 'unowned') {
     // `monsterById` couvre TOUT le bestiaire (voir OptimizerSection.tsx,
@@ -192,7 +204,7 @@ function resolveSelectorRaw(sel: ExclusionSelector, data: ExclusionSourceData): 
   const teams = sel.source === 'siege-defense' ? data.siegeDefenseTeams : data.siegeOffenseTeams;
   const slot = teams.find((t) => t.id === sel.teamId)?.slots[sel.slotIndex];
   const monster = slot?.monsterId != null ? data.monsterById.get(slot.monsterId) : undefined;
-  return { monster, gear: slot?.gear };
+  return { monster, gear: equipementPlace(monster, slot?.gear) };
 }
 
 // Résout UN sélecteur vers son monstre + son équipement — pour l'affichage
@@ -316,10 +328,8 @@ export interface OptimizerListMember {
  * Plusieurs exemplaires Box d'une même espèce dans une liste (docs/02-app/
  * optimizer/ § Zone C — Monstres de la liste). Les
  * membres sont repérés par EXEMPLAIRE (`exclusionSelectorKey`, Box =
- * `box:<unitKey>`) : rien n'empêchait deux exemplaires dans la même liste,
- * c'est le chemin à l'écran qui manquait. Choisir l'espèce prend le premier
- * exemplaire Box, le bouton affichait « Déjà dans », désactivé, et rien ne
- * disait qu'un autre exemplaire existait. Fonctions pures, testées par
+ * `box:<unitKey>`). La recherche par espèce propose le prochain exemplaire
+ * absent de cette liste, dans l'ordre de la zone D. Fonctions pures, testées par
  * tests/liste-exemplaires.test.ts ; l'écran ne fait que les brancher.
  * ----------------------------------------------------------------------- */
 
@@ -335,51 +345,34 @@ export function exemplaireBoxHorsListe(
   return candidatsBox.find((c) => !pris.has(exclusionSelectorKey(c.selector))) ?? null;
 }
 
-export interface EtatAjoutListe {
-  libelle: string;
-  actif: boolean;
-  // Non nul seulement quand l'exemplaire affiché est déjà membre et qu'un
-  // autre exemplaire Box de l'espèce ne l'est pas : le clic affiche CET
-  // exemplaire puis l'ajoute, au lieu de l'exemplaire affiché.
-  exemplaireSuivant: ExclusionCandidate | null;
+export interface DisponibiliteEspece {
+  suivant: ExclusionSelector | null;
+  raison: string | null;
 }
 
-// État du bouton « Ajouter à la liste » de la zone C. Les libellés existants
-// sont repris tels quels ; seul le cas « déjà membre, un autre exemplaire Box
-// absent » est nouveau.
-export function etatAjoutListe(p: {
-  // Nom de l'espèce affichée ; `null` : aucun monstre choisi.
-  monstre: string | null;
-  // Exemplaire affiché ; `null` : aucun, ou pas encore désambiguïsé (zone D).
-  selecteur: ExclusionSelector | null;
-  listeActiveId: string | null;
-  nomListe: string;
-  // Membres de TOUTES les listes : le filtre sur la liste active est ici.
-  membres: readonly OptimizerListMember[];
-  // Exemplaires Box de l'espèce affichée, dans l'ordre de la zone D.
-  candidatsBox: readonly ExclusionCandidate[];
-}): EtatAjoutListe {
-  if (p.monstre == null || p.selecteur == null) return { libelle: 'Ajouter à la liste', actif: false, exemplaireSuivant: null };
-  const membresListe = p.listeActiveId == null ? [] : p.membres.filter((m) => m.listId === p.listeActiveId);
-  const cle = exclusionSelectorKey(p.selecteur);
-  if (membresListe.some((m) => exclusionSelectorKey(m.selector) === cle)) {
-    // ⚠️ « Un autre exemplaire » seulement si l'exemplaire AFFICHÉ vient de la
-    // Box : affiché depuis RTA ou le siège,
-    // l'exemplaire Box proposé pouvait être le même monstre physique, et
-    // « un autre exemplaire » aurait été faux.
-    const suivant = p.selecteur.source === 'box' ? exemplaireBoxHorsListe(p.candidatsBox, membresListe) : null;
-    return suivant
-      ? { libelle: `Ajouter un autre exemplaire de ${p.monstre} à « ${p.nomListe} »`, actif: true, exemplaireSuivant: suivant }
-      : { libelle: `Déjà dans « ${p.nomListe} »`, actif: false, exemplaireSuivant: null };
+// La Box représente les exemplaires physiques. Ses presets RTA/siège ne
+// deviennent pas des copies supplémentaires quand toute la Box est membre.
+// Sans Box, les représentants se parcourent dans l'ordre des sources.
+export function exemplaireSuivantEspece(
+  monstre: Monster,
+  candidats: Record<ExclusionSource, readonly ExclusionCandidate[]>,
+  membres: readonly OptimizerListMember[],
+  listeId: string | null,
+): DisponibiliteEspece {
+  const membresListe = listeId == null ? [] : membres.filter(m => m.listId === listeId);
+  const possibles = candidats.box.length > 0 ? candidats.box : SOURCE_OPTIONS.flatMap(o => candidats[o.key]);
+  if (possibles.length > 0) {
+    const suivant = exemplaireBoxHorsListe(possibles, membresListe);
+    if (suivant) return { suivant: suivant.selector, raison: null };
+    const n = candidats.box.length;
+    return { suivant: null, raison: n > 1
+      ? `Les ${n} ${monstre.name} de ta Box sont dans la liste`
+      : `${monstre.name} est déjà dans la liste` };
   }
-  const suffixe = p.selecteur.source === 'unowned' ? ' (non possédé)' : '';
-  return {
-    libelle: p.listeActiveId != null
-      ? `Ajouter ${p.monstre}${suffixe} à « ${p.nomListe} »`
-      : `Créer une liste et y ajouter ${p.monstre}${suffixe}`,
-    actif: true,
-    exemplaireSuivant: null,
-  };
+  const suivant: ExclusionSelector = { source: 'unowned', monsterId: String(monstre.id) };
+  return membresListe.some(m => exclusionSelectorKey(m.selector) === exclusionSelectorKey(suivant))
+    ? { suivant: null, raison: `${monstre.name} est déjà dans la liste` }
+    : { suivant, raison: null };
 }
 
 // Libellé d'une puce de source (Box, RTA, Défenses siège, Offenses siège) :
@@ -439,6 +432,23 @@ export interface ValidatedBuild {
    * n'en ont pas. Tout lecteur applique `?? []`.
    */
   artifactIds?: number[];
+  /**
+   * La RELIQUE du build validé (`RelicDetail.id`), même instantané que les
+   * runes et la paire : celle que la carte validée montrait, retenue par la
+   * recherche ou portée.
+   *
+   * ⚠️ **Sans elle, « Comparer » un build validé à lui-même donnait un
+   * écart** : la carte comptait la relique retenue par la recherche, la fiche
+   * la relique portée. Signalé à l'usage.
+   *
+   * ⚠️ Ne réserve rien : une relique s'équipe sur plusieurs monstres à la
+   * fois (occupation `n / 150`).
+   *
+   * ⚠️ **Optionnel** : absent d'un build validé avant ce champ, d'un build
+   * sans relique, ou d'une relique sortie de l'inventaire — la fiche reprend
+   * alors la relique portée.
+   */
+  reliqueId?: number;
 }
 
 // Artéfacts validés de TOUS LES AUTRES exemplaires de LA MÊME LISTE.

@@ -13,15 +13,16 @@ type ChampDonnee = {
 // à prendre une décision, même s'il n'entre pas dans la session sur disque.
 export const CLASSEMENT_CHAMPS_OPTIMIZER = {
   comboSets: 'personnel', minStats: 'personnel', maxStats: 'personnel',
-  excludeBase: 'personnel', optimiserArtefacts: 'personnel', adapterArtefactsAuTri: 'personnel',
+  excludeBase: 'personnel', optimiserArtefacts: 'personnel',
   artifactMainByKind: 'personnel', relicMainChoice: 'personnel', relicUniqueChoice: 'personnel',
   lignesVerrouillees: 'personnel', mainStatsBySlot: 'personnel', lockedRunes: 'personnel',
   objective: 'personnel', damageSetup: 'personnel', sortBy: 'personnel',
+  sensTri: 'personnel', bornesResultats: 'personnel',
   compterAurasResPre: 'personnel', critereArtefacts: 'personnel',
   selectedId: 'global', gearSource: 'global', sourceSelector: 'global',
   relicMinUpgrade: 'global', excludeUsedRunes: 'global', excludeUsedScope: 'global',
-  excludedSelectors: 'global', adaptiveTrancheWeighting: 'global', exhaustiveSearch: 'global',
-  verifierToutesLesCombinaisons: 'global', slotFilterPreset: 'global', showAdvanced: 'global',
+  excludedSelectors: 'global', exhaustiveSearch: 'global',
+  verifierToutesLesCombinaisons: 'global', slotFilterPreset: 'global',
   setPickerInvalid: 'global', resultsPage: 'global', openDetailKey: 'global',
   diagnoseBlockingEnabled: 'global', stoppedManually: 'global', importDuCompte: 'global',
   importReliqueTraite: 'global', search: 'global',
@@ -120,7 +121,7 @@ export function defaultRelicMainChoice(relic: RelicDetail | undefined): RelicMai
  *   défaut se recalcule contre la relique du nouvel exemplaire, comme dans
  *   `pickSpecies`.
  * - Même espèce : les critères sont conservés, sauf l'incohérence
- *   « Garder la relique équipée » sur un exemplaire qui n'en porte pas :
+ *   « Comme équipée » sur un exemplaire qui n'en porte pas :
  *   le mode `equipped` ne refuse pas la recherche, il la ferait tourner SANS
  *   relique, sans rien en dire — elle redevient « Libre ».
  */
@@ -136,10 +137,12 @@ export function relicMainChoiceApresChangementExemplaire(
 export function baseCompleteCriteres(exemplaire: Pick<GearSet, 'relic'> | undefined): CriteresOptimizer {
   return {
     comboSets: [], minStats: {}, maxStats: {}, excludeBase: true,
-    optimiserArtefacts: true, adapterArtefactsAuTri: true, artifactMainByKind: {},
+    optimiserArtefacts: true, artifactMainByKind: {},
     relicMainChoice: defaultRelicMainChoice(exemplaire?.relic), relicUniqueChoice: 'libre',
     lignesVerrouillees: [], mainStatsBySlot: {}, lockedRunes: {}, objective: 'efficience',
     damageSetup: copie(DEFAULT_DAMAGE_SETUP), sortBy: 'efficience',
+    // Filtres d'affichage des résultats : décroissant, aucune borne.
+    sensTri: 'desc', bornesResultats: {},
     compterAurasResPre: true, critereArtefacts: 'brut',
   };
 }

@@ -217,6 +217,21 @@ export interface ArtifactSearchParams {
    */
   maxStatsActifs?: StatKey[];
   /**
+   * Aucune dominance au préfiltre : tous les candidats qui passent
+   * l'obligation sont parcourus.
+   *
+   * ⚠️ **La dominance suppose la règle de jeu R** (les dégâts ne baissent
+   * jamais quand une principale ou une ligne d'artéfact monte). Un sort qui la
+   * contredit (`EXCEPTIONS_REGLE_R`, resolutionRapide.ts : Ceres, Last Shot,
+   * dont le bonus s'éteint quand les PV propres montent) ferait écarter une
+   * pièce plus faible qui note pourtant mieux. Posé par
+   * `parametresArtefactsFiche` (artifactFiche.ts) depuis le sort noté, la
+   * même liste que celle qui retire la dominance des reliques.
+   *
+   * Absent : la dominance s'applique, comportement d'avant.
+   */
+  sansDominance?: boolean;
+  /**
    * Chiffrer aussi ce que les verrous coûtent SUR CE BUILD.
    *
    * ⚠️ **Ce n'est pas gratuit, et ça ne peut pas l'être** : on ne peut pas à la
@@ -378,7 +393,8 @@ export function preFiltrerCandidats(
   kind: ArtifactKind,
   lignes: LigneVerrouillee[] = [],
   pertinence?: Pertinence,
-  maxStatsActifs?: StatKey[]
+  maxStatsActifs?: StatKey[],
+  sansDominance = false
 ): (ArtifactDetail | null)[] {
   const obligatoires = seuilsObligatoires(lignes, kind);
   const verrous = lignes.filter((l) => l.min > 0);
@@ -421,7 +437,10 @@ export function preFiltrerCandidats(
   // principale reste donc DANS le vecteur (comparaison inchangée quand les
   // deux artéfacts s'y valent), mais la paire devient INCOMPARABLE dès qu'ils
   // y diffèrent : ni domine, ni dominé.
-  const dims = pertinence ? [...new Set([...pertinence.croissants, ...codesVerrouilles])] : null;
+  // ⚠️ **Sous `sansDominance`, AUCUNE dominance non plus** : le sort noté
+  // contredit la règle R (`ArtifactSearchParams.sansDominance`), une
+  // principale plus grande peut y noter moins.
+  const dims = pertinence && !sansDominance ? [...new Set([...pertinence.croissants, ...codesVerrouilles])] : null;
   const MAINS = [100, 101, 102];
   const plafonnees = new Set(maxStatsActifs ?? []);
   const mainsExclues = MAINS.filter((m) => plafonnees.has(ARTIFACT_MAIN[m]!.stat));
@@ -492,7 +511,7 @@ export function preFiltrerCandidats(
 
 // Candidats d'un emplacement, une fois l'éligibilité ET le filtre de
 // principale appliqués. `null` y figure quand l'emplacement peut rester vide.
-export function candidatsParSorte(params: ArtifactSearchParams, kind: ArtifactKind): (ArtifactDetail | null)[] {
+export function candidatsParSorte(params: Omit<ArtifactSearchParams, 'evaluer'>, kind: ArtifactKind): (ArtifactDetail | null)[] {
   const choix = params.principaleParSorte[kind] ?? 'libre';
   if (choix === 'equipped') {
     const porte = params.equipes.find((a) => a.kind === kind) ?? null;
@@ -583,7 +602,7 @@ function candidatsPourRecherche(
 ): (ArtifactDetail | null)[] {
   const complets = candidatsParSorte(params, kind);
   const lignes = params.avecCoutDesVerrous ? [] : (params.lignesVerrouillees ?? []);
-  return preFiltrerCandidats(complets, kind, lignes, pertinence, params.maxStatsActifs);
+  return preFiltrerCandidats(complets, kind, lignes, pertinence, params.maxStatsActifs, params.sansDominance);
 }
 
 // Au plus tant de listes en mémoire (`MemoPreFiltre`) : deux sortes par
@@ -617,7 +636,7 @@ export class MemoPreFiltre {
   candidats(params: ArtifactSearchParams, kind: ArtifactKind, pertinence: Pertinence): (ArtifactDetail | null)[] {
     const entrees = [
       params.inventaire, params.equipes, params.porteur, params.principaleParSorte,
-      params.lignesVerrouillees, params.avecCoutDesVerrous, params.maxStatsActifs,
+      params.lignesVerrouillees, params.avecCoutDesVerrous, params.maxStatsActifs, params.sansDominance,
     ];
     if (!this.entrees || entrees.some((v, i) => v !== this.entrees![i])) {
       this.parCle.clear();
@@ -910,23 +929,35 @@ export interface BornesArtefacts {
 /**
  * Les apports plats atteignables par une paire, réduits au strict nécessaire.
  *
- * Sans ligne verrouillée : seule la principale compte, donc un seul
- * représentant par (sorte, code) suffit — celui de plus haute valeur, qui
- * domine tous les autres du même code.
+ * « Meilleur » dépend du SENS de chaque stat suivie (`sensDesStats`) : un
+ * apport plus fort n'aide qu'un minimum, un plus faible qu'un maximum. Sur une
+ * stat sous minimum seul (ou non suivie), le plus FORT domine ; sous maximum
+ * seul, le plus FAIBLE ; sous minimum ET maximum, aucun ne domine l'autre
+ * (l'ensemble admis est un intervalle) : toutes les valeurs distinctes
+ * restent. Ainsi, pour toute paire réelle, une paire retenue fait au moins
+ * aussi bien sur CHAQUE condition, minimum comme maximum, et le test conjoint
+ * qui les juge avec la même paire est exact.
+ *
+ * Sans ligne verrouillée : seule la principale compte, donc un représentant
+ * par (sorte, code) suffit — le plus fort (minimum), le plus faible
+ * (maximum), un par valeur distincte (les deux).
  *
  * ⚠️ **Deux représentants par code, pas un.** Le meilleur d'un code peut être
  * Intangible ; si celui d'en face l'est aussi, la paire est INTERDITE (une
  * seule Intangible par monstre) et on perdrait un apport pourtant atteignable.
- * On garde donc aussi le meilleur NON Intangible : pour toute paire réelle, il
- * existe alors une paire retenue au moins aussi bonne sur chaque stat, ET
- * équipable.
+ * On garde donc aussi le meilleur NON Intangible (par valeur distincte, un
+ * non Intangible de préférence) : pour toute paire réelle, il existe alors
+ * une paire retenue au moins aussi bonne sur chaque condition, ET équipable.
  *
- * ⚠️ Avec des lignes verrouillées, la réduction est IMPOSSIBLE : le meilleur
- * artéfact d'un code peut violer le verrou. On repasse alors par l'inventaire
- * complet, filtré par `paireRespecteLignes` — le coût d'un balayage, une fois
- * par recherche.
+ * ⚠️ Avec des lignes verrouillées, la réduction par code est IMPOSSIBLE : le
+ * meilleur artéfact d'un code peut violer le verrou. On repasse alors par
+ * l'inventaire complet, filtré par `paireRespecteLignes` — le coût d'un
+ * balayage, une fois par recherche ; la réduction de Pareto, elle, suit le
+ * même sens.
  */
-function apportsAtteignables(params: ArtifactSearchParams, statsSuivies: StatKey[]): Record<string, number>[] {
+type SensStat = 'haut' | 'bas' | 'egal';
+
+function apportsAtteignables(params: ArtifactSearchParams, statsSuivies: StatKey[], sensDesStats: (k: StatKey) => SensStat): Record<string, number>[] {
   const verrous = params.lignesVerrouillees?.filter((l) => l.min > 0) ?? [];
   const parSorte = ARTIFACT_KINDS.map(({ key }) => {
     const complets = candidatsParSorte(params, key);
@@ -938,11 +969,21 @@ function apportsAtteignables(params: ArtifactSearchParams, statsSuivies: StatKey
         vide = true;
         continue;
       }
-      // Deux clés par code : le meilleur absolu, et le meilleur non Intangible.
+      const stat = ARTIFACT_MAIN[a.main.code]?.stat;
+      const sens = stat ? sensDesStats(stat) : 'haut';
+      if (sens === 'egal') {
+        // Une pièce par valeur distincte, non Intangible de préférence.
+        const cle = `${a.main.code}=${a.main.value}`;
+        const p = meilleurs.get(cle);
+        if (!p || (p.intangible && !a.intangible)) meilleurs.set(cle, a);
+        continue;
+      }
+      // Deux clés par code : le meilleur absolu, et le meilleur non Intangible
+      // — le plus fort sous minimum, le plus faible sous maximum.
       const cles = a.intangible ? [`${a.main.code}`] : [`${a.main.code}`, `${a.main.code}!`];
       for (const cle of cles) {
         const p = meilleurs.get(cle);
-        if (!p || a.main.value > p.main.value) meilleurs.set(cle, a);
+        if (!p || (sens === 'haut' ? a.main.value > p.main.value : a.main.value < p.main.value)) meilleurs.set(cle, a);
       }
     }
     const out: (ArtifactDetail | null)[] = [...meilleurs.values()];
@@ -972,21 +1013,29 @@ function apportsAtteignables(params: ArtifactSearchParams, statsSuivies: StatKey
     }
   }
 
-  // Réduction de Pareto sur les stats suivies : un apport dominé sur TOUTES
-  // ne peut jamais rendre faisable un build que le dominant ne rendrait pas.
-  // ⚠️ Valable pour des MINIMUMS seulement — c'est bien l'usage (`possibles`
-  // sert au test conjoint, où les maximums sont vérifiés avec la MÊME paire,
-  // donc jamais écartés par cette réduction : on ne retire qu'un apport dont
-  // un autre est ≥ partout, et un maximum se vérifie sur l'apport RETENU.
+  // Réduction de Pareto sur les stats suivies, DANS LE SENS de chacune : `w`
+  // domine `v` s'il fait au moins aussi bien sur toutes — plus fort sous
+  // minimum seul, plus faible sous maximum seul, égal sous les deux —, et
+  // mieux sur l'une (ou, ex æquo, s'il vient avant). Un apport dominé ne
+  // rend alors faisable aucun build que le dominant ne rendrait pas, maximums
+  // compris : le test conjoint juge minimums et maximums avec la même paire.
   const tous = [...vus.values()];
   if (statsSuivies.length === 0) return tous.slice(0, 1);
+  const auMoinsAussiBien = (k: StatKey, w: number, v: number) => {
+    const sens = sensDesStats(k);
+    return sens === 'haut' ? w >= v : sens === 'bas' ? w <= v : w === v;
+  };
+  const mieux = (k: StatKey, w: number, v: number) => {
+    const sens = sensDesStats(k);
+    return sens === 'haut' ? w > v : sens === 'bas' ? w < v : false;
+  };
   return tous.filter(
     (v, i) =>
       !tous.some(
         (w, j) =>
           j !== i &&
-          statsSuivies.every((k) => (w[k] ?? 0) >= (v[k] ?? 0)) &&
-          (statsSuivies.some((k) => (w[k] ?? 0) > (v[k] ?? 0)) || j < i)
+          statsSuivies.every((k) => auMoinsAussiBien(k, w[k] ?? 0, v[k] ?? 0)) &&
+          (statsSuivies.some((k) => mieux(k, w[k] ?? 0, v[k] ?? 0)) || j < i)
       )
   );
 }
@@ -1026,9 +1075,13 @@ export function bornesArtefacts(
   }
   // Les apports RÉELLEMENT atteignables — le test conjoint exact, réservé à la
   // validation finale. Suivis sur toutes les stats contraintes, min ou max :
-  // le test vérifie les deux avec LA MÊME paire.
+  // le test vérifie les deux avec LA MÊME paire, chaque stat réduite dans son
+  // sens.
   const suivies = [...new Set([...statsAvecMinimum, ...statsAvecMaximum])].filter((k) => STATS_PORTABLES.has(k));
-  return { max, min, possibles: apportsAtteignables(sansCout, suivies) };
+  const avecMin = new Set(statsAvecMinimum);
+  const avecMax = new Set(statsAvecMaximum);
+  const sensDesStats = (k: StatKey): SensStat => (avecMax.has(k) ? (avecMin.has(k) ? 'egal' : 'bas') : 'haut');
+  return { max, min, possibles: apportsAtteignables(sansCout, suivies, sensDesStats) };
 }
 
 /**

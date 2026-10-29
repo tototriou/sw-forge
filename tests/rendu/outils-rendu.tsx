@@ -36,6 +36,20 @@ export function rendre(element: ReactElement): string {
 
 // Le texte qu'un joueur lit : balises retirées, espaces fusionnés.
 export function texteVisible(html: string): string {
+  // La réserve en gras des onglets est invisible et aria-hidden. Compter
+  // les spans imbriqués permet aussi les libellés composés (texte et chiffre).
+  let depuis = 0, profondeur = 0, sansReserve = '';
+  for (const m of html.matchAll(/<\/?span\b[^>]*>/g)) {
+    const ferme = m[0].startsWith('</');
+    if (profondeur > 0) {
+      profondeur += ferme ? -1 : 1;
+      if (profondeur === 0) depuis = m.index! + m[0].length;
+    } else if (!ferme && /\sdata-reserve-onglet(?:\s|=|>)/.test(m[0])) {
+      sansReserve += html.slice(depuis, m.index);
+      profondeur = 1;
+    }
+  }
+  html = sansReserve + html.slice(depuis);
   return decoder(html.replace(/<(script|style)[\s\S]*?<\/\1>/g, ' ').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
 }
 
@@ -65,6 +79,27 @@ export function boutons(html: string): Bouton[] {
       presse: presse === null ? null : presse === 'true',
     };
   });
+}
+
+// Les onglets (`role="tab"`, voir src/ui/Onglets.tsx), dans l'ordre : leur
+// texte, s'ils sont ouverts (`aria-selected`), dans l'ordre de tabulation,
+// désactivés, et leur infobulle.
+export interface OngletRendu {
+  texte: string;
+  ouvert: boolean;
+  focusable: boolean;
+  desactive: boolean;
+  title: string | null;
+}
+
+export function onglets(html: string): OngletRendu[] {
+  return [...html.matchAll(/<button\b([^>]*role="tab"[^>]*)>([\s\S]*?)<\/button>/g)].map(([, attrs, contenu]) => ({
+    texte: texteVisible(contenu),
+    ouvert: attr(attrs, 'aria-selected') === 'true',
+    focusable: /\stabindex="0"/i.test(attrs),
+    desactive: /\sdisabled(=""|\s|$)/.test(attrs),
+    title: attr(attrs, 'title'),
+  }));
 }
 
 // Le bouton nommé `nom` (texte, aria-label ou title), ou undefined.

@@ -14,6 +14,8 @@ export default function EffetVignette({
   actif,
   onClick,
   etroit,
+  deuxLignes = false,
+  largeur,
 }: {
   icone: string;
   libelle: string;
@@ -21,13 +23,20 @@ export default function EffetVignette({
   actif: boolean;
   onClick: () => void;
   etroit: boolean;
+  // Libellé rendu sur deux lignes (le mot le plus long tient en une) au lieu
+  // d'être tronqué. Les autres vignettes, au libellé court, restent à une.
+  deuxLignes?: boolean;
+  // Largeur imposée par l'appelant (classe entière) : les trois buffs sur une
+  // rangée dans la sous-colonne de ≈ 175 px des essentiels du bureau, sans le
+  // reste du format étroit (fond renforcé, coche masquée), qui est celui du doigt.
+  largeur?: string;
 }) {
   return (
     <Vignette
       choisi={actif}
       onClick={onClick}
       // Au format étroit, vignettes plus serrées : plus d'effets par rangée.
-      largeur={etroit ? 'w-14' : 'w-16'}
+      largeur={largeur ?? (etroit ? 'w-14' : 'w-16')}
       aria-label={`${libelle} — ${actif ? 'actif' : 'inactif'}`}
       // ⚠️ `libelle` est tronqué (`truncate`, `Vignette.tsx`) à cette largeur
       // fixe — « Ce sort pose le def break » devient « Ce sort... », illisible
@@ -35,7 +44,11 @@ export default function EffetVignette({
       // libellé ENTIER au survol, natif, sans changer la mise en page.
       title={description ?? libelle}
       contenu={<img src={icone} alt="" className={`h-7 w-7 transition ${actif ? '' : 'grayscale'}`} loading="lazy" />}
-      libelle={libelle}
+      // ⚠️ `Vignette` pose `truncate` (une ligne, `white-space: nowrap`) sur
+      // son libellé : l'enfant rétablit le retour à la ligne, la boîte parente
+      // s'allonge d'une ligne (sa hauteur est automatique) sans rien ajouter à
+      // `src/ui/`.
+      libelle={deuxLignes ? <span className="block whitespace-normal">{libelle}</span> : libelle}
       // ⚠️ Coche masquée au DOIGT (même raison que CategoryBar) : à cette
       // taille de vignette, un médaillon de plus dans le coin serait une
       // cible de trop à côté de la cible déjà fine du bouton lui-même — le

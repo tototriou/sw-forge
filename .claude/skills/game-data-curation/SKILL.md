@@ -33,6 +33,17 @@ La liste de l'utilisateur est un point de DÉPART précieux (elle dit ce qu'il
 faut chercher) et une VÉRIFICATION précieuse (elle doit se retrouver dans le
 balayage). Elle n'est pas le résultat.
 
+⚠️ **Le balayage passe par `node scripts/inventaire-competences.mjs`**
+(`--aide`), pas par un script jetable : il lit la formule et la portée que
+RETIENT l'app (`formuleRetenueAvecOrigine`, `porteeRetenue` de `damage.ts`),
+jamais `Competence.formule` seule — un balayage de la fiche a classé « sans
+ratio » Purification, Cooperation! (21415) et Rite of Ashes (22015), que l'app
+calcule par leur auxiliaire. Il sort la prose complète et des **signaux de
+doute** ; un signal, ou une prose qui contredit la donnée, se **lit à la
+main** avant de classer (§ 4). Ses **limites** (`--aide`) disent ce qu'il ne
+voit pas : l'absence de signal ne prouve rien (passifs hors de
+`formule-sans-calcul`, trois mots-clés seulement, rien comparé au jeu).
+
 ## 2. Les champs de données mentent, et pas de façon systématique
 
 ⚠️ Ne jamais fonder une règle sur un champ sans avoir vérifié le champ

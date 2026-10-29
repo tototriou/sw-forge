@@ -68,6 +68,10 @@ export async function testRenduOptimizerImportRapportPartage() {
     if (process.env.CAPTURES) await page.screenshot({ path: `${process.env.CAPTURES}/rapport-partage-bureau.png`, fullPage: true });
     await page.keyboard.press('Escape');
     await page.setViewportSize({ width: 390, height: 844 });
+    // Bureau et téléphone sont deux arbres (la page de bureau, `PageBureau`,
+    // n'est montée qu'au format bureau) : attendre que le téléphone ait
+    // remplacé la page avant de viser son bouton.
+    await page.waitForFunction(() => !document.querySelector('[data-configuration]'));
     await bouton().scrollIntoViewIfNeeded();
     const avant = await bouton().boundingBox();
     await bouton().click();

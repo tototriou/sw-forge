@@ -35,15 +35,15 @@
 // HARNAIS (`executerHarnaisResolu`, scripts/lib/diagnosticHarness.ts — la
 // séquence de `runeBuildOptim.worker.ts` : préparation, deux moitiés en
 // fils, régime décidé par `totalPairCount` contre le seuil de production,
-// `pairBuckets` séquentiel ou `driveParallelPairing` à 4 workers par le
-// chemin de production `spawnSliceNode`), la résolution est
+// `apparier` séquentiel ou `apparierRapideEnParallele` par le lanceur Node
+// de production, `appariementRapideNode`), la résolution est
 // `resoudreEquipementDuBuild` par `scripts/lib/relicDifferentiel.ts` (le
 // code du différentiel de 5b). Le domaine comparé est la seule dimension
 // relique : paire de référence = `params.artifacts`, figée des deux côtés.
 //
 // ⚠️ `searchBuilds` est TOUJOURS séquentiel — sur une recette relâchée réelle (Shihwa, 3,2 G paires, 32 ×
-// le seuil) l'écran apparie à 4 workers et le séquentiel coûte 22 min par
-// recherche. Le harnais décide du régime comme la production, des DEUX
+// le seuil) l'écran apparie en parallèle, et le séquentiel coûte bien plus
+// par recherche. Le harnais décide du régime comme la production, des DEUX
 // côtés (oracle et A) ; il est rapporté par run (`regime`). Sous le seuil
 // (les cas de batterie, Ciri du test) rien ne change.
 

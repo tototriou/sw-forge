@@ -31,7 +31,6 @@ function recetteBrute(critMode: unknown, monsterCom2usId = 14104, monsterName = 
     damageSetup: DEFAULT_DAMAGE_SETUP,
     metric: 'eff',
     slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false,
     exhaustiveSearch: false,
     excludeUsedRunes: false,
     excludeUsedScope: 'rta',
@@ -117,7 +116,8 @@ export function testCritiqueMoyenneMessageImport() {
     /const delai = delaiEffacementImport\(importMsg\);\n\s*if \(delai === null\) return;\n\s*const t = setTimeout\(\(\) => setImportMsg\(null\), delai\);/.test(source),
     'écran : la minuterie suit `delaiEffacementImport` et ne programme rien pour un avertissement'
   );
-  ok(source.includes('className={`text-[12.5px] ${classeMessageImport(importMsg)}`}'), 'écran : la couleur du message vient de `classeMessageImport`');
+  // La couleur du message à l'écran suit `classeMessageImport` (succès,
+  // avertissement de conversion, refus) : `testRenduOptimizerEcranMessageImport`.
   // « Jusqu'au prochain import » : seuls les trois messages de `importRecipe`
   // (refus, monstre trouvé, monstre introuvable) et la minuterie écrivent
   // l'état — un nouvel import, réussi ou non, remplace donc l'avertissement.

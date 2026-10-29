@@ -6,6 +6,12 @@ Une session est l'état de l'app à un instant donné, dans un fichier que
 l'utilisateur garde où il veut : de quoi reprendre plus tard là où il
 s'était arrêté.
 
+⚠️ **Dans l'application de bureau seulement.** Sur le site, aucun des accès
+ci-dessous n'existe : ni bouton dans la barre du haut (aux deux formats), ni
+ligne « Session » dans les Paramètres, ni action dans la palette, et Ctrl+S
+y reste « Enregistrer la page » du navigateur. `App.tsx` ne passe les
+actions de sauvegarde que si `estBureau()`.
+
 ## Sauvegarder
 
 Quatre accès à « Sauvegarder », qui font tous la même chose
@@ -13,22 +19,20 @@ Quatre accès à « Sauvegarder », qui font tous la même chose
 
 - **Barre du haut** (`src/components/TopBar.tsx`) : à l'ordinateur, le
   bouton « **Sauvegarder** » (icône `Save`) en tête de la zone droite, avant
-  « Se déconnecter » (site) ou « Sauvegarder sous… » (application de
-  bureau) ; au téléphone, l'icône seule, nommée « Sauvegarder la
-  session (Ctrl+S) », avant la loupe et le ⚙. Infobulle : « Sauvegarder dans
-  <nom>.json (Ctrl+S) » quand une session est en cours, sinon « Sauvegarder
-  la session dans un fichier (Ctrl+S) ».
+  « Sauvegarder sous… » ; au téléphone, l'icône seule, nommée « Sauvegarder
+  la session (Ctrl+S) », avant la loupe et le ⚙. Infobulle : « Sauvegarder
+  dans <nom>.json (Ctrl+S) » quand une session est en cours, sinon
+  « Sauvegarder la session dans un fichier (Ctrl+S) ». Sans `onSauvegarder`
+  (le site), les deux ne sont pas rendus.
 - **Ctrl+S** (⌘S) : l'écouteur clavier d'`App.tsx`, à côté de Ctrl K, sans
-  Maj ni Alt ; `preventDefault` aussi sur le site, à la place
-  d'« Enregistrer la page » ; une touche tenue ne sauvegarde qu'une fois.
+  Maj ni Alt ; une touche tenue ne sauvegarde qu'une fois.
 - **Paramètres**, bloc « Mes données » (`SettingsList`,
   `src/components/SettingsMenu.tsx`) : une ligne « **Session** » et son
   bouton « **Sauvegarder** » (infobulle « Sauvegarder la session dans un
   fichier »), avant « Tout supprimer », qui reste la dernière ligne du
-  bloc. Texte d'aide sur le site : « Tout l'état de l'app dans un fichier, à
-  garder où tu veux : le compte, ton travail, les réglages et l'état des
-  outils. » ; dans l'application de bureau, « enregistré où tu veux » au
-  lieu de « à garder où tu veux ».
+  bloc. Texte d'aide : « Tout l'état de l'app dans un fichier, enregistré où
+  tu veux : le compte, ton travail, les réglages et l'état des outils. »
+  Sans `onSauvegarderSession`, la ligne n'est pas rendue.
 - **Palette Ctrl K** : l'action « **Sauvegarder la session** », sous-titrée
   « Tout l'état de l'app dans un fichier ».
 
@@ -39,16 +43,12 @@ affichés, désactivés, avec l'infobulle « Ton compte se charge encore : la
 sauvegarde attend qu'il soit relu. » (`sauvegardeIndisponible`) ; l'icône
 du téléphone est désactivée aussi, son nom inchangé. Ctrl+S et l'action de
 la palette ne font rien. Sinon la session écrite n'aurait pas de
-compte — et dans l'app, elle remplacerait la session en cours, que le bureau
-a déjà reprise.
+compte, et elle remplacerait la session en cours, que le bureau a déjà
+reprise.
 
-`sauvegarderSession` compose la session et l'écrit (`ecrireSession`), puis :
-
-- **sur le site**, la télécharge (`telechargerTexte`,
-  `src/lib/telechargement.ts`) : un fichier daté à chaque fois, que le
-  navigateur enregistre. Rien d'autre à l'écran ;
-- **dans l'application de bureau**, réécrit la session en cours (section
-  suivante).
+`sauvegarderSession` compose la session, l'écrit (`ecrireSession`), puis
+réécrit la session en cours (section suivante). Sans le pont du bureau
+(`sessionBureau()`), elle ne fait rien.
 
 Nom proposé : `swblacksmith-session-AAAA-MM-JJ-HHhMM.json`, à l'heure locale
 du clic (`nomFichierSession`). Environ 2,7 Mo avec un vrai compte.
@@ -144,6 +144,23 @@ testé).
   `sauvegarderSous` rendent `enregistree` (avec l'état), `annulee` ou
   `echec` (avec le message).
 
+## Changements non enregistrés (application de bureau)
+
+Avant un changement de compte — choisir un autre invocateur du dossier SW
+Exporter, ou un dossier —, l'app propose « Sauvegarder ta session ? » si le
+travail a changé depuis la dernière sauvegarde ; « Sauvegarder et changer »
+passe par `sauvegarderSession`, et ne change de compte que si la session
+est écrite. Détail : [feat-import-compte/bouton-import.md](feat-import-compte/bouton-import.md), § « Le dossier SW
+Exporter ».
+
+- Chaque sauvegarde réussie retient l'**empreinte** de la session (`empreinteTravail`,
+  `src/lib/session.ts`) : le stockage et les outils, sans la date, la
+  version de l'app ni le compte. Elle n'est retenue qu'en mémoire, pour la
+  durée de l'ouverture.
+- Le travail a changé (`travailNonSauvegarde`) quand l'empreinte du moment
+  diffère de la retenue ; sans sauvegarde depuis le lancement, dès qu'il y
+  a une prépa RTA ou des équipes de siège.
+
 ## Ce que contient le fichier
 
 **Ce que l'app garde quand on passe d'une page à l'autre, tel qu'il est au
@@ -189,6 +206,14 @@ lecteur actuel ; réécrite, elle porte la version 2.
 `lireSession(texte)` lit et valide le fichier entier, et rend une session
 avec ses avertissements, ou une erreur.
 
+Les champs retirés `adaptiveTrancheWeighting` et `adapterArtefactsAuTri`
+(« Adapter les artéfacts et reliques au tri ») d'une session historique sont
+ignorés sans erreur ni avertissement, vrais ou faux : `garderChampsOptimizer`
+ne conserve que `CHAMPS_OPTIMIZER_SESSION`. Il ne repart pas dans une
+sauvegarde suivante. Un tri `vitesse` (objectif Vitesse, qui ne se trie
+plus que par la colonne VIT) s'y relit `spd`, sans avertissement, par
+`triDesResultats` (colonnesResultats.ts), à l'écriture comme à la lecture.
+
 - **Refusé** : un texte qui n'est pas du JSON ou pas un objet ; un autre
   format ; une version qui n'est pas un entier ≥ 1, ou plus récente que
   `VERSION_SESSION` (« mets-la à jour pour la charger ») ; un `stockage`
@@ -212,10 +237,9 @@ la valeur `combat` en `normal`, comme les recettes et mémoires de membres.
 ## Vérifier
 
 ```
-node tests/run.mjs session persistance optimizerexemplairemontage renduparametres rendubureautextes rendubarresession bureausession
+node tests/run.mjs session persistance optimizerexemplairemontage renduparametres rendubureautextes rendubarresession renduchangementcompte bureausession bureauswex
 npm run bureau:preuve -- --session       # l'app, conservation refusée (après vite build et bureau:construire)
 npm run bureau:preuve -- --conservation  # l'app, conservation activée : la session en cours survit à la fermeture
-node scripts/preuve-session-site.mjs     # le site, conservation acceptée, exemplaire compris (après npm run build)
 ```
 
 Tests unitaires : le format (aller-retour, refus, avertissements, compte
@@ -224,9 +248,10 @@ réel), `compteDeSession`, la photo de l'Optimizer, le miroir de
 de `session.json` et de `dossier-swblacksmith.json`, sous-dossier
 `sessions`, nom libre, nom proposé, texte, ligne des Paramètres, messages
 d'échec, écriture sûre sur un dossier temporaire). Tests de rendu : la
-ligne « Session » et ses deux textes ; « Sauvegarder » et « Sauvegarder
-sous… » de la barre du haut, et leurs infobulles, sur le site et dans
-l'app.
+ligne « Session » et son texte ; « Sauvegarder » et « Sauvegarder sous… »
+de la barre du haut et leurs infobulles dans l'app ; sur le site, l'absence
+de « Sauvegarder » dans la barre (aux deux formats) et de la ligne
+« Session » des Paramètres.
 
 `--session` part d'un `session.json` laissé par une ouverture précédente
 (il doit être oublié, son fichier jamais réécrit), sans dossier SW
@@ -239,6 +264,5 @@ preuve, aucune boîte ne s'ouvre : le dossier SW Blacksmith « choisi » est
 `<dossier>/swblacksmith`, et « Sauvegarder sous… » rend
 `<n>-<nom proposé>` dans son `sessions`. `--conservation` choisit une
 session en cours au premier lancement, la retrouve au second et la
-réécrit par Ctrl+S. Le site télécharge depuis les Paramètres, la palette,
-la barre du haut et Ctrl+S. Chaque fichier est relu par `lireSession`,
-sans capture d'écran.
+réécrit par Ctrl+S. Chaque fichier est relu par `lireSession`, sans
+capture d'écran.

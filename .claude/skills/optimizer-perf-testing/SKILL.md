@@ -21,9 +21,11 @@ vérifier vite et sans se faire piéger par la mécanique de mesure elle-même.
 
 ## Quand ce skill s'applique
 
-- Avant de tester un changement dans `src/lib/runeBuildOptim.ts` ou ses
-  Workers (`src/workers/runeBuildOptim.worker.ts`, et
-  `src/workers/pairSlice.worker.ts` pour l'appariement parallélisé).
+- Avant de tester un changement dans `src/lib/runeBuildOptim.ts`, ses noyaux
+  sur tableaux typés (`src/lib/constructionRapide.ts`,
+  `src/lib/appariementRapide.ts`, `src/lib/appariementRapideParallele.ts`)
+  ou ses Workers (`src/workers/runeBuildOptim.worker.ts`, et
+  `src/workers/appariementRapide.worker.ts` pour l'appariement parallélisé).
 - Avant de lancer ou d'écrire un script qui mesure un temps ou une justesse
   sur ce moteur (`scripts/perf-battery.ts`, `scripts/perf-battery-compare.ts`,
   ou un script ad hoc similaire).
@@ -57,8 +59,8 @@ c'est-à-dire rater :
   conversation ne peut plus se faire passer pour du comportement de prod ;
 - le **régime** d'appariement choisi comme la production le choisirait
   (seuil contre `totalPairCount`), jamais un séquentiel implicite ;
-- la **complétude** avec son motif (`maxMs`, `maxCollected`, ou
-  `quotaTranche` en régime parallèle) et
+- la **complétude** avec son motif (`maxMs` ou `maxCollected`, plafond
+  global dans les deux régimes) et
   l'autodiagnostic `explored` contre `totalPairs` ;
 - la distinction **élagage sûr / rétention heuristique** — `filterSlot` est
   MIXTE, une disparition n'y est pas un verdict ;
@@ -84,21 +86,19 @@ intégralement.
 | **Ce build de 6 runes est-il dans le résultat, et sinon QUI l'a perdu ?** | `scripts/diagnostic-harness.ts --suivre=<les 6 ids>` — **verdict structuré** cherchant le premier point de divergence (entrée inadmissible · moitié écartée · absent des compartiments · perdue à l'appariement AVEC l'étage · présent HORS top-N **avec son rang**, pris sur le classement ENTIER · non observable), rendu AVEC sa complétude. ⚠️ Ne jamais lire une absence sans elle : sur un run TRONQUÉ, « pas dans le classement » ≠ « le moteur ne la trouve pas » | le coût du run demandé — `--arret=filterslot` suffit pour l'admissibilité seule (~2 s) |
 | **J'ai besoin d'un cas COURT et REPRODUCTIBLE pour comparer deux configurations** | `scripts/diagnostic-harness.ts --profils` puis `--profil=<nom>` — profils de pool synthétique NOMMÉS, chacun portant son BUILD CIBLE et ses grandeurs MESURÉES (complétude + motif, régime, `totalPairs`, rang + population), relues par `tests/diagnostic-profils.test.ts`. ⚠️ **Ce ne sont pas « des cas réels en plus rapide »** : un cas réel tronque par le TEMPS, ce qui rend NON_COMPARABLES le verdict, la population et le classement — la vitesse n'est pas le critère, la NATURE de la troncature l'est. ⚠️ Et un profil COMPLET peut être totalement INSENSIBLE à la configuration : lire son champ `axesSensibles` (les axes sur lesquels une divergence a été MESURÉE) et son champ `limites` AVANT de conclure « aucune divergence », et ne jamais prendre la rétention affichée pour un indicateur de sensibilité (le produit brut est un MAJORANT) | 0,13 s à 1,5 s |
 | **Ce paramètre change-t-il quelque chose ? (deux CONFIGURATIONS du même code)** | `scripts/diagnostic-harness.ts --profil=<nom> --differentiel=<axe>:<témoin>,<comparé> [--repetitions=<n>]` — deux bras ENTRELACÉS (T1 C1 T2 C2…), sept éléments d'oracle lus dans l'ordre du pipeline, et le PREMIER point de divergence nommé avec ses quatre champs (OÙ · COMBIEN · SUR COMBIEN · CE QUE ÇA AUTORISE). ⚠️ **À ne pas confondre avec `perf-battery-compare`**, qui compare deux VERSIONS DU CODE via `git worktree` : celui-ci compare deux CONFIGURATIONS du même code, et c'est un problème distinct. ⚠️ **Il REFUSE plus souvent qu'il ne conclut, et c'est sa valeur** : un motif de troncature différent ferme le PORTIER, un préfixe exploré différent rend `NON_COMPARABLE` le verdict, la population, le classement et le near-miss — des valeurs ÉGALES sur des préfixes différents ne prouvent rien. ⚠️ Il exige un PROFIL (un cas réel tronque par le TEMPS, donc son oracle n'est comparable sur rien) et il **diffe les paramètres EFFECTIFS**, pas seulement l'axe demandé : surcharger `slotFilterCap` déplace AUSSI `bucketCap`, donc fait varier deux paramètres | 2N × le coût du profil (0,3 s à 9 s) |
-| **Cette version converge-t-elle plus TÔT ? (en travail, pas en temps)** | `scripts/diagnostic-harness.ts … --suivre=<les 6 ids>` — rend `decouverteBuildCible` : l'**INSTANT DE DÉCOUVERTE** (`explored` à la première apparition de la cible) et la **COURBE DE RENDEMENT** (candidats cumulés à 1/5/10/25/50/75/100 % de l'espace). ⚠️ **À ne JAMAIS confondre avec le RANG**, qui vient de `sortCandidates` et décrit un état FINAL : les deux sont indépendants — sur `complet-sensible` la cible est découverte à 0,022 % de l'espace et sort #1424. ⚠️ C'est un COMPTE de paires, donc insensible à la dérive machine et à la contention, contrairement à tout `foundMs` — c'est ce qui le rend utilisable là où `perf-battery-compare` ne l'est pas. ⚠️ **MAJORANT, jamais la paire exacte** (points de passage tous les 500 paires), et **NON REPRODUCTIBLE en régime PARALLÈLE** (relevé temporel, `explored` sommé sur les workers) : ne comparer deux configurations dessus qu'en séquentiel. Un jalon jamais atteint s'affiche « — », jamais la dernière valeur connue | le coût du run demandé |
-| **Quelle stat DIFFÉRENCIE vraiment les demi-builds ? (piste « prioriser les stats les plus difficiles »)** | `scripts/diagnostic-harness.ts …` — rend `dispersionTranches` : le **CV par `retentionKey`** et la répartition du budget de rétention qu'il produit, par moitié. ⚠️ **C'est LE nombre du moteur**, lu par `trancheReallocation` que `buildBuckets` appelle lui-même — jamais une reconstitution. Un CV recalculé sur les demi-builds RETENUS, principale COMPRISE, n'en est PAS une approximation : c'est un autre nombre, qui ne pilote rien (l'exclusion de la principale est délibérée — une principale garantie noie la vraie dispersion et fait passer une stat TENDUE pour MOLLE). ⚠️ Rendu MÊME quand `adaptiveTrancheWeighting` est inactif, parce que le CV est une propriété du POOL et pas du réglage — mais `applique` dit alors NON : c'est ce que la réallocation FERAIT, pas ce qu'elle a fait | le coût d'un `--arret=demi-builds` |
-| Un changement de PARALLÉLISATION de l'appariement perd-il des candidats (pas une question de temps) ? | `tests/rune-optim-parallel-pairing.test.ts` — différentiel à `maxMs` RÉALISTE (30 s, jamais un budget court juste assez long pour déclencher le chemin de code, voir `algo-verify` méthode point 2) | quelques secondes à quelques minutes selon le nombre de scénarios |
+| **Cette version converge-t-elle plus TÔT ? (en travail, pas en temps)** | `scripts/diagnostic-harness.ts … --suivre=<les 6 ids>` — rend `decouverteBuildCible` : l'**INSTANT DE DÉCOUVERTE** (`explored` à la première apparition de la cible) et la **COURBE DE RENDEMENT** (candidats cumulés à 1/5/10/25/50/75/100 % de l'espace). ⚠️ **À ne JAMAIS confondre avec le RANG**, qui vient de `sortCandidates` et décrit un état FINAL : les deux sont indépendants — sur `complet-sensible` la cible est découverte à 0,022 % de l'espace et sort #1424. ⚠️ C'est un COMPTE de paires, donc insensible à la dérive machine et à la contention, contrairement à tout `foundMs` — c'est ce qui le rend utilisable là où `perf-battery-compare` ne l'est pas. ⚠️ **MAJORANT, jamais la paire exacte** (points de passage tous les 500 paires), et **NON REPRODUCTIBLE en régime PARALLÈLE** (relevé à chaque morceau reçu, `explored` sommé sur les morceaux reçus) : ne comparer deux configurations dessus qu'en séquentiel. Un jalon jamais atteint s'affiche « — », jamais la dernière valeur connue | le coût du run demandé |
+| Un changement de PARALLÉLISATION de l'appariement perd-il des candidats (pas une question de temps) ? | `node tests/run.mjs appariement-parallele` — égalité avec le séquentiel (le parallèle rend l'ordre séquentiel, plafond global compris), Workers simulés dans le désordre puis vrais `worker_threads` ; aux volumes réels, `scripts/banc-appariement-rapide.ts --cas=tous` contre `pairBuckets` | quelques secondes (tests) ; minutes à heures (banc, références en cache `--cache=`) |
 | Une charge concurrente sur le fil PRINCIPAL (optimisation d'artéfacts au fil de l'eau) ralentit-elle la recherche ? | `scripts/artifact-contention-diag.ts` — vrais `worker_threads` pour l'appariement, répétitions ENTRELACÉES, charge témoin en calcul pur pour séparer cœurs et mémoire | quelques minutes par cas (N répétitions × 3 conditions) |
-| Un mécanisme de COORDINATION EN DIRECT entre workers (quota partagé, arrêt anticipé signalé…) respecte-t-il sa garantie sous une VRAIE latence de messages ? | ⚠️ JAMAIS une simulation séquentielle (voir piège dédié plus bas) — de VRAIS `worker_threads` Node concurrents, bundlés via esbuild : `scripts/lib/pairing-quota-worker.ts` + `scripts/parallel-pairing-real-diag.ts` (patron réutilisable, déjà utilisé pour la décision initiale de paralléliser l'appariement via `scripts/lib/pairing-worker.ts`/`scripts/pairing-parallel-diag.ts`) | quelques secondes par cas (bundling + spawn réel) |
-| L'appariement PARALLÈLE de production donne-t-il le même résultat qu'un changement le laisse croire ? | `scripts/parallel-pairing-extraction-diff.ts` — de VRAIS `worker_threads` exécutant le **code de production lui-même** (`runPairSlice` + `driveParallelPairing`, partagés avec le navigateur), comparés au chemin séquentiel sur les 7 cas connus | quelques minutes par cas (budget INFINI des deux côtés) |
+| Un mécanisme de COORDINATION EN DIRECT entre workers (arrêt anticipé signalé, latence de l'arrêt manuel…) respecte-t-il sa garantie sous une VRAIE latence de messages ? | ⚠️ JAMAIS une simulation séquentielle (voir piège dédié plus bas) — de VRAIS `worker_threads` Node concurrents, par le lanceur de production `lancerTravailleurNode` (`scripts/lib/appariementRapideNode.ts`, patron de `testAppariementParalleleWorkers`) | quelques secondes par cas (bundling + spawn réel) |
+| L'appariement PARALLÈLE de production donne-t-il le même résultat qu'un changement le laisse croire ? | `scripts/banc-appariement-rapide.ts` — de VRAIS `worker_threads` exécutant le **code de production lui-même** (`apparierRapideEnParallele` + `servirAppariement` → `parcourirMorceau`, partagés avec le navigateur), au nombre de Workers de la machine, comparés à `pairBuckets` sur les cas connus | minutes à heures par cas (`maxMs` levé ; références en cache) |
 
-⚠️ **Trois façons de faire tourner l'appariement parallèle en Node, à ne pas
+⚠️ **Deux façons de faire tourner l'appariement parallèle en Node, à ne pas
 confondre** — elles n'ont ni la même fidélité ni le même usage :
 
 | Fichier | Ce que c'est | Quand s'en servir |
 |---|---|---|
-| `scripts/lib/pair-slice-worker.ts` | ✅ **Le code de PRODUCTION**, coquille Node du même `runPairSlice` que le navigateur (voir [docs/03-developpeur/optimizer/moteur/parallelisation.md § Coquilles et lanceurs](../../../docs/03-developpeur/optimizer/moteur/parallelisation.md#coquilles-et-lanceurs)) | Dès qu'on veut mesurer ou vérifier ce que la prod fait vraiment |
-| `scripts/lib/pairing-quota-worker.ts` | Une REPRODUCTION fidèle du mécanisme, plus un mode `shared` **qui n'est pas en production** (prototype du quota partagé, écarté) | Uniquement pour explorer la question du quota partagé |
-| `scripts/lib/pairing-worker.ts` | Un PROTOTYPE de mesure de débit brut — **budget figé, aucune escalade**, son en-tête le dit | Rien de fidèle : ne jamais en tirer une conclusion sur la prod |
+| `scripts/lib/appariement-rapide-worker.ts` | ✅ **Le code de PRODUCTION**, coquille Node du même serveur (`servirAppariement`, qui appelle `initialiserTravailleur` puis `parcourirMorceau` par tranches) que le navigateur (voir [docs/03-developpeur/optimizer/moteur/parallelisation.md § Coquilles et lanceurs](../../../docs/03-developpeur/optimizer/moteur/parallelisation.md#coquilles-et-lanceurs)) | Dès qu'on veut mesurer ou vérifier ce que la prod fait vraiment |
+| `scripts/lib/pairing-worker.ts` | Un PROTOTYPE de mesure de débit brut sur `pairBuckets` — **budget figé, aucune escalade**, son en-tête le dit | Rien de fidèle : ne jamais en tirer une conclusion sur la prod |
 
 ⚠️ **`--quick` n'est PAS une preuve de justesse.** Ses 2 cas canari (voir
 `scripts/perf-battery.ts`) sont les plus LÉGERS de la batterie — ils ne
@@ -154,6 +154,17 @@ et l'appariement, où est le vrai coût.
 ## Pièges déjà rencontrés, avec leurs contre-mesures
 
 ### Contention CPU/mémoire — pas la même règle pour la justesse et le temps
+
+Avant une mesure de temps, réserver l’exclusivité de la machine par
+l’outillage local lorsqu’il est disponible ; annoncer ce qui est mesuré,
+puis libérer la réservation à la fin, même en cas d’échec. La réservation
+ne remplace pas le relevé des processus déjà actifs. Un contributeur sans
+cet outillage garde la même exigence d’absence de charge concurrente.
+
+Le contrat de vérification indique les commandes, ce qu’elles prouvent et
+leur durée observée dans le régime correspondant, ou « inconnue ». Une
+campagne imprévue de plus de dix minutes se signale avant lancement : le
+pilote réévalue son utilité et son coût, sans supprimer une preuve nécessaire.
 
 Plusieurs processus/threads concurrents sur la même machine se disputent
 les mêmes cœurs (changement de contexte, cache CPU écrasé à chaque bascule)
@@ -253,10 +264,14 @@ exécution à un événement déclenché ailleurs) ? Ou dépend-elle seulement
 d'un partitionnement/allocation décidé UNE FOIS, À L'AVANCE, avant que
 les workers ne démarrent (chacun reçoit son quota fixe dès le départ,
 aucun message ne doit changer son comportement en cours de route) ?
-- **Allocation figée à l'avance** (ex. le mécanisme ACTUEL de prod :
-  `perWorkerMaxCollected` calculé une fois, donné à chaque worker au
-  démarrage, aucune coordination en cours d'exécution) : une simulation
-  séquentielle reste un verdict de justesse VALIDE.
+- **Allocation figée à l'avance, ou résultat indépendant de l'ordre
+  d'arrivée** (ex. le mécanisme ACTUEL de prod : des morceaux distribués à la
+  demande, mais fusionnés dans l'ordre du plan avec un plafond global, si
+  bien que le résultat ne dépend pas de qui finit quand — hors filet de
+  temps et arrêt manuel) : une simulation séquentielle qui rend les
+  morceaux dans le DÉSORDRE reste un verdict de justesse VALIDE pour le
+  résultat ; la latence de l'arrêt et le filet de temps, eux, demandent de
+  vrais fils.
 - **Coordination EN DIRECT** (ex. tout prototype de quota PARTAGÉ, arrêt
   anticipé signalé, ou plus généralement tout protocole où un worker doit
   RECEVOIR un message pendant qu'il tourne pour changer de comportement) :
@@ -274,7 +289,8 @@ séquentielle jusqu'ici (construction des 2 moitiés en Workers,
 `--monotonicity`) sont des ALLOCATIONS FIGÉES à l'avance (aucun message
 ne change leur comportement en cours de route) — la règle ci-dessus les
 classe du côté valide, pas suspect.
-Le quota partagé écarté pour cette raison :
+Le plafond de candidats de l'appariement parallèle, global et coupé dans
+l'ordre séquentiel, sans quota par Worker :
 [docs/03-developpeur/optimizer/moteur/parallelisation.md § Répartition et partage du plafond](../../../docs/03-developpeur/optimizer/moteur/parallelisation.md#répartition-et-partage-du-plafond).
 
 ### `candidats.push(...tableauEnorme)` — limite d'arguments V8

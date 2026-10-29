@@ -132,6 +132,55 @@ export function relicPctMinByStat(eligibles: RelicDetail[], principaleForcee: Re
   return min;
 }
 
+/**
+ * Les reliques REPRÉSENTATIVES des éligibles pour les conditions posées : une
+ * relique éligible fait tenir ses conditions à un build (à apport d'artéfacts
+ * fixé) si et seulement si l'une d'elles le fait. Le test conjoint de la
+ * validation les essaie une à une (`fichesDuTestConjoint`,
+ * runeBuildOptim.ts).
+ *
+ * ⚠️ **Pourquoi elles suffisent** : une relique n'agit sur les conditions que
+ * par sa principale, un pourcentage de SA stat fondu dans le `ceil`
+ * (`computeStats`, stats.ts) — `b + ceil(b × (P + L) / 100) + F`, croissant
+ * en `L`. Par principale `s`, sur les valeurs éligibles de `s` :
+ * - minimum seul sur `s` (ou aucune condition sur `s`) : la plus forte ;
+ * - maximum seul sur `s` : la plus faible ;
+ * - minimum ET maximum sur `s` : TOUTES les valeurs distinctes — l'ensemble
+ *   admis est un intervalle, que les deux extrêmes peuvent manquer (5, 10, 15
+ *   avec seul 10 dans l'intervalle) ;
+ * - une principale hors PV/ATQ/DEF ne change rien : une seule, neutre.
+ * Une condition est « posée » si sa valeur est > 0, comme `minEntries`.
+ * Ordre : PV, ATQ, DEF (valeurs décroissantes), puis la neutre ; à valeur
+ * égale, la plus petite `id`. Le verdict n'en dépend pas.
+ */
+export function reliquesRepresentatives(
+  eligibles: readonly RelicDetail[],
+  conditions: { minStats: Partial<Record<string, number | null | undefined>>; maxStats?: Partial<Record<string, number | null | undefined>> }
+): RelicDetail[] {
+  const pose = (v: number | null | undefined) => v != null && v > 0;
+  const out: RelicDetail[] = [];
+  for (const s of ['hp', 'atk', 'def'] as const) {
+    // Une relique par valeur distincte, la plus petite `id`, valeurs décroissantes.
+    const parValeur = new Map<number, RelicDetail>();
+    for (const r of eligibles) {
+      if (statDuCode(r.main.code) !== s) continue;
+      const deja = parValeur.get(r.main.value);
+      if (!deja || r.id < deja.id) parValeur.set(r.main.value, r);
+    }
+    if (parValeur.size === 0) continue;
+    const triees = [...parValeur.entries()].sort((a, b) => b[0] - a[0]).map(([, r]) => r);
+    const min = pose(conditions.minStats[s]);
+    const max = pose(conditions.maxStats?.[s]);
+    if (min && max) out.push(...triees);
+    else if (max) out.push(triees[triees.length - 1]!);
+    else out.push(triees[0]!);
+  }
+  let neutre: RelicDetail | undefined;
+  for (const r of eligibles) if (!statDuCode(r.main.code) && (!neutre || r.id < neutre.id)) neutre = r;
+  if (neutre) out.push(neutre);
+  return out;
+}
+
 /* --------------------------------------------------------------------------
  * Le pool éligible : principale ∈ champ 1 ET type ∈ champ 2, puis seuil
  * ----------------------------------------------------------------------- */
@@ -457,12 +506,30 @@ export function bestRelicForBuild(
 
   const maxScore = Math.max(...faisables.map(([, s]) => s));
   const exAequo = faisables.filter(([, s]) => s === maxScore);
-  const portee = options?.departagePortee && options.equipee != null
-    ? exAequo.find(([r]) => r.id === options.equipee!.id)
-    : undefined;
-  if (portee) return { relique: portee[0] };
-  // Ex æquo → première par `id` croissant, ÉCRIT (trié), jamais l'ordre
-  // d'itération de `candidates`.
-  const meilleure = exAequo.sort((x, y) => x[0].id - y[0].id)[0]![0];
+  // Ex æquo → la portée si le départage la retient, sinon la première par
+  // `id` croissant, ÉCRIT (`prefereeALEgalite`), jamais l'ordre d'itération
+  // de `candidates`.
+  let meilleure = exAequo[0]![0];
+  for (const [r] of exAequo) if (prefereeALEgalite(r, meilleure, options)) meilleure = r;
   return { relique: meilleure };
+}
+
+/**
+ * `a` l'emporte-t-elle sur `b` à note égale, dans `bestRelicForBuild` ? La
+ * relique PORTÉE d'abord (régimes de stat seulement, `departagePortee`), puis
+ * l'`id` le plus petit. Source unique du départage : la dominance des
+ * reliques de la résolution rapide (`resolutionRapide.ts`) ne retire une
+ * relique que devant une relique qui gagnerait l'égalité.
+ */
+export function prefereeALEgalite(
+  a: RelicDetail,
+  b: RelicDetail,
+  options?: { equipee?: RelicDetail; departagePortee?: boolean }
+): boolean {
+  const portee = options?.departagePortee ? options.equipee?.id : undefined;
+  if (portee != null && a.id !== b.id) {
+    if (a.id === portee) return true;
+    if (b.id === portee) return false;
+  }
+  return a.id < b.id;
 }

@@ -7,7 +7,8 @@ import { Bouton, BoutonIcone } from '../ui';
 //
 // ⚠️ **Trois zones, et rien de plus** : à gauche le menu des actions de la page
 // (mobile) ou l'identité, OÙ L'ON EST au centre, à droite « Sauvegarder » la
-// session et les PARAMÈTRES (mobile) ou la déconnexion (bureau).
+// session (application de bureau) et les PARAMÈTRES (mobile) ou la
+// déconnexion (bureau).
 //
 // Elle a d'abord porté l'import. Il n'y avait pas sa place : c'est un geste
 // RARE, et la barre est ce qu'on lit en permanence. Il vit dans les
@@ -68,9 +69,10 @@ export default function TopBar({
   // une loupe : sans clavier, c'est son seul accès. Au bureau, le champ de la
   // barre latérale et Ctrl K suffisent.
   onRecherche?: () => void;
-  // « Sauvegarder » la session (Ctrl+S) : sur le site, un fichier daté se
-  // télécharge ; dans l'app, la session en cours est réécrite.
-  onSauvegarder: () => void;
+  // « Sauvegarder » la session (Ctrl+S) : la session en cours est réécrite.
+  // Dans l'app de bureau seulement : absent (le site), le bouton n'est pas
+  // rendu, aux deux formats.
+  onSauvegarder?: () => void;
   // « Sauvegarder sous… » : dans l'app seulement.
   onSauvegarderSous?: () => void;
   // Le nom du fichier de la session en cours (app), pour l'infobulle.
@@ -181,7 +183,12 @@ export default function TopBar({
 
             MOBILE — « Sauvegarder », la loupe et le ⚙, en icônes : il n'y a pas
             de barre latérale et aucun onglet ne mène aux paramètres. La
-            déconnexion et l'import y descendent, faute de place. */}
+            déconnexion et l'import y descendent, faute de place.
+
+            « Sauvegarder » n'existe que dans l'app de bureau : c'est donc
+            CET espace, et non le premier bouton, qui pousse la zone à droite
+            — sur le site, aucun bouton fixe n'ouvre la zone aux deux formats. */}
+        <span aria-hidden className="ml-auto" />
         {ecranPartage && (
           <Bouton
             onClick={ecranPartage.onBasculer}
@@ -198,19 +205,21 @@ export default function TopBar({
             trait="aucun"
             icone={<Columns2 size={16} className="flex-none" />}
             libelle="Écran partagé"
-            className="relative z-10 ml-auto hidden lg:inline-flex"
+            className="relative z-10 hidden lg:inline-flex"
           />
         )}
-        <Bouton
-          onClick={onSauvegarder}
-          disabled={!!sauvegardeIndisponible}
-          title={titreSauvegarder}
-          fond="vide"
-          trait="aucun"
-          icone={<Save size={16} className="flex-none" />}
-          libelle="Sauvegarder"
-          className={`relative z-10 hidden lg:inline-flex ${ecranPartage ? '' : 'ml-auto'}`}
-        />
+        {onSauvegarder && (
+          <Bouton
+            onClick={onSauvegarder}
+            disabled={!!sauvegardeIndisponible}
+            title={titreSauvegarder}
+            fond="vide"
+            trait="aucun"
+            icone={<Save size={16} className="flex-none" />}
+            libelle="Sauvegarder"
+            className="relative z-10 hidden lg:inline-flex"
+          />
+        )}
         {onSauvegarderSous && (
           <Bouton
             onClick={onSauvegarderSous}
@@ -240,13 +249,15 @@ export default function TopBar({
 
         {/* TÉLÉPHONE — « Sauvegarder », en tête du groupe de droite : la
             loupe et le ⚙ gardent leur place au bord. */}
-        <BoutonIcone
-          onClick={onSauvegarder}
-          disabled={!!sauvegardeIndisponible}
-          libelle="Sauvegarder la session (Ctrl+S)"
-          icone={<Save size={16} />}
-          className="relative z-10 ml-auto h-8 w-8 lg:hidden"
-        />
+        {onSauvegarder && (
+          <BoutonIcone
+            onClick={onSauvegarder}
+            disabled={!!sauvegardeIndisponible}
+            libelle="Sauvegarder la session (Ctrl+S)"
+            icone={<Save size={16} />}
+            className="relative z-10 h-8 w-8 lg:hidden"
+          />
+        )}
 
         {/* TÉLÉPHONE — la loupe de la palette Ctrl K (la
             maquette), juste avant le ⚙. Même gabarit que lui. */}
@@ -272,8 +283,8 @@ export default function TopBar({
           // ⚠️ `lg:hidden` : sur bureau, le pied de la barre latérale porte le
           // même accès, à côté du nom du compte. Le garder ici aurait fait deux
           // boutons pour un seul écran.
-          // ⚠️ Pas de `ml-auto` : c'est « Sauvegarder » qui pousse le groupe à
-          // droite ; deux `ml-auto` se partageraient la place.
+          // ⚠️ Pas de `ml-auto` : c'est l'espace d'avant la zone droite qui
+          // pousse le groupe ; deux `ml-auto` se partageraient la place.
           className={`relative z-10 flex aspect-square h-8 w-8 items-center justify-center
                       rounded-md transition-colors lg:hidden ${
                         parametresActifs

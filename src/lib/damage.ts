@@ -72,6 +72,17 @@ export const DEF_BREAK_ICON = 'https://swarfarm.com/static/herders/images/buffs/
 // « Réductions » de l'équation finale, pas un multiplicateur du DMG%.
 export const BRAND_BONUS_PCT = 25;
 export const BRAND_ICON = 'https://swarfarm.com/static/herders/images/buffs/debuff_brand.png';
+// Attaque conjointe (interrupteur « Attaque conjointe ») : l'effet SWARFARM
+// `Ally Attack` n'a pas d'icône (`icone: null`) ; à défaut, l'icône de
+// compétence de « Team Up » de Raoq éveillé (fiche 11012, compétence 2007),
+// un sort coopératif (choix de l'utilisateur, 2026-10-16).
+export const ATTAQUE_CONJOINTE_ICON = 'https://swarfarm.com/static/herders/images/skills/skill_icon_0001_6_3.png';
+// Seconde vignette « Pendant le tour d'un allié » (S1 des familles Chakram
+// Dancer et Boomerang Warrior) : l'icône de compétence de « Crescent Moon
+// Slash », le S1 de Shaina (fiche 21912, compétence 12602), dont la prose
+// place l'attaque commune « during Boomerang Warrior's turn » (choix de
+// l'utilisateur, 2026-10-16).
+export const PENDANT_TOUR_ALLIE_ICON = 'https://swarfarm.com/static/herders/images/skills/skill_icon_0016_4_3.png';
 
 // ── Effets d'ÉQUIPE (portés par un AUTRE monstre que celui optimisé) ────
 // Contrairement à `PASSIFS_OFFENSIFS_CONNUS`/aux modificateurs monstre-wide
@@ -489,6 +500,13 @@ const CODE_CD_PV_CIBLE_BAS = 223;
 // « Dgts de bombe » — ne vaut que pour un sort de bombe.
 const CODE_DEGATS_BOMBE = 210;
 
+// « Dgts d'attaque conjointe » (209) et « Dgts de contre-attaque/attaque
+// conjointe » (225) — des dégâts infligés en plus, dans le terme DMG%, sur
+// une attaque conjointe seulement (`contexteAttaqueConjointe`).
+// ⚠️ 208 (« Dgts de contre-attaque ») n'y entre JAMAIS : aucune contre-attaque
+// n'est modélisée, et 225 ne compte que pour sa part d'attaque conjointe.
+const CODES_DEGATS_ATTAQUE_CONJOINTE: ReadonlySet<number> = new Set([209, 225]);
+
 // Ce qu'une paire d'artéfacts apporte au calcul de dégâts.
 //
 // ⚠️ **Un OBJET plutôt qu'un nombre**, là où le code ne portait que
@@ -524,6 +542,11 @@ export interface ArtifactDamageProfile {
   cdPointsPvCibleBas: number;
   // Majoration des dégâts de bombe (code 210).
   degatsBombePct: number;
+  // Dégâts infligés en plus sur une ATTAQUE CONJOINTE (codes 209 et 225,
+  // sommés ; jamais 208). Le profil reste une fonction pure des artéfacts :
+  // c'est l'appelant du calcul qui le remet à 0 quand l'attaque calculée
+  // n'est pas conjointe (`artefactsSelonContexteConjoint`).
+  degatsAttaqueConjointePct: number;
 }
 
 // Aucun artéfact pris en compte — comportement strictement inchangé.
@@ -542,6 +565,7 @@ export const ARTIFACT_DAMAGE_NEUTRE: ArtifactDamageProfile = {
   cdPointsPvCibleHauts: 0,
   cdPointsPvCibleBas: 0,
   degatsBombePct: 0,
+  degatsAttaqueConjointePct: 0,
 };
 
 // Majoration à appliquer contre CETTE cible — 0 si l'utilisateur a choisi
@@ -555,8 +579,12 @@ export function artifactElementBonusPct(p: ArtifactDamageProfile, enemyElement: 
 // 224. Tout est déduit du profil du sort, rien n'est saisi. Pour un sort à
 // séquence curée, `computeSkillDamageDetail` passe ici le profil de CHAQUE
 // groupe de coups, dont `aoe` est la portée du groupe : 224 suit le coup.
+// La ligne par compétence suit le slot de la compétence qui FRAPPE
+// (`competenceQuiFrappe`, S1 appelé par un sort coopératif : 400, jamais 402
+// ni 410 du déclencheur).
 export function artifactCritDamagePoints(p: ArtifactDamageProfile, profile: SkillDamageProfile): number {
-  return (p.cdPointsParSlot[profile.slot] ?? 0) + (profile.aoe ? 0 : p.cdPointsMonoCible);
+  const slot = profile.competenceQuiFrappe?.slot ?? profile.slot;
+  return (p.cdPointsParSlot[slot] ?? 0) + (profile.aoe ? 0 : p.cdPointsMonoCible);
 }
 
 export function artifactDamageProfile(artifacts: ArtifactDetail[]): ArtifactDamageProfile {
@@ -585,6 +613,7 @@ export function artifactDamageProfile(artifacts: ArtifactDetail[]): ArtifactDama
       else if (s.code === CODE_CD_PV_CIBLE_HAUTS) p.cdPointsPvCibleHauts += s.value;
       else if (s.code === CODE_CD_PV_CIBLE_BAS) p.cdPointsPvCibleBas += s.value;
       else if (s.code === CODE_DEGATS_BOMBE) p.degatsBombePct += s.value;
+      else if (CODES_DEGATS_ATTAQUE_CONJOINTE.has(s.code)) p.degatsAttaqueConjointePct += s.value;
       else {
         const el = CODE_DEGATS_ELEMENT[s.code];
         if (el) p.degatsElementPct[el] = (p.degatsElementPct[el] ?? 0) + s.value;
@@ -2331,6 +2360,34 @@ export interface SkillDamageProfile {
   // absent : une S1 n'est pas un passif.
   // Donnée pure : traverse le Worker de résolution avec le profil.
   passif?: boolean;
+  // Vrai = sort COOPÉRATIF du monstre, toujours une attaque conjointe — posé
+  // par `skillDamageProfile` selon `estSortCooperatif` (effet `Ally Attack`
+  // et tables par identifiant). Absent = sort ordinaire. Donnée pure, lue par
+  // la seule `contexteAttaqueConjointe`.
+  sortCooperatif?: true;
+  // Vrai = attaque des familles Chakram Dancer et Boomerang Warrior, conjointe
+  // si un monstre de l'autre famille est au combat : interrupteur « Attaque
+  // conjointe », allumé par défaut. Posé par `skillDamageProfile` selon
+  // `estSortDesFamillesCooperatives`, jamais avec `sortCooperatif`. Donnée
+  // pure, lue par la seule `contexteAttaqueConjointe` (et, pour le motif de
+  // l'interrupteur, par `interrupteurAttaqueConjointe`).
+  sortDesFamillesCooperatives?: true;
+  // Vrai = ce profil est celui d'un S1 APPELÉ par un sort coopératif sans
+  // dégâts propres (le déclencheur ne frappe pas) : attaque conjointe pendant
+  // le tour du monstre. Posé par `sortsCooperatifsQuiAppellentDeLaFiche`
+  // (entrées `sortCooperatifSansDegats` de `ATTAQUES_APPELEES_PAR_DECLENCHEUR`),
+  // jamais par `skillDamageProfile`. Donnée pure, lue par la seule
+  // `contexteAttaqueConjointe` (et par `defaultDamageSkill`, qui l'écarte).
+  appeleParSortCooperatif?: true;
+  // Présent = la compétence qui FRAPPE n'est pas celle que le profil nomme :
+  // le profil porte l'identité du déclencheur (identifiant, slot, nom, prose,
+  // icône : ce que « Compétence utilisée » montre et que la recette garde),
+  // et le calcul celui de la compétence appelée (formule, coups, portée,
+  // améliorations). Seules les lignes d'artéfact « [Comp.N] Aug. Dgts CRIT »
+  // (400-403, 410) lisent ce slot plutôt que `slot` : la compétence appelée
+  // reçoit la ligne de SON slot, jamais celle du déclencheur. Posé avec
+  // `appeleParSortCooperatif`. Donnée pure.
+  competenceQuiFrappe?: { skillCom2usId: number; slot: number; nom: string };
   nom: string;
   description: string | null;
   icone: string | null;
@@ -2379,6 +2436,15 @@ export interface SkillDamageProfile {
   // même discipline que les autres tables de ce fichier — confirmé par
   // l'utilisateur sur Rigna (126 points, donnée communautaire SWGT).
   ignoreDefSelonVit?: { ecartMax: number };
+  // Ignore une fraction de la DEF proportionnelle aux PV que la cible a
+  // perdus : 0 % à pleine vie, 100 % quand elle a perdu `pvPerdusPourTout` %
+  // de ses PV ou plus. Recalculée à chaque coup sur les PV que les coups
+  // précédents laissent, depuis les « PV restants » saisis. Seul porteur : le
+  // mode « 3 ennemis ou moins » d'Unlimited Power (`MODES_PAR_AUXILIAIRE`).
+  ignoreDefSelonPvCiblePerdus?: { pvPerdusPourTout: number };
+  // Vrai = second mode d'un sort, chiffré par sa compétence auxiliaire
+  // (`sortsEnModeAuxiliaire`) : jamais le sort par défaut.
+  modeAuxiliaire?: true;
   // Ignore la DEF COUP PAR COUP, à partir d'un rang que l'utilisateur choisit
   // — les six sorts des Blade Dancers, curés par identifiant
   // (`IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID`). Distinct d'`ignoreDef` (tout ou
@@ -2544,12 +2610,12 @@ const BONUS_PAR_EFFET_CIBLE_CONNUS: Record<string, BonusParEffetProfile> = {
 // Ces entrées restent donc attachées à l'identifiant Com2us exact du sort.
 const BONUS_PAR_EFFET_CIBLE_PAR_ID_CONNUS: Record<number, BonusParEffetProfile> = {
   2060: { pct: 20, source: 'debuffs' }, // Kro 2A — Team Up
-  2075: { pct: 20, source: 'debuffs' }, // collaboration équivalente, texte identique
   10013: { pct: 30, source: 'debuffs', exactementUnPct: 50 }, // Akhamamir 2A — Mach Crush
   2561: { pct: 15, source: 'debuffs' }, // Kahn 2A — Pursuit
-  2576: { pct: 15, source: 'debuffs' }, // collaboration équivalente, texte identique
   1556: { pct: 30, source: 'debuffs' }, // Tarq 2A — Ambush
-  1571: { pct: 30, source: 'debuffs' }, // collaboration équivalente, texte identique
+  // (2075, 2576 et 1571, même prose, ne sont portés que par des formes de boss
+  // non obtenables — Inugami 2A `47405`, Griffon 2A `47701`, Tarq `610101` :
+  // hors curation.)
 };
 
 const BONUS_PAR_EFFET_PROPRE_CONNUS: Record<string, { pct: number; source: 'buffs' | 'debuffs' }> = {
@@ -2684,7 +2750,8 @@ const BONUS_CONDITIONNEL_AUDIT_CONNUS: Record<string, { pct: number; condition: 
 const BONUS_CONDITIONNEL_AUDIT_PAR_ID_CONNUS: Record<number, { pct: number; condition: string }> = {
   2910: { pct: 50, condition: 'la cible est sous un effet d’incapacité' }, // Grogen uniquement
   7752: { pct: 50, condition: 'la cible est immunisée à l’étourdissement' }, // Iron
-  7767: { pct: 50, condition: 'la cible est immunisée à l’étourdissement' }, // collaboration équivalente
+  // (7767, même prose, n'est porté que par une forme de boss non obtenable,
+  // `48102` : hors curation.)
 };
 
 const CRIT_RATE_PROPRE_CONNUS: Record<string, number> = {
@@ -2765,7 +2832,8 @@ const EFFETS_ENTRE_COUPS_CONNUS: Record<string, EffetEntreCoupsProfile[]> = {
 
 const EFFETS_ENTRE_COUPS_PAR_ID_CONNUS: Record<number, EffetEntreCoupsProfile[]> = {
   6158: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }], // Naomi 2A
-  6173: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }], // collaboration équivalente
+  // (6173, même prose, n'est porté que par le Martial Cat 2A générique `47603`,
+  // non obtenable : hors curation.)
   10013: [{ id: 'unrecoverable', label: 'Irrécupérable', cumulable: false }], // Akhamamir 2A
   // Divergent Fist / Shockwave Fist (S2 de Yuji et Rick) : « The first hit
   // decreases its Defense for 2 turns » (effet `Decrease DEF`, note « 1st
@@ -2912,35 +2980,63 @@ const FORMULES_CUREES_PAR_ID: Record<number, string> = {
   7808: '5.5*{ATK}',
   7810: '5.5*{ATK}',
   21010: '{MAX HP}*{Sacrifice Reserve %}/{Alive Enemies} (Fixed)',
-  // Tempest (Passive) — Teshar vent `14513` et Phoenix vent `14503`, seules
-  // formes du corpus à porter ce nom et cet identifiant (balayage des 8 434
-  // compétences). SWARFARM donne `formule: ""`. Le ratio
-  // `3.7 × ATQ` est fourni par l'utilisateur (joueur, 2026-09-23) ET concorde
-  // avec l'audit des dégâts conditionnels (`other_skill=1181`) :
-  // deux sources (valeurs-de-jeu-curees.md, « Tempest (Teshar) »). Les trois améliorations
-  // « Damage +10% » (+30 %) s'y appliquent, lues dans `ameliorations` comme
-  // pour tout passif (même source, confirmation explicite).
-  3213: '3.7*{ATK}',
-  // S3 dont la fiche porte `formule: ""` : la formule est celle de la
-  // « compétence auxiliaire » (`other_skill`) de l'API SWARFARM, lue par
-  // l'audit des dégâts conditionnels. Règle : la valeur de l'API par défaut,
-  // sauf si la prose la contredit. Les améliorations « Damage » de la fiche s'y
-  // appliquent comme pour tout sort.
-  // Cursed Tombstone — Ramon (31414 ; 31404 non éveillé). Auxiliaire 4592.
-  // « This attack will deal more damage according to your MAX HP » concorde
-  // avec le terme de PV. La portée de la donnée (`aoe: true`, fiche et
-  // auxiliaire) est en revanche contredite par la prose (« Attacks the enemy »)
-  // : la prose l'emporte, mono-cible (`PORTEE_CORRIGEE_PAR_ID`).
-  21114: '2.7*{ATK} + 0.29*{MAX HP}',
-  // Purification, Cooperation! — Nezuko Kamado (31915 ; 31905 et 32015 non
-  // proposées par `formesJouables`) ; Rite of Ashes — Vermilion Bird Dancer
-  // (32615 ; 32605 non éveillé). Auxiliaires 4626 et 4710. « attacks the enemy target together
-  // with the target allies » : seule l'attaque du monstre est comptée ; celles
-  // des deux alliés (effet « Ally Attack ») sont des dégâts d'autres monstres,
-  // hors calcul. `coups: 0` de la fiche : un coup, comme tout sort qui frappe.
-  21415: '4.5*{ATK}',
-  22015: '4.5*{ATK}',
 };
+
+// La formule d'une fiche à `formule: ""` que porte sa compétence auxiliaire :
+// celle de l'unique auxiliaire `versCeSort` à formule, sinon rien.
+//
+// ⚠️ **Règle générale, pas une liste** : SWARFARM range le ratio de certains
+// sorts dans une compétence auxiliaire (`other_skill`) et laisse la fiche
+// vide. La valeur de l'API vaut par défaut, sauf si la prose la contredit
+// (valeurs-de-jeu-curees.md). Sont concernés, parmi les formes jouables :
+// - Tempest (Passive) — Teshar et Phoenix vent, 3213 → 3218 `3.7*{ATK}`, ratio
+//   confirmé aussi par l'utilisateur (2026-09-23) ; les trois « Damage +10% »
+//   de la fiche s'y appliquent ;
+// - Cursed Tombstone — Ramon, 21114 → 21116 `2.7*{ATK} + 0.29*{MAX HP}` ; la
+//   portée de la donnée est contredite par la prose (`PORTEE_CORRIGEE_PAR_ID`) ;
+// - Purification, Cooperation! — Nezuko, et Rite of Ashes — Vermilion Bird
+//   Dancer, 21415 → 21416 et 22015 → 22016 `4.5*{ATK}` : l'attaque du monstre
+//   seule, celles des alliés sont des dégâts d'autres monstres ; `coups: 0` de
+//   la fiche vaut un coup, comme tout sort qui frappe ;
+// - Whispers of Mirkwood — Legolas, et Echo of the Shadow Forest — Elder Horn,
+//   23915 → 23916 et 24415 → 24416 `4.2*{ATK}` : l'attaque de l'état, une fois ;
+// - les passifs Rageful Return (Psamathe), Parrying (Hollyberry Cookie) et Fat
+//   Macaron (Manon), qui n'en profitent que s'ils sont curés offensifs
+//   (`PASSIFS_OFFENSIFS_CONNUS`).
+// Un lien `mutuel` (les « Horn of… » des anges jumeaux et les tirs de leur
+// forme archer) désigne un AUTRE sort, jamais la formule de celui-ci. Deux
+// auxiliaires à formule : aucune n'est choisie.
+function formuleAuxiliaire(c: Competence): string {
+  const aFormule = (c.auxiliaires ?? []).filter((a) => a.sens === 'versCeSort' && (a.competence.formule ?? '').trim());
+  return aFormule.length === 1 ? (aFormule[0].competence.formule ?? '').trim() : '';
+}
+
+// La formule que retient le calcul : celle de `FORMULES_CUREES_PAR_ID` pour
+// l'identifiant, sinon celle de la fiche, sinon celle de sa compétence
+// auxiliaire (`formuleAuxiliaire`). Une seule expression pour le sort actif
+// (`skillDamageProfile`), le passif (`monsterOffensivePassives`) et la règle
+// des attaques conjointes (`estSortCooperatif`).
+function formuleRetenue(c: Competence): string {
+  return formuleRetenueAvecOrigine(c).formule;
+}
+
+/** D'où vient la formule retenue : table curée, fiche, ou compétence auxiliaire. */
+export type OrigineFormuleRetenue = 'curee' | 'fiche' | 'auxiliaire';
+
+/**
+ * La formule que retient le calcul (`formuleRetenue`) et sa provenance ;
+ * `origine: null` quand aucune ne l'est (`formule: ''`). Exportée pour les
+ * scripts qui balaient le corpus : ils lisent la formule de l'application,
+ * jamais `Competence.formule` seule.
+ */
+export function formuleRetenueAvecOrigine(c: Competence): { formule: string; origine: OrigineFormuleRetenue | null } {
+  const curee = FORMULES_CUREES_PAR_ID[c.com2usId ?? -1];
+  if (curee) return { formule: curee.trim(), origine: 'curee' };
+  const fiche = (c.formule ?? '').trim();
+  if (fiche) return { formule: fiche, origine: 'fiche' };
+  const auxiliaire = formuleAuxiliaire(c);
+  return auxiliaire ? { formule: auxiliaire, origine: 'auxiliaire' } : { formule: '', origine: null };
+}
 
 // Portée corrigée par identifiant, quand la prose du sort contredit le champ
 // `aoe` de la donnée (la prose l'emporte). Lue par
@@ -2970,6 +3066,14 @@ const PORTEE_CORRIGEE_PAR_ID: Record<number, boolean> = {
   // blows up the Continuous Damage granted on each target … »
   1362: true,
 };
+
+/**
+ * La portée que retient le profil d'un sort : `PORTEE_CORRIGEE_PAR_ID`, sinon
+ * `Competence.aoe`. Exportée pour les scripts qui balaient le corpus.
+ */
+export function porteeRetenue(c: Competence): boolean {
+  return PORTEE_CORRIGEE_PAR_ID[c.com2usId ?? -1] ?? c.aoe;
+}
 
 const COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID: Record<number, string> = {
   21006: '{MAX HP}*{Sacrifice Reserve %}/{Alive Enemies}',
@@ -3098,7 +3202,6 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
   2113, // Regenerate (Lukan) : « Removes the harmful effects on itself and recovers HP accordingly to the number of effects removed. » (soin ; confirmé par l'utilisateur)
   2611, // Revive (Mikene) : « Revives a dead ally with 40% HP and grants immunity for 1 turn. Grants Soul Protection for 3 turns if this skill is used on an alive ally. … » (résurrection ; confirmé par l'utilisateur)
   2615, // Dark Return (Tilasha) : « Revives a dead ally with little HP and grants a turn instantly. If it's used on a living ally, decreases the current HP by 70%, grants Life Drain for 1 turn, and grants a turn instantly. » (résurrection ; confirmé par l'utilisateur)
-  2813, // Force Field (Sylphid vent) : « Casts a shield that absorbs a certain amount of damage on all allies for 3 turns. »
   2818, // Force Field (Acasis) : « Creates a shield that's proportionate to 30% of your HP on all allies … »
   4210, // Unleashed Fury (Zeratu) : « Gains increased Attack Power and Immunity against harmful effects for 3 turns. Instantly recovers a turn when used. » (buffs et tour ; confirmé par l'utilisateur)
   6713, // Soul Revival (Michelle) : « Revives a dead ally and balances the target's HP ratio to half of your HP ratio and recovers the target's HP by 15% each turn for 2 turns. » (résurrection ; confirmé par l'utilisateur)
@@ -3142,7 +3245,7 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
 // celui d'avant ; la table dit seulement ce qu'il ne contient pas.
 //
 // Quatre sources, et rien d'autre :
-//   1. les six ignore DEF permanents :
+//   1. les cinq ignore DEF permanents :
 //      l'effet `Ignore DEF` est compté sur tout le sort alors que le jeu le
 //      conditionne — trop favorable, gardé avec la mention ;
 //   2. les lignes à profil « calculé » encore incomplètes au code actuel :
@@ -3153,7 +3256,7 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
 //      Jasmine, Daniel, Espresso Cookie feu et ténèbres ; Hibiscus et
 //      Espresso Cookie lumière par la règle des jumeaux collab) :
 //      « n'est pas calculée », sans « encore » ;
-//   4. deux parts connues du jeu, non modélisées, à marquer :
+//   4. les parts connues du jeu, non modélisées, à marquer :
 //      l'équilibrage ATQ/DEF
 //      d'Internal Force sur les deux sorts de dégâts de Leona, et le bonus
 //      de VIT de Summary Justice (Theonia) : « pas encore compté ».
@@ -3168,7 +3271,6 @@ const CALCUL_PARTIEL_PAR_ID: Readonly<Record<number, string>> = {
   // ── Ignore DEF compté en permanence ──
   13406: 'L’ignore DEF est compté en entier, en permanence ; la part du jeu, qui grandit quand tes PV baissent, n’est pas encore modélisée.', // Madness Judgement (Belial)
   13410: 'L’ignore DEF est compté en entier, en permanence ; la part du jeu, qui grandit quand tes PV baissent, n’est pas encore modélisée.', // Madness Judgement (Beelzebub)
-  15511: 'L’ignore DEF est compté en entier, en permanence ; la condition du jeu (3 ennemis ou moins, jusqu’à 100 % selon les PV de la cible) n’est pas encore modélisée.', // Unlimited Power (Liam)
   13611: 'L’ignore DEF est compté en entier, en permanence ; la condition du jeu (35 % par effet bénéfique retiré par la bête) n’est pas encore modélisée.', // Start of Attacking (Barbara)
   7713: 'L’ignore DEF est compté en permanence ; la condition du jeu (DEF de la cible sous 50 % de la tienne) n’est pas encore modélisée.', // Thunder Strike (Copper éveillé, sans second éveil)
   6013: 'L’ignore DEF est compté en permanence ; la condition du jeu (sort lancé sous Invincibilité) n’est pas encore modélisée.', // Sword of Discharge (Katarina)
@@ -3176,6 +3278,7 @@ const CALCUL_PARTIEL_PAR_ID: Readonly<Record<number, string>> = {
   11912: 'La perte de 40 % des PV de la cible (15 % pour un boss) avant le coup n’est pas encore comptée.', // Hellfire (Daphnis)
   6015: 'La perte de 15 % des PV de tous les ennemis avant le coup n’est pas encore comptée.', // Ragnarok (Trinity)
   15114: 'Le bonus de dégâts selon les PV détruits de la cible (15 à 60 %) n’est pas encore compté.', // Time of Destruction (Dorothy)
+  13312: 'Le bonus de 25 % par effet bénéfique ou nocif sur la cible, sur la phase de zone, n’est pas encore compté.', // Fatal Mortar Bullet (Scarlett)
   20413: 'La perte de PV des ennemis dont un effet bénéfique est retiré n’est pas encore comptée.', // Dragon Bombardment (Ereshion)
   13401: 'La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée.', // Sword of Destruction (Belial)
   13402: 'La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée.', // Sword of Destruction (Bael)
@@ -3207,12 +3310,51 @@ export function idsCalculPartiel(): number[] {
   return Object.keys(CALCUL_PARTIEL_PAR_ID).map(Number);
 }
 
+// Les clés de TOUTES les tables curées par identifiant, table par table —
+// pour le test qui exige que chacune soit portée par une forme obtenable et
+// éveillée (`tests/curation-formes-jouables.test.ts`). ⚠️ Une table par
+// identifiant ajoutée ici se déclare aussi dans cette liste, sinon elle échappe
+// à la garde. Seule exception : `CALCUL_PARTIEL_PAR_ID`, qui n'est lue que pour
+// l'affichage et que le test relit par `idsCalculPartiel`.
+export function clesDesTablesParId(): Record<string, number[]> {
+  const cles = (t: object) => Object.keys(t).map(Number);
+  return {
+    BONUS_STAT_FIXE_PAR_ID_CONNUS: cles(BONUS_STAT_FIXE_PAR_ID_CONNUS),
+    BONUS_CONDITIONNEL_PROPRE_PAR_ID_CONNUS: cles(BONUS_CONDITIONNEL_PROPRE_PAR_ID_CONNUS),
+    BONUS_MONSTRE_PAR_EFFET_CIBLE_PAR_ID_CONNUS: cles(BONUS_MONSTRE_PAR_EFFET_CIBLE_PAR_ID_CONNUS),
+    STATS_COMBAT_PAR_ID_CONNUS: cles(STATS_COMBAT_PAR_ID_CONNUS),
+    CONDITIONS_MONSTRE_PAR_ID_CONNUS: cles(CONDITIONS_MONSTRE_PAR_ID_CONNUS),
+    BONUS_PAR_EFFET_CIBLE_PAR_ID_CONNUS: cles(BONUS_PAR_EFFET_CIBLE_PAR_ID_CONNUS),
+    CONDITIONS_COMBAT_PAR_ID_CONNUS: cles(CONDITIONS_COMBAT_PAR_ID_CONNUS),
+    BONUS_CONDITIONNEL_AUDIT_PAR_ID_CONNUS: cles(BONUS_CONDITIONNEL_AUDIT_PAR_ID_CONNUS),
+    CRIT_DAMAGE_PROPRE_PAR_ID_CONNUS: cles(CRIT_DAMAGE_PROPRE_PAR_ID_CONNUS),
+    EFFETS_ENTRE_COUPS_PAR_ID_CONNUS: cles(EFFETS_ENTRE_COUPS_PAR_ID_CONNUS),
+    FORMULES_CUREES_PAR_ID: cles(FORMULES_CUREES_PAR_ID),
+    PORTEE_CORRIGEE_PAR_ID: cles(PORTEE_CORRIGEE_PAR_ID),
+    COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID: cles(COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID),
+    BONUS_STACK_PROPRE_PAR_ID_CONNUS: cles(BONUS_STACK_PROPRE_PAR_ID_CONNUS),
+    SORTS_SANS_ATTAQUE_PAR_ID: [...SORTS_SANS_ATTAQUE_PAR_ID],
+    COUPS_VARIABLES_PAR_ID_CONNUS: cles(COUPS_VARIABLES_PAR_ID_CONNUS),
+    IGNORE_DEF_CONDITIONNEL_PAR_ID: [...IGNORE_DEF_CONDITIONNEL_PAR_ID],
+    IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID: cles(IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID),
+    COUPS_FIXES_CORRIGES_PAR_ID: cles(COUPS_FIXES_CORRIGES_PAR_ID),
+    SEQUENCES_DE_COUPS_PAR_ID_CONNUS: cles(SEQUENCES_DE_COUPS_PAR_ID_CONNUS),
+    SORTS_COOPERATIFS_SANS_EFFET_PAR_ID: [...SORTS_COOPERATIFS_SANS_EFFET_PAR_ID],
+    SORTS_DES_FAMILLES_COOPERATIVES_PAR_ID: [...SORTS_DES_FAMILLES_COOPERATIVES_PAR_ID],
+    ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID: [...ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID],
+    ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR: cles(ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR),
+    MODES_PAR_AUXILIAIRE: cles(MODES_PAR_AUXILIAIRE),
+    COUPS_DU_MODE_DE_LA_FICHE_PAR_ID: cles(COUPS_DU_MODE_DE_LA_FICHE_PAR_ID),
+  };
+}
+
 // Ce que le total d'un sort ne compte pas, ou `null` : seul un sort PRIS EN
 // CHARGE porte l'étiquette — un sort refusé n'a pas de total, il garde son
-// motif.
+// motif. L'étiquette suit la compétence qui FRAPPE (`competenceQuiFrappe`,
+// S1 appelé par un sort coopératif) : c'est son total que le sort affiche.
 export function calculPartielDuSort(p: SkillDamageProfile | SkillDamageUnsupported): string | null {
   if (!estPrisEnCharge(p)) return null;
-  return CALCUL_PARTIEL_PAR_ID[p.skillCom2usId] ?? null;
+  return CALCUL_PARTIEL_PAR_ID[p.competenceQuiFrappe?.skillCom2usId ?? p.skillCom2usId] ?? null;
 }
 
 // Sorts/passifs dont le nombre de coups VARIE en jeu (« 2 à 3 fois », « 3 à
@@ -3328,7 +3470,17 @@ const IGNORE_DEF_COMPLET_CONNUS = new Set(['Hero Strike', 'Strike of Fighter']);
 const IGNORE_DEF_CONDITIONNEL_PAR_ID = new Set([
   7001, 7002, 7003, 7004, 7005, 3311, 8215, 6815,
   7808, 7810, 7763, 15907, 15908, 15910, 19215, 19615, 5315,
+  // Unlimited Power (Liam) : l'ignore DEF n'appartient qu'au mode « 3 ennemis
+  // ou moins », proposé à part (`MODES_PAR_AUXILIAIRE`) ; le sort de la fiche
+  // (4 ennemis ou plus) n'en a pas.
+  15511,
 ]);
+
+// Coups du sort tel que la fiche le décrit quand son `coups` appartient à un
+// autre mode : Unlimited Power (Liam) frappe tous les ennemis une fois avec 4
+// ennemis ou plus ; ses 6 coups sont ceux du mode « 3 ennemis ou moins »
+// (`MODES_PAR_AUXILIAIRE`).
+const COUPS_DU_MODE_DE_LA_FICHE_PAR_ID: Record<number, number> = { 15511: 1 };
 
 // ── Ignore DEF à partir d'un coup choisi — les Blade Dancers ──
 //
@@ -3414,7 +3566,8 @@ const COUPS_FIXES_CORRIGES: Record<string, number> = {
 const COUPS_FIXES_CORRIGES_PAR_ID: Record<number, number> = {};
 
 function coupsFixesCorrigesDe(c: { com2usId: number | null; nom: string }): number | undefined {
-  return (c.com2usId == null ? undefined : COUPS_FIXES_CORRIGES_PAR_ID[c.com2usId]) ?? COUPS_FIXES_CORRIGES[c.nom];
+  return (c.com2usId == null ? undefined : COUPS_FIXES_CORRIGES_PAR_ID[c.com2usId] ?? COUPS_DU_MODE_DE_LA_FICHE_PAR_ID[c.com2usId]) ??
+    COUPS_FIXES_CORRIGES[c.nom];
 }
 
 // Sorts dont les coups n'ont PAS tous la même formule ni la même portée.
@@ -3440,9 +3593,11 @@ function coupsFixesCorrigesDe(c: { com2usId: number | null; nom: string }): numb
 // Valeurs fournies par l'utilisateur (valeurs-de-jeu-curees.md) :
 // coups 1 et 2 à `0.5 × ATQ` mono-cible (donnée + confirmation), coup 3 à
 // `3.0 × ATQ` en zone, cible visée comprise ; même séquence et mêmes skillups,
-// troisième coup inclus, pour les huit identifiants retenus (onze
-// formes du corpus, dont les Magic Knights non éveillés, que l'écran ne
-// propose pas). Les lignes d'artéfact suivent la portée de CHAQUE groupe (voir
+// troisième coup inclus, pour les cinq identifiants des formes jouables
+// (Astar, Iris, Lapis, Lupinus, Lanett) ; `10602` et `10604` couvrent aussi le
+// Magic Knight non éveillé qui les partage. `10601`, `10603` et `10605`, portés
+// par les seuls non éveillés et l'Imperfect Magic Knight non obtenable, sont
+// hors curation. Les lignes d'artéfact suivent la portée de CHAQUE groupe (voir
 // `computeSkillDamageDetail`) : 224 sur les coups 1 et 2, 400 sur les trois,
 // 411 sur le premier coup du tour seulement (confirmation du 2026-10-02).
 //
@@ -3455,8 +3610,12 @@ function coupsFixesCorrigesDe(c: { com2usId: number | null; nom: string }): numb
 type SequenceCuree = {
   // La donnée de la fiche sur laquelle la séquence a été curée, telle quelle.
   empreinte: { formule: string; coups: number | null; aoe: boolean };
-  groupes: readonly { formule: string; coups: number; zone: boolean }[];
+  // `formule: AUXILIAIRE` : le ratio du groupe est celui de la compétence
+  // auxiliaire du sort (`formuleAuxiliaire`), jamais recopié ici. Absent de la
+  // donnée, le sort est refusé avec sa raison.
+  groupes: readonly { formule: string | typeof AUXILIAIRE; coups: number; zone: boolean }[];
 };
+const AUXILIAIRE = Symbol('formule de la compétence auxiliaire');
 const SEQUENCE_BLADE_SURGE: SequenceCuree = {
   empreinte: { formule: '0.5*{ATK}', coups: 2, aoe: false },
   groupes: [
@@ -3465,24 +3624,19 @@ const SEQUENCE_BLADE_SURGE: SequenceCuree = {
   ],
 };
 const SEQUENCES_DE_COUPS_PAR_ID_CONNUS: Record<number, SequenceCuree> = {
-  10601: SEQUENCE_BLADE_SURGE, // Magic Knight eau (19801, non éveillé)
   10602: SEQUENCE_BLADE_SURGE, // Astar (19812), Magic Knight feu (19802)
-  10603: SEQUENCE_BLADE_SURGE, // Imperfect Magic Knight vent (19823), Magic Knight vent (19803)
   10604: SEQUENCE_BLADE_SURGE, // Iris (19814), Magic Knight lumière (19804)
-  10605: SEQUENCE_BLADE_SURGE, // Magic Knight ténèbres (19805, non éveillé)
   10616: SEQUENCE_BLADE_SURGE, // Lapis (19811)
   10618: SEQUENCE_BLADE_SURGE, // Lupinus (19813)
   10620: SEQUENCE_BLADE_SURGE, // Lanett (19815)
 
-  // Séquences dont la phase de zone n'est chiffrée que par l'API SWARFARM :
-  // la « compétence auxiliaire » (`other_skill`) du sort, lue par l'audit des
-  // dégâts conditionnels (annexes, « Compétences auxiliaires
-  // fournies par l'API ») et absente de l'import du corpus. Règle : la
-  // valeur de l'API par défaut, sauf si la
-  // prose du sort la contredit — aucune des quatre proses ne la contredit.
-  // Les phases et leur portée viennent de la prose (« Attacks
-  // the enemy … Afterwards, … all enemies ») ; « all enemies » compte la cible
-  // visée parmi les ennemis touchés.
+  // Séquences dont la phase de zone n'est chiffrée que par la compétence
+  // auxiliaire du sort (`formuleAuxiliaire`) : la fiche ne porte que la
+  // phase 1. Règle : la valeur de l'API par défaut, sauf si la prose du sort
+  // la contredit — aucune de ces proses ne la contredit. Les phases et leur
+  // portée viennent de la prose (« Attacks the enemy … Afterwards, … all
+  // enemies ») ; « all enemies » compte la cible visée parmi les ennemis
+  // touchés.
   // ⚠️ Non établi, nommé : les skillups de la fiche s'appliquent ici aux deux
   // phases, parce que le calcul recopie le profil sur chaque groupe ; rien ne
   // l'a confirmé pour ces sorts (contrairement à Blade Surge). Sur la phase 1
@@ -3491,43 +3645,64 @@ const SEQUENCES_DE_COUPS_PAR_ID_CONNUS: Record<number, SequenceCuree> = {
   // `4,0 × 1,15 + 5,2` au lieu de `(4,0 + 5,2) × 1,15` (9,8 contre 10,58,
   // −7 %) ; relevés R1/R2 du contrôle
   // 13b-sequences-zone.
-  // Fatal Extinctive Bullet — Abigail (22911). Donnée : la phase 1 seule.
-  // Auxiliaire 2476 `4.5*{ATK}`.
+  // Fatal Extinctive Bullet — Abigail (22911). Donnée : la phase 1 seule ;
+  // auxiliaire 13316 `4.5*{ATK}`.
   13311: {
     empreinte: { formule: '3.5*{ATK}', coups: 1, aoe: false },
     groupes: [
       { formule: '3.5*{ATK}', coups: 1, zone: false },
-      { formule: '4.5*{ATK}', coups: 1, zone: true },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
     ],
   },
-  // Fatal Armor Bullet — Emily (22914). Donnée : la phase 1 seule.
-  // Auxiliaire 2478 `4.5*{ATK}`.
+  // Fatal Mortar Bullet — Scarlett (22912). Même forme que ses sœurs ;
+  // auxiliaire 13317 `4.5*{ATK}`. Le +25 % par effet sur la cible de la phase
+  // de zone n'est pas compté (`CALCUL_PARTIEL_PAR_ID`).
+  13312: {
+    empreinte: { formule: '3.5*{ATK}', coups: 1, aoe: false },
+    groupes: [
+      { formule: '3.5*{ATK}', coups: 1, zone: false },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
+    ],
+  },
+  // Fatal Armor Bullet — Emily (22914). Donnée : la phase 1 seule ;
+  // auxiliaire 13319 `4.5*{ATK}`.
   13314: {
     empreinte: { formule: '3.5*{ATK}', coups: 1, aoe: false },
     groupes: [
       { formule: '3.5*{ATK}', coups: 1, zone: false },
-      { formule: '4.5*{ATK}', coups: 1, zone: true },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
     ],
   },
   // Head Press — M. BISON (24213 ; 24203 non éveillé). Donnée : `coups: 2`
   // compte les deux phases, `aoe: false` est la portée de la phase 1 ; la
   // prose décrit une attaque sur l'ennemi, puis une sur tous les ennemis.
-  // Auxiliaire 2762 `5.2*{ATK}`.
+  // Auxiliaire 14116 `5.2*{ATK}`.
   14113: {
     empreinte: { formule: '4.0*{ATK}', coups: 2, aoe: false },
     groupes: [
       { formule: '4.0*{ATK}', coups: 1, zone: false },
-      { formule: '5.2*{ATK}', coups: 1, zone: true },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
     ],
   },
   // Great Sword of the End — Sagar (24713 ; 24703 non éveillé). Donnée :
   // `coups: 2` compte les deux phases, `aoe: true` est la portée de la phase
-  // de zone ; même prose que Head Press. Auxiliaire 2830 `5.2*{ATK}`.
+  // de zone ; même prose que Head Press. Auxiliaire 14616 `5.2*{ATK}`.
   14613: {
     empreinte: { formule: '4.0*{ATK}', coups: 2, aoe: true },
     groupes: [
       { formule: '4.0*{ATK}', coups: 1, zone: false },
-      { formule: '5.2*{ATK}', coups: 1, zone: true },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
+    ],
+  },
+  // Undefeated Warrior — Kuna (18715). Donnée : `3.8*{ATK}`, un coup, `aoe:
+  // true` ; auxiliaire 9516 `3.0*{ATK}`. Le premier coup frappe une cible à
+  // 3,8 × ATQ, le second tous les ennemis à 3,0 × ATQ (utilisateur,
+  // 2026-10-17, valeurs-de-jeu-curees.md).
+  9515: {
+    empreinte: { formule: '3.8*{ATK}', coups: 1, aoe: true },
+    groupes: [
+      { formule: '3.8*{ATK}', coups: 1, zone: false },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
     ],
   },
 };
@@ -3553,6 +3728,248 @@ export function resumeSequenceDeCoups(sequence: readonly Pick<GroupeDeCoups, 'co
   return sequence.map((g) => `${g.coups} coup${g.coups > 1 ? 's' : ''} · ${g.zone ? 'Zone' : 'Cible unique'}`).join(', puis ');
 }
 
+// ── Attaques conjointes ──────────────────────────────────────────────────
+//
+// Règle générale : une compétence ACTIVE à formule portant l'effet SWARFARM
+// `Ally Attack` est un sort coopératif du monstre, toujours une attaque
+// conjointe (décision de l'utilisateur, 2026-10-16). Les deux tables
+// ci-dessous en sont les EXCEPTIONS curées, jamais une liste blanche : un sort
+// coopératif nouveau à effet `Ally Attack` est reconnu sans curation.
+// Spec : docs/02-app/degats-reels/feat-attaques-conjointes.md.
+//
+// ⚠️ Les familles Chakram Dancer et Boomerang Warrior SORTENT de cette règle
+// (`SORTS_DES_FAMILLES_COOPERATIVES_PAR_ID`, plus bas) : leurs attaques ne
+// sont conjointes que si un monstre de l'autre famille est au combat, ce que
+// dit l'interrupteur « Attaque conjointe », allumé par défaut.
+//
+// « À formule » = la formule que RETIENT le calcul (`formuleRetenue` : celle de
+// `FORMULES_CUREES_PAR_ID`, sinon celle de la fiche, sinon celle de sa
+// compétence auxiliaire), décision de l'utilisateur (2026-10-16).
+// Purification, Cooperation! (21415) et Rite of Ashes (22015) portent `Ally
+// Attack` sans formule dans leur fiche : le ratio de leur auxiliaire (4,5 ×
+// ATQ, l'attaque du monstre seule) les rend conjoints.
+
+// INCLUSION — sorts coopératifs à formule dont la donnée ne porte pas
+// `Ally Attack`, rangés parmi les attaques conjointes par l'utilisateur
+// (2026-10-16). Un identifiant, jamais un nom : Cutting Magic de Lisa et
+// Neostone Agent feu (10907, même nom, même ratio) n'en est pas.
+const SORTS_COOPERATIFS_SANS_EFFET_PAR_ID: ReadonlySet<number> = new Set([
+  10910, // Cutting Magic — Sylvia, Neostone Agent ténèbres
+]);
+
+// FAMILLES COOPÉRATIVES — Chakram Dancer (skillGroupId 21900) et Boomerang
+// Warrior (22000) : TOUS leurs sorts offensifs sont des attaques conjointes
+// seulement si un monstre de l'autre famille est au combat (décision de
+// l'utilisateur, 2026-10-16). Le réglage ne voit pas l'équipe : c'est
+// l'interrupteur « Attaque conjointe », proposé sur chacun de ces sorts et
+// allumé quand le champ est absent (`setup.attaqueConjointe !== false`).
+// Relevé sur les 21 fiches des deux familles : les 22 compétences actives à
+// formule (les quatre Spirit Focus, sans formule, ne frappent pas ; les quatre
+// passifs ne sont pas des sorts). Liste fermée, par identifiant, faute de
+// discriminant dans la compétence (la famille est celle du monstre) : l'effet
+// `Ally Attack` en prendrait 18 et manquerait les 4 qui ne le portent pas. Un
+// sort nouveau de ces familles n'y entre que par curation. Aucune fiche hors
+// des deux familles ne porte ces identifiants.
+const SORTS_DES_FAMILLES_COOPERATIVES_PAR_ID: ReadonlySet<number> = new Set([
+  12601, 12602, 12603, 12604, 12605, // Crescent Moon Slash (S1) — Chakram Dancer
+  12607, 12609, // Chakram Crush (S2) — Chakram Dancer feu, lumière
+  12608, // Double Strike (S2) — Chakram Dancer vent (sans `Ally Attack`)
+  12611, // Deadly Dance (S3) — Chakram Dancer eau
+  12613, // Massacre Dance (S3) — Chakram Dancer vent
+  12615, // Moonlight Blow (S3) — Chakram Dancer ténèbres (sans `Ally Attack`)
+  12701, 12702, 12703, 12704, 12705, // Returning Boomerang (S1) — Boomerang Warrior
+  12706, 12710, // Triple Strike (S2) — Boomerang Warrior eau, ténèbres
+  12707, // Boomerang Crush (S2) — Boomerang Warrior feu
+  12712, // Flame Drive (S3) — Boomerang Warrior feu (sans `Ally Attack`)
+  12713, // Vacuum Boomerang (S3) — Boomerang Warrior vent (sans `Ally Attack`)
+  12714, // Lightning Flash (S3) — Boomerang Warrior lumière
+]);
+
+/** Le sort est-il une attaque des familles Chakram Dancer et Boomerang Warrior ? */
+export function estSortDesFamillesCooperatives(c: Competence): boolean {
+  return c.com2usId != null && !c.passif && SORTS_DES_FAMILLES_COOPERATIVES_PAR_ID.has(c.com2usId);
+}
+
+// EXCLUSION — compétences dont l'effet `Ally Attack` ne désigne pas une
+// attaque du monstre lui-même. Toutes deux sont des passifs sans formule, que
+// la règle écarte déjà : la table les garde si une donnée régénérée leur
+// prêtait une formule.
+const ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID: ReadonlySet<number> = new Set([
+  10915, // Best Partner (Passive) — Sylvia : « A randomly selected ally also attacks »
+  12711, // Female Warrior (Passive) — Sabrina : l'effet partagé avec Chakram Dancer
+]);
+
+/**
+ * Le sort est-il un sort coopératif du monstre, toujours conjoint ? Règle et
+ * exceptions ci-dessus ; jamais un sort des familles coopératives, dont le
+ * caractère conjoint dépend de l'interrupteur.
+ */
+export function estSortCooperatif(c: Competence): boolean {
+  if (c.com2usId == null || ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID.has(c.com2usId)) return false;
+  if (c.passif || estSortDesFamillesCooperatives(c)) return false;
+  if (SORTS_COOPERATIFS_SANS_EFFET_PAR_ID.has(c.com2usId)) return true;
+  return formuleRetenue(c) !== '' && c.effets.some((e) => e.nom === 'Ally Attack');
+}
+
+// Le contexte d'une attaque conjointe — chacun avec ses lignes d'artéfact
+// (spec, « Ce que change une attaque conjointe »).
+export type ContexteAttaqueConjointe = 'propre' | 'appelee-par-allie' | 'appelee-par-sort';
+
+// D'où vient l'attaque calculée : le sort choisi lui-même, ou une contribution
+// qui le SUIT dans le même calcul (passif offensif, attaque appelée de
+// `ATTAQUES_APPELEES_PAR_DECLENCHEUR`).
+export type CheminDeLAttaque = 'sort-choisi' | 'suite-du-sort';
+
+/**
+ * LA porte des attaques conjointes : l'attaque calculée est-elle conjointe, et
+ * dans quel contexte ? `null` = non. Seule expression de la règle : le calcul
+ * la lit, l'écran, le CLI et le Worker aussi, jamais une seconde copie.
+ *
+ * - `propre` : sort coopératif du monstre (`sortCooperatif`), quel que soit le
+ *   chemin. 224 suit la portée, 411 le premier coup du tour. Aussi : un sort
+ *   des familles Chakram Dancer et Boomerang Warrior
+ *   (`sortDesFamillesCooperatives`), interrupteur allumé ou ABSENT
+ *   (`setup.attaqueConjointe !== false`) ; éteint, il n'est pas conjoint.
+ *   Pour leurs S1 seulement, la seconde vignette « Pendant le tour d'un
+ *   allié » allumée (`setup.pendantTourAllie === true`) les range dans
+ *   `appelee-par-allie` (décision de l'utilisateur, 2026-10-16) ; sans effet
+ *   quand l'interrupteur des familles est éteint, ni sur leurs S2/S3.
+ * - `appelee-par-sort` : S1 appelé par un sort coopératif sans dégâts propres
+ *   (`appeleParSortCooperatif`, posé par `sortsCooperatifsQuiAppellentDeLaFiche`),
+ *   pendant le tour du monstre. 224 suit la portée du S1 ; 411 s'applique, le
+ *   déclencheur ne frappant pas ; le S1 reçoit la ligne de SON slot
+ *   (`competenceQuiFrappe`, lu par `artifactCritDamagePoints`).
+ * - `appelee-par-allie` : le S1 CHOISI, non coopératif, interrupteur
+ *   « Attaque conjointe » allumé (`setup.attaqueConjointe === true`) : appelé
+ *   par un allié, hors du tour du monstre. 224 ne s'applique pas, 411 si.
+ *   Sans effet sur tout autre sort, ni sur un S1 qui suit le sort choisi.
+ *
+ * Un passif n'est jamais une attaque conjointe. 209 et 225 comptent dans les
+ * trois contextes, 208 dans aucun.
+ */
+export function contexteAttaqueConjointe(
+  profile: ProfilPourLaPorte,
+  setup: ReglagePourLaPorte,
+  chemin: CheminDeLAttaque
+): ContexteAttaqueConjointe | null {
+  if (profile.passif) return null;
+  if (profile.appeleParSortCooperatif) return 'appelee-par-sort';
+  if (profile.sortCooperatif) return 'propre';
+  if (profile.sortDesFamillesCooperatives) {
+    if (setup.attaqueConjointe === false) return null;
+    // Allumée, l'attaque a lieu pendant le tour du monstre (224 selon la
+    // portée, 411), sauf un S1 que l'utilisateur place pendant le tour d'un
+    // allié : hors du tour du monstre, sans 224 (décision de l'utilisateur,
+    // 2026-10-16). Les S1 des deux familles sont les seuls sorts de slot 1 de
+    // leur table (`12601`-`12605`, `12701`-`12705`, vérifié sur le corpus).
+    return profile.slot === 1 && setup.pendantTourAllie === true ? 'appelee-par-allie' : 'propre';
+  }
+  if (chemin === 'sort-choisi' && profile.slot === 1 && setup.attaqueConjointe === true) return 'appelee-par-allie';
+  return null;
+}
+
+type ProfilPourLaPorte = Pick<
+  SkillDamageProfile,
+  'passif' | 'slot' | 'sortCooperatif' | 'sortDesFamillesCooperatives' | 'appeleParSortCooperatif'
+>;
+
+// Les seuls champs du réglage que lit la porte.
+type ReglagePourLaPorte = Pick<DamageSetup, 'attaqueConjointe' | 'pendantTourAllie'>;
+
+/**
+ * L'interrupteur « Attaque conjointe » du sort choisi : `null` s'il n'est pas
+ * proposé (l'allumer ou l'éteindre ne change rien), sinon son état et son
+ * défaut. Dérivé de la porte, jamais une copie de la règle : proposé quand la
+ * porte rend deux contextes différents selon l'interrupteur ; allumé par
+ * défaut quand la porte, champ absent, rend le contexte de l'interrupteur
+ * allumé. Lu par l'écran et par la ligne du CLI.
+ *
+ * - `cas` : pourquoi il est proposé — `familles-cooperatives` (un monstre de
+ *   l'autre famille est au combat ; allumé par défaut) ou `appele-par-un-allie`
+ *   (S1 ordinaire appelé hors du tour du monstre ; éteint par défaut) ;
+ * - `allume` : son état pour ce réglage, défaut compris ;
+ * - `allumeParDefaut` : son état quand le champ est absent.
+ *
+ * Le reste du réglage est tenu tel quel (la seconde vignette, plus bas) : sur
+ * un S1 des familles placé pendant le tour d'un allié, l'interrupteur allumé
+ * rend `appelee-par-allie`, pas `propre`, et reste allumé.
+ */
+export interface InterrupteurAttaqueConjointe {
+  cas: 'familles-cooperatives' | 'appele-par-un-allie';
+  allume: boolean;
+  allumeParDefaut: boolean;
+}
+
+export function interrupteurAttaqueConjointe(
+  profile: ProfilPourLaPorte,
+  setup: ReglagePourLaPorte
+): InterrupteurAttaqueConjointe | null {
+  const siAllume = contexteAttaqueConjointe(profile, { ...setup, attaqueConjointe: true }, 'sort-choisi');
+  if (siAllume === contexteAttaqueConjointe(profile, { ...setup, attaqueConjointe: false }, 'sort-choisi')) return null;
+  return {
+    cas: profile.sortDesFamillesCooperatives ? 'familles-cooperatives' : 'appele-par-un-allie',
+    allume: contexteAttaqueConjointe(profile, setup, 'sort-choisi') === siAllume,
+    allumeParDefaut: contexteAttaqueConjointe(profile, { ...setup, attaqueConjointe: undefined }, 'sort-choisi') === siAllume,
+  };
+}
+
+/**
+ * La seconde vignette « Pendant le tour d'un allié » du sort choisi : `null`
+ * si elle n'est pas proposée, sinon son état et son défaut. Dérivée de la
+ * porte comme `interrupteurAttaqueConjointe`, jamais une copie de la règle :
+ * proposée quand, le reste du réglage tenu, l'allumer et l'éteindre donnent
+ * deux contextes différents. C'est le cas d'un S1 des familles Chakram Dancer
+ * et Boomerang Warrior dont l'interrupteur « Attaque conjointe » est allumé
+ * (défaut compris), et de lui seul : interrupteur éteint, ou S2/S3, ou S1
+ * ordinaire, le champ est sans effet. Lue par l'écran et par la ligne du CLI.
+ */
+export interface VignettePendantTourAllie {
+  allume: boolean;
+  allumeParDefaut: boolean;
+}
+
+export function vignettePendantTourAllie(profile: ProfilPourLaPorte, setup: ReglagePourLaPorte): VignettePendantTourAllie | null {
+  const siAllume = contexteAttaqueConjointe(profile, { ...setup, pendantTourAllie: true }, 'sort-choisi');
+  if (siAllume === contexteAttaqueConjointe(profile, { ...setup, pendantTourAllie: false }, 'sort-choisi')) return null;
+  return {
+    allume: contexteAttaqueConjointe(profile, setup, 'sort-choisi') === siAllume,
+    allumeParDefaut: contexteAttaqueConjointe(profile, { ...setup, pendantTourAllie: undefined }, 'sort-choisi') === siAllume,
+  };
+}
+
+/**
+ * Ce que la ligne du sort du CLI dit de l'attaque conjointe, sans le tiret :
+ * `null` quand le sort choisi n'a pas d'interrupteur ou qu'il est éteint. Lit
+ * la seule `interrupteurAttaqueConjointe`, et `vignettePendantTourAllie` pour
+ * un S1 des familles placé pendant le tour d'un allié.
+ */
+export function mentionAttaqueConjointe(profile: ProfilPourLaPorte, setup: ReglagePourLaPorte): string | null {
+  const interrupteur = interrupteurAttaqueConjointe(profile, setup);
+  if (!interrupteur?.allume) return null;
+  if (interrupteur.cas === 'appele-par-un-allie') return 'attaque conjointe (appelée par un allié)';
+  return vignettePendantTourAllie(profile, setup)?.allume
+    ? 'attaque conjointe (un monstre de l’autre famille au combat, pendant le tour d’un allié)'
+    : 'attaque conjointe (un monstre de l’autre famille au combat)';
+}
+
+/**
+ * Les artéfacts tels qu'ils comptent pour l'attaque calculée, selon son
+ * contexte (`contexteAttaqueConjointe`) : 209 et 225 remis à 0 hors d'une
+ * attaque conjointe ; 224 remis à 0 pour un S1 appelé par un allié, hors du
+ * tour du monstre. Rend l'objet reçu quand rien ne change : aucune allocation
+ * dans la boucle de l'optimiseur pour une paire sans ces lignes.
+ */
+export function artefactsSelonContexteConjoint(
+  artefacts: ArtifactDamageProfile,
+  contexte: ContexteAttaqueConjointe | null
+): ArtifactDamageProfile {
+  if (contexte === null) {
+    return artefacts.degatsAttaqueConjointePct === 0 ? artefacts : { ...artefacts, degatsAttaqueConjointePct: 0 };
+  }
+  if (contexte === 'appelee-par-allie' && artefacts.cdPointsMonoCible !== 0) return { ...artefacts, cdPointsMonoCible: 0 };
+  return artefacts;
+}
+
 /**
  * Profil de dégâts d'une compétence, ou `null` si elle n'inflige pas de
  * dégâts calculables. Ne lève jamais.
@@ -3564,8 +3981,9 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
   if (SORTS_SANS_ATTAQUE_PAR_ID.has(c.com2usId)) return null;
   // Garde « formule vide » sur la formule RETENUE (même forme que
   // `monsterOffensivePassives`) : une fiche à `formule: ""` reste sans profil,
-  // sauf si `FORMULES_CUREES_PAR_ID` lui en donne une.
-  const brut = (FORMULES_CUREES_PAR_ID[c.com2usId] ?? c.formule ?? '').trim();
+  // sauf si `FORMULES_CUREES_PAR_ID` ou sa compétence auxiliaire lui en
+  // donne une.
+  const brut = formuleRetenue(c);
   if (!brut) return null;
   const entete = { skillCom2usId: c.com2usId, slot: c.slot ?? 0, nom: c.nom, description: c.description };
   const fixed = RE_FIXED.test(brut) || estBombeSansCoupDirect(c);
@@ -3603,9 +4021,11 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     }
     sequenceDeCoups = [];
     for (const groupe of groupes) {
-      const analyseGroupe = analyser(groupe.formule);
+      const formule = groupe.formule === AUXILIAIRE ? formuleAuxiliaire(c) : groupe.formule;
+      if (!formule) return { ...entete, raison: 'La compétence auxiliaire qui chiffre une phase de ce sort manque à ses données.' };
+      const analyseGroupe = analyser(formule);
       if (!analyseGroupe) return { ...entete, raison: 'La séquence de coups curée pour ce sort n’est pas prise en charge.' };
-      sequenceDeCoups.push({ ...groupe, ...analyseGroupe });
+      sequenceDeCoups.push({ ...groupe, formule, ...analyseGroupe });
     }
   }
 
@@ -3651,11 +4071,13 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
   }
   return {
     ...entete,
+    ...(estSortCooperatif(c) ? { sortCooperatif: true as const } : {}),
+    ...(estSortDesFamillesCooperatives(c) ? { sortDesFamillesCooperatives: true as const } : {}),
     icone: c.icone,
     formule: brut,
     hits,
     hitsRange: coupsVariables,
-    aoe: PORTEE_CORRIGEE_PAR_ID[c.com2usId] ?? c.aoe,
+    aoe: porteeRetenue(c),
     // ⚠️ `ignoreDefSelonVit` prévaut : SWARFARM tague Concentrated Stab d'un
     // effet « Ignore DEF » PLEIN (`quantite: 100`), la nuance « selon l'écart
     // de VIT » vivant uniquement dans son champ `note` en texte libre, jamais
@@ -3722,12 +4144,12 @@ export function estPrisEnCharge(p: SkillDamageProfile | SkillDamageUnsupported):
 // que les sorts actifs à chaque appel de `monsterOffensivePassives` — si
 // SWARFARM corrige un coefficient demain, la valeur suit sans toucher cette
 // liste. Seule la CATÉGORISATION (qui ne peut PAS être déduite du champ
-// `formule`) est curée. **Exception unique, et pas dans cette liste** : quand
-// les données ne portent AUCUNE formule (ou une fausse), elle vient de
-// `FORMULES_CUREES_PAR_ID`, par identifiant et avec sa source, la MÊME table
-// et la même priorité que pour un sort actif — Tempest (`3213`,
-// `formule: ""`). Sans entrée dans cette table, un passif sans formule reste
-// ignoré.
+// `formule`) est curée. **Exception, et pas dans cette liste** : quand la
+// fiche ne porte AUCUNE formule (ou une fausse), elle vient de sa compétence
+// auxiliaire, ou de `FORMULES_CUREES_PAR_ID` par identifiant et avec sa
+// source — la même lecture que pour un sort actif (`formuleRetenue`) : Tempest
+// (`3213`, `formule: ""`) prend celle de son auxiliaire. Sans l'une ni
+// l'autre, un passif sans formule reste ignoré.
 //
 // ⚠️ **Trois catégories, jamais une case « actif » à deviner** :
 // - `toujours` : le texte ne pose AUCUNE condition de combat (« whenever you
@@ -3947,7 +4369,7 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   { nom: 'Comeuppance (Passive)', critique: 'jamais', categorie: { type: 'conditionnel', condition: 'tu attaques la cible « Suppressed » (texte du jeu, condition non davantage précisée)' } }, // Onmyouji, Giou
   // « Attacks all enemies with a violent storm once more … after you attack
   // the enemy on your turn » — `formule: ""` dans SWARFARM : son `3.7 × ATQ`
-  // vient de `FORMULES_CUREES_PAR_ID` (3213, source citée là-bas). Le nom
+  // vient de sa compétence auxiliaire (`formuleAuxiliaire`, 3218). Le nom
   // n'est porté que par 3213, sur Teshar vent `14513` et Phoenix vent `14503`
   // (balayage du corpus). `conditionnel` : l'Optimizer ne
   // simule ni sa recharge ni sa remise à zéro sur une élimination, un
@@ -3973,6 +4395,38 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
     selectionnableCommeSort: true,
     categorie: { type: 'conditionnel', condition: 'sa recharge est terminée au moment où ton S1 ou ton S2 frappe (recharge non simulée)' },
   }, // Teshar, Phoenix (Vent)
+  // Passifs qui frappent HORS du tour du monstre, chiffrés par leur
+  // compétence auxiliaire (`formuleAuxiliaire`) : ils ne suivent aucun sort
+  // (`slotsDeclencheurs: []`, jamais d'interrupteur après un sort) et ne se
+  // calculent que choisis seuls dans « Compétence utilisée », comme Tempest.
+  // Une contribution, une fois. Noms portés par leurs seules formes (balayage
+  // du corpus, 2026-10-17).
+  // « If an ally excluding yourself takes damage from an enemy during the
+  // enemy's turn, you have a 15% chance to offset that damage, attack the enemy
+  // instantly to deal damage proportionate to your Defense » — auxiliaire
+  // `3.5*{DEF}` (16216, 16716).
+  {
+    nom: 'Parrying (Passive)',
+    slotsDeclencheurs: [],
+    selectionnableCommeSort: true,
+    categorie: { type: 'conditionnel', condition: 'un allié est frappé pendant le tour ennemi et la riposte part (15 %, probabilité du jeu non tirée)' },
+  }, // Hollyberry Cookie (eau)
+  {
+    nom: 'Fat Macaron (Passive)',
+    slotsDeclencheurs: [],
+    selectionnableCommeSort: true,
+    categorie: { type: 'conditionnel', condition: 'un allié est frappé pendant le tour ennemi et la riposte part (15 %, probabilité du jeu non tirée)' },
+  }, // Manon (eau)
+  // « The activation of [Rageful Return] deals significant damage to all
+  // enemies » — à sa résurrection ; auxiliaire `6.0*{ATK}` (11916). Zone : la
+  // prose dit « all enemies », comme la fiche (`aoe: true`) ; l'auxiliaire dit
+  // `aoe: false`, la prose l'emporte.
+  {
+    nom: 'Rageful Return (Passive)',
+    slotsDeclencheurs: [],
+    selectionnableCommeSort: true,
+    categorie: { type: 'conditionnel', condition: 'tu meurs et reviens au combat (une fois par combat)' },
+  }, // Psamathe (eau)
 ];
 
 // Attaque appelée ACTIVE : un sort qui enchaîne une AUTRE
@@ -3988,22 +4442,68 @@ export interface AttaqueAppeleeConnue {
   slotAppele: number;
   // D'où viennent le déclencheur et le slot appelé (prose du sort, valeur fournie par l'utilisateur).
   source: string;
+  // ⚠️ **Le discriminant des deux genres d'entrée.**
+  // - Absent : attaque CONDITIONNELLE après un sort qui frappe (Hadoken après
+  //   Shoryuken) — chemin des passifs (`attaquesAppeleesDeLaFiche`),
+  //   interrupteur éteint par défaut, `passifCompte`.
+  // - Présent : le déclencheur est un sort COOPÉRATIF SANS DÉGÂTS PROPRES (ni
+  //   formule dans sa donnée, ni profil calculable) dont la prose dit qu'il
+  //   fait frapper la compétence du slot appelé. L'appel est certain : aucun
+  //   interrupteur. Le déclencheur devient choisissable dans « Compétence
+  //   utilisée » (`sortsCooperatifsQuiAppellentDeLaFiche`), et son total est
+  //   celui de la compétence appelée, UNE fois, comptée comme attaque
+  //   conjointe pendant le tour du monstre (`appeleParSortCooperatif`) —
+  //   décision de l'utilisateur, valeurs-de-jeu-curees.md, « Sort coopératif
+  //   sans ratio ». Jamais lue par le chemin des passifs.
+  sortCooperatifSansDegats?: {
+    // Tous les coups de la compétence appelée critiquent, quel que soit le
+    // réglage critique : écrit dans la prose du DÉCLENCHEUR, que le profil de
+    // la compétence appelée, seule, ne porte pas.
+    critiqueGaranti?: true;
+  };
 }
 
 // Clé = `com2usId` du SORT DÉCLENCHEUR, jamais un nom : « Hadoken » est porté
 // par 12 formes du corpus, dont 6 sans Shoryuken pour le déclencher, et
-// « Energy Punch » par 20. Lue par
-// `attaquesAppeleesDeLaFiche`, qui rend le même `PassifOffensifProfile` que le
-// chemin des passifs : le calcul ne change pas (`passifCompte`,
-// `computeTotalDamage`, `damageRelevantStats`).
+// « Energy Punch » par 20. Une entrée sans `sortCooperatifSansDegats` est lue
+// par `attaquesAppeleesDeLaFiche`, qui rend le même `PassifOffensifProfile`
+// que le chemin des passifs : le calcul ne change pas (`passifCompte`,
+// `computeTotalDamage`, `damageRelevantStats`). Une entrée qui le porte est
+// lue par `sortsCooperatifsQuiAppellentDeLaFiche` seule.
 //
-// ⚠️ **Vide en production** : aucune entrée n'est codée. Les 17
+// ⚠️ **Aucune attaque conditionnelle n'est codée en production.** Les 17
 // amorces examinées (onze
 // acceptables par une entrée chacune, six classées avec leur raison :
 // `tests/degats-attaque-appelee.test.ts`, qui injecte ses entrées et les
-// retire). Ce qu'il faut fournir pour en ajouter une :
-// docs/02-app/degats-reels/.
-export const ATTAQUES_APPELEES_PAR_DECLENCHEUR: Readonly<Record<number, AttaqueAppeleeConnue>> = {};
+// retire) restent hors de la table. Ce qu'il faut fournir pour en ajouter
+// une : docs/02-app/degats-reels/.
+//
+// Les entrées de production sont les deux sorts coopératifs sans ratio dont
+// la prose appelle le S1 (inventaire du corpus des effets `Ally Attack`) ; un
+// appel du S1 chacun, seuls les dégâts du monstre comptent, jamais ceux des
+// alliés (valeurs-de-jeu-curees.md).
+export const ATTAQUES_APPELEES_PAR_DECLENCHEUR: Readonly<Record<number, AttaqueAppeleeConnue>> = {
+  // Attack Command — Lisa et Neostone Agent feu (S1 Preemptive Strike, 10902) :
+  // « Removes all harmful effects on all allies, and attacks the enemy target
+  // with 2 other allies. » La prose ne nomme pas le S1 : l'appel du S1, une
+  // fois, est la décision de l'utilisateur. Le `coups: 3` de la donnée compte
+  // Lisa et ses deux alliés, il n'est pas lu.
+  10912: {
+    slotAppele: 1,
+    source: 'prose d’Attack Command ; appel du S1, une fois : décision de l’utilisateur (2026-10-16)',
+    sortCooperatifSansDegats: {},
+  },
+  // Concentrated Attack — Moria 2e éveil (S1 Cross Attack, 3153), et sa copie
+  // « boss » 48003 (S1 3168, trouvé par le slot) : « Attacks the enemy with an
+  // ally at the same time with [Cross Attack]. You and the ally's attack will
+  // always land as a Critical Hit » (effet `Guaranteed Critical Hit` dans la
+  // donnée). Un appel : « You and the ally's attack ».
+  3163: {
+    slotAppele: 1,
+    source: 'prose de Concentrated Attack, qui nomme [Cross Attack] (S1) et son critique garanti ; sort coopératif sans ratio : décision de l’utilisateur (2026-10-16)',
+    sortCooperatifSansDegats: { critiqueGaranti: true },
+  },
+};
 
 // Profil de dégâts d'un passif offensif CONNU (voir la liste ci-dessus),
 // prêt à passer par `computeSkillDamage` comme n'importe quel sort actif.
@@ -4027,6 +4527,10 @@ export interface PassifOffensifProfile {
   // Donnée pure (traverse le Worker de résolution avec `RealDamageContext`) :
   // absent = déclenché après n'importe quel sort. Voir `passifCompte`.
   slotsDeclencheurs?: readonly number[];
+  // Donnée pure : vrai = l'attaque frappe AVANT le sort choisi (l'attaque en
+  // Menace de Shadow of Right Arm) : elle lit l'état de la cible d'avant le
+  // sort, sans la réduction de Défense qu'il pose, et l'écran dit « avant ».
+  avantLeSort?: true;
   // Donnée pure : vrai = `profile` est AUSSI proposé comme sort par
   // `monsterDamageSkills` (voir `PassifOffensifConnu`).
   selectionnableCommeSort?: boolean;
@@ -4036,8 +4540,7 @@ export interface PassifOffensifProfile {
 
 /**
  * Les passifs offensifs de CE monstre reconnus dans `PASSIFS_OFFENSIFS_CONNUS`
- * et dont la formule — celle de `FORMULES_CUREES_PAR_ID` pour son identifiant
- * si elle existe, sinon celle de sa propre fiche, comme `skillDamageProfile` —
+ * et dont la formule — `formuleRetenue`, comme `skillDamageProfile` —
  * reste analysable (une formule qui a changé de forme depuis la
  * catégorisation ci-dessus est silencieusement ignorée, jamais un plantage
  * ni un nombre inventé). Liste vide si la fiche est absente.
@@ -4057,9 +4560,9 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
     const connu = PASSIFS_OFFENSIFS_CONNUS.find((p) => p.nom === c.nom);
     if (!connu) continue;
     // ⚠️ La garde porte sur la formule RETENUE, jamais sur `c.formule` seule :
-    // Tempest (3213) porte `formule: ""` et n'existe que par la table curée.
+    // Tempest (3213) porte `formule: ""` et n'existe que par son auxiliaire.
     // Garder `!c.formule` ici l'écarterait en silence.
-    const brut = (FORMULES_CUREES_PAR_ID[c.com2usId] ?? c.formule ?? '').trim();
+    const brut = formuleRetenue(c);
     if (!brut) continue;
     const fixed = RE_FIXED.test(brut);
     const analyse = analyser(brut.replace(RE_FIXED, '').trim());
@@ -4132,6 +4635,7 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
     });
   }
   out.push(...attaquesAppeleesDeLaFiche(detail));
+  out.push(...attaquesAuxiliairesDeLaFiche(detail));
   return out;
 }
 
@@ -4164,7 +4668,9 @@ function attaquesAppeleesDeLaFiche(detail: DetailMonstre): PassifOffensifProfile
   for (const declencheur of detail.competences) {
     if (declencheur.passif || declencheur.com2usId == null || declencheur.slot == null) continue;
     const connue = ATTAQUES_APPELEES_PAR_DECLENCHEUR[declencheur.com2usId];
-    if (!connue) continue;
+    // Un sort coopératif sans dégâts propres n'est pas une attaque
+    // conditionnelle : `sortsCooperatifsQuiAppellentDeLaFiche`.
+    if (!connue || connue.sortCooperatifSansDegats) continue;
     const memeSlot = detail.competences.filter((k) => k.slot === declencheur.slot);
     const auSlotAppele = detail.competences.filter((k) => k.slot === connue.slotAppele);
     if (memeSlot.length !== 1 || auSlotAppele.length !== 1) continue;
@@ -4194,6 +4700,279 @@ function attaquesAppeleesDeLaFiche(detail: DetailMonstre): PassifOffensifProfile
   }));
 }
 
+// Attaque supplémentaire CONDITIONNELLE chiffrée par la compétence auxiliaire
+// du sort déclencheur : le coup en plus que la prose annonce sous condition,
+// dont la fiche ne porte pas le ratio. Même chemin que les attaques appelées
+// (`attaquesAppeleesDeLaFiche`) : un interrupteur éteint par défaut, après ce
+// seul sort, la probabilité du jeu jamais tirée (valeurs-de-jeu-curees.md,
+// « Attaques supplémentaires conditionnelles »).
+//
+// Clé = `com2usId` du SORT DÉCLENCHEUR. `libelle` nomme l'attaque à l'écran :
+// l'auxiliaire n'a souvent pas de nom de jeu (« skill_11016 »). `condition`
+// est la phrase de l'interrupteur.
+interface AttaqueAuxiliaireConnue {
+  libelle: string;
+  condition: string;
+  source: string;
+  // Slots des sorts que l'attaque accompagne ; absent = le seul slot du
+  // déclencheur.
+  slots?: readonly number[];
+  // L'attaque frappe AVANT le sort choisi (voir `PassifOffensifProfile.avantLeSort`).
+  avantLeSort?: true;
+  // Pour un déclencheur SANS auxiliaire dans l'API : celle d'un homonyme,
+  // empruntée sur décision de l'utilisateur, jamais par ressemblance. Le
+  // profil prend son identifiant et sa formule, un coup, sur une cible, et
+  // les améliorations du déclencheur.
+  auxiliaireEmpruntee?: { com2usId: number; formule: string };
+}
+export const ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR: Readonly<Record<number, AttaqueAuxiliaireConnue>> = {
+  // Exploding Hands — Jackie (20215) : « Attacks once more if the target is
+  // stunned by your attack ». Auxiliaire 11016 `7.4*{ATK}`.
+  11015: {
+    libelle: 'Exploding Hands — attaque en plus',
+    condition: 'l’étourdissement de ce sort réussit (probabilité du jeu non tirée)',
+    source: 'prose et auxiliaire 11016 ; une répétition à 7,4 × ATQ, sans nouvel étourdissement : utilisateur, 2026-09-23',
+  },
+  // Shadow of Right Arm — Minato (25911), Ren (25912), Ritsu (25915) : « you go
+  // under the Threat state while the enemy attacks with a single-target skill
+  // 1 time ». Auxiliaires 15716, 15717, 15720 `4.5*{ATK}` : l'attaque lancée
+  // consécutivement en état de Menace, activable ; elle frappe AVANT le sort
+  // choisi, S1 ou S2, et aussi S3 pour Ren (utilisateur, 2026-10-17).
+  15706: {
+    libelle: 'Shadow of Right Arm — attaque en Menace',
+    condition: 'tu es en état de Menace et l’ennemi t’attaque d’un sort mono-cible',
+    source: 'auxiliaire 15716 ; utilisateur, 2026-10-17',
+    slots: [1, 2],
+    avantLeSort: true,
+  },
+  15707: {
+    libelle: 'Shadow of Right Arm — attaque en Menace',
+    condition: 'tu es en état de Menace et l’ennemi t’attaque d’un sort mono-cible',
+    source: 'auxiliaire 15717 ; utilisateur, 2026-10-17',
+    slots: [1, 2, 3],
+    avantLeSort: true,
+  },
+  15710: {
+    libelle: 'Shadow of Right Arm — attaque en Menace',
+    condition: 'tu es en état de Menace et l’ennemi t’attaque d’un sort mono-cible',
+    source: 'auxiliaire 15720 ; utilisateur, 2026-10-17',
+    slots: [1, 2],
+    avantLeSort: true,
+  },
+  // Guilty Sentence — Theonia (34215) : « Attacks all enemies … In addition,
+  // attacks the enemy with the lowest Defense ». Auxiliaire 23517
+  // `3.3*{ATK}`. Agrenia (34212) et Driana (34213), même prose et mêmes
+  // améliorations, n'ont pas d'auxiliaire dans l'API : celle de Theonia vaut
+  // pour elles (utilisateur, 2026-10-17).
+  23510: {
+    libelle: 'Guilty Sentence — attaque sur la DEF la plus faible',
+    condition: 'ta cible est l’ennemi à la plus faible DEF',
+    source: 'prose et auxiliaire 23517 (valeur de l’API par défaut)',
+  },
+  23507: {
+    libelle: 'Guilty Sentence — attaque sur la DEF la plus faible',
+    condition: 'ta cible est l’ennemi à la plus faible DEF',
+    source: 'auxiliaire 23517 de Theonia : utilisateur, 2026-10-17',
+    auxiliaireEmpruntee: { com2usId: 23517, formule: '3.3*{ATK}' },
+  },
+  23508: {
+    libelle: 'Guilty Sentence — attaque sur la DEF la plus faible',
+    condition: 'ta cible est l’ennemi à la plus faible DEF',
+    source: 'auxiliaire 23517 de Theonia : utilisateur, 2026-10-17',
+    auxiliaireEmpruntee: { com2usId: 23517, formule: '3.3*{ATK}' },
+  },
+};
+
+/**
+ * Les attaques auxiliaires conditionnelles de cette fiche
+ * (`ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR`), au format du chemin des passifs :
+ * le profil de l'unique auxiliaire `versCeSort` à formule du déclencheur
+ * (`skillDamageProfile`, ses propres améliorations), nommé par `libelle` et
+ * décrit par la prose du déclencheur ; après ce seul sort, ou avant les sorts
+ * de `slots` quand l'entrée le dit.
+ *
+ * Gardes, chacune écarte l'entrée en silence : déclencheur passif ou sans
+ * slot, slot partagé par une autre compétence, auxiliaire absente, ambiguë ou
+ * sans profil calculable.
+ */
+function attaquesAuxiliairesDeLaFiche(detail: DetailMonstre): PassifOffensifProfile[] {
+  const out: PassifOffensifProfile[] = [];
+  for (const declencheur of detail.competences) {
+    if (declencheur.passif || declencheur.com2usId == null || declencheur.slot == null) continue;
+    const connue = ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR[declencheur.com2usId];
+    if (!connue) continue;
+    if (detail.competences.filter((k) => k.slot === declencheur.slot).length !== 1) continue;
+    const aFormule = (declencheur.auxiliaires ?? []).filter((a) => a.sens === 'versCeSort' && (a.competence.formule ?? '').trim());
+    const emprunt = connue.auxiliaireEmpruntee;
+    const attaque: Competence | undefined =
+      aFormule.length === 1
+        ? aFormule[0].competence
+        : aFormule.length === 0 && emprunt
+          ? { ...declencheur, com2usId: emprunt.com2usId, formule: emprunt.formule, coups: 1, aoe: false, effets: [], auxiliaires: undefined }
+          : undefined;
+    if (!attaque || attaque.passif) continue;
+    const profil = skillDamageProfile(attaque);
+    if (!profil || !estPrisEnCharge(profil)) continue;
+    const nomme = { ...profil, nom: connue.libelle, description: declencheur.description, icone: declencheur.icone };
+    out.push({
+      skillCom2usId: profil.skillCom2usId,
+      nom: connue.libelle,
+      description: declencheur.description,
+      critique: 'suit',
+      coupsDuSortActif: false,
+      slotsDeclencheurs: connue.slots ?? [declencheur.slot],
+      ...(connue.avantLeSort ? { avantLeSort: true as const } : {}),
+      categorie: { type: 'conditionnel', condition: connue.condition },
+      profile: nomme,
+    });
+  }
+  return out;
+}
+
+/**
+ * Les sorts coopératifs SANS DÉGÂTS PROPRES de cette fiche qui appellent une
+ * compétence active (`ATTAQUES_APPELEES_PAR_DECLENCHEUR`, entrées
+ * `sortCooperatifSansDegats`), chacun rendu comme un sort de « Compétence
+ * utilisée » :
+ *
+ * - **identité du déclencheur** : identifiant (la recette le garde), slot (le
+ *   « S3 » affiché, l'ordre de la liste), nom, prose et icône ;
+ * - **calcul de la compétence appelée** : son profil `skillDamageProfile`
+ *   (formule, coups, portée, améliorations, effets), UNE fois — jamais le
+ *   `coups` de la donnée du déclencheur, qui compte les alliés ;
+ * - `appeleParSortCooperatif` : attaque conjointe pendant le tour du monstre
+ *   (porte `contexteAttaqueConjointe`) — 224 par la portée de la compétence
+ *   appelée, 411 (le déclencheur ne frappe pas), sans interrupteur ;
+ * - `competenceQuiFrappe` : la ligne de SON slot (400 pour un S1), jamais
+ *   celle du déclencheur ;
+ * - `critiqueGaranti` si l'entrée le porte (prose du déclencheur).
+ *
+ * Gardes, chacune écarte l'entrée en silence, jamais un nombre inventé :
+ * déclencheur passif ou doté d'un profil propre (une donnée régénérée qui lui
+ * donnerait une formule le ferait calculer deux fois) ; slot du déclencheur ou
+ * slot appelé vide, occupé par un passif ou par plusieurs compétences ;
+ * compétence appelée non calculable. L'étiquette « Calcul partiel » de la
+ * compétence appelée, s'il y en a une, suit le profil (`calculPartielDuSort`
+ * lit `competenceQuiFrappe`).
+ *
+ * ⚠️ Limite nommée : un passif offensif ou une attaque appelée qui suivrait ce
+ * sort voit le slot du DÉCLENCHEUR (`passifPeutSuivre`). Aucune fiche portant
+ * ces entrées n'a de passif ni d'attaque appelée (test) ; un futur cas se
+ * cure, il ne se déduit pas.
+ */
+function sortsCooperatifsQuiAppellentDeLaFiche(detail: DetailMonstre): SkillDamageProfile[] {
+  const out: SkillDamageProfile[] = [];
+  for (const declencheur of detail.competences) {
+    if (declencheur.passif || declencheur.com2usId == null || declencheur.slot == null) continue;
+    const connue = ATTAQUES_APPELEES_PAR_DECLENCHEUR[declencheur.com2usId];
+    if (!connue?.sortCooperatifSansDegats) continue;
+    if (skillDamageProfile(declencheur) !== null) continue;
+    const memeSlot = detail.competences.filter((k) => k.slot === declencheur.slot);
+    const auSlotAppele = detail.competences.filter((k) => k.slot === connue.slotAppele);
+    if (memeSlot.length !== 1 || auSlotAppele.length !== 1) continue;
+    const appelee = auSlotAppele[0];
+    if (appelee.passif || appelee === declencheur) continue;
+    const profil = skillDamageProfile(appelee);
+    if (!profil || !estPrisEnCharge(profil)) continue;
+    out.push({
+      ...profil,
+      skillCom2usId: declencheur.com2usId,
+      slot: declencheur.slot,
+      nom: declencheur.nom,
+      description: declencheur.description,
+      icone: declencheur.icone,
+      appeleParSortCooperatif: true,
+      competenceQuiFrappe: { skillCom2usId: profil.skillCom2usId, slot: profil.slot, nom: profil.nom },
+      ...(connue.sortCooperatifSansDegats.critiqueGaranti ? { critiqueGaranti: true } : {}),
+    });
+  }
+  return out;
+}
+
+// Le second MODE d'un sort, chiffré par sa compétence auxiliaire : le sort
+// change de forme selon une situation que l'utilisateur choisit, et la fiche
+// ne décrit que l'un des deux. Le mode est proposé comme un sort de plus dans
+// « Compétence utilisée », sous le libellé `libelle` ; son profil est celui de
+// l'auxiliaire (formule, améliorations), avec les coups, la portée et l'ignore
+// DEF du mode, qu'elle ne porte pas.
+//
+// Unlimited Power — Liam (25711) : « Attacks all enemies … if there are 4 or
+// more enemies … Attacks the selected target 6 times if there are 3 or fewer
+// enemies and deals damage that ignores Defense up to 100% the lower the
+// target's current HP. » Avec 3 ennemis ou moins : 6 coups à 1,5 × ATQ
+// (auxiliaire 15516), ignore DEF linéaire de 0 % (PV pleins) à 100 % (70 % de
+// PV perdus) — utilisateur, 2026-10-17 (valeurs-de-jeu-curees.md).
+interface ModeAuxiliaire {
+  libelle: string;
+  coups: number;
+  zone: boolean;
+  ignoreDefSelonPvCiblePerdus?: { pvPerdusPourTout: number };
+}
+const MODES_PAR_AUXILIAIRE: Readonly<Record<number, ModeAuxiliaire>> = {
+  15511: { libelle: 'Unlimited Power — 3 ennemis ou moins', coups: 6, zone: false, ignoreDefSelonPvCiblePerdus: { pvPerdusPourTout: 70 } },
+};
+
+/**
+ * Les modes à auxiliaire de cette fiche (`MODES_PAR_AUXILIAIRE`), chacun rendu
+ * comme un sort de « Compétence utilisée » sous l'identifiant de l'auxiliaire
+ * (la recette le garde), au slot du sort, avec sa prose et son icône. Gardes,
+ * chacune écarte le mode en silence : sort passif, auxiliaire absente, ambiguë
+ * ou sans profil calculable.
+ */
+function sortsEnModeAuxiliaire(detail: DetailMonstre): SkillDamageProfile[] {
+  const out: SkillDamageProfile[] = [];
+  for (const c of detail.competences) {
+    const mode = c.com2usId == null ? undefined : MODES_PAR_AUXILIAIRE[c.com2usId];
+    if (!mode || c.passif) continue;
+    const aFormule = (c.auxiliaires ?? []).filter((a) => a.sens === 'versCeSort' && (a.competence.formule ?? '').trim());
+    if (aFormule.length !== 1 || aFormule[0].competence.passif) continue;
+    const profil = skillDamageProfile(aFormule[0].competence);
+    if (!profil || !estPrisEnCharge(profil)) continue;
+    out.push({
+      ...profil,
+      slot: c.slot ?? profil.slot,
+      nom: mode.libelle,
+      description: c.description,
+      icone: c.icone,
+      hits: mode.coups,
+      aoe: mode.zone,
+      ignoreDef: false,
+      ...(mode.ignoreDefSelonPvCiblePerdus ? { ignoreDefSelonPvCiblePerdus: mode.ignoreDefSelonPvCiblePerdus } : {}),
+      modeAuxiliaire: true,
+    });
+  }
+  return out;
+}
+
+/**
+ * Les sorts de l'AUTRE FORME d'un monstre à deux formes, que la fiche ne liste
+ * pas : la compétence auxiliaire liée en `mutuel` à un sort sans dégâts.
+ *
+ * Les anges jumeaux (Ramael et Judiah, Karuel et Lanoah…) n'ont dans leur fiche
+ * que les « Horn of… » de leur forme de soutien, sans dégât ; chacun est lié en
+ * `mutuel` au tir de la forme archer du même slot (Aim Shot, Focus Shot…).
+ * Décision de l'utilisateur (valeurs-de-jeu-curees.md, « Anges jumeaux ») :
+ * le sort de l'archer est choisi seul, sans tenir compte du Horn lancé avant.
+ * Son profil est celui de sa propre compétence (`skillDamageProfile`) :
+ * identifiant, slot, formule, coups, portée, améliorations.
+ *
+ * Gardes, chacune écarte le sort en silence : le sort de la fiche a déjà un
+ * profil (un sort qui frappe n'est pas remplacé), ou il est passif ; la
+ * compétence liée est passive ou sans profil.
+ */
+function sortsDeLAutreForme(detail: DetailMonstre): (SkillDamageProfile | SkillDamageUnsupported)[] {
+  const out: (SkillDamageProfile | SkillDamageUnsupported)[] = [];
+  for (const c of detail.competences) {
+    if (c.passif || skillDamageProfile(c) !== null) continue;
+    for (const aux of c.auxiliaires ?? []) {
+      if (aux.sens !== 'mutuel' || aux.competence.passif) continue;
+      const p = skillDamageProfile(aux.competence);
+      if (p) out.push(p);
+    }
+  }
+  return out;
+}
+
 /**
  * Les sorts offensifs d'un monstre, dans l'ordre des slots — pris en charge
  * ou non. Liste vide si la fiche du monstre est absente (monstre perso,
@@ -4207,6 +4986,14 @@ function attaquesAppeleesDeLaFiche(detail: DetailMonstre): PassifOffensifProfile
  * ajoute après S1 ou S2, à l'état de la cible près (PV et réduction de
  * Défense saisis, au lieu de ceux que le sort laisse) — sans 411 dans les
  * deux cas (voir `computeTotalDamage`).
+ *
+ * ⚠️ **Plus les sorts de l'autre forme** des monstres à deux formes (les tirs
+ * de la forme archer des anges jumeaux) : `sortsDeLAutreForme`.
+ *
+ * ⚠️ **Plus les sorts coopératifs sans dégâts propres qui appellent le S1**
+ * (Attack Command de Lisa, Concentrated Attack de Moria), au slot du
+ * déclencheur : `sortsCooperatifsQuiAppellentDeLaFiche`. Sans eux, ces sorts
+ * n'ont aucun profil (pas de formule) et restent hors de la liste.
  */
 export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageProfile | SkillDamageUnsupported)[] {
   if (!detail) return [];
@@ -4215,6 +5002,9 @@ export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageP
     const p = skillDamageProfile(c);
     if (p) out.push(p);
   }
+  out.push(...sortsDeLAutreForme(detail));
+  out.push(...sortsEnModeAuxiliaire(detail));
+  out.push(...sortsCooperatifsQuiAppellentDeLaFiche(detail));
   for (const p of monsterOffensivePassives(detail)) {
     if (p.selectionnableCommeSort) out.push(p.profile);
   }
@@ -4231,9 +5021,18 @@ export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageP
  * reste sur S2.
  * Sans sort actif calculable, `null` : un passif ne devient pas
  * le défaut faute de mieux.
+ *
+ * ⚠️ **Ni un sort coopératif qui appelle le S1** (`appeleParSortCooperatif`,
+ * Attack Command de Lisa au slot 3) : le défaut reste celui d'avant son
+ * entrée dans la liste (S2 pour Lisa et Moria). Le changer est une décision
+ * de l'utilisateur, jamais un effet de bord de l'ordre des slots.
+ *
+ * ⚠️ **Ni le second mode d'un sort** (`modeAuxiliaire`, Unlimited Power à 3
+ * ennemis ou moins) : le défaut reste le sort tel que la fiche le décrit.
  */
 export function defaultDamageSkill(skills: (SkillDamageProfile | SkillDamageUnsupported)[]): SkillDamageProfile | null {
-  const ok = skills.filter((s): s is SkillDamageProfile => estPrisEnCharge(s) && !s.passif);
+  const ok = skills.filter((s): s is SkillDamageProfile =>
+    estPrisEnCharge(s) && !s.passif && !s.appeleParSortCooperatif && !s.modeAuxiliaire);
   return ok.length > 0 ? ok[ok.length - 1] : null;
 }
 
@@ -4419,6 +5218,25 @@ export interface DamageSetup {
   // variante `defBreak`). N'a de sens que si `profile.appliqueDefBreak` :
   // l'écran ne l'affiche que dans ce cas. Optionnel (compatibilité arrière).
   defBreakParLeSort?: boolean;
+  // Interrupteur « Attaque conjointe », lu par la seule
+  // `contexteAttaqueConjointe` (état et défaut pour l'écran :
+  // `interrupteurAttaqueConjointe`). Deux sens selon le sort choisi :
+  // - S1 ordinaire : appelé par un allié, hors du tour du monstre (209 et 225
+  //   comptent, 224 non). Absent = ÉTEINT, ce qui préserve les recettes
+  //   antérieures ;
+  // - attaque des familles Chakram Dancer et Boomerang Warrior : un monstre
+  //   de l'autre famille est au combat. Absent = ALLUMÉ (décision de
+  //   l'utilisateur, 2026-10-16) ; seul `false` l'éteint.
+  // Sans effet sur tout autre sort.
+  attaqueConjointe?: boolean;
+  // Seconde vignette « Pendant le tour d'un allié », lue par la seule
+  // `contexteAttaqueConjointe` (état pour l'écran : `vignettePendantTourAllie`).
+  // Sur un S1 des familles Chakram Dancer et Boomerang Warrior, interrupteur
+  // « Attaque conjointe » allumé : l'attaque commune a lieu pendant le tour de
+  // l'allié, hors du tour du monstre (224 non, 411 oui ; décision de
+  // l'utilisateur, 2026-10-16). Absent = ÉTEINT. Sans effet sur tout autre
+  // sort, ni quand l'interrupteur des familles est éteint.
+  pendantTourAllie?: boolean;
   brand: boolean;
   // Effets d'ÉQUIPE (un autre monstre que celui optimisé) — voir les
   // constantes `EULDONG_CD_POINTS`/`MIRINAE_BONUS_PCT`/`DEBORAH_AMPLIFY`/
@@ -4993,8 +5811,8 @@ export function vitTotalePourVitesseFinale(
 // oublierait l'aura (elle l'oubliait). Aura nulle → valeur
 // strictement identique à l'ancienne réplique. Pas d'amplification
 // artéfact du buff ici, comme avant (hors périmètre des auras).
-function defCombat(stats: StatRow[], setup: DamageSetup, propres: AurasPropres, element: ElementKey | null = null): number {
-  const defAvecLead = statsDebutCombat(stats, setup, propres, element).def;
+function defCombat(stats: StatRow[], setup: DamageSetup, propres: AurasPropres, element: ElementKey | null = null, memo?: MemoCombat): number {
+  const defAvecLead = (memo ? memo.debutCombat(stats, setup, propres, element) : statsDebutCombat(stats, setup, propres, element)).def;
   const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
   const pctDefBuff = setup.defBuff ? DEF_BUFF_PCT * (1 + ampliMiriam / 100) : 0;
   return (defAvecLead * (100 + pctDefBuff)) / 100;
@@ -5066,8 +5884,8 @@ function resolvedCombatStatBonuses(profiles: CombatStatProfile[], setup: DamageS
 // d'équipe — modèle ») fait entrer les auras dans les passifs. C'est exactement l'ATQ de `statsDebutCombat`, même
 // `ceil` unique ; aura nulle → valeur strictement identique à l'ancienne
 // réplique locale.
-function atkCombatComplet(stats: StatRow[], setup: DamageSetup, propres: AurasPropres, element: ElementKey | null = null): number {
-  return statsDebutCombat(stats, setup, propres, element).atk;
+function atkCombatComplet(stats: StatRow[], setup: DamageSetup, propres: AurasPropres, element: ElementKey | null = null, memo?: MemoCombat): number {
+  return (memo ? memo.debutCombat(stats, setup, propres, element) : statsDebutCombat(stats, setup, propres, element)).atk;
 }
 
 // Taux Crit BRUT (avant plafond à 100 %) — leader Taux Crit + les deux
@@ -5085,10 +5903,823 @@ function crBrutEffectif(
 ): number {
   const leader = resolvedLeaderSkill(setup);
   const pctLeaderCr = leader?.stat === 'Critical Rate' ? leader.pct : 0;
-  const crDepuisVit = monsterWide.critRateSelonVit ? Math.floor(maVit / monsterWide.critRateSelonVit.ptsParVit) : 0;
   const crCombat = resolvedCombatStatBonuses(monsterWide.combatStats ?? [], setup).crPoints;
+  return crBrutAvec(stats, maVit, monsterWide, pctLeaderCr, crCombat);
+}
+
+// Le corps de `crBrutEffectif`, ses deux termes du réglage seul (lead Taux
+// Crit, stats de combat) reçus tout faits — préparés (`TermesDuReglage`).
+function crBrutAvec(
+  stats: StatRow[],
+  maVit: number,
+  monsterWide: Pick<MonsterWideDamageModifiers, 'critRateSelonVit' | 'bonusStatFixe'>,
+  pctLeaderCr: number,
+  crCombat: number
+): number {
+  const crDepuisVit = monsterWide.critRateSelonVit ? Math.floor(maVit / monsterWide.critRateSelonVit.ptsParVit) : 0;
   return total(stats, 'cr') + (monsterWide.bonusStatFixe?.cr ?? 0) + pctLeaderCr + crDepuisVit + crCombat;
 }
+
+/** Les stats au début du combat (`statsDebutCombat`). */
+export type StatsDebutCombat = { atk: number; def: number; hp: number; spd: number; res: number; acc: number };
+
+/**
+ * Ce qu'un calcul de dégâts relit à l'identique d'une paire d'artéfacts à
+ * l'autre, calculé UNE fois : le facultatif `memo` de `computeTotalDamage`.
+ * Le choix des artéfacts note des milliers de paires pour un même build et
+ * une même relique ; deux calculs y dépendent peu de la paire, et tout ce qui
+ * ne dépend que du réglage (chronologie des poses entre les coups, termes du
+ * réglage) vit dans sa `PreparationReglage` (`reglage`), qui peut servir à
+ * toute une file :
+ *
+ * - les **stats au début du combat** (`statsDebutCombat`) ne lisent que le
+ *   tableau de stats, le réglage, les auras propres et l'élément ; or les
+ *   paires de mêmes principales reçoivent le MÊME tableau (`statsParPaire`,
+ *   puis l'apport de l'effet unique par tableau, `evaluerPourRegime`) ;
+ * - les **stats de combat** (`statsDeCombat`) lisent en plus, de la paire, ses
+ *   seules amplifications de buff (`ampliAtkPct`, `ampliDefPct`,
+ *   `ampliVitPct`), et les stats de combat du monstre (`monsterWide`).
+ *
+ * ⚠️ **Exact par construction** : chaque valeur est celle de la fonction
+ * appelée sur les mêmes entrées, reconnues à leur IDENTITÉ (les nombres par
+ * `Object.is`) — aucune formule n'est réécrite, aucun résultat ne change d'un
+ * bit. Précondition : ces entrées ne sont pas modifiées pendant la vie du
+ * memo (les réglages, profils et tableaux de stats se lisent sans jamais
+ * s'écrire ; damage.ts n'en modifie aucun). Ce qu'il rend est partagé : à
+ * lire, jamais à modifier.
+ *
+ * Ce qui ne peut pas être relu ne se retient pas. Les stats ne se retiennent
+ * que pour un réglage CONNU de sa préparation (`PreparationReglage`) : celui
+ * de `computeTotalDamage` et ceux qu'elle a construits ou retenus elle-même ;
+ * un réglage recopié par un appel (coups déduits du build) se calcule sans
+ * mémoire : il ne la remplirait que de clés jamais relues ; de même pour
+ * d'autres auras propres ou un autre élément que ceux du memo (un élément
+ * `undefined` vaut `null`, comme dans `computeTotalDamage`). Bornes :
+ * `BORNE_STATS_PAR_REGLAGE` tableaux par réglage, `BORNE_COMBATS_PAR_STATS`
+ * jeux d'amplifications par tableau ; atteinte, la mémoire concernée se vide
+ * d'un coup.
+ *
+ * Durée de vie : celle d'un `evaluer` (`evaluerPourRegime`, un par build et
+ * par relique essayée), jamais un état du module ; celle de sa préparation,
+ * reçue de l'appelant (une file : `CachesResolution.reglage`) ou, à défaut,
+ * créée avec lui.
+ */
+export class MemoCombat {
+  // Par réglage connu de la préparation, puis par tableau de stats.
+  private parReglage = new Map<DamageSetup, Map<StatRow[], StatsRetenues>>();
+  private readonly element: ElementKey | null;
+  readonly reglage: PreparationReglage;
+
+  constructor(
+    private readonly propres: AurasPropres,
+    element: ElementKey | null,
+    reglage?: PreparationReglage
+  ) {
+    // `computeTotalDamage` reçoit un élément `undefined` comme `null`
+    // (paramètre par défaut) et le passe ainsi à tout ce qu'il appelle.
+    this.element = element ?? null;
+    this.reglage = reglage ?? new PreparationReglage();
+  }
+
+  // Ce que le memo retient, pour les tests (aucun effet sur un résultat).
+  get compte(): { chronologies: number; reglages: number; tableaux: number; combats: number } {
+    let tableaux = 0;
+    let combats = 0;
+    for (const parStats of this.parReglage.values()) {
+      tableaux += parStats.size;
+      for (const r of parStats.values()) combats += r.combats.length;
+    }
+    return { chronologies: this.reglage.nombreChronologies, reglages: this.parReglage.size, tableaux, combats };
+  }
+
+  // Le réglage et le sort de `computeTotalDamage` : connus de la préparation,
+  // leurs stats se retiennent ; leurs chronologies aussi.
+  connaitre(setup: DamageSetup, profile?: SkillDamageProfile): void {
+    this.reglage.connaitre(setup, profile);
+  }
+
+  // Voir `PreparationReglage.chronologie`.
+  chronologie(
+    profile: SkillDamageProfile,
+    setup: DamageSetup,
+    monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>,
+    supplementaires: SkillDamageProfile[],
+    calculer: () => { avant: DamageSetup[]; apres: DamageSetup } | null
+  ): { avant: DamageSetup[]; apres: DamageSetup } | null {
+    return this.reglage.chronologie(profile, setup, monsterWide, supplementaires, calculer);
+  }
+
+  // Les stats retenues pour ce tableau et ce réglage ; `null` si rien ne se retient.
+  private retenues(stats: StatRow[], setup: DamageSetup, propres: AurasPropres, element: ElementKey | null): StatsRetenues | null {
+    if (propres !== this.propres || element !== this.element) return null;
+    let parStats = this.parReglage.get(setup);
+    if (!parStats) {
+      if (!this.reglage.reglageConnu(setup)) return null;
+      if (this.parReglage.size >= BORNE_CONNUS) this.parReglage.clear();
+      parStats = new Map();
+      this.parReglage.set(setup, parStats);
+    }
+    let r = parStats.get(stats);
+    if (!r) {
+      if (parStats.size >= BORNE_STATS_PAR_REGLAGE) parStats.clear();
+      r = { debut: null, combats: [] };
+      parStats.set(stats, r);
+    }
+    return r;
+  }
+
+  debutCombat(stats: StatRow[], setup: DamageSetup, propres: AurasPropres, element: ElementKey | null): StatsDebutCombat {
+    const r = this.retenues(stats, setup, propres, element);
+    if (!r) return statsDebutCombat(stats, setup, propres, element);
+    if (!r.debut) r.debut = statsDebutCombat(stats, setup, propres, element);
+    return r.debut;
+  }
+
+  combat(
+    stats: StatRow[],
+    setup: DamageSetup,
+    propres: AurasPropres,
+    element: ElementKey | null,
+    artefacts: ArtifactDamageProfile,
+    monsterWide: Pick<MonsterWideDamageModifiers, 'combatStats'>,
+    calculer: () => StatsDeCombat
+  ): StatsDeCombat {
+    const r = this.retenues(stats, setup, propres, element);
+    if (!r) return calculer();
+    for (const c of r.combats) {
+      if (
+        c.monsterWide === monsterWide && Object.is(c.ampliAtkPct, artefacts.ampliAtkPct) &&
+        Object.is(c.ampliDefPct, artefacts.ampliDefPct) && Object.is(c.ampliVitPct, artefacts.ampliVitPct)
+      ) {
+        return c.valeur;
+      }
+    }
+    const valeur = calculer();
+    if (r.combats.length >= BORNE_COMBATS_PAR_STATS) r.combats = [];
+    r.combats.push({
+      monsterWide, ampliAtkPct: artefacts.ampliAtkPct, ampliDefPct: artefacts.ampliDefPct, ampliVitPct: artefacts.ampliVitPct, valeur,
+    });
+    return valeur;
+  }
+}
+
+// Ce qu'un `MemoCombat` retient pour un réglage et un tableau de stats.
+interface StatsRetenues {
+  debut: StatsDebutCombat | null;
+  combats: {
+    monsterWide: Pick<MonsterWideDamageModifiers, 'combatStats'>;
+    ampliAtkPct: number;
+    ampliDefPct: number;
+    ampliVitPct: number;
+    valeur: StatsDeCombat;
+  }[];
+}
+
+// Au plus tant de chronologies dans une `PreparationReglage` : une pour le
+// sort (sous son réglage et sous le critique forcé), une par passif qui
+// accompagne chaque coup, une pour l'état après le sort.
+export const BORNE_CHRONOLOGIES = 16;
+// Au plus tant de tableaux de stats par réglage connu d'un `MemoCombat` : une
+// poignée de sommes de principales par build et par relique.
+export const BORNE_STATS_PAR_REGLAGE = 64;
+// Au plus tant de jeux d'amplifications de buff par tableau de stats : la
+// plupart des paires n'en portent aucune.
+export const BORNE_COMBATS_PAR_STATS = 16;
+// Au plus tant de sorts préparés (`PreparationReglage.sort`) : un par réglage
+// d'une file.
+export const BORNE_SORTS_PREPARES = 16;
+// Au plus tant de découpes et de jeux de termes retenus : un par profil et
+// par réglage — le sort, ses tronçons de coups et ses passifs, sous le réglage
+// et ceux qui en dérivent (état avant chaque coup, critique forcé).
+export const BORNE_DECOUPES = 64;
+export const BORNE_TERMES = 256;
+// Au plus tant de réglages, de profils connus d'une `PreparationReglage`, et
+// de réglages retenus par un `MemoCombat`.
+export const BORNE_CONNUS = 64;
+
+// Les modificateurs monstre-wide de `computeSkillDamageDetail`.
+type ModificateursMonstre = NonNullable<Parameters<typeof computeSkillDamageDetail>[7]>;
+
+/**
+ * Ce qui, dans le calcul des dégâts réels, ne dépend QUE du réglage — le
+ * sort, ses passifs, le réglage de combat, les modificateurs monstre-wide et
+ * l'élément —, préparé UNE fois au lieu d'une fois par paire d'artéfacts, par
+ * build et par relique : le `reglage` d'un `MemoCombat`.
+ *
+ * - les **chronologies des poses entre les coups** (`chronologieEffetsEntreCoups`) ;
+ * - la **préparation du sort** de `computeTotalDamage` (`SortPrepare`) :
+ *   contexte d'attaque conjointe du sort, réglage à critique forcé, état de la
+ *   cible après le sort, et pour chaque passif qui compte (`passifCompte`) son
+ *   contexte conjoint, son bonus acquis (`bonusPassifActif`), son profil et
+ *   ses réglages (mode critique, réduction de DEF après le sort, état avant
+ *   chaque coup) ; les facteurs de fin de chaîne qui ne lisent que le réglage
+ *   (stack saisi, bonus conditionnel, Velaska) ;
+ * - la **découpe d'un sort** (`DecoupeDuSort`) : séquence curée en groupes,
+ *   ou tronçons de coups (poses entre les coups, ignore DEF à partir d'un
+ *   rang) ;
+ * - les **termes du réglage** d'un calcul de sort (`TermesDuReglage`).
+ *
+ * ⚠️ **Exact par construction**, comme `MemoCombat` : chaque valeur est
+ * l'expression même du calcul, sur les mêmes entrées reconnues à leur
+ * IDENTITÉ ; aucune somme ni aucun produit n'est réassocié (un terme préparé
+ * prend sa place dans l'expression ; un préfixe seulement quand l'expression
+ * se lit de gauche à droite). Précondition : réglage, sort, passifs et
+ * modificateurs ne sont pas modifiés pendant la vie de la préparation. Ce
+ * qu'elle rend est partagé : à lire, jamais à modifier.
+ *
+ * Ce qui ne peut pas être relu ne se retient pas. Sont connus : le réglage et
+ * le sort de `computeTotalDamage` (`connaitre`), les réglages que rend une
+ * chronologie retenue, les profils et réglages que la préparation construit
+ * elle-même (critique forcé, passifs, tronçons) ; une chronologie ne se
+ * retient que pour un réglage connu ET un sort de `computeTotalDamage`, une
+ * découpe ou des termes que pour un profil et un réglage connus. Un objet
+ * recopié par un appel (coups déduits du build) se calcule sans mémoire.
+ * Bornes `BORNE_CHRONOLOGIES`, `BORNE_SORTS_PREPARES`, `BORNE_DECOUPES`,
+ * `BORNE_TERMES`, `BORNE_CONNUS` ; atteinte, la mémoire concernée se vide d'un
+ * coup — à celle des chronologies, tout ce qui est connu est oublié, l'appel
+ * courant compris.
+ *
+ * Durée de vie : celle d'une file de résolution (`CachesResolution.reglage`,
+ * `nouveauxCachesResolution`), partagée par tous ses builds et reliques ;
+ * sans elle, celle de l'évaluateur (`MemoCombat` en crée une). Jamais un état
+ * du module.
+ */
+export class PreparationReglage {
+  private chronologies: {
+    profile: SkillDamageProfile;
+    setup: DamageSetup;
+    monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>;
+    supplementaires: SkillDamageProfile[];
+    valeur: { avant: DamageSetup[]; apres: DamageSetup } | null;
+  }[] = [];
+  private reglagesConnus = new Set<DamageSetup>();
+  // Les sorts de `computeTotalDamage` : seules leurs chronologies se relisent.
+  private sortsConnus = new Set<SkillDamageProfile>();
+  // Les profils dont découpe et termes se relisent : ces sorts, et les profils
+  // que la préparation construit (passifs, tronçons, groupes d'une séquence).
+  private profilsConnus = new Set<SkillDamageProfile>();
+  private sorts: {
+    profile: SkillDamageProfile;
+    passifs: PassifOffensifProfile[];
+    setup: DamageSetup;
+    monsterWide: ModificateursMonstre;
+    stack: BonusDegatsStackableProfile | null;
+    conditionnel: BonusDegatsConditionnelProfile | null;
+    valeur: SortPrepare;
+  }[] = [];
+  private decoupes = new Map<SkillDamageProfile, { setup: DamageSetup; monsterWide: ModificateursMonstre; valeur: DecoupeDuSort | null }[]>();
+  private nbDecoupes = 0;
+  private termesRetenus = new Map<DamageSetup, Map<SkillDamageProfile, { element: ElementKey | null; monsterWide: ModificateursMonstre; valeur: TermesDuReglage }[]>>();
+  private nbTermes = 0;
+  // Calculs faits, relectures et calculs hors mémoire (objet inconnu) : le
+  // compte de travail des tests et des diagnostics, sans effet sur un résultat.
+  private readonly calculs = {
+    chronologies: 0, sorts: 0, sortsLus: 0, decoupes: 0, decoupesLues: 0, decoupesHorsMemoire: 0,
+    termes: 0, termesLus: 0, termesHorsMemoire: 0,
+  };
+
+  get nombreChronologies(): number {
+    return this.chronologies.length;
+  }
+
+  get compte(): {
+    retenus: { chronologies: number; sorts: number; decoupes: number; termes: number };
+    calculs: PreparationReglage['calculs'];
+  } {
+    return {
+      retenus: { chronologies: this.chronologies.length, sorts: this.sorts.length, decoupes: this.nbDecoupes, termes: this.nbTermes },
+      calculs: { ...this.calculs },
+    };
+  }
+
+  // Le réglage de `computeTotalDamage` et, avec lui, son sort.
+  connaitre(setup: DamageSetup, profile?: SkillDamageProfile): void {
+    this.ajouterReglage(setup);
+    if (profile && !this.sortsConnus.has(profile)) {
+      if (this.sortsConnus.size >= BORNE_CONNUS) this.sortsConnus.clear();
+      this.sortsConnus.add(profile);
+      this.ajouterProfil(profile);
+    }
+  }
+
+  reglageConnu(setup: DamageSetup): boolean {
+    return this.reglagesConnus.has(setup);
+  }
+
+  private ajouterReglage(setup: DamageSetup): void {
+    if (this.reglagesConnus.has(setup)) return;
+    if (this.reglagesConnus.size >= BORNE_CONNUS) this.reglagesConnus.clear();
+    this.reglagesConnus.add(setup);
+  }
+
+  private ajouterProfil(profile: SkillDamageProfile): void {
+    if (this.profilsConnus.has(profile)) return;
+    if (this.profilsConnus.size >= BORNE_CONNUS) this.profilsConnus.clear();
+    this.profilsConnus.add(profile);
+  }
+
+  chronologie(
+    profile: SkillDamageProfile,
+    setup: DamageSetup,
+    monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>,
+    supplementaires: SkillDamageProfile[],
+    calculer: () => { avant: DamageSetup[]; apres: DamageSetup } | null
+  ): { avant: DamageSetup[]; apres: DamageSetup } | null {
+    for (const c of this.chronologies) {
+      if (
+        c.profile === profile && c.setup === setup && c.monsterWide === monsterWide &&
+        c.supplementaires.length === supplementaires.length &&
+        c.supplementaires.every((p, i) => p === supplementaires[i])
+      ) {
+        return c.valeur;
+      }
+    }
+    this.calculs.chronologies++;
+    const valeur = calculer();
+    // Un réglage ou un sort inconnu est un objet recopié par cet appel : aucun
+    // appel ne redemandera cette chronologie, ni les réglages qu'elle rend.
+    if (!this.reglagesConnus.has(setup) || !this.sortsConnus.has(profile)) return valeur;
+    if (this.chronologies.length >= BORNE_CHRONOLOGIES) {
+      // Tout ce qui est connu est oublié, l'appel courant compris : il ne
+      // revient qu'au prochain computeTotalDamage. La chronologie courante est
+      // retenue et ses réglages dérivés réinscrits ci-dessous ; le calcul déjà
+      // fait reste utilisable pendant cet appel.
+      this.chronologies = [];
+      this.reglagesConnus.clear();
+      this.sortsConnus.clear();
+      this.profilsConnus.clear();
+    }
+    this.chronologies.push({ profile, setup, monsterWide, supplementaires: [...supplementaires], valeur });
+    if (valeur) {
+      for (const s of valeur.avant) this.ajouterReglage(s);
+      this.ajouterReglage(valeur.apres);
+    }
+    return valeur;
+  }
+
+  // La préparation du sort de `computeTotalDamage` : ses entrées sont celles
+  // de l'appel (`connaitre`), toujours retenue.
+  sort(
+    profile: SkillDamageProfile,
+    passifs: PassifOffensifProfile[],
+    setup: DamageSetup,
+    monsterWide: ModificateursMonstre,
+    stack: BonusDegatsStackableProfile | null,
+    conditionnel: BonusDegatsConditionnelProfile | null
+  ): SortPrepare {
+    for (const s of this.sorts) {
+      if (
+        s.profile === profile && s.passifs === passifs && s.setup === setup && s.monsterWide === monsterWide &&
+        s.stack === stack && s.conditionnel === conditionnel
+      ) {
+        this.calculs.sortsLus++;
+        return s.valeur;
+      }
+    }
+    this.calculs.sorts++;
+    const valeur = preparerSort(profile, passifs, setup, monsterWide, stack, conditionnel, this);
+    if (this.sorts.length >= BORNE_SORTS_PREPARES) this.sorts = [];
+    this.sorts.push({ profile, passifs, setup, monsterWide, stack, conditionnel, valeur });
+    // Les objets construits une fois pour toutes sont désormais connus.
+    if (valeur.setupCritForce) this.ajouterReglage(valeur.setupCritForce);
+    for (const pp of valeur.passifs) {
+      this.ajouterProfil(pp.profil);
+      for (const variante of pp.setups ?? []) for (const s of variante) this.ajouterReglage(s);
+    }
+    return valeur;
+  }
+
+  // La découpe d'un appel de `computeSkillDamageDetail` (`null` : un calcul
+  // simple).
+  decoupe(profile: SkillDamageProfile, setup: DamageSetup, monsterWide: ModificateursMonstre): DecoupeDuSort | null {
+    const parProfil = this.decoupes.get(profile);
+    if (parProfil) {
+      for (const d of parProfil) {
+        if (d.setup === setup && d.monsterWide === monsterWide) {
+          this.calculs.decoupesLues++;
+          return d.valeur;
+        }
+      }
+    }
+    if (!this.profilsConnus.has(profile) || !this.reglagesConnus.has(setup)) {
+      this.calculs.decoupesHorsMemoire++;
+      return decoupeDuSort(profile, setup, monsterWide, this);
+    }
+    this.calculs.decoupes++;
+    const valeur = decoupeDuSort(profile, setup, monsterWide, this);
+    if (this.nbDecoupes >= BORNE_DECOUPES) {
+      this.decoupes.clear();
+      this.nbDecoupes = 0;
+    }
+    const liste = this.decoupes.get(profile);
+    if (liste) liste.push({ setup, monsterWide, valeur });
+    else this.decoupes.set(profile, [{ setup, monsterWide, valeur }]);
+    this.nbDecoupes++;
+    for (const g of valeur?.groupes ?? []) this.ajouterProfil(g.profil);
+    for (const t of valeur?.troncons ?? []) {
+      this.ajouterProfil(t.profil);
+      this.ajouterReglage(t.setup);
+    }
+    return valeur;
+  }
+
+  // Les termes du réglage d'un calcul de sort.
+  termes(profile: SkillDamageProfile, setup: DamageSetup, element: ElementKey | null, monsterWide: ModificateursMonstre): TermesDuReglage {
+    const parProfil = this.termesRetenus.get(setup)?.get(profile);
+    if (parProfil) {
+      for (const t of parProfil) {
+        if (t.element === element && t.monsterWide === monsterWide) {
+          this.calculs.termesLus++;
+          return t.valeur;
+        }
+      }
+    }
+    if (!this.profilsConnus.has(profile) || !this.reglagesConnus.has(setup)) {
+      this.calculs.termesHorsMemoire++;
+      return termesDuReglage(profile, setup, element, monsterWide);
+    }
+    this.calculs.termes++;
+    const valeur = termesDuReglage(profile, setup, element, monsterWide);
+    if (this.nbTermes >= BORNE_TERMES) {
+      this.termesRetenus.clear();
+      this.nbTermes = 0;
+    }
+    let parReglage = this.termesRetenus.get(setup);
+    if (!parReglage) {
+      parReglage = new Map();
+      this.termesRetenus.set(setup, parReglage);
+    }
+    const liste = parReglage.get(profile);
+    if (liste) liste.push({ element, monsterWide, valeur });
+    else parReglage.set(profile, [{ element, monsterWide, valeur }]);
+    this.nbTermes++;
+    return valeur;
+  }
+}
+
+/** Un passif qui compte après le sort, préparé (`SortPrepare`). */
+export interface PassifPrepare {
+  p: PassifOffensifProfile;
+  contexte: ContexteAttaqueConjointe | null;
+  // `bonusPassifActif` : le surplus d'un passif `bonus` est-il acquis ?
+  bonusActif: boolean;
+  // Le profil calculé : celui du passif, ses coups résolus sur ceux du sort
+  // (`coupsDuSortActif`), ou, coup par coup, un coup (`avant` non nul).
+  profil: SkillDamageProfile;
+  // L'état de la cible qu'il lit (après le sort, ou le réglage pour une
+  // attaque qui le précède), réduction de DEF comprise, avant son mode
+  // critique ; `null` coup par coup.
+  base: DamageSetup | null;
+  // Coup par coup (Feng Yan) : l'état avant chaque coup du sort.
+  avant: DamageSetup[] | null;
+  // Les réglages avec son mode critique, construits une fois quand la
+  // préparation est retenue, sans puis avec le critique forcé (un par coup
+  // coup par coup) ; `null` sinon : construits à chaque appel.
+  setups: [DamageSetup[], DamageSetup[]] | null;
+}
+
+/** Ce que `computeTotalDamage` lit du seul réglage (`PreparationReglage.sort`). */
+export interface SortPrepare {
+  vitEnnemie: number;
+  contexteSort: ContexteAttaqueConjointe | null;
+  // Le réglage du sort sous critique forcé, construit une fois quand la
+  // préparation est retenue ; `null` sinon.
+  setupCritForce: DamageSetup | null;
+  passifs: readonly PassifPrepare[];
+  facteurStack: number;
+  conditionnelActif: boolean;
+  facteurVelaska: number;
+}
+
+// Le réglage d'un passif avec son mode critique — `'jamais'`/`'toujours'`
+// propres au passif, sinon le critique forcé du sort pour un passif `'suit'`.
+function avecModeCritique(base: DamageSetup, p: PassifOffensifProfile, forceCrit: boolean): DamageSetup {
+  return {
+    ...base,
+    ...(forceCrit && p.critique === 'suit' ? { critMode: 'crit' as const } : {}),
+    ...(p.critique === 'jamais' ? { critMode: 'normal' as const } : {}),
+    ...(p.critique === 'toujours' ? { critMode: 'crit' as const } : {}),
+  };
+}
+
+// Aucun passif qui compte : la liste vide partagée, sans allocation.
+const AUCUN_PASSIF: readonly PassifPrepare[] = Object.freeze([]);
+
+// ⚠️ Le brouillon du sort préparé d'un `computeTotalDamage` SANS préparation :
+// réécrit en entier à chaque appel, lu par lui seul (`computeTotalDamage`
+// n'appelle aucun autre `computeTotalDamage`). Jamais une mémoire.
+const SORT_SANS_MEMOIRE: SortPrepare = {
+  vitEnnemie: 0, contexteSort: null, setupCritForce: null, passifs: AUCUN_PASSIF,
+  facteurStack: 0, conditionnelActif: false, facteurVelaska: 0,
+};
+
+// Le corps de `PreparationReglage.sort` (`reglage` présent : un objet neuf,
+// retenu), ou sa version sans mémoire (`reglage` absent : écrit dans le
+// brouillon `SORT_SANS_MEMOIRE` ; les réglages à mode critique ne sont pas
+// construits d'avance, `computeTotalDamage` les recopie à chaque appel comme
+// avant).
+function preparerSort(
+  profile: SkillDamageProfile,
+  passifs: PassifOffensifProfile[],
+  setup: DamageSetup,
+  monsterWide: ModificateursMonstre,
+  stack: BonusDegatsStackableProfile | null,
+  conditionnel: BonusDegatsConditionnelProfile | null,
+  reglage?: PreparationReglage
+): SortPrepare {
+  // État de la cible après le dernier coup du sort, poses du scénario
+  // comprises, pour les contributions qui SUIVENT le sort ; `null` sans
+  // scénario actif (voir `etatCibleApresSort`).
+  const setupApresSort = etatCibleApresSort(profile, passifs, setup, monsterWide, reglage);
+  let prepares: PassifPrepare[] | null = null;
+  for (const p of passifs) {
+    if (!passifCompte(p, profile, setup)) continue;
+    prepares ??= [];
+    const avant = p.coupsDuSortActif ? setupsAvantChaqueCoup(profile, setup, monsterWide, [p.profile], reglage) : null;
+    const contexte = contexteAttaqueConjointe(p.profile, setup, 'suite-du-sort');
+    const bonusActif = bonusPassifActif(p, setup);
+    if (avant) {
+      // Feng Yan : chaque instance de Winds and Clouds accompagne le coup
+      // actif correspondant. Elle lit donc le Brise DEF/la Marque AVANT ce
+      // coup, et non l'état final après les trois coups.
+      prepares.push({
+        p, contexte, bonusActif, profil: { ...p.profile, hits: 1, hitsRange: undefined }, base: null, avant,
+        setups: reglage ? [avant.map((s) => avecModeCritique(s, p, false)), avant.map((s) => avecModeCritique(s, p, true))] : null,
+      });
+      continue;
+    }
+    // `hitsRange: undefined` : `hits` est déjà la valeur RÉSOLUE du sort
+    // actif, `resolvedHits` ne doit pas la re-résoudre une seconde fois via
+    // un éventuel `coupsPersonnalises[p.skillCom2usId]` sans rapport.
+    const profil = p.coupsDuSortActif ? { ...p.profile, hits: resolvedHits(profile, setup), hitsRange: undefined } : p.profile;
+    // Une contribution qui SUIT le sort lit l'état de la cible après son
+    // dernier coup : sous scénario, les poses entre les coups comprises ;
+    // sinon le réglage, avec la réduction que le sort pose lui-même. Une
+    // attaque qui le PRÉCÈDE (`avantLeSort`) lit le réglage tel quel.
+    const etatCible = p.avantLeSort ? setup : setupApresSort ?? setup;
+    const base = { ...etatCible, defBreak: p.avantLeSort ? setup.defBreak : defBreakApres(etatCible) };
+    prepares.push({
+      p, contexte, bonusActif, profil, base, avant: null,
+      setups: reglage ? [[avecModeCritique(base, p, false)], [avecModeCritique(base, p, true)]] : null,
+    });
+  }
+  const r: SortPrepare = reglage
+    ? { vitEnnemie: 0, contexteSort: null, setupCritForce: null, passifs: AUCUN_PASSIF, facteurStack: 0, conditionnelActif: false, facteurVelaska: 0 }
+    : SORT_SANS_MEMOIRE;
+  // ⚠️ Bornée à 1, comme dans `computeSkillDamageDetail`.
+  r.vitEnnemie = Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
+  r.contexteSort = contexteAttaqueConjointe(profile, setup, 'sort-choisi');
+  r.setupCritForce = reglage ? { ...setup, critMode: 'crit' as const } : null;
+  r.passifs = prepares ?? AUCUN_PASSIF;
+  r.facteurStack = stack ? 1 + resolvedStackPct(stack, setup) / 100 : 1;
+  r.conditionnelActif = !!(
+    conditionnel &&
+    conditionnel.excludeSkillCom2usId !== profile.skillCom2usId &&
+    bonusDegatsConditionnelActif(conditionnel, setup)
+  );
+  r.facteurVelaska = setup.velaskaActif ? 1 + (VELASKA_PCT_PAR_PV_PERDU * (setup.velaskaPvPerduPct ?? 0)) / 100 : 1;
+  return r;
+}
+
+/**
+ * La découpe d'un calcul de sort en appels (`computeSkillDamageDetail`) : les
+ * groupes d'une séquence curée (`groupes`, avec le rang de leur premier coup),
+ * ou les tronçons de coups consécutifs qui lisent le même réglage et le même
+ * état de DEF (`troncons`) ; `null` pour un calcul simple.
+ */
+export type DecoupeDuSort =
+  | { groupes: { profil: SkillDamageProfile; rang: number }[]; troncons: null }
+  | { groupes: null; troncons: { profil: SkillDamageProfile; setup: DamageSetup; premier: number }[] };
+
+function decoupeDuSort(
+  profile: SkillDamageProfile,
+  setup: DamageSetup,
+  monsterWide: ModificateursMonstre,
+  reglage?: PreparationReglage
+): DecoupeDuSort | null {
+  // ── Séquence curée (Blade Surge) : un appel ordinaire par groupe de coups ──
+  // (voir `computeSkillDamageDetail`) : la cible secondaire ne reçoit que les
+  // groupes de zone ; le rang compte tous les coups, reçus ou non.
+  const sequence = profile.sequenceDeCoups;
+  if (sequence) {
+    const secondaire = cibleDegatsRetenue(profile, setup) === 'secondaire';
+    const groupes: { profil: SkillDamageProfile; rang: number }[] = [];
+    let rang = 0;
+    for (const groupe of sequence) {
+      if (!secondaire || groupe.zone) {
+        groupes.push({
+          profil: {
+            ...profile,
+            formule: groupe.formule,
+            noeud: groupe.noeud,
+            variables: groupe.variables,
+            hits: groupe.coups,
+            hitsRange: undefined,
+            aoe: groupe.zone,
+            effetsEntreCoups: undefined,
+            sequenceDeCoups: undefined,
+          },
+          rang,
+        });
+      }
+      rang += groupe.coups;
+    }
+    return { groupes, troncons: null };
+  }
+  // Découpe COUP PAR COUP, en tronçons de coups consécutifs qui lisent le même
+  // réglage et le même état de DEF : un tronçon par coup sous un scénario de
+  // poses entre les coups (chaque coup lit l'état qui le précède), sinon au plus
+  // deux pour un ignore DEF à partir d'un rang (Blade Dancers) — les coups
+  // avant le rang, mitigés par la DEF, puis ceux à partir de lui, qui
+  // l'ignorent. Le coup 1 n'ignore jamais par ce mécanisme : le rang retenu
+  // vaut au moins 2 (`rangsPermis`). Aucune ATB n'est déduite.
+  const setupsScenario = setupsAvantChaqueCoup(profile, setup, monsterWide, [], reglage);
+  const rangIgnoreDef = resolvedPremierCoupIgnoreDef(profile, setup);
+  if (!setupsScenario && rangIgnoreDef === null) return null;
+  const coups = setupsScenario ? setupsScenario.length : resolvedHits(profile, setup);
+  const coupInconditionnel = profile.ignoreDefAPartirDuCoup?.dernierCoupInconditionnel ?? null;
+  const ignoreAuCoup = (n: number) =>
+    profile.ignoreDef || n === coupInconditionnel || (rangIgnoreDef !== null && n >= rangIgnoreDef);
+  const troncons: { profil: SkillDamageProfile; setup: DamageSetup; premier: number }[] = [];
+  for (let premier = 1; premier <= coups; ) {
+    let dernier = premier;
+    if (!setupsScenario) {
+      while (dernier < coups && ignoreAuCoup(dernier + 1) === ignoreAuCoup(premier)) dernier++;
+    }
+    troncons.push({
+      profil: {
+        ...profile,
+        hits: dernier - premier + 1,
+        hitsRange: undefined,
+        effetsEntreCoups: undefined,
+        ignoreDefAPartirDuCoup: undefined,
+        ignoreDef: ignoreAuCoup(premier),
+      },
+      setup: setupsScenario ? setupsScenario[premier - 1] : setup,
+      premier,
+    });
+    premier = dernier + 1;
+  }
+  return { groupes: null, troncons };
+}
+
+/**
+ * Les termes d'un calcul de sort (`computeSkillDamageDetail`, hors séquence et
+ * tronçons) qui ne lisent que le profil, le réglage, l'élément et les
+ * modificateurs monstre-wide — chacun l'expression même de ce calcul, qui les
+ * lit à leur place (voir `PreparationReglage`).
+ */
+export interface TermesDuReglage {
+  // Points de Dgts CRIT des compétences d'invocateur, d'Euldong et d'un lead
+  // Dgts CRIT ; points de Taux Crit d'un lead et des stats de combat.
+  cdPointsInvocateur: number;
+  cdEuldong: number;
+  pctLeaderCd: number;
+  pctLeaderCr: number;
+  crCombat: number;
+  pvMax: number;
+  vitEnnemie: number;
+  pvPropresPct: number;
+  // `pvPropresPct / 100`.
+  fractionPvPropres: number;
+  alliesVivants: number;
+  ennemisVivants: number;
+  reserveSacrifice: number;
+  compteEffetsDirect: number;
+  compteEffetsMonstre: number;
+  stackPropre: number;
+  // `1 + skillupDamagePct / 100`, le début du terme de critique.
+  critTermBase: number;
+  facteurDefBreak: number;
+  // La mitigation quand aucune fraction de DEF n'est ignorée.
+  mitigationSansIgnore: number;
+  reductionsUniverselles: number;
+  reductions: number;
+  facteurEffetCible: number;
+  facteurEffetCibleMonstre: number;
+  facteurEffetPropre: number;
+  facteurConditionnelPropre: number;
+  facteurStackPropre: number;
+  coups: number;
+  // `coeffParPoint × compteur` (Rage Charge), avant la variable lue.
+  prefixeCompteur: number;
+  ajoutCiblePvMax: number;
+  // Les trois pourcentages de Calculated Sacrifice, avant les PV max.
+  prefixeSacrifice: number;
+  formuleLitPvCible: boolean;
+  ignoreDefParCoup: boolean;
+}
+
+export function termesDuReglage(
+  profile: SkillDamageProfile,
+  setup: DamageSetup,
+  element: ElementKey | null,
+  monsterWide: ModificateursMonstre,
+  cible?: TermesDuReglage
+): TermesDuReglage {
+  const leader = resolvedLeaderSkill(setup);
+  const pvPropresPct = Math.min(100, Math.max(0, setup.ownHpPct ?? 100));
+  const compteEffetsDirect = profile.bonusParEffetCible ? countEffetsCiblePourProfile(profile, setup) : 0;
+  const compteEffetsMonstre = monsterWide.bonusParEffetCible
+    ? countEffetsCiblePourMonstre(monsterWide.bonusParEffetCible, setup)
+    : 0;
+  const stackPropre = profile.bonusStackPropre
+    ? Math.min(profile.bonusStackPropre.triggerMax, Math.max(0, setup.stackPersonnalise?.[profile.skillCom2usId] ?? 0))
+    : 0;
+  const facteurDefBreak = setup.defBreak
+    ? 1 - (1 - DEF_BREAK_FACTOR) * (setup.deborahActif ? DEBORAH_AMPLIFY : 1)
+    : 1;
+  // La DEF effective du calcul, sa fraction ignorée nulle.
+  const fractionIgnoree = 0;
+  const defEff = profile.ignoreDef ? 0 : Math.max(0, setup.enemyDef) * facteurDefBreak * (1 - fractionIgnoree);
+  const reductionsUniverselles = 1 + (setup.brand ? BRAND_BONUS_PCT / 100 : 0);
+  const horsPorteeMirinae = profile.bombe || profile.fixed;
+  const pctEffetsCible = profile.bonusParEffetCible
+    ? bonusPctParEffet(profile.bonusParEffetCible, compteEffetsDirect)
+    : 0;
+  const pctEffetsPropres = profile.bonusParEffetPropre
+    ? profile.bonusParEffetPropre.pct *
+      Math.max(
+        0,
+        profile.bonusParEffetPropre.source === 'buffs'
+          ? resolvedBuffsPropresCount(profile.skillCom2usId, setup)
+          : setup.effetsPropresCount?.[profile.skillCom2usId] ?? 0
+      )
+    : 0;
+  const bonusCompteur = profile.bonusCoefficientParCompteur;
+  // Écrits dans `cible` (le brouillon du calcul sans préparation), sinon dans
+  // un objet neuf, retenu par la préparation.
+  const r = cible ?? termesVides();
+  r.cdPointsInvocateur = summonerSkillBonus(setup.summonerSkills, element).cdPoints;
+  r.cdEuldong = setup.euldongActif ? EULDONG_CD_POINTS : 0;
+  r.pctLeaderCd = leader?.stat === 'Critical DMG' ? leader.pct : 0;
+  r.pctLeaderCr = leader?.stat === 'Critical Rate' ? leader.pct : 0;
+  r.crCombat = resolvedCombatStatBonuses(monsterWide.combatStats ?? [], setup).crPoints;
+  r.pvMax = Math.max(0, setup.enemyHp);
+  r.vitEnnemie = Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
+  r.pvPropresPct = pvPropresPct;
+  r.fractionPvPropres = pvPropresPct / 100;
+  r.alliesVivants = Math.min(100, Math.max(0, setup.livingAlliesPct ?? 100)) / 100;
+  r.ennemisVivants = Math.min(4, Math.max(1, Math.floor(setup.aliveEnemies ?? 1)));
+  r.reserveSacrifice = Math.min(100, Math.max(0, setup.sacrificeReservePct ?? 0)) / 100;
+  r.compteEffetsDirect = compteEffetsDirect;
+  r.compteEffetsMonstre = compteEffetsMonstre;
+  r.stackPropre = stackPropre;
+  r.critTermBase = 1 + profile.skillupDamagePct / 100;
+  r.facteurDefBreak = facteurDefBreak;
+  r.mitigationSansIgnore = profile.fixed ? 1 : defenseFactor(defEff);
+  r.reductionsUniverselles = reductionsUniverselles;
+  r.reductions =
+    reductionsUniverselles +
+    (horsPorteeMirinae
+      ? 0
+      : (setup.mirinaeActif ? MIRINAE_BONUS_PCT / 100 : 0) +
+        (setup.transmissionActif ? TRANSMISSION_BONUS_PCT / 100 : 0));
+  r.facteurEffetCible = 1 + (pctEffetsCible + pctEffetsPropres) / 100;
+  r.facteurEffetCibleMonstre = monsterWide.bonusParEffetCible
+    ? 1 + bonusPctParEffet(monsterWide.bonusParEffetCible, compteEffetsMonstre) / 100
+    : 1;
+  r.facteurEffetPropre = monsterWide.bonusParEffetPropre
+    ? 1 + pctBonusParEffetPropreMonstre(monsterWide.bonusParEffetPropre, setup) / 100
+    : 1;
+  r.facteurConditionnelPropre = profile.bonusConditionnelPropre && bonusConditionnelPropreActif(profile, setup)
+    ? 1 + profile.bonusConditionnelPropre.pct / 100
+    : 1;
+  r.facteurStackPropre = profile.bonusStackPropre
+    ? 1 + Math.min(profile.bonusStackPropre.pctMax, stackPropre * profile.bonusStackPropre.ratio) / 100
+    : 1;
+  r.coups = resolvedHits(profile, setup);
+  r.prefixeCompteur = bonusCompteur ? bonusCompteur.coeffParPoint * resolvedCompteurPersonnalise(profile, setup) : 0;
+  r.ajoutCiblePvMax = monsterWide.bonusFixeCiblePvMax ? (monsterWide.bonusFixeCiblePvMax.pct / 100) * Math.max(0, setup.enemyHp) : 0;
+  r.prefixeSacrifice = monsterWide.bonusSacrifice
+    ? (monsterWide.bonusSacrifice.pctSurPerte / 100) *
+      (monsterWide.bonusSacrifice.pctPerte / 100) *
+      (resolvedPvActuelsAvantSacrificePctMonstre(monsterWide.bonusSacrifice.skillCom2usId, setup) / 100)
+    : 0;
+  r.formuleLitPvCible = profile.variables.includes('Target Current HP %');
+  r.ignoreDefParCoup = !!profile.ignoreDefSelonPvCiblePerdus && !profile.ignoreDef && !profile.fixed;
+  return r;
+}
+
+// Des termes à remplir, de forme fixe (mêmes champs, même ordre).
+function termesVides(): TermesDuReglage {
+  return {
+    cdPointsInvocateur: 0, cdEuldong: 0, pctLeaderCd: 0, pctLeaderCr: 0, crCombat: 0, pvMax: 0, vitEnnemie: 0,
+    pvPropresPct: 0, fractionPvPropres: 0, alliesVivants: 0, ennemisVivants: 0, reserveSacrifice: 0,
+    compteEffetsDirect: 0, compteEffetsMonstre: 0, stackPropre: 0, critTermBase: 0, facteurDefBreak: 0,
+    mitigationSansIgnore: 0, reductionsUniverselles: 0, reductions: 0, facteurEffetCible: 0,
+    facteurEffetCibleMonstre: 0, facteurEffetPropre: 0, facteurConditionnelPropre: 0, facteurStackPropre: 0,
+    coups: 0, prefixeCompteur: 0, ajoutCiblePvMax: 0, prefixeSacrifice: 0, formuleLitPvCible: false,
+    ignoreDefParCoup: false,
+  };
+}
+
+// ⚠️ Le brouillon des termes d'un calcul de sort SANS préparation
+// (`computeSkillDamageDetail` sans memo) : réécrit en entier à chaque calcul
+// simple, lu par lui seul avant qu'il rende la main — il n'appelle aucun autre
+// calcul de sort après l'avoir rempli. Jamais une mémoire : aucune valeur n'y
+// survit d'un appel à l'autre.
+const TERMES_SANS_MEMOIRE: TermesDuReglage = termesVides();
 
 /**
  * Les stats **au DÉBUT DU COMBAT** — base + runes + artéfacts + principale de
@@ -5120,7 +6751,7 @@ export function statsDebutCombat(
   setup: DamageSetup,
   propres: AurasPropres,
   element: ElementKey | null = null
-): { atk: number; def: number; hp: number; spd: number; res: number; acc: number } {
+): StatsDebutCombat {
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
   const leader = resolvedLeaderSkill(setup);
   const aura = (set: SetAura) => 8 * nombreAuraEffectif(setup, propres, set);
@@ -5162,12 +6793,35 @@ export function statsDeCombat(
   propres: AurasPropres,
   element: ElementKey | null = null,
   artefacts: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE,
-  monsterWide: Pick<MonsterWideDamageModifiers, 'combatStats'> = {}
-): { atk: number; def: number; hp: number; spd: number } {
+  monsterWide: Pick<MonsterWideDamageModifiers, 'combatStats'> = {},
+  // Voir `MemoCombat` : le même calcul, retenu par tableau de stats et par
+  // amplifications de buff des artéfacts.
+  memo?: MemoCombat
+): StatsDeCombat {
+  return memo
+    ? memo.combat(stats, setup, propres, element, artefacts, monsterWide, () =>
+        calculerStatsDeCombat(stats, setup, propres, element, artefacts, monsterWide, memo)
+      )
+    : calculerStatsDeCombat(stats, setup, propres, element, artefacts, monsterWide);
+}
+
+/** Les stats de combat (`statsDeCombat`). */
+export type StatsDeCombat = { atk: number; def: number; hp: number; spd: number };
+
+// Le corps de `statsDeCombat`.
+function calculerStatsDeCombat(
+  stats: StatRow[],
+  setup: DamageSetup,
+  propres: AurasPropres,
+  element: ElementKey | null,
+  artefacts: ArtifactDamageProfile,
+  monsterWide: Pick<MonsterWideDamageModifiers, 'combatStats'>,
+  memo?: MemoCombat
+): StatsDeCombat {
   // ⚠️ Le préfixe « début de combat » (invocateur + lead + auras, sans buff)
   // vient de `statsDebutCombat` — une seule écriture du `ceil` unique et du
   // lead sur la base, partagée avec l'assiette `Y` des exclusives de relique.
-  const debut = statsDebutCombat(stats, setup, propres, element);
+  const debut = memo ? memo.debutCombat(stats, setup, propres, element) : statsDebutCombat(stats, setup, propres, element);
   const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
   const pctAtkBuff = setup.atkBuff ? ATK_BUFF_PCT * (1 + (artefacts.ampliAtkPct + ampliMiriam) / 100) : 0;
   const pctDefBuff = setup.defBuff ? DEF_BUFF_PCT * (1 + (artefacts.ampliDefPct + ampliMiriam) / 100) : 0;
@@ -5242,9 +6896,10 @@ function setupsAvantChaqueCoup(
   profile: SkillDamageProfile,
   setup: DamageSetup,
   monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>,
-  profilsSupplementaires: SkillDamageProfile[] = []
+  profilsSupplementaires: SkillDamageProfile[] = [],
+  reglage?: PreparationReglage
 ): DamageSetup[] | null {
-  return chronologieEffetsEntreCoups(profile, setup, monsterWide, profilsSupplementaires)?.avant ?? null;
+  return chronologieEffetsEntreCoups(profile, setup, monsterWide, profilsSupplementaires, reglage)?.avant ?? null;
 }
 
 /**
@@ -5266,14 +6921,15 @@ function etatCibleApresSort(
   profile: SkillDamageProfile,
   passifs: PassifOffensifProfile[],
   setup: DamageSetup,
-  monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>
+  monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>,
+  reglage?: PreparationReglage
 ): DamageSetup | null {
   if (!setup.scenariosEffetsEntreCoups?.[profile.skillCom2usId]?.actif || !profile.effetsEntreCoups?.length) return null;
   const suivent: SkillDamageProfile[] = [];
   for (const p of passifs) {
     if (!p.coupsDuSortActif && passifCompte(p, profile, setup)) suivent.push(p.profile);
   }
-  return chronologieEffetsEntreCoups(profile, setup, monsterWide, suivent)?.apres ?? null;
+  return chronologieEffetsEntreCoups(profile, setup, monsterWide, suivent, reglage)?.apres ?? null;
 }
 
 /**
@@ -5285,12 +6941,28 @@ function chronologieEffetsEntreCoups(
   profile: SkillDamageProfile,
   setup: DamageSetup,
   monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>,
-  profilsSupplementaires: SkillDamageProfile[]
+  profilsSupplementaires: SkillDamageProfile[],
+  // Voir `PreparationReglage` : la même chronologie, calculée une fois pour ces entrées.
+  reglage?: PreparationReglage
 ): { avant: DamageSetup[]; apres: DamageSetup } | null {
   const scenario = setup.scenariosEffetsEntreCoups?.[profile.skillCom2usId];
   const coups = resolvedHits(profile, setup);
   if (!scenario?.actif || !profile.effetsEntreCoups?.length || coups <= 1) return null;
+  const effetsEntreCoups = profile.effetsEntreCoups;
+  const calculer = () => calculerChronologie(profile, setup, monsterWide, profilsSupplementaires, scenario, coups, effetsEntreCoups);
+  return reglage ? reglage.chronologie(profile, setup, monsterWide, profilsSupplementaires, calculer) : calculer();
+}
 
+// Le corps de `chronologieEffetsEntreCoups`, une fois ses gardes passées.
+function calculerChronologie(
+  profile: SkillDamageProfile,
+  setup: DamageSetup,
+  monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>,
+  profilsSupplementaires: SkillDamageProfile[],
+  scenario: ScenarioEffetsEntreCoups,
+  coups: number,
+  effetsEntreCoups: NonNullable<SkillDamageProfile['effetsEntreCoups']>
+): { avant: DamageSetup[]; apres: DamageSetup } {
   const presents = new Set(scenario.presentsInitialement ?? []);
   if (setup.brand) presents.add('brand');
   if (setup.defBreak) presents.add('decrease-def');
@@ -5337,7 +7009,7 @@ function chronologieEffetsEntreCoups(
   const resultats: DamageSetup[] = [];
   for (let i = 1; i <= coups; i++) {
     resultats.push(setupCoup);
-    for (const effet of profile.effetsEntreCoups) {
+    for (const effet of effetsEntreCoups) {
       if (scenario.apresCoup?.[effet.id] !== i) continue;
       const dejaPresent = presents.has(effet.id);
       if ((effet.cumulable || !dejaPresent) && !effet.effetCombat) {
@@ -5371,6 +7043,9 @@ export function computeSkillDamageDetail(
   // Ce que les artéfacts apportent (voir `artifactDamageProfile`) — fixe pour
   // toute une recherche, calculé UNE fois par l'appelant. Le neutre laisse le
   // comportement strictement inchangé.
+  // ⚠️ Pris tel quel pour CETTE attaque, comme 411 : son contexte conjoint
+  // (209/225, 224) est appliqué AVANT par `artefactsSelonContexteConjoint` —
+  // `computeTotalDamage` le fait ; un appel direct passe un profil déjà résolu.
   artefacts: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE,
   // Modificateurs monstre-wide qui touchent directement le Taux Crit/Dgts
   // Crit — DÉDUITS de la fiche (`monsterCritRateSelonVit`/
@@ -5399,7 +7074,12 @@ export function computeSkillDamageDetail(
   // Propriété unique de relique du groupe **Conquête** — un pourcentage
   // ADDITIF dans le bracket `DMG%` (voir son usage plus bas, et
   // `relicExclusive.ts` pour le calcul du gain). `0` = inchangé.
-  reliqueDmgPct = 0
+  reliqueDmgPct = 0,
+  // Voir `MemoCombat` (transmis par `computeTotalDamage`) : stats de combat
+  // calculées une fois par tableau de stats, et sa préparation du réglage ;
+  // ou la seule préparation (`PreparationReglage`, notes des candidats).
+  // Absent = tout recalculé.
+  memo?: MemoCombat | PreparationReglage
 ): {
   total: number;
   // Part du total qui vient du bucket ADDITIONNEL (dégâts bruts par coup :
@@ -5415,6 +7095,8 @@ export function computeSkillDamageDetail(
   fixeProtege: number;
   pvRestantsPct: number;
 } {
+  const reglage = memo instanceof PreparationReglage ? memo : memo?.reglage;
+  const memoStats = memo instanceof MemoCombat ? memo : undefined;
   // Coup en plus DÉDUIT de l'ATQ du build (Brutal Fists) : le nombre de
   // coups se règle ICI, une fois les stats de combat connues, puis le sort suit le
   // chemin ordinaire avec `hits` résolu et sans plage. Même `statsDeCombat` (mêmes
@@ -5422,7 +7104,7 @@ export function computeSkillDamageDetail(
   // eux, ne lisent que le réglage (`resolvedHits`).
   if (profile.hitsRange && profile.conditionsCombat?.some(coupsEnPlusDeduitDuBuild)) {
     const combatPourCoups: StatsCombatPourCoups = {
-      ...statsDeCombat(stats, setup, propres, element, artefacts, monsterWide),
+      ...statsDeCombat(stats, setup, propres, element, artefacts, monsterWide, memoStats),
       // ATQ de base du monstre : la tranche de Stormfist se compte sur elle.
       atkBase: stats.find((s) => s.key === 'atk')?.base ?? 0,
     };
@@ -5448,137 +7130,79 @@ export function computeSkillDamageDetail(
   //     première attaque sur une nouvelle cible n'est pas un nouveau premier
   //     coup du tour (correction de l'utilisateur en revue).
   // Les autres sorts n'ont pas de séquence : leur chemin reste celui d'avant.
-  const sequence = profile.sequenceDeCoups;
-  if (sequence) {
-    const secondaire = cibleDegatsRetenue(profile, setup) === 'secondaire';
+  // La découpe ne lit que le profil et le réglage (`decoupeDuSort`) : préparée
+  // une fois avec le memo (`PreparationReglage.decoupe`), ses groupes et ses
+  // tronçons sont alors les mêmes objets d'un appel à l'autre.
+  const decoupe = reglage ? reglage.decoupe(profile, setup, monsterWide) : decoupeDuSort(profile, setup, monsterWide);
+  if (decoupe?.groupes) {
     let totalSequence = 0;
     let additionnelSequence = 0;
     let fixeProtegeSequence = 0;
     let pvSequence = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
-    let rang = 0;
-    for (const groupe of sequence) {
-      if (!secondaire || groupe.zone) {
-        const profilGroupe: SkillDamageProfile = {
-          ...profile,
-          formule: groupe.formule,
-          noeud: groupe.noeud,
-          variables: groupe.variables,
-          hits: groupe.coups,
-          hitsRange: undefined,
-          aoe: groupe.zone,
-          effetsEntreCoups: undefined,
-          sequenceDeCoups: undefined,
-        };
-        const artefactsGroupe =
-          rang === 0 || artefacts.cdPointsPremiereAttaque === 0
-            ? artefacts
-            : { ...artefacts, cdPointsPremiereAttaque: 0 };
-        const detail = computeSkillDamageDetail(profilGroupe, stats, setup, propres, element, pvSequence, artefactsGroupe, monsterWide, reliqueDmgPct);
-        totalSequence += detail.total;
-        additionnelSequence += detail.additionnel;
-        fixeProtegeSequence += detail.fixeProtege;
-        pvSequence = detail.pvRestantsPct;
-      }
-      rang += groupe.coups;
+    for (const { profil, rang } of decoupe.groupes) {
+      const artefactsGroupe =
+        rang === 0 || artefacts.cdPointsPremiereAttaque === 0
+          ? artefacts
+          : { ...artefacts, cdPointsPremiereAttaque: 0 };
+      const detail = computeSkillDamageDetail(profil, stats, setup, propres, element, pvSequence, artefactsGroupe, monsterWide, reliqueDmgPct, memo);
+      totalSequence += detail.total;
+      additionnelSequence += detail.additionnel;
+      fixeProtegeSequence += detail.fixeProtege;
+      pvSequence = detail.pvRestantsPct;
     }
     return { total: totalSequence, additionnel: additionnelSequence, fixeProtege: fixeProtegeSequence, pvRestantsPct: pvSequence };
   }
 
   // Découpe COUP PAR COUP, en tronçons de coups consécutifs qui lisent le même
-  // réglage et le même état de DEF : un tronçon par coup sous un scénario de
-  // poses entre les coups (chaque coup lit l'état qui le précède), sinon au plus
-  // deux pour un ignore DEF à partir d'un rang (Blade Dancers) — les coups
-  // avant le rang, mitigés par la DEF, puis ceux à partir de lui, qui
-  // l'ignorent. Le coup 1 n'ignore jamais par ce mécanisme : le rang retenu
-  // vaut au moins 2 (`rangsPermis`). Aucune ATB n'est déduite.
-  const setupsScenario = setupsAvantChaqueCoup(profile, setup, monsterWide);
-  const rangIgnoreDef = resolvedPremierCoupIgnoreDef(profile, setup);
-  if (setupsScenario || rangIgnoreDef !== null) {
-    const coups = setupsScenario ? setupsScenario.length : resolvedHits(profile, setup);
-    const coupInconditionnel = profile.ignoreDefAPartirDuCoup?.dernierCoupInconditionnel ?? null;
-    const ignoreAuCoup = (n: number) =>
-      profile.ignoreDef || n === coupInconditionnel || (rangIgnoreDef !== null && n >= rangIgnoreDef);
+  // réglage et le même état de DEF (`decoupeDuSort`).
+  if (decoupe?.troncons) {
     let totalScenario = 0;
     let additionnelScenario = 0;
     let fixeProtegeScenario = 0;
     let pvScenario = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
-    for (let premier = 1; premier <= coups; ) {
-      let dernier = premier;
-      if (!setupsScenario) {
-        while (dernier < coups && ignoreAuCoup(dernier + 1) === ignoreAuCoup(premier)) dernier++;
-      }
-      const profilTroncon: SkillDamageProfile = {
-        ...profile,
-        hits: dernier - premier + 1,
-        hitsRange: undefined,
-        effetsEntreCoups: undefined,
-        ignoreDefAPartirDuCoup: undefined,
-        ignoreDef: ignoreAuCoup(premier),
-      };
+    for (const troncon of decoupe.troncons) {
       // 411 (« Dgts CRIT 1re attaque ») : le premier tronçon seulement, dont
       // l'appel imbriqué ne l'applique qu'au premier coup — celui du sort.
       const artefactsTroncon =
-        premier === 1 || artefacts.cdPointsPremiereAttaque === 0
+        troncon.premier === 1 || artefacts.cdPointsPremiereAttaque === 0
           ? artefacts
           : { ...artefacts, cdPointsPremiereAttaque: 0 };
-      const setupTroncon = setupsScenario ? setupsScenario[premier - 1] : setup;
-      const detail = computeSkillDamageDetail(profilTroncon, stats, setupTroncon, propres, element, pvScenario, artefactsTroncon, monsterWide, reliqueDmgPct);
+      const detail = computeSkillDamageDetail(troncon.profil, stats, troncon.setup, propres, element, pvScenario, artefactsTroncon, monsterWide, reliqueDmgPct, memo);
       totalScenario += detail.total;
       additionnelScenario += detail.additionnel;
       fixeProtegeScenario += detail.fixeProtege;
       pvScenario = detail.pvRestantsPct;
-      premier = dernier + 1;
     }
     return { total: totalScenario, additionnel: additionnelScenario, fixeProtege: fixeProtegeScenario, pvRestantsPct: pvScenario };
   }
 
-  const bonus = summonerSkillBonus(setup.summonerSkills, element);
-  // Compétences d'invocateur : un POURCENTAGE de la stat de BASE, ajouté au
-  // total — même modèle que le totem de vitesse déjà en place (voir
-  // `pctSpeedBonus`, speed.ts, et docs/02-app/mecaniques/ : le totem entre dans le
-  // `Σ%vit` appliqué à la base, pas au total runé).
-  // ⚠️ Ajouté APRÈS coup plutôt que fondu dans le `Σ%` de `computeStats` (qui
-  // a déjà rendu ses totaux) : l'écart tient au double arrondi supérieur, au
-  // plus 1 point sur la stat, sans effet sur un classement de builds.
-  // `extraBasePct` : un AUTRE pourcentage de la BASE à sommer AVANT le seul
-  // `ceil` (leader skill — voir plus bas) — jamais un second `ceil` séparé,
-  // qui reproduirait l'écart d'un point déjà documenté et corrigé une fois
-  // dans `pctSpeedBonus` (speed.ts, « ne jamais arrondir bonus par bonus »).
-  const avecInvocateur = (key: 'atk' | 'def' | 'hp' | 'spd', extraBasePct = 0) => {
-    const row = stats.find((s) => s.key === key);
-    if (!row) return 0;
-    return row.total + Math.ceil((row.base * (bonus.pct[key] + extraBasePct)) / 100);
-  };
+  // Ce que le calcul lit du seul réglage (`termesDuReglage`) : préparé une
+  // fois avec le memo (`PreparationReglage.termes`), chaque terme prend sa
+  // place dans les expressions ci-dessous, aucune n'est réassociée.
+  // Sans préparation, les termes s'écrivent dans un brouillon réutilisé
+  // (`TERMES_SANS_MEMOIRE`) : aucun objet de plus par appel qu'avant leur
+  // préparation. Sûr parce que ce calcul simple n'appelle plus aucun calcul de
+  // sort une fois `t` lu, et qu'il le lit en entier avant de rendre la main.
+  const t = reglage
+    ? reglage.termes(profile, setup, element, monsterWide)
+    : termesDuReglage(profile, setup, element, monsterWide, TERMES_SANS_MEMOIRE);
+  // Compétences d'invocateur et lead sur PV/ATQ/DEF/VIT : un pourcentage de la
+  // BASE, dans un `ceil` unique, posé par `statsDeCombat` (source unique, plus
+  // bas) ; ici ne comptent que leurs points de Dgts CRIT (`t.cdPointsInvocateur`).
 
-  const pvMax = Math.max(0, setup.enemyHp);
+  const pvMax = t.pvMax;
   const pctDepart = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
 
-  const combat = statsDeCombat(stats, setup, propres, element, artefacts, monsterWide);
+  const combat = statsDeCombat(stats, setup, propres, element, artefacts, monsterWide, memoStats);
   const maVit = combat.spd;
   // ⚠️ Bornée à 1 : une VIT adverse ≤ 0 ferait diverger le ratio (division
   // par zéro ou par un nombre négatif), un réglage vidé ne doit jamais casser
   // le calcul plutôt que produire `Infinity`/`NaN`.
-  const vitEnnemie = Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
+  const vitEnnemie = t.vitEnnemie;
 
-  // Miriam (« Blacksmith's Technique ») amplifie la MAGNITUDE des trois
-  // buffs déjà actifs — jamais leur simple présence (conditionné à
-  // `setup.atkBuff`/`defBuff` ci-dessous ; `maVitCombat` fait de même en
-  // interne pour la VIT).
-  const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
   // ⚠️ Leader skill d'ÉQUIPE choisi par l'utilisateur (voir `LeaderSkillStat`
-  // plus haut) — PV/ATQ/DEF portent sur la stat de BASE, exactement comme
-  // VIT (`maVitCombat`) : sommé à la compétence d'invocateur (même nature)
-  // AVANT le `ceil` unique d'`avecInvocateur`, PUIS le buff de combat
-  // (`atkBuff`/`defBuff`, %TOTAL cette fois — base+rune+lead déjà posés)
-  // s'applique par-dessus. Les deux mécaniques ne se somment PAS entre
-  // elles : le lead est acquis même buff éteint, contrairement au surplus
-  // du buff — jamais une seule formule additive comme avant correction.
-  const leader = resolvedLeaderSkill(setup);
-  const pctLeaderAtkBase = leader?.stat === 'Attack Power' ? leader.pct : 0;
-  const pctLeaderDefBase = leader?.stat === 'Defense' ? leader.pct : 0;
-  const pctLeaderHpBase = leader?.stat === 'HP' ? leader.pct : 0;
-  const atkAvecLead = avecInvocateur('atk', pctLeaderAtkBase);
-  const defAvecLead = avecInvocateur('def', pctLeaderDefBase);
+  // plus haut) : un lead PV/ATQ/DEF/VIT porte sur la BASE, dans `statsDeCombat` ;
+  // un lead Dgts CRIT, des points (plus bas).
   // ⚠️ Artéfact et Miriam s'ADDITIONNENT avant de multiplier la potence de
   // base — exactement comme pour la VIT (`maVitCombat`, seul précédent).
   // Les deux « augmentent l'effet d'augmentation » : les traiter
@@ -5588,8 +7212,7 @@ export function computeSkillDamageDetail(
   // leader skill et des compétences d'invocateur, y compris le `ceil` unique et
   // l'addition artéfact+Miriam. La recopier ici en ferait un second chemin, qui
   // divergerait au premier ajustement.
-  const pvPropresPct = Math.min(100, Math.max(0, setup.ownHpPct ?? 100));
-  const pvPropresActuels = combat.hp * (pvPropresPct / 100);
+  const pvPropresActuels = combat.hp * t.fractionPvPropres;
   const valeurs: Record<DamageVariable, number> = {
     ATK: combat.atk,
     DEF: combat.def,
@@ -5597,12 +7220,12 @@ export function computeSkillDamageDetail(
     'MAX HP': combat.hp,
     // Les trois grandeurs propres partent toutes du PV max DU CANDIDAT :
     // jamais de valeur figée depuis le build équipé avant la recherche.
-    'Current HP %': pvPropresPct / 100,
+    'Current HP %': t.fractionPvPropres,
     'Current HP': pvPropresActuels,
     'Missing HP': Math.max(0, combat.hp - pvPropresActuels),
-    'Living Ally %': Math.min(100, Math.max(0, setup.livingAlliesPct ?? 100)) / 100,
-    'Alive Enemies': Math.min(4, Math.max(1, Math.floor(setup.aliveEnemies ?? 1))),
-    'Sacrifice Reserve %': Math.min(100, Math.max(0, setup.sacrificeReservePct ?? 0)) / 100,
+    'Living Ally %': t.alliesVivants,
+    'Alive Enemies': t.ennemisVivants,
+    'Sacrifice Reserve %': t.reserveSacrifice,
     'Target MAX HP': pvMax,
     'Target SPD': vitEnnemie,
     // `(Ta VIT − VIT cible) / VIT cible` — confirmé par l'utilisateur.
@@ -5623,7 +7246,7 @@ export function computeSkillDamageDetail(
   // compétences d'invocateur et Euldong — c'est ainsi que le jeu affiche un
   // lead Taux Crit/Dégâts Crit dans la fiche stats (contrairement à un lead
   // PV/ATQ/DEF/VIT, un pourcentage MULTIPLICATIF de la stat de base).
-  const pctLeaderCd = leader?.stat === 'Critical DMG' ? leader.pct : 0;
+  const pctLeaderCd = t.pctLeaderCd;
   // ⚠️ Taux Crit PLAFONNÉ à 100 % : `computeStats` renvoie volontairement le
   // total BRUT (un dépassement reste une marge légitime contre la résistance
   // adverse), mais au-delà de 100 % il ne rapporte plus aucun dégât en jeu.
@@ -5645,15 +7268,15 @@ export function computeSkillDamageDetail(
     0
   );
   const crBrut =
-    crBrutEffectif(stats, setup, maVit, monsterWide) +
+    crBrutAvec(stats, maVit, monsterWide, t.pctLeaderCr, t.crCombat) +
     (profile.critRatePoints ?? 0) +
     conditionCrPoints(profile.conditionsCombat, setup, profile.skillCom2usId, element, pctDepart, combat) +
     crConditionsMonstre;
   const overflowVersCd = monsterWide.critRateSelonVit ? Math.max(0, crBrut - 100) : 0;
   const cd =
     (total(stats, 'cd') +
-      bonus.cdPoints +
-      (setup.euldongActif ? EULDONG_CD_POINTS : 0) +
+      t.cdPointsInvocateur +
+      t.cdEuldong +
       pctLeaderCd +
       (monsterWide.bonusStatFixe?.cd ?? 0) +
       (profile.critDamagePoints ?? 0) +
@@ -5668,13 +7291,9 @@ export function computeSkillDamageDetail(
       // profil, rien n'est saisi.
       artifactCritDamagePoints(artefacts, profile)) /
     100;
-  const compteEffetsDirect = profile.bonusParEffetCible ? countEffetsCiblePourProfile(profile, setup) : 0;
-  const compteEffetsMonstre = monsterWide.bonusParEffetCible
-    ? countEffetsCiblePourMonstre(monsterWide.bonusParEffetCible, setup)
-    : 0;
-  const stackPropre = profile.bonusStackPropre
-    ? Math.min(profile.bonusStackPropre.triggerMax, Math.max(0, setup.stackPersonnalise?.[profile.skillCom2usId] ?? 0))
-    : 0;
+  const compteEffetsDirect = t.compteEffetsDirect;
+  const compteEffetsMonstre = t.compteEffetsMonstre;
+  const stackPropre = t.stackPropre;
   const critiqueConditionnel =
     conditionForceCrit(profile.conditionsCombat, setup, profile.skillCom2usId, element, pctDepart, combat) ||
     (profile.bonusParEffetCible?.critiqueGarantiSiPresent === true && compteEffetsDirect > 0) ||
@@ -5693,7 +7312,8 @@ export function computeSkillDamageDetail(
       : profile.critiqueGaranti || critiqueConditionnel || setup.critMode !== 'normal'
         ? 1
         : 0;
-  const critTerm = 1 + profile.skillupDamagePct / 100 + partCrit * cd;
+  // `t.critTermBase` = `1 + skillupDamagePct / 100`, le début de la somme.
+  const critTerm = t.critTermBase + partCrit * cd;
 
   // Ignore une fraction de la DEF, proportionnelle à l'écart de VIT — 0 % si
   // la cible est aussi rapide ou plus, 100 % à `ecartMax` points d'écart ou
@@ -5708,17 +7328,29 @@ export function computeSkillDamageDetail(
       conditionIgnoreDefPct([p.condition], setup, p.skillCom2usId, element, pctDepart, combat)
     )
   ) / 100;
-  const fractionIgnoree = Math.max(fractionIgnoreeSelonVit, fractionIgnoreeConditionnelle);
+  // Selon les PV perdus par la cible (Unlimited Power à 3 ennemis ou moins) :
+  // recalculée à CHAQUE coup sur les PV que les coups précédents ont laissés
+  // (chemin séquentiel, plus bas) ; ici, la valeur du premier coup.
+  const fractionSelonPvPerdus = (pvPct: number) =>
+    profile.ignoreDefSelonPvCiblePerdus
+      ? Math.min(1, Math.max(0, (100 - pvPct) / profile.ignoreDefSelonPvCiblePerdus.pvPerdusPourTout))
+      : 0;
+  const fractionIgnoree = Math.max(fractionIgnoreeSelonVit, fractionIgnoreeConditionnelle, fractionSelonPvPerdus(pctDepart));
   // Deborah (« Blacksmith's Discernment ») amplifie la RÉDUCTION d'une
   // réduction de DEF déjà active — jamais une réduction à elle seule (sans
   // `defBreak`, rien à amplifier). `1 − (1 − DEF_BREAK_FACTOR) × 1,30`,
   // confirmé par l'utilisateur : 91 % de DEF effective en moins avec les
   // deux actifs (0,7 × 1,30 = 0,91), contre 70 % (`DEF_BREAK_FACTOR` seul).
-  const facteurDefBreak = setup.defBreak
-    ? 1 - (1 - DEF_BREAK_FACTOR) * (setup.deborahActif ? DEBORAH_AMPLIFY : 1)
-    : 1;
-  const defEff = profile.ignoreDef ? 0 : Math.max(0, setup.enemyDef) * facteurDefBreak * (1 - fractionIgnoree);
-  const mitigation = profile.fixed ? 1 : defenseFactor(defEff);
+  // Le facteur, du réglage seul, est préparé (`termesDuReglage`).
+  const facteurDefBreak = t.facteurDefBreak;
+  // Sans fraction ignorée (±0 : `1 − f` vaut alors exactement 1), la mitigation
+  // est celle du réglage seul, préparée sur la même expression.
+  const mitigation =
+    fractionIgnoree === 0
+      ? t.mitigationSansIgnore
+      : profile.fixed
+        ? 1
+        : defenseFactor(profile.ignoreDef ? 0 : Math.max(0, setup.enemyDef) * facteurDefBreak * (1 - fractionIgnoree));
 
   // Mirinae (S3 « Cursed Music ») et Dr. Matteo (« Transmission ») : même
   // famille, additifs avec la Marque DANS le terme Réductions — mais tous deux
@@ -5766,14 +7398,11 @@ export function computeSkillDamageDetail(
   // été vérifiée plutôt que reconduite.
   // `TRANSMISSION_BONUS_PCT` (Dr. Matteo) suit Mirinae : même formulation dans
   // le jeu, jamais mesuré séparément — l'analogie est assumée et signalée.
-  const reductionsUniverselles = 1 + (setup.brand ? BRAND_BONUS_PCT / 100 : 0);
-  const horsPorteeMirinae = profile.bombe || profile.fixed;
-  const reductions =
-    reductionsUniverselles +
-    (horsPorteeMirinae
-      ? 0
-      : (setup.mirinaeActif ? MIRINAE_BONUS_PCT / 100 : 0) +
-        (setup.transmissionActif ? TRANSMISSION_BONUS_PCT / 100 : 0));
+  // Les deux termes, du réglage seul, sont préparés (`termesDuReglage` :
+  // Marque seule pour `reductionsUniverselles`, Mirinae et Dr. Matteo en plus
+  // hors bombe et hors sort fixe pour `reductions`).
+  const reductionsUniverselles = t.reductionsUniverselles;
+  const reductions = t.reductions;
 
   // Terme DMG%, propre au sort. ⚠️ **Jamais sur une bombe** (mesuré). Un sort
   // ordinaire marqué `(Fixed)` en profite en principe (swcalc : « skill-based
@@ -5786,9 +7415,14 @@ export function computeSkillDamageDetail(
   // jamais sur une bombe, jamais sur le bucket Additionnel — ce n'est pas un
   // choix pris ici, c'est ce que le bracket fait déjà. Le gain se calcule dans
   // `relicExclusive.ts` ; `0` = comportement strictement inchangé.
+  // ⚠️ 209 et 225 (`degatsAttaqueConjointePct`) s'additionnent ici aux lignes
+  // élémentaires, et en suivent donc les exclusions — ni bombe, ni bucket
+  // Additionnel (décision de l'utilisateur). Le profil reçu est déjà celui de
+  // CETTE attaque : 0 hors d'une attaque conjointe
+  // (`artefactsSelonContexteConjoint`, appliqué par `computeTotalDamage`).
   const dmgPct = profile.bombe || (profile.fixed && profile.bonusElementaireSurFixe === false)
     ? 1
-    : 1 + (bonusElement + reliqueDmgPct) / 100;
+    : 1 + (bonusElement + artefacts.degatsAttaqueConjointePct + reliqueDmgPct) / 100;
   // « Dgts de bombe » (210) — sa propre majoration, réservée aux bombes. Elle
   // ne peut pas vivre dans DMG%, dont les bombes sont justement exclues.
   const facteurBombe = profile.bombe ? 1 + artefacts.degatsBombePct / 100 : 1;
@@ -5796,40 +7430,23 @@ export function computeSkillDamageDetail(
   // Julie (« Thousand Shots »)/Melissa (« Massacre Dance ») : +pct % par
   // effet SAISI sur la cible — propre à CE sort (`profile.
   // bonusParEffetCible`), pas un modificateur monstre-wide comme les
-  // termes ci-dessus.
-  const pctEffetsCible = profile.bonusParEffetCible
-    ? bonusPctParEffet(profile.bonusParEffetCible, compteEffetsDirect)
-    : 0;
-  const pctEffetsPropres = profile.bonusParEffetPropre
-    ? profile.bonusParEffetPropre.pct *
-      Math.max(
-        0,
-        profile.bonusParEffetPropre.source === 'buffs'
-          ? resolvedBuffsPropresCount(profile.skillCom2usId, setup)
-          : setup.effetsPropresCount?.[profile.skillCom2usId] ?? 0
-      )
-    : 0;
-  // Nina/Shasha additionnent les deux comptes dans une même clause : un seul
-  // facteur, pas deux multiplicateurs qui créeraient un terme croisé.
-  const facteurEffetCible = 1 + (pctEffetsCible + pctEffetsPropres) / 100;
+  // termes ci-dessus. Nina/Shasha additionnent les deux comptes (cible et
+  // effets propres) dans une même clause : un seul facteur, pas deux
+  // multiplicateurs qui créeraient un terme croisé.
   // Backup Code (« Increase Damage », débuffs sur la CIBLE) — MONSTRE-WIDE,
   // majore le sort ACTIF choisi quel qu'il soit (voir `monsterBonusParEffetCible`,
   // distinct de `bonusParEffetCible`, propre à un sort précis type Julie).
-  const facteurEffetCibleMonstre = monsterWide.bonusParEffetCible
-    ? 1 + bonusPctParEffet(monsterWide.bonusParEffetCible, compteEffetsMonstre) / 100
-    : 1;
   // Blessing of Curse (« Increase Damage », débuffs sur les alliés, soi
   // compris, plafonné) — même famille, stockage séparé (`effetsPropresCount`).
-  const facteurEffetPropre = monsterWide.bonusParEffetPropre
-    ? 1 + pctBonusParEffetPropreMonstre(monsterWide.bonusParEffetPropre, setup) / 100
-    : 1;
   // Emergency Drive (Cynthia/Arcane Weapon) : bouton restreint à CE SORT
   // (« Rending Claw »), voir `SkillDamageProfile.bonusConditionnelPropre` —
   // même stockage/logique que `bonusPassifActif` mais propre au sort choisi,
   // pas à un passif séparé.
-  const facteurConditionnelPropre = profile.bonusConditionnelPropre && bonusConditionnelPropreActif(profile, setup)
-    ? 1 + profile.bonusConditionnelPropre.pct / 100
-    : 1;
+  // Les quatre, du réglage seul, sont préparés (`termesDuReglage`).
+  const facteurEffetCible = t.facteurEffetCible;
+  const facteurEffetCibleMonstre = t.facteurEffetCibleMonstre;
+  const facteurEffetPropre = t.facteurEffetPropre;
+  const facteurConditionnelPropre = t.facteurConditionnelPropre;
   const facteurConditionsCombat =
     1 + bonusPctConditions(profile.conditionsCombat, setup, profile.skillCom2usId, element, pctDepart, combat) / 100;
   const facteurConditionsMonstre = (monsterWide.conditionsCombat ?? []).reduce(
@@ -5837,9 +7454,7 @@ export function computeSkillDamageDetail(
       facteur * (1 + bonusPctConditions([p.condition], setup, p.skillCom2usId, element, pctDepart, combat) / 100),
     1
   );
-  const facteurStackPropre = profile.bonusStackPropre
-    ? 1 + Math.min(profile.bonusStackPropre.pctMax, stackPropre * profile.bonusStackPropre.ratio) / 100
-    : 1;
+  const facteurStackPropre = t.facteurStackPropre;
 
   const horsCoup =
     critTerm *
@@ -5939,21 +7554,24 @@ export function computeSkillDamageDetail(
     coefCdParCoup > 0 &&
     (artefacts.cdPointsPremiereAttaque > 0 || artefacts.cdPointsPvCibleHauts > 0 || artefacts.cdPointsPvCibleBas > 0);
 
-  const coups = resolvedHits(profile, setup);
+  const coups = t.coups;
   // Crawler/Frankenstein (« Rage Charge ») : `+coeffParPoint × {variable} ×
   // compteur` s'ajoute au MULTIPLICATEUR de la formule (jamais une
   // réécriture de `formule` elle-même) — recalculé à partir de la MÊME
   // variable déjà évaluée dans `valeurs`, jamais une seconde lecture des
   // stats. Constant sur toute la durée du sort (la variable concernée,
   // DEF, ne varie jamais coup par coup, contrairement aux PV de la cible).
+  // `t.prefixeCompteur` = `coeffParPoint × compteur`, le produit se lisant de
+  // gauche à droite.
   const bonusCompteur = profile.bonusCoefficientParCompteur;
   const ajoutCompteur = bonusCompteur
-    ? bonusCompteur.coeffParPoint * resolvedCompteurPersonnalise(profile, setup) * (valeurs[bonusCompteur.variable] ?? 0)
+    ? t.prefixeCompteur * (valeurs[bonusCompteur.variable] ?? 0)
     : 0;
   // Spear of Tenacity — `pct/100 × {Target MAX HP}`, toujours actif, ajouté
   // au même titre qu'`ajoutCompteur` (MONSTRE-WIDE plutôt que propre à un
-  // sort, mais même traitement : soumis au critique/à la défense).
-  const ajoutCiblePvMax = monsterWide.bonusFixeCiblePvMax ? (monsterWide.bonusFixeCiblePvMax.pct / 100) * pvMax : 0;
+  // sort, mais même traitement : soumis au critique/à la défense). Du réglage
+  // seul, préparé.
+  const ajoutCiblePvMax = t.ajoutCiblePvMax;
   // Martial Arts Specialist — `coeff × max(0, DEF_propre − DEF_cible)`,
   // toujours actif, à CHAQUE coup (confirmé par l'utilisateur), donc dans ce
   // même terme PAR-COUP plutôt que hors du `×coups` plus bas.
@@ -5964,12 +7582,10 @@ export function computeSkillDamageDetail(
   // Sickle Blade/Sand Blade — `pct/100 × {MAX HP}` propre.
   const ajoutMaxHpPropre = monsterWide.bonusFixeMaxHpPropre ? (monsterWide.bonusFixeMaxHpPropre.pct / 100) * valeurs['MAX HP'] : 0;
   // Calculated Sacrifice — dérivé d'une saisie manuelle (`pvActuelsAvantSacrificePct`,
-  // défaut 100 = premier tour), même famille que Sickle Blade.
+  // défaut 100 = premier tour), même famille que Sickle Blade. Ses trois
+  // pourcentages, du réglage seul, sont le préfixe préparé du produit.
   const ajoutSacrifice = monsterWide.bonusSacrifice
-    ? (monsterWide.bonusSacrifice.pctSurPerte / 100) *
-      (monsterWide.bonusSacrifice.pctPerte / 100) *
-      (resolvedPvActuelsAvantSacrificePctMonstre(monsterWide.bonusSacrifice.skillCom2usId, setup) / 100) *
-      valeurs['MAX HP']
+    ? t.prefixeSacrifice * valeurs['MAX HP']
     : 0;
   // ⚠️ **Dégâts BRUTS, À CHAQUE COUP** — Sickle Blade (Bayek Vent), Sand
   // Blade (Desert Warrior Vent, Shahat), Calculated Sacrifice (Onimusha,
@@ -6014,9 +7630,12 @@ export function computeSkillDamageDetail(
 
   // Chemin COURT — le ratio ne dépend pas des PV de la cible : une seule
   // évaluation, exactement comme avant l'ajout de la simulation.
-  const formuleLitPvCible = profile.variables.includes('Target Current HP %');
+  const formuleLitPvCible = t.formuleLitPvCible;
+  // L'ignore DEF selon les PV perdus change d'un coup à l'autre : il force le
+  // chemin séquentiel, et chaque coup y refait sa mitigation.
+  const ignoreDefParCoup = t.ignoreDefParCoup;
 
-  if (!formuleLitPvCible && !artefactsVarientParCoup) {
+  if (!formuleLitPvCible && !artefactsVarientParCoup && !ignoreDefParCoup) {
     const mult = evaluer(profile.noeud, valeurs) + ajoutParCoup;
     if (mult <= 0 && degatsBrutParCoup <= 0) return { total: 0, additionnel: 0, fixeProtege: 0, pvRestantsPct: pctDepart };
     // ⚠️ Le terme brut est DANS le `×coups`, plus ajouté à côté : les deux
@@ -6048,8 +7667,17 @@ export function computeSkillDamageDetail(
     const pvFrac = pvMax > 0 ? pvCourant / pvMax : pctDepart / 100;
     if (formuleLitPvCible) valeurs['Target Current HP %'] = pvFrac;
     const mult = (formuleLitPvCible ? evaluer(profile.noeud, valeurs) : multFixe) + ajoutParCoup;
-    // La seule part variable de `horsCoup` — voir `coefCdParCoup`.
-    const horsCoupIci = horsCoup + coefCdParCoup * deltaCdPoints(i === 0, pvFrac);
+    // Les deux parts variables de `horsCoup` : les Dgts Crit du coup (voir
+    // `coefCdParCoup`) et, pour un ignore DEF selon les PV perdus, la
+    // mitigation du coup — `horsCoup` et `coefCdParCoup` lui sont tous deux
+    // proportionnels, le rapport suffit.
+    const facteurMitigationIci = ignoreDefParCoup
+      ? defenseFactor(
+          Math.max(0, setup.enemyDef) * facteurDefBreak *
+            (1 - Math.max(fractionIgnoreeSelonVit, fractionIgnoreeConditionnelle, fractionSelonPvPerdus(pvFrac * 100)))
+        ) / mitigation
+      : 1;
+    const horsCoupIci = (horsCoup + coefCdParCoup * deltaCdPoints(i === 0, pvFrac)) * facteurMitigationIci;
     // ⚠️ `Math.max(0, mult)` et non un `continue` sur `mult <= 0` : un
     // multiplicateur nul n'annule PAS le terme brut, qui ne dépend pas de la
     // formule du sort. Le coup n'est sauté que s'il ne porte réellement rien.
@@ -6281,12 +7909,28 @@ export function computeTotalDamage(
   // offensif (c'est un bonus de dégâts infligés général, exactement comme les
   // lignes élémentaires d'artéfact qui vivent dans le même bracket). Calculé
   // par `relicExclusive.ts` ; `0` = comportement strictement inchangé.
-  reliqueDmgPct = 0
+  reliqueDmgPct = 0,
+  // Ce qui ne dépend pas de la paire d'artéfacts, calculé une fois pour toutes
+  // les paires d'un build et d'une relique (`MemoCombat`, créé par
+  // `evaluerPourRegime`), et ce qui ne dépend que du réglage, une fois pour
+  // toute une file (sa `PreparationReglage`) ; ou la seule préparation, pour
+  // des notes de candidats qui ne partagent aucun tableau de stats (le
+  // classement, `optionsDeClassement`). Absent = tout recalculé ; même
+  // résultat, au bit près.
+  memo?: MemoCombat | PreparationReglage
 ): number {
+  memo?.connaitre(setup, profile);
+  const reglage = memo instanceof PreparationReglage ? memo : memo?.reglage;
+  const memoStats = memo instanceof MemoCombat ? memo : undefined;
+  // Ce que le total lit du seul réglage (`preparerSort`) : préparé une fois
+  // avec la préparation, recalculé à chaque appel sans elle.
+  const prepare = reglage
+    ? reglage.sort(profile, passifs, setup, monsterWide, bonusDegatsStack, bonusDegatsConditionnel)
+    : preparerSort(profile, passifs, setup, monsterWide, bonusDegatsStack, bonusDegatsConditionnel);
   const maVit = maVitCombat(stats, setup, element, artefacts.ampliVitPct);
-  const ecartVit = maVit - Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
+  const ecartVit = maVit - prepare.vitEnnemie;
   const forceCrit = critSiPlusRapide && ecartVit > 0;
-  const setupSort = forceCrit ? { ...setup, critMode: 'crit' as const } : setup;
+  const setupSort = forceCrit ? prepare.setupCritForce ?? { ...setup, critMode: 'crit' as const } : setup;
   // Un PASSIF choisi lui-même comme sort (Tempest seul, `passif: true`) n'a pas
   // la place du premier coup du tour : ce cran isole sa contribution, mais il
   // frappe toujours après le S1 ou le S2 qui le déclenche — 411 (« Dgts CRIT
@@ -6294,13 +7938,18 @@ export function computeTotalDamage(
   // (valeurs-de-jeu-curees.md : « jamais sur Tempest, même sélectionné seul »).
   // Hors de la boucle des passifs : un objet par appel au
   // plus, et seulement dans ce cas.
-  const artefactsSort: ArtifactDamageProfile =
-    profile.passif && artefacts.cdPointsPremiereAttaque > 0 ? { ...artefacts, cdPointsPremiereAttaque: 0 } : artefacts;
+  // Puis le contexte d'attaque conjointe du sort choisi, par la porte
+  // (`contexteAttaqueConjointe`) : 209/225 hors d'une attaque conjointe, 224
+  // pour un S1 appelé par un allié.
+  const artefactsSort: ArtifactDamageProfile = artefactsSelonContexteConjoint(
+    profile.passif && artefacts.cdPointsPremiereAttaque > 0 ? { ...artefacts, cdPointsPremiereAttaque: 0 } : artefacts,
+    prepare.contexteSort
+  );
   // ⚠️ Les PV de la cible sont ENCHAÎNÉS du sort actif vers les passifs :
   // ceux-ci frappent après lui, sur une cible déjà entamée. C'est ce qui
   // permet à un bonus « si les PV sont tombés sous X % » (Final Strike) de
   // se déduire tout seul, sans rien demander à l'utilisateur.
-  const sort = computeSkillDamageDetail(profile, stats, setupSort, propres, element, undefined, artefactsSort, monsterWide, reliqueDmgPct);
+  const sort = computeSkillDamageDetail(profile, stats, setupSort, propres, element, undefined, artefactsSort, monsterWide, reliqueDmgPct, memo);
   let total = sort.total;
   // ⚠️ **Part ADDITIONNELLE mise de côté** — elle traverse la chaîne de
   // multiplicateurs ci-dessous sans en subir un seul, et n'est rendue qu'à la
@@ -6332,46 +7981,46 @@ export function computeTotalDamage(
   // GC pure. Le reste du profil est partagé tel quel.
   const artefactsPassif: ArtifactDamageProfile =
     artefacts.cdPointsPremiereAttaque > 0 ? { ...artefacts, cdPointsPremiereAttaque: 0 } : artefacts;
-  // État de la cible après le dernier coup du sort, poses du scénario
-  // comprises, pour les contributions qui SUIVENT le sort.
-  // Calculé UNE fois par appel, et seulement sous scénario actif :
-  // sinon `null`, sans aucune allocation, et chaque passif garde le réglage
-  // d'avant (voir `etatCibleApresSort`).
-  const setupApresSort = etatCibleApresSort(profile, passifs, setup, monsterWide);
-  for (const p of passifs) {
-    if (!passifCompte(p, profile, setup)) continue;
+  // Une contribution qui suit le sort a son propre contexte conjoint (porte,
+  // chemin `'suite-du-sort'`) — `null` pour tout passif : construit une fois,
+  // le cas courant ne coûte aucune allocation par passif.
+  const artefactsSuiteNonConjointe = artefactsSelonContexteConjoint(artefactsPassif, null);
+  // Les passifs qui comptent après ce sort (`passifCompte`), dans l'ordre,
+  // avec ce qu'ils lisent du seul réglage (`preparerSort`) : état de la cible
+  // après le dernier coup du sort (poses du scénario comprises) pour une
+  // contribution qui SUIT le sort, état avant chaque coup pour un passif qui
+  // l'accompagne (Feng Yan), contexte conjoint, profil et mode critique.
+  for (const pp of prepare.passifs) {
+    const p = pp.p;
     // Le seuil se juge sur les PV AVANT que ce passif ne frappe — c'est bien
     // l'état de la cible au moment où le jeu évalue la condition.
     const seuilAtteint = p.bonusPvCible != null && pvCiblePct <= p.bonusPvCible.seuilPct;
-    const avecModeCritique = (base: DamageSetup): DamageSetup => ({
-      ...base,
-      ...(forceCrit && p.critique === 'suit' ? { critMode: 'crit' as const } : {}),
-      ...(p.critique === 'jamais' ? { critMode: 'normal' as const } : {}),
-      ...(p.critique === 'toujours' ? { critMode: 'crit' as const } : {}),
-    });
-    const setupsPassifParCoup = p.coupsDuSortActif
-      ? setupsAvantChaqueCoup(profile, setup, monsterWide, [p.profile])
-      : null;
+    const contextePassif = pp.contexte;
+    const artefactsDuPassif =
+      contextePassif === null ? artefactsSuiteNonConjointe : artefactsSelonContexteConjoint(artefactsPassif, contextePassif);
+    // Les réglages avec son mode critique : construits une fois par la
+    // préparation retenue, sinon à chaque appel, comme avant.
+    const setupsCritiques = pp.setups?.[forceCrit ? 1 : 0] ?? null;
     let detail: ReturnType<typeof computeSkillDamageDetail>;
-    if (setupsPassifParCoup) {
+    if (pp.avant) {
       // Feng Yan : chaque instance de Winds and Clouds accompagne le coup
       // actif correspondant. Elle lit donc le Brise DEF/la Marque AVANT ce
       // coup, et non l'état final après les trois coups.
-      const profilUnCoup = { ...p.profile, hits: 1, hitsRange: undefined };
       let totalPassif = 0;
       let additionnelPassif = 0;
       let pvPassif = pvCiblePct;
-      for (const etatAvantCoup of setupsPassifParCoup) {
+      for (let i = 0; i < pp.avant.length; i++) {
         const detailCoup = computeSkillDamageDetail(
-          profilUnCoup,
+          pp.profil,
           stats,
-          avecModeCritique(etatAvantCoup),
+          setupsCritiques ? setupsCritiques[i]! : avecModeCritique(pp.avant[i]!, p, forceCrit),
           propres,
           element,
           pvPassif,
-          artefactsPassif,
+          artefactsDuPassif,
           monsterWide,
-          reliqueDmgPct
+          reliqueDmgPct,
+          memo
         );
         totalPassif += detailCoup.total;
         additionnelPassif += detailCoup.additionnel;
@@ -6384,18 +8033,8 @@ export function computeTotalDamage(
         pvRestantsPct: pvPassif,
       };
     } else {
-      // `hitsRange: undefined` : `hits` est déjà la valeur RÉSOLUE du sort
-      // actif, `resolvedHits` ne doit pas la re-résoudre une seconde fois via
-      // un éventuel `coupsPersonnalises[p.skillCom2usId]` sans rapport.
-      const profilPassif = p.coupsDuSortActif
-        ? { ...p.profile, hits: resolvedHits(profile, setup), hitsRange: undefined }
-        : p.profile;
-      // Une contribution qui SUIT le sort lit l'état de la cible après son
-      // dernier coup : sous scénario, les poses entre les coups comprises ;
-      // sinon le réglage, avec la réduction que le sort pose lui-même.
-      const etatCible = setupApresSort ?? setup;
-      const setupPassif = avecModeCritique({ ...etatCible, defBreak: defBreakApres(etatCible) });
-      detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, propres, element, pvCiblePct, artefactsPassif, monsterWide, reliqueDmgPct);
+      const setupPassif = setupsCritiques ? setupsCritiques[0]! : avecModeCritique(pp.base!, p, forceCrit);
+      detail = computeSkillDamageDetail(pp.profil, stats, setupPassif, propres, element, pvCiblePct, artefactsDuPassif, monsterWide, reliqueDmgPct, memo);
     }
     pvCiblePct = detail.pvRestantsPct;
     let contribution = detail.total;
@@ -6406,7 +8045,7 @@ export function computeTotalDamage(
     contribution -= additionnelPassif;
     if (seuilAtteint && p.bonusPvCible) contribution *= 1 + p.bonusPvCible.pct / 100;
     if (p.categorie.type === 'bonus') {
-      const actif = bonusPassifActif(p, setup);
+      const actif = pp.bonusActif;
       // ⚠️ `dejaInclus` (Dominic — voir `PassifOffensifCategorie`) : `formule`
       // porte déjà le cas MAJORÉ, donc l'opération s'inverse — décoché, on
       // DIVISE pour retrouver le cas de base, jamais l'inverse.
@@ -6447,29 +8086,27 @@ export function computeTotalDamage(
   // Gideon (« Aegis Shell ») — linéaire, plafonné, même forme que
   // `bonusDegatsSelonVit`/`bonusDegatsSelonCr`, source = TA PROPRE DEF.
   if (bonusDegatsSelonDef) {
-    const def = defCombat(stats, setup, propres, element);
+    const def = defCombat(stats, setup, propres, element, memoStats);
     const pct = Math.min(bonusDegatsSelonDef.defMax, Math.max(0, def)) * (bonusDegatsSelonDef.pctMax / bonusDegatsSelonDef.defMax);
     total *= 1 + pct / 100;
   }
   // Brita/Eivor (Eau) — SEUIL absolu (pas linéaire) : +pct % dès que l'ATQ
   // totale (avec lead, compétence d'invocateur) atteint `seuil`, rien
   // avant. Entièrement déduit.
-  if (bonusSiAtqSeuil && atkCombatComplet(stats, setup, propres, element) >= bonusSiAtqSeuil.seuil) {
+  if (bonusSiAtqSeuil && atkCombatComplet(stats, setup, propres, element, memoStats) >= bonusSiAtqSeuil.seuil) {
     total *= 1 + bonusSiAtqSeuil.pct / 100;
   }
   // Même famille que `bonusDegatsSelonVit` (multiplicatif sur le TOTAL,
   // après coup) — seule la SOURCE du pourcentage change : saisie par
   // l'utilisateur (`resolvedStackPct`) plutôt que déduite de la VIT.
-  if (bonusDegatsStack) total *= 1 + resolvedStackPct(bonusDegatsStack, setup) / 100;
+  // Les trois facteurs suivants ne lisent que le réglage : préparés
+  // (`preparerSort`), chacun sur l'expression qu'il remplace.
+  if (bonusDegatsStack) total *= prepare.facteurStack;
   // Encore la même famille — seule la source change ENCORE : un bouton
   // (`bonusDegatsConditionnelActif`) plutôt qu'une valeur saisie ou déduite
   // de la VIT, pour une condition que l'app ne peut pas connaître (PV
-  // propres, état d'un allié, tour précédent…).
-  if (
-    bonusDegatsConditionnel &&
-    bonusDegatsConditionnel.excludeSkillCom2usId !== profile.skillCom2usId &&
-    bonusDegatsConditionnelActif(bonusDegatsConditionnel, setup)
-  ) {
+  // propres, état d'un allié, tour précédent…), hors du sort qu'il exclut.
+  if (bonusDegatsConditionnel && prepare.conditionnelActif) {
     total *= 1 + bonusDegatsConditionnel.pct / 100;
   }
   // Velaska (« Price of Pain ») — effet d'ÉQUIPE, encore la même famille :
@@ -6477,10 +8114,95 @@ export function computeTotalDamage(
   // les PV du monstre optimisé en combat). Sans effet si `velaskaActif` est
   // faux, ou si `velaskaPvPerduPct` est absent/nul.
   if (setup.velaskaActif) {
-    total *= 1 + (VELASKA_PCT_PAR_PV_PERDU * (setup.velaskaPvPerduPct ?? 0)) / 100;
+    total *= prepare.facteurVelaska;
   }
   // La part brute rejoint le total, sans avoir subi un seul de ces facteurs.
   return total + totalAdditionnel + totalFixeProtege;
+}
+
+// Les stats PROPRES qu'une condition de combat lit (`conditionCombatActive` :
+// seuils sur l'ATQ, la DEF, les PV ou la VIT du lanceur ; `coupsEnPlusActifs` :
+// tranches d'ATQ), ajoutées à `keys` sans doublon. Source unique de
+// `damageRelevantStats` et de `statsDuLanceurLuesParLaNote`.
+function ajouterStatsPropresDesConditions(conditions: readonly ConditionCombatProfile[], keys: StatKey[]): void {
+  for (const condition of conditions) {
+    if (condition.type === 'atkCibleSousAtkPropre' || condition.type === 'defCibleSousAtkPropre' || condition.type === 'atkParTranche') {
+      if (!keys.includes('atk')) keys.push('atk');
+    }
+    if (condition.type === 'defCibleSousDefPropre' && !keys.includes('def')) keys.push('def');
+    if (
+      (condition.type === 'pvPropreSous' || condition.type === 'pvCibleSuperieursPvPropre') &&
+      !keys.includes('hp')
+    ) keys.push('hp');
+    if (condition.type === 'vitPropreSuperieure' && !keys.includes('spd')) keys.push('spd');
+  }
+}
+
+/** Ce que lit `statsDuLanceurLuesParLaNote` : les champs du contexte de « Dégâts réels » que `computeTotalDamage` reçoit. */
+export interface ContexteLecteursDegats {
+  profile: SkillDamageProfile;
+  passifs: PassifOffensifProfile[];
+  setup: DamageSetup;
+  critSiPlusRapide: boolean;
+  bonusDegatsSelonVit: { ecartMax: number; pctMax: number } | null;
+  monsterWide: MonsterWideDamageModifiers;
+  bonusDegatsSelonCr: { ratio: number } | null;
+  bonusDegatsSelonDef: { defMax: number; pctMax: number } | null;
+  bonusSiAtqSeuil: { seuil: number; pct: number } | null;
+}
+
+/**
+ * La TABLE DES LECTEURS de la note de « Dégâts réels » : parmi les PV, l'ATQ
+ * et la DEF du lanceur, celles que `computeTotalDamage` lit pour ce contexte,
+ * HORS des lignes d'artéfact 218-220 de la paire notée (`statsDesLignesBrutes`,
+ * à joindre paire par paire). Une stat absente est INERTE : l'augmenter seule
+ * ne change pas la note. La dominance des reliques par classe de paires
+ * (`resolutionRapide.ts`) n'y compare pas les reliques.
+ *
+ * Lecteurs, lus du code : les variables de la formule retenue du sort et des
+ * passifs comptés (`VARIABLE_STAT`, composante fixe et séquence de coups
+ * comprises dans `variables`), les modificateurs du monstre qui lisent une
+ * stat (Martial Arts Specialist, PV propres, Gideon, seuil d'ATQ, stats de
+ * combat) et les conditions de combat sur une stat propre — tout ce que
+ * `damageRelevantStats` retient —, plus les conditions des passifs comptés et
+ * la variable d'un compteur de coefficient (Hammer Punch), que celle-ci ne lit
+ * pas. Les effets entre les coups ne lisent aucune stat du lanceur.
+ *
+ * ⚠️ Repose sur des règles de jeu confirmées par l'utilisateur le 2026-10-27
+ * (non relevées en jeu) : seules les lignes 218-220 d'un artéfact lisent ces
+ * totaux ; un modificateur du monstre qui lit une stat est écrit dans ses
+ * passifs. ⚠️ Un modificateur que le code ne modélise pas n'y est pas
+ * (l'équilibrage d'ATQ et de DEF d'Internal Force, Leona ; la conversion des
+ * PV en ATQ de Diana) : le modéliser demande d'y ajouter sa stat, ce que
+ * `tests/dominance-lecteurs-corpus.test.ts` vérifie sur tout le corpus.
+ * Superset sûr : une stat retenue à tort coûte des notes, jamais un résultat.
+ */
+export function statsDuLanceurLuesParLaNote(ctx: ContexteLecteursDegats): ('hp' | 'atk' | 'def')[] {
+  const keys = damageRelevantStats(
+    ctx.profile,
+    ctx.passifs,
+    ctx.setup,
+    ctx.critSiPlusRapide,
+    ctx.bonusDegatsSelonVit,
+    ctx.monsterWide.critRateSelonVit ?? null,
+    ctx.monsterWide.bonusEcartDef ?? null,
+    ctx.monsterWide.bonusFixeMaxHpPropre != null || ctx.monsterWide.bonusSacrifice != null,
+    ctx.bonusDegatsSelonCr,
+    ctx.bonusDegatsSelonDef,
+    ctx.bonusSiAtqSeuil,
+    ctx.monsterWide
+  );
+  const ajouterVariable = (v: DamageVariable | undefined) => {
+    const k = v ? VARIABLE_STAT[v] : undefined;
+    if (k && !keys.includes(k)) keys.push(k);
+  };
+  ajouterVariable(ctx.profile.bonusCoefficientParCompteur?.variable);
+  for (const p of ctx.passifs) {
+    if (!passifCompte(p, ctx.profile, ctx.setup)) continue;
+    ajouterStatsPropresDesConditions(p.profile.conditionsCombat ?? [], keys);
+    ajouterVariable(p.profile.bonusCoefficientParCompteur?.variable);
+  }
+  return (['hp', 'atk', 'def'] as const).filter((k) => keys.includes(k));
 }
 
 /**
@@ -6611,17 +8333,7 @@ export function damageRelevantStats(
     ...(profile.conditionsCombat ?? []),
     ...(monsterWide.conditionsCombat ?? []).map((p) => p.condition),
   ];
-  for (const condition of toutesConditions) {
-    if (condition.type === 'atkCibleSousAtkPropre' || condition.type === 'defCibleSousAtkPropre' || condition.type === 'atkParTranche') {
-      if (!keys.includes('atk')) keys.push('atk');
-    }
-    if (condition.type === 'defCibleSousDefPropre' && !keys.includes('def')) keys.push('def');
-    if (
-      (condition.type === 'pvPropreSous' || condition.type === 'pvCibleSuperieursPvPropre') &&
-      !keys.includes('hp')
-    ) keys.push('hp');
-    if (condition.type === 'vitPropreSuperieure' && !keys.includes('spd')) keys.push('spd');
-  }
+  ajouterStatsPropresDesConditions(toutesConditions, keys);
   // Le critique forcé change la donne — mais SEULEMENT lui : le bonus continu
   // de Sonia multiplie le total quel que soit son mode de critique, il ne le
   // FORCE pas.

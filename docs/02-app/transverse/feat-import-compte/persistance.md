@@ -214,7 +214,8 @@ Rien n'est envoyé à un serveur. Aucune authentification.
   entière, et qu'un futur état persistant n'ouvrira pas une fuite.
 - **Exception** : les **réglages** restent écrits, par leur propre hook — choix
   de conservation, mesure de score, thème, overcap, adversaire de référence,
-  builds les plus rapides. Ce
+  builds les plus rapides, forme des résultats de l'Optimizer (cartes ou
+  tableau). Ce
   ne sont pas les données de l'utilisateur, et le refus lui-même doit être
   mémorisé pour ne pas reposer la question.
 - ⚠️ **Toute clé de réglage est déclarée dans `CLES_DE_REGLAGE`.** Une clé qui

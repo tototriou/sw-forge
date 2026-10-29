@@ -105,9 +105,13 @@ import {
   RechercheRefusee,
   SearchParams,
   prepareSearch,
-  pairBuckets,
-  Bucket,
 } from '../src/lib/runeBuildOptim';
+import { construireMoitiesEmboiteesTypees } from '../src/lib/constructionEmboitee';
+import { analyserEspace } from '../src/lib/appariementRapide';
+import { identifiantsDesCandidats } from '../src/lib/candidatsCompacts';
+import { nombreDeTravailleurs, regimeAppariement } from '../src/workers/parallelPairing';
+import { availableParallelism } from 'os';
+import { apparierNode, assurerBundleAppariementRapide } from './lib/appariementRapideNode';
 import { Case, CASES, loadCase, loadCaseSearchParams } from './lib/perfShared';
 import { caseAvecRelique, jetonsRelique, parseOptionsRelique } from './lib/perfRelicOptions';
 // ⚠️ `import type` impératif ici : build-half-worker.ts / monotonicity-worker.ts
@@ -167,10 +171,10 @@ interface RunResult {
   buildAMs: number;
   buildBMs: number;
   // Temps RÉEL écoulé pour la phase de construction dans son ensemble, les
-  // deux moitiés tournant EN PARALLÈLE sur deux `worker_threads` (comme les
-  // deux Web Workers de l'app réelle, voir buildHalf.worker.ts) — proche de
-  // max(buildAMs, buildBMs) plus une marge de démarrage des fils, jamais
-  // leur SOMME. C'est CE nombre qui doit entrer dans `totalMs`/`foundMs`.
+  // fils tournant EN PARALLÈLE sur des `worker_threads`, un par moitié et par
+  // préréglage construit (comme les Web Workers de l'app réelle, voir
+  // buildHalf.worker.ts) — au moins max(buildAMs, buildBMs), plus une marge
+  // de démarrage des fils, jamais leur SOMME. C'est CE nombre qui doit entrer dans `totalMs`/`foundMs`.
   buildWallMs: number;
   // Le temps de la SEULE phase d'appariement, sans le prep/build qui la
   // précèdent — complète `foundMs`/`totalMs` (globaux) plutôt que de les
@@ -203,7 +207,7 @@ interface CaseOutcome {
 
 // Bundle un script worker en .cjs (un worker_threads a besoin de JS pur, pas
 // de TypeScript transpilé à la volée) — même patron que
-// scripts/lib/spawnSliceNode.ts et scripts/lib/buildHalvesNode.ts. Mis en cache sur un chemin
+// scripts/lib/appariementRapideNode.ts et scripts/lib/buildHalvesNode.ts. Mis en cache sur un chemin
 // PROPRE À CETTE EXÉCUTION (dérivé du PID de l'orchestrateur, passé aux
 // enfants via `--bundle-dir=`), pas un chemin fixe partagé entre invocations
 // séparées : chaque cas de la batterie tourne dans son propre processus Node
@@ -300,6 +304,7 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
   // défaut interne du moteur), un pré-filtrage plus étroit que ce que
   // l'app utilise réellement, faussant toute comparaison.
   const params = loadCaseSearchParams(c, maxMs);
+  const cheminBundleAppariement = await assurerBundleAppariementRapide();
 
   const t0 = performance.now();
   const prepared = prepareSearch(params);
@@ -338,41 +343,29 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
   const prepMs = tPrepared - t0;
 
   // ⚠️ Reproduit EXACTEMENT la topologie réelle (runeBuildOptim.worker.ts) :
-  // `Promise.all` sur DEUX `Worker` déjà lancés au moment où `Promise.all`
-  // est appelé (les deux `new Worker(...)` s'exécutent avant tout `await`),
-  // donc vraiment concurrents — pas l'un après l'autre.
+  // un `Worker` par moitié ET par préréglage construit (2 à 8), tous lancés
+  // avant la première attente (`construireMoitiesEmboitees` crée chaque fil
+  // avant tout `await`), donc vraiment concurrents — pas l'un après l'autre.
   const workerScript = await ensureBuildHalfWorkerBundle();
-  const inputBase = {
-    filtered: prepared.filtered,
-    distinctKeys: prepared.distinctKeys,
-    constrainedKeys: prepared.constrainedKeys,
-    retentionKeys: prepared.retentionKeys,
-    minEntries: prepared.minEntries,
-    bucketCap: prepared.bucketCap,
-    jokerCredit: prepared.jokerCredit,
-    requiredPieces: prepared.requiredPieces,
-    base: prepared.base,
-    objectiveKeys: prepared.objectiveKeys,
-    // ⚠️ Relayés depuis params — voir build-half-worker.ts, le worker
-    // ignorait ces deux champs jusqu'ici, retombant toujours sur le défaut
-    // interne de buildBuckets. CASES ne les fixe pas aujourd'hui (undefined
-    // partout), mais un futur appel qui voudrait forcer une valeur précise
-    // (mesure ciblée) doit pouvoir compter sur ce relais.
-    adaptiveTrancheWeighting: params.adaptiveTrancheWeighting,
-    combosOrderMode: params.combosOrderMode,
-  };
+  // Préréglages emboîtés : un fil par moitié ET par préréglage construit
+  // (`construireMoitiesEmboitees`, l'orchestrateur de la production), puis
+  // l'union ici. ⚠️ `combosOrderMode` relayé depuis params — voir
+  // build-half-worker.ts : sans lui, le worker retombe toujours sur le défaut
+  // interne de buildBuckets.
+  const propres: Partial<Record<'A' | 'B', BuildHalfWorkerResult>> = {};
   const tBuildStart = performance.now();
-  const [outA, outB] = await Promise.all([
-    runWorker<BuildHalfWorkerData, BuildHalfWorkerResult>(workerScript, { ...inputBase, half: 'A', slotIdxs: [0, 1, 2], otherHalfMaxSets: prepared.maxSetsForA }),
-    runWorker<BuildHalfWorkerData, BuildHalfWorkerResult>(workerScript, { ...inputBase, half: 'B', slotIdxs: [3, 4, 5], otherHalfMaxSets: prepared.maxSetsForB }),
-  ]);
+  const { bucketsA, bucketsB } = await construireMoitiesEmboiteesTypees(prepared, params.combosOrderMode, async (requete) => {
+    const r = await runWorker<BuildHalfWorkerData, BuildHalfWorkerResult>(workerScript, requete);
+    // Le fil du préréglage de la recherche (rang 0), celui qui porte le pool entier.
+    if (requete.rangPrereglage === 0) propres[requete.half] = r;
+    return r.buckets;
+  });
   const tBuildB = performance.now();
-  const bucketsA: Bucket[] = outA.buckets;
-  const bucketsB: Bucket[] = outB.buckets;
-  // Coût interne à CHAQUE fil (diagnostic), vs le temps RÉEL écoulé pour la
-  // phase dans son ensemble (`buildWallMs`, ce qui compte pour l'utilisateur).
-  const buildAMs = outA.ms;
-  const buildBMs = outB.ms;
+  // Coût interne au fil du préréglage de la recherche de CHAQUE moitié
+  // (diagnostic), vs le temps RÉEL écoulé pour la phase dans son ensemble
+  // (`buildWallMs`, ce qui compte pour l'utilisateur).
+  const buildAMs = propres.A!.ms;
+  const buildBMs = propres.B!.ms;
   const buildWallMs = tBuildB - tBuildStart;
 
   let foundMs: number | null = null;
@@ -380,23 +373,25 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
   let pairingFoundMs: number | null = null;
   const isTarget = (ids: number[]) => ids.length === 6 && ids.every((id) => targetRuneIds.has(id));
 
-  // ⚠️ Pilotage pas à pas, PAS un `drain()` : c'est ici qu'on repère l'instant
-  // EXACT où le build cible apparaît (`foundMs`/`foundExplored`), ce qu'un
-  // résultat final ne dit pas. Ce fut aussi l'endroit où l'escalade du budget
-  // de paires devait être reproduite, sous peine de mesurer une recherche
-  // tronquée ; ce budget n'existe plus.
-  const gen = pairBuckets(prepared, bucketsA, bucketsB);
-  let step = gen.next();
-  while (!step.done) {
-    const progress = step.value;
-    if (foundMs === null && progress.candidates.some((c2) => isTarget(c2.runeIds))) {
-      foundMs = performance.now() - t0;
-      pairingFoundMs = performance.now() - tBuildB;
-      foundExplored = progress.explored;
-    }
-    step = gen.next();
-  }
-  const res = step.value;
+  // Découverte par lecture des ids, sans projection des fiches : point de
+  // passage en séquentiel, publication fusionnée en parallèle. C'est un
+  // majorant, et sa valeur parallèle dépend de l'arrivée des morceaux.
+  const espace = analyserEspace(prepared, bucketsA, bucketsB);
+  const totalPaires = espace.releve.total;
+  const { resultat: res } = await apparierNode({ params, prepared, bucketsA, bucketsB, totalPaires, espace,
+    travailleurs: nombreDeTravailleurs(availableParallelism(), null), startedAt: prepared.startedAt,
+    regime: regimeAppariement(totalPaires, espace.motifContrat),
+    cheminBundle: cheminBundleAppariement,
+    observer: (explored, candidats) => {
+      if (foundMs !== null) return;
+      for (const ids of identifiantsDesCandidats(candidats)) if (isTarget(ids)) {
+        foundMs = performance.now() - t0;
+        pairingFoundMs = performance.now() - tBuildB;
+        foundExplored = explored;
+        break;
+      }
+    },
+  });
   const tEnd = performance.now();
   const totalMs = tEnd - t0;
   const pairingTotalMs = tEnd - tBuildB;

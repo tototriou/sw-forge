@@ -1,0 +1,521 @@
+// Différentiel de la résolution RAPIDE de l'équipement (src/lib/resolutionRapide.ts),
+// celle du point d'entrée de l'app (`resoudreEquipementDuBuild`, relicQueue.ts),
+// contre le calcul exhaustif (`resoudreEquipementDuBuildExhaustif`,
+// src/lib/resolutionExhaustive.ts), build par build : pour un build conforme,
+// résultat ENTIER identique (paire, artéfacts, stats, `meilleurSansVerrous`,
+// conformité, relique, `sansEffetSurLeTri`) ; pour un build rejeté, sans
+// diagnostic (le chemin de l'app) le résultat « aucune paire », avec
+// `diagnostic` celui du calcul exhaustif ; mêmes erreurs. Le point d'entrée
+// lui-même est exercé, avec les représentants de formes de la file
+// (`caches.rapide`, un jeu partagé par ses builds). Les notes NaN :
+// `testResolutionRapideNaN`.
+//
+// Référence de contrôle (`algo-verify`) : le calcul exhaustif, qui note
+// toutes les paires de toutes les reliques éligibles — exhaustif par
+// construction. Les pools sont générés à graine fixe : runes tirées au hasard
+// (`randomRune`), inventaire d'artéfacts à principales de valeurs variées et
+// quelques Intangibles, reliques de principales et d'effets uniques variés
+// (doublons de principale compris), minimums et maximums posés autour des
+// stats des builds pour que des reliques soient faisables et d'autres non.
+//
+// Matrice : relique `recherche`, `equipped`, `off` et sans contexte ;
+// artéfacts « Libre », emplacement figé sur l'artéfact porté, filtre de
+// principale, lignes verrouillées (avec et sans coût des verrous) ;
+// maximums ; régimes Dégâts réels, aucun, PV, ATQ, PV effectifs ; deux ordres
+// de traitement (caches partagés de la file).
+// Le test exige aussi que chaque chemin de la résolution rapide ait servi
+// (reliques écartées sans note, paires faisables seules notées, reliques
+// notées entières sous coût des verrous, diagnostic d'un build rejeté).
+
+import { isDeepStrictEqual } from 'node:util';
+import { ArtifactArchetype, ArtifactDetail, ArtifactKind, BaseStats, ElementKey, RelicDetail, RuneDetail } from '../src/types';
+import { ARTIFACT_SUB_MAX } from '../src/lib/artifacts';
+import { artifactSubKinds } from '../src/lib/effects';
+import { computeStats, statsSelonRelique } from '../src/lib/stats';
+import { BuildRequirement, respecteConditionsAvecRelique } from '../src/lib/runeBuildOptim';
+import { RelicContext, resoudreContexteRelique } from '../src/lib/relicOptim';
+import { RegimeArtefacts } from '../src/lib/artifactEvaluation';
+import { ArtifactSearchParams, LigneVerrouillee } from '../src/lib/artifactOptim';
+import { CachesResolution, EntreeResolution, entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
+import { CompteursResolutionRapide, ConfirmationEquipement, compteursVides, confirmerEquipementDuBuild, resoudreEquipementDuBuildRapide } from '../src/lib/resolutionRapide';
+import { resoudreEquipementDuBuildExhaustif } from '../src/lib/resolutionExhaustive';
+import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
+import { ResultatArtefacts } from '../src/lib/artifactQueue';
+import { mulberry32, randomRune, SETS_VARIES } from '../scripts/lib/randomPool';
+import { DEGATS_FICHE } from './artifact-fiche.test';
+import { egal, ok, titre } from './outils';
+
+const PORTEUR = { element: 'fire' as ElementKey, archetype: 'attack' as ArtifactArchetype };
+const BASE: BaseStats = { hp: 9000, atk: 650, def: 550, spd: 101, cr: 15, cd: 50, res: 15, acc: 0 };
+const DEGATS = { ...DEGATS_FICHE, setup: { ...DEGATS_FICHE.setup, critMode: 'crit' as const } };
+const EXCLUSIVE = { setup: DEFAULT_DAMAGE_SETUP, element: null };
+
+// Inventaire éligible (fire / attack) : principales PV, ATQ ou DEF à des
+// valeurs VARIÉES (plusieurs formes de paire par code), quatre
+// sous-propriétés sous leur plafond, environ un Intangible sur six.
+function inventaire(rng: () => number, parSorte: number): ArtifactDetail[] {
+  const codesDe = (kind: ArtifactKind) => Object.keys(ARTIFACT_SUB_MAX).map(Number).filter((c) => artifactSubKinds(c).includes(kind));
+  const pieces: ArtifactDetail[] = [];
+  let id = 5000;
+  for (const kind of ['element', 'archetype'] as ArtifactKind[]) {
+    const codes = codesDe(kind);
+    for (let i = 0; i < parSorte; i++) {
+      const choisis = new Set<number>();
+      while (choisis.size < 4) choisis.add(codes[Math.floor(rng() * codes.length)]!);
+      const mainCode = [100, 101, 102][Math.floor(rng() * 3)]!;
+      const valeurs = mainCode === 100 ? [900, 1200, 1500] : [60, 80, 100];
+      pieces.push({
+        id: id++, kind, ...(kind === 'element' ? { element: 'fire' as const } : { archetype: 'attack' as const }),
+        level: 15, rarity: 5, main: { code: mainCode, value: valeurs[Math.floor(rng() * 3)]! },
+        subs: [...choisis].map((code) => ({ code, value: Math.max(1, Math.round(rng() * ARTIFACT_SUB_MAX[code]! * 10) / 10) })),
+        ...(rng() < 0.17 ? { intangible: true } : {}),
+      });
+    }
+  }
+  return pieces;
+}
+
+// Reliques : principales et effets variés, deux à principale identique, une
+// sans `percent` (neutre), identifiants dans le désordre.
+function reliques(rng: () => number, n: number): RelicDetail[] {
+  const out: RelicDetail[] = [];
+  const types = [1, 2, 3, 5, 7, 8, 9, 11, 13, 16];
+  for (let i = 0; i < n; i++) {
+    const code = ([100, 101, 102] as const)[Math.floor(rng() * 3)]!;
+    const type = types[Math.floor(rng() * types.length)]!;
+    out.push({
+      id: 100 + Math.floor(rng() * 900) * 10 + i,
+      upgrade: 6 + Math.floor(rng() * 6),
+      main: { code, value: 8 + Math.floor(rng() * 7) },
+      unique: { type, tranche: [150, 200, 1000, 18000][Math.floor(rng() * 4)]!, ...(i === 1 ? {} : { percent: 1 + Math.floor(rng() * 3) }) },
+    });
+  }
+  out.push({ ...out[0]!, id: out[0]!.id + 1, unique: { type: 16, tranche: 18000, percent: 2 } });
+  return out;
+}
+
+function build(rng: () => number, id0: number): RuneDetail[] {
+  return [1, 2, 3, 4, 5, 6].map((slot) => randomRune(id0 + slot, slot, rng, SETS_VARIES));
+}
+
+const total = (runes: RuneDetail[], k: string) => computeStats({ base: BASE, runes, artifacts: [] }).find((s) => s.key === k)!.total;
+
+interface Scenario {
+  nom: string;
+  regime: RegimeArtefacts;
+  intention: 'recherche' | 'equipped' | 'off' | null;
+  artefacts: 'libre' | 'fige' | 'principale' | 'verrous' | 'cout-verrous';
+  maximums: boolean;
+}
+
+const SCENARIOS: Scenario[] = [];
+for (const regime of ['degats_reels', 'aucun', 'hp', 'atk', 'ehp'] as RegimeArtefacts[]) {
+  for (const intention of ['recherche', 'equipped', 'off', null] as const) {
+    // Toute la matrice des artéfacts, relique `recherche` comme relique fixe :
+    // emplacement figé, principale imposée et coût des verrous compris.
+    for (const artefacts of ['libre', 'fige', 'principale', 'verrous', 'cout-verrous'] as const) {
+      for (const maximums of [false, true]) {
+        if (!maximums && regime !== 'degats_reels' && intention !== 'recherche') continue;
+        SCENARIOS.push({ nom: `${regime} · relique ${intention ?? 'sans contexte'} · ${artefacts}${maximums ? ' · maximums' : ''}`, regime, intention, artefacts, maximums });
+      }
+    }
+  }
+}
+
+// Le résultat, ou l'erreur levée (nom et message) : les deux se comparent.
+type Issue = { r: ResultatArtefacts } | { erreur: string };
+
+function resoudre(f: () => ResultatArtefacts): Issue {
+  try {
+    return { r: f() };
+  } catch (e) {
+    return { erreur: `${(e as Error).name} ${(e as Error).message}` };
+  }
+}
+
+// Égalité PROFONDE stricte (NaN = NaN, -0 ≠ 0, clé absente ≠ `undefined`) :
+// plus exigeante qu'une comparaison de JSON.
+const memes = (a: Issue, b: Issue) => isDeepStrictEqual(a, b);
+const conformeDe = (i: Issue) => ('r' in i ? i.r.conforme : null);
+const apercu = (i: Issue) => JSON.stringify(i).slice(0, 160);
+
+// Ce que la résolution rapide doit rendre SANS diagnostic, lu sur la
+// référence exhaustive : une erreur ou un build conforme à l'identique ; un
+// build rejeté, le résultat que le calcul exhaustif rend quand aucune paire
+// n'existe (ni paire, ni artéfact ; stats du build sans artéfact, relique
+// portée hors mode `recherche`, aucune en `recherche` — clé `relique` posée
+// comme le calcul exhaustif la pose).
+function sansDiagnostic(ref: Issue, e: EntreeResolution): Issue {
+  if (!('r' in ref) || ref.r.conforme) return ref;
+  if (e.relicContext?.mode === 'recherche') {
+    return { r: { paire: null, artefacts: [], stats: computeStats({ ...e.gear, relic: undefined }), meilleurSansVerrous: null, conforme: false, relique: undefined } };
+  }
+  return { r: { paire: null, artefacts: [], stats: computeStats({ ...e.gear, artifacts: [], relic: e.gear.relic }), meilleurSansVerrous: null, conforme: false } };
+}
+
+// Les avertissements émis pendant `f`, sans les laisser sur la console.
+function avecAvertissements<T>(f: () => T): { valeur: T; avertissements: string[] } {
+  const avertissements: string[] = [];
+  const original = console.warn;
+  console.warn = (...args: unknown[]) => {
+    avertissements.push(args.map(String).join(' '));
+  };
+  try {
+    return { valeur: f(), avertissements };
+  } finally {
+    console.warn = original;
+  }
+}
+
+export default function testResolutionRapide() {
+  titre('Résolution rapide de l’équipement (chemin de l’app) — même résultat que le calcul exhaustif, build par build');
+  // Relique `recherche`, puis relique fixe (portée, `off`, sans contexte).
+  const compteurs = compteursVides();
+  const compteursFixe = compteursVides();
+  const scenariosFixes = new Set<string>();
+  let compares = 0;
+  let conformes = 0;
+  let rejetes = 0;
+  const ecarts: string[] = [];
+  // Le point d'entrée de l'app et les représentants de formes de la file :
+  // appels de `caches.rapide.representants` en mode `recherche`, et jeux de
+  // formes distincts rendus dans une même file (un seul attendu).
+  let appelsRepresentants = 0;
+  let filesRecherche = 0;
+  const jeuxParFile: number[] = [];
+
+  SCENARIOS.forEach((sc, iScenario) => {
+    const rng = mulberry32(7100 + iScenario);
+    const inv = inventaire(rng, 7);
+    const reliquesInv = reliques(rng, 6);
+    const portee = reliquesInv[Math.floor(rng() * reliquesInv.length)]!;
+    const builds = Array.from({ length: 14 }, (_, i) => build(rng, 100 * i));
+    // Seuils autour des stats des builds : la relique et la paire décident.
+    const mediane = (k: string) => builds.map((b) => total(b, k)).sort((a, b) => a - b)[Math.floor(builds.length / 2)]!;
+    const requirement: BuildRequirement = {
+      sets: [],
+      minStats: {
+        hp: Math.round(mediane('hp') * (1 + 0.1 * rng())),
+        atk: Math.round(mediane('atk') * (1 + 0.1 * rng())),
+        def: Math.round(mediane('def') * (0.95 + 0.1 * rng())),
+      },
+      maxStats: sc.maximums ? { atk: Math.round(mediane('atk') * 1.3), hp: Math.round(mediane('hp') * 1.45) } : {},
+      auraResPre: { res: 0, acc: 0, compter: true },
+    };
+    const element = inv.find((a) => a.kind === 'element')!;
+    const lignes: LigneVerrouillee[] = sc.artefacts === 'verrous' || sc.artefacts === 'cout-verrous'
+      ? [{ code: inv.find((a) => a.kind === 'archetype')!.subs[0]!.code, min: 1 }]
+      : [];
+    const artifactParams: Omit<ArtifactSearchParams, 'evaluer'> = {
+      porteur: PORTEUR,
+      inventaire: inv,
+      equipes: [element],
+      principaleParSorte: sc.artefacts === 'fige' ? { element: 'equipped' } : sc.artefacts === 'principale' ? { archetype: 101 } : {},
+      lignesVerrouillees: lignes,
+      maxStatsActifs: sc.maximums ? ['atk', 'hp'] : [],
+      ...(sc.artefacts === 'cout-verrous' ? { avecCoutDesVerrous: true } : {}),
+    };
+    const ctx: RelicContext | undefined = sc.intention
+      ? resoudreContexteRelique({ mode: sc.intention, principale: 'libre', type: 'libre', seuil: 0 }, portee, reliquesInv)
+      : undefined;
+    const fiche = { base: BASE, runes: [], artifacts: [element], relic: portee };
+    const entree = (runes: RuneDetail[], caches: CachesResolution | null): EntreeResolution => entreeResolutionDuBuild({
+      fiche, runes, artifactParams, regime: sc.regime, degats: sc.regime === 'degats_reels' ? DEGATS : null,
+      exclusive: EXCLUSIVE, requirement, relicContext: ctx, caches,
+    });
+
+    // Référence : le calcul exhaustif, sans cache (tout recalculé).
+    const reference = builds.map((b) => resoudre(() => resoudreEquipementDuBuildExhaustif(entree(b, null))));
+    for (const r of reference) {
+      if (conformeDe(r) === true) conformes++;
+      else if (conformeDe(r) === false) rejetes++;
+    }
+    // Caches d'une file partagés, dans l'ordre puis à rebours : le point
+    // d'entrée de l'app, la résolution rapide sans diagnostic (comptée), puis
+    // avec (l'option de la fonction du CLI, `resoudreEquipementCli`).
+    const c = sc.intention === 'recherche' ? compteurs : compteursFixe;
+    if (sc.intention !== 'recherche') scenariosFixes.add(sc.artefacts);
+    const chemins = [
+      ['app', (e: EntreeResolution) => resoudreEquipementDuBuild(e)],
+      ['rapide', (e: EntreeResolution) => resoudreEquipementDuBuildRapide(e, c)],
+      ['diagnostic', (e: EntreeResolution) => resoudreEquipementDuBuildRapide(e, c, { diagnostic: true })],
+    ] as const;
+    for (const [chemin, resoudreChemin] of chemins) {
+      for (const [nomOrdre, ordre] of [['ordre', builds.map((_, i) => i)], ['à rebours', builds.map((_, i) => builds.length - 1 - i)]] as const) {
+        const caches = nouveauxCachesResolution();
+        const jeux = new Set<unknown>();
+        const representants = caches.rapide.representants.bind(caches.rapide);
+        caches.rapide.representants = (p) => {
+          const formes = representants(p);
+          if (chemin === 'app') {
+            appelsRepresentants++;
+            jeux.add(formes);
+          }
+          return formes;
+        };
+        for (const i of ordre) {
+          const e = entree(builds[i]!, caches);
+          const { valeur: proto, avertissements } = avecAvertissements(() => resoudre(() => resoudreChemin(e)));
+          const attendu = chemin === 'diagnostic' ? reference[i]! : sansDiagnostic(reference[i]!, e);
+          compares++;
+          if (!memes(proto, attendu)) ecarts.push(`${sc.nom} · ${chemin} · ${nomOrdre} · build ${i} : ${apercu(proto)} ≠ ${apercu(attendu)}`);
+          if (avertissements.length) ecarts.push(`${sc.nom} · build ${i} : avertissement sans note NaN (${avertissements[0]})`);
+        }
+        if (chemin === 'app' && sc.intention === 'recherche') {
+          filesRecherche++;
+          jeuxParFile.push(jeux.size);
+        }
+      }
+    }
+  });
+  egal(ecarts.slice(0, 5), [], `${compares} résolutions sur ${SCENARIOS.length} scénarios, deux ordres, point d’entrée de l’app, résolution rapide sans et avec diagnostic : résultat = calcul exhaustif (hors diagnostic sans l'option)`);
+  ok(conformes > 50 && rejetes > 50, `des builds conformes (${conformes}) et rejetés (${rejetes}) dans la référence`);
+  ok(appelsRepresentants > 0, `point d’entrée de l’app : il lit les représentants de formes de la file (caches.rapide, ${appelsRepresentants} appels)`);
+  egal(jeuxParFile.filter((n) => n !== 1).length, 0, `… un seul jeu de formes par file (${filesRecherche} files en mode recherche) : partagé par ses builds`);
+  cheminsServis(compteurs);
+  egal([...scenariosFixes].sort(), ['cout-verrous', 'fige', 'libre', 'principale', 'verrous'], 'relique fixe : emplacement figé, principale imposée, verrous et coût des verrous comparés aussi');
+  ok(compteursFixe.notesFaisables > 0 && compteursFixe.noteesEntieres > 0 && compteursFixe.diagnostics > 0,
+    `relique fixe : paires faisables seules notées (${compteursFixe.notesFaisables}), paire fixe notée entière sous coût des verrous (${compteursFixe.noteesEntieres}), diagnostics (${compteursFixe.diagnostics})`);
+
+  // ── Pool de reliques vide en mode `recherche` : la même erreur. ──
+  {
+    const ctxVide = resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 99 }, undefined, reliques(mulberry32(5), 3));
+    const e = entreeResolutionDuBuild({
+      fiche: { base: BASE, runes: [], artifacts: [] }, runes: build(mulberry32(6), 0),
+      artifactParams: { porteur: PORTEUR, inventaire: [], equipes: [], principaleParSorte: {}, lignesVerrouillees: [], maxStatsActifs: [] },
+      regime: 'aucun', degats: null, exclusive: EXCLUSIVE, requirement: { sets: [], minStats: {} }, relicContext: ctxVide, caches: null,
+    });
+    const ref = resoudre(() => resoudreEquipementDuBuildExhaustif(e));
+    ok('erreur' in ref && ref.erreur.startsWith('RechercheRefusee'), `pool vide : le calcul exhaustif lève RechercheRefusee (${apercu(ref)})`);
+    egal(resoudre(() => resoudreEquipementDuBuildRapide(e)), ref, '… la résolution rapide lève la même');
+    egal(resoudre(() => resoudreEquipementDuBuild(e)), ref, '… le point d’entrée de l’app aussi');
+  }
+}
+
+function cheminsServis(c: CompteursResolutionRapide) {
+  ok(c.reliquesSansFormeFaisable > 0, `reliques écartées sans aucune note : ${c.reliquesSansFormeFaisable} sur ${c.reliques}`);
+  ok(c.reliquesNotees > 0, `reliques à forme faisable : ${c.reliquesNotees}`);
+  ok(c.reliquesNoteesSansCouple > 0, `reliques à forme faisable mais sans couple faisable (verrous, Intangibles) : ${c.reliquesNoteesSansCouple}`);
+  ok(c.notesFaisables > 0, `paires faisables seules notées : ${c.notesFaisables}`);
+  ok(c.noteesEntieres > 0, `reliques ou paires fixes notées entières (coût des verrous) : ${c.noteesEntieres}`);
+  ok(c.diagnostics > 0, `diagnostics du calcul exhaustif pour un build rejeté (option) : ${c.diagnostics}`);
+  ok(c.replisNaN === 0, `aucun repli NaN sans note NaN : ${c.replisNaN}`);
+}
+
+// Une entrée dont `evaluer` note NaN les paires (jamais les sondes de
+// pertinence, pièces d'identifiant 0) que `nan` désigne — `faisable` : le
+// verdict exact de la paire avec la relique de `faireParams`.
+function avecNaN(e: EntreeResolution, nan: (arts: ArtifactDetail[], faisable: boolean) => boolean): EntreeResolution {
+  return {
+    ...e,
+    faireParams: (r) => {
+      const p = e.faireParams(r);
+      const faisable = (arts: ArtifactDetail[]) =>
+        e.relicContext?.mode === 'recherche'
+          ? respecteConditionsAvecRelique({ ...e.gear, artifacts: arts }, r, e.requirement).respecte
+          : !e.respecteConditions || e.respecteConditions(arts);
+      return {
+        ...p,
+        evaluer: (arts) => (arts.every((a) => a.id > 0) && nan(arts, faisable(arts)) ? Number.NaN : p.evaluer(arts)),
+      };
+    },
+  };
+}
+
+/**
+ * Notes NaN. Relique `recherche` et relique portée (`equipped`).
+ *
+ * - NaN sur des paires FAISABLES (une sur trois, par identifiant de
+ *   l'attribut) : le build est résolu par le calcul exhaustif — même
+ *   résultat, ou même erreur (`bestRelicForBuild` lève sur une note NaN
+ *   retenue) —, et signalé par UN avertissement ; un build sans paire NaN
+ *   faisable ne l'est pas. Le point d'entrée de l'app aussi.
+ * - NaN sur les seules paires INFAISABLES : jamais calculée par la
+ *   résolution rapide, aucun avertissement ; elle rend ce que rendrait le
+ *   calcul exhaustif sans ce NaN. Le résultat du calcul exhaustif AVEC ce
+ *   NaN peut différer (son tri, comparateur incohérent, ordonne autrement
+ *   les faisables) : le test le CONSTATE (compte des écarts), sans l'exiger
+ *   égal. Cas non couvert, accepté.
+ */
+export function testResolutionRapideNaN() {
+  titre('Résolution rapide — notes NaN : repli sur le calcul exhaustif, cas non couvert documenté');
+  for (const intention of ['recherche', 'equipped'] as const) {
+    const rng = mulberry32(intention === 'recherche' ? 9917 : 9918);
+    const inv = inventaire(rng, 7);
+    const reliquesInv = reliques(rng, 6);
+    const builds = Array.from({ length: 30 }, (_, i) => build(rng, 100 * i));
+    const requirement: BuildRequirement = { sets: [], minStats: { hp: Math.round(total(builds[0]!, 'hp') * 1.05) }, auraResPre: { res: 0, acc: 0, compter: true } };
+    const ctx = resoudreContexteRelique({ mode: intention, principale: 'libre', type: 'libre', seuil: 0 }, reliquesInv[0], reliquesInv);
+    const artifactParams: Omit<ArtifactSearchParams, 'evaluer'> = { porteur: PORTEUR, inventaire: inv, equipes: [], principaleParSorte: {}, lignesVerrouillees: [], maxStatsActifs: [] };
+    const brute = (runes: RuneDetail[]) => entreeResolutionDuBuild({
+      fiche: { base: BASE, runes: [], artifacts: [], relic: reliquesInv[0] }, runes, artifactParams, regime: 'degats_reels', degats: DEGATS,
+      exclusive: EXCLUSIVE, requirement, relicContext: ctx, caches: null,
+    });
+
+    // ── NaN sur des paires faisables : repli, avertissement. ──
+    {
+      const nanFaisable = (arts: ArtifactDetail[], faisable: boolean) => faisable && arts[0]?.kind === 'element' && arts[0].id % 3 === 0;
+      const ecartsNaN: string[] = [];
+      let replis = 0;
+      let erreurs = 0;
+      let conformesNaN = 0;
+      builds.forEach((b, i) => {
+        const e = avecNaN(brute(b), nanFaisable);
+        const ref = resoudre(() => resoudreEquipementDuBuildExhaustif(e));
+        if ('erreur' in ref) erreurs++;
+        if (conformeDe(ref) === true) conformesNaN++;
+        for (const diagnostic of [false, true]) {
+          const c = compteursVides();
+          const { valeur: proto, avertissements } = avecAvertissements(() => resoudre(() => resoudreEquipementDuBuildRapide(e, c, { diagnostic })));
+          const attendu = diagnostic ? ref : sansDiagnostic(ref, e);
+          if (!memes(proto, attendu)) ecartsNaN.push(`build ${i}${diagnostic ? ' (diagnostic)' : ''} : ${apercu(proto)} ≠ ${apercu(attendu)}`);
+          if (avertissements.length !== c.replisNaN || c.replisNaN > 1) ecartsNaN.push(`build ${i} : ${avertissements.length} avertissement(s) pour ${c.replisNaN} repli(s)`);
+          if (!diagnostic) {
+            replis += c.replisNaN;
+            // Le point d'entrée de l'app : même résultat, même avertissement.
+            const app = avecAvertissements(() => resoudre(() => resoudreEquipementDuBuild(e)));
+            if (!memes(app.valeur, attendu) || app.avertissements.length !== c.replisNaN) ecartsNaN.push(`build ${i} (point d’entrée) : ${apercu(app.valeur)}, ${app.avertissements.length} avertissement(s)`);
+          }
+        }
+      });
+      egal(ecartsNaN.slice(0, 5), [], `${intention} · NaN sur des paires faisables : ${builds.length} builds, sans et avec diagnostic, point d’entrée de l’app compris — résultat (ou erreur) du calcul exhaustif, un avertissement par build replié`);
+      ok(replis > 0 && replis < builds.length, `… ${replis} builds repliés sur le calcul exhaustif (${erreurs} erreurs du calcul exhaustif, ${conformesNaN} conformes)`);
+    }
+
+    // ── NaN sur les seules paires infaisables : cas non couvert, constaté. ──
+    {
+      const nanInfaisable = (_arts: ArtifactDetail[], faisable: boolean) => !faisable;
+      const ecartsSansNaN: string[] = [];
+      const differentsAvecNaN: number[] = [];
+      let avertis = 0;
+      let conformesSansNaN = 0;
+      builds.forEach((b, i) => {
+        const e = avecNaN(brute(b), nanInfaisable);
+        // Le point d'entrée de l'app.
+        const { valeur: proto, avertissements } = avecAvertissements(() => resoudre(() => resoudreEquipementDuBuild(e)));
+        avertis += avertissements.length;
+        // Ce que rendrait le calcul exhaustif si ces notes n'étaient pas NaN.
+        const sansNaN = sansDiagnostic(resoudre(() => resoudreEquipementDuBuildExhaustif(brute(b))), e);
+        if (conformeDe(sansNaN) === true) conformesSansNaN++;
+        if (!memes(proto, sansNaN)) ecartsSansNaN.push(`build ${i} : ${apercu(proto)} ≠ ${apercu(sansNaN)}`);
+        // Le calcul exhaustif AVEC ces NaN : constat seulement, jamais exigé.
+        const avec = resoudre(() => resoudreEquipementDuBuildExhaustif(e));
+        if (!memes(proto, sansDiagnostic(avec, e))) differentsAvecNaN.push(i);
+      });
+      egal(ecartsSansNaN.slice(0, 5), [], `${intention} · NaN sur les seules paires infaisables : ${builds.length} builds, le point d’entrée de l’app rend le calcul exhaustif sans ces NaN`);
+      egal(avertis, 0, '… aucune note NaN calculée, aucun avertissement');
+      ok(conformesSansNaN > 0, `… sur ${conformesSansNaN} builds conformes ; CONSTAT (non exigé) : ${differentsAvecNaN.length} build(s) sur ${builds.length} diffèrent du calcul exhaustif qui trie avec ces NaN [${differentsAvecNaN.slice(0, 8).join(', ')}]`);
+    }
+  }
+}
+
+/**
+ * La CONFIRMATION sans note (`confirmerEquipementDuBuild`), contre la
+ * résolution complète comme oracle : même verdict build par build, et pour un
+ * build rejeté le même résultat, champ pour champ (c'est lui que la file écrit
+ * dans son cache) ; mêmes erreurs ; AUCUN appel à `evaluer` (ni note, ni sonde
+ * de pertinence). Toute la matrice de `testResolutionRapide`, à d'autres
+ * graines : relique `recherche`, `equipped`, `off`, sans contexte ;
+ * emplacement figé (le vide que le préfiltre rajoute), principale imposée,
+ * lignes verrouillées (obligation), coût des verrous (délégué), maximums
+ * (dominance gelée sous `maxStatsActifs`), Intangibles.
+ */
+/**
+ * Les confirmations de toute la matrice, par `confirmer`, contre la résolution
+ * complète ; compte aussi le TRAVAIL de chaque confirmation : les calculs de
+ * stats complets (`computeStats`, comptés par la lecture des PV de base du
+ * monstre, qu'il fait une fois par appel) et les appels à `evaluer`.
+ * Exporté pour comparer une autre version de la confirmation sur les mêmes
+ * entrées.
+ */
+export function confirmationsSurLaMatrice(confirmer: (e: EntreeResolution) => ConfirmationEquipement) {
+  const ecarts: string[] = [];
+  // Le travail se compte hors coût des verrous, délégué à la résolution complète (l'app ne le pose jamais).
+  let conformes = 0, rejetes = 0, notes = 0, compares = 0, statsCompletes = 0, maxStatsCompletes = 0, comptees = 0, selonEcarts = 0;
+  let compter = false, lectures = 0;
+  const base = new Proxy(BASE, { get: (cible, cle, recepteur) => {
+    if (cle === 'hp' && compter) lectures++;
+    return Reflect.get(cible, cle, recepteur);
+  } });
+  SCENARIOS.forEach((sc, iScenario) => {
+    const rng = mulberry32(8300 + iScenario);
+    const inv = inventaire(rng, 7);
+    const reliquesInv = reliques(rng, 6);
+    const portee = reliquesInv[Math.floor(rng() * reliquesInv.length)]!;
+    const builds = Array.from({ length: 16 }, (_, i) => build(rng, 100 * i));
+    const mediane = (k: string) => builds.map((b) => total(b, k)).sort((a, b) => a - b)[Math.floor(builds.length / 2)]!;
+    const requirement: BuildRequirement = {
+      sets: [],
+      minStats: { hp: Math.round(mediane('hp') * (1 + 0.1 * rng())), atk: Math.round(mediane('atk') * (1 + 0.1 * rng())), def: Math.round(mediane('def') * (0.95 + 0.1 * rng())) },
+      maxStats: sc.maximums ? { atk: Math.round(mediane('atk') * 1.3), hp: Math.round(mediane('hp') * 1.45) } : {},
+      auraResPre: { res: 0, acc: 0, compter: true },
+    };
+    const element = inv.find((a) => a.kind === 'element')!;
+    const lignes: LigneVerrouillee[] = sc.artefacts === 'verrous' || sc.artefacts === 'cout-verrous'
+      ? [{ code: inv.find((a) => a.kind === 'archetype')!.subs[0]!.code, min: 1 }]
+      : [];
+    const artifactParams: Omit<ArtifactSearchParams, 'evaluer'> = {
+      porteur: PORTEUR, inventaire: inv, equipes: [element],
+      principaleParSorte: sc.artefacts === 'fige' ? { element: 'equipped' } : sc.artefacts === 'principale' ? { archetype: 101 } : {},
+      lignesVerrouillees: lignes, maxStatsActifs: sc.maximums ? ['atk', 'hp'] : [],
+      ...(sc.artefacts === 'cout-verrous' ? { avecCoutDesVerrous: true } : {}),
+    };
+    const ctx: RelicContext | undefined = sc.intention
+      ? resoudreContexteRelique({ mode: sc.intention, principale: 'libre', type: 'libre', seuil: 0 }, portee, reliquesInv)
+      : undefined;
+    const fiche = { base, runes: [], artifacts: [element], relic: portee };
+    const caches = nouveauxCachesResolution();
+    for (const [i, runes] of builds.entries()) {
+      // `statsSelonRelique` : au bit près `computeStats`, pour chaque relique et sans relique.
+      const selon = statsSelonRelique({ ...fiche, runes, artifacts: [] });
+      for (const r of [undefined, ...reliquesInv]) {
+        if (!isDeepStrictEqual(selon(r), computeStats({ ...fiche, runes, artifacts: [], relic: r }))) selonEcarts++;
+      }
+      const e = entreeResolutionDuBuild({ fiche, runes, artifactParams, regime: sc.regime, degats: sc.regime === 'degats_reels' ? DEGATS : null,
+        exclusive: EXCLUSIVE, requirement, relicContext: ctx, caches });
+      const ref = resoudre(() => resoudreEquipementDuBuild(e));
+      // La confirmation compte ses appels à `evaluer` (sondes de pertinence comprises).
+      let appels = 0;
+      const compte: EntreeResolution = { ...e, faireParams: (r) => {
+        const p = e.faireParams(r);
+        return { ...p, evaluer: (arts) => { appels++; return p.evaluer(arts); } };
+      } };
+      let proto: Issue;
+      lectures = 0; compter = true;
+      try {
+        const v = confirmer(compte);
+        proto = { r: v.conforme ? ({ conforme: true } as ResultatArtefacts) : v.rejet };
+      } catch (err) {
+        proto = { erreur: `${(err as Error).name} ${(err as Error).message}` };
+      } finally { compter = false; }
+      compares++;
+      if (sc.artefacts !== 'cout-verrous') { comptees++; statsCompletes += lectures; maxStatsCompletes = Math.max(maxStatsCompletes, lectures); }
+      if (sc.artefacts !== 'cout-verrous') notes += appels;
+      const attendu: Issue = 'r' in ref && ref.r.conforme ? { r: { conforme: true } as ResultatArtefacts } : ref;
+      if (!memes(proto, attendu)) ecarts.push(`${sc.nom} · build ${i} : ${apercu(proto)} ≠ ${apercu(attendu)}`);
+      if (conformeDe(ref) === true) conformes++;
+      else if (conformeDe(ref) === false) rejetes++;
+    }
+  });
+  return { ecarts, conformes, rejetes, notes, compares, comptees, statsCompletes, maxStatsCompletes, selonEcarts };
+}
+
+export function testResolutionConfirmation() {
+  titre('Résolution — confirmation sans note : même verdict que la résolution complète, même rejet, aucune note');
+  const { ecarts, conformes, rejetes, notes, compares, comptees, statsCompletes, maxStatsCompletes, selonEcarts } = confirmationsSurLaMatrice(confirmerEquipementDuBuild);
+  egal(selonEcarts, 0, 'statsSelonRelique rend computeStats au bit près, pour chaque relique de l’inventaire et sans relique');
+  egal(ecarts.slice(0, 5), [], `${compares} confirmations sur ${SCENARIOS.length} scénarios : verdict de la résolution complète, rejet identique champ pour champ`);
+  ok(conformes > 50 && rejetes > 50, `des builds conformes (${conformes}) et rejetés (${rejetes}) dans l’oracle`);
+  egal(notes, 0, 'aucun appel à evaluer hors coût des verrous (ni note, ni sonde de pertinence)');
+  // Un calcul des runes par build ; un second pour le rejet en relique `recherche` (stats avec les artéfacts portés).
+  ok(maxStatsCompletes <= 2, `travail hors coût des verrous (${comptees} confirmations) : ${(statsCompletes / comptees).toFixed(2)} calcul(s) de stats complet(s) par confirmation en moyenne, ${maxStatsCompletes} au plus (borne : 2)`);
+  // Pool de reliques vide en mode `recherche` : la même erreur.
+  const ctxVide = resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 99 }, undefined, reliques(mulberry32(5), 3));
+  const e = entreeResolutionDuBuild({
+    fiche: { base: BASE, runes: [], artifacts: [] }, runes: build(mulberry32(6), 0),
+    artifactParams: { porteur: PORTEUR, inventaire: [], equipes: [], principaleParSorte: {}, lignesVerrouillees: [], maxStatsActifs: [] },
+    regime: 'aucun', degats: null, exclusive: EXCLUSIVE, requirement: { sets: [], minStats: {} }, relicContext: ctxVide, caches: null,
+  });
+  const erreur = (f: () => unknown) => { try { f(); return null; } catch (err) { return `${(err as Error).name} ${(err as Error).message}`; } };
+  egal(erreur(() => confirmerEquipementDuBuild(e)), erreur(() => resoudreEquipementDuBuild(e)), 'pool de reliques vide : la même erreur que la résolution');
+}

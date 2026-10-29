@@ -1,6 +1,9 @@
 import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 import { StatKey } from '../lib/effects';
 import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
+import { bornesAvecMesure, type ColonneResultat } from '../lib/colonnesResultats';
+import type { BornesResultats } from '../lib/filtresResultats';
+import type { SensTri } from '../lib/tri';
 import { DamageSetup } from '../lib/damage';
 import { appliquerCriteres, baseCompleteCriteres, criteresApresChangementEspece, defaultRelicMainChoice, photoCriteres, type CriteresOptimizer } from '../lib/criteresOptimizer';
 import { rattacherProprietaireCriteres, validerProprietaireCriteres, type ProprietaireCriteresOptimizer } from '../lib/optimizerCriteriaOwner';
@@ -14,6 +17,7 @@ import { leadEffectifMembreOptimizer, memeLeadOptimizer, modifierEquipeOptimizer
 import type { EquipeOptimizer } from '../lib/optimizerMemberStorage';
 import { LigneVerrouillee } from '../lib/artifactOptim';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
+import { useRuneMetric } from './useRuneMetric';
 import { combatSelonContenuListeOptimizer } from '../lib/combatListeOptimizer';
 
 const REFUS_IDENTITE_MEMBRE = 'Critères non restaurés : l’identité enregistrée du membre diffère de l’espèce résolue.';
@@ -21,7 +25,9 @@ const REFUS_IDENTITE_MEMBRE = 'Critères non restaurés : l’identité enregist
 export type { SlotFilterPresetKey };
 // API historique conservée pour l'écran, les recettes et les scripts.
 export { defaultRelicMainChoice, relicMainChoiceApresChangementExemplaire, criteresApresChangementEspece, baseCompleteCriteres } from '../lib/criteresOptimizer';
-export type OptimizerSortKey = StatKey | Objective;
+// Le tri des résultats : une de leurs onze colonnes. L'objectif de recherche
+// Vitesse se trie par la colonne VIT (`triDesResultats`).
+export type OptimizerSortKey = ColonneResultat;
 // Choix de statistique principale d'artéfact pour la recherche : les trois
 // valeurs de jeu standard (voir ARTIFACT_MAIN dans effects.ts — 100=PV,
 // 101=ATQ, 102=DEF), plus trois cas hors de cette table : `'equipped'`
@@ -170,28 +176,6 @@ export interface OptimizerState {
    */
   optimiserArtefacts: boolean;
   setOptimiserArtefacts: Dispatch<SetStateAction<boolean>>;
-  /**
-   * La paire retenue suit-elle le TRI affiché, ou l’OBJECTIF de la recherche ?
-   * Activé par défaut.
-   *
-   * ⚠️ **Le tri est une VUE, l’optimisation d’artéfacts une DÉCISION.** Les
-   * coupler d’office impose un arbitrage : trier par ATQ pour explorer
-   * déplaçait la paire, alors qu’on voulait parfois garder celle qui
-   * maximise les PV effectifs. Ce réglage rend l’arbitrage à l’utilisateur.
-   *
-   * - `true` — la paire suit `sortBy` : « les meilleurs artéfacts pour ce
-   *   que je regarde ».
-   * - `false` — la paire suit `objective` : « les meilleurs artéfacts pour
-   *   ce que j’ai cherché ». La référence est stable pendant toute
-   *   l’exploration, donc « Valider les artéfacts » propose la même chose
-   *   quel que soit le tri.
-   *
-   * ⚠️ **Ne désactive PAS l’optimisation** — c’est `optimiserArtefacts` qui
-   * le fait. Sans objectif de repli défini, « ne pas recalculer » ne
-   * voudrait rien dire : il faut savoir par rapport à QUOI.
-   */
-  adapterArtefactsAuTri: boolean;
-  setAdapterArtefactsAuTri: Dispatch<SetStateAction<boolean>>;
   // Statistique principale EXIGÉE pour chacun des deux emplacements d'artéfact
   // (Attribut/Type, voir ARTIFACT_KINDS dans types.ts) — n'a d'effet que si
   // `optimiserArtefacts` est activé.
@@ -288,17 +272,11 @@ export interface OptimizerState {
   // remplace pas) — voir lib/optimizerExclusion.ts. Vide par défaut.
   excludedSelectors: ExclusionSelector[];
   setExcludedSelectors: Dispatch<SetStateAction<ExclusionSelector[]>>;
-  // Toggle « Prioriser les stats les plus difficiles » (voir
-  // docs/03-developpeur/optimizer/ § Pré-filtrage heuristique et
-  // compartiments) — désactivé par défaut, lu par `handleSearch` au moment du
-  // clic sur « Rechercher », pas un bouton séparé qui lance sa propre
-  // recherche.
-  adaptiveTrancheWeighting: boolean;
-  setAdaptiveTrancheWeighting: Dispatch<SetStateAction<boolean>>;
   // Toggle « Rechercher jusqu'à épuisement complet » — désactivé par défaut,
-  // lu par `handleSearch` comme `adaptiveTrancheWeighting` ci-dessus. Retire
+  // lu par `handleSearch` au moment du clic sur « Rechercher », pas un bouton
+  // séparé qui lance sa propre recherche. Retire
   // la limite de temps de 10 minutes (`maxMs: Infinity`, déjà supporté par le
-  // moteur — voir OptimizerSection.tsx) ; ne touche PAS au plafond de 100 000
+  // moteur — voir OptimizerSection.tsx) ; ne touche PAS au plafond d'un million de
   // candidats collectés, qui reste une limite indépendante.
   exhaustiveSearch: boolean;
   setExhaustiveSearch: Dispatch<SetStateAction<boolean>>;
@@ -312,16 +290,24 @@ export interface OptimizerState {
   setVerifierToutesLesCombinaisons: Dispatch<SetStateAction<boolean>>;
   sortBy: OptimizerSortKey;
   setSortBy: Dispatch<SetStateAction<OptimizerSortKey>>;
+  // Le sens du tri des résultats et leurs filtres d'affichage (une borne
+  // minimum et maximum par colonne, filtresResultats.ts) : des réglages
+  // d'AFFICHAGE, comme le tri, jamais des conditions de recherche. Critères
+  // personnels (mémoire du membre, session) ; remis à zéro au changement de
+  // monstre ; une nouvelle recherche garde les bornes, et le sens retombe en
+  // décroissant avec le tri qu'elle repose sur l'objectif.
+  sensTri: SensTri;
+  setSensTri: Dispatch<SetStateAction<SensTri>>;
+  bornesResultats: BornesResultats;
+  setBornesResultats: Dispatch<SetStateAction<BornesResultats>>;
   // Pagination des résultats affichés (1-indexé) — état d'AFFICHAGE pur, pas
   // un paramètre de recherche : n'entre donc jamais dans `OptimizerRecipe`
   // ni les scripts CLI (voir le skill optimizer-field-propagation, dont la
   // checklist recette/CLI ne s'applique PAS à ce champ précisément pour
-  // cette raison). Remise à 1 par l'écran à chaque nouvelle recherche ou
-  // changement de tri — voir OptimizerSection.tsx.
+  // cette raison). Remise à 1 à chaque nouvelle recherche, changement de tri
+  // (OptimizerSection.tsx) ou de mesure (ci-dessous, dans le même rendu).
   resultsPage: number;
   setResultsPage: Dispatch<SetStateAction<number>>;
-  showAdvanced: boolean;
-  setShowAdvanced: Dispatch<SetStateAction<boolean>>;
   slotFilterPreset: SlotFilterPresetKey;
   setSlotFilterPreset: Dispatch<SetStateAction<SlotFilterPresetKey>>;
   // Palier 2 du diagnostic « 0 résultat » (voir `rankBlockingConditions` dans
@@ -425,10 +411,6 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   // Activee par defaut : chercher les artefacts est le comportement utile,
   // et il ne coute rien a la recherche de runes (temps masque).
   const [optimiserArtefacts, setOptimiserArtefacts] = useState(base.optimiserArtefacts);
-  // Activé par défaut : ce qu’on affiche reste le meilleur pour ce qu’on
-  // regarde. Ne coûte rien sur les tris qu’aucun artéfact ne touche
-  // (efficience, VIT, TC, DCC, RES, PRE) — voir `regimeArtefacts`.
-  const [adapterArtefactsAuTri, setAdapterArtefactsAuTri] = useState(base.adapterArtefactsAuTri);
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>(base.artifactMainByKind);
   // ⚠️ Défaut STATIQUE ('libre') volontairement — le vrai défaut
   // ('equipped' si le monstre porte une relique) se calcule au choix du
@@ -461,12 +443,32 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   const [excludeUsedRunes, setExcludeUsedRunes] = useState(false);
   const [excludeUsedScope, setExcludeUsedScope] = useState<AutoExclusionScope>('rta');
   const [excludedSelectors, setExcludedSelectors] = useState<ExclusionSelector[]>([]);
-  const [adaptiveTrancheWeighting, setAdaptiveTrancheWeighting] = useState(false);
   const [exhaustiveSearch, setExhaustiveSearch] = useState(false);
   const [verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons] = useState(false);
   const [sortBy, setSortBy] = useState<OptimizerSortKey>(base.sortBy);
+  const [sensTri, setSensTri] = useState<SensTri>(base.sensTri);
+  const [bornesResultats, setBornesResultats] = useState<BornesResultats>(base.bornesResultats);
   const [resultsPage, setResultsPage] = useState(1);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  // La mesure (réglage global, changé depuis n'importe quelle page, écran de
+  // l'Optimizer monté ou non) réordonne le classement comme le tri : la page
+  // repart de 1 dans le même rendu. Sans cela, le classeur recevrait une
+  // mesure nouvelle sur une page au-delà de ce que le fond vérifie, et ses
+  // places « Vérification… » resteraient sans aucun travail pour les remplir.
+  //
+  // Une borne d'« Efficience » retient la mesure sous laquelle elle a été
+  // posée (Efficience et Score SW n'ont pas de rapport fixe : aucune
+  // conversion) ; sous l'autre, l'écran la met de côté (`bornesSousMesure`,
+  // OptimizerSection.tsx), et elle revient au retour. Une borne écrite sans
+  // mesure (mémoire d'avant) vaut sous la mesure courante : au changement,
+  // elle prend celle qui s'achève, ici dans le même rendu pour les bornes
+  // affichées, plus bas par un effet pour les mémoires.
+  const mesure = useRuneMetric();
+  const [mesureDeLaPage, setMesureDeLaPage] = useState(mesure);
+  if (mesureDeLaPage !== mesure) {
+    setMesureDeLaPage(mesure); setResultsPage(1);
+    const fixees = bornesAvecMesure(bornesResultats, mesureDeLaPage);
+    if (fixees !== bornesResultats) setBornesResultats(fixees);
+  }
   const [slotFilterPreset, setSlotFilterPreset] = useState<SlotFilterPresetKey>('moyen');
   const [diagnoseBlockingEnabled, setDiagnoseBlockingEnabled] = useState(false);
   const [stoppedManually, setStoppedManually] = useState(false);
@@ -480,9 +482,9 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   const refusIdentite = useRef<ProprietaireCriteresOptimizer | null>(null);
   // Les callbacks retardés lisent le dernier affichage, jamais la fermeture
   // du membre qui était sélectionné au début d'une lecture de fichier.
-  const criteresAffiches: CriteresOptimizer = { comboSets, minStats, maxStats, excludeBase, optimiserArtefacts, adapterArtefactsAuTri,
+  const criteresAffiches: CriteresOptimizer = { comboSets, minStats, maxStats, excludeBase, optimiserArtefacts,
       artifactMainByKind, relicMainChoice, relicUniqueChoice, lignesVerrouillees, mainStatsBySlot,
-      lockedRunes, objective, damageSetup, sortBy, compterAurasResPre, critereArtefacts };
+      lockedRunes, objective, damageSetup, sortBy, sensTri, bornesResultats, compterAurasResPre, critereArtefacts };
   const vivant = useRef({ contexte, selectedId, sourceSelector, proprietaire: proprietaireCriteres, criteres: criteresAffiches, importDuCompte });
   vivant.current = { contexte, selectedId, sourceSelector, proprietaire: proprietaireCriteres, criteres: criteresAffiches, importDuCompte };
 
@@ -504,11 +506,12 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     vivant.current.criteres = suivante;
     setComboSets(suivante.comboSets); setMinStats(suivante.minStats); setMaxStats(suivante.maxStats);
     setExcludeBase(suivante.excludeBase); setOptimiserArtefacts(suivante.optimiserArtefacts);
-    setAdapterArtefactsAuTri(suivante.adapterArtefactsAuTri); setArtifactMainByKind(suivante.artifactMainByKind);
+    setArtifactMainByKind(suivante.artifactMainByKind);
     setRelicMainChoice(suivante.relicMainChoice); setRelicUniqueChoice(suivante.relicUniqueChoice);
     setLignesVerrouillees(suivante.lignesVerrouillees); setMainStatsBySlot(suivante.mainStatsBySlot);
     setLockedRunes(suivante.lockedRunes); setObjective(suivante.objective); setDamageSetup(suivante.damageSetup);
-    setSortBy(suivante.sortBy); setCompterAurasResPre(suivante.compterAurasResPre); setCritereArtefacts(suivante.critereArtefacts);
+    setSortBy(suivante.sortBy); setSensTri(suivante.sensTri); setBornesResultats(suivante.bornesResultats);
+    setCompterAurasResPre(suivante.compterAurasResPre); setCritereArtefacts(suivante.critereArtefacts);
   }
 
   // Défauts et restaurations modifient l'affichage, jamais la mémoire :
@@ -751,6 +754,19 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   // Les callbacks utilisent le dernier contexte publié, y compris lorsqu'un
   // geste a été groupé avec une mutation des listes dans le même rendu.
   useEffect(() => { reconcilierMembre(); synchroniserLeads(); });
+  // Au changement de mesure, les mémoires de tous les membres fixent la
+  // mesure de leurs bornes d'Efficience écrites sans elle (mémoires d'avant) :
+  // celle qui s'achève (`fixerMesureDesBornes`). Les bornes affichées l'ont
+  // fixée au rendu, plus haut ; un effet ici, la mémoire ne s'écrit pas en
+  // rendant.
+  const mesureDesMemoires = useRef(mesure);
+  function fixerMesureDesMemoires() {
+    if (mesureDesMemoires.current === mesure) return;
+    const precedente = mesureDesMemoires.current;
+    mesureDesMemoires.current = mesure;
+    vivant.current.contexte?.lists.fixerMesureDesBornes(precedente);
+  }
+  useEffect(() => { fixerMesureDesMemoires(); });
 
   function resetSearch(motif: 'monstre' | 'compte' = 'monstre') {
     effacerProprietaireCriteres();
@@ -763,7 +779,6 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     setMaxStats(suivant.maxStats);
     setExcludeBase(suivant.excludeBase);
     setOptimiserArtefacts(suivant.optimiserArtefacts);
-    setAdapterArtefactsAuTri(suivant.adapterArtefactsAuTri);
     setArtifactMainByKind(suivant.artifactMainByKind);
     // ⚠️ Défaut statique ici — voir le commentaire du `useState` ci-dessus ;
     // `pickSpecies` surcharge avec `defaultRelicMainChoice` juste après cet
@@ -795,6 +810,9 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     // Le tri suit l'objectif (`handleSearch` le repose dessus au lancement) :
     // il retombe avec lui ici, et reste avec lui au changement d'exemplaire.
     setSortBy(suivant.sortBy);
+    // Les filtres d'affichage appartiennent au monstre : ils tombent avec lui.
+    setSensTri(suivant.sensTri);
+    setBornesResultats(suivant.bornesResultats);
     effacerResultats();
   }
 
@@ -822,7 +840,9 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     poserCriteresAutomatiques,
     traiterReliqueImportee,
     appliquerReverificationMembres,
-    poserTriRecherche: (tri) => poserCriteresAutomatiques({ sortBy: tri }),
+    // Le tri de la recherche lancée, en décroissant : une nouvelle colonne
+    // repart du meilleur. Les bornes restent.
+    poserTriRecherche: (tri) => poserCriteresAutomatiques({ sortBy: tri, sensTri: 'desc' }),
     selectedId,
     setSelectedId: (valeur) => { effacerProprietaireCriteres(); const v = vivant.current; v.selectedId = typeof valeur === 'function' ? valeur(v.selectedId) : valeur; setSelectedId(v.selectedId); },
     gearSource,
@@ -841,8 +861,6 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     setExcludeBase: saisie('excludeBase', setExcludeBase),
     optimiserArtefacts,
     setOptimiserArtefacts: saisie('optimiserArtefacts', setOptimiserArtefacts),
-    adapterArtefactsAuTri,
-    setAdapterArtefactsAuTri: saisie('adapterArtefactsAuTri', setAdapterArtefactsAuTri),
     artifactMainByKind,
     setArtifactMainByKind: saisie('artifactMainByKind', setArtifactMainByKind),
     relicMainChoice,
@@ -871,18 +889,18 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     setExcludeUsedScope,
     excludedSelectors,
     setExcludedSelectors,
-    adaptiveTrancheWeighting,
-    setAdaptiveTrancheWeighting,
     exhaustiveSearch,
     setExhaustiveSearch,
     verifierToutesLesCombinaisons,
     setVerifierToutesLesCombinaisons,
     sortBy,
     setSortBy: saisie('sortBy', setSortBy),
+    sensTri,
+    setSensTri: saisie('sensTri', setSensTri),
+    bornesResultats,
+    setBornesResultats: saisie('bornesResultats', setBornesResultats),
     resultsPage,
     setResultsPage,
-    showAdvanced,
-    setShowAdvanced,
     slotFilterPreset,
     setSlotFilterPreset,
     diagnoseBlockingEnabled,

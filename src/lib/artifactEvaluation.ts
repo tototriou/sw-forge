@@ -15,7 +15,7 @@ import { ArtifactDetail, ElementKey, RelicDetail } from '../types';
 import { StatKey } from './effects';
 import { Objective, pvEffectifs, statTotal, type RealDamageContext } from './runeBuildOptim';
 import { StatRow } from './stats';
-import { ArtifactDamageProfile, AurasPropres, DamageSetup, artifactDamageProfile, computeTotalDamage } from './damage';
+import { ArtifactDamageProfile, AurasPropres, DamageSetup, MemoCombat, PreparationReglage, artifactDamageProfile, computeTotalDamage } from './damage';
 import { APPORT_NEUTRE, ApportExclusive, apportExclusive, facteurTenacite, statsAvecApport } from './relicExclusive';
 
 export type RegimeArtefacts = 'aucun' | 'hp' | 'atk' | 'def' | 'ehp' | 'degats_reels';
@@ -160,14 +160,17 @@ export class CacheProfilsParPaire {
 // erreur `tsc`, pas un repli silencieux sur la somme des principales.
 // `profils` : le profil de chaque paire est lu dans ce cache au
 // lieu d'être recalculé — même valeur, voir `CacheProfilsParPaire`. Absent :
-// recalculé à chaque paire, comme avant.
+// recalculé à chaque paire, comme avant. `reglage` : ce qui ne dépend que du
+// réglage, préparé une fois pour toute la file (`PreparationReglage`) ;
+// absent, une fois par évaluateur.
 export function evaluerPourRegime(
   regime: 'degats_reels',
   statsAvec: (arts: ArtifactDetail[]) => StatRow[],
   propres: AurasPropres,
   degats: DegatsContext,
   exclusive?: CanalExclusive,
-  profils?: CacheProfilsParPaire
+  profils?: CacheProfilsParPaire,
+  reglage?: PreparationReglage
 ): (arts: ArtifactDetail[]) => number;
 // Surcharge 2 : tout autre régime n'a pas besoin de contexte de dégâts.
 export function evaluerPourRegime(
@@ -184,7 +187,8 @@ export function evaluerPourRegime(
   propres: AurasPropres,
   degatsOuExclusive?: DegatsContext | CanalExclusive,
   exclusiveApresDegats?: CanalExclusive,
-  profils?: CacheProfilsParPaire
+  profils?: CacheProfilsParPaire,
+  reglage?: PreparationReglage
 ): (arts: ArtifactDetail[]) => number {
   // Le 4ᵉ paramètre porte le contexte de dégâts en `degats_reels`, le canal
   // exclusive partout ailleurs — les deux surcharges publiques le fixent, ce
@@ -221,6 +225,14 @@ export function evaluerPourRegime(
       );
     }
     const profilDe = profils ? (arts: ArtifactDetail[]) => profils.profil(arts) : artifactDamageProfile;
+    // ⚠️ Ce qui ne dépend pas de la paire (stats au début du combat et de
+    // combat, par tableau de stats) se calcule une fois pour toutes les paires
+    // de cet évaluateur — un build, une relique : `MemoCombat` ; ce qui ne
+    // dépend que du réglage (chronologie des poses entre les coups, termes du
+    // réglage), une fois pour toute la file quand elle passe sa préparation
+    // (`reglage`, `CachesResolution.reglage`), sinon une fois pour cet
+    // évaluateur. Même résultat au bit près.
+    const memo = new MemoCombat(propres, degats.element, reglage);
     return (arts) => {
       // Bravoure/Éternité/Origine : des POINTS de stat, jamais posés dans
       // `computeStats` (les minimums/maximums restent jugés hors combat).
@@ -242,7 +254,8 @@ export function evaluerPourRegime(
         degats.bonusDegatsSelonDef,
         degats.bonusSiAtqSeuil,
         // Conquête — additive dans le bracket `DMG%`.
-        apport.dmgPct
+        apport.dmgPct,
+        memo
       );
     };
   }

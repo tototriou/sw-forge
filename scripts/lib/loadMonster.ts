@@ -91,16 +91,32 @@ export function printMonsterSummary(label: string, m: LoadedMonster): void {
   );
 }
 
+// Les exemplaires du monstre visé. Avec un `com2usId`, lui seul décide : deux
+// homonymes (Eivor Eau 27711 et Feu 27712) ne se confondent pas, et une
+// traduction du nom ne fait rien perdre. Sans, le nom, comme avant.
+export function exemplairesDuMonstre<T extends { com2usId: number }>(
+  units: T[],
+  monsterName: string,
+  nameByCom2us: Map<number, string>,
+  com2usId?: number
+): T[] {
+  return units.filter((u) => (com2usId != null ? u.com2usId === com2usId : nameByCom2us.get(u.com2usId) === monsterName));
+}
+
+function libelleMonstre(monsterName: string, com2usId?: number): string {
+  return com2usId != null ? `"${monsterName}" (com2usId ${com2usId})` : `"${monsterName}"`;
+}
+
 // Mode BOX (« Mon compte ») : meilleur exemplaire par Σ efficience des runes
 // équipées — même règle que `gearedMonsters` (OptimizerSection.tsx).
-export function loadBoxMonster(exportPath: string, monsterName: string): LoadedMonster {
+export function loadBoxMonster(exportPath: string, monsterName: string, com2usId?: number): LoadedMonster {
   const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
   const nameByCom2us = loadMonsterNames();
   const { monsters: box, error } = parseAccountBox(data);
   if (error) console.error('Erreur parse box :', error);
 
-  const candidates = box.filter((b) => nameByCom2us.get(b.com2usId) === monsterName && b.gear);
-  if (candidates.length === 0) throw new Error(`"${monsterName}" introuvable (6★, monté) dans ${exportPath}.`);
+  const candidates = exemplairesDuMonstre(box, monsterName, nameByCom2us, com2usId).filter((b) => b.gear);
+  if (candidates.length === 0) throw new Error(`${libelleMonstre(monsterName, com2usId)} introuvable (6★, monté) dans ${exportPath}.`);
   const scoreOf = (b: (typeof candidates)[number]) => (b.gear!.runes ?? []).reduce((s, r) => s + runeEfficiency(r), 0);
   const best = candidates.reduce((a, b) => (scoreOf(b) > scoreOf(a) ? b : a));
 
@@ -164,15 +180,15 @@ export function loadSiegeTeamsForExclusion(exportPath: string, defense: boolean)
 // bonus Swift) — même règle que `mapRtaItems` (applyAccount.ts). Le preset
 // RTA porte ses PROPRES runes/artéfacts (séparés du build box), voir
 // `parseAccountJson`.
-export function loadRtaMonster(exportPath: string, monsterName: string): LoadedMonster {
+export function loadRtaMonster(exportPath: string, monsterName: string, com2usId?: number): LoadedMonster {
   const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
   const nameByCom2us = loadMonsterNames();
   const speedByCom2us = loadMonsterSpeeds();
   const { units, error } = parseAccountJson(data);
   if (error) throw new Error(`Erreur parse RTA : ${error}`);
 
-  const candidates = units.filter((u) => nameByCom2us.get(u.com2usId) === monsterName && u.gear);
-  if (candidates.length === 0) throw new Error(`"${monsterName}" introuvable en RTA (favoris ou runé) dans ${exportPath}.`);
+  const candidates = exemplairesDuMonstre(units, monsterName, nameByCom2us, com2usId).filter((u) => u.gear);
+  if (candidates.length === 0) throw new Error(`${libelleMonstre(monsterName, com2usId)} introuvable en RTA (favoris ou runé) dans ${exportPath}.`);
   const baseSpd = speedByCom2us.get(candidates[0].com2usId) ?? 0;
   const speedOf = (u: (typeof candidates)[number]) => runeSpeedOf(u.flatRuneSpeed, u.swift, baseSpd);
   const best = candidates.reduce((a, b) => (speedOf(b) > speedOf(a) ? b : a));

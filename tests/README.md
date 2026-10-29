@@ -24,11 +24,22 @@ listant les noms disponibles, jamais en ne testant rien.
 | Outillage | hooks, renvois | les garde-fous du dépôt, dans des dépôts jetables |
 | Bureau | `bureau-*.test.ts` | les modules purs de l'application de bureau |
 
-**Ce qui ne l'est pas** : aucune vérification de `npm test` ne pilote un
-navigateur ni ne simule une interaction (clic, saisie) — le banc
-d'affichage, plus bas, le fait hors de la suite. Un rendu serveur n'exécute ni effet ni
-gestionnaire d'évènement : ce qui se passe *après* un clic ne se vérifie
-qu'à l'écran.
+**Ce qui ne l'est pas** : un rendu serveur n'exécute ni effet ni
+gestionnaire d'évènement. Ce qui se passe *après* un clic ne se vérifie
+donc qu'au navigateur : soit par les vérifications de l'Optimizer qui
+pilotent un Chromium sur des sources réelles compilées, sans serveur de
+l'application
+([rendu/optimizer-navigable-banc.ts](rendu/optimizer-navigable-banc.ts),
+dont [rendu/optimizer-ecran-navigateur.test.ts](rendu/optimizer-ecran-navigateur.test.ts)),
+soit par le banc d'affichage, plus bas, hors de la suite.
+
+Pour « Exemplaire », [optimizer-recherche.test.ts](rendu/optimizer-recherche.test.ts)
+vérifie aux deux formats les vues et l'aperçu sans effet sur l'équipement
+optimisé (artéfacts et relique transmis compris), la comparaison avec la
+fiche regardée et sa validation pour le membre. Le choix successif et la
+ligne indisponible au clavier comme à la souris vivent dans
+[optimizer-recherche.test.ts](rendu/optimizer-recherche.test.ts) ; la
+décision d'ajout pure dans [liste-exemplaires.test.ts](liste-exemplaires.test.ts).
 
 Les premières vérifications ciblaient les endroits où une erreur est à la
 fois **grave et invisible** — ils restent le cœur de la suite :
@@ -57,7 +68,8 @@ node tests/banc/cas.mjs                         # la règle sur ses pages de cas
 
 Il construit l'app (`vite build` dans un dossier temporaire), la sert
 (`vite preview`), l'ouvre dans Chromium sans fenêtre (Playwright) au
-téléphone (360 × 800, tactile) et à l'ordinateur (1400 × 1000), amène chaque
+téléphone (360 × 800, tactile) et à l'ordinateur (1400 × 1000 par défaut,
+plusieurs tailles propres à l'Optimizer), amène chaque
 écran dans chacun de ses états ([banc/ecrans.ts](banc/ecrans.ts)) et vérifie
 un **invariant** : rien ne déborde à l'horizontale, une pastille posée en
 coin d'un portrait de monstre ne recouvre rien d'autre que son portrait, et
@@ -71,6 +83,18 @@ signalé et un cas non signalé, que vérifie [banc/cas.mjs](banc/cas.mjs) (une
 paire se déclare sur le premier des deux éléments : `data-attendu-avec`, en
 tête de `cas.mjs`).
 
+La règle « contenu » excuse l'excédent d'une case sous une roue reconnue
+par son fond `rune-wheel.png` seulement si tous les descendants transformés
+restent dans cette roue, qui ne déborde elle-même sur aucun axe. Un essai
+neutralise leurs rotations, translations et échelles : l'excédent doit
+disparaître entièrement, sans déplacer les boîtes hors de leurs sous-arbres.
+Tout est ensuite restauré, styles et transitions compris. Une sortie de
+la roue, ou un excédent non transformé mêlé au dessin, reste signalé ; aucun
+contenant plus large ne remplace la roue. Les autres règles restent actives.
+Les cas [cadre pivoté](banc/cas/roue-cadre-pivote.html) et
+[transformation sortante](banc/cas/roue-transformation-sortante.html)
+vérifient ces deux issues, ainsi que le contenu mixte.
+
 Un état peut charger un fichier par le vrai chemin de l'interface (étape
 `importer` de `ecrans.ts`, bouton « Importer ») : l'écran des
 recommandations de siège se mesure ainsi rempli, avec
@@ -78,6 +102,60 @@ recommandations de siège se mesure ainsi rempli, avec
 (plusieurs listes et équipes, sets, artéfacts, contres). Un fichier refusé
 par l'app laisse l'état non atteint : code 2, cause écrite, jamais une
 mesure de l'écran vide.
+
+### Tailles et états de l'Optimizer
+
+`--ecrans optimizer` exerce le téléphone et dix-sept tailles de bureau :
+les cinq repères de la spec, la fenêtre de 1400 × 1000 et onze frontières.
+La navigation reste dépliée. Les volets sont ouverts par « Écran partagé »,
+à parts égales, sans injection de stockage de disposition.
+
+| Taille | Fenêtre | Conteneur attendu | Configuration |
+|---|---|---|---|
+| `volet-deux-piles` | 1920 × 940 partagée | 792 | deux piles |
+| `volet-groupe` | 2560 × 1300 partagée | 1112 | groupe de trois |
+| `ordinateur` | 1400 × 1000 | 1128 | groupe de trois |
+| `bureau-portable` | 1536 × 730 | 1264 | groupe de trois |
+| `bureau-criteres-groupe` | 1920 × 940 | 1648 | Critères et groupe de deux |
+| `bureau-colonnes` | 2560 × 1300 | 2288 | toutes les colonnes |
+
+Les tailles `conteneur-<largeur>` visent 752, 753, puis 1096, 1432 et 1768
+à −1, au seuil et à +1. L'étape `largeurOptimizer` mesure le conteneur et
+ajuste la fenêtre par l'écart, sans modifier le style de l'app. À 751 px,
+le contenu passe sous la frontière du format bureau : cette borne est
+vérifiée par le calcul pur, le téléphone a son propre banc.
+
+Chaque état repart d'une page neuve. Les préparations choisissent les
+onglets par rôle `tab` et libellé court (« Critères », « Artéfacts »,
+« Options »). Si le réglage est déjà une colonne, sa présence est exigée.
+Le clic sur chaque onglet compare sa position avant et après : tout
+déplacement rend l'état non atteint.
+
+| État | Préparation et postcondition |
+|---|---|
+| `liste-remplie` | Liste Arène, Vanessa et Cassie ajoutées par la recherche |
+| `resultats`, `resultats-tableau`, `resultats-filtres` | Import de [optimizer-banc-recette.json](fixtures/optimizer-banc-recette.json), recherche Rapide terminée, deux cartes exigées ; tableau et filtre selon l'état |
+| `artefacts`, `complements` | Même recherche, puis sélection de l'onglet correspondant quand il existe |
+| `toutes-colonnes` | Même recherche aux tailles qui affichent tous les réglages |
+| `guidage-set` | Options, puis Rechercher sans set : Critères et message d'erreur visibles |
+| `pile-defilee` | Options en deux piles, défilement de la pile jusqu'à Rechercher, qui reste dans le bloc |
+| `set-flottant` | Liste remplie, ouverture du coffre compact à la taille où il existe (1536 × 730) |
+
+Les états de départ, de réglages avancés et de modale « Dégâts réels »
+restent exercés aux deux formats. Le téléphone garde « Gérer mes listes »
+et son panneau « Options ».
+
+Avant la mesure, le banc exige la configuration, les libellés des onglets,
+la fiche repliée dans « Monstre », le confinement des défilements et
+l'absence de débordement horizontal. En deux piles, le set monté est compact ;
+ailleurs, sa forme mesurée est consignée. Le guidage sans set doit rendre
+le set visible dans la partie visible de sa colonne ou de la pile de droite :
+les copies invisibles sont exclues, et le client du défilement est intersecté
+avec la fenêtre et les ancêtres qui le rognent. Les rectangles, l'onglet ouvert et le
+nombre de cartes figurent dans le manifeste. Une incohérence donne le code 2
+avec sa cause et une capture, sans mesure de remplacement.
+
+### Sélection, compte et sortie
 
 - **Sélection par fichiers** : `--depuis` et `--plage` passent les fichiers
   modifiés (`git diff --name-only`) à [banc/selection.ts](banc/selection.ts),
@@ -102,7 +180,7 @@ mesure de l'écran vide.
   est refusée, et aucun fichier n'est écrit par-dessus un autre. Il reçoit
   les captures et `manifeste.json` (révision et empreinte de
   l'état de travail de l'arbre construit, révision du banc, formats et
-  médias du pointeur, résultats, ce qui n'a pas été exercé, empreinte du
+  tailles par écran, médias du pointeur, résultats, ce qui n'a pas été exercé, empreinte du
   compte).
 - **Compte** : `--compte <fichier>` seulement, jamais une variable
   d'environnement ; sans lui, le compte du banc,
@@ -138,7 +216,17 @@ par nom, elle ne le remplace pas ; les deux se combinent.
 - **Repli sur la suite complète**, cause écrite en sortie : un fichier
   modifié sans lien spécifique, une incohérence de l'inventaire, une lecture
   de Git qui échoue. Jamais moins sans le dire.
-- **Fichiers sans effet** (`*.md`, `tests/banc/**`) : ne retiennent que les
+- **Avertissements** : un `new Worker(…)` dont la cible ne se résout pas
+  (hors `{ eval: true }`, qui porte du code) ne fait entrer aucun module par
+  ce site ; la sortie le dit (« Avertissements (n) », et leur nombre sous
+  `--silencieux`), sans changer la sélection. Une liste tolérée
+  (`WORKERS_NON_RESOLUS_TOLERES`, selection.ts) en tait certains, chacun
+  avec sa raison, repéré par son fichier et le texte de son argument :
+  aujourd'hui les deux lanceurs Node de paquets construits par esbuild, dont
+  le point d'entrée est suivi par son site `entryPoints`. Un site nouveau
+  reste averti, comme un second site au même argument ; une entrée qui ne
+  correspond plus à aucun site est dite en avertissement.
+- **Fichiers sans effet** (`*.md`, `tests/banc/**`, `.gitignore`) : ne retiennent que les
   vérifications qui lisent le dépôt entier (`depot`) ou un chemin non
   déterminable (`opaque`). Une retenue générale ne certifie jamais la
   couverture d'un fichier.
@@ -149,6 +237,46 @@ par nom, elle ne le remplace pas ; les deux se combinent.
   correspondre au registre : repli, du côté sûr. Les tests qui lisent
   `src/` comme du texte sont retenus par leur lecture, pas par un import
   (voir la garde plus bas).
+
+## Prévisualisation et garde de volume
+
+```bash
+node tests/run.mjs --lister speed-tune
+node tests/run.mjs --lister --depuis origin/<base> speed-tune
+node tests/run.mjs --max-entrees 30 speed-tune
+```
+
+`--lister` construit le registre et résout la même sélection que le lancement,
+sans invoquer de vérification ni écrire de manifeste d’exécution. Il affiche
+les **noms finaux**, dans l’ordre d’exécution, leur nombre sur le total du
+registre développé et leurs raisons. Les filtres et les fichiers se combinent
+par union ; groupes d’étalements, prérequis et repli sur la suite complète
+restent ceux de l’exécution. Cette liste reste détaillée avec `--silencieux`.
+La construction et le calcul de la sélection ont toujours lieu : la
+prévisualisation ne donne aucune durée de tests.
+
+`--max-entrees <n>` fixe une limite explicite, entier positif ou nul, sur
+cette sélection finale. Un dépassement sort en code 2 **avant toute
+vérification et avant la création du manifeste**, sans réduire la sélection.
+Cette garde peut aussi accompagner `--lister` ; sans elle, aucun seuil ne
+s’applique. Les options inconnues, répétées ou sans valeur valide sont refusées.
+Vérifié par `node tests/run.mjs runselection`.
+
+## Sortie réduite : `--silencieux`
+
+```bash
+node tests/run.mjs --silencieux                        # la suite, sans les lignes « ok »
+node tests/run.mjs --depuis origin/<base> --silencieux # la sélection par fichiers modifiés
+```
+
+N'affiche que les **échecs** (chacun avec son détail), les **vérifications
+ignorées** (une ligne chacune) et le **bilan** ; avec `--depuis`, la sélection
+se réduit à une ligne (fichiers modifiés, entrées retenues sur le total), sans
+la liste des fichiers ni des entrées. Elle se combine avec les filtres par nom
+et avec `--depuis` / `--plage`. Le code de sortie est le même ; pour le détail
+d'un échec dans son contexte, relancer sans l'option. La forme par défaut ne
+change pas : c'est celle que lit `npm run test:suivi`, qui n'utilise pas
+l'option. Vérifiée par `node tests/run.mjs runsilencieux`.
 
 ## Manifeste d'exécution
 
@@ -217,7 +345,7 @@ désigne un chemin sous `src/` (lecture, `join`, `new URL`…). Un test qui lit
 par cette lecture, donc chaque usage est déclaré dans
 [fixtures/lecture-source-toleree.json](fixtures/lecture-source-toleree.json),
 une entrée par (fichier, cible) : `stock` (figé sur `54f8c6d6`, 179
-identités) ou `exception` (justification obligatoire, 25).
+identités) ou `exception` (justification obligatoire, 27).
 
 - **Un usage absent de la liste, un nombre d'occurrences trop petit ou trop
   grand, une entrée qui ne correspond plus : échec.** Le décompte baisse dans
@@ -227,10 +355,23 @@ identités) ou `exception` (justification obligatoire, 25).
   composant et vérifier ce qu'il fait (rendu serveur, valeur rendue), plutôt
   que chercher un motif dans le texte de la source ; l'import fait entrer le
   module dans le graphe, et la sélection le retient sans déclaration.
-- **Angles morts** (listés en tête du fichier) : une racine importée ou
-  passée en paramètre échappe au détecteur ; une chaîne à espace n'est pas
-  un chemin ; la garde ne dit ni si la cible existe ni ce que le test en
-  fait.
+  Un morceau d'écran s'éprouve sur l'écran entier, où qu'il soit écrit :
+  rendu dans un état posé, ou geste au navigateur sur le vrai écran (pour
+  l'Optimizer, [rendu/optimizer-ecran.test.tsx](rendu/optimizer-ecran.test.tsx)
+  et [rendu/optimizer-ecran-navigateur.test.ts](rendu/optimizer-ecran-navigateur.test.ts)) ;
+  une lecture de la source qui reste porte sur la logique, pas sur
+  l'endroit où un contrôle est écrit.
+- **Une seule règle** : le relevé et la comparaison à la liste vivent dans
+  [scripts/lib/lectureSource.ts](../scripts/lib/lectureSource.ts) ; la
+  vérification y ajoute le corpus (tout `tests/`, suivi ou non suivi non
+  ignoré), le hook `pre-commit` l'applique aux seuls fichiers indexés, lus
+  dans l'index ([qualite-code.md](../docs/03-developpeur/qualite-code.md),
+  « Références à `src/` au commit »). Le hook charge ce module par `node`,
+  sans compilation : il n'y entre que de la syntaxe TypeScript effaçable.
+- **Angles morts** (listés en tête de `lectureSource.ts`) : une racine
+  importée ou passée en paramètre échappe au détecteur ; une chaîne à espace
+  n'est pas un chemin ; la garde ne dit ni si la cible existe ni ce que le
+  test en fait.
 
 ## Mesure du rappel en usage
 

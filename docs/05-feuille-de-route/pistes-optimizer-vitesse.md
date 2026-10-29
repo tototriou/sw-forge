@@ -16,7 +16,7 @@ les replis rapides de `pairBuckets` écartent presque toutes les paires avant
 `computeStats`. Le gain le plus large viendrait donc d'explorer moins de
 paires, pas de les parcourir plus vite. Au préréglage le plus large, c'est
 la construction des compartiments qui domine
-([03-developpeur/optimizer/verification.md § Benchmarks](../03-developpeur/optimizer/verification.md#benchmarks)).
+([03-developpeur/optimizer/verification/mesures.md § Benchmarks](../03-developpeur/optimizer/verification/mesures.md#benchmarks)).
 
 Les entrées ci-dessous accélèrent la recherche sans changer ce qu'elle
 cherche. Celles qui changent le pool, les garanties ou le résultat, même
@@ -25,7 +25,7 @@ pour aller plus vite, sont dans
 paires (§ Optimalité prouvée : Branch & Bound sur les paires, statuts du
 résultat), couper plus tôt, autre partition des moitiés, GPU — et touchent
 la justesse : aucune sans la référence exhaustive qu'exige le skill
-`algo-verify` ([03-developpeur/optimizer/verification.md § Référence exhaustive : le test différentiel](../03-developpeur/optimizer/verification.md#référence-exhaustive--le-test-différentiel)).
+`algo-verify` ([03-developpeur/optimizer/verification/runes.md § Référence exhaustive : le test différentiel](../03-developpeur/optimizer/verification/runes.md#référence-exhaustive--le-test-différentiel)).
 
 ### Le temps relu à chaque paire
 
@@ -55,33 +55,22 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
 - **Bloque** : jamais mesuré au navigateur, ni le gain ni la latence
   ressentie du bouton.
 
-### Seuil de l'appariement parallèle en recherche normale
+### Seuil et nombre de Workers de l'appariement parallèle
 
-- **Constat** : `PARALLEL_PAIRING_THRESHOLD` est placé entre une zone où le
-  parallèle perd et une zone où il gagne, sans mesure entre les deux, et
-  calibré en recherche exhaustive seulement
-  ([03-developpeur/optimizer/ § Choix du régime](../03-developpeur/optimizer/)).
-- **Idée** : mesurer la zone intermédiaire, et une recherche que le filet
-  de temps ou le plafond de candidats arrêtent avant la fin.
-- **Bloque** : une campagne de mesure (`scripts/pairing-parallel-diag.ts`,
-  skill `optimizer-perf-testing`), jamais faite.
-
-### Équilibrage de l'appariement parallèle par productivité
-
-- **Constat** : `partitionBucketsALPT` équilibre les tranches par taille
-  (`combos.length`), jamais par productivité
-  ([03-developpeur/optimizer/moteur/parallelisation.md § Répartition et partage du plafond](../03-developpeur/optimizer/moteur/parallelisation.md#répartition-et-partage-du-plafond)).
-  Sous troncature, une tranche peu productive et une tranche qui bute sur
-  sa part du plafond coexistent. Aucune perte n'est constatée, ni sur un
-  pool synthétique ni sur les cas connus, depuis la coupe des moitiés sans
-  pièce d'un set de plus de 3 pièces
-  ([03-developpeur/optimizer/moteur/elagages.md § Faisabilité de set, groupage par compte et jokers](../03-developpeur/optimizer/moteur/elagages.md#faisabilité-de-set-groupage-par-compte-et-jokers)).
-- **Idée** : équilibrer par productivité attendue, ou redistribuer les
-  parts du plafond en cours de route.
-- **Bloque** : aucun cas réel ne montre de perte : à rouvrir sur un tel cas.
-  Toute reprise garde une part par fil bornée : un fil qui recevrait sans
-  limite le plafond entier rouvrirait le compromis mémoire et temps de
-  `MAX_COLLECTED`, et le nombre de candidats s'affiche à l'écran.
+- **Constat** : `PARALLEL_PAIRING_THRESHOLD` a été placé, pour
+  l'appariement par `pairBuckets`, entre une zone où le parallèle perdait et
+  une zone où il gagnait, sans mesure entre les deux ; il n'est pas remesuré
+  pour le noyau sur tableaux typés. La règle du nombre de Workers
+  (`nombreDeTravailleurs` : cœurs physiques − 2, bornés à [2, 8] ; sans
+  cœurs connus, la moitié des fils logiques − 2) est mesurée à 2, 4, 6 et
+  8 Workers, mais sur une seule machine (8 cœurs, 16 fils), et ne suit pas
+  la taille de l'espace : sous la seconde, 2 Workers battent 8, écart laissé
+  sans règle propre aux petits espaces
+  ([03-developpeur/optimizer/moteur/parallelisation.md § Choix du régime](../03-developpeur/optimizer/moteur/parallelisation.md#choix-du-régime)).
+- **Idée** : mesurer le seuil pour le noyau, et la règle sur une machine
+  sans deux fils par cœur ou à moins de 8 fils.
+- **Bloque** : une campagne de mesure (`scripts/banc-appariement-rapide.ts`,
+  `--workers=`, skill `optimizer-perf-testing`), jamais faite.
 
 ### Ordre des emplacements dans une moitié
 
@@ -113,6 +102,37 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
 - **Bloque** : suppose d'abord des tableaux typés à disposition fixe, qui
   n'existent pas ; le chantier le plus lourd et le plus risqué, jamais
   commencé.
+
+### Changement de page des résultats
+
+- **Constat** : passer à la page suivante prend ~80 ms en médiane et
+  110 à 130 ms au 95e centile, sur toutes les recettes mesurées, pendant la
+  file de résolution comme après. Le classeur compose la page en
+  O(log N + 20) ([03-developpeur/optimizer/moteur/optimiseur-artefacts.md](../03-developpeur/optimizer/moteur/optimiseur-artefacts.md)) :
+  le temps se passe après lui, dans l'envoi de l'instantané à l'écran
+  (`src/hooks/useBuildOptimSearch.ts`) et le rendu des vingt cartes. Le
+  budget visé pour un clic sur les résultats est de 100 ms au 95e centile ;
+  le dépassement est accepté pour l'instant.
+- **Idée** : profiler le geste dans l'app pour situer ces ~100 ms (transfert,
+  rendu, effets), puis réduire la part qui domine.
+- **Bloque** : aucun profil du geste ; changement de code à décider après.
+
+### Tri des résultats
+
+- **Constat** : un clic de tri publie la page de son aperçu avant l'ordre
+  complet, mais l'aperçu attend les notes de base du nouveau critère pour
+  toute la population (`trierBaseEtapes`, `src/lib/classementCompact.ts`,
+  appel de `notesDeBaseEtapes` avant `apercuEtapes`) ; seuls les objectifs
+  (Dégâts réels, PV effectifs, Efficience) sont notés d'avance au repos
+  (`OBJECTIFS_AU_REPOS`). Sur la recette mesurée la plus lourde (~63 500
+  builds), un tri pendant la file répond en ~125 ms en médiane et 168 ms au
+  95e centile (tri du tableau : 126 ms) ; le budget visé est 100 ms au
+  95e centile, le maximum de 200 ms est tenu. Accepté pour l'instant.
+- **Idée** : profiler le geste pour savoir si les notes dominent ; si oui,
+  publier l'aperçu sur les seules lignes que la page lit (les confirmées, en
+  file), ou noter aussi les colonnes de stat au repos.
+- **Bloque** : aucun profil du geste ; la mémoire d'une note par colonne et
+  par build au million est à chiffrer avant de noter toutes les colonnes.
 
 ## Mesurer la recherche
 
@@ -167,31 +187,20 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
 
 - **Constat** : plusieurs contrôles exercent une copie, qu'aucun `tsc` ne
   tient à jour.
-  - `testRuneOptimParallelPairing` tronque sur de vrais fils, mais ses fils
-    sont la copie `scripts/lib/pairing-quota-worker.ts`, pas `runPairSlice`
-    ([03-developpeur/optimizer/moteur/parallelisation.md § Vérifier un changement](../03-developpeur/optimizer/moteur/parallelisation.md#vérifier-un-changement)).
-  - La construction parallèle a deux coquilles autour de `buildBuckets`,
+  - La construction parallèle a deux coquilles autour de `construireMoitie`,
     chacune avec son relais de progression : `src/workers/buildHalf.worker.ts`
     et `scripts/lib/build-half-worker.ts`.
   - `tests/rune-optim-onstage.test.ts` garde sa propre copie du générateur
     de pool, identique à `scripts/lib/randomPool.ts`.
-  - `scripts/retention-dispersion-diag.ts` recopie `retentionScore`
-    (`retentionScoreLocal`), et sa liste locale de cas a dérivé de
-    `CASES` (`'degats_reels'` contre `'efficience'` et `objectiveStats`).
   - `scripts/monster-search-rank-diag.ts` prend l'apport d'artéfact de la
     paire portée, pas les bornes de la production : il mesure un moteur
     plus contraint.
-- **Idée** : faire passer le test tronqué par `driveParallelPairing` avec
-  `makeSpawnSliceNode`, et décider si son mode à plafond partagé reste une
-  reproduction séparée ; un corps neutre et deux coquilles pour la
-  construction, comme pour l'appariement
+- **Idée** : un corps neutre et deux coquilles pour la construction, comme
+  pour l'appariement
   ([03-developpeur/optimizer/moteur/parallelisation.md § Coquilles et lanceurs](../03-developpeur/optimizer/moteur/parallelisation.md#coquilles-et-lanceurs)) ;
-  migrer le générateur du test, sans changer son tirage ; exporter
-  `retentionScore` et reprendre `CASES` ; brancher le script de rang sur
+  migrer le générateur du test, sans changer son tirage ; brancher le script de rang sur
   `artifactBounds` avant de lui faire produire une mesure.
-- **Bloque** : des changements de code, jamais faits. D'ici là, un
-  changement de `runPairSlice` n'est couvert sous troncature réelle par
-  aucun test.
+- **Bloque** : des changements de code, jamais faits.
 
 ### Oracle exhaustif du quasi-succès
 

@@ -1,7 +1,8 @@
-// Équivalent Node (`worker_threads`) de `src/workers/buildHalf.worker.ts`, à
-// l'usage EXCLUSIF de scripts/perf-battery.ts — pour que la mesure de
-// construction reflète le vrai comportement de l'app (les deux moitiés A/B
-// construites EN PARALLÈLE sur deux fils séparés, voir
+// Équivalent Node (`worker_threads`) de `src/workers/buildHalf.worker.ts`,
+// lancé par scripts/perf-battery.ts et par la coquille Node
+// (scripts/lib/buildHalvesNode.ts) — pour que la mesure de construction
+// reflète le vrai comportement de l'app (un fil par moitié ET par préréglage
+// construit, EN PARALLÈLE, voir
 // docs/03-developpeur/optimizer/,
 // « Construction des moitiés »), pas une simulation séquentielle dans le même processus qui
 // gonflerait artificiellement le temps de construction mesuré.
@@ -11,36 +12,18 @@
 // TypeScript transpilé à la volée.
 
 import { parentPort, workerData } from 'worker_threads';
-import { buildBuckets, Bucket } from '../../src/lib/runeBuildOptim';
-import { StatKey } from '../../src/lib/effects';
-import { RuneDetail, BaseStats } from '../../src/types';
+import { CompartimentType, tamponsDesDemiBuilds } from '../../src/lib/demiBuildsTypes';
+// Les mêmes colonnes que `src/workers/buildHalf.worker.ts`, sans HalfCombo.
+import { construireMoitieTypee } from '../../src/lib/rechercheRunes';
+import type { RequeteMoitie } from '../../src/lib/constructionEmboitee';
 import { drain } from './drain';
 
-export interface BuildHalfWorkerData {
-  half: 'A' | 'B';
-  slotIdxs: readonly [number, number, number];
-  filtered: RuneDetail[][];
-  distinctKeys: string[];
-  constrainedKeys: StatKey[];
-  retentionKeys: StatKey[];
-  minEntries: { k: StatKey; min: number }[];
-  bucketCap: number;
-  otherHalfMaxSets: number[];
-  jokerCredit: number;
-  requiredPieces: number[];
-  // ⚠️ Nécessaire à `retentionScore`/`combinedRetentionScore` (pondération
-  // pct/flat par base) — voir BuildBucketsContext dans runeBuildOptim.ts.
-  base: BaseStats;
-  // PROTOTYPE (combosOrderMode='objective') — même discipline que `base`.
-  objectiveKeys: StatKey[];
-  // ⚠️ Manquaient tous les deux jusqu'ici — ce worker (utilisé par
-  // perf-battery.ts pour mesurer la construction « comme en prod ») ignorait
-  // silencieusement adaptiveTrancheWeighting ET combosOrderMode, retombant
-  // TOUJOURS sur le défaut interne de buildBuckets quel que soit ce que
-  // SearchParams portait — trouvé en corrigeant le même trou côté
-  // src/workers/buildHalf.worker.ts.
-  adaptiveTrancheWeighting?: boolean;
-  combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
+/**
+ * La requête d'UN préréglage d'une moitié, la même que celle des Web Workers
+ * de moitié (`RequeteMoitie`, produite par `requetesDeLaMoitie` : préréglages
+ * emboîtés, un fil par moitié et par préréglage), plus l'horodatage opt-in.
+ */
+export interface BuildHalfWorkerData extends RequeteMoitie {
   /**
    * A₂ — horodater les `BuildingProgress` que
    * `buildBuckets` émet DÉJÀ, pour cartographier son ÉLAGAGE.
@@ -65,7 +48,7 @@ export interface BuildHalfWorkerData {
  *
  * ⚠️ **Pourquoi la mesure est propre ici et nulle part ailleurs** : chaque
  * moitié tourne dans son PROPRE `worker_threads`, donc dans son propre tas.
- * Un relevé par fil ne peut pas confondre A et B.
+ * Le tas et les ArrayBuffer sont propres au fil ; rss reste global au processus.
  *
  * ⚠️ **Palier LÉGER, et c'est un arbitrage** : trois lignes après la
  * construction, donc aucune perturbation de la phase mesurée. Le palier
@@ -77,6 +60,9 @@ export interface BuildHalfWorkerData {
 export interface MemoireMoitie {
   heapUsed: number;
   heapTotal: number;
+  /** Stockage hors tas des ArrayBuffer, colonnes comprises, avant transfert. */
+  arrayBuffers: number;
+  /** Mémoire résidente du processus entier, commune aux fils. */
   rss: number;
 }
 
@@ -127,7 +113,7 @@ export interface ProgressionMoitie {
 }
 
 export interface BuildHalfWorkerResult {
-  buckets: Bucket[];
+  buckets: CompartimentType[];
   ms: number;
   memoire: MemoireMoitie;
   /** A₂ — présent SEULEMENT si `horodaterProgression` a été demandé. */
@@ -144,14 +130,12 @@ const data = workerData as BuildHalfWorkerData;
  * `performance.now()` par émission. ⚠️ `drain.ts` n'est PAS touché : il est
  * importé par 28 fichiers, et A₂ ne concerne que ce worker-ci.
  */
-function construire(): { buckets: Bucket[]; ms: number; progression?: ProgressionMoitie } {
-  const gen = buildBuckets(
+function construire(): { buckets: CompartimentType[]; ms: number; progression?: ProgressionMoitie } {
+  const gen = construireMoitieTypee(
     data.half,
     data.slotIdxs,
     data,
     data.otherHalfMaxSets,
-    undefined,
-    data.adaptiveTrancheWeighting,
     data.combosOrderMode
   );
   if (!data.horodaterProgression) {
@@ -199,10 +183,9 @@ const usage = process.memoryUsage();
 const result: BuildHalfWorkerResult = {
   buckets,
   ms,
-  memoire: { heapUsed: usage.heapUsed, heapTotal: usage.heapTotal, rss: usage.rss },
+  memoire: { heapUsed: usage.heapUsed, heapTotal: usage.heapTotal, arrayBuffers: usage.arrayBuffers, rss: usage.rss },
   // ⚠️ Le champ n'existe même pas quand l'horodatage n'a pas été demandé —
-  // `perf-battery.ts` ne voit donc rien changer, ni dans le type qu'il lit,
-  // ni dans la taille du message sérialisé.
+  // aucun tableau d'intervalles ne voyage dans le cas ordinaire.
   ...(progression != null ? { progression } : {}),
 };
-parentPort!.postMessage(result);
+parentPort!.postMessage(result, tamponsDesDemiBuilds(buckets));

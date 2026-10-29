@@ -9,8 +9,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { egal, ok, titre } from './outils';
 import {
-  CHARGEURS, comparerIndex, decisionTailwind, inventaire, optionsConstruction, PREREQUIS, RefusSelection, selectionDepuisGit, selectionner,
-  type Inventaire, type Selection,
+  CHARGEURS, comparerIndex, decisionTailwind, formater, inventaire, optionsConstruction, PREREQUIS, RefusSelection, selectionDepuisGit, selectionner,
+  WORKERS_NON_RESOLUS_TOLERES, type Inventaire, type Selection, type WorkerTolere,
 } from './selection';
 
 const racineDepot = resolve('.');
@@ -39,11 +39,20 @@ export async function testSelectionFichiersInventaire(): Promise<void> {
   const attendues = [
     'tests/rendu/optimizer-memoire-banc.tsx', 'tests/rendu/optimizer-import-banc.tsx', 'tests/rendu/optimizer-dialogue-banc.tsx',
     'tests/rendu/rta-reco-export-banc.tsx', 'tests/rendu/speed-tune-export-banc.tsx', 'tests/rendu/speed-tune-export-app-banc.tsx',
-    'tests/rendu/siege-export-banc.tsx', 'scripts/lib/pair-slice-worker.ts', 'scripts/lib/build-half-worker.ts',
-    'scripts/lib/pairing-quota-worker.ts', 'scripts/installer-hooks.mjs', '.githooks/pre-commit',
-    '.githooks/commit-msg', 'scripts/relic-differentiel.ts',
+    'tests/rendu/siege-export-banc.tsx', 'scripts/lib/appariement-rapide-worker.ts', 'scripts/lib/build-half-worker.ts',
+    'scripts/installer-hooks.mjs', '.githooks/pre-commit',
+    '.githooks/commit-msg', 'scripts/relic-differentiel.ts', 'tests/rendu/recherche-coeurs-banc.tsx',
   ];
   egal(attendues.filter((r) => !racines.has(r)), [], 'les 14 racines secondaires connues sont retrouvées');
+  // Les `new Worker(…)` à cible non résolue du dépôt : deux lanceurs Node qui
+  // démarrent un paquet construit par esbuild (son point d'entrée est suivi par
+  // le site `esbuild-build`), tolérés par la liste, chacun avec sa raison ; le
+  // fil `eval` des tests porte du code. Aucun avertissement.
+  egal(WORKERS_NON_RESOLUS_TOLERES.map((t) => [t.fichier, t.argument, t.raison.length > 0]), [
+    ['scripts/lib/appariementRapideNode.ts', 'chemin', true],
+    ['scripts/lib/buildHalvesNode.ts', 'chemin', true],
+  ], 'liste tolérée : les deux lanceurs de paquet construit, chacun avec sa raison');
+  egal(inv.avertissements, [], 'avertissements : aucun, les deux lanceurs sont tolérés');
   const erreurs = [...inv.fichiersTest.values()].flatMap((i) => i.racines.filter((r) => r.erreur).map((r) => r.racine));
   egal([...new Set(erreurs)], [], 'chaque racine secondaire se construit');
   const bandes = inv.fichiersTest.get('tests/rendu/optimizer-bandes.test.ts');
@@ -61,14 +70,33 @@ export async function testSelectionFichiersInventaire(): Promise<void> {
   ok(inv.dureeMs < 15000, `inventaire recalculé en ${inv.dureeMs} ms`);
 }
 
-// Le graphe d'un banc (racine secondaire construite par esbuild) contient tout
-// ce que le chargeur maison charge vraiment : relevé à l'exécution, dans un
-// processus à part où le navigateur et Tailwind sont remplacés.
+// Le graphe d'un banc (racine secondaire construite par esbuild), avec les
+// Workers que ses modules démarrent, contient tout ce que le chargeur maison
+// charge vraiment : relevé à l'exécution, dans un processus à part où le
+// navigateur et Tailwind sont remplacés.
 export async function testSelectionFichiersChargeur(): Promise<void> {
-  titre('Sélection par fichiers modifiés — graphe des bancs contre le chargeur maison');
+  titre('Sélection par fichiers modifiés — graphe des bancs et de leurs Workers contre le chargeur maison');
   const inv = await reel();
+  // Un Worker démarré par un module du banc (`new Worker(new URL(…))`) est une
+  // racine à part, que la sélection joint à l'ensemble de chaque test qui
+  // charge ce banc ; le chargeur maison le charge aussi. Le graphe comparé est
+  // donc celui du banc, plus les Workers que ses modules démarrent, de proche
+  // en proche — comme la sélection les trouve.
+  const workers = [...inv.fichiersTest.values()].flatMap((i) => i.racines.filter((r) => r.type === 'worker'));
+  const avecSesWorkers = (banc: string[]) => {
+    const g = new Set(banc);
+    for (let change = true; change;) {
+      change = false;
+      for (const w of workers) {
+        if (!g.has(w.via.replace(/:\d+$/, '')) || w.fichiers.every((f) => g.has(f))) continue;
+        for (const f of w.fichiers) g.add(f);
+        change = true;
+      }
+    }
+    return g;
+  };
   const bancs = new Map<string, Set<string>>();
-  for (const i of inv.fichiersTest.values()) for (const r of i.racines) if (r.type === 'chargeur-maison') bancs.set(r.racine, new Set(r.fichiers));
+  for (const i of inv.fichiersTest.values()) for (const r of i.racines) if (r.type === 'chargeur-maison') bancs.set(r.racine, avecSesWorkers(r.fichiers));
   ok(bancs.size >= 7, `${bancs.size} bancs du chargeur maison`);
   const dossier = mkdtempSync(join(racineDepot, 'node_modules', 'swblacksmith-tests-selection-'));
   try {
@@ -140,15 +168,15 @@ export async function testSelectionFichiersCasReels(): Promise<void> {
   egal(statut(s, 'tests/rendu/optimizer-bandes-preuves.ts'), 'couvert', '… et le fichier est couvert');
 
   // Worker : la racine et un module transitif.
-  const avecWorker = [...inv.fichiersTest.entries()].find(([, i]) => i.racines.some((r) => r.racine === 'scripts/lib/pair-slice-worker.ts'));
-  const grapheWorker = avecWorker?.[1].racines.find((r) => r.racine === 'scripts/lib/pair-slice-worker.ts')?.fichiers ?? [];
-  const transitif = grapheWorker.find((f) => f !== 'scripts/lib/pair-slice-worker.ts' && f.startsWith('src/'));
-  s = sel(['scripts/lib/pair-slice-worker.ts']);
-  ok(!s.complet && statut(s, 'scripts/lib/pair-slice-worker.ts') === 'couvert', 'pair-slice-worker.ts (hors de tout graphe principal) → couvert par sa racine');
+  const avecWorker = [...inv.fichiersTest.entries()].find(([, i]) => i.racines.some((r) => r.racine === 'scripts/lib/appariement-rapide-worker.ts'));
+  const grapheWorker = avecWorker?.[1].racines.find((r) => r.racine === 'scripts/lib/appariement-rapide-worker.ts')?.fichiers ?? [];
+  const transitif = grapheWorker.find((f) => f !== 'scripts/lib/appariement-rapide-worker.ts' && f.startsWith('src/'));
+  s = sel(['scripts/lib/appariement-rapide-worker.ts']);
+  ok(!s.complet && statut(s, 'scripts/lib/appariement-rapide-worker.ts') === 'couvert', 'appariement-rapide-worker.ts (hors de tout graphe principal) → couvert par sa racine');
   s = sel([transitif ?? 'absent']);
   const fichierWorker = avecWorker?.[0] ?? '';
   const entreeWorker = inv.entrees.find((e) => e.fichierTest === fichierWorker);
-  ok(!!transitif && !s.complet && /racine secondaire scripts\/lib\/pair-slice-worker\.ts/.test(raisons(s, entreeWorker?.nom ?? entreeWorker?.identifiant ?? '')),
+  ok(!!transitif && !s.complet && /racine secondaire scripts\/lib\/appariement-rapide-worker\.ts/.test(raisons(s, entreeWorker?.nom ?? entreeWorker?.identifiant ?? '')),
     `module transitif du worker (${transitif}) → ${entreeWorker?.nom} retenue par la racine du worker`);
 
   // Chemin construit et dossier cité.
@@ -182,10 +210,15 @@ export async function testSelectionFichiersCasReels(): Promise<void> {
   ok(!s.complet && statut(s, 'tests/banc/run.mjs') === 'sans effet', 'tests/banc/run.mjs → sans effet');
   s = sel(['tests/banc/selection.ts']);
   ok(!s.complet && statut(s, 'tests/banc/selection.ts') === 'couvert' && /module de son graphe/.test(raisons(s, 'testBancSelection')), 'tests/banc/selection.ts → couvert par le graphe de banc-selection.test.ts');
+  // `.gitignore` ne change que ce que Git suit : les vérifications `depot`, jamais la suite complète.
+  s = sel(['.gitignore']);
+  ok(!s.complet && statut(s, '.gitignore') === 'sans effet' && s.transversalesSeulement && !!retenu(s, 'testRenvois'),
+    '.gitignore → sans effet, vérifications depot retenues (dont testRenvois), jamais la suite complète');
   s = sel(['bureau/fichier-inconnu.ts']);
   ok(s.complet && s.fichiers[0]?.detail === 'aucun lien spécifique', 'bureau/ est une racine : un fichier sans lien → non couvert, suite complète');
 
-  // Non couvert → complet, même quand une transversale est déjà retenue (D8).
+  // Non couvert → complet, même quand une transversale est déjà retenue :
+  // celle-ci ne garantit pas la couverture du fichier inconnu.
   s = sel(['tests/fichier-inconnu.txt']);
   ok(s.complet && statut(s, 'tests/fichier-inconnu.txt') === 'non couvert', 'fichier de tests/ sans lien spécifique → suite complète');
   s = sel(['src/components/outils/OptimizerSection.tsx', 'tests/fichier-inconnu.txt']);
@@ -293,7 +326,8 @@ async function depotEssai(corps: (racine: string) => Promise<void>): Promise<voi
     rmSync(racine, { recursive: true, force: true });
   }
 }
-const depuisHead = async (racine: string) => (await selectionDepuisGit({ racine, depuis: 'HEAD' })).selection;
+// Un dépôt d'essai n'a pas les fichiers de la liste tolérée du dépôt : il n'en a aucune.
+const depuisHead = async (racine: string) => (await selectionDepuisGit({ racine, depuis: 'HEAD', workersToleres: [] })).selection;
 
 // Le motif Tailwind ne retient que si la feuille produite peut changer : les
 // contenus « avant » et « après » sont fournis, le dépôt n'est pas modifié.
@@ -482,6 +516,41 @@ export async function testSelectionFichiersGit(): Promise<void> {
     ok(!s.complet && /^opaque/.test(raisons(s, 'verificationsC')), 'lecture non résolue → opaque, retenue pour un fichier de src/');
     s = await essai('docs/a.md', '# a modifié\n');
     ok(!s.complet && /^opaque/.test(raisons(s, 'verificationsC')) && s.transversalesSeulement, '… et pour docs/ (sans effet : seules les transversales)');
+    // Un Worker à cible non résolue : le module démarré n'entre dans aucun
+    // ensemble par ce site. Un avertissement, en sortie, jamais une écartée
+    // silencieuse ; la sélection ne change pas. Un Worker `{ eval: true }`
+    // porte du code, pas une cible : aucun avertissement.
+    egal(s.avertissements, [], 'avant : aucun avertissement');
+    ecrire(r, 'tests/aide.ts', "import { lib } from '../src/lib';\nexport function aide(): number { new Worker(process.argv[2]); new Worker(String(lib()), { eval: true }); return lib(); }\n");
+    commit(r, 'worker non résolu');
+    const avant = await essai('docs/a.md', '# a modifié\n');
+    egal(avant.avertissements, ['tests/aide.ts:2 new Worker : cible non résolue (*)'], 'Worker à cible non résolue → un avertissement (le Worker `eval` n’en donne pas)');
+    ok(/Avertissements \(1\)[^\n]*\n {2}! tests\/aide\.ts:2 new Worker : cible non résolue/.test(formater(avant, 5)), '… écrit dans la sortie de la sélection');
+    egal([avant.complet, avant.retenues.map((x) => x.nom)], [s.complet, s.retenues.map((x) => x.nom)], '… et la sélection ne change pas');
+    // La liste tolérée : le site toléré se tait ; un site nouveau, ou un
+    // second site au même argument, reste averti ; une entrée qui ne
+    // correspond plus à aucun site est dite.
+    const avecListe = async (toleres: WorkerTolere[]) => {
+      ecrire(r, 'docs/a.md', '# a modifié\n');
+      const t = (await selectionDepuisGit({ racine: r, depuis: 'HEAD', workersToleres: toleres })).selection;
+      git(r, 'checkout', '-q', '--', 'docs/a.md');
+      return t.avertissements;
+    };
+    const toleree: WorkerTolere = { fichier: 'tests/aide.ts', argument: 'process.argv[2]', raison: 'essai' };
+    egal(await avecListe([toleree]), [], 'liste tolérée : le site toléré se tait');
+    egal(await avecListe([toleree, { fichier: 'tests/disparu.ts', argument: 'chemin', raison: 'essai' }]),
+      ['liste tolérée : tests/disparu.ts new Worker(chemin) ne correspond plus à aucun site non résolu'], '… une entrée sans site est dite');
+    ecrire(r, 'tests/aide.ts', "import { lib } from '../src/lib';\nexport function aide(): number { new Worker(process.argv[2]); new Worker(String(lib()), { eval: true }); return lib(); }\n"
+      + 'export function autre(): void { new Worker(process.argv[3]); }\n');
+    commit(r, 'worker nouveau');
+    egal(await avecListe([toleree]), ['tests/aide.ts:3 new Worker : cible non résolue (*)'], '… un site nouveau reste averti');
+    ecrire(r, 'tests/aide.ts', "import { lib } from '../src/lib';\nexport function aide(): number { new Worker(process.argv[2]); new Worker(String(lib()), { eval: true }); return lib(); }\n"
+      + 'export function autre(): void { new Worker(process.argv[2]); }\n');
+    commit(r, 'worker au même argument');
+    egal(await avecListe([toleree]), [
+      'liste tolérée : tests/aide.ts new Worker(process.argv[2]) correspond à 2 sites, un seul toléré',
+      'tests/aide.ts:2 new Worker : cible non résolue (*)', 'tests/aide.ts:3 new Worker : cible non résolue (*)',
+    ], '… un second site au même argument reste averti, et l’entrée le dit');
     ecrire(r, 'tests/c.test.ts', "import { execFileSync } from 'node:child_process';\nexport const verificationsC: [string, () => void][] = [['testC1', () => { execFileSync('git', ['ls-files']); }]];\n");
     commit(r, 'lecture du dépôt');
     s = await essai('docs/a.md', '# a modifié\n');

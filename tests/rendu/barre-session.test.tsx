@@ -1,17 +1,19 @@
 // Tests de rendu — « Sauvegarder » et « Sauvegarder sous… » dans la barre du
 // haut (docs/02-app/transverse/, docs/02-app/transverse/ § Barre
-// supérieure). Sur le site, seul « Sauvegarder » ; dans l'app (pont du
-// préchargement simulé), les deux, et l'infobulle nomme la session en cours.
+// supérieure). Dans l'app (pont du préchargement simulé) seulement : les
+// deux, et l'infobulle nomme la session en cours. Sur le site, aucun accès à
+// la sauvegarde de session.
 
 import TopBar from '../../src/components/TopBar';
 import { SettingsList } from '../../src/components/SettingsMenu';
 import { ok, titre } from '../outils';
 import { rendreApp } from './app.test';
-import { bouton, boutons, rendre } from './outils-rendu';
+import { bouton, boutons, rendre, texteVisible } from './outils-rendu';
 
 const rien = () => {};
 
 function barre(props: {
+  onSauvegarder?: () => void;
   onSauvegarderSous?: () => void;
   onDeconnexion?: () => void;
   sessionEnCours?: string | null;
@@ -23,7 +25,6 @@ function barre(props: {
       parametresActifs={false}
       onToggleParametres={rien}
       onRecherche={rien}
-      onSauvegarder={rien}
       decalage={248}
       {...props}
     />
@@ -31,23 +32,17 @@ function barre(props: {
 }
 
 export function testRenduBarreSession() {
-  titre('rendu · barre du haut — « Sauvegarder » sur le site');
+  titre('rendu · barre du haut — pas de « Sauvegarder » sur le site');
   const site = barre({ onDeconnexion: rien });
-  const sauver = boutons(site).filter((b) => b.texte === 'Sauvegarder');
-  ok(sauver.length === 1, 'ordinateur : un bouton « Sauvegarder »');
-  ok(sauver[0]?.title === 'Sauvegarder la session dans un fichier (Ctrl+S)', 'son infobulle donne le raccourci');
-  ok(bouton(site, 'Sauvegarder la session (Ctrl+S)')?.texte === '', 'téléphone : l’icône « Sauvegarder », nommée');
-  ok(!bouton(site, 'Sauvegarder sous…'), 'pas de « Sauvegarder sous… » sans l’app');
-  const ordre = boutons(site).map((b) => b.texte || b.ariaLabel);
-  ok(
-    ordre.indexOf('Sauvegarder') < ordre.indexOf('Se déconnecter') &&
-      ordre.indexOf('Sauvegarder la session (Ctrl+S)') < ordre.indexOf('Rechercher'),
-    '« Sauvegarder » précède la déconnexion (ordinateur) et la loupe (téléphone)'
-  );
+  ok(!boutons(site).some((b) => b.texte === 'Sauvegarder'), 'ordinateur : aucun bouton « Sauvegarder »');
+  ok(!bouton(site, 'Sauvegarder la session (Ctrl+S)'), 'téléphone : aucune icône « Sauvegarder »');
+  ok(!bouton(site, 'Sauvegarder sous…'), 'pas de « Sauvegarder sous… »');
+  ok(bouton(site, 'Se déconnecter') !== undefined && bouton(site, 'Rechercher') !== undefined, 'la déconnexion et la loupe restent');
 
   titre('rendu · barre du haut — dans l’app de bureau');
-  const app = barre({ onSauvegarderSous: rien, sessionEnCours: 'ma-session.json' });
+  const app = barre({ onSauvegarder: rien, onSauvegarderSous: rien, sessionEnCours: 'ma-session.json' });
   ok(bouton(app, 'Sauvegarder')?.title === 'Sauvegarder dans ma-session.json (Ctrl+S)', 'l’infobulle nomme la session en cours');
+  ok(bouton(app, 'Sauvegarder la session (Ctrl+S)')?.texte === '', 'téléphone : l’icône « Sauvegarder », nommée');
   ok(
     bouton(app, 'Sauvegarder sous…')?.title ===
       'Enregistrer la session dans un autre fichier, qui devient la session en cours (l’ancien n’est plus modifié)',
@@ -58,10 +53,19 @@ export function testRenduBarreSession() {
     ordreApp.indexOf('Sauvegarder') < ordreApp.indexOf('Sauvegarder sous…') && !ordreApp.includes('Se déconnecter'),
     'ordre : Sauvegarder, Sauvegarder sous… — sans « Se déconnecter »'
   );
+  ok(
+    ordreApp.indexOf('Sauvegarder la session (Ctrl+S)') < ordreApp.indexOf('Rechercher'),
+    'téléphone : « Sauvegarder » précède la loupe'
+  );
 
   titre('rendu · sauvegarde — désactivée tant que le compte se relit');
   const attente = 'Ton compte se charge encore : la sauvegarde attend qu’il soit relu.';
-  const enAttente = barre({ onSauvegarderSous: rien, sessionEnCours: 'ma-session.json', sauvegardeIndisponible: attente });
+  const enAttente = barre({
+    onSauvegarder: rien,
+    onSauvegarderSous: rien,
+    sessionEnCours: 'ma-session.json',
+    sauvegardeIndisponible: attente,
+  });
   for (const nom of ['Sauvegarder', 'Sauvegarder sous…']) {
     const b = boutons(enAttente).find((x) => x.texte === nom);
     ok(b?.desactive === true && b.title === attente, `« ${nom} » reste affiché, désactivé, avec la raison en infobulle`);
@@ -71,10 +75,18 @@ export function testRenduBarreSession() {
   const ligne = boutons(reglages).find((x) => x.texte === 'Sauvegarder');
   ok(ligne?.desactive === true && ligne.title === attente, 'Paramètres : « Sauvegarder » désactivé, avec la raison');
 
-  titre('rendu · barre du haut — l’app les branche selon le support');
+  titre('rendu · sauvegarde de session — l’app la branche selon le support');
   const htmlSite = rendreApp('#/');
-  ok(!bouton(htmlSite, 'Sauvegarder sous…'), 'site : l’app ne passe pas « Sauvegarder sous… »');
+  ok(!boutons(htmlSite).some((b) => b.texte === 'Sauvegarder'), 'site : pas de « Sauvegarder » dans la barre');
+  ok(!bouton(htmlSite, 'Sauvegarder la session (Ctrl+S)'), 'site : pas d’icône « Sauvegarder » au téléphone');
+  ok(!bouton(htmlSite, 'Sauvegarder sous…'), 'site : pas de « Sauvegarder sous… »');
   ok(bouton(htmlSite, 'Se déconnecter') !== undefined, 'site : « Se déconnecter » reste');
+  const parametresSite = rendreApp('#/parametres');
+  ok(
+    !boutons(parametresSite).some((b) => b.texte === 'Sauvegarder') &&
+      !texteVisible(parametresSite).includes('Tout l’état de l’app dans un fichier'),
+    'site : pas de ligne « Session » dans les Paramètres'
+  );
   const pont = globalThis as { swblacksmithBureau?: unknown };
   pont.swblacksmithBureau = { bureau: true, plateforme: 'win32' };
   try {
@@ -82,6 +94,7 @@ export function testRenduBarreSession() {
     ok(bouton(html, 'Sauvegarder sous…') !== undefined, 'app : « Sauvegarder sous… » dans la barre');
     ok(!bouton(html, 'Se déconnecter'), 'app : pas de « Se déconnecter »');
     ok(bouton(html, 'Sauvegarder')?.title === 'Sauvegarder la session dans un fichier (Ctrl+S)', 'app, aucune session en cours : l’infobulle ne nomme rien');
+    ok(boutons(rendreApp('#/parametres')).some((b) => b.texte === 'Sauvegarder'), 'app : la ligne « Session » des Paramètres');
   } finally {
     delete pont.swblacksmithBureau;
   }

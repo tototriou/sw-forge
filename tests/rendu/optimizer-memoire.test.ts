@@ -1,15 +1,27 @@
 import { navigateurOptimizer } from './optimizer-navigable-banc';
 import { ok, titre } from '../outils';
 
-async function transition(nom: string, telephone = false) {
+async function transition(nom: string, telephone = false, largeurBureau?: number) {
   titre(`rendu · Optimizer mémoire — ${nom}${telephone ? ' au téléphone' : ' au bureau'}`);
   const { browser, page } = await navigateurOptimizer(telephone);
   try {
+    if (!telephone && largeurBureau) {
+      // Le harnais sert une racine pleine largeur, sans barre latérale.
+      // scenario() monte l'écran : aucun data-configuration n'existe avant.
+      await page.setViewportSize({ width: largeurBureau, height: 1000 });
+    }
     if (telephone) ok(await page.evaluate(() => window.innerWidth) === 390, 'largeur de mise en page téléphone : 390 px');
     const preuves = await page.evaluate(async (scenario) => {
       const banc = (globalThis as unknown as { bancOptimizer: { scenario: (nom: string) => Promise<[boolean, string][]> } }).bancOptimizer;
       return banc.scenario(scenario);
     }, nom);
+    if (!telephone && largeurBureau) {
+      const disposition = await page.locator('[data-configuration]').evaluate(el => ({
+        largeur: el.getBoundingClientRect().width, configuration: el.getAttribute('data-configuration'),
+      }));
+      ok(disposition.largeur >= 1768 && disposition.configuration === 'colonnes',
+        `écran monté : conteneur de ${Math.round(disposition.largeur)} px, configuration ${disposition.configuration}, toutes les colonnes attendues`);
+    }
     ok(preuves.length > 0, 'scénario exécuté avec de vrais hooks et un écran monté');
     for (const [condition, texte] of preuves) ok(condition, texte);
   } finally { await browser.close(); }
@@ -36,6 +48,16 @@ export const testRenduMemoireOptimizerRecetteSansSelection = () => transition('r
 export const testRenduMemoireOptimizerGlobauxAvantRestauration = () => transition('globaux-restauration');
 export const testRenduMemoireOptimizerSourceRta = () => transition('source-rta');
 export const testRenduMemoireOptimizerSourceSiege = () => transition('source-siege');
+export const testRenduFiltresResultatsMemoire = () => transition('filtres-memoire');
+export const testRenduFiltresResultatsCarteContexte = () => transition('filtres-carte-contexte');
+export const testRenduFiltresResultatsCartes = async () => {
+  await transition('filtres-ecran');
+  await transition('filtres-ecran', false, 2560);
+};
+export const testRenduTelephoneFiltresResultatsCartes = () => transition('filtres-ecran', true);
+export const testFiltresBranchementApp = () => transition('filtres-branchement', false, 2560);
+export const testFiltresBranchementAppTelephone = () => transition('filtres-branchement', true);
+export const testRenduFiltresResultatsMesure = () => transition('filtres-mesure');
 
 async function inclusion(genre: 'ajout' | 'fiche' | 'carte', telephone = false) {
   titre(`rendu · Optimizer mémoire — inclusion par clic ${genre}${telephone ? ' au téléphone' : ''}`);
@@ -45,8 +67,8 @@ async function inclusion(genre: 'ajout' | 'fiche' | 'carte', telephone = false) 
     const avant = await page.evaluate(async genre => (globalThis as unknown as { bancOptimizer: Banc }).bancOptimizer.preparerInclusion(genre), genre);
     for (const [condition, texte] of avant) ok(condition, texte);
     if (genre === 'ajout') {
-      if (telephone) await page.getByRole('button', { name: 'Gérer mes listes' }).click();
-      await page.getByRole('button', { name: 'Ajouter Second à « Alpha »', exact: true }).click();
+      await page.getByRole('combobox', { name: 'Rechercher un monstre…' }).fill('Second');
+      await page.getByRole('option').filter({ hasText: 'Second' }).click();
     } else {
       if (genre === 'carte') await page.getByRole('button', { name: 'Rechercher', exact: true }).click();
       const boutons = page.getByRole('button', { name: 'Valider ce build', exact: true });

@@ -1,4 +1,4 @@
-import { ReactNode, RefObject, useLayoutEffect, useRef, useState } from 'react';
+import { ReactNode, RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Flottant from './Flottant';
 
 // [Flottant](Flottant.tsx) qui CHOISIT SON CÔTÉ en mesurant la place autour de
@@ -11,11 +11,10 @@ import Flottant from './Flottant';
 // côté s'y trouvait coupé — exactement là où l'on venait de cliquer pour lire
 // quelque chose.
 //
-// ⚠️ Distinct de `useRecalageEcran`, qui TIRE une surface débordante vers
-// l'intérieur après coup. Ici on mesure AVANT de peindre : on choisit le côté
-// d'ouverture puis on BORNE la position horizontale au viewport, en un seul
-// passage sans saut visible. Le recalage reste utile quand la surface doit
-// garder son côté (le formulaire de catégorie, ancré à sa pilule).
+// ⚠️ `Flottant` borne déjà toute surface à l'écran et la bascule au-dessus
+// quand elle ne tient pas dessous ; ce qu'ajoute celui-ci, c'est le CÔTÉ
+// d'ouverture, choisi en mesurant AVANT de peindre, qui décide aussi de
+// l'animation : la surface s'ouvre vers l'intérieur au lieu d'être tirée.
 //
 // ⚠️ **Le côté seul ne suffit pas près d'un bord.** Ancrée à un élément étroit
 // (une tuile de grille à deux colonnes du téléphone), une surface large alignée
@@ -29,8 +28,8 @@ import Flottant from './Flottant';
 
 export interface FlottantAutoProps {
   ouvert: boolean;
-  // L'ancre à mesurer. ⚠️ Elle doit porter `position: relative` : la surface se
-  // place en `absolute` par rapport à elle.
+  // L'ancre à mesurer. ⚠️ Elle doit porter `position: relative` : `Flottant`
+  // prend pour ancre le premier ancêtre positionné, et se place sur lui.
   ancre: RefObject<HTMLElement>;
   // Dimensions ESTIMÉES, en pixels. Elles servent à décider du côté avant que la
   // surface existe — on ne peut pas mesurer ce qui n'est pas encore rendu.
@@ -39,10 +38,10 @@ export interface FlottantAutoProps {
   /**
    * La surface prend EXACTEMENT la largeur de son ancre, à chaque instant.
    *
-   * ⚠️ **Pas une mesure, du CSS** : la surface est déjà `position: absolute`
-   * dans l'ancre (qui porte `position: relative`), donc un `width: 100%` la
-   * cale dessus — et la SUIT au redimensionnement de la fenêtre, ce qu'une
-   * largeur mesurée à l'ouverture ne ferait pas. `largeur` est alors ignorée.
+   * ⚠️ **Un `width: 100%`, que `Flottant` lit sur l'ancre** à chaque
+   * recalcul (défilement, redimensionnement) : la surface SUIT la largeur de
+   * l'ancre, ce qu'une largeur mesurée ici à l'ouverture ne ferait pas.
+   * `largeur` est alors ignorée.
    *
    * ⚠️ Le placement horizontal en devient trivial : une surface aussi large
    * que son ancre ne peut pas déborder d'un côté sans déborder de l'ancre,
@@ -52,6 +51,19 @@ export interface FlottantAutoProps {
    */
   largeurAncre?: boolean;
   rembourrage?: 'aucun' | 'sm' | 'md';
+  /**
+   * Fourni, un appui N'IMPORTE OÙ hors de la surface la referme — le détail
+   * d'une rune, d'un artéfact ou d'une relique ne se refermait qu'en recliquant
+   * la pièce.
+   *
+   * ⚠️ **L'ancre est exclue** : la pièce qui a ouvert la surface garde sa
+   * propre bascule. Sans cette exclusion, l'appui la fermerait ici, puis le
+   * clic qui suit la rouvrirait aussitôt. Une AUTRE pièce, elle, est dehors :
+   * l'appui ferme celle-ci, le clic ouvre la nouvelle.
+   * ⚠️ `pointerdown` et non `click` : l'appui qui commence un geste ailleurs
+   * (un défilement, un glisser) referme aussi, comme le `Menu`.
+   */
+  onFermer?: () => void;
   // Sert surtout à teinter la BORDURE quand le flottant porte un sens (une
   // alerte). ⚠️ Le contenu ne doit pas poser son propre cadre : deux traits
   // concentriques à 1 px l'un de l'autre se lisent comme un contour flou.
@@ -70,10 +82,22 @@ export default function FlottantAuto({
   hauteur = 320,
   largeurAncre = false,
   rembourrage = 'aucun',
+  onFermer,
   className = '',
   children,
 }: FlottantAutoProps) {
   const boiteRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!ouvert || !onFermer) return;
+    const dehors = (e: PointerEvent) => {
+      const cible = e.target as Node;
+      if (ancre.current?.contains(cible) || boiteRef.current?.contains(cible)) return;
+      onFermer();
+    };
+    document.addEventListener('pointerdown', dehors);
+    return () => document.removeEventListener('pointerdown', dehors);
+  }, [ouvert, onFermer, ancre]);
   const [place, setPlace] = useState<{
     cote: 'gauche' | 'droite';
     ancrage: 'dessus' | 'dessous';
@@ -138,9 +162,8 @@ export default function FlottantAuto({
       // que `cote` pose sur la classe. On neutralise donc `right` pour que seul
       // notre `left` compte, quel que soit le côté choisi pour l'animation.
       largeur=""
-      // ⚠️ `'100%'` et non une valeur mesurée : la surface étant `absolute`
-      // dans l'ancre `relative`, le pourcentage la cale dessus ET l'y garde au
-      // redimensionnement, sans effet ni recalcul.
+      // ⚠️ `'100%'` et non une valeur mesurée : `Flottant` lit un pourcentage
+      // sur la largeur de l'ancre, et la recalcule au redimensionnement.
       style={{
         width: largeurAncre ? '100%' : largeur,
         maxWidth: '90vw',

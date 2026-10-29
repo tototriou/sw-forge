@@ -12,12 +12,16 @@ selon ce qu'on touche. Avant un chantier Optimizer : [invariants.md](invariants.
 | quoi que ce soit du moteur | [invariants.md](invariants.md), en entier, d'abord |
 | `src/workers/runeBuildOptim.worker.ts`, `src/workers/prepareForSearch.ts`, `src/hooks/useBuildOptimSearch.ts`, l'enchaînement d'une recherche | [moteur/pipeline.md](moteur/pipeline.md) |
 | l'énumération, les élagages, le pré-filtrage, les bornes de `src/lib/runeBuildOptim.ts` | [moteur/elagages.md](moteur/elagages.md) |
-| `src/workers/parallelPairing.ts`, `src/workers/pairSliceBody.ts`, `src/workers/pairSlice.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | [moteur/parallelisation.md](moteur/parallelisation.md) |
+| `src/lib/rechercheRunes.ts`, `src/lib/constructionRapide.ts`, `src/lib/demiBuildsTypes.ts` | [moteur/pipeline.md](moteur/pipeline.md) |
+| `src/lib/retentionEmboitee.ts`, `src/lib/constructionEmboitee.ts`, les préréglages emboîtés | [moteur/elagages.md](moteur/elagages.md) |
+| `src/lib/appariementRapide.ts`, `src/lib/validationRapide.ts`, le test rapide et la validation de l'appariement | [moteur/noyau-appariement.md](moteur/noyau-appariement.md) |
+| `src/workers/parallelPairing.ts`, `src/lib/appariementRapideParallele.ts`, `src/lib/travailleurAppariement.ts`, `src/workers/appariementRapide.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | [moteur/parallelisation.md](moteur/parallelisation.md) |
+| `src/lib/contexteResultat.ts`, `src/lib/candidatsCompacts.ts`, `src/lib/classementCompact.ts`, `src/lib/cacheResolutionCompact.ts`, `src/lib/filtresResultats.ts`, `src/lib/colonnesResultats.ts`, `src/workers/classement.worker.ts`, `src/workers/classementDistant.ts` | [moteur/pipeline.md](moteur/pipeline.md), [moteur/optimiseur-artefacts.md](moteur/optimiseur-artefacts.md), [moteur/parallelisation.md](moteur/parallelisation.md) |
 | `diagnoseFeasibility`, `rankBlockingConditions`, le « 0 résultat » | [moteur/diagnostics.md](moteur/diagnostics.md) |
 | `src/lib/artifactQueue.ts`, `src/lib/artifactFiche.ts`, `src/lib/artifactEvaluation.ts`, la paire d'artéfacts d'un build | [moteur/artefacts.md](moteur/artefacts.md) |
 | `src/lib/artifactOptim.ts`, l'éligibilité ou l'effet d'une ligne d'artéfact | [moteur/optimiseur-artefacts.md](moteur/optimiseur-artefacts.md) |
-| `src/lib/relicOptim.ts`, `src/lib/relicQueue.ts`, `src/lib/relicExclusive.ts` | [moteur/reliques.md](moteur/reliques.md) |
-| un contrôle de l'algorithme : oracle, différentiel, benchmark | [verification.md](verification.md) |
+| `src/lib/relicOptim.ts`, `src/lib/relicQueue.ts`, `src/lib/relicExclusive.ts`, `src/lib/resolutionRapide.ts`, `src/lib/resolutionExhaustive.ts` | [moteur/reliques.md](moteur/reliques.md) |
+| un contrôle de l'algorithme : oracle, différentiel, benchmark | [verification/README.md](verification/README.md) |
 | `scripts/lib/diagnosticHarness.ts`, `scripts/diagnostic-harness.ts` | [harnais/mode-d-emploi.md](harnais/mode-d-emploi.md), [harnais/extensions.md](harnais/extensions.md) |
 | un script de diagnostic de `scripts/`, le harnais sur les cas réels (`--cas`) | [harnais/scripts.md](harnais/scripts.md) |
 
@@ -27,7 +31,7 @@ selon ce qu'on touche. Avant un chantier Optimizer : [invariants.md](invariants.
 | --- | --- |
 | [invariants.md](invariants.md) | Les contraintes critiques de l'Optimizer, chacune avec sa source. Se lit en entier. |
 | [moteur/](moteur/README.md) | Le moteur de recherche tel que le code l'exécute : le chemin d'une recherche, les élagages, la parallélisation, les diagnostics, les artéfacts, l'optimiseur d'artéfacts, les reliques. |
-| [verification.md](verification.md) | Les contrôles qui couvrent l'algorithme de recherche : référence exhaustive, oracles, différentiels, benchmarks, validation sur un compte réel. |
+| [verification/README.md](verification/README.md) | Les contrôles qui couvrent l'algorithme de recherche : référence exhaustive, oracles, différentiels, benchmarks, validation sur un compte réel. |
 | [harnais/](harnais/README.md) | Le harnais de diagnostic : son mode d'emploi, ses extensions, les cas réels connus et les scripts voisins. |
 
 ## Tenir `invariants.md`

@@ -3,6 +3,8 @@ import { baseCompleteCriteres, photoCriteres, type CriteresOptimizer } from './c
 import { OPTIMIZER_RECIPE_VERSION, parseOptimizerRecipe } from './optimizerRecipe';
 import { normaliserCompetencesInvocateur } from './competencesInvocateur';
 import { rattacherStockageOptimizer } from './optimizerRattachement';
+import { bornesAvecMesure, bornesBienFormees, triDesResultats, type ColonneResultat } from './colonnesResultats';
+import type { OptimMetric } from './runeOptim';
 export type { RapportReverificationOptimizer } from './optimizerRattachement';
 import {
   exclusionSelectorKey, resolveExclusionEntry,
@@ -55,13 +57,35 @@ export function selecteurValide(v: unknown): v is ExclusionSelector {
     && typeof v.slotIndex === 'number' && Number.isInteger(v.slotIndex) && v.slotIndex >= 0 && v.slotIndex <= 2;
 }
 
+// « Adapter les artéfacts et reliques au tri » n'existe plus : l'équipement suit
+// l'objectif de la recherche. Une mémoire historique le porte encore.
+const REGLAGES_RETIRES = ['adapterArtefactsAuTri'] as const;
+// Champs personnels arrivés après les premières mémoires écrites : leur
+// absence se relit par leur défaut, au lieu de rejeter toute la mémoire.
+const CHAMPS_AJOUTES: Partial<CriteresOptimizer> = { sensTri: 'desc', bornesResultats: {} };
+function sansReglagesRetires(c: CriteresOptimizer): CriteresOptimizer {
+  const copie: Record<string, unknown> = { ...c };
+  for (const k of REGLAGES_RETIRES) delete copie[k];
+  // Un tri « vitesse » enregistré se relit VIT : l'objectif Vitesse n'est plus une colonne de tri.
+  copie.sortBy = triDesResultats(c.sortBy as ColonneResultat | 'vitesse');
+  // Une mémoire écrite avant les filtres d'affichage : décroissant, sans borne.
+  for (const [k, defaut] of Object.entries(CHAMPS_AJOUTES)) if (!(k in copie)) copie[k] = structuredClone(defaut);
+  return copie as unknown as CriteresOptimizer;
+}
+
 function criteresValides(v: unknown): v is CriteresOptimizer {
   if (!objet(v)) return false;
-  // Tous les champs personnels restent obligatoires, y compris ceux ignorés par une recette.
+  // Tous les champs personnels restent obligatoires, y compris ceux ignorés
+  // par une recette, sauf ceux arrivés après coup (`CHAMPS_AJOUTES`).
   const base = baseCompleteCriteres(undefined);
-  if (Object.keys(base).some((k) => !(k in v))) return false;
-  if (['excludeBase', 'optimiserArtefacts', 'adapterArtefactsAuTri', 'compterAurasResPre'].some((k) => typeof v[k] !== 'boolean')) return false;
+  if (Object.keys(base).some((k) => !(k in v) && !(k in CHAMPS_AJOUTES))) return false;
+  if ('sensTri' in v && v.sensTri !== 'desc' && v.sensTri !== 'asc') return false;
+  if ('bornesResultats' in v && !bornesBienFormees(v.bornesResultats)) return false;
+  if (['excludeBase', 'optimiserArtefacts', 'compterAurasResPre'].some((k) => typeof v[k] !== 'boolean')) return false;
+  // Réglage retiré : toléré seulement sous sa forme historique, puis ôté à la lecture.
+  if (REGLAGES_RETIRES.some((k) => k in v && typeof v[k] !== 'boolean')) return false;
   if (typeof v.critereArtefacts !== 'string' || !['brut', 'reel'].includes(v.critereArtefacts)) return false;
+  // `vitesse` : tri historique, admis puis relu VIT (`sansReglagesRetires`).
   if (typeof v.sortBy !== 'string' || !['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc', 'efficience', 'ehp', 'vitesse', 'degats_reels'].includes(v.sortBy)) return false;
   if (!objet(v.damageSetup) || !objet(v.maxStats) || !objet(v.mainStatsBySlot) || !objet(v.lockedRunes) || !Array.isArray(v.lignesVerrouillees)) return false;
   // La validation des critères partagés réutilise le lecteur de recette, jamais une deuxième règle.
@@ -158,7 +182,7 @@ export function lireMembresOptimizer(brut: string | null): DonneesMembresOptimiz
       || paire[0] !== cleMemoireMembre(m.listId, m.selector) || memories.has(paire[0])) {
       rejets.memories.push(paire); rapport.push(`Mémoire ${index + 1} malformée ou dupliquée : ignorée.`); continue;
     }
-    const criteres = { ...m.criteres, damageSetup: normaliserCompetencesInvocateur(m.criteres.damageSetup) };
+    const criteres = { ...sansReglagesRetires(m.criteres), damageSetup: normaliserCompetencesInvocateur(m.criteres.damageSetup) };
     memories.set(paire[0], { listId: m.listId, selector: m.selector, com2usId: m.com2usId, criteres });
   }
   const equipes = validerEquipesOptimizer(v.teams);
@@ -210,6 +234,24 @@ export function enregistrerMemoireMembre(memories: DonneesMembresOptimizer['memo
   const copie = new Map(memories);
   copie.set(cle, { ...membre, selector: { ...membre.selector }, criteres: photoCriteres(criteres, { type: 'personnel' }) });
   return { memories: copie, rapport: [] };
+}
+
+/**
+ * Les mémoires dont chaque borne d'une colonne qui suit la mesure des runes
+ * retient sa mesure : une borne écrite sans elle (mémoire d'avant), réputée
+ * jusqu'ici posée sous la mesure courante, prend `mesure`, celle qui
+ * s'achève. Appelé au changement de mesure, avant que l'autre ne s'applique.
+ * Rien à fixer : les mêmes mémoires (même objet).
+ */
+export function memoiresAvecMesureDesBornes(memories: DonneesMembresOptimizer['memories'], mesure: OptimMetric): DonneesMembresOptimizer['memories'] {
+  let copie: DonneesMembresOptimizer['memories'] | null = null;
+  for (const [cle, m] of memories) {
+    const bornes = bornesAvecMesure(m.criteres.bornesResultats, mesure);
+    if (bornes === m.criteres.bornesResultats) continue;
+    copie ??= new Map(memories);
+    copie.set(cle, { ...m, criteres: { ...m.criteres, bornesResultats: bornes } });
+  }
+  return copie ?? memories;
 }
 
 /** Même revérification pure pour un réimport et la reprise d'un état sauvegardé. */

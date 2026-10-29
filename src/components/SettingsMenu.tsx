@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Save, Trash2 } from 'lucide-react';
 import { IconeParametres } from './IconesAtelier';
 import { RUNE_METRICS, setRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
+import { setFormeResultats, useFormeResultats, type FormeResultats } from '../hooks/useFormeResultats';
 import { setPersistence, storageAvailable, usePersistence } from '../hooks/usePersistence';
 import { THEME_CHOICES, setTheme, useTheme } from '../hooks/useTheme';
 import { setOvercapDisplay, useOvercapDisplay } from '../hooks/useOvercapDisplay';
@@ -106,6 +107,7 @@ export function SettingsList({
   groupes?: boolean;
 }) {
   const metric = useRuneMetric();
+  const formeResultats = useFormeResultats();
   const keep = usePersistence();
   const storageOk = storageAvailable();
   const theme = useTheme();
@@ -138,6 +140,21 @@ export function SettingsList({
 
       <Setting title="Score">
         <Segmented options={RUNE_METRICS} value={metric} onChange={setRuneMetric} />
+      </Setting>
+
+      {/* ⚠️ Ici, et plus au-dessus des résultats : au bureau, le tableau
+          réorganise la page de l'Optimizer (ses réglages se rangent en
+          onglets pour lui laisser la place) ; choisi dans l'Optimizer, le clic
+          aurait déplacé ce qu'on venait de cliquer. */}
+      <Setting
+        title="Résultats de l'Optimizer"
+        hint="Au bureau seulement. En tableau, l'Optimizer regroupe ses réglages pour lui laisser la place ; trop étroit malgré tout, il affiche les cartes."
+      >
+        <Segmented<FormeResultats>
+          options={[{ key: 'cartes', label: 'Cartes' }, { key: 'tableau', label: 'Tableau' }]}
+          value={formeResultats}
+          onChange={setFormeResultats}
+        />
       </Setting>
 
       {/* Ce que montre le Résumé des runes. Une fenêtre plutôt qu'un contrôle
@@ -205,14 +222,12 @@ export function SettingsList({
       <AccountFreshness exportedAt={accountExportedAt ?? null} className="pb-2.5" />
 
       {/* La sauvegarde de session (docs/02-app/transverse/) :
-          avant la suppression, qui reste la dernière ligne du bloc. */}
+          avant la suppression, qui reste la dernière ligne du bloc. L'app ne
+          la fournit que dans l'application de bureau. */}
       {onSauvegarderSession && (
         <Setting
           title="Session"
-          hint={selonSupport(
-            'Tout l’état de l’app dans un fichier, à garder où tu veux : le compte, ton travail, les réglages et l’état des outils.',
-            'Tout l’état de l’app dans un fichier, enregistré où tu veux : le compte, ton travail, les réglages et l’état des outils.'
-          )}
+          hint="Tout l’état de l’app dans un fichier, enregistré où tu veux : le compte, ton travail, les réglages et l’état des outils."
         >
           <Bouton
             taille="sm"

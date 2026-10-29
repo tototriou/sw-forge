@@ -72,7 +72,7 @@ paraîtrait dépourvu de confirmation.
 elle.** Tout dialogue modal — `Modale`, `ConfirmDialog`, et les voiles écrits à
 la main comme celui de l'export RTA — porte `z-[70]`.
 
-### Un flottant ne sort jamais de l'écran
+### Un flottant ne sort jamais de l'écran, ni de sa boîte
 
 ⚠️ **`max-width` ne suffit pas.** Il borne la LARGEUR ; un panneau ancré à gauche
 d'un déclencheur déjà proche du bord droit sort quand même, parce que c'est sa
@@ -81,34 +81,32 @@ une pilule de catégorie au bout d'une rangée, un bouton qui a bougé parce qu'
 libellé s'est allongé, une vignette en fin de ligne. Aucune règle CSS statique ne
 peut savoir où ce déclencheur-là se trouve.
 
-Tout flottant **de largeur fixe ancré à gauche** passe donc par
-`useRecalageEcran` (`src/hooks/`), qui mesure sa position réelle après rendu et
-le ramène dans l'écran :
+⚠️ **Et une boîte qui défile rogne ce qui est posé dedans.** Une surface en
+`absolute` ne sort pas d'un ancêtre `overflow: auto` : la carte « Importer une
+équipe » d'une colonne de l'Optimizer, la liste de suggestions de « Fort
+contre » dans la carte d'un deck du Siège, coupées par la boîte et passées
+sous sa barre de défilement.
 
-| Flottant | Ancré sur |
-|----------|-----------|
-| Création / édition de catégorie | Une pilule, ou « + Catégorie » |
-| Création de monstre | Un bouton de barre d'outils ou de panneau |
-| Note d'une défense (recommandations) | Une vignette de rangée |
+Les deux se règlent dans `Flottant` (`src/ui/`), pour toute l'app, sans rien
+écrire dans l'écran :
 
-- **`left`, jamais `transform: translateX()`.** Une transformée déplace ce qu'on
-  VOIT, mais la boîte de mise en page reste où elle était : le débordement
-  subsiste et la page garde son défilement latéral — le défaut qu'on veut
-  corriger. `left` déplace la boîte elle-même.
-- Le flottant doit donc porter **`left-0` explicite**. Sans ancrage horizontal
-  posé (`left: auto`), une valeur négative ne décale pas : elle repositionne
-  depuis un bord que le navigateur choisit seul.
-- Le hook pose aussi un **`max-width` mesuré**, car sur un écran plus étroit que
-  le flottant le décalage ne suffit pas — il faut le rétrécir.
-- **`useLayoutEffect`, pas `useEffect`** : la mesure a lieu avant peinture, le
-  flottant ne s'affiche jamais hors cadre, même une image.
-- **L'état d'ouverture est passé au hook.** Le flottant n'est monté que lorsqu'il
-  est ouvert ; une `ref` ne provoque pas de rendu, donc rien ne redéclencherait
-  la mesure à l'ouverture.
-- **Remesure au redimensionnement** : une rotation de téléphone change la largeur
-  sous un flottant déjà ouvert.
-- Les flottants **ancrés à droite** (`right-0`) et ceux **larges comme leur
-  ancre** (`w-full`) n'en ont pas besoin — leur position ne peut pas dépasser.
+- **Couche supérieure du navigateur** (`popover="manual"`) : la surface échappe
+  aux `overflow`, `clip-path`, `transform` et contextes d'empilement de tous ses
+  ancêtres, et passe devant tout. Elle reste à sa place dans le DOM : clic
+  extérieur, focus et clavier ne changent pas.
+- **Position mesurée, pas déduite** : calculée sur l'ancre (le parent
+  `relative`, ou l'élément passé en `ancre` — le `<select>` d'un `Selecteur`,
+  dont la liste ouverte est ce `Flottant`, seule couche ouverte) avant
+  peinture (`useLayoutEffect`), puis à chaque défilement de
+  n'importe quelle boîte et à chaque redimensionnement — une rotation de
+  téléphone change la largeur sous un flottant déjà ouvert.
+- **Bornée à l'écran** horizontalement, barre de défilement de la page exclue ;
+  **basculée** de l'autre côté de l'ancre quand elle ne tient pas du sien, et
+  **bornée en hauteur** avec défilement quand elle ne tient d'aucun.
+- **Masquée** quand l'ancre sort de ce qui la montre.
+
+Le hook `useRecalageEcran`, qui tirait après coup une surface débordante vers
+l'intérieur, a disparu avec ce placement.
 
 ### Jamais de défilement latéral
 
@@ -124,7 +122,8 @@ Les quatre causes rencontrées, par ordre de fréquence :
 | `min-w-[Npx]` rigide | S'écrit `min-w-[min(Npx,100%)]` |
 | `minmax(Npx, 1fr)` dans une grille | S'écrit `minmax(min(100%,Npx), 1fr)` |
 | Enfant flex qui refuse de se réduire | `min-w-0` — la valeur par défaut est `auto`, qui interdit de passer sous la largeur du contenu |
-| Flottant de largeur fixe ancré à gauche | `useRecalageEcran` (voir plus haut) |
+| Flottant de largeur fixe ancré à gauche | Borné par `Flottant` lui-même (voir plus haut) |
+| Marge négative qui reprend le rembourrage du parent (la page de bureau de l'Optimizer, `-mx-3`) | L'empiètement se mesure : jamais plus que le rembourrage réellement laissé jusqu'au bord de ce qui défile ou de la fenêtre |
 
 ⚠️ Le symptôme apparaît **loin de sa cause** : un `min-width` calibré pour une
 carte fait défiler la page entière, et on le constate sur un écran qui n'a rien à

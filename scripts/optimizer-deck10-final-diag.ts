@@ -90,8 +90,8 @@ function measure(combosOrderMode: 'potential' | 'relevance' | 'combined' | 'obje
   const params = { ...baseParams, maxMs: MAX_MS, combosOrderMode, maxCollected: 1_500_000 };
   const prepared = prepareSearch(params);
   if (!prepared) return null;
-  const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, false, combosOrderMode));
-  const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, false, combosOrderMode));
+  const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, combosOrderMode));
+  const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, combosOrderMode));
   const total = totalPairCount(prepared, bucketsA, bucketsB);
 
   const gen = pairBuckets(prepared, bucketsA, bucketsB);

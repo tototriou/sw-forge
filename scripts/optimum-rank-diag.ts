@@ -74,8 +74,9 @@ interface Row {
 const rows: Row[] = [];
 
 for (const sc of scenarios) {
-  // ⚠️ `maxCollected` explicitement ÉLARGI (défaut de production 100 000) :
-  // sans ça, une recherche lâche s'arrête dès 100 000 candidats VALIDES
+  // ⚠️ `maxCollected` explicitement ÉLARGI (défaut de production
+  // `MAX_COLLECTED`, 1 000 000, runeBuildOptim.ts) :
+  // sans ça, une recherche lâche s'arrête dès 1 000 000 de candidats VALIDES
   // trouvés, bien avant d'avoir exploré assez de l'espace pour que le nœud
   // plafond de mesure (`MAX_PAIRES`) devienne la vraie limite — un plafond DIFFÉRENT de
   // celui qu'on veut isoler ici (le rang RELATIF sur l'espace total, pas le
@@ -85,10 +86,10 @@ for (const sc of scenarios) {
   if (!prepared) continue;
 
   const bucketsA = drain(
-    buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, false, combosOrderMode)
+    buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, combosOrderMode)
   );
   const bucketsB = drain(
-    buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, false, combosOrderMode)
+    buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, combosOrderMode)
   );
   const total = totalPairCount(prepared, bucketsA, bucketsB);
 

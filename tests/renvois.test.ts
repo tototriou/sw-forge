@@ -48,6 +48,7 @@ export const FICHIERS_EXEMPTES = [
   // (dont des motifs et des chemins factices), pas des renvois.
   'tests/lecture-source.test.ts',
   'tests/fixtures/lecture-source-toleree.json',
+  'scripts/lib/lectureSource.ts',
   // Le banc d'affichage : sa table et son lecteur de motifs écrivent des
   // motifs de chemins (fichier sans extension, préfixe), pas des renvois ; un
   // motif qui ne couvre plus aucun fichier fait échouer son propre test

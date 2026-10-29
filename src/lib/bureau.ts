@@ -11,6 +11,7 @@ interface PontBureau {
   bureau: true;
   plateforme: string;
   couleurs: (c: { fond: string; barre: string; symboles: string }) => void;
+  coeursPhysiques: () => Promise<unknown>;
   miseAJour: {
     etat: () => Promise<EtatMiseAJour | null>;
     surChangement: (rappel: (etat: EtatMiseAJour) => void) => () => void;
@@ -67,13 +68,16 @@ export interface EtatSwex {
   dernierLu: number | null;
   introuvable: boolean;
 }
-// Un export donné à la page : son texte, sa date, et s'il est NOUVEAU (à
-// annoncer) ou seulement relu (page sans compte, au lancement).
+// Un export donné à la page : son texte, sa date, s'il est NOUVEAU (à
+// annoncer) ou seulement relu (page sans compte, au lancement), et s'il suit
+// le CHOIX d'un invocateur (`complet` : tout s'importe, prépa RTA et siège
+// compris — sinon « Mon compte » seulement).
 export interface ExportSwex {
   texte: string;
   modifie: number;
   nouveau: boolean;
   fichier: string;
+  complet: boolean;
 }
 
 // Le pont du dossier SW Exporter, ou `null` sur le site.
@@ -94,6 +98,23 @@ function pont(): PontBureau | null {
 }
 
 export const estBureau = (): boolean => pont() !== null;
+
+// Le nombre de cœurs PHYSIQUES de la machine, que seule l'application de
+// bureau sait lire (bureau/coeurs.ts) : le Worker de recherche en dérive son
+// nombre de Workers d'appariement (`nombreDeTravailleurs`). `null` sur le
+// site, quand la lecture a échoué, ou pour une réponse qui n'est pas un
+// entier positif : la recherche garde alors la règle des fils logiques.
+// Ne rejette jamais.
+export async function coeursPhysiques(): Promise<number | null> {
+  const p = pont();
+  if (!p) return null;
+  try {
+    const n = await p.coeursPhysiques();
+    return typeof n === 'number' && Number.isInteger(n) && n >= 1 ? n : null;
+  } catch {
+    return null;
+  }
+}
 
 // Un texte qui parle du NAVIGATEUR (« dans ton navigateur », « en fermant
 // l'onglet ») est faux dans l'app de bureau : `site` partout, `app`

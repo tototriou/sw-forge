@@ -1,4 +1,4 @@
-import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Github, MessageCircle, Download, Plus, Gauge, Save, SunMoon, FilePlus, AlertTriangle } from 'lucide-react';
 import {
   IconeAtelier,
@@ -60,9 +60,17 @@ import SidebarCompte, { SidebarParametres } from './components/SidebarCompte';
 import SidebarSearch, { CibleNav } from './components/SidebarSearch';
 import MobileNotice from './components/MobileNotice';
 import { loadAccount, saveAccount } from './lib/accountStore';
-import { CLES_SESSION, compteDeSession, composerSession, ecrireSession, nomFichierSession } from './lib/session';
+import {
+  CLES_SESSION,
+  compteDeSession,
+  composerSession,
+  ecrireSession,
+  empreinteTravail,
+  nomFichierSession,
+  Session,
+  travailNonSauvegarde,
+} from './lib/session';
 import { photoOptimizer } from './lib/sessionOptimizer';
-import { telechargerTexte } from './lib/telechargement';
 import {
   dialogueMasque,
   lireTravail,
@@ -99,6 +107,8 @@ import {
 import { useSessionEnCours } from './hooks/useSessionEnCours';
 import MiseAJourBureau from './components/MiseAJourBureau';
 import SuiviSwex from './components/SuiviSwex';
+import ChangementCompteDialog from './components/ChangementCompteDialog';
+import { GardeChangementCompte } from './hooks/useEtatSwex';
 import { estBureau, selonSupport, sessionBureau } from './lib/bureau';
 import {
   COULEUR_SECTION,
@@ -678,10 +688,10 @@ function Application() {
         e.preventDefault();
         setPaletteOuverte(true);
       }
-      // Ctrl/⌘ S : « Sauvegarder » la session — sur le site aussi, à la place
-      // de « Enregistrer la page » du navigateur. Une touche tenue ne
-      // sauvegarde qu'une fois.
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
+      // Ctrl/⌘ S : « Sauvegarder » la session, dans l'app de bureau seulement
+      // — le site garde « Enregistrer la page » du navigateur. Une touche
+      // tenue ne sauvegarde qu'une fois.
+      if (estBureau() && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
         if (!e.repeat) sauvegarderSessionRef.current();
       }
@@ -792,11 +802,21 @@ function Application() {
       setImportMsg({ ok: false, text: 'Fichier JSON illisible.' });
       return;
     }
+    appliquerTout(data, preparerCompte(data), true);
+  }
 
+  // L'import COMPLET d'un export déjà parsé : prépa RTA, siège et « Mon
+  // compte ». Partagé par l'import manuel et par le dossier SW Exporter
+  // après le choix d'un invocateur — qui, lui, ne pose pas la question de
+  // conservation (`demanderConservation`) : le dossier est un réglage.
+  function appliquerTout(
+    data: Record<string, any>,
+    compte: ReturnType<typeof preparerCompte>,
+    demanderConservation: boolean
+  ) {
     const rtaRes = parseAccountJson(data);
     const defRes = parseSiegeDefense(data);
     const offRes = parseSiegeOffense(data);
-    const compte = preparerCompte(data);
 
     const rtaItems = rtaRes.units ? mapRtaItems(rtaRes.units, monsterByCom2us) : [];
     const def = mapSiegeTeams(defRes.decks ?? [], monsterByCom2us);
@@ -848,7 +868,7 @@ function Application() {
     //
     // ⚠️ **Après le succès seulement.** Proposer de conserver des données
     // qu'on vient d'échouer à lire n'aurait aucun sens.
-    if (!dialogueMasque() && storageAvailable()) setAskKeep(true);
+    if (demanderConservation && !dialogueMasque() && storageAvailable()) setAskKeep(true);
   }
 
   // « Mon compte » d'un export déjà parsé — box 6★, inventaire, identité —, lu
@@ -870,8 +890,9 @@ function Application() {
   }
 
   // Applique « Mon compte » — et RIEN d'autre : ni prépa RTA, ni siège.
-  // ⚠️ C'est tout ce que fait le dossier SW Exporter : il suit
-  // les exports sans jamais toucher au travail de l'utilisateur.
+  // ⚠️ C'est ce que fait le dossier SW Exporter à chaque nouvel export du
+  // MÊME invocateur : il suit les exports sans toucher au travail de
+  // l'utilisateur.
   function appliquerCompte(data: Record<string, any>, compte: ReturnType<typeof preparerCompte>) {
     // La résolution doit précéder toutes les écritures du nouveau compte,
     // y compris lorsqu'il arrive du dossier SW Exporter, écran démonté.
@@ -941,17 +962,20 @@ function Application() {
     }
   }
 
-  // Le dossier SW Exporter : un nouvel export du compte
-  // suivi. N'applique QUE « Mon compte » ; pas de question de conservation
-  // (c'est un réglage, posé une fois). `ok: false` — fichier illisible (à
-  // moitié écrit ?) ou sans box : rien n'est touché, et l'export n'est pas
-  // marqué lu (bureau/swex.ts le redonnera au prochain changement).
-  function rafraichirCompte(text: string): { ok: boolean; nom: string | null } {
+  // Le dossier SW Exporter : un export du compte suivi. `complet` (il suit
+  // le choix d'un invocateur, déjà gardé par `avantChangementCompte`) : tout
+  // s'importe, comme l'import manuel. Sinon, « Mon compte » seulement. Pas
+  // de question de conservation (c'est un réglage, posé une fois).
+  // `ok: false` — fichier illisible (à moitié écrit ?) ou sans box : rien
+  // n'est touché, et l'export n'est pas marqué lu (bureau/swex.ts le
+  // redonnera au prochain changement).
+  function rafraichirCompte(text: string, complet: boolean): { ok: boolean; nom: string | null } {
     const data = parseAccountSource(text);
     if (!data) return { ok: false, nom: null };
     const compte = preparerCompte(data);
     if (compte.boxItems.length === 0) return { ok: false, nom: null };
-    appliquerCompte(data, compte);
+    if (complet) appliquerTout(data, compte, false);
+    else appliquerCompte(data, compte);
     return { ok: true, nom: compte.nomJoueur };
   }
 
@@ -1018,26 +1042,31 @@ function Application() {
   // « Sauvegarder la session » (docs/02-app/transverse/) : tout
   // l'état de l'app dans un fichier. Le compte est celui EN MÉMOIRE, pas celui
   // d'IndexedDB — conservation refusée, il n'est que là.
-  // Sur le site, un fichier daté se télécharge, toujours. Dans l'app,
-  // « Sauvegarder » réécrit la session en cours (sans session en cours, il
-  // demande le dossier SW Blacksmith s'il manque, puis écrit le nom daté dans
-  // son sous-dossier `sessions`) et « Sauvegarder sous… » en choisit une autre.
+  // ⚠️ **Dans l'app de bureau seulement** : sur le site, aucun accès n'est
+  // branché. « Sauvegarder » réécrit la session en cours (sans session en
+  // cours, il demande le dossier SW Blacksmith s'il manque, puis écrit le nom
+  // daté dans son sous-dossier `sessions`) et « Sauvegarder sous… » en choisit
+  // une autre.
   // ⚠️ Rien tant que le compte conservé se relit (`sauvegardeIndisponible`) :
-  // la session écrite n'aurait pas de compte, et dans l'app elle remplacerait
-  // la session en cours, que le bureau a déjà reprise.
-  async function enregistrerSession(sous: boolean) {
-    if (sauvegardeIndisponible) return;
-    const maintenant = new Date();
-    const texte = texteSession(maintenant);
-    const nom = nomFichierSession(maintenant);
+  // la session écrite n'aurait pas de compte, et elle remplacerait la session
+  // en cours, que le bureau a déjà reprise.
+  // `true` si la session est écrite : son empreinte devient celle de la
+  // dernière sauvegarde.
+  async function enregistrerSession(sous: boolean): Promise<boolean> {
     const pont = sessionBureau();
-    if (!pont) {
-      telechargerTexte(nom, texte);
-      return;
-    }
+    if (sauvegardeIndisponible || !pont) return false;
+    const maintenant = new Date();
+    const session = sessionCourante(maintenant);
+    const texte = ecrireSession(session);
+    const nom = nomFichierSession(maintenant);
     const r = await (sous ? pont.sauvegarderSous(texte, nom) : pont.sauvegarder(texte, nom));
-    if (r?.issue === 'enregistree') notifier({ message: `Session enregistrée · ${r.etat.nom}` });
-    else if (r?.issue === 'echec') setEchecSession(r.message);
+    if (r?.issue === 'enregistree') {
+      empreinteSauvegardeRef.current = empreinteTravail(session);
+      notifier({ message: `Session enregistrée · ${r.etat.nom}` });
+      return true;
+    }
+    if (r?.issue === 'echec') setEchecSession(r.message);
+    return false;
   }
   // Pourquoi « Sauvegarder » est désactivé, ou `null` s'il ne l'est pas.
   const sauvegardeIndisponible = accountHydrating
@@ -1049,8 +1078,8 @@ function Application() {
   const sauvegarderSessionRef = useRef(sauvegarderSession);
   sauvegarderSessionRef.current = sauvegarderSession;
 
-  function texteSession(maintenant: Date): string {
-    const session = composerSession({
+  function sessionCourante(maintenant: Date): Session {
+    return composerSession({
       maintenant,
       versionApp: __APP_VERSION__,
       stockage: Object.fromEntries(CLES_SESSION.map((cle) => [cle, lireTravail(cle)])),
@@ -1072,7 +1101,32 @@ function Application() {
       memoire: photographierMemoire(),
       optimizer: photoOptimizer(optimizer),
     });
-    return ecrireSession(session);
+  }
+
+  // Changer de compte (application de bureau : choisir un autre invocateur
+  // du dossier SW Exporter) remplace prépa RTA, siège et « Mon compte ».
+  // Si le travail a changé depuis la dernière sauvegarde, on propose d'abord
+  // de sauvegarder (`ChangementCompteDialog`) ; `changementCompte` garde le
+  // changement le temps de la réponse.
+  const empreinteSauvegardeRef = useRef<string | null>(null);
+  const [changementCompte, setChangementCompte] = useState<(() => void) | null>(null);
+  function avantChangementCompte(changer: () => void) {
+    // Ce que le changement remplacerait — ce qui serait perdu.
+    const aDuTravail =
+      Object.keys(rta.state.entries).length > 0 || siegeDef.state.teams.length > 0 || siegeOff.state.teams.length > 0;
+    const empreinte = empreinteTravail(sessionCourante(new Date()));
+    if (travailNonSauvegarde(empreinte, empreinteSauvegardeRef.current, aDuTravail)) setChangementCompte(() => changer);
+    else changer();
+  }
+  // La garde lit la DERNIÈRE version ; le fournisseur, lui, ne change pas.
+  const avantChangementCompteRef = useRef(avantChangementCompte);
+  avantChangementCompteRef.current = avantChangementCompte;
+  const gardeChangementCompte = useCallback((changer: () => void) => avantChangementCompteRef.current(changer), []);
+  async function sauvegarderPuisChanger() {
+    const changer = changementCompte;
+    setChangementCompte(null);
+    // Sauvegarde annulée ou en échec : on ne change pas de compte.
+    if (changer && (await enregistrerSession(false))) changer();
   }
 
   // ⚠️ **Le ⚙ BASCULE, il ne navigue pas** : il ouvre les paramètres, puis
@@ -1590,10 +1644,12 @@ function Application() {
       pages: pagesPalette,
       actions: [
         { cle: 'a-import', libelle: 'Importer mon compte', icone: <Download size={16} />, faire: () => fichierCompte.current?.click() },
-        { cle: 'a-session-sauver', libelle: 'Sauvegarder la session', contexte: 'Tout l’état de l’app dans un fichier', icone: <Save size={16} />, faire: sauvegarderSession },
-        // Dans l'app seulement : le site télécharge toujours un fichier daté.
+        // Dans l'app de bureau seulement, comme tous les accès à la session.
         ...(estBureau()
-          ? [{ cle: 'a-session-sous', libelle: 'Sauvegarder sous…', contexte: 'Un autre fichier, qui devient la session en cours', icone: <FilePlus size={16} />, faire: sauvegarderSessionSous }]
+          ? [
+              { cle: 'a-session-sauver', libelle: 'Sauvegarder la session', contexte: 'Tout l’état de l’app dans un fichier', icone: <Save size={16} />, faire: sauvegarderSession },
+              { cle: 'a-session-sous', libelle: 'Sauvegarder sous…', contexte: 'Un autre fichier, qui devient la session en cours', icone: <FilePlus size={16} />, faire: sauvegarderSessionSous },
+            ]
           : []),
         ...THEME_CHOICES.map((t) => ({
           cle: `a-theme-${t.key}`,
@@ -1779,7 +1835,7 @@ function Application() {
     ) : n.route === 'parametres' ? (
       <SettingsPage
         onClearData={() => setPurgeGlobale(true)}
-        onSauvegarderSession={sauvegarderSession}
+        onSauvegarderSession={estBureau() ? sauvegarderSession : undefined}
         sauvegardeIndisponible={sauvegardeIndisponible}
         onKeepAccount={persistCurrentAccount}
         onImport={importAccount}
@@ -1866,11 +1922,13 @@ function Application() {
   };
 
   return (
-    <>
+    // Les deux accès au choix de l'invocateur (carte du compte, Réglages)
+    // passent par la garde du changement de compte.
+    <GardeChangementCompte.Provider value={gardeChangementCompte}>
     {/* Application de bureau : « Mise à jour prête · Redémarrer ». Inerte sur le site. */}
     <MiseAJourBureau />
-    {/* Application de bureau : le dossier SW Exporter met « Mon compte » à
-        jour. Inerte sur le site. */}
+    {/* Application de bureau : le dossier SW Exporter importe le compte
+        choisi, puis met « Mon compte » à jour. Inerte sur le site. */}
     <SuiviSwex
       appliquer={rafraichirCompte}
       pret={!accountHydrating && allMonsters.length > 0}
@@ -1954,7 +2012,8 @@ function Application() {
         fil={voletsVisibles ? [] : filBureau}
         ecranPartage={{ actif: voletsVisibles, disponible: partagePossible, onBasculer: basculerEcranPartage }}
         onRecherche={() => setPaletteOuverte(true)}
-        onSauvegarder={sauvegarderSession}
+        // La sauvegarde de session : dans l'app de bureau seulement.
+        onSauvegarder={estBureau() ? sauvegarderSession : undefined}
         sauvegardeIndisponible={sauvegardeIndisponible}
         onSauvegarderSous={estBureau() ? sauvegarderSessionSous : undefined}
         sessionEnCours={sessionEnCours?.nom ?? null}
@@ -2080,8 +2139,14 @@ function Application() {
         {/* ⚠️ Pas de pied de page en écran partagé : la zone tient dans la
             fenêtre, il n'aurait sa place que dans l'un des deux volets. Une
             seule page le retrouve. */}
+        {/* ⚠️ Pas de pied de page non plus sur l'Optimizer au format bureau
+            dès qu'il a des colonnes : la page tient dans la fenêtre, chaque
+            colonne défile seule. Sa page le dit (`data-page-fenetre`), et
+            index.css retire alors ce pied (`data-pied-de-page`) ; en une
+            colonne, l'Optimizer défile comme les autres pages et le garde. */}
         {!voletsVisibles && (
         <footer
+          data-pied-de-page=""
           className="mt-16 grid grid-cols-1 justify-items-center gap-y-3 border-t border-border-soft pt-5
                      text-xs text-ink-dim lg:grid-cols-[auto_1fr_auto] lg:items-center lg:justify-items-stretch lg:gap-x-6"
         >
@@ -2166,6 +2231,19 @@ function Application() {
               setImportEnAttente(null);
               appliquerImport(texte);
             }}
+          />
+        )}
+
+        {changementCompte !== null && (
+          <ChangementCompteDialog
+            sauvegardeIndisponible={sauvegardeIndisponible}
+            onSauvegarder={() => void sauvegarderPuisChanger()}
+            onChanger={() => {
+              const changer = changementCompte;
+              setChangementCompte(null);
+              changer();
+            }}
+            onAnnuler={() => setChangementCompte(null)}
           />
         )}
 
@@ -2256,6 +2334,6 @@ function Application() {
         />
       </div>
     </div>
-    </>
+    </GardeChangementCompte.Provider>
   );
 }

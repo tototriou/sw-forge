@@ -20,7 +20,7 @@ import net from 'net';
 import { tmpdir } from 'os';
 import { dirname, join, relative, resolve, sep, isAbsolute } from 'path';
 import { fileURLToPath } from 'url';
-import { atteintPour, ECRANS, FORMATS, ORDRE_FORMATS, preparationPour } from './ecrans.ts';
+import { atteintPour, ECRANS, FORMATS, ORDRE_FORMATS, preparationPour, taillesPour } from './ecrans.ts';
 import { ecransPourFichiers } from './selection.ts';
 import {
   attendrePose,
@@ -34,6 +34,7 @@ import {
   ouvrirContexte,
   preparer,
   verifierAtteint,
+  verifierOptimizer,
 } from './session.mjs';
 
 const ICI = dirname(fileURLToPath(import.meta.url));
@@ -380,6 +381,7 @@ async function principal(etat) {
     ecrans: selection.map((e) => e.id),
     etats: selection.flatMap((e) => e.etats.map((s) => `${e.id}/${s.id}`)),
     formats: {},
+    tailles: selection.map((e) => ({ ecran: e.id, tailles: taillesPour(e) })),
     resultats: [],
     nonExerces: [],
     port: null,
@@ -392,7 +394,7 @@ async function principal(etat) {
   }
 
   console.log(
-    `banc d'affichage — ${selection.length} écran(s), ${manifeste.etats.length} état(s), ${ORDRE_FORMATS.length} formats ; ` +
+    `banc d'affichage — ${selection.length} écran(s), ${manifeste.etats.length} état(s), ${ORDRE_FORMATS.length} formats, tailles propres à chaque écran (voir manifeste) ; ` +
       `compte ${nature === 'exemple' ? 'd’exemple' : 'réel'} (sha256 ${compteEmpreinte.slice(0, 12)}…)`,
   );
   console.log(`arbre : ${racine} @ ${manifeste.arbre.revision?.slice(0, 8) ?? '?'}${manifeste.arbre.propre === false ? ' (modifié)' : ''}`);
@@ -458,20 +460,23 @@ async function principal(etat) {
 
   // ── Mesures ──
   const debutMesures = Date.now();
-  for (const format of ORDRE_FORMATS) {
-    for (const ecran of selection) {
+  for (const ecran of selection) {
+    for (const taille of taillesPour(ecran)) {
+      const format = taille.format;
       for (const st of ecran.etats) {
-        const prep = preparationPour(st, format);
-        const nom = `${FORMATS[format].libelle.padEnd(11)} ${ecran.id} / ${st.libelle}`;
-        if (!Array.isArray(prep)) {
-          manifeste.nonExerces.push({ ecran: ecran.id, etat: st.id, format, motif: prep.nonExerce });
-          console.log(`${nom.padEnd(64)} non exercé : ${prep.nonExerce}`);
+        const preparation = preparationPour(st, format);
+        const nom = `${taille.libelle.padEnd(11)} ${ecran.id} / ${st.libelle}`;
+        const motif = st.tailles && !st.tailles.includes(taille.id) ? 'état réservé à d’autres tailles' : !Array.isArray(preparation) ? preparation.nonExerce : null;
+        if (motif) {
+          manifeste.nonExerces.push({ ecran: ecran.id, etat: st.id, format, taille: taille.id, motif });
+          console.log(`${nom.padEnd(64)} non exercé : ${motif}`);
           continue;
         }
-        const capture = `${ecran.id}--${st.id}--${format}.png`;
-        const resultat = { ecran: ecran.id, etat: st.id, format, statut: null, capture: null };
+        const prep = [...(taille.preparation ?? []), ...preparation];
+        const capture = `${ecran.id}--${st.id}--${taille.id}.png`;
+        const resultat = { ecran: ecran.id, etat: st.id, format, taille: taille.id, attendu: taille.optimizer, statut: null, capture: null };
         manifeste.resultats.push(resultat);
-        const { contexte, messages } = await ouvrirContexte(navigateur, format, { etatStockage: stockages[format], garderTextes });
+        const { contexte, messages } = await ouvrirContexte(navigateur, taille, { etatStockage: stockages[format], garderTextes });
         try {
           const page = await contexte.newPage();
           await page.goto(`${base}/${ecran.hash}`, { waitUntil: 'networkidle' });
@@ -487,13 +492,21 @@ async function principal(etat) {
             // (l'accueil, toujours en mouvement, y perdrait 6 s par format).
             if (prep.length) await attendrePose(page);
             await verifierAtteint(page, atteintPour(st, format));
+            resultat.medias = await page.evaluate(medias);
+            // En tableau, la page choisit la configuration qui lui laisse sa
+            // largeur : celle que la taille déclare pour ce cas.
+            const enTableau = st.tableau ? taille.optimizer?.enTableau : null;
+            const attenduOptimizer = enTableau
+              ? { ...taille.optimizer, ...enTableau, set: enTableau.configuration === 'deux-piles' ? 'deplie' : undefined }
+              : taille.optimizer;
+            resultat.optimizer = await verifierOptimizer(page, attenduOptimizer, st.id === 'guidage-set');
           } catch (err) {
             resultat.statut = 'non atteint';
             resultat.cause =
               err instanceof ErreurBanc ? err.message : `préparation en échec${garderTextes ? ` (${String(err.message).split('\n')[0]})` : ''}`;
             // La capture de l'écran où la préparation s'est arrêtée : de quoi
             // voir ce qui manquait, sans relancer.
-            resultat.capture = `${ecran.id}--${st.id}--${format}--non-atteint.png`;
+            resultat.capture = `${ecran.id}--${st.id}--${taille.id}--non-atteint.png`;
             const image = await page.screenshot({ timeout: 15000 }).catch(() => null);
             if (image) ecrireExclusif(join(sortie, resultat.capture), image);
             else resultat.capture = null;

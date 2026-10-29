@@ -14,17 +14,78 @@
 //
 // ⚠️ Ce module ne planifie rien : il dit seulement QUI traiter, dans quel
 // ordre, et par quelle voie (`voieDeLaFile` : la page affichée sans attendre,
-// le fond sur l'inactivité). Le « quand » vit dans `useArtifactOptimQueue`
-// (fil principal), le « comment » dans `artifactOptim.ts`. Trois
+// le fond sur l'inactivité). Le « quand » vit dans le Worker de classement
+// (`CorpsClassement`), le « comment » dans `artifactOptim.ts`. Trois
 // responsabilités séparées, dont celle-ci est la seule testable sans
 // navigateur.
 
-import { BuildCandidate, BuildRequirement, Objective, OptionsDeClassement, sortCandidates } from './runeBuildOptim';
+import { BuildCandidate, BuildRequirement, Objective, OptionsDeClassement, preparerNotationCompacte } from './runeBuildOptim';
+import { CandidatNonCompactable } from './candidatsCompacts';
+import { ClassementCompact, TravailClassementCompact, candidatsParIndice, ordreCollecte } from './classementCompact';
 import { StatKey } from './effects';
 import { StatRow } from './stats';
 import { ArtifactDetail, RelicDetail } from '../types';
 import { PaireArtefacts } from './artifactOptim';
 import { RelicContext } from './relicOptim';
+
+export interface ChangementResolution {
+  readonly cle: string;
+  readonly avant: ResultatArtefacts | undefined;
+  readonly apres: ResultatArtefacts | undefined;
+}
+export interface JournalResolution {
+  readonly generation: object;
+  readonly version: number;
+  readonly tailleAvant: number;
+  readonly tailleApres: number;
+  readonly changements: readonly ChangementResolution[];
+}
+const JOURNAUX_RESOLUTION = new WeakMap<ReadonlyMap<string, ResultatArtefacts>, JournalResolution>();
+export function journalResolution(cache: ReadonlyMap<string, ResultatArtefacts>): JournalResolution | undefined {
+  return JOURNAUX_RESOLUTION.get(cache);
+}
+
+/** Les écritures des deux voies passent par Map.set, donc par le même journal. */
+export class CacheResolutionJournalise extends Map<string, ResultatArtefacts> {
+  private readonly generation = {};
+  private versionPublication = 0;
+  private taillePubliee = 0;
+  private readonly touches = new Map<string, ResultatArtefacts | undefined>();
+
+  constructor() { super(); }
+
+  override set(cle: string, resultat: ResultatArtefacts): this {
+    if (this.get(cle) === resultat) return this;
+    if (!this.touches.has(cle)) this.touches.set(cle, this.get(cle));
+    return super.set(cle, resultat);
+  }
+  override delete(cle: string): boolean {
+    if (!this.has(cle)) return false;
+    if (!this.touches.has(cle)) this.touches.set(cle, this.get(cle));
+    return super.delete(cle);
+  }
+  override clear(): void {
+    for (const [cle, resultat] of this) if (!this.touches.has(cle)) this.touches.set(cle, resultat);
+    super.clear();
+  }
+  publier(): ReadonlyMap<string, ResultatArtefacts> {
+    const changements: ChangementResolution[] = [];
+    for (const [cle, avant] of this.touches) {
+      const apres = this.get(cle);
+      if (avant !== apres) changements.push(Object.freeze({ cle, avant, apres }));
+    }
+    // La copie conserve le contrat React ; le journal ne parcourt que touches.
+    const publie = new Map(this);
+    JOURNAUX_RESOLUTION.set(publie, Object.freeze({
+      generation: this.generation, version: ++this.versionPublication,
+      tailleAvant: this.taillePubliee, tailleApres: this.size,
+      changements: Object.freeze(changements),
+    }));
+    this.taillePubliee = this.size;
+    this.touches.clear();
+    return publie;
+  }
+}
 
 /**
  * Identité d'un build, pour ne pas l'optimiser deux fois.
@@ -44,6 +105,9 @@ import { RelicContext } from './relicOptim';
 // pouvoir être ramassés. Une `Map` les retiendrait indéfiniment — 100 000
 // entrées par recherche, à vie.
 const CLES = new WeakMap<BuildCandidate, string>();
+// Les réponses sont remplacées dans la Map, jamais modifiées en place. Garder
+// la projection évite de perdre les mémos du candidat à chaque publication.
+const CANDIDATS_RESOLUS = new WeakMap<BuildCandidate, { resultat: ResultatArtefacts; candidat: BuildCandidate }>();
 
 export function cleBuild(c: BuildCandidate): string {
   const memo = CLES.get(c);
@@ -132,7 +196,12 @@ export interface ResultatArtefacts {
  */
 export function candidatAvecSaPaire(c: BuildCandidate, cache: ReadonlyMap<string, ResultatArtefacts>): BuildCandidate {
   const r = cache.get(cleBuild(c));
-  return r ? { ...c, stats: r.stats } : c;
+  if (!r) return c;
+  const connu = CANDIDATS_RESOLUS.get(c);
+  if (connu?.resultat === r) return connu.candidat;
+  const candidat = { ...c, stats: r.stats };
+  CANDIDATS_RESOLUS.set(c, { resultat: r, candidat });
+  return candidat;
 }
 
 // Combien de builds la file résout au maximum, hors page affichée. Mesuré :
@@ -151,8 +220,8 @@ export const K_BUILDS_RECHERCHE_RELIQUE = 300;
 
 /**
  * La cible de la file pour UNE recherche, en combinaisons CONFIRMÉES —
- * partagée par l'écran (`useArtifactOptimQueue`) et le CLI
- * (`classerApresResolution`).
+ * partagée par le classeur de l'écran (`CorpsClassement`) et le CLI
+ * (`classerCommeLEcran`).
  *
  * ⚠️ **Des confirmées, pas des rangs** : K vaut 300 / 100, et la file ne
  * s'arrête pas aux K premiers de l'ordre de base mais quand K builds y sont
@@ -176,10 +245,10 @@ export function kDeLaFile(relicContext: RelicContext | undefined): number {
  *
  * - `relicContext` : celui de la recherche LANCÉE (voir `kDeLaFile`).
  * - `toutVerifier` : l'interrupteur (`verifierToutesLesCombinaisons`, réglage
- *   avancé, désactivé par défaut, gardé dans la recette). ⚠️ Lu EN DIRECT à
- *   l'écran, pas figé au lancement : il ne change pas la recherche, seulement
- *   jusqu'où la file vérifie ; l'activer après coup vérifie le reste sans
- *   relancer, et rien de déjà vérifié n'est perdu en le coupant.
+ *   avancé, désactivé par défaut, gardé dans la recette). ⚠️ Photographié au
+ *   lancement (`ContexteResultat.toutVerifier`) : il ne change pas la recherche,
+ *   seulement jusqu'où la file vérifie, et le changer après coup ne lance
+ *   aucune résolution sur le résultat affiché.
  */
 export function cibleDeLaFile(e: { relicContext: RelicContext | undefined; toutVerifier: boolean }): number {
   return e.toutVerifier ? Number.POSITIVE_INFINITY : kDeLaFile(e.relicContext);
@@ -383,7 +452,7 @@ export function signatureReglages(parts: {
    */
   artefactsReserves: Iterable<number>;
   /**
-   * Les pièces des emplacements figés sur « Garder l'artéfact équipé »
+   * Les pièces des emplacements figés sur « Comme équipé »
    * (`piecesFigeesDe`, artifactFiche.ts) : pour un tel emplacement, la pièce
    * portée par la fiche EST le seul candidat (`candidatsParSorte`). Valider
    * un build de ce monstre, « Voir le runage réellement porté » ou changer
@@ -506,14 +575,16 @@ export function signatureArtefacts(parts: {
  * résolus reste déterministe (par `cleBuild`), sans prétendre à un rang exact.
  */
 export function ordonnerParDepartage<T extends BuildCandidate>(candidats: readonly T[], ridDe: (c: T) => number | undefined): T[] {
-  return [...candidats].sort((a, b) => {
-    const ra = ridDe(a) ?? Number.POSITIVE_INFINITY;
-    const rb = ridDe(b) ?? Number.POSITIVE_INFINITY;
-    if (ra !== rb) return ra - rb;
-    const ca = cleBuild(a);
-    const cb = cleBuild(b);
-    return ca < cb ? -1 : ca > cb ? 1 : 0;
-  });
+  // Le couple est lu une fois par entrée ; le comparateur ne relit pas le
+  // cache de résolution. Le tri stable garde l'ordre des couples égaux.
+  return candidats.map((candidat) => ({
+    candidat,
+    rid: ridDe(candidat) ?? Number.POSITIVE_INFINITY,
+    cle: cleBuild(candidat),
+  })).sort((a, b) => {
+    if (a.rid !== b.rid) return a.rid - b.rid;
+    return a.cle < b.cle ? -1 : a.cle > b.cle ? 1 : 0;
+  }).map(({ candidat }) => candidat);
 }
 
 /**
@@ -538,18 +609,53 @@ export function ordonnerParDepartage<T extends BuildCandidate>(candidats: readon
  * ⚠️ **Un build optimisé peut donc passer devant, et c'est le comportement
  * voulu** — voir `candidatAvecSaPaire` pour l'argument de convergence.
  */
-export function classementResolu(
+function classementParIndices(
   base: BuildCandidate[],
   parBuild: ReadonlyMap<string, ResultatArtefacts>,
   sortBy: StatKey | Objective,
   options: OptionsDeClassement
 ): BuildCandidate[] {
   if (parBuild.size === 0) return base;
-  const conformes = ordonnerParDepartage(
-    base.filter((c) => parBuild.get(cleBuild(c))?.conforme !== false),
-    (c) => parBuild.get(cleBuild(c))?.relique?.id
-  );
-  return sortCandidates(conformes.map((c) => candidatAvecSaPaire(c, parBuild)), sortBy, options);
+  // Les appels génériques peuvent porter des lignes non compactables ; ils
+  // utilisent le même tri d'ordinaux, sans conserver une mémoire de versions.
+  const indices = Array.from({ length: base.length }, (_, i) => i).filter((i) => parBuild.get(cleBuild(base[i]))?.conforme !== false);
+  const departages = indices.map((i) => ({ i, rid: parBuild.get(cleBuild(base[i]))?.relique?.id ?? Infinity, cle: cleBuild(base[i]) }));
+  departages.sort((a, b) => a.rid !== b.rid ? a.rid - b.rid : a.cle < b.cle ? -1 : a.cle > b.cle ? 1 : 0);
+  const source = candidatsParIndice(departages.length, (i) => candidatAvecSaPaire(base[departages[i].i], parBuild));
+  return Array.from(ordreCollecte(source, sortBy, options), (i) => source[i]);
+}
+
+const CLASSEMENTS_COMPACTS = new WeakMap<BuildCandidate[], ClassementCompact>();
+/** Compteurs de travail, sans horloge ; observables pour le différentiel et le pilote. */
+export function travailDuClassementCompact(base: BuildCandidate[]): Readonly<TravailClassementCompact> | undefined {
+  return CLASSEMENTS_COMPACTS.get(base)?.travail;
+}
+
+export function classementResolu(
+  base: BuildCandidate[], parBuild: ReadonlyMap<string, ResultatArtefacts>,
+  sortBy: StatKey | Objective, options: OptionsDeClassement
+): BuildCandidate[] {
+  const journal = journalResolution(parBuild);
+  if (!journal || parBuild.size === 0) {
+    CLASSEMENTS_COMPACTS.delete(base);
+    if (parBuild.size === 0) return base;
+  }
+  try {
+    const notation = preparerNotationCompacte(sortBy, options);
+    if (!notation) {
+      CLASSEMENTS_COMPACTS.delete(base);
+      return classementParIndices(base, parBuild, sortBy, options);
+    }
+    let classement = CLASSEMENTS_COMPACTS.get(base);
+    if (!classement) { classement = new ClassementCompact(base); if (journal) CLASSEMENTS_COMPACTS.set(base, classement); }
+    classement.actualiser(parBuild, journal, notation.contexte, notation.noter);
+    // Adaptation temporaire : références stables, jamais N décompactages.
+    return classement.page(0, base.length).map((i) => candidatAvecSaPaire(base[i], parBuild));
+  } catch (e) {
+    if (!(e instanceof CandidatNonCompactable)) throw e;
+    CLASSEMENTS_COMPACTS.delete(base);
+    return classementParIndices(base, parBuild, sortBy, options);
+  }
 }
 
 export interface CompteAffichable {
@@ -628,8 +734,24 @@ export interface CompteConfirme {
    * les pages des reçus, comme avant.
    */
   pages: number;
-  // Recherche finie, tout vérifié, aucune confirmée : « Aucune combinaison ne
-  // répond à ces critères ».
+  /**
+   * D'autres pages peuvent encore apparaître (« / N+ ») : le plafond « une
+   * page au-delà des confirmées » coupe des non vérifiés
+   * (`⌈(confirmées + non vérifiés) / taille⌉ > pages`), ou des trouvées
+   * arriveront encore (`aRecevoir`). Des non vérifiés qui tiennent déjà dans
+   * les pages écrites ne peuvent que les faire baisser : pas de « + ».
+   * Toujours faux sans file.
+   */
+  pagesPeuventMonter: boolean;
+  /**
+   * Le moteur a trouvé plus qu'il n'a été reçu, et le reste arrivera : pendant
+   * la recherche seulement. Après la recherche, tout est reçu, sauf après un
+   * arrêt sur la mémoire, où le reste trouvé ne sera jamais reçu. Faux sans file.
+   */
+  aRecevoir: boolean;
+  // Recherche finie, tout trouvé reçu et vérifié, aucune confirmée : « Aucune
+  // combinaison ne répond à ces critères ». Jamais après un arrêt sur la
+  // mémoire, qui n'a pas gardé tout le trouvé (son avis le dit).
   aucune: boolean;
 }
 
@@ -642,7 +764,10 @@ export interface CompteConfirme {
  *   recherche. Seules leurs entrées du cache comptent : les rejets d'une
  *   recherche précédente aux mêmes réglages, restés en cache, n'y sont pas.
  * - `parBuild` : le cache PUBLIÉ de la file, `null` sans file.
- * - `trouves` : le compte du moteur, lu seulement sans file.
+ * - `trouves` : le compte du moteur — le compte confirmé sans file ; avec
+ *   file, seulement pour savoir s'il reste des trouvées pas encore reçues.
+ *   Au-delà des reçus une fois la recherche finie (`termine`), c'est un arrêt
+ *   sur la mémoire : ce reste ne sera jamais reçu.
  *
  * ⚠️ **Le compte ne baisse jamais pendant une recherche** : le cache ne fait que
  * grandir (une entrée n'est jamais retirée ni réécrite sous une même
@@ -664,26 +789,76 @@ export function compteConfirme(e: {
   taillePage: number;
   termine: boolean;
 }): CompteConfirme {
-  if (e.parBuild === null) {
-    return {
-      confirmees: e.trouves,
-      nonVerifies: 0,
-      pages: Math.max(1, Math.ceil(e.recus.length / e.taillePage)),
-      aucune: e.termine && e.trouves === 0,
-    };
-  }
   let confirmees = 0;
   let resolus = 0;
-  for (const c of e.recus) {
+  if (e.parBuild !== null) for (const c of e.recus) {
     const r = e.parBuild.get(cleBuild(c));
     if (r === undefined) continue;
     resolus++;
     if (r.conforme) confirmees++;
   }
-  const nonVerifies = e.recus.length - resolus;
+  return compteConfirmeDesComptes({ recus: e.recus.length, resolus, confirmees, avecFile: e.parBuild !== null,
+    trouves: e.trouves, taillePage: e.taillePage, termine: e.termine });
+}
+
+/**
+ * La même règle sur des comptes : l'écran ne reçoit du classeur que ses
+ * comptes (reçus, résolus, confirmées), jamais la liste des reçus.
+ */
+export function compteConfirmeDesComptes(e: {
+  recus: number;
+  resolus: number;
+  confirmees: number;
+  avecFile: boolean;
+  trouves: number;
+  taillePage: number;
+  termine: boolean;
+}): CompteConfirme {
+  if (!e.avecFile) {
+    return {
+      confirmees: e.trouves,
+      nonVerifies: 0,
+      pages: Math.max(1, Math.ceil(e.recus / e.taillePage)),
+      pagesPeuventMonter: false,
+      aRecevoir: false,
+      aucune: e.termine && e.trouves === 0,
+    };
+  }
+  const { confirmees } = e;
+  const nonVerifies = e.recus - e.resolus;
   const pagesConfirmees = Math.ceil(confirmees / e.taillePage);
   const pages = Math.max(1, Math.min(Math.ceil((confirmees + nonVerifies) / e.taillePage), pagesConfirmees + 1));
-  return { confirmees, nonVerifies, pages, aucune: e.termine && confirmees === 0 && nonVerifies === 0 };
+  const aRecevoir = !e.termine && e.trouves > e.recus;
+  return { confirmees, nonVerifies, pages, pagesPeuventMonter: pagesCoupees(confirmees, nonVerifies, pages, e.taillePage) || aRecevoir, aRecevoir,
+    aucune: e.termine && e.trouves <= e.recus && confirmees === 0 && nonVerifies === 0 };
+}
+
+/** Le plafond « une page au-delà des confirmées » coupe-t-il des non vérifiés ? */
+function pagesCoupees(confirmees: number, nonVerifies: number, pages: number, taillePage: number): boolean {
+  return Math.ceil((confirmees + nonVerifies) / taillePage) > pages;
+}
+
+/**
+ * Les pages que la pagination écrit : celles de la recherche, ou, sous une
+ * borne active, celles de la vue filtrée (`filtre.pages`, même règle des
+ * confirmées). `pagesPeuventMonter` (« / N+ »), même règle sur la vue : le
+ * classeur forme `filtre.pages` sur ses membres (visibles et potentiels,
+ * `dansLaVue`), dont les confirmés sont les visibles (avec file, une ligne
+ * non vérifiée n'est jamais « visible ») ; donc confirmées = `visiblesConfirmes`,
+ * non vérifiés = `potentielsNonVerifies`. Ou des trouvées qui arriveront
+ * encore (`aRecevoir`, la règle de la recherche : jamais après sa fin, ni
+ * donc après un arrêt sur la mémoire). Sans file, jamais.
+ */
+export function pagesDesResultats(
+  compte: Pick<CompteConfirme, 'pages' | 'pagesPeuventMonter' | 'aRecevoir'>,
+  filtre: { pages: number; comptes: { visiblesConfirmes: number; potentielsNonVerifies: number } } | null,
+  avecFile: boolean,
+  taillePage: number,
+): { pages: number; pagesPeuventMonter: boolean } {
+  if (!filtre) return { pages: compte.pages, pagesPeuventMonter: compte.pagesPeuventMonter };
+  const { visiblesConfirmes, potentielsNonVerifies } = filtre.comptes;
+  return { pages: filtre.pages, pagesPeuventMonter: avecFile
+    && (pagesCoupees(visiblesConfirmes, potentielsNonVerifies, filtre.pages, taillePage) || compte.aRecevoir) };
 }
 
 export interface CompositionDePage {

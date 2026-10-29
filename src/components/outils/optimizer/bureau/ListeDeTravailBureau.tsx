@@ -18,9 +18,9 @@ export interface ListeDeTravailBureauProps {
   liste: MonstresDeLaListeProps;
 }
 
-// La liste de travail des essentiels, au bureau : « Ajouter un monstre à la
-// liste », la recherche du monstre et le monstre actif sur la rangée du titre
-// de la carte de la liste ; les membres prennent leur hauteur jusqu'à 308 px,
+// La liste de travail de « Monstre », au bureau : la recherche du monstre,
+// sans titre devant (toute la largeur au champ, décision de l'utilisateur),
+// et le monstre actif ; les membres prennent leur hauteur jusqu'à 308 px,
 // puis défilent. Le téléphone garde « Monstre & équipement ».
 //
 // ⚠️ **Le monstre actif tient sa place, vide ou non** : choisir un monstre ne

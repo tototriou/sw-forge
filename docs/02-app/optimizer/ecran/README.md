@@ -57,9 +57,8 @@ ni bandeau ni phrase d'introduction.
 
 1. **« Monstre »**, toujours à l'écran, place de 384 px (panneau de 376) :
    la liste de travail (« Liste active », « Importer une équipe », puis la
-   liste, sans carte (voir « Panneaux et sections »), dont l'en-tête porte
-   « Ajouter un monstre / à la liste » sur deux lignes, sans nom de liste,
-   « Rechercher un monstre… » et le monstre actif) ; puis « Exemplaire » :
+   liste, sans carte (voir « Panneaux et sections »), qu'ouvrent, sans
+   titre, « Rechercher un monstre… » et le monstre actif) ; puis « Exemplaire » :
    ses deux vues, ses puces d'aperçu et la fiche
    ([equipement-actuel.md](equipement-actuel.md)). ⚠️ **La fiche y est
    dépliée, à la façon des cartes de résultat** (décision de l'utilisateur) :

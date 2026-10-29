@@ -35,22 +35,17 @@ export interface MonstresDeLaListeProps {
   rappelAuras: boolean;
   listHasValidated: boolean;
   setReleaseAllConfirm: Dispatch<SetStateAction<string | null>>;
-  // Forme de bureau des essentiels (`bureau/ListeDeTravailBureau.tsx`),
-  // que le téléphone ne prend pas : ce que la rangée du titre porte après lui
-  // (« Rechercher un monstre… », le monstre actif). Le titre y est toujours
-  // « Ajouter un monstre à la liste » : il nomme le champ qui le suit.
+  // Forme de bureau de la colonne « Monstre » (`bureau/ListeDeTravailBureau.tsx`),
+  // que le téléphone ne prend pas : la rangée qui ouvre la liste
+  // (« Rechercher un monstre… », le monstre actif), sans titre devant, pour
+  // laisser au champ toute la largeur (décision de l'utilisateur).
   enTete?: ReactNode;
 }
 
 export default function MonstresDeLaListe({ activeList, activeMembers, setEquipeOuverte, lists, optimizer, exclusionData, artifacts, rapportZoneC, groupesMembres, runeById, artifactById, choisirMembreDeLaListe, setReleaseConfirm, setReleaseArtifactsConfirm, setRemoveMemberConfirm, rappelAuras, listHasValidated, setReleaseAllConfirm, enTete }: MonstresDeLaListeProps) {
-  // Au bureau (`enTete`), le titre nomme toujours le champ qui le suit, sur
-  // deux lignes, sans le nom de la liste ni son compte : « Liste active » la
-  // nomme juste au-dessus (décision de l'utilisateur). L'espace avant le
-  // retour à la ligne garde « monstre à » séparés dans le texte lu (copie,
-  // recherche dans la page), sans rien changer à l'affichage.
-  const titre = enTete ? (
-    <p className="text-[12px] font-semibold leading-tight text-ink-dim">Ajouter un monstre{' '}<br />à la liste</p>
-  ) : (
+  // Au téléphone, le titre nomme la liste et son compte ; au bureau
+  // (`enTete`), aucun titre : « Liste active » nomme la liste juste au-dessus.
+  const titre = (
     <>
       <p className="truncate text-[12px] font-semibold text-ink-dim">
         {activeList ? `Monstres de « ${activeList.name} »` : 'Monstres de la liste'}
@@ -66,10 +61,7 @@ export default function MonstresDeLaListe({ activeList, activeMembers, setEquipe
   return (
     <div className={bureau ? 'relative' : 'rounded-lg border border-border-soft bg-panel2/60 p-2.5'}>
       {enTete ? (
-        <div className="mb-1.5 flex items-center gap-2">
-          <div className="flex min-w-0 max-w-[150px] flex-none items-baseline gap-1.5">{titre}</div>
-          {enTete}
-        </div>
+        <div className="mb-1.5 flex items-center gap-2">{enTete}</div>
       ) : (
         <div className="mb-1.5 flex items-baseline justify-between gap-2">{titre}</div>
       )}

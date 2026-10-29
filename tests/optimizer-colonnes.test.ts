@@ -1,111 +1,113 @@
-// Les colonnes repliables de l'Optimizer au bureau et leur contrôle à onglets
-// (src/lib/optimizerColonnes.ts).
-
-import {
-  AUCUNE_COLONNE, COLONNE_DROITE_OBJECTIF_A_COTE, attenteResultats, LARGEURS_BUREAU, SEUILS_BUREAU, agencementBureau, basculerColonne, colonnesAffichees,
-  colonnesParDefaut, deuxColonnesTiennent, formeObjectifBureau, largeurColonneDroite, ouvrirColonne, type ColonnesOuvertes,
-} from '../src/lib/optimizerColonnes';
-import { LARGEUR_OBJECTIF_ETROIT } from '../src/components/outils/optimizer/bureau/ObjectifEtRechercherBureau';
-import { LARGEUR_ESSENTIELS } from '../src/components/outils/optimizer/bureau/ListeDeTravailBureau';
+// Les configurations et onglets du bureau (src/lib/optimizerColonnes.ts).
+import { attenteResultats, configurationBureau, ongletOuvert, LARGEURS_BUREAU, RETRAIT_PANNEAU, SEUILS_BUREAU } from '../src/lib/optimizerColonnes';
+import { LARGEUR_MONSTRE } from '../src/components/outils/optimizer/bureau/ListeDeTravailBureau';
 import { LARGEUR_ARTEFACTS } from '../src/components/outils/optimizer/bureau/ArtefactsEtReliqueBureau';
 import { LARGEUR_COMPLEMENTS } from '../src/components/outils/optimizer/bureau/SetsAuraBureau';
-import { LARGEUR_EXEMPLAIRE, LARGEUR_EXEMPLAIRE_MIN } from '../src/components/outils/optimizer/bureau/ExemplaireBureau';
-import { egal, titre } from './outils';
+import { colonnesCoffre } from '../src/lib/coffreSets';
+import { RESULTATS_TABLEAU, largeurResultats } from '../src/lib/optimizerColonnes';
+import { SEUIL_TABLEAU_PX } from '../src/components/outils/optimizer/TableauResultats';
 
-const affichees = (e: ColonnesOuvertes, deux: boolean) => colonnesAffichees(e, deux);
+// Le réglage « Tableau » : la page range ses réglages, deux piles comprises,
+// jusqu'à laisser au tableau sa largeur ; trop étroit, la configuration de la
+// largeur seule (les résultats passent en cartes).
+export function testOptimizerColonnesTableau() {
+  titre('Optimizer · configuration quand les résultats sont en tableau');
+  egal(RESULTATS_TABLEAU, SEUIL_TABLEAU_PX + 32, 'la largeur du tableau plus la barre, l’écart et le panneau');
+  const cas: [number, string, string][] = [
+    [2288, 'colonnes', 'colonnes'], // 2560 plein
+    [2101, 'colonnes', 'colonnes'],
+    [2100, 'colonnes', 'criteres-et-groupe'],
+    [1840, 'colonnes', 'criteres-et-groupe'], // 1920 plein, barre repliée
+    [1648, 'criteres-et-groupe', 'groupe'], // 1920 plein
+    [1264, 'groupe', 'deux-piles'], // portable
+    [1112, 'groupe', 'deux-piles'], // 2560 scindé
+    [792, 'deux-piles', 'deux-piles'], // 1920 scindé : trop étroit, cartes
+  ];
+  for (const [largeur, cartes, tableau] of cas) {
+    egal([configurationBureau(largeur).configuration, configurationBureau(largeur, true).configuration], [cartes, tableau],
+      `${largeur} px : ${cartes} en cartes, ${tableau} en tableau`);
+  }
+  ok(largeurResultats(1112, 'deux-piles') >= RESULTATS_TABLEAU && largeurResultats(792, 'deux-piles') < RESULTATS_TABLEAU,
+    '2560 scindé tient le tableau en deux piles, 1920 scindé jamais');
+}
+import { egal, ok, titre } from './outils';
+
+// La grille des sets dans son coffre : 3 + 4 colonnes, puis le principal à
+// 2, puis le secondaire à 3 et à 2, puis le principal à 1, et le secondaire
+// à 1 en dernier recours (boutons de 32 px, écarts de 4, 9 px entre les
+// groupes : 4 de marge de chaque côté du trait).
+export function testOptimizerColonnesCoffreSets() {
+  titre('Optimizer · colonnes de la grille des sets selon la largeur du coffre');
+  const cas: [number, number, number][] = [
+    [400, 3, 4], [253, 3, 4], [252, 2, 4], [217, 2, 4], [216, 2, 3], [181, 2, 3], [180, 2, 2], [145, 2, 2],
+    [144, 1, 2], [109, 1, 2], [108, 1, 1], [60, 1, 1],
+  ];
+  for (const [largeur, principal, secondaire] of cas) {
+    egal(colonnesCoffre(largeur), { principal, secondaire }, `${largeur} px : ${principal} + ${secondaire} colonnes`);
+  }
+}
 
 export function testOptimizerColonnes() {
-  titre('Optimizer · colonnes repliables et contrôle à onglets');
-
-  // Là où une seule colonne tient.
-  const art = basculerColonne(AUCUNE_COLONNE, 'artefacts', false);
-  egal(affichees(art, false), { artefacts: true, complements: false }, 'une seule tient : cliquer un onglet ouvre sa colonne');
-  const aux = basculerColonne(art, 'complements', false);
-  egal(affichees(aux, false), { artefacts: false, complements: true }, 'une seule tient : cliquer l\'autre l\'ouvre et ferme la première');
-  egal(affichees(basculerColonne(aux, 'complements', false), false), { artefacts: false, complements: false }, 'recliquer l\'onglet actif referme sa colonne : aucune');
-  egal(affichees(aux, true), { artefacts: false, complements: true }, 'fermée là où une seule tenait, la première ne revient pas quand la largeur s\'élargit');
-
-  // Là où les deux tiennent.
-  const deux = basculerColonne(basculerColonne(AUCUNE_COLONNE, 'artefacts', true), 'complements', true);
-  egal(affichees(deux, true), { artefacts: true, complements: true }, 'les deux tiennent : la seconde s\'ajoute à la première');
-  egal(affichees(basculerColonne(deux, 'artefacts', true), true), { artefacts: false, complements: true }, 'les deux tiennent : recliquer l\'une ne ferme qu\'elle');
-
-  // La largeur repasse sous le seuil des deux : la dernière ouverte reste seule.
-  egal(affichees(deux, false), { artefacts: false, complements: true }, 'revenue là où une seule tient : la dernière ouverte reste seule');
-  const inverse = basculerColonne(basculerColonne(AUCUNE_COLONNE, 'complements', true), 'artefacts', true);
-  egal(affichees(inverse, false), { artefacts: true, complements: false }, 'la dernière ouverte, quelle qu\'elle soit');
-  egal(affichees(basculerColonne(deux, 'complements', false), false), { artefacts: false, complements: false },
-    'une seule tient : recliquer la colonne affichée referme tout, sans faire reparaître l\'autre');
-  egal(affichees(basculerColonne(deux, 'artefacts', false), false), { artefacts: true, complements: false },
-    'une seule tient : cliquer l\'onglet masqué l\'affiche seul');
+  titre('Optimizer · configuration des colonnes selon la largeur');
+  egal(LARGEURS_BUREAU, { monstre: 384, reglage: 320, resultats: 360, gouttiere: 16 }, 'places de la spec');
+  egal([LARGEUR_MONSTRE, LARGEUR_ARTEFACTS, LARGEUR_COMPLEMENTS], [384, 320, 320], 'les composants déclarent les mêmes places');
+  egal(RETRAIT_PANNEAU, 8, '16 + 8 = 24 entre panneaux');
+  egal(SEUILS_BUREAU, { groupe: 1096, criteresEtGroupe: 1432, colonnes: 1768 }, 'seuils calculés sur les places');
+  const cas = [
+    [751, 'deux-piles'], [752, 'deux-piles'], [753, 'deux-piles'],
+    [1095, 'deux-piles'], [1096, 'groupe'], [1097, 'groupe'],
+    [1431, 'groupe'], [1432, 'criteres-et-groupe'], [1433, 'criteres-et-groupe'],
+    [1767, 'criteres-et-groupe'], [1768, 'colonnes'], [1769, 'colonnes'],
+  ] as const;
+  for (const [largeur, configuration] of cas) egal(configurationBureau(largeur).configuration, configuration, `${largeur} px : ${configuration}`);
+  egal(configurationBureau(752), { configuration: 'deux-piles', colonnes: [], groupe: ['criteres', 'artefacts', 'complements'], deuxPiles: true }, 'minimum de bureau : deux piles et groupe de trois');
+  egal(752 - LARGEURS_BUREAU.monstre - LARGEURS_BUREAU.gouttiere, 352, 'la pile de droite reçoit 352 px au minimum');
+  egal(configurationBureau(1096), { configuration: 'groupe', colonnes: [], groupe: ['criteres', 'artefacts', 'complements'], deuxPiles: false }, 'groupe de trois à côté des résultats');
+  egal(configurationBureau(1432), { configuration: 'criteres-et-groupe', colonnes: ['criteres'], groupe: ['artefacts', 'complements'], deuxPiles: false }, 'Critères puis groupe de deux');
+  egal(configurationBureau(1768), { configuration: 'colonnes', colonnes: ['criteres', 'artefacts', 'complements'], groupe: [], deuxPiles: false }, 'les cinq colonnes, aucun onglet');
+  for (const [largeur] of cas) {
+    const d = configurationBureau(largeur);
+    ok(d.groupe.length !== 1, `${largeur} : jamais de groupe à un seul onglet`);
+    egal([...d.colonnes, ...d.groupe], ['criteres', 'artefacts', 'complements'], 'chaque réglage apparaît une seule fois, dans son ordre');
+  }
 }
 
-// Les agencements du bureau et leurs seuils : chacun se calcule sur les
-// largeurs déclarées des boîtes, que les composants de bureau déclarent aussi.
-export function testOptimizerAgencementsBureau() {
-  titre('Optimizer · agencements du bureau, seuils et état de départ des colonnes');
-  egal({ ...SEUILS_BUREAU }, { a2: 904, a3: 952, artefactsInseree: 1496, complementsInseree: 1496, deuxInserees: 1832 },
-    'seuils : 548 + 16 + 340 ; 548 + 16 + 388 (fiche repliée) ; une colonne de 320 + 16 insérée, fiche dépliée (596) ; les deux');
-  egal([LARGEUR_ESSENTIELS, LARGEUR_ARTEFACTS, LARGEUR_COMPLEMENTS, LARGEUR_EXEMPLAIRE, LARGEUR_EXEMPLAIRE_MIN],
-    [LARGEURS_BUREAU.essentiels, LARGEURS_BUREAU.artefacts, LARGEURS_BUREAU.complements, LARGEURS_BUREAU.exemplaire, LARGEURS_BUREAU.exemplaireMin],
-    'les composants de bureau déclarent les largeurs d\'où viennent les seuils');
-  egal([728, 903, 904, 951, 952, 2254].map(agencementBureau), ['A1', 'A1', 'A2', 'A2', 'A3', 'A3'], 'A1 [728, 904[, A2 [904, 952[, A3 dès 952');
-  egal([1831, 1832, null].map(deuxColonnesTiennent), [false, true, false], 'les deux colonnes ensemble dès 1832 seulement');
-
-  const ouverte = { artefacts: true, complements: false, derniere: 'artefacts' };
-  egal(colonnesParDefaut(758), ouverte, 'défaut en A1 (758) : « Artéfacts et relique » ouverte');
-  egal(colonnesParDefaut(930), ouverte, 'défaut en A2 (930) : ouverte');
-  egal(colonnesParDefaut(1078), AUCUNE_COLONNE, 'défaut en A3 sous 1496 (1078) : aucune, pas de panneau superposé ouvert d\'office');
-  egal(colonnesParDefaut(1495), AUCUNE_COLONNE, 'défaut à 1495 : aucune');
-  egal(colonnesParDefaut(1496), ouverte, 'défaut dès 1496 : ouverte, insérée');
-  egal(colonnesParDefaut(null), ouverte, 'défaut sans largeur (rendu serveur) : ouverte');
-
-  // Le guidage vers l'interrupteur des auras RES/PRE ouvre sans refermer.
-  const aux = ouvrirColonne(ouverte as ColonnesOuvertes, 'complements');
-  egal(affichees(aux, false), { artefacts: false, complements: true }, 'ouvrir « Aura… » là où une seule tient : elle seule');
-  egal(affichees(aux, true), { artefacts: true, complements: true }, 'ouvrir « Aura… » là où les deux tiennent : elle s\'ajoute');
-  egal(affichees(ouvrirColonne(aux, 'complements'), false), { artefacts: false, complements: true }, 'ouvrir une colonne déjà ouverte ne la referme pas');
+export function testOptimizerColonnesOnglet() {
+  titre('Optimizer · onglet gardé ou remplacé au redimensionnement');
+  const trois = configurationBureau(1264).groupe, deux = configurationBureau(1648).groupe;
+  egal(ongletOuvert(trois, null), 'criteres', 'premier onglet au départ');
+  egal(ongletOuvert(deux, null), 'artefacts', 'premier du groupe de deux au départ');
+  egal(ongletOuvert(trois, 'complements'), 'complements', 'onglet précédent gardé');
+  egal(ongletOuvert(deux, 'criteres'), 'artefacts', 'Critères devenu colonne : premier du groupe');
+  egal(ongletOuvert(deux, 'complements'), 'complements', 'Options reste dans le groupe');
+  egal(ongletOuvert(trois, 'artefacts'), 'artefacts', 'le groupe agrandi conserve Artéfacts');
+  egal(ongletOuvert([], 'complements'), null, 'aucun groupe : aucun onglet');
+  egal(ongletOuvert(trois, ongletOuvert([], 'complements')), 'criteres', 'au retour du groupe : premier onglet');
+  egal(ongletOuvert(configurationBureau(792).groupe, 'complements'), 'complements', 'passer en deux piles garde Options');
+  for (const largeur of [792, 1112, 1264, 1648, 2288]) {
+    const groupe = configurationBureau(largeur).groupe;
+    const avant = ongletOuvert(groupe, 'complements');
+    egal(ongletOuvert(groupe, avant), avant, 'une recherche ne fournit aucun changement de groupe ni guidage');
+  }
 }
 
-// La forme du bloc « Objectif et Rechercher » : étroite à côté d'« Exemplaire »
-// quand la colonne de droite fait au moins 596 + 16 + 340, large dessous sinon,
-// étroite en A2, large en A1. Seules la largeur et les colonnes affichées la
-// décident (rien de la recherche n'y entre : elle ne change pas au lancement).
-export function testOptimizerFormeObjectifBureau() {
-  titre('Optimizer · forme du bloc « Objectif et Rechercher » au bureau');
-  const aucune = { artefacts: false, complements: false };
-  const art = { artefacts: true, complements: false };
-  const aux = { artefacts: false, complements: true };
-  const deux = { artefacts: true, complements: true };
-  egal(COLONNE_DROITE_OBJECTIF_A_COTE, 952, 'à côté d\'« Exemplaire » : 596 (fiche dépliée) + 16 + 340');
-  egal(LARGEUR_OBJECTIF_ETROIT, LARGEURS_BUREAU.objectifEtroit, 'le bloc déclare la largeur d\'où vient le seuil');
-  egal([758, 903].map((l) => formeObjectifBureau(l, art)), ['large', 'large'], 'A1 : large');
-  egal([904, 930, 951].map((l) => formeObjectifBureau(l, art)), ['etroite', 'etroite', 'etroite'], 'A2 : étroite, à droite des essentiels');
-  egal(formeObjectifBureau(null, art), 'large', 'largeur inconnue : large');
-
-  // A3 : la colonne de droite décide, et seules les colonnes INSÉRÉES comptent.
-  egal(largeurColonneDroite(952, aucune), 388, 'au seuil de A3, la colonne de droite a sa largeur minimale (fiche repliée)');
-  egal(formeObjectifBureau(952, aucune), 'large', '952 : colonne de droite de 388, large');
-  egal(largeurColonneDroite(1230, art), 666, '1230, « Artéfacts » superposée : elle ne prend aucune place');
-  egal(formeObjectifBureau(1230, art), 'large', '1230 : colonne de droite de 666, large');
-  egal([1515, 1516].map((l) => formeObjectifBureau(l, aucune)), ['large', 'etroite'], 'sans colonne insérée : étroite dès 1516 (952 de colonne)');
-  egal(largeurColonneDroite(1614, art), 714, '1614, « Artéfacts » insérée : 1614 − 564 − 336');
-  egal([formeObjectifBureau(1614, art), formeObjectifBureau(1614, aucune)], ['large', 'etroite'], '1614 : large avec « Artéfacts » insérée, étroite sans');
-  egal(formeObjectifBureau(1614, aux), 'large', '1614 : « Aura… » insérée (336), large');
-  egal([1851, 1852].map((l) => formeObjectifBureau(l, art)), ['large', 'etroite'], '« Artéfacts » insérée : étroite dès 1852');
-  egal([1851, 1852].map((l) => formeObjectifBureau(l, aux)), ['large', 'etroite'], '« Aura… » insérée : étroite dès 1852 (même largeur)');
-  egal(largeurColonneDroite(2254, deux), 1018, '2254, les deux insérées : 2254 − 564 − 336 − 336');
-  egal(formeObjectifBureau(2254, deux), 'etroite', '2254 : étroite, les deux colonnes insérées');
+export function testOptimizerColonnesGuidages() {
+  titre('Optimizer · guidages vers les réglages rangés');
+  const trois = configurationBureau(1264).groupe, deux = configurationBureau(1648).groupe;
+  egal(ongletOuvert(trois, 'artefacts', 'criteres'), 'criteres', 'Rechercher sans set ouvre Critères');
+  egal(ongletOuvert(trois, 'criteres', 'complements'), 'complements', 'auras RES/PRE : Options');
+  egal(ongletOuvert(deux, 'artefacts', 'complements'), 'complements', 'guidage Options dans le groupe de deux');
+  egal(ongletOuvert(deux, 'complements', 'criteres'), 'complements', 'Critères déjà en colonne : aucun changement du groupe');
+  egal(ongletOuvert([], null, 'complements'), null, 'Options déjà en colonne : aucun onglet créé');
+  egal(ongletOuvert(trois, 'complements', 'complements'), 'complements', 'un guidage ne referme jamais sa cible');
+  egal(ongletOuvert(configurationBureau(752).groupe, 'complements', 'criteres'), 'criteres', 'guidage vers le set aussi dans la pile');
 }
 
-// La place d'attente des résultats : sa phrase ne dit jamais « aucune
-// recherche lancée » pendant (ou après) une recherche encore sans carte.
-export function testOptimizerAttenteResultats() {
-  titre('Optimizer · place d\'attente des résultats au bureau');
+export function testOptimizerColonnesAttenteResultats() {
+  titre("Optimizer · place d'attente des résultats au bureau");
   egal(attenteResultats(false, false, 'idle'), 'sans-monstre', 'aucun monstre');
-  egal(attenteResultats(false, true, 'done'), 'sans-monstre', 'aucun monstre, même avec des résultats d\'avant');
+  egal(attenteResultats(false, true, 'done'), 'sans-monstre', 'aucun monstre, même avec des résultats');
   egal(attenteResultats(true, false, 'idle'), 'sans-recherche', 'un monstre, aucune recherche');
-  egal((['running', 'done', 'error', 'refused'] as const).map((s) => attenteResultats(true, false, s)),
-    ['sans-carte', 'sans-carte', 'sans-carte', 'sans-carte'], 'recherche lancée sans carte (en cours, finie, erreur, refus) : le cadre seul');
+  egal((['running', 'done', 'error', 'refused'] as const).map(s => attenteResultats(true, false, s)), ['sans-carte', 'sans-carte', 'sans-carte', 'sans-carte'], 'recherche sans carte : cadre seul');
   egal(attenteResultats(true, true, 'running'), null, 'des cartes : les résultats');
 }

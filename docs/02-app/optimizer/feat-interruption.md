@@ -10,7 +10,7 @@ plus du plafond de candidats collectés :
   par défaut) — la recherche continue alors jusqu'à épuisement des
   combinaisons à examiner (ou du plafond de candidats collectés, voir
   ci-dessous), sans limite de temps automatique.
-- **Pré-filtrage par emplacement** — les presets « Réglages avancés »
+- **« Profondeur de recherche »** (le pré-filtrage par emplacement) — les presets « Réglages avancés »
   (voir ecran/conditions-et-reglages.md § Réglages avancés) : plus le preset est
   large, plus le pool considéré par emplacement grandit, et plus la
   recherche peut prendre de temps. Valeurs

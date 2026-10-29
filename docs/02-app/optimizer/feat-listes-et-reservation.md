@@ -126,26 +126,27 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 
 ## Zone C — Monstres de la liste
 
-- Avec une liste active, le résultat de la recherche ajoute automatiquement
-  l’exemplaire résolu et capture ses critères comme un ajout ordinaire. Une
-  espèce déjà représentée sélectionne son premier membre résolu, sans
-  doublon ni erreur ; ses critères sont restaurés sans nouvelle capture.
-  Le bouton d’ajout d’un autre exemplaire Box garde le comportement ci-dessous.
-  Sans Box ni membre présent, une espèce présente seulement en RTA ou siège
-  attend le choix explicite de l’exemplaire : puce unique ou ligne de
-  désambiguïsation. L’ajout et la capture ont lieu à ce choix, jamais avant.
-  Sans liste active, la recherche permet de créer la liste vide avant ce choix.
-  Une espèce non possédée, résolue par `unowned`, est ajoutée immédiatement.
-  Au téléphone, le sélecteur de liste reste au-dessus des puces et les cartes
-  de la zone C se déplient dessous : l’ajout ne déplace pas la puce cliquée.
+- ⚠️ **On ajoute un monstre à la liste par la recherche ou par « Importer
+  une équipe », et par eux seuls** (décision de l'utilisateur ; détail :
+  [ecran/recherche-du-monstre.md](ecran/recherche-du-monstre.md)). Avec une
+  liste active, le résultat de la recherche ajoute l'exemplaire suivant de
+  l'espèce (la Box d'abord) et capture ses critères comme un ajout
+  ordinaire ; quand tous les exemplaires de l'espèce sont dans la liste, la
+  ligne de l'espèce est désactivée, avec sa raison. Les puces
+  d'« Exemplaire » ne font que regarder
+  ([ecran/equipement-actuel.md](ecran/equipement-actuel.md)). Au
+  téléphone, le sélecteur de liste reste au-dessus des puces et les cartes
+  de la zone C se déplient dessous : l’ajout ne déplace pas la recherche.
 - **Zone C, « Monstres de la liste »** — au bureau, la liste de travail
-  (sans carte autour, chaque monstre dans la sienne), en tête des essentiels (voir
+  (sans carte autour, chaque monstre dans la sienne), en tête de la colonne
+  « Monstre » (voir
   [ecran/recherche-du-monstre.md](ecran/recherche-du-monstre.md), section
   « Au bureau ») ;
-  au téléphone, juste sous les puces de source
+  au téléphone, juste sous les puces d'aperçu
   dans « Monstre & équipement » : chaque monstre de la liste active, son
   statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable
-  pour rappeler son exemplaire et ses critères personnels mémorisés dans la
+  pour rappeler son exemplaire (la carte du monstre affiché est mise en
+  évidence aux couleurs de sa bande d'équipe, orangée ou bleutée) et ses critères personnels mémorisés dans la
   recherche. Sans mémoire applicable, les critères prennent les défauts
   complets de l'Optimizer, même pour la même espèce ; les résultats affichés
   sont effacés. Voir
@@ -163,18 +164,12 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   restaurés ne sont pas réécrits par le rappel. **Corbeille** à droite de
   chaque ligne pour retirer un monstre de la liste — sans confirmation s'il
   n'est pas encore validé (rien à perdre), avec confirmation s'il l'est (le
-  retrait libère aussi ses runes). Bouton **« Ajouter à la liste »**, dont
-  le libellé change selon le contexte (aucun monstre choisi → désactivé ;
-  déjà dans la liste active → voir ci-dessous ; sinon → « Ajouter `<monstre>` à
-  « `<liste>` » », suffixé « (non possédé) » pour une espèce sans exemplaire
-  réel, voir plus bas). Sans liste active, « Créer une liste et y ajouter
-  `<monstre>` » crée une liste (dialogue du nom et du contenu) ET y ajoute le monstre dans
-  le même geste.
+  retrait libère aussi ses runes). La zone C n'a pas de bouton d'ajout.
   Les lignes ne portent aucune marque de mémoire ni place réservée à celle-ci.
-  Ajouter, Lier une équipe, Sauvegarder et Reprendre partagent une ligne au
-  bureau, et deux lignes compactes au téléphone, sans débordement. Le libellé
-  d'ajout se tronque avec son texte complet en infobulle. Leur place ne change
-  pas lors de l'ajout d'un exemplaire ni de la pose d'un point de sauvegarde.
+  Lier une équipe, Sauvegarder et Reprendre partagent une ligne au
+  bureau, et deux lignes compactes au téléphone, sans débordement. Leur
+  place ne change pas lors de l'ajout d'un exemplaire ni de la pose d'un
+  point de sauvegarde.
   Le rapport du chargement et les messages de
   restauration se lisent depuis l’icône ⚠ à place réservée au bout de la
   ligne d’annonce du point de sauvegarde, au bureau et au téléphone. Une
@@ -194,22 +189,17 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   feat-listes-equipes-et-sauvegarde.md § Équipes à l’écran.
   ⚠️ **Plusieurs exemplaires Box d'une même espèce** : les membres sont repérés
   par exemplaire (`exclusionSelectorKey`, Box = `box:<unitKey>`), deux
-  exemplaires peuvent donc entrer dans la même liste. Quand l'exemplaire
-  affiché **vient de la Box**, est déjà membre et qu'un autre exemplaire
-  Box de l'espèce ne l'est pas, le bouton reste **actif** : « Ajouter un
-  autre exemplaire de
-  `<monstre>` à « `<liste>` » ». Un clic choisit le **premier exemplaire Box,
-  dans l'ordre de la zone D, absent de la liste**, l'affiche (résultats
-  affichés effacés, critères gardés, aucun rappel des auras externes —
-  voir ecran/recherche-du-monstre.md § Recherche du monstre à optimiser) puis
-  l'ajoute ; un clic, un exemplaire. Tous les exemplaires Box déjà
-  membres : « Déjà dans « `<liste>` » », désactivé. Exemplaire affiché
-  venu de RTA ou du siège, déjà membre : « Déjà dans », désactivé, sans
-  exemplaire suivant — l'exemplaire Box
-  proposé pourrait être le même monstre physique. Aucun numéro
-  d'exemplaire n'est affiché ; RTA garde un exemplaire par
+  exemplaires peuvent donc entrer dans la même liste. Chaque choix de
+  l'espèce dans la recherche ajoute le **premier exemplaire absent de la
+  liste**, la Box d'abord, dans l'ordre de la zone D, et l'affiche
+  (résultats affichés effacés, critères gardés, aucun rappel des auras
+  externes — voir [ecran/recherche-du-monstre.md](ecran/recherche-du-monstre.md)) ;
+  un choix, un exemplaire. Un membre venu d'un import (un deck de siège,
+  la prépa RTA) n'empêche pas d'ajouter l'exemplaire Box de la même espèce
+  (décision de l'utilisateur), même quand c'est le même monstre physique.
+  Aucun numéro d'exemplaire n'est affiché ; RTA garde un exemplaire par
   espèce (règle du jeu) ; le sélecteur « non possédé » reste repéré par
-  espèce. Décision pure : `etatAjoutListe` et `exemplaireBoxHorsListe`
+  espèce. Décision pure : le choix de l'exemplaire suivant
   (optimizerExclusion.ts), test `testListeExemplaires`. Bouton **« Libérer
   toutes les runes de « `<liste>` » »** (visible dès qu'au moins un build y
   est validé), avec sa propre confirmation dédiée.
@@ -227,7 +217,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   ouvert au moment du clic. **Au bureau**, il sort du flux (décision de
   l'utilisateur) : aucune place réservée sous le dernier monstre, et il
   paraît 3 s en surimpression au bas de la liste, dans ses bords
-  (la colonne des essentiels défile seule), sur fond de panneau et contour
+  (la colonne « Monstre » défile seule), sur fond de panneau et contour
   `warn` de 1 px, sans rien déplacer ni intercepter de clic. La boîte
   des auras garde son surlignage ; elle seule annonce le message aux
   lecteurs d'écran (`aria-live`), pour qu'il ne soit pas lu deux fois.
@@ -273,12 +263,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   fonctionne à l'identique, réservant réellement ces 6 runes pour les
   autres monstres de la MÊME liste — c'est justement ce qui permet
   d'essayer un runage d'ÉQUIPE (plusieurs monstres, certains possédés,
-  certains non) sans qu'un même jeu de runes soit proposé deux fois. Ne
-  s'affiche QUE quand l'espèce n'a d'exemplaire dans AUCUNE des 4 sources
-  pour l'ajout manuel — possédée ne serait-ce que quelque part (même ambiguë), la
-  désambiguïsation normale (zone D / puces) garde toujours la main, jamais
-  masquée par ce sélecteur. Aucune puce ne s'allume pour ce cas (comme un
-  build validé, voir l'auto-exemption ci-dessous). Au réimport, aucun membre
+  certains non) sans qu'un même jeu de runes soit proposé deux fois. Ce
+  sélecteur n'est l'exemplaire ajouté QUE pour une espèce qui n'a
+  d'exemplaire dans AUCUNE des 4 sources : possédée ne serait-ce que
+  quelque part, la recherche ajoute un exemplaire réel. Au réimport, aucun membre
   ni build n'est retiré : une référence d'une autre espèce ou introuvable se
   rattache par l'identité indépendante du membre, jusqu'à `unowned` si aucun
   exemplaire n'est disponible. Plusieurs membres de même espèce sans exemplaire
@@ -291,28 +279,18 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   monstre dans la MÊME liste exempte automatiquement SES PROPRES runes déjà
   validées (sans quoi la recherche se trouverait bloquée par ses propres
   runes réservées) ; les runes validées des AUTRES monstres de cette liste
-  restent, elles, indisponibles. Aucune des 4 puces Box/RTA/Défenses siège/
-  Offenses siège ne s'allume quand la fiche affiche un build VALIDÉ plutôt
-  que le runage réellement équipé d'une source réelle — un build validé
-  n'est ni du Box ni du RTA tel qu'actuellement équipé, juste une
-  réservation. ⚠️ **Signal explicite en plus des puces grisées** : un
-  bandeau dans la fiche elle-même (« Build validé affiché — pas
-  l'équipement réellement porté ») s'affiche dans ce cas, pour ne
-  jamais laisser croire que ce qui est montré est réellement équipé en jeu.
-  ⚠️ **Bascule vers l'équipement réel, sans quitter la liste** — sans
-  elle, on ne verrait plus le runage réellement porté tant qu'on est dans
-  la liste. Une icône dans ce même bandeau (« Voir le runage réellement
-  porté ») affiche l'équipement RÉEL de
-  l'exemplaire à la place du build validé, sans changer d'exemplaire ni
-  quitter la liste ; le bandeau change alors de message (« Équipement
-  réellement porté affiché ») et une puce s'allume normalement si ce
-  runage correspond bien à l'une des 4 sources. Réinitialisée à chaque
-  changement d'exemplaire — revenir sur ce monstre plus tard réaffiche le
-  build validé par défaut.
+  restent, elles, indisponibles. ⚠️ **Le build validé se signale dans la
+  fiche** : dans la vue « Build validé », un bandeau (« Build validé
+  affiché — pas l'équipement réellement porté ») dit que ce qui est montré
+  n'est pas équipé en jeu, juste réservé. ⚠️ **La vue « Build actuel »
+  montre l'équipement RÉEL, sans quitter la liste** — sans elle, on ne
+  verrait plus le runage réellement porté tant qu'on est dans la liste ;
+  elle ne change ni l'exemplaire ni ce qui est optimisé (voir
+  [ecran/equipement-actuel.md](ecran/equipement-actuel.md)). Revenir sur ce
+  monstre plus tard réaffiche le build validé par défaut.
   Si des runes ou artéfacts ont disparu, la fiche et la ligne de la zone C l'indiquent au
   jeton `warn`, au bureau et au téléphone. La fiche affiche seulement les
-  pièces présentes, sans erreur. Le bandeau réserve la hauteur des deux
-  messages de bascule : cliquer son icône ne la déplace pas.
+  pièces présentes, sans erreur.
 
 ## Comparer, valider sans recherche et persistance
 
@@ -325,12 +303,12 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   ([resultats.md](ecran/resultats.md)). Au clic, l'**écart statistique
   par statistique** entre ce build et la référence apparaît **sous** les
   boutons, donc sans rien déplacer de ce qui précède.
-  - ⚠️ **La référence est la fiche affichée**, ce qui couvre les deux cas
-    *sans les distinguer* : le build validé s'il y en a un, sinon le build
-    actuel. `selected.gear` **est** déjà le build validé quand il
-    en existe un — runes, artéfacts et relique substitués — et l'équipement réel
-    sinon. Refaire cette résolution côté comparaison la dupliquerait, et
-    raterait « Voir le runage réellement porté », qui la désactive exprès.
+  - ⚠️ **La référence est la fiche affichée**, ce qui couvre tous les cas
+    *sans les distinguer* : le build validé dans la vue « Build validé »,
+    l'équipement réel dans la vue « Build actuel », l'exemplaire regardé en
+    aperçu ([ecran/equipement-actuel.md](ecran/equipement-actuel.md)).
+    L'équipement affiché se résout une fois, pour la fiche ; la
+    comparaison le reçoit, elle ne refait pas cette résolution.
   - Un seul build comparé à la fois : ils partagent la même référence, deux
     comparaisons ouvertes ne diraient rien de plus.
   - ⚠️ **L'écart porte aussi sur la valeur de TÊTE**, pas seulement sur les
@@ -364,14 +342,17 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 - **« Valider ce build » sous la fiche**, sans passer par une recherche
   — un second bouton, au même rôle que celui d'une carte de
   résultat, juste sous la fiche stats/artéfacts/runes/relique : valide
-  directement les runes ACTUELLEMENT affichées sur l'exemplaire (un runage
-  déjà composé en jeu, ou déjà planifié). Exige exactement 6 runes
+  directement l'équipement ACTUELLEMENT affiché sur la fiche (un runage
+  déjà composé en jeu, déjà planifié, ou celui d'un autre exemplaire
+  regardé en aperçu), pour le membre. Exige exactement 6 runes
   affichées (comme un build trouvé par la recherche) — désactivé sur un
   exemplaire partiellement runé ou nu. Affiche « Validé » (désactivé,
-  coche) si c'est déjà EXACTEMENT le build validé de cet exemplaire. Sans
-  liste active, ouvre le même dialogue « Nouvelle liste » que l'ajout à
-  la liste, avec l'action « Créer et valider » (crée la liste ET valide
-  dans le même geste). ⚠️ **Bloqué si UNE
+  coche) si c'est déjà EXACTEMENT le build validé du membre. Monstre
+  affiché sans être membre (voir
+  [ecran/recherche-du-monstre.md](ecran/recherche-du-monstre.md#monstre-affiché-sans-être-membre)) :
+  sans liste active, ouvre le dialogue « Nouvelle liste » avec l'action
+  « Créer et valider » (crée la liste ET valide dans le même geste) ; avec
+  une liste active, la validation l'y ajoute. ⚠️ **Bloqué si UNE
   SEULE des 6 runes affichées est déjà réservée pour un AUTRE monstre de la
   MÊME liste** — contrairement à un résultat de
   recherche (dont le pool exclut déjà les runes réservées ailleurs dans la

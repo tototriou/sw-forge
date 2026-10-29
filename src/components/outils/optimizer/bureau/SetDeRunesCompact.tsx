@@ -15,7 +15,7 @@ export interface SetDeRunesCompactProps {
 
 // Le set de runes recherché, au bureau, en forme compacte, sans le titre
 // « Critères de recherche » du téléphone (le panneau de la colonne situe la
-// section), section des essentiels sans cadre (le panneau de la colonne le
+// section), section de « Critères » sans cadre (le panneau de la colonne le
 // porte) : une liste fermée sur les sets choisis ; ouverte, la grille d'ajout
 // du téléphone (`SetComboPicker` : jetons, retrait, deux groupes, « Plus de
 // place »), dans son coffre en creux (`coffre`), en flottant — rien ne bouge
@@ -37,7 +37,7 @@ export interface SetDeRunesCompactProps {
 // la grille sous le pointeur.
 //
 // ⚠️ **Déplié ou compact, selon la place** : la page (`SetDeplieContext`) dit
-// `deplie` quand la première colonne tient sans défiler une fois la grille
+// `deplie` quand « Critères » tient sans défiler une fois la grille
 // du téléphone dépliée à la place de la liste. Elle décide sur la hauteur
 // disponible, jamais sur un clic ni sur ce qui est choisi : la forme ne change
 // donc pas sous le pointeur. Le set mesure ici, sur deux copies invisibles
@@ -75,14 +75,17 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
         ref={setPickerSectionRef}
         className={setPickerInvalid ? 'rounded-lg border border-bad bg-bad/15 p-2 -m-2 transition' : 'transition'}
       >
-        <div className="mb-1.5 flex items-baseline justify-between gap-2">
+        {/* Le message reste sur la ligne du titre tant qu'il y garde 120 px ;
+            dans la section la plus étroite (155 px, en deux piles), il passe
+            dessous plutôt que de déborder. */}
+        <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-2">
           <p className="label flex-none">Set de runes recherché</p>
           {setPickerInvalid ? (
-            <span className="min-w-0 text-right text-micro font-semibold text-bad">Sélectionne au moins un set avant de lancer la recherche.</span>
+            <span className="min-w-0 flex-[1_1_120px] text-right text-micro font-semibold text-bad">Sélectionne au moins un set avant de lancer la recherche.</span>
           ) : null}
         </div>
         {deplie ? (
-          <div className="mx-auto max-w-md"><SetComboPicker sets={comboSets} onChange={onChangeSets} reserverJetons coffre /></div>
+          <SetComboPicker sets={comboSets} onChange={onChangeSets} reserverJetons coffre />
         ) : (
         <SelecteurMultiple
           libelle="Set de runes recherché"
@@ -112,7 +115,7 @@ export default function SetDeRunesCompact({ setPickerSectionRef, setPickerInvali
       {page && (
         <div aria-hidden className="pointer-events-none h-0 overflow-hidden">
           <div className="invisible">
-            <div ref={copieGrille} className="mx-auto max-w-md"><SetComboPicker sets={[]} onChange={() => {}} reserverJetons coffre /></div>
+            <div ref={copieGrille}><SetComboPicker sets={[]} onChange={() => {}} reserverJetons coffre /></div>
             <div ref={copieListe}>
               <SelecteurMultiple libelle="Set de runes recherché" vide="Aucun" surface={null} />
             </div>

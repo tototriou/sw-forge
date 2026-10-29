@@ -8,7 +8,7 @@ import { useOptimizerLists } from '../../src/hooks/useOptimizerLists';
 import OutilsPage from '../../src/pages/OutilsPage';
 import VueGabarits from '../../src/components/outils/optimizer/gabarits/VueGabarits';
 import { GABARITS } from '../../src/components/outils/optimizer/gabarits/registre';
-import OngletsColonnes from '../../src/components/outils/optimizer/bureau/OngletsColonnes';
+import Onglets from '../../src/ui/Onglets';
 import PrincipalesImposeesBureau from '../../src/components/outils/optimizer/bureau/PrincipalesImposeesBureau';
 import SetDeRunesCompact from '../../src/components/outils/optimizer/bureau/SetDeRunesCompact';
 import { SetDeplieContext } from '../../src/components/outils/optimizer/bureau/setDeplie';
@@ -32,10 +32,11 @@ export function testRenduOptimizerGabaritsComposants() {
   titre('rendu · Optimizer — gabarits de bureau des essentiels');
 
   // Le contrôle à onglets : deux boutons à deux états, libellés de la direction.
-  const onglets = rendre(<OngletsColonnes affichees={{ artefacts: true, complements: false }} onBasculer={rien} />);
-  egal(boutons(onglets).map((b) => [b.texte, b.presse]), [['Artéfacts et relique', true], ['Aura, exclusion, avancés', false]],
-    'onglets : « Artéfacts et relique » enfoncé, « Aura, exclusion, avancés » relâché');
-  ok(/role="group"[^>]*aria-label="Colonnes repliables"|aria-label="Colonnes repliables"[^>]*role="group"/.test(onglets), 'onglets : un groupe nommé');
+  const onglets = rendre(<Onglets aria-label="Réglages de recherche" valeur="artefacts" onChange={rien}
+    options={[{ cle: 'artefacts', libelle: 'Artéfacts' }, { cle: 'complements', libelle: 'Options' }]} />);
+  egal([...onglets.matchAll(/role="tab"[^>]*aria-selected="(true|false)"[^>]*>([\s\S]*?)<\/button>/g)].map(m => [texteVisible(m[2]), m[1]]), [['Artéfacts', 'true'], ['Options', 'false']],
+    'onglets : Artéfacts sélectionné, Options disponible');
+  ok(/role="tablist"[^>]*aria-label="Réglages de recherche"/.test(onglets), 'onglets : une liste nommée');
 
   // Les principales : une liste à choix multiples par slot pair.
   const libres = rendre(<PrincipalesImposeesBureau mainStatsBySlot={{}} toggleMainStat={rien} />);
@@ -81,9 +82,11 @@ export function testRenduOptimizerGabaritsComposants() {
     && aDroiteDuTitre(deplieViolent) === '' && (texteVisible(deplieViolent).match(/4\/6 runes/g) ?? []).length === 1
     && aDroiteDuTitre(rendre(<SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid={false} comboSets={['violent']} onChangeSets={rien} />)) === '',
   'set déplié : la grille du téléphone à la place de la liste, son compte le seul, rien à droite du titre (compact : rien non plus)');
-  ok(/class="mt-2 grid gap-0 grid-cols-\[auto_auto\] justify-center rounded-lg bg-panel2 p-2"/.test(deplieViolent) && /grid grid-cols-8 gap-1/.test(deplieViolent)
+  // Avant toute mesure (rendu serveur), 3 + 4 colonnes au prorata de la largeur du coffre.
+  ok(/class="mt-2 grid gap-0 rounded-lg bg-panel2 p-2" style="grid-template-columns:minmax\(min-content,3fr\) minmax\(min-content,4fr\)"/.test(deplieViolent)
+    && /grid-template-columns:repeat\(3, minmax\(2rem, 1fr\)\)/.test(deplieViolent) && /grid-template-columns:repeat\(4, minmax\(2rem, 1fr\)\)/.test(deplieViolent)
     && !/class="mt-2 grid gap-0 [^"]*border/.test(deplieViolent),
-  'set déplié : la grille dans son coffre en creux (fond panel2, sans contour), centrée, Set secondaire sur 8 colonnes');
+  'set déplié : coffre en creux, sur toute sa largeur, principal sur 3 colonnes et secondaire sur 4 avant mesure');
   ok(aDroiteDuTitre(deplie(true, [])) === message, 'set déplié refusé : le message à droite du titre');
   const repete = rendre(<SetDeRunesCompact setPickerSectionRef={ref} setPickerInvalid={false} comboSets={['blade', 'blade', 'fight']} onChangeSets={rien} />);
   ok(!!bouton(repete, 'Set de runes recherché : Blade, Blade, Fight'), 'set : un même set choisi deux fois se résume deux fois');
@@ -136,13 +139,18 @@ export function testRenduOptimizerGabaritsVue() {
       `« ${g.nom} » : l'encadré des changements de comportement`);
   }
   ok(texte.includes('Réel : non mesuré'), 'sans navigateur, la taille réelle n\'est pas inventée');
+  egal(GABARITS.filter(g => g.id.startsWith('configuration-')).map(g => [g.id, g.largeur]), [
+    ['configuration-deux-piles', 752], ['configuration-groupe', 1200],
+    ['configuration-criteres-et-groupe', 1500], ['configuration-colonnes', 1800],
+  ], 'la galerie assemble les quatre configurations, chacune à sa largeur');
+  egal((html.match(/data-page-fenetre=""/g) ?? []).length, 4, 'chaque configuration monte la vraie page de bureau');
 
   // La liste de travail : vide, remplie, réelle.
   const liste = html.split('data-gabarit="liste"')[1].split('data-gabarit=')[0];
   const vide = texteVisible(liste.split('data-etat="vide"')[1].split('data-etat=')[0]);
   // Au bureau, la liste active se lit au bouton « Liste active » ; le titre de la carte nomme le champ, jamais la liste.
   ok(vide.includes('Aucun monstre dans cette liste pour l\'instant.') && vide.includes('Liste active Défense G3 - ')
-    && vide.includes('Ajouter un monstre à la liste') && !vide.includes('Monstres de « Défense G3 »'), 'liste vide : la liste active, sans membre');
+    && !vide.includes('Ajouter un monstre à la liste') && !vide.includes('Monstres de « Défense G3 »'), 'liste vide : la liste active, sans membre ni titre au-dessus de la recherche');
   const remplie = liste.split('data-etat="remplie"')[1].split('data-etat=')[0];
   ok(texteVisible(remplie).includes('Équipe 1') && texteVisible(remplie).includes('Sans équipe'), 'liste remplie : une équipe et des membres sans équipe');
   ok(/placeholder="Rechercher un monstre/.test(remplie), 'liste : « Rechercher un monstre… » dans la carte de la liste');
@@ -166,7 +174,7 @@ export function testRenduOptimizerGabaritsAdresse() {
   // La page de bureau (rendu serveur : format bureau) : son contrôle à onglets
   // la signe, « Monstre & équipement » n'y est plus, ni le titre « Critères de
   // recherche » du téléphone.
-  ok(page.includes('Set de runes recherché') && !page.includes('Critères de recherche') && page.includes('Aura, exclusion, avancés') && !page.includes('Gabarits de l\'Optimizer'),
+  ok(page.includes('Set de runes recherché') && page.includes('Critères') && page.includes('Options') && !page.includes('Gabarits de l\'Optimizer'),
     'hors développement : la page de l\'Optimizer, jamais la vue');
 }
 

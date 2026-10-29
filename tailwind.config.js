@@ -35,6 +35,8 @@ export default {
         panel2: 'rgb(var(--panel2) / <alpha-value>)',
         'equipe-a': 'rgb(var(--equipe-a) / <alpha-value>)',
         'equipe-b': 'rgb(var(--equipe-b) / <alpha-value>)',
+        'equipe-a-trait': 'rgb(var(--equipe-a-trait) / <alpha-value>)',
+        'equipe-b-trait': 'rgb(var(--equipe-b-trait) / <alpha-value>)',
         border: 'rgb(var(--border) / <alpha-value>)',
         'border-soft': 'rgb(var(--border-soft) / <alpha-value>)',
         ink: 'rgb(var(--ink) / <alpha-value>)',

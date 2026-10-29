@@ -1,4 +1,7 @@
 import { testWorktreeMesureCycle, testWorktreeMesureRefus, testWorktreeMesureLienPhysique } from './worktree-mesure.test';
+import { testRenduExemplaireApercuEtBuildActuelEquipementOptimise, testRenduTelephoneExemplaireApercuEtBuildActuelEquipementOptimise,
+  testRenduExemplaireComparerFicheApercu, testRenduTelephoneExemplaireComparerFicheApercu,
+  testRenduExemplaireValidationDepuisApercu, testRenduTelephoneExemplaireValidationDepuisApercu } from './rendu/optimizer-recherche.test';
 // Point d'entrée des vérifications — `npm test`.
 //
 // ⚠️ L'ORDRE compte un peu : `persistance` installe un faux `localStorage`
@@ -20,7 +23,7 @@ import { testRenduOptimizerBandesEquipesClair, testRenduOptimizerBandesEquipesSo
 import testImport from './import.test';
 import { verificationsImportEquipes } from './import-equipes.test';
 import { testOptimizerImportNavigation } from './optimizer-import-navigation.test';
-import { testOptimizerColonnes, testOptimizerAgencementsBureau, testOptimizerFormeObjectifBureau, testOptimizerAttenteResultats } from './optimizer-colonnes.test';
+import { testOptimizerColonnes, testOptimizerColonnesOnglet, testOptimizerColonnesGuidages, testOptimizerColonnesAttenteResultats, testOptimizerColonnesCoffreSets, testOptimizerColonnesTableau } from './optimizer-colonnes.test';
 import { testRenduRtaExportOptimizer, testRenduTelephoneRtaExportOptimizer, testRenduRecoExportOptimizer,
   testRenduTelephoneRecoExportOptimizer, testRenduOptimizerImportRecommandation, testRenduTelephoneOptimizerImportRecommandation,
   testOptimizerImportRtaRecoBranchement } from './rendu/rta-reco-export.test';
@@ -260,7 +263,8 @@ import { testRenduOptimizerEquipeImpossibleZeroLibre, testRenduTelephoneOptimize
   testRenduOptimizerEquipeImpossibleDeuxDontUnLie, testRenduTelephoneOptimizerEquipeImpossibleDeuxDontUnLie } from './rendu/optimizer-equipe-impossible.test';
 import { testRenduOptimizerRechercheBoxResolu, testRenduTelephoneOptimizerRechercheBoxResolu,
   testRenduOptimizerRechercheDejaMembre, testRenduTelephoneOptimizerRechercheDejaMembre,
-  testRenduOptimizerRechercheExemplaireSuivant, testRenduTelephoneOptimizerRechercheExemplaireSuivant } from './rendu/optimizer-recherche.test';
+  testRenduOptimizerRechercheExemplaireSuivant, testRenduTelephoneOptimizerRechercheExemplaireSuivant,
+  testRenduExemplaireLigneIndisponibleClavierSouris, testRenduTelephoneExemplaireLigneIndisponibleClavierSouris } from './rendu/optimizer-recherche.test';
 import { testRenduOptimizerRechercheSourceRta, testRenduTelephoneOptimizerRechercheSourceRta,
   testRenduOptimizerRechercheSourceSiege, testRenduTelephoneOptimizerRechercheSourceSiege,
   testRenduOptimizerRechercheDesambiguise, testRenduTelephoneOptimizerRechercheDesambiguise,
@@ -456,6 +460,14 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduOptimizerRechercheDejaMembre', testRenduOptimizerRechercheDejaMembre],
   ['testRenduTelephoneOptimizerRechercheDejaMembre', testRenduTelephoneOptimizerRechercheDejaMembre],
   ['testRenduOptimizerRechercheExemplaireSuivant', testRenduOptimizerRechercheExemplaireSuivant],
+  ['testRenduExemplaireLigneIndisponibleClavierSouris', testRenduExemplaireLigneIndisponibleClavierSouris],
+  ['testRenduTelephoneExemplaireLigneIndisponibleClavierSouris', testRenduTelephoneExemplaireLigneIndisponibleClavierSouris],
+  ['testRenduExemplaireApercuEtBuildActuelEquipementOptimise', testRenduExemplaireApercuEtBuildActuelEquipementOptimise],
+  ['testRenduTelephoneExemplaireApercuEtBuildActuelEquipementOptimise', testRenduTelephoneExemplaireApercuEtBuildActuelEquipementOptimise],
+  ['testRenduExemplaireComparerFicheApercu', testRenduExemplaireComparerFicheApercu],
+  ['testRenduTelephoneExemplaireComparerFicheApercu', testRenduTelephoneExemplaireComparerFicheApercu],
+  ['testRenduExemplaireValidationDepuisApercu', testRenduExemplaireValidationDepuisApercu],
+  ['testRenduTelephoneExemplaireValidationDepuisApercu', testRenduTelephoneExemplaireValidationDepuisApercu],
   ['testRenduTelephoneOptimizerRechercheExemplaireSuivant', testRenduTelephoneOptimizerRechercheExemplaireSuivant],
   ['testOptimizerCompetencesContenu', testOptimizerCompetencesContenu],
   ['testRenduOptimizerRechercheCreation', testRenduOptimizerRechercheCreation],
@@ -795,9 +807,11 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testPrioriteStatsRetiree', testPrioriteStatsRetiree],
   ['testOptimizerExclusion', testOptimizerExclusion],
   ['testOptimizerColonnes', testOptimizerColonnes],
-  ['testOptimizerAgencementsBureau', testOptimizerAgencementsBureau],
-  ['testOptimizerFormeObjectifBureau', testOptimizerFormeObjectifBureau],
-  ['testOptimizerAttenteResultats', testOptimizerAttenteResultats],
+  ['testOptimizerColonnesOnglet', testOptimizerColonnesOnglet],
+  ['testOptimizerColonnesGuidages', testOptimizerColonnesGuidages],
+  ['testOptimizerColonnesAttenteResultats', testOptimizerColonnesAttenteResultats],
+  ['testOptimizerColonnesCoffreSets', testOptimizerColonnesCoffreSets],
+  ['testOptimizerColonnesTableau', testOptimizerColonnesTableau],
   ['testListeExemplaires', testListeExemplaires],
   ['testOptimizerExemplaireMontage', testOptimizerExemplaireMontage],
   ['testOptimizerRecipeImportSelection', testOptimizerRecipeImportSelection],

@@ -69,7 +69,7 @@ function Mesure({ largeur, children }: { largeur: number; children: ReactNode })
   }, []);
   return (
     <div className="space-y-1">
-      <div ref={cadre} data-cadre-gabarit className="w-max">{children}</div>
+      <div ref={cadre} data-cadre-gabarit className="w-max"><div style={{ width: largeur }}>{children}</div></div>
       <p data-mesure className={`text-micro ${mesure && (mesure.deborde > 0 || mesure.l > largeur) ? 'font-semibold text-bad' : 'text-ink-dimmer'}`}>
         {mesure ? `Réel : ${mesure.l} × ${mesure.h} px${mesure.deborde > 0 ? ` · le contenu déborde de ${mesure.deborde} px` : ''}` : 'Réel : non mesuré'}
       </p>

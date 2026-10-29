@@ -1,6 +1,12 @@
-import { useMemo, useRef, useState } from 'react';
-import ExemplaireBureau, { LARGEUR_EXEMPLAIRE } from '../bureau/ExemplaireBureau';
-import ObjectifEtRechercherBureau, { LARGEUR_OBJECTIF_ETROIT, LARGEUR_OBJECTIF_LARGE_MIN, type FormeObjectif } from '../bureau/ObjectifEtRechercherBureau';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Segmented } from '../../../../ui';
+import ExemplaireBureau from '../bureau/ExemplaireBureau';
+import PageBureau from '../bureau/PageBureau';
+import { configurationBureau, type ColonneReglage } from '../../../../lib/optimizerColonnes';
+import { GABARITS_ESSENTIELS } from './essentiels';
+import { GABARITS_COLONNES } from './colonnes';
+import ObjectifEtRechercherBureau, { LARGEUR_OBJECTIF_LARGE_MIN } from '../bureau/ObjectifEtRechercherBureau';
+const LARGEUR_EXEMPLAIRE = 358;
 import ResultatsBureau, { LARGEUR_RESULTATS_MIN, type AttenteResultats } from '../bureau/ResultatsBureau';
 import BandeauBuildValide from '../BandeauBuildValide';
 import BoutonValiderBuild from '../BoutonValiderBuild';
@@ -24,8 +30,8 @@ import type { SetAura } from '../../../../lib/damage';
 import type { RuneDetail } from '../../../../types';
 import type { RelicVide } from '../../../../lib/relicOptim';
 
-// Les gabarits de la COLONNE DE DROITE du bureau : « Exemplaire », le bloc
-// « Objectif et Rechercher » (formes étroite et large) et les résultats.
+// La section « Exemplaire » de Monstre, puis le bloc unique
+// « Objectif et Rechercher » et les résultats de la colonne élastique.
 // Chaque état part de l'état réel (`ContexteGabarits`) ; ses gestes agissent
 // sur un état local, jamais sur l'Optimizer.
 
@@ -56,10 +62,12 @@ function ExemplaireGabarit({ ctx, mode }: { ctx: ContexteGabarits; mode: 'vide' 
     : undefined;
   return (
     <ExemplaireBureau
-      zoneDRef={zone} sourceOptions={options} matchesValidatedBuild={valide != null && !reel} unowned={false} gearSource={source}
+      zoneDRef={zone} sourceOptions={options} gearSource={source}
+      vuesExemplaire={<Segmented options={[{ key: 'actuel', label: 'Build actuel' }, { key: 'valide', label: 'Build validé', disabled: !valide }]}
+        value={valide && !reel ? 'valide' : 'actuel'} onChange={v => setReel(v === 'actuel')} />}
       pickSource={(s) => { setSource(s); setOuvert(candidats[s].length > 1); }} allSourcesEmpty={options.every((o) => o.disabled)}
       zoneDOpen={ouvert} zoneDList={<ChoixExemplaire candidatesBySource={candidats} gearSource={source} choisirExemplaireZoneD={() => setOuvert(false)} />}
-      validatedBadge={<BandeauBuildValide ownValidatedBuild={valide} showRealGear={reel} runesAbsentesValidees={[]} artefactsAbsentsValides={[]} setShowRealGear={setReel} />}
+      validatedBadge={<BandeauBuildValide ownValidatedBuild={valide} showRealGear={reel} runesAbsentesValidees={[]} artefactsAbsentsValides={[]} />}
       selected={exemplaire ? { monster: exemplaire.monster, gear: exemplaire.gear } : null} selectionFiche={selection} setSelectionFiche={setSelection}
       relicUsageById={{}}
       validateBuildButton={<BoutonValiderBuild handleValidateDisplayed={rien} canValidateDisplayed={exemplaire != null}
@@ -84,7 +92,7 @@ interface EtatObjectif {
   message?: boolean;
   refus?: RelicVide;
 }
-function ObjectifGabarit({ ctx, forme, etat }: { ctx: ContexteGabarits; forme: FormeObjectif; etat: EtatObjectif }) {
+export function ObjectifGabarit({ ctx, etat, cadre = true, partie = 'tout' }: { ctx: ContexteGabarits; etat: EtatObjectif; cadre?: boolean; partie?: import('../bureau/ObjectifEtRechercherBureau').PartieObjectif }) {
   const exemplaire = etat.sansMonstre ? null : exemplaireDuCompte(ctx);
   const [objectif, setObjectif] = useState<Objective>(etat.objectif ?? ctx.optimizer.objective);
   const [statut, setStatut] = useState<BuildOptimStatus>(etat.statut ?? 'idle');
@@ -92,7 +100,7 @@ function ObjectifGabarit({ ctx, forme, etat }: { ctx: ContexteGabarits; forme: F
   const sets = etat.sansMonstre ? [] : ctx.optimizer.comboSets.length > 0 ? ctx.optimizer.comboSets : ['violent'];
   return (
     <ObjectifEtRechercherBureau
-      forme={forme}
+      cadre={cadre} partie={partie}
       estimation={exemplaire && sets.length > 0 ? <EstimationPool estimate={estimationDeVue(ctx.runes)} /> : null}
       messageImport={<MessageImportRecette message={etat.message && exemplaire ? { text: `Réglages importés pour ${exemplaire.monster.name} — monstre sélectionné automatiquement.` } : null} />}
       progression={{ progress: statut === 'running' ? etat.progression ?? null : null,
@@ -108,8 +116,8 @@ function ObjectifGabarit({ ctx, forme, etat }: { ctx: ContexteGabarits; forme: F
 const APPARIEMENT: BuildOptimProgress = { phase: 'pairing', explored: 12_345_678, found: 1_234, pct: 0.42, totalPairs: 29_393_280 };
 const CONSTRUCTION: BuildOptimProgress = { phase: 'building', halves: { A: { scanned: 1_234, total: 2_468, pct: 0.5 }, B: null } };
 
-function etatsObjectif(forme: FormeObjectif, largeur?: number) {
-  const r = (e: EtatObjectif) => (ctx: ContexteGabarits) => <ObjectifGabarit ctx={ctx} forme={forme} etat={e} />;
+function etatsObjectif(largeur?: number) {
+  const r = (e: EtatObjectif) => (ctx: ContexteGabarits) => <ObjectifGabarit ctx={ctx} etat={e} />;
   return [
     { id: 'sans-monstre', nom: 'Aucun monstre : « Rechercher » désactivé, estimation absente', rendu: r({ sansMonstre: true, objectif: 'efficience' }), largeur },
     { id: 'efficience', nom: 'Efficience, prêt à lancer (estimation : runes du compte non filtrées, chiffres de vue)', rendu: r({ objectif: 'efficience' }), largeur },
@@ -194,7 +202,7 @@ export const GABARITS_DROITE: Gabarit[] = [
     composant: 'ExemplaireBureau (bureau/ExemplaireBureau.tsx) : ExemplaireEtFiche dans sa carte',
     telephone: 'ExemplaireEtFiche (partagé) repris tel quel ; le téléphone garde son bloc « Monstre & équipement ».',
     changements: [
-      'Sort de la carte « Monstre & équipement » (qui disparaît du bureau) pour sa propre carte, en tête de la colonne de droite (A3) ou sous les réglages (A1, A2).',
+      'Dans « Monstre », sous la liste de travail ; la fiche reste repliée au bureau.',
       'Les puces Box / RTA / Défenses siège / Offenses siège quittent le voisinage de la recherche du monstre : elles sont dans cette carte.',
     ],
     etats: [
@@ -204,33 +212,23 @@ export const GABARITS_DROITE: Gabarit[] = [
     ],
   },
   {
-    id: 'objectif-etroit', nom: 'Objectif et Rechercher, forme étroite', largeur: LARGEUR_OBJECTIF_ETROIT, hauteurEstimee: 356,
-    composant: 'ObjectifEtRechercherBureau forme="etroite" (bureau/ObjectifEtRechercherBureau.tsx), composant à part',
+    id: 'objectif', nom: 'Objectif et Rechercher', largeur: LARGEUR_OBJECTIF_LARGE_MIN, hauteurEstimee: 138, elastique: true,
+    composant: 'ObjectifEtRechercherBureau (bureau/ObjectifEtRechercherBureau.tsx), une seule forme selon la largeur reçue',
     telephone: 'ObjectifEtActions (partagé) exporte TitreObjectifRecherche et ResumeCombat, rendu inchangé ; le téléphone garde ObjectifEtActions.',
     changements: [
-      'L\'estimation du pool passe en tête du bloc, au-dessus de l\'objectif, à place réservée (deux lignes) : rien ne bouge quand elle paraît.',
-      'Les quatre objectifs en 2 × 2, séparés par leurs bords intérieurs (traits de 1 px).',
-      'Le résumé « Dégâts réels » garde sa place, invisible, sous un autre objectif : choisir « Dégâts réels » ne pousse plus rien.',
+      'L\'estimation du pool est en tête ; estimation, résumé du combat et progression prennent leur hauteur quand ils paraissent.',
+      'Les quatre objectifs sur une ligne, ou en 2 × 2 si leur texte ne tient pas.',
+      'Le résumé du combat paraît sous « Dégâts réels » seulement.',
       '« Rechercher » plus grand (taille lg) ; « Arrêter » prend sa place exacte pendant une recherche (carré plein), inactif 300 ms, au lieu de s\'ajouter à côté de « Recherche… ».',
       '« Exporter » · « Importer » en libellé court au bureau (le libellé long reste le nom et l\'infobulle).',
-      'Progression compacte : plus de barre ; à l\'appariement, deux lignes seules (« … combinaisons examinées · … trouvée(s) », « Attendez la fin de la recherche… ») ; préparation, erreur et refus dans la même place réservée, à la hauteur de ces deux lignes : le lancement ne pousse rien.',
+      'Progression compacte sans barre, sous les actions ; en deux piles, « Rechercher » à 240 px reste à sa place, sans coller au bas.',
       'Aux deux formats : plus de phrase « Le budget de recherche s\'élargit automatiquement… » (l\'escalade n\'existe plus dans le moteur).',
       'Dans cette vue : « Rechercher » bascule sur « Arrêter » sans lancer de recherche.',
     ],
-    etats: etatsObjectif('etroite'),
-  },
-  {
-    id: 'objectif-large', nom: 'Objectif et Rechercher, forme large', largeur: LARGEUR_OBJECTIF_LARGE_MIN, hauteurEstimee: 260, elastique: true,
-    composant: 'ObjectifEtRechercherBureau forme="large" (bureau/ObjectifEtRechercherBureau.tsx), composant à part',
-    telephone: 'Comme la forme étroite.',
-    changements: [
-      'Les changements de la forme étroite, sauf la disposition : objectifs sur une ligne, « Rechercher » · « Exporter » · « Importer » sur une rangée, « Rechercher » dessous, pleine largeur, sous 448 px de rangée.',
-      'À la largeur de sa colonne (élastique) : A1, et A3 quand la colonne de droite fait moins de 952 px.',
-    ],
     etats: [
-      ...etatsObjectif('large'),
-      { id: 'efficience-758', nom: 'Efficience, à 758 px (A1, 1920 scindé)', rendu: (ctx: ContexteGabarits) => <ObjectifGabarit ctx={ctx} forme="large" etat={{ objectif: 'efficience' }} />, largeur: 758 },
-      { id: 'appariement-758', nom: 'Progression, à 758 px (chiffres de vue)', rendu: (ctx: ContexteGabarits) => <ObjectifGabarit ctx={ctx} forme="large" etat={{ objectif: 'efficience', statut: 'running', progression: APPARIEMENT }} />, largeur: 758 },
+      ...etatsObjectif(),
+      { id: 'efficience-758', nom: 'Efficience, à 758 px', rendu: (ctx: ContexteGabarits) => <ObjectifGabarit ctx={ctx} etat={{ objectif: 'efficience' }} />, largeur: 758 },
+      { id: 'appariement-758', nom: 'Progression, à 758 px (chiffres de vue)', rendu: (ctx: ContexteGabarits) => <ObjectifGabarit ctx={ctx} etat={{ objectif: 'efficience', statut: 'running', progression: APPARIEMENT }} />, largeur: 758 },
     ].map((e) => ({ ...e, rendu: enveloppe(e.rendu, e.largeur ?? LARGEUR_OBJECTIF_LARGE_MIN) })),
   },
   {
@@ -258,3 +256,37 @@ function enveloppe(rendu: (ctx: ContexteGabarits) => JSX.Element, largeur: numbe
     return <div style={{ width: largeur }}>{rendu(ctx)}</div>;
   };
 }
+
+// La vraie page à largeur imposée, dans son propre corps visible : les
+// mesures de hauteur ne dépendent pas de sa position dans la galerie.
+function ConfigurationGabarit({ ctx, largeur }: { ctx: ContexteGabarits; largeur: number }) {
+  const [onglet, setOnglet] = useState<ColonneReglage | null>(null);
+  const cadre = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    // La page défile dans son cadre de démonstration : son marqueur global
+    // ne doit pas verrouiller le défilement de toute la galerie.
+    cadre.current?.querySelector('[data-page-fenetre]')?.removeAttribute('data-page-fenetre');
+  }, []);
+  const boites = [...GABARITS_ESSENTIELS, ...GABARITS_COLONNES, ...GABARITS_DROITE];
+  const rendu = (id: string, etat: string) => boites.find(g => g.id === id)!.etats.find(e => e.id === etat)!.rendu(ctx);
+  return <div ref={cadre} style={{ width: largeur, height: 730, overflowY: 'auto' }}>
+    <PageBureau liste={rendu('liste', 'remplie')} exemplaire={rendu('exemplaire', 'rempli')}
+      set={rendu('set', 'reel')} conditions={rendu('conditions', 'reelles')} principales={rendu('principales', 'libres')}
+      etat={rendu('etat', 'reel')} artefacts={rendu('artefacts', 'reel')} meilleurs={rendu('meilleurs', 'aucune')}
+      auras={rendu('auras', 'reel')} exclusion={rendu('exclusion', 'reel')} avances={rendu('avances', 'reel')}
+      objectif={presentation => <ObjectifGabarit ctx={ctx} etat={{}} {...presentation} />}
+      resultats={rendu('resultats', 'sans-monstre')} onglet={onglet} onOnglet={setOnglet} rappelAuras={false} />
+  </div>;
+}
+
+export const GABARITS_CONFIGURATIONS: Gabarit[] = [752, 1200, 1500, 1800].map(largeur => ({
+  id: `configuration-${configurationBureau(largeur).configuration}`,
+  nom: `Configuration : ${configurationBureau(largeur).configuration}`,
+  largeur, hauteurEstimee: 730, composant: 'PageBureau (bureau/PageBureau.tsx)',
+  telephone: 'Le téléphone garde sa page et son panneau « Options ».',
+  changements: [
+    'La largeur seule range les réglages en onglets ; Monstre et résultats restent visibles.',
+    'Chaque panneau défile seul ; en deux piles, le groupe, le bloc et les résultats défilent ensemble.',
+  ],
+  etats: [{ id: 'page', nom: 'Liste remplie, réglages locaux et résultats en attente', rendu: ctx => <ConfigurationGabarit ctx={ctx} largeur={largeur} /> }],
+}));

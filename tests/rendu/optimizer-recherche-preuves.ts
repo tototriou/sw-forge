@@ -61,12 +61,12 @@ export async function preuvesRechercheOptimizer(b: Banc, nom: string): Promise<[
     await b.geste(() => b.listes().replaceAfterRevalidation({ ...b.listes(),
       members: [{ listId: 'a', selector: b.troisieme }],
       memories: new Map([[cleMemoireMembre('a', b.troisieme), { listId: 'a', selector: b.troisieme, com2usId: 10101, criteres }]]) }));
-    const avant = JSON.stringify([...b.listes().memories]);
+    const avant = JSON.stringify(memoire(b.troisieme));
     await rechercher(b);
-    verifier(egal(b.etat().sourceSelector, b.troisieme) && b.etat().minStats.spd === 243,
-      'recherche : le membre présent de cette espèce est sélectionné avec sa mémoire, même si le premier Box est absent de la liste');
-    verifier(membres().length === 1 && JSON.stringify([...b.listes().memories]) === avant,
-      'membre présent : aucun doublon ni nouvelle capture');
+    verifier(egal(b.etat().sourceSelector, b.premier) && membres().length === 2,
+      'recherche : premier Box absent ajouté sans rappeler le membre présent de cette espèce');
+    verifier(JSON.stringify(memoire(b.troisieme)) === avant,
+      'membre présent : sa mémoire reste intacte');
   } else if (nom === 'box-resolu') {
     await b.geste(() => { b.etat().setSelectedId('1'); b.etat().setMinStats({ spd: 257 }); });
     await rechercher(b);
@@ -79,16 +79,23 @@ export async function preuvesRechercheOptimizer(b: Banc, nom: string): Promise<[
     await rechercher(b);
     verifier(membres().length === 1 && egal(b.etat().sourceSelector, b.premier), 'premier exemplaire inclus par la recherche');
     await b.geste(() => b.etat().setMinStats({ spd: 235 }));
+    await b.geste(() => { b.etat().setDamageSetup(s => ({ ...s, enemyDef: 3456 })); b.etat().setResultsPage(3); });
+    const criteresAvant = JSON.stringify(photoCriteres(b.etat(), { type: 'personnel' }));
     await rechercher(b);
-    verifier(membres().length === 1 && egal(b.etat().sourceSelector, b.premier), 'recherche répétée : même membre, aucun doublon');
-    const ajouter = bouton('Ajouter un autre exemplaire de Premier');
-    verifier(!!ajouter && !ajouter.disabled, 'après ajout automatique : le bouton du prochain exemplaire reste actif');
-    await b.geste(() => ajouter.click());
-    verifier(membres().length === 2 && egal(b.etat().sourceSelector, b.troisieme), 'bouton : exemplaire Box suivant ajouté une seule fois');
+    verifier(membres().length === 2 && egal(b.etat().sourceSelector, b.troisieme), 'recherche répétée : exemplaire Box suivant ajouté une seule fois');
     verifier(memoire(b.troisieme)?.criteres.minStats.spd === 235 && memoire(b.premier)?.criteres.minStats.spd === 235,
       'exemplaire suivant : critères conservés et capturés, mémoire du premier intacte');
+    verifier(b.etat().resultsPage === 1 && JSON.stringify(photoCriteres(b.etat(), { type: 'personnel' })) === criteresAvant
+      && JSON.stringify(memoire(b.troisieme)?.criteres) === criteresAvant,
+      'transition Box suivante de l’espèce affichée : pagination effacée, critères et combat gardés et immédiatement capturés');
     await rechercher(b);
-    verifier(membres().length === 2 && egal(b.etat().sourceSelector, b.premier), 'recherche avec deux copies : sélection du premier membre présent, aucun doublon');
+    verifier(membres().length === 2 && egal(b.etat().sourceSelector, b.troisieme), 'Box complète : clic refusé, sélection inchangée');
+    const option = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(e => visible(e) && e.textContent?.includes('Premier'))!;
+    verifier(option.getAttribute('aria-disabled') === 'true' && option.textContent?.includes('Les 2 Premier de ta Box sont dans la liste') === true,
+      'ligne indisponible : affichée avec sa raison et aria-disabled');
+    const champ = [...document.querySelectorAll<HTMLInputElement>('[placeholder="Rechercher un monstre…"]')].find(visible)!;
+    await b.geste(() => champ.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })));
+    verifier(membres().length === 2 && egal(b.etat().sourceSelector, b.troisieme) && champ.value === 'Premier', 'ligne indisponible au clavier : Entrée refusée, champ conservé');
   } else if (nom === 'source-rta' || nom === 'source-siege' || nom === 'desambiguise' || nom === 'creation-sans-source') {
     await b.geste(() => b.changerBox(b.data().box.filter(m => m.monster.com2usId !== 10101)));
     if (nom === 'desambiguise') await b.geste(() => {
@@ -97,42 +104,36 @@ export async function preuvesRechercheOptimizer(b: Banc, nom: string): Promise<[
     });
     if (nom === 'creation-sans-source') await b.geste(() => b.listes().setActiveListId(null));
     await rechercher(b);
-    verifier(b.etat().sourceSelector === null && membres().length === 0 && b.listes().memories.size === 0,
-      'espèce sans Box : aucune résolution ni inclusion automatique de RTA ou siège');
+    verifier(egal(b.etat().sourceSelector, { source: 'rta', monsterId: '1' }),
+      'espèce sans Box : représentant RTA résolu immédiatement');
     if (nom === 'creation-sans-source') {
       verifier(!!document.querySelector('[role="dialog"]') && b.listes().lists.length === 2, 'sans liste : création ouverte avant résolution, aucune liste prématurée');
       const id = await creer(b);
       verifier(id !== null && b.listes().lists.find(l => l.id === id)?.name === 'Liste 1' && b.listes().listContents.get(id!) === 'arene',
         'création sans exemplaire : liste créée et active avec nom et contenu');
-      verifier(membres().length === 0 && b.listes().memories.size === 0 && b.etat().proprietaireCriteres === null,
-        'liste créée vide : aucune capture avant choix de la source');
+      capture({ source: 'rta', monsterId: '1' }, undefined);
     }
     await b.geste(() => b.etat().setMinStats({ spd: 321 }));
-    const libelle = nom === 'source-siege' || nom === 'desambiguise' ? 'Défenses siège' : 'RTA';
+    const etatAvant = JSON.stringify({ criteres: photoCriteres(b.etat(), { type: 'personnel' }),
+      source: b.etat().sourceSelector, gearSource: b.etat().gearSource, membres: b.listes().members, memoires: [...b.listes().memories] });
+    const libelle = 'Défenses siège';
     const ancre = bouton(libelle), avantAncre = ancre.getBoundingClientRect();
     await b.geste(() => bouton(libelle).click());
-    let selector: ExclusionSelector = libelle === 'RTA' ? { source: 'rta', monsterId: '1' }
-      : { source: 'siege-defense', teamId: 'defense', slotIndex: 0 };
     if (nom === 'desambiguise') {
-      verifier(b.etat().sourceSelector === null && membres().length === 0, 'puce ambiguë : aucun premier candidat choisi ni ajouté');
+      verifier(membres().length === 1 && egal(b.etat().sourceSelector, { source: 'rta', monsterId: '1' }), 'puce ambiguë : membre optimisé conservé');
       const ligne = [...document.querySelectorAll<HTMLButtonElement>('button')].find(e => visible(e)
         && e.textContent?.includes('Premier') && e.textContent.includes('Équipe 2'))!;
       await b.geste(() => ligne.click());
-      selector = { source: 'siege-defense', teamId: 'defense2', slotIndex: 0 };
     }
-    capture(selector, 321);
+    verifier(JSON.stringify({ criteres: photoCriteres(b.etat(), { type: 'personnel' }), source: b.etat().sourceSelector,
+      gearSource: b.etat().gearSource, membres: b.listes().members, memoires: [...b.listes().memories] }) === etatAvant,
+      'aperçu par puce ou zone D : critères, membre, sources et mémoires inchangés');
+    verifier(document.body.textContent?.includes("Ce n'est pas l'exemplaire de la liste.") === true, 'aperçu annoncé avec Revenir');
     const apresAncre = ancre.getBoundingClientRect();
     verifier(Math.abs(avantAncre.x - apresAncre.x) < 1 && Math.abs(avantAncre.y - apresAncre.y) < 1,
-      `ajout automatique : la puce cliquée reste en place (${avantAncre.y} → ${apresAncre.y})`);
-    const avant = JSON.stringify([...b.listes().memories]);
-    if (nom !== 'desambiguise') {
-      await b.geste(() => b.etat().setMinStats({ spd: 329 }));
-      const apresSaisie = JSON.stringify([...b.listes().memories]);
-      await b.geste(() => bouton(libelle).click());
-      verifier(membres().length === 1 && b.etat().minStats.spd === 329 && JSON.stringify([...b.listes().memories]) === apresSaisie,
-        'puce du membre présent : sélection avec mémoire, aucun doublon ni capture');
-    } else verifier(memoire(selector)?.criteres.minStats.spd === 321 && JSON.stringify([...b.listes().memories]) === avant,
-      'désambiguïsation : mémoire de la seconde équipe, aucune inclusion de la première');
+      `aperçu : la puce cliquée reste en place (${avantAncre.y} → ${apresAncre.y})`);
+    await b.geste(() => bouton(libelle).click());
+    verifier(![...document.querySelectorAll('button')].some(e => visible(e) && e.textContent?.trim() === 'Revenir'), 'recliquer la puce allumée revient à la vue précédente');
     // Après annulation, une source seule ne doit pas inventer une liste.
     await b.geste(() => { b.listes().setActiveListId(null); b.etat().effacerProprietaireCriteres(); });
     await rechercher(b);

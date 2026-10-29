@@ -493,7 +493,13 @@ async function principal(etat) {
             if (prep.length) await attendrePose(page);
             await verifierAtteint(page, atteintPour(st, format));
             resultat.medias = await page.evaluate(medias);
-            resultat.optimizer = await verifierOptimizer(page, taille.optimizer);
+            // En tableau, la page choisit la configuration qui lui laisse sa
+            // largeur : celle que la taille déclare pour ce cas.
+            const enTableau = st.tableau ? taille.optimizer?.enTableau : null;
+            const attenduOptimizer = enTableau
+              ? { ...taille.optimizer, ...enTableau, set: enTableau.configuration === 'deux-piles' ? 'deplie' : undefined }
+              : taille.optimizer;
+            resultat.optimizer = await verifierOptimizer(page, attenduOptimizer, st.id === 'guidage-set');
           } catch (err) {
             resultat.statut = 'non atteint';
             resultat.cause =

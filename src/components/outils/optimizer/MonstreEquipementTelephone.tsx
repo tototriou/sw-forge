@@ -14,8 +14,10 @@ import { EMPTY_GEAR } from './constantes';
 export interface MonstreEquipementTelephoneProps {
   allMonsters: Monster[];
   pickSpecies: (monster: Monster) => void;
+  disponibiliteEspece: (monster: Monster) => { raison: string | null };
   ligneMonstreTelephoneRef: RefObject<HTMLDivElement>;
   selected: { monster: Monster; gear: GearSet; } | null;
+  selectionAffichee: { monster: Monster; gear: GearSet; } | null;
   sourcesImport: SourceImportOptimizer[];
   importerDepuisEcran: (produire: (data: ExclusionSourceData) => ImportOptimizer) => RapportImportOptimizer;
   rapportImport: RapportImportOptimizer | null;
@@ -24,9 +26,8 @@ export interface MonstreEquipementTelephoneProps {
   eclatImport: boolean;
   listesTelephone: ReactNode;
   sourceOptions: { label: string; disabled: boolean; key: ExclusionSource; }[];
-  matchesValidatedBuild: boolean;
-  unowned: boolean;
-  gearSource: ExclusionSource;
+  vuesExemplaire: ReactNode;
+  gearSource: ExclusionSource | null;
   pickSource: (source: ExclusionSource) => void;
   allSourcesEmpty: boolean;
   zoneDOpen: boolean;
@@ -39,7 +40,7 @@ export interface MonstreEquipementTelephoneProps {
   validateBuildButton: ReactNode;
 }
 
-export default function MonstreEquipementTelephone({ allMonsters, pickSpecies, ligneMonstreTelephoneRef, selected, sourcesImport, importerDepuisEcran, rapportImport, setZoneCOpen, zoneCOpen, eclatImport, listesTelephone, sourceOptions, matchesValidatedBuild, unowned, gearSource, pickSource, allSourcesEmpty, zoneDOpen, zoneDList, zoneCContent, validatedBadge, selectionFiche, setSelectionFiche, relicUsageById, validateBuildButton }: MonstreEquipementTelephoneProps) {
+export default function MonstreEquipementTelephone({ allMonsters, pickSpecies, disponibiliteEspece, ligneMonstreTelephoneRef, selected, selectionAffichee, sourcesImport, importerDepuisEcran, rapportImport, setZoneCOpen, zoneCOpen, eclatImport, listesTelephone, sourceOptions, vuesExemplaire, gearSource, pickSource, allSourcesEmpty, zoneDOpen, zoneDList, zoneCContent, validatedBadge, selectionFiche, setSelectionFiche, relicUsageById, validateBuildButton }: MonstreEquipementTelephoneProps) {
   return (
     <div className="space-y-3">
       {/* Bloc 1 — recherche TOUJOURS visible, liste active
@@ -47,7 +48,7 @@ export default function MonstreEquipementTelephone({ allMonsters, pickSpecies, l
           défaut). */}
       <div>
         <p className="label mb-1.5">Monstre à optimiser</p>
-        <MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />
+        <MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} disponibilite={disponibiliteEspece} />
         <div ref={ligneMonstreTelephoneRef} className="mt-3 h-8 flex items-center gap-2">
           {selected && <>
             <MonsterAvatar monster={selected.monster} size={32} />
@@ -77,9 +78,11 @@ export default function MonstreEquipementTelephone({ allMonsters, pickSpecies, l
           un panneau flottant se prête mal à un écran étroit). */}
       <div>
         <p className="label mb-1.5">Exemplaire</p>
+        {vuesExemplaire}
+        <p className="label mb-1.5 mt-2">Voir aussi</p>
         <Segmented
           options={sourceOptions}
-          value={matchesValidatedBuild || unowned ? null : gearSource}
+          value={gearSource}
           onChange={pickSource}
           disabled={allSourcesEmpty}
           size="lg"
@@ -96,7 +99,7 @@ export default function MonstreEquipementTelephone({ allMonsters, pickSpecies, l
       <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
         {validatedBadge}
         <MonsterGear
-          gear={selected?.gear ?? EMPTY_GEAR}
+          gear={selectionAffichee?.gear ?? EMPTY_GEAR}
           selection={selectionFiche}
           onSelectionChange={setSelectionFiche}
           relicUsageById={relicUsageById}

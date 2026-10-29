@@ -11,8 +11,9 @@ ici.
 - **Le résultat est le meilleur build trouvé dans le pool retenu**, pas une
   preuve d'optimalité sur l'inventaire entier. Après les élagages sûrs, qui
   ne retirent que des runes prouvées inutiles, deux étages heuristiques
-  bornent ce qui est examiné : le pré-filtrage par emplacement
-  (`filterSlot`, préréglage `slotFilterCap`) et la rétention par
+  bornent ce qui est examiné : le pré-filtrage par emplacement (la
+  « Profondeur de recherche » des réglages avancés : `filterSlot`,
+  préréglage `slotFilterCap`) et la rétention par
   compartiment (`buildBuckets`, `bucketCap` places par tranche). Une rune
   ou un demi-build écarté à ces étages n'est jamais revu. Mécanisme :
   [03-developpeur/optimizer/moteur/elagages.md § Pré-filtrage heuristique et compartiments](../../03-developpeur/optimizer/moteur/elagages.md#pré-filtrage-heuristique-et-compartiments).

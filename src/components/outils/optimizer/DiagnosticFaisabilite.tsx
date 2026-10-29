@@ -37,8 +37,8 @@ export default function DiagnosticFaisabilite({ impossibleFeasibility, bureau = 
         <p className="text-xs text-ink-dim">
           Aucune condition n'est, à elle seule, mathématiquement hors de portée — le blocage
           vient probablement de leur <b className="text-ink">combinaison</b> (rare qu'un seul
-          build satisfasse tout à la fois), ou du pré-filtrage de la recherche elle-même. Essaie
-          de desserrer une condition, ou un pré-filtrage plus large (Réglages avancés).
+          build satisfasse tout à la fois), ou de la profondeur de la recherche elle-même. Essaie
+          de desserrer une condition, ou une profondeur de recherche plus grande (Réglages avancés).
         </p>
       )}
     </div>

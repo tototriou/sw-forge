@@ -24,6 +24,8 @@ import { KeyboardEvent, ReactNode, useRef } from 'react';
 // Clavier, comme un `tablist` : ← et → passent à l'onglet disponible voisin,
 // Début et Fin au premier et au dernier ; seul l'onglet ouvert est dans
 // l'ordre de tabulation.
+// La copie invisible réserve la largeur du libellé en gras dans les deux
+// états : fermer un onglet ne déplace jamais ceux qui le suivent.
 
 export interface OngletOption<K extends string> {
   cle: K;
@@ -109,7 +111,10 @@ export default function Onglets<K extends string>({
                 }`}
             >
               {o.icone}
-              {o.libelle}
+              <span className="inline-grid">
+                <span data-libelle-onglet className="col-start-1 row-start-1">{o.libelle}</span>
+                <span data-reserve-onglet aria-hidden className="invisible col-start-1 row-start-1 font-semibold">{o.libelle}</span>
+              </span>
             </button>
           </span>
         );

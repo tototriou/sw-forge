@@ -1,5 +1,6 @@
 import { navigateurOptimizer } from './optimizer-navigable-banc';
-import { ok, titre } from '../outils';
+import { egal, ok, titre } from '../outils';
+import { colonnesCoffre } from '../../src/lib/coffreSets';
 
 // Le sens des listes à choix multiples des essentiels du bureau, après de vrais
 // clics : un rendu serveur n'exécute aucun gestionnaire.
@@ -16,8 +17,11 @@ export async function testRenduOptimizerGabaritsGestes() {
     const ouvert = async () => (await declencheur.getAttribute('aria-expanded')) === 'true';
     await declencheur.click();
     ok(await ouvert(), 'set : la liste s’ouvre au clic');
-    // La grille ouverte, dans son coffre en creux : Set secondaire sur 8
-    // colonnes, les deux groupes au même écart des deux bords du coffre.
+    // La grille ouverte, dans son coffre en creux : les colonnes que la largeur
+    // du coffre permet (`colonnesCoffre`), les deux groupes au même écart des
+    // deux bords du coffre. La surface prend la largeur de son ancre après son
+    // premier placement : on attend que le coffre ait relu sa largeur.
+    await page.waitForTimeout(150);
     const coffre = await page.evaluate(() => {
       const titreSecondaire = [...document.querySelectorAll('p')].find((p) => p.textContent === 'Set secondaire')!;
       const groupe = titreSecondaire.parentElement!, boite = groupe.parentElement!;
@@ -25,12 +29,15 @@ export async function testRenduOptimizerGabaritsGestes() {
       const premier = boite.firstElementChild!.getBoundingClientRect(), dernier = groupe.getBoundingClientRect();
       return {
         colonnes: getComputedStyle(titreSecondaire.nextElementSibling!).gridTemplateColumns.split(' ').length,
+        principales: getComputedStyle(boite.firstElementChild!.querySelector('.grid')!).gridTemplateColumns.split(' ').length,
         gauche: Math.round(premier.left - b.left - parseFloat(s.paddingLeft)), droite: Math.round(b.right - parseFloat(s.paddingRight) - dernier.right),
         contour: s.borderTopWidth, fond: s.backgroundColor,
+        contenu: boite.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight),
       };
     });
-    ok(coffre.colonnes === 8 && Math.abs(coffre.gauche - coffre.droite) <= 1 && coffre.contour === '0px' && coffre.fond !== 'rgba(0, 0, 0, 0)',
-      `set : la grille ouverte dans son coffre (fond, sans contour), Set secondaire sur 8 colonnes, centrée (${JSON.stringify(coffre)})`);
+    const attendues = colonnesCoffre(coffre.contenu);
+    ok(coffre.principales === attendues.principal && coffre.colonnes === attendues.secondaire && Math.abs(coffre.gauche - coffre.droite) <= 1 && coffre.contour === '0px' && coffre.fond !== 'rgba(0, 0, 0, 0)',
+      `set : coffre centré, sans contour, grilles de ${attendues.principal} + ${attendues.secondaire} colonnes selon sa largeur (${JSON.stringify(coffre)})`);
     await page.getByRole('button', { name: 'Violent', exact: true }).click();
     await page.waitForTimeout(100);
     ok(await ouvert(), 'set : la liste reste ouverte après un set de 4 (Violent)');
@@ -117,28 +124,28 @@ export async function testRenduOptimizerGabaritsLargeurs() {
   const { browser, page } = await navigateurOptimizer(false, 'tests/rendu/optimizer-gabarits-banc.tsx');
   const monterA = (nom: string, largeur: number) => `globalThis.bancOptimizer.monter(${JSON.stringify(nom)}, ${largeur})`;
   try {
-    // « Valider ce build » : de la gauche des statistiques à la droite du
-    // groupe (artéfacts, roue, relique) quand la fiche la plus large tient
-    // (564) ; sa rangée la plus large, fiche repliée, en dessous.
+    // La fiche se lit dépliée, comme une carte de résultat : le groupe à côté
+    // du panneau de stats, dans la section, et « Valider ce build » sur toute
+    // la largeur de la section.
     const fiche = () => page.evaluate(() => {
+      const section = document.querySelector('[data-fiche-optimizer]')!.getBoundingClientRect();
       const bouton = document.querySelector('[data-valider]')!.getBoundingClientRect();
-      const racine = document.querySelector('[data-valider]')!.parentElement!.querySelector('.flex-wrap')!;
+      const racine = document.querySelector('[data-fiche-optimizer] .flex-nowrap')!;
       const [stats, groupe] = [...racine.children].map((e) => e.getBoundingClientRect());
       const r = (n: number) => Math.round(n);
-      // [gauche, droite, haut, bas]
-      return { bouton: [r(bouton.left), r(bouton.right)], stats: [r(stats.left), r(stats.right), r(stats.top), r(stats.bottom)], groupe: [r(groupe.left), r(groupe.right), r(groupe.top)] };
+      return {
+        section: [r(section.left), r(section.right)], bouton: [r(bouton.left), r(bouton.right)],
+        stats: [r(stats.left), r(stats.right), r(stats.top), r(stats.bottom)], groupe: [r(groupe.left), r(groupe.right), r(groupe.top)],
+      };
     });
-    await page.evaluate(monterA('exemplaire', 598));
-    await page.waitForTimeout(100);
-    const deplie = await fiche();
-    ok(deplie.groupe[0] >= deplie.stats[1] && Math.abs(deplie.bouton[0] - deplie.stats[0]) <= 1 && Math.abs(deplie.bouton[1] - deplie.groupe[1]) <= 1,
-      `exemplaire à 598 px : fiche dépliée, « Valider ce build » des statistiques au bord droit du groupe (${JSON.stringify(deplie)})`);
-    await page.evaluate(monterA('exemplaire', 420));
-    await page.waitForTimeout(100);
-    const replie = await fiche();
-    const plusLarge = Math.max(replie.stats[1] - replie.stats[0], replie.groupe[1] - replie.groupe[0]);
-    ok(replie.groupe[2] >= replie.stats[3] && Math.abs(replie.bouton[1] - replie.bouton[0] - plusLarge) <= 1,
-      `exemplaire à 420 px : fiche repliée, « Valider ce build » à la largeur de sa rangée la plus large, ${plusLarge} px (${JSON.stringify(replie)})`);
+    for (const largeur of [358, 598]) {
+      await page.evaluate(monterA('exemplaire', largeur));
+      await page.waitForTimeout(100);
+      const f = await fiche();
+      ok(f.groupe[0] >= f.stats[1] && f.groupe[2] < f.stats[3] && f.stats[0] >= f.section[0] - 1 && f.groupe[1] <= f.section[1] + 1
+        && f.bouton[0] === f.section[0] && f.bouton[1] === f.section[1],
+      `exemplaire à ${largeur} px : fiche dépliée dans la section, « Valider ce build » sur toute sa largeur (${JSON.stringify(f)})`);
+    }
 
     // « Rechercher », forme large : à droite d'« Exporter » · « Importer » sur
     // leur rangée ; dessous, pleine largeur, quand la rangée fait moins de 448 px.
@@ -155,5 +162,76 @@ export async function testRenduOptimizerGabaritsLargeurs() {
     const etroit = await rangee();
     ok(etroit.rechercher[1] >= etroit.importer[2] && etroit.rechercher[2] === 420,
       `objectif à 420 px : « Rechercher » sous « Exporter » · « Importer », pleine largeur (${JSON.stringify(etroit)})`);
+
+    await page.setViewportSize({ width: 2048, height: 1000 });
+    for (const [largeur, configuration, colonnes, onglets] of [
+      [1800, 'colonnes', ['criteres', 'artefacts', 'complements'], []],
+      [1500, 'criteres-et-groupe', ['criteres', 'artefacts'], ['Artéfacts', 'Options']],
+      [1200, 'groupe', ['criteres'], ['Critères', 'Artéfacts', 'Options']],
+      [752, 'deux-piles', ['criteres'], ['Critères', 'Artéfacts', 'Options']],
+    ] as const) {
+      await page.evaluate(monterA('page', largeur));
+      const racine = page.locator('[data-configuration]');
+      egal(await racine.getAttribute('data-configuration'), configuration, `${largeur} px : configuration mesurée`);
+      egal(await racine.locator('[data-colonne]').evaluateAll(es => es.map(e => e.getAttribute('data-colonne'))), [...colonnes], `${configuration} : réglages présents dans l'ordre`);
+      egal(await racine.getByRole('tab').locator('[data-libelle-onglet]').allTextContents(), [...onglets], `${configuration} : seuls les réglages rangés ont un onglet`);
+      ok(await racine.locator('[data-zone="monstre"]').isVisible() && await racine.locator('[data-zone="resultats"]').isVisible(), `${configuration} : Monstre et résultats visibles`);
+      const confinement = await racine.evaluate(e => ({
+        hauteur: Math.abs(e.getBoundingClientRect().bottom - (innerHeight - 16)) <= 1,
+        deborde: e.scrollWidth > e.clientWidth + 1,
+        panneaux: [...e.querySelectorAll<HTMLElement>('[data-zone="monstre"], [data-zone="pile-droite"], [data-colonne], [data-zone="resultats"]')]
+          .filter(p => getComputedStyle(p).overflowY === 'auto').map(p => ({
+            contient: getComputedStyle(p).overscrollBehaviorY === 'contain',
+            defile: p.scrollHeight > p.clientHeight,
+          })),
+      }));
+      ok(confinement.hauteur && !confinement.deborde && confinement.panneaux.length >= 2
+        && confinement.panneaux.every(p => p.contient && p.defile), `${configuration} : hauteur visible, largeur contenue et défilements indépendants (${JSON.stringify(confinement)})`);
+      if (onglets.length) {
+        const options = racine.getByRole('tab', { name: 'Options', exact: true });
+        const avant = await options.boundingBox();
+        await options.click();
+        egal(await options.boundingBox(), avant, `${configuration} : cliquer Options ne déplace pas l'onglet`);
+        await options.click();
+        ok(await options.getAttribute('aria-selected') === 'true', `${configuration} : recliquer garde Options ouvert`);
+        egal(await racine.getByRole('tabpanel').getAttribute('aria-label'), 'Aura, exclusion, avancés', `${configuration} : panneau correspondant à Options`);
+      }
+    }
+    // Redimensionner la même page conserve un onglet encore présent ; quand
+    // le groupe disparaît, son retour repart du premier onglet.
+    await page.getByRole('tab', { name: 'Options', exact: true }).click();
+    await page.locator('[data-configuration]').evaluate(e => { e.parentElement!.style.width = '1500px'; });
+    await page.waitForTimeout(100);
+    ok(await page.getByRole('tab', { name: 'Options', exact: true }).getAttribute('aria-selected') === 'true', 'redimensionnement : Options reste dans le groupe et reste actif');
+    await page.locator('[data-configuration]').evaluate(e => { e.parentElement!.style.width = '1800px'; });
+    await page.waitForTimeout(100);
+    egal(await page.getByRole('tab').count(), 0, 'cinq colonnes : aucun onglet');
+    await page.locator('[data-configuration]').evaluate(e => { e.parentElement!.style.width = '1200px'; });
+    await page.waitForTimeout(100);
+    ok(await page.getByRole('tab', { name: 'Critères', exact: true }).getAttribute('aria-selected') === 'true', 'retour du groupe : son premier onglet, sans ressusciter Options');
+
+    // Le coffre démonté par une combinaison pleine revient au premier retrait :
+    // ce nouvel élément suit encore la largeur de sa section quand elle se
+    // resserre.
+    await page.evaluate(monterA('coffre', 400));
+    const set = page.locator('[data-set-optimizer="deplie"] > div').first();
+    await set.getByRole('button', { name: 'Violent', exact: true }).click();
+    await set.getByRole('button', { name: 'Will', exact: true }).click();
+    ok(await set.getByText('Set principal', { exact: true }).count() === 0, 'set plein : la grille d’ajout disparaît');
+    await set.getByRole('button', { name: 'Retirer Will' }).click();
+    await page.locator('[data-largeur-coffre]').evaluate(e => { (e as HTMLElement).style.width = '170px'; });
+    await page.waitForTimeout(150);
+    const apres = await set.evaluate((racine) => {
+      const titre = [...racine.querySelectorAll('p')].find((p) => p.textContent === 'Set secondaire')!;
+      const boite = titre.parentElement!.parentElement!, s = getComputedStyle(boite);
+      return {
+        contenu: boite.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight),
+        principal: getComputedStyle(boite.firstElementChild!.querySelector('.grid')!).gridTemplateColumns.split(' ').length,
+        secondaire: getComputedStyle(titre.nextElementSibling!).gridTemplateColumns.split(' ').length,
+      };
+    });
+    const voulues = colonnesCoffre(apres.contenu);
+    ok(voulues.principal < 3 && apres.principal === voulues.principal && apres.secondaire === voulues.secondaire,
+      `coffre revenu après un retrait : ses colonnes suivent encore sa largeur (${JSON.stringify(apres)})`);
   } finally { await browser.close(); }
 }

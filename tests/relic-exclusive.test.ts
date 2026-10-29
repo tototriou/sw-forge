@@ -584,7 +584,7 @@ export function testRelicReferenceComparer() {
     'écran : l’écart « PV effectifs » se calcule contre scoreDeReference');
   ok(!/computeTotalDamage\(/.test(ecran), 'écran : plus aucun computeTotalDamage recopié (ni candidat, ni référence)');
   ok(/const contexteReference = useMemo\([\s\S]{0,200}?\[contexteDegatsArtefacts, damageSetup, contexteExclusive\]/.test(ecran)
-    && ecran.includes('const ficheDeReference = selected?.gear;')
+    && ecran.includes('const ficheDeReference = selectionAffichee?.gear;')
     && /const refDegatsResultat = useMemo\([\s\S]{0,200}?\[ficheDeReference, contexteReferenceResultat\]/.test(ecran),
     'écran : les références dépendent de la fiche entière et du contexte de combat, jamais du cache des résultats');
 }

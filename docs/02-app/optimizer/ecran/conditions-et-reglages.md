@@ -6,14 +6,14 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    Précision). Chaque stat porte **deux champs, minimum et maximum**, tous
    deux facultatifs — champ vide = pas de contrainte. Au téléphone, en bas
    de « Critères de recherche », sous le set et les principales ; au bureau,
-   une section « Conditions » de 328 px du panneau des essentiels, sous le
-   set, à gauche des principales et d'« État de mon monstre », dont un trait
-   vertical la sépare (`ConditionsBureau`). La colonne des libellés y prend
-   la largeur du plus long d'entre eux, les colonnes s'écartent de 12 px, et
-   Min et Max s'en rapprochent : les champs gardent leur largeur, et la
-   grille tient sans déborder. ⚠️ La grille est centrée dans la section :
-   autant de marge du bord du panneau aux libellés que des « Max » au trait
-   (décision de l'utilisateur ; 17,75 px mesurés de chaque côté). « Artéfacts et relique » est une carte à
+   une section « Conditions » de 294 px de « Critères », sous le set, au-dessus
+   des principales et d'« État de mon monstre » (`ConditionsBureau`). La
+   colonne des libellés y prend la largeur du plus long d'entre eux et les
+   colonnes s'écartent de 12 px. ⚠️ **« Min » et « Max » y sont des
+   en-têtes de colonne posés une fois**, comme au téléphone : collés à
+   chaque champ, ils faisaient déborder la grille des 294 px de la section.
+   Les champs gardent leur largeur, et la grille est centrée dans la
+   section (décision de l'utilisateur). « Artéfacts et relique » est une carte à
    part (voir artefacts.md § Place de la carte à l'écran).
    - **Interrupteur « Stats de base exclues »**, activé par défaut : n'affecte
      que PV, ATQ, DEF et VIT — ces 4 stats ont une base qui grandit avec le
@@ -146,7 +146,9 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    panneau « Options »), après « Exclusion de runes », sur une seule colonne : pré-filtrage, puis
    les interrupteurs (voir
    README.md § Réglages avancés et exclusion de runes). La section n'a ni
-   hauteur fixe ni place réservée : elle suit son contenu. **Pré-filtrage par emplacement**, en
+   hauteur fixe ni place réservée : elle suit son contenu. **« Profondeur de
+   recherche »** — le pré-filtrage par emplacement du moteur, nommé par ce
+   qu'il change pour le joueur (décision de l'utilisateur) —, en
    **presets** plutôt qu'un curseur libre — Bas / Moyen
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus
    lent, mais capable de retrouver un build sur un très gros compte),

@@ -445,7 +445,12 @@ le compte des leads inactifs à place réservée, puis « Modifier l’équipe �
 Le nom tronqué garde son texte complet en infobulle ; l'écart avant les cartes est réduit.
 Les fonds alternent entre les jetons `equipe-a` et `equipe-b`, définis dans les deux thèmes. Les cartes liées et libres gardent
 le même aspect et la même hauteur, au bureau comme au téléphone ; les libres
-suivent sous « Sans équipe ».
+suivent sous « Sans équipe ». La carte du monstre affiché prend la teinte de sa
+bande, plus soutenue que le fond de la bande, au contour comme au fond (jetons
+`equipe-a-trait` et `equipe-b-trait`) ; hors équipe, celle de la première bande. Sur ce voile, le
+gris le plus clair, l'ambre et la braise passeraient sous 4,5:1 : ses textes
+secondaires (« (non possédé) », « pas encore validé », le statut du build)
+prennent le gris moyen, et le pictogramme du statut garde sa couleur.
 
 Le compte des leads inactifs dérive des motifs des membres affichés, avec une
 place réservée dans l’en-tête. Chaque carte réserve une cible d’icône ⚠ sur

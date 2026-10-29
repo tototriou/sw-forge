@@ -115,6 +115,10 @@ Contenu actuel, dans l'ordre :
     [design/reglage-du-theme.md](../../../03-developpeur/interface/design/reglage-du-theme.md) ;
   - **Score** → `Efficience` / `Score SW` (voir
     [compte/feat-runes/mesure.md](../../compte/feat-runes/mesure.md)) ;
+  - **Résultats de l'Optimizer** → `Cartes` / `Tableau`, au bureau seulement
+    (voir [optimizer/ecran/resultats.md](../../optimizer/ecran/resultats.md#cartes-ou-tableau)) :
+    en tableau, la page de l'Optimizer range ses réglages pour lui laisser
+    la place, d'où ce réglage ici plutôt qu'au-dessus des résultats ;
   - **Builds les plus rapides** → un bouton « Choisir… », et en `hint` le
     résumé du réglage (« 9 combinaisons · 5 builds par combinaison, au Résumé
     des runes. »). Il ouvre une **fenêtre** (`DialogueBuildsRapides`) : une

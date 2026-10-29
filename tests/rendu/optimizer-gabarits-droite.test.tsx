@@ -107,7 +107,7 @@ export function testRenduOptimizerGabaritsColonnes() {
 
 function props(p: Partial<ObjectifEtRechercherBureauProps> = {}): ObjectifEtRechercherBureauProps {
   return {
-    forme: 'etroite', estimation: null, messageImport: null, progression: { progress: null, refusal: null, compteAffiche: { compte: 0 } },
+    estimation: null, messageImport: null, progression: { progress: null, refusal: null, compteAffiche: { compte: 0 } },
     objective: 'efficience', setObjective: rien, setSetupOuvert: rien, resumeCombat: 'S3 · vs Feu', handleSearch: rien,
     selected: { monster: BOX[0].monster, gear: BOX[0].gear! }, status: 'idle', comboSets: ['violent'], exportRecipe: rien,
     importFileRef: ref, importRecipe: rien, setStoppedManually: rien, stop: rien, ...p,
@@ -119,7 +119,7 @@ export function testRenduOptimizerGabaritsDroite() {
 
   // Exemplaire : les quatre puces, la fiche, « Valider ce build ».
   const exemplaire = rendre(<ExemplaireBureau zoneDRef={ref} sourceOptions={SOURCE_OPTIONS.map((o) => ({ ...o, disabled: o.key !== 'box' }))}
-    matchesValidatedBuild={false} unowned={false} gearSource="box" pickSource={rien} allSourcesEmpty={false} zoneDOpen={false} zoneDList={null}
+    vuesExemplaire={null} gearSource="box" pickSource={rien} allSourcesEmpty={false} zoneDOpen={false} zoneDList={null}
     validatedBadge={null} selected={null} selectionFiche={null} setSelectionFiche={rien} relicUsageById={{}} validateBuildButton={<button type="button">Valider ce build</button>} />);
   ok(/aria-label="Exemplaire"/.test(exemplaire) && ['Box', 'RTA', 'Défenses siège', 'Offenses siège', 'Valider ce build'].every((n) => !!bouton(exemplaire, n)),
     'exemplaire : une carte nommée, les quatre puces et « Valider ce build »');
@@ -155,26 +155,28 @@ export function testRenduOptimizerGabaritsDroite() {
     'le résumé du combat prend la hauteur de son texte, au bureau comme au téléphone');
   ok(!/aria-hidden="true" class="invisible col-start-1 row-start-1"/.test(repos), 'aucune copie invisible qui réserve une place (estimation, progression)');
 
-  // A1 : le bloc en deux parties. Les réglages à leur place, progression
-  // comprise, sans « Rechercher » ; « Rechercher » / « Arrêter » seul, sans
+  // Deux piles : réglages, barre collée et progression distincts.
+  // « Rechercher » / « Arrêter » seul, sans
   // panneau ni progression : collé par le bas, un élément qui grandirait
   // ferait monter le bouton sous le pointeur.
-  const reglages = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large', partie: 'reglages', status: 'running' })} />);
+  const reglages = rendre(<ObjectifEtRechercherBureau {...props({ partie: 'reglages', status: 'running' })} />);
   ok(!bouton(reglages, 'Rechercher') && !bouton(reglages, 'Arrêter') && !!bouton(reglages, 'Exporter') && texteVisible(reglages).includes('Objectif de recherche')
-    && texteVisible(reglages).includes('Préparation…'),
-    'A1, réglages : objectifs, « Exporter » · « Importer » et la progression, sans « Rechercher »');
-  const barre = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large', partie: 'barre', status: 'running' })} />);
+    && !texteVisible(reglages).includes('Préparation…'),
+    'deux piles, réglages : objectifs et import/export, sans bouton de recherche ni progression');
+  const progression = rendre(<ObjectifEtRechercherBureau {...props({ partie: 'progression', status: 'running' })} />);
+  ok(texteVisible(progression).includes('Préparation…') && !bouton(progression, 'Rechercher'), 'deux piles : progression séparée de la barre collée');
+  const barre = rendre(<ObjectifEtRechercherBureau {...props({ partie: 'barre', status: 'running' })} />);
   ok(!!bouton(barre, 'Arrêter') && !texteVisible(barre).includes('Objectif de recherche') && !texteVisible(barre).includes('Préparation…')
     && !barre.includes('rounded-xl border border-border bg-panel p-2') && !/aria-hidden="true" class="invisible col-start-1 row-start-1"/.test(barre),
-    'A1, collé : « Arrêter » à la place de « Rechercher », seul — ni panneau, ni objectifs, ni progression');
-  // Forme large : « Rechercher » à droite de « Exporter » · « Importer » (hors d'une colonne superposée, à 1230),
+    'deux piles, collé : « Arrêter » à la place de « Rechercher », seul — ni panneau, ni objectifs, ni progression');
+  // « Rechercher » à droite de « Exporter » · « Importer »,
   // ou dessous, pleine largeur, sous 448 px de rangée (requête sur la rangée elle-même ; au navigateur :
   // testRenduOptimizerGabaritsLargeurs).
-  const large = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large' })} />);
+  const large = rendre(<ObjectifEtRechercherBureau {...props({  })} />);
   ok(/class="@container\/rangee"><div class="flex flex-col-reverse gap-2 @\[448px\]\/rangee:flex-row-reverse/.test(large)
     && /class="grid w-full @\[448px\]\/rangee:w-60 @\[448px\]\/rangee:flex-none"/.test(large),
     'forme large : « Rechercher », 240 px, à droite de sa rangée, dessous et pleine largeur sous 448 px de rangée');
-  ok(/class="grid flex-none w-60"/.test(barre) && /class="flex justify-end/.test(barre), 'A1, collé : « Rechercher » (ou « Arrêter ») toujours à 240 px, à droite');
+  ok(/class="grid w-60 flex-none"/.test(barre) && /class="flex justify-end/.test(barre), 'deux piles, collé : « Rechercher » (ou « Arrêter ») toujours à 240 px, à droite');
 
   // Pendant une recherche : « Arrêter » à la place de « Rechercher », inactif au premier rendu (300 ms).
   const enCours = rendre(<ObjectifEtRechercherBureau {...props({ status: 'running' })} />);
@@ -192,8 +194,8 @@ export function testRenduOptimizerGabaritsDroite() {
   const telephone = rendre(<ProgressionRecherche status="running" progress={appariement} refusal={null} compteAffiche={{ compte: 1_234 }} />);
   ok(/h-2 w-full overflow-hidden rounded-full/.test(telephone) && !/budget de recherche/.test(telephone), 'progression hors bureau : la barre reste, sans la phrase du budget');
 
-  const sansMonstre = rendre(<ObjectifEtRechercherBureau {...props({ selected: null, forme: 'large' })} />);
-  ok(!!bouton(sansMonstre, 'Rechercher')?.desactive && !/grid-template-columns:repeat\(2/.test(sansMonstre), 'large, sans monstre : « Rechercher » désactivé, objectifs sur une ligne');
+  const sansMonstre = rendre(<ObjectifEtRechercherBureau {...props({ selected: null })} />);
+  ok(!!bouton(sansMonstre, 'Rechercher')?.desactive && /grid-template-columns:repeat\(2/.test(sansMonstre), 'sans monstre : Rechercher désactivé, objectifs en 2 × 2 avant mesure de leur largeur');
 
   // Résultats : place d'attente avant la première recherche, contenu ensuite.
   ok(texteVisible(rendre(<ResultatsBureau attente="sans-recherche" />)).includes('Aucune recherche lancée pour ce monstre.'), 'résultats : la place d\'attente le dit');
@@ -201,8 +203,9 @@ export function testRenduOptimizerGabaritsDroite() {
   ok(texteVisible(rendre(<ResultatsBureau attente={null}><p>Cartes</p></ResultatsBureau>)) === 'Cartes', 'résultats : le contenu de l\'écran, sans attente');
 
   // Le registre : les gabarits de 6c2 suivent ceux des essentiels.
-  egal(GABARITS.slice(6).map((g) => g.id), ['artefacts', 'meilleurs', 'auras', 'exclusion', 'avances', 'exemplaire', 'objectif-etroit', 'objectif-large', 'resultats'],
-    'les colonnes repliables et la colonne de droite sont au registre, dans l\'ordre de la page');
+  egal(GABARITS.slice(6).map((g) => g.id), ['artefacts', 'meilleurs', 'auras', 'exclusion', 'avances', 'exemplaire', 'objectif', 'resultats',
+    'configuration-deux-piles', 'configuration-groupe', 'configuration-criteres-et-groupe', 'configuration-colonnes'],
+    'les réglages, le bloc unique, les résultats et les quatre configurations sont au registre');
   ok(GABARITS.filter((g) => g.elastique).every((g) => g.etats.every((e) => (e.largeur ?? g.largeur) >= g.largeur)), 'une boîte élastique ne se montre jamais sous sa largeur minimale');
 }
 
@@ -214,46 +217,24 @@ export function testRenduOptimizerPageBureauDroite() {
   const page = (rappelAuras: boolean) => rendre(
     <PageBureau liste={<p>Liste</p>} set={null} conditions={null} principales={null} etat={null} artefacts={<p>Artefacts</p>} meilleurs={null}
       auras={<SetsAuraBureau setup={DEFAULT_DAMAGE_SETUP} maj={rien} rappel={rappelAuras} onGuiderResPre={rien} />} exclusion={null} avances={null}
-      exemplaire={<p>Exemplaire</p>} objectif={({ forme, cadre, partie }) => <p>Bloc {forme} {partie} {cadre ? 'panneau' : 'section'}</p>} resultats={<ResultatsBureau attente="sans-monstre" />}
-      colonnes={{ artefacts: true, complements: true, derniere: 'complements' }} onColonnes={rien} rappelAuras={rappelAuras} />);
+      exemplaire={<p>Exemplaire</p>} objectif={({ cadre, partie }) => <p>Bloc large {partie} {cadre ? 'panneau' : 'section'}</p>} resultats={<ResultatsBureau attente="sans-monstre" />}
+      onglet="complements" onOnglet={rien} rappelAuras={rappelAuras} />);
   const html = page(false);
   const zones = [...html.matchAll(/data-zone="([a-z-]+)"/g)].map((m) => m[1]);
-  egal(zones, ['essentiels', 'objectif', 'barre', 'onglets', 'colonnes', 'droite', 'exemplaire', 'resultats'],
-    'ordre du DOM : essentiels, bloc « Objectif et Rechercher » (l\'objectif se choisit tôt) et sa barre fine, onglets, colonnes, colonne de droite (Exemplaire, résultats)');
-  ok(/data-zone="objectif" data-forme="large"/.test(html) && texteVisible(html).includes('Bloc large reglages panneau') && texteVisible(html).includes('Bloc large barre panneau'),
-    'largeur inconnue (rendu serveur) : comme en A1, le bloc large dans son panneau, ses réglages à leur place et « Rechercher » à part');
-  ok(/data-zone="droite" class="contents /.test(html) && /<div class="contents @\[952px\]:grid/.test(html),
-    'hors A3, la colonne de droite s\'efface (`display: contents`) : Exemplaire et résultats sont des cases de la grille de la page');
-  ok(!/data-page-fenetre/.test(html) && !/style="[^"]*height/.test(html.slice(0, html.indexOf('>'))),
-    'largeur inconnue (rendu serveur) : la page n\'est pas à hauteur de fenêtre, comme en A1');
-  ok(!/(?<!before:)sticky/.test(html.replace(/data-zone="barre" class="sticky/, '')),
-    'aucune colonne collée : seul « Rechercher » de A1 l\'est (la bande d\'une colonne, son `::before` collé en A3, n\'en est pas une)');
-  // La bande braise : le contour du haut du panneau (3 px, à la place du trait
-  // de 1 px, rembourrage du haut réduit d'autant), dessinée par le `::before`
-  // du panneau : un anneau de la hauteur du rayon (3 px en haut, 1 px de côté)
-  // dont le fond, braise vive pleine sur 3 px puis effacée en dégradé jusqu'au
-  // bas de l'arrondi, est rogné par un masque ; le contour du haut du panneau
-  // est transparent. Posé sur le haut du panneau hors de l'A3, collé au pixel 0
-  // de la boîte qui défile en A3 (`BANDE_FIXE`).
-  const panneauDe = (zone: string) => {
-    const i = html.indexOf(`data-zone="${zone}"`);
-    const m = /<div class="([^"]*)"/.exec(html.slice(i));
-    return m ? m[1] : '';
-  };
-  const classes = (c: string) => c.split(/\s+/);
-  const essentiels = classes(panneauDe('essentiels')), droite = classes(panneauDe('droite'));
-  const DEGRADE = 'before:[background:linear-gradient(to_bottom,rgb(var(--accent))_3px,rgb(var(--accent)/0)_100%)_border-box,linear-gradient(rgb(var(--border)),rgb(var(--border)))_border-box]';
-  const anneau = (p: string) => [`${p}before:h-[var(--radius-xl)]`, `${p}before:rounded-t-xl`, `${p}before:border-t-[3px]`, `${p}before:border-x`,
-    `${p}before:border-transparent`, `${p}${DEGRADE}`, `${p}before:[mask-composite:exclude]`];
-  const bandeFixe = ['@[952px]:border-t-transparent', '@[952px]:before:sticky', '@[952px]:before:top-0', ...anneau('@[952px]:')];
-  const sansOmbreNiTrait = (c: string[]) => !c.some((x) => x.includes('shadow-[inset') || x.includes('border-t-[rgb(var(--accent))]'));
-  ok(['border-t-[3px]', 'border-t-transparent', 'pt-[6px]', 'rounded-xl', 'before:absolute', 'before:-top-[3px]', ...anneau(''), ...bandeFixe]
-    .every((c) => essentiels.includes(c)) && sansOmbreNiTrait(essentiels),
-    'essentiels : la bande est le haut du panneau, braise pleine sur 3 px puis en dégradé jusqu\'au bas de l\'arrondi, recopiée en A3 en haut de la boîte qui défile, sans ombre intérieure');
-  ok(['@[952px]:border-t-[3px]', '@[952px]:border-t-transparent', '@[952px]:pt-[6px]', ...bandeFixe, '@[952px]:before:row-[1/span_3]'].every((c) => droite.includes(c))
-    && sansOmbreNiTrait(droite),
-    'colonne de droite : même bande en dégradé en A3, recopiée sur toutes les rangées de la grille du panneau');
-  ok(droite.includes('@[952px]:mr-1'), 'colonne de droite : en A3, son panneau s\'arrête à 4 px de sa barre de défilement');
+  egal(zones, ['monstre', 'exemplaire', 'pile-droite', 'onglets', 'objectif', 'barre', 'resultats'],
+    'ordre de lecture : Monstre (liste puis exemplaire), pile de droite (onglets, objectif, recherche, résultats)');
+  ok(texteVisible(html).includes('Bloc large reglages section') && texteVisible(html).includes('Bloc large barre section')
+    && texteVisible(html).includes('Bloc large progression section'),
+    'largeur inconnue : deux piles, bloc en trois parties sans cadre individuel');
+  ok(/data-zone="pile-droite" class="h-full min-h-0 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain \[scrollbar-gutter:stable\]"/.test(html),
+    'la pile est un panneau qui défile et réserve sa barre, sans display:contents');
+  ok(/data-page-fenetre/.test(html) && !/style="[^"]*height/.test(html.slice(0, html.indexOf('>'))),
+    'page à hauteur visible dans toutes les configurations ; la hauteur attend la mesure au navigateur');
+  ok(/data-zone="barre" class="relative /.test(html) && !/data-zone="barre" class="[^"]*sticky/.test(html), 'deux piles : la barre de recherche reste à sa place, sans coller au bas');
+  ok(html.includes('rounded-xl border border-border bg-panel p-2') && html.includes('before:border-t before:border-border')
+    && !html.includes('linear-gradient') && !html.includes('border-t-[3px]'),
+    'panneaux : un contour de 1 px et un haut fixe, sans bande braise en dégradé');
+  ok(/class="relative mr-1"/.test(html), 'pile de droite : 4 px entre panneau et barre réservée');
   ok(/^<div class="-mx-3 @container"/.test(html),
     'page de bureau : marges de 12 px, 12 px repris de chaque côté sur les 24 de la page ou du volet (au premier rendu, avant la mesure), la racine restant le conteneur');
   // Les coins d'une colonne qui défile : la boîte est rognée aux coins du haut
@@ -271,8 +252,8 @@ export function testRenduOptimizerPageBureauDroite() {
   egal(regions(html), [''], 'hors rappel : une seule région, vide');
   const avecRappel = page(true);
   egal(regions(avecRappel), ['Pense à vérifier les sets d\'aura externes.'], 'pendant le rappel : la page l\'annonce, une fois');
-  const colonnes = avecRappel.slice(avecRappel.indexOf('data-zone="colonnes"'));
-  ok(!/aria-live/.test(colonnes), 'l\'annonce n\'est pas dans les colonnes repliables : elle reste montée colonne fermée');
+  const colonnes = avecRappel.slice(avecRappel.indexOf('data-zone="monstre"'));
+  ok(!/aria-live/.test(colonnes), 'l\'annonce précède tous les panneaux : elle reste montée quel que soit l\'onglet');
 
   // La place d'attente pendant une recherche sans carte : cadre, sans « Aucune recherche lancée… » lisible.
   const sansCarte = rendre(<ResultatsBureau attente="sans-carte" />);

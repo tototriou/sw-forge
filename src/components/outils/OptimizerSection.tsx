@@ -1,4 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react';
+import { Bouton, Segmented } from '../../ui';
 import type { ContenuListeOptimizer, EquipeOptimizer } from '../../lib/optimizerMemberStorage';
 import OptimizerEquipeDialog from './OptimizerEquipeDialog';
 import OptimizerCreateListDialog from './OptimizerCreateListDialog';
@@ -93,7 +94,7 @@ import {
   type OptimizerListMember,
   SOURCE_OPTIONS,
   autoExcludedRuneIds,
-  etatAjoutListe,
+  exemplaireSuivantEspece,
   exclusionCandidatesFor,
   exclusionSelectorKey,
   findValidatedBuild,
@@ -162,7 +163,7 @@ import GrilleResultats from './optimizer/GrilleResultats';
 import BandeDeTri, { type TriResultats } from './optimizer/TetesDeTri';
 import TableauResultats, { CARTES_SOUS_LE_SEUIL, TABLEAU_VISIBLE } from './optimizer/TableauResultats';
 import BuildCandidateCard from './BuildCandidateCard';
-import { setFormeResultats, useFormeResultats, type FormeResultats } from '../../hooks/useFormeResultats';
+import { useFormeResultats, type FormeResultats } from '../../hooks/useFormeResultats';
 import { libelleColonne } from '../../lib/filtresAffichage';
 import { Modale } from '../../ui';
 import MessageImportRecette from './optimizer/MessageImportRecette';
@@ -180,7 +181,7 @@ import ReglagesAvancesBureau from './optimizer/bureau/ReglagesAvancesBureau';
 import ExemplaireBureau from './optimizer/bureau/ExemplaireBureau';
 import ObjectifEtRechercherBureau from './optimizer/bureau/ObjectifEtRechercherBureau';
 import ResultatsBureau from './optimizer/bureau/ResultatsBureau';
-import { attenteResultats, type ColonnesOuvertes } from '../../lib/optimizerColonnes';
+import { attenteResultats, type ColonneReglage } from '../../lib/optimizerColonnes';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -395,7 +396,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const {
     selectedId,
     setSelectedId,
-    gearSource: gearSourceMemorise,
     setGearSource,
     sourceSelector: selecteurMemorise,
     setSourceSelector,
@@ -922,10 +922,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     [speciesMonster, box, exclusionData]
   );
 
-  // Source active — box (défaut), RTA, ou un deck de siège. ⚠️ Ne filtre
-  // pas la RECHERCHE : une fois l'ESPÈCE choisie par la recherche
-  // bestiaire (`speciesMonster`), les puces choisissent seulement quel
-  // EXEMPLAIRE de cette espèce afficher/optimiser. `gearSource` et
+  // L'exemplaire optimisé reste mémorisé entre les pages. Les puces ne
+  // changent que l'aperçu local, jamais cette sélection. `gearSource` et
   // `sourceSelector` vivent dans `useOptimizerState` : ils survivent au
   // changement de page et entrent dans la sauvegarde de session ; jamais
   // dans la recette exportée ni les scripts CLI (une recette ne porte que
@@ -959,76 +957,56 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     setSourceSelector(remplacantAuMontage);
   }, []);
   const avantEnregistrement = !montageEnregistre.current && remplacantAuMontage !== undefined;
-  const gearSource: ExclusionSource = avantEnregistrement ? 'box' : gearSourceMemorise;
   const sourceSelector: ExclusionSelector | null = avantEnregistrement ? remplacantAuMontage : selecteurMemorise;
+  const candidatsApercu = useMemo(() => Object.fromEntries(SOURCE_OPTIONS.map(o => [o.key,
+    candidatesBySource[o.key].filter(c => !sourceSelector || exclusionSelectorKey(c.selector) !== exclusionSelectorKey(sourceSelector)),
+  ])) as Record<ExclusionSource, ExclusionCandidate[]>, [candidatesBySource, sourceSelector]);
   // Zone D — désambiguïsation d'exemplaire (plusieurs candidats dans la
   // source active pour l'espèce choisie, ex. 2 équipes de siège) : un
   // `Flottant` ouvert EXPLICITEMENT par un clic sur une puce (`pickSource`),
   // jamais automatiquement — voir le rendu plus bas.
   const [zoneDOpen, setZoneDOpen] = useState(false);
+  const [sourceApercu, setSourceApercu] = useState<ExclusionSource>('box');
+  const [apercu, setApercu] = useState<ExclusionSelector | null>(null);
 
-  // Choisit la source active ET résout l'exemplaire s'il n'y en a qu'UN pour
-  // l'espèce courante dans cette source — sinon ouvre la désambiguïsation
-  // (zone D) plutôt que de deviner. Une puce désactivée (aucun candidat,
-  // voir `candidatesBySource`) n'appelle jamais cette fonction (voir
-  // `disabled` du `Segmented`, plus bas).
-  // Un autre exemplaire de la MÊME espèce est désigné (puce de source,
-  // zone D, même espèce rechoisie au bestiaire) : le choix de relique de
-  // l'utilisateur est gardé, sauf « Comme équipée » sur un
-  // exemplaire qui n'en porte pas — la recherche tournerait alors sans
-  // relique, sans rien en dire.
-  function reliqueCoherenteAvecExemplaire(relique: RelicDetail | undefined) {
-    optimizer.poserCriteresAutomatiques((c) => ({ relicMainChoice: relicMainChoiceApresChangementExemplaire(c.relicMainChoice, relique, true) }));
-  }
-
+  // Une seule alternative : aperçu direct ; plusieurs : choix explicite.
+  // Recliquer la source regardée rend la vue qui précédait l'aperçu.
   function pickSource(source: ExclusionSource) {
-    optimizer.effacerProprietaireCriteres();
-    setGearSource(source);
-    const candidates = candidatesBySource[source];
-    if (candidates.length === 1) {
-      setSourceSelector(candidates[0].selector);
-      reliqueCoherenteAvecExemplaire(candidates[0].gear.relic);
+    if (apercu?.source === source) {
+      setApercu(null);
       setZoneDOpen(false);
-      inclureSelectionRecherche(candidates[0].selector, candidates[0].monster);
+      return;
+    }
+    setSourceApercu(source);
+    const candidates = candidatsApercu[source];
+    if (candidates.length === 1) {
+      setApercu(candidates[0].selector);
+      setZoneDOpen(false);
     } else if (candidates.length > 1) {
-      setSourceSelector(null);
       setZoneDOpen(true);
     } else {
-      setSourceSelector(null);
       setZoneDOpen(false);
     }
   }
 
-  // Choisit l'ESPÈCE (recherche bestiaire, voir `MonsterSourcePicker mode=
-  // "bestiary"` plus bas) — rappelle d'abord le membre présent de l'espèce
-  // dans la liste active ; sinon remet la source à Box et résout le PREMIER
-  // exemplaire Box (demande explicite : plutôt qu'ouvrir la désambiguïsation
-  // dès qu'il y en a plusieurs, choisir un exemplaire par défaut — l'utilisateur
-  // reste libre de changer via la zone D). Aucun exemplaire Box, mais possédée
-  // ailleurs (RTA/siège) : repli sur `null`, jamais la désambiguïsation
-  // ouverte automatiquement — un clic sur la recherche ne doit pas faire
-  // surgir un panneau qu'on n'a pas demandé, voir docs/03-developpeur/interface/.
-  // ⚠️ Possédée NULLE PART : `unownedSelectorIfNoneOwned` — permet
-  // « Ajouter à la liste »/« Valider ce build » sur ses stats de base 6★
-  // seules (demande explicite, voir ExclusionSelector « unowned »).
+  // L'espèce ajoute son prochain exemplaire, sans rappeler les critères
+  // d'un membre déjà présent. La disponibilité est revérifiée au geste.
   function pickSpecies(monster: Monster) {
-    const membrePresent = lists.activeListId && monster.com2usId ? lists.members.find(m => m.listId === lists.activeListId
-      && resolveExclusionEntry(m.selector, exclusionData)?.monster.com2usId === monster.com2usId) : null;
-    if (membrePresent) {
-      optimizer.choisirMembre(membrePresent.listId, membrePresent.selector);
-      setZoneDOpen(false);
+    const selector = disponibiliteEspece(monster).suivant;
+    if (!selector) return;
+    if (String(monster.id) === selectedId) {
+      choisirExemplaire(selector, monster);
+      if (!lists.activeListId) setAddListPromptOpen('recherche');
+      else inclureSelectionRecherche(selector, monster);
       return;
     }
     optimizer.effacerProprietaireCriteres();
     const id = String(monster.id);
-    // ⚠️ Calculé AVANT le `if` : le défaut de
-    // relique (ci-dessous) a besoin du premier exemplaire Box pour
-    // connaître la relique RÉELLEMENT portée, comme `setSourceSelector` plus
-    // bas — un seul calcul, pas une résolution séparée qui pourrait diverger.
-    const boxCandidates = speciesCandidatesBySource(monster.com2usId, box, exclusionData).box;
+    // Le défaut vient de l'exemplaire effectivement ajouté, RTA/siège compris.
+    const equipement = resolveExclusionEntry(selector, exclusionData)?.gear;
     if (id !== selectedId) {
       resetSearch();
-      const defauts = criteresApresChangementEspece(optimizer, 'bestiaire', boxCandidates[0]?.gear);
+      const defauts = criteresApresChangementEspece(optimizer, 'bestiaire', equipement);
       // ⚠️ **Le défaut affiché doit être celui qui s'applique — jamais un
       // défaut faux, comme cela s'est vu pour les artéfacts** : `defaultRelicMainChoice` (useOptimizerState.ts)
       // est la SOURCE du défaut, câblée ici parce que c'est le seul site qui
@@ -1062,14 +1040,17 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
        */
       optimizer.poserCriteresAutomatiques({ objective: defauts.objective, critereArtefacts: defauts.critereArtefacts });
     }
-    else reliqueCoherenteAvecExemplaire(boxCandidates[0]?.gear.relic);
     setSelectedId(id);
-    setGearSource('box');
-    const selector = boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(monster, box, exclusionData);
+    setGearSource(selector.source === 'unowned' ? 'box' : selector.source);
     setSourceSelector(selector);
+    setApercu(null);
     setZoneDOpen(false);
     if (!lists.activeListId) setAddListPromptOpen('recherche');
     else inclureSelectionRecherche(selector, monster);
+  }
+
+  function disponibiliteEspece(monster: Monster) {
+    return exemplaireSuivantEspece(monster, speciesCandidatesBySource(monster.com2usId, box, exclusionData), lists.members, lists.activeListId);
   }
 
   // Une résolution explicite partage l'inclusion ordinaire : capture au geste,
@@ -1133,9 +1114,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // valider son runage actuel) alors qu'aucune liste n'est encore active —
   // crée la liste ET fait l'action d'origine dans le même geste. Porte
   // laquelle des deux actions relancer une fois la liste créée (voir
-  // `handleAddToList`/`handleValidateDisplayed` plus bas), pas juste un
+  // `handleValidateDisplayed` plus bas), pas juste un
   // booléen — les deux boutons partagent ce même prompt.
-  const [addListPromptOpen, setAddListPromptOpen] = useState<'add' | 'validate' | 'recherche' | null>(null);
+  const [addListPromptOpen, setAddListPromptOpen] = useState<'validate' | 'recherche' | null>(null);
   const [equipeOuverte, setEquipeOuverte] = useState<{ listId: string; equipe: EquipeOptimizer | null } | null>(null);
 
   // L'exemplaire RÉELLEMENT optimisé — l'entrée choisie explicitement (ou
@@ -1171,22 +1152,17 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const [showRealGear, setShowRealGear] = useState(false);
   useEffect(() => {
     setShowRealGear(false);
-  }, [ownSelectorKey]);
+    setApercu(null);
+    setZoneDOpen(false);
+  }, [ownSelectorKey, lists.activeListId, selectedId]);
 
   const selected = useMemo(() => {
     if (sourceSelector) {
       const resolved = resolveExclusionEntry(sourceSelector, exclusionData);
       if (resolved) {
-        // ⚠️ **Runes VALIDÉES affichées comme équipées** — un build
-        // trouvé par la recherche puis validé n'est PAS réellement reruné en
-        // jeu ; substituer seulement `runes` (base/artéfacts/relique restent
-        // ceux réellement équipés, voir docs/02-app/optimizer/,
-        // « Zone C — Monstres de la liste ») donne l'illusion voulue « ce
-        // monstre porte déjà ce build » sans toucher au reste de la fiche.
-        // `showRealGear` désactive CETTE substitution (mais pas la
-        // résolution elle-même) pour retrouver l'équipement réel sur
-        // demande.
-        if (ownValidatedBuild && !showRealGear) {
+        // Le build validé est l'équipement de départ de la recherche,
+        // indépendamment de ce que l'utilisateur choisit de regarder.
+        if (ownValidatedBuild) {
           const validatedRunes = ownValidatedBuild.runeIds
             .map((id) => runeById.get(id))
             .filter((r): r is RuneDetail => !!r);
@@ -1222,7 +1198,15 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     }
     if (!speciesMonster) return null;
     return { monster: speciesMonster, gear: { base: monsterBaseStats(speciesMonster), runes: [], artifacts: [] } };
-  }, [sourceSelector, exclusionData, speciesMonster, ownValidatedBuild, runeById, artifactById, relicById, showRealGear]);
+  }, [sourceSelector, exclusionData, speciesMonster, ownValidatedBuild, runeById, artifactById, relicById]);
+
+  // La recherche ne lit jamais cet état de vue : seuls fiche, Comparer et
+  // Valider consomment l'équipement affiché.
+  const selectionAffichee = useMemo(() => {
+    if (apercu) return resolveExclusionEntry(apercu, exclusionData) ?? selected;
+    if (showRealGear && sourceSelector) return resolveExclusionEntry(sourceSelector, exclusionData) ?? selected;
+    return selected;
+  }, [apercu, showRealGear, sourceSelector, exclusionData, selected]);
 
   // Un réimport du compte remet les critères à zéro (`resetSearch('compte')`,
   // App.tsx) sans connaître le monstre resté sélectionné : le défaut de
@@ -1238,21 +1222,12 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   /**
    * Les stats de RÉFÉRENCE du bouton « Comparer » — celles de la fiche.
    *
-   * ⚠️ Déclarées ICI, juste après `selected`, et pas à côté de `compareKey`
-   * plus haut : `selected` est un `useMemo` déclaré à cette ligne, et le lire
-   * avant produit un « used before its declaration » que seul `tsc` attrape —
-   * `npm run build` passait sans broncher.
-   *
-   * ⚠️ **Rien à recalculer pour couvrir « validé sinon courant »** :
-   * `selected.gear` EST déjà le build validé quand il en existe un (runes ET
-   * artéfacts substitués, voir juste au-dessus), et l'équipement réel sinon.
-   * Refaire cette résolution ici l'aurait dupliquée, et aurait raté « Voir le
-   * runage réellement porté », qui la désactive exprès.
+   * La résolution de la fiche est partagée avec son rendu : aucune seconde
+   * décision « validé, actuel ou aperçu » dans la comparaison.
    */
-  const statsReference = useMemo(() => (selected ? computeStats(selected.gear) : null), [selected]);
-  // Les activations d'aura des runes de CETTE fiche : elles
-  // accompagnent `statsReference` et tout calcul fait sur `selected.gear`
-  // (paire représentative, bloc « Meilleurs artéfacts »). Sans rune, zéro.
+  const statsReference = useMemo(() => (selectionAffichee ? computeStats(selectionAffichee.gear) : null), [selectionAffichee]);
+  // Les auras de l'équipement optimisé servent la paire représentative et
+  // « Meilleurs artéfacts ». La comparaison résout celles de sa propre fiche.
   const aurasPropresFiche = useMemo(() => aurasPropresDesRunes(selected?.gear.runes ?? []), [selected]);
   /**
    * La référence d'efficience/score total du bouton « Comparer » (celles des
@@ -1265,10 +1240,10 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
    */
   const refMetric = useMemo(
     () =>
-      selected
-        ? selected.gear.runes.reduce((n, r) => n + (metric === 'eff' ? runeEfficiency(r) : runeScore(r)), 0)
+      selectionAffichee
+        ? selectionAffichee.gear.runes.reduce((n, r) => n + (metric === 'eff' ? runeEfficiency(r) : runeScore(r)), 0)
         : null,
-    [selected, metric]
+    [selectionAffichee, metric]
   );
 
   // `unitKey` (box) de l'entrée à protéger contre sa propre exclusion —
@@ -1826,7 +1801,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     if (!selected) return;
     if (comboSets.length === 0) {
       setSetPickerInvalid(true);
-      setPickerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (sousLg) setPickerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      else setGuideCriteres((n) => (n ?? 0) + 1);
       return;
     }
     setSetPickerInvalid(false);
@@ -2011,10 +1987,20 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // le panneau « Options » au doigt.
   const interrupteurResPreBureauRef = useRef<HTMLDivElement>(null);
   const interrupteurResPrePanneauRef = useRef<HTMLDivElement>(null);
-  // Les états des onglets du bureau (`PageBureau`) : `null` tant que
-  // l'utilisateur n'y a pas touché, l'état de départ suit alors la largeur.
-  // Local à l'écran, comme tout état d'ouverture (src/lib/optimizerColonnes.ts).
-  const [colonnesBureau, setColonnesBureau] = useState<ColonnesOuvertes | null>(null);
+  // L'onglet du groupe, local à l'écran : une recherche ne le réinitialise pas.
+  const [ongletBureau, setOngletBureau] = useState<ColonneReglage | null>(null);
+  const [guideCriteres, setGuideCriteres] = useState<number | null>(null);
+  const dernierGuideSet = useRef<number | null>(null);
+  useEffect(() => {
+    if (sousLg || guideCriteres == null || guideCriteres === dernierGuideSet.current) return;
+    const el = setPickerSectionRef.current;
+    if (!el) return;
+    const image = requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      dernierGuideSet.current = guideCriteres;
+    });
+    return () => cancelAnimationFrame(image);
+  }, [guideCriteres, ongletBureau, sousLg]);
   // Le jeton du guidage vers « Aura, exclusion, avancés ».
   const [guideComplements, setGuideComplements] = useState<number | null>(null);
 
@@ -2036,19 +2022,19 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   useEffect(() => {
     if (attentionResPre === null) return;
     // Au bureau, l'interrupteur n'est rendu que colonne ouverte : l'effet se
-    // rejoue quand l'état des onglets change (`colonnesBureau`).
+    // rejoue quand l'onglet du groupe change (`ongletBureau`).
     const el = sousLg
       ? menuOuvert
         ? interrupteurResPrePanneauRef.current
         : null
       : interrupteurResPreBureauRef.current;
     if (!el) return;
-    // Au bureau, en A3, c'est la colonne repliable qui défile, seule.
+    // Au bureau, la colonne ou la pile défile seule.
     const image = requestAnimationFrame(() => {
       el.scrollIntoView({ behavior: 'smooth', block: sousLg ? 'center' : 'nearest' });
     });
     return () => cancelAnimationFrame(image);
-  }, [attentionResPre, sousLg, menuOuvert, colonnesBureau]);
+  }, [attentionResPre, sousLg, menuOuvert, ongletBureau]);
 
   function importRecipe(file: File) {
     file.text().then((text) => {
@@ -2314,7 +2300,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const contexteReferenceResultat = useMemo(() => contexteResultatAffiche
     ? { degats: contexteResultatAffiche.realDamage, damageSetup: contexteResultatAffiche.damageSetup, exclusive: contexteResultatAffiche.exclusive }
     : contexteReference, [contexteResultatAffiche, contexteReference]);
-  const ficheDeReference = selected?.gear;
+  const ficheDeReference = selectionAffichee?.gear;
   const refEhpResultat = useMemo(() => ficheDeReference ? scoreDeReference('ehp', ficheDeReference, contexteReferenceResultat) : null, [ficheDeReference, contexteReferenceResultat]);
   const refDegatsResultat = useMemo(() => ficheDeReference ? scoreDeReference('degats_reels', ficheDeReference, contexteReferenceResultat) : null, [ficheDeReference, contexteReferenceResultat]);
 
@@ -2417,7 +2403,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const sourceOptions = SOURCE_OPTIONS.map((o) => ({
     ...o,
     label: libellePuceSource(o.label, candidatesBySource[o.key].length),
-    disabled: candidatesBySource[o.key].length === 0,
+    disabled: candidatsApercu[o.key].length === 0,
   }));
   const allSourcesEmpty = sourceOptions.every((o) => o.disabled);
 
@@ -2433,17 +2419,15 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // réutilisé tel quel dans le `Flottant` du bureau et le bloc en ligne du
   // mobile (voir le rendu plus bas), qui ne diffèrent QUE par leur
   // présentation (flottant vs en ligne), pas par leur contenu.
-  // Le geste d'un exemplaire de la zone D : il devient l'exemplaire optimisé.
+  // La zone D choisit uniquement la fiche regardée.
   function choisirExemplaireZoneD(c: ExclusionCandidate) {
-    setSourceSelector(c.selector);
-    reliqueCoherenteAvecExemplaire(c.gear.relic);
+    setApercu(c.selector);
     setZoneDOpen(false);
-    inclureSelectionRecherche(c.selector, c.monster);
   }
   const zoneDList =
     <ChoixExemplaire
-      candidatesBySource={candidatesBySource}
-      gearSource={gearSource}
+      candidatesBySource={candidatsApercu}
+      gearSource={sourceApercu}
       choisirExemplaireZoneD={choisirExemplaireZoneD}
     />;
 
@@ -2461,30 +2445,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   ];
   const listHasValidated = activeList != null && lists.validated.some((v) => v.listId === activeList.id);
 
-  // « Ajouter à la liste » — agit sur `sourceSelector`, qui porte soit un
-  // exemplaire RÉELLEMENT résolu, soit (demande explicite : « ajouter un
-  // monstre qu'on ne possède pas ») un sélecteur `unowned` quand l'espèce
-  // n'est possédée dans AUCUNE des 4 sources (voir `unownedSelectorIfNoneOwned`) —
-  // `null` seulement si aucune espèce n'est choisie, ou si elle est possédée
-  // mais pas encore désambiguïsée (zone D). Sans liste active, crée-en une
-  // ET y ajoute le monstre dans le même geste plutôt que d'obliger un
-  // aller-retour par le menu déroulant.
-  // ⚠️ L'exemplaire affiché déjà membre, un autre
-  // exemplaire Box de l'espèce absent de la liste → le bouton reste actif
-  // (« Ajouter un autre exemplaire de … ») et vise le premier exemplaire Box
-  // absent, dans l'ordre de la zone D. Décision pure : `etatAjoutListe`.
-  const ajoutListe = etatAjoutListe({
-    monstre: selected?.monster.name ?? null,
-    selecteur: sourceSelector,
-    listeActiveId: lists.activeListId,
-    nomListe: activeList?.name ?? '',
-    membres: lists.members,
-    candidatsBox: candidatesBySource.box,
-  });
-
   // Change l'exemplaire optimisé — chemin UNIQUE des gestes qui désignent un
-  // exemplaire précis hors des puces de source : un membre de la zone C et
-  // le bouton « Ajouter un autre exemplaire ». Autre espèce :
+  // exemplaire précis : ajout par espèce et membre de la zone C. Autre espèce :
   // `resetSearch` habituel. Même espèce, AUTRE exemplaire : la recherche
   // affichée a été faite pour l'ancien — sa
   // fiche, sa relique, ses artéfacts portés ; effacée comme au changement
@@ -2515,25 +2477,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     if (selector.source !== 'unowned') setGearSource(selector.source);
     setSourceSelector(selector);
     setZoneDOpen(false);
+    setApercu(null);
   }
 
-  function handleAddToList() {
-    if (!sourceSelector) return;
-    if (!lists.activeListId) {
-      setAddListPromptOpen('add');
-      return;
-    }
-    const suivant = ajoutListe.exemplaireSuivant;
-    if (suivant) {
-      choisirExemplaire(suivant.selector, suivant.monster);
-      lists.addMember(lists.activeListId, suivant.selector, suivant.monster.com2usId!);
-      optimizer.capturerMembre(lists.activeListId, suivant.selector);
-      return;
-    }
-    if (!selected?.monster.com2usId) return;
-    lists.addMember(lists.activeListId, sourceSelector, selected.monster.com2usId);
-    optimizer.capturerMembre(lists.activeListId, sourceSelector);
-  }
   // Au téléphone, la ligne du monstre choisi est observée : hors de l'écran,
   // le bouton « Options » prend son icône (aucun élément de plus à l'écran).
   const ligneMonstreTelephoneRef = useRef<HTMLDivElement>(null);
@@ -2547,7 +2493,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     observateur.observe(ligne);
     return () => { observateur.disconnect(); onMonstreHorsVue(null); };
   }, [onMonstreHorsVue, monstreAffiche]);
-  const unowned = sourceSelector?.source === 'unowned';
 
   // « Valider ce build » (sous la fiche stats+artéfacts+runes+relique,
   // demande explicite) — valide directement les runes ACTUELLEMENT
@@ -2556,22 +2501,15 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // RÉSERVER dans la liste. Exige exactement 6 runes affichées (même
   // contrainte qu'un build trouvé par la recherche, `ValidatedBuild.
   // runeIds` porte toujours 6 ids) — rien à valider sur un exemplaire
-  // partiellement runé ou nu (`unowned`, `EMPTY_GEAR`). ⚠️ Si `selected.gear
-  // .runes` reflète déjà un build VALIDÉ (voir `selected`, substitution des
-  // runes) le bouton affiche « Validé » (identique à `BuildCandidateCard`)
-  // plutôt que de re-valider inutilement les mêmes runes.
-  const displayedRuneIds = selected?.gear.runes.map((r) => r.id) ?? [];
+  // partiellement runé ou nu (`unowned`, `EMPTY_GEAR`). La comparaison avec
+  // la réservation porte sur les trois parties de l'équipement affiché.
+  const displayedRuneIds = selectionAffichee?.gear.runes.map((r) => r.id) ?? [];
   // Jumeau de `displayedRuneIds` : la paire réellement affichée sur la fiche.
   // ⚠️ Nécessaire pour qu’un build validé rejoue SES artéfacts et non ceux que
   // le monstre porte aujourd’hui — le défaut signalé à l’usage.
-  const displayedArtifactIds = selected?.gear.artifacts.map((a) => a.id) ?? [];
-  // Les runes AFFICHÉES sont-elles EXACTEMENT le build validé ? Presque
-  // toujours équivalent à `!!ownValidatedBuild` (la substitution dans
-  // `selected` le garantit dès que `showRealGear` est `false`) — mais PAS
-  // quand `showRealGear` est `true` : la fiche montre alors l'équipement
-  // RÉEL, qui peut différer du build validé (c'est justement le but du
-  // bouton). Sert à distinguer « un build validé EXISTE pour cet
-  // exemplaire » de « ce qui est affiché EN CE MOMENT est ce build ».
+  const displayedArtifactIds = selectionAffichee?.gear.artifacts.map((a) => a.id) ?? [];
+  // Un build peut être réservé sans être la fiche affichée : vue actuelle
+  // et aperçu doivent être comparés à cette réservation avant validation.
   /**
    * L'état de validation d'un build donné (ses runes, sa paire) face à celui
    * qui est réservé pour cet exemplaire.
@@ -2601,7 +2539,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     const reels = artifactIds.filter((id) => id > 0);
     return memesIds(ownValidatedBuild.artifactIds ?? [], reels) ? 'oui' : 'artefacts';
   };
-  const etatFiche = etatValidation(displayedRuneIds, displayedArtifactIds, selected?.gear.relic?.id);
+  const etatFiche = etatValidation(displayedRuneIds, displayedArtifactIds, selectionAffichee?.gear.relic?.id);
   // ⚠️ « Déjà réservé À L'IDENTIQUE » — donc plus rien à faire. Un build aux
   // mêmes runes mais à une autre paire N'EN FAIT PAS partie : il reste à
   // valider, sur ses artéfacts.
@@ -2654,6 +2592,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       .filter((c): c is { slot: number | null; monsterName: string } => c != null);
   const displayedRuneConflicts = conflitsDeRunes(displayedRuneIds);
   const canValidateDisplayed = !!sourceSelector && displayedRuneIds.length === 6 && displayedRuneConflicts.length === 0;
+  const canValidateOptimise = !!sourceSelector && selected?.gear.runes.length === 6 && conflitsDeRunes(selected.gear.runes.map(r => r.id)).length === 0;
   /**
    * Réserve la paire proposée par « Meilleurs artéfacts offensifs ».
    *
@@ -2668,8 +2607,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     if (!sourceSelector || !lists.activeListId || !modeArtefactsSeuls) return;
     const ids = modeArtefactsSeuls.paire.map((a) => a.id);
     if (ownValidatedBuild) lists.validateArtifacts(lists.activeListId, sourceSelector, ids);
-    else if (canValidateDisplayed) {
-      lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, ids, selected!.gear.relic?.id, selected!.monster.com2usId!);
+    else if (canValidateOptimise) {
+      lists.validateBuild(lists.activeListId, sourceSelector, selected!.gear.runes.map(r => r.id), ids, selected!.gear.relic?.id, selected!.monster.com2usId!);
       optimizer.capturerMembre(lists.activeListId, sourceSelector);
     }
   }
@@ -2680,26 +2619,32 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       setAddListPromptOpen('validate');
       return;
     }
-    lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, displayedArtifactIds, selected!.gear.relic?.id, selected!.monster.com2usId!);
+    lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, displayedArtifactIds, selectionAffichee!.gear.relic?.id, selected!.monster.com2usId!);
     optimizer.capturerMembre(lists.activeListId, sourceSelector);
+    setApercu(null);
+    setShowRealGear(false);
   }
 
-  // Bandeau « build validé », devenu une BASCULE — demande explicite : en
-  // plus des 4 puces grisées (voir plus haut), un signal explicite dans la
-  // fiche elle-même, pour que ce qui est affiché (le build validé, PAS
-  // l'équipement réellement porté) ne prête jamais à confusion. ⚠️ Suite —
-  // « on ne peut plus voir à quoi ressemblait le runage précédent tant
-  // qu'on est dans la liste » : `showRealGear` (voir `selected`) permet de
-  // rebasculer vers l'équipement RÉEL sans quitter la liste ni changer
-  // d'exemplaire. Factorisé, réutilisé aux deux endroits où la fiche
-  // s'affiche (bureau/mobile).
+  // Les vues et l'aperçu partagent leurs contrôles entre les deux formats.
   const validatedBadge = <BandeauBuildValide
-    ownValidatedBuild={ownValidatedBuild}
+    ownValidatedBuild={!apercu ? ownValidatedBuild : undefined}
     showRealGear={showRealGear}
     runesAbsentesValidees={runesAbsentesValidees}
     artefactsAbsentsValides={artefactsAbsentsValides}
-    setShowRealGear={setShowRealGear}
   />;
+  const vuesExemplaire = <Segmented
+    size="lg"
+    options={[
+      { key: 'actuel', label: 'Build actuel' },
+      { key: 'valide', label: 'Build validé', disabled: !ownValidatedBuild, hint: !ownValidatedBuild ? 'Aucun build validé pour ce membre' : undefined },
+    ]}
+    value={apercu ? null : ownValidatedBuild && !showRealGear ? 'valide' : 'actuel'}
+    onChange={vue => { setApercu(null); setZoneDOpen(false); setShowRealGear(vue === 'actuel'); }}
+  />;
+  const bandeauApercu = apercu && <div className="mb-2 flex items-center gap-2 rounded-lg bg-warn-soft px-2 py-1 text-micro text-warn">
+    <span className="min-w-0 flex-1">Aperçu : {selectionAffichee?.monster.name} · {SOURCE_OPTIONS.find(o => o.key === apercu.source)?.label}. Ce n'est pas l'exemplaire de la liste.</span>
+    <Bouton taille="sm" libelle="Revenir" onClick={() => { setApercu(null); setZoneDOpen(false); }} />
+  </div>;
 
   // Même bouton que sur une carte de résultat (`BuildCandidateCard`), sous
   // la fiche cette fois — demande explicite : valider un runage déjà
@@ -2731,7 +2676,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       sourceSelector={sourceSelector}
       lists={lists}
       ownValidatedBuild={ownValidatedBuild}
-      canValidateDisplayed={canValidateDisplayed}
+      canValidateDisplayed={canValidateOptimise}
       handleValidateArtefacts={handleValidateArtefacts}
       artefactsProposesDejaReserves={artefactsProposesDejaReserves}
     />
@@ -2834,8 +2779,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const proprietesListe: MonstresDeLaListeProps = {
     activeList,
     activeMembers,
-    ajoutListe,
-    handleAddToList,
     setEquipeOuverte,
     lists,
     optimizer,
@@ -2846,6 +2789,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     runeById,
     artifactById,
     choisirMembreDeLaListe,
+    membreChoisi: ownSelectorKey,
     setReleaseConfirm,
     setReleaseArtifactsConfirm,
     setRemoveMemberConfirm,
@@ -2870,9 +2814,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     }
     if (!sourceSelector) return;
     if (intent === 'validate') {
-      if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds, selected.gear.relic?.id, selected.monster.com2usId);
-    } else {
-      lists.addMember(id, sourceSelector, selected.monster.com2usId);
+      if (canValidateDisplayed) {
+        lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds, selectionAffichee!.gear.relic?.id, selected.monster.com2usId);
+        setApercu(null);
+        setShowRealGear(false);
+      }
     }
     if (intent !== 'validate' || canValidateDisplayed) optimizer.capturerMembre(id, sourceSelector);
   }
@@ -3113,7 +3059,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             compteAffiche={compteAffiche}
             bureau={!sousLg}
             filtres={{ bornes: bornesVue, poserBorne, effacer: effacerFiltres, filtre: instantane?.filtre ?? null }}
-            {...(sousLg ? {} : { forme: formeResultats, setForme: setFormeResultats, bonus: bonusTableau, setBonus: setBonusTableau })}
+            // La forme se choisit dans les Paramètres (SettingsMenu.tsx) : elle
+            // réorganise la page, l'en-tête ne la porte plus.
+            {...(sousLg ? {} : { forme: formeResultats, bonus: bonusTableau, setBonus: setBonusTableau })}
           />
   
           <DiagnosticsSansResultat
@@ -3279,7 +3227,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       {addListPromptOpen && (
         <OptimizerCreateListDialog
           listes={lists.lists}
-          libelleAction={addListPromptOpen === 'validate' ? 'Créer et valider' : addListPromptOpen === 'recherche' ? 'Créer' : 'Créer et ajouter'}
+          libelleAction={addListPromptOpen === 'validate' ? 'Créer et valider' : 'Créer'}
           onValider={creerListeDepuisDialogue}
           onCancel={() => setAddListPromptOpen(null)}
         />
@@ -3294,15 +3242,14 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const proprietesExemplaire: ExemplaireEtFicheProps = {
     zoneDRef,
     sourceOptions,
-    matchesValidatedBuild,
-    unowned,
-    gearSource,
+    vuesExemplaire,
+    gearSource: apercu && apercu.source !== 'unowned' ? apercu.source : null,
     pickSource,
     allSourcesEmpty,
     zoneDOpen,
     zoneDList,
-    validatedBadge,
-    selected,
+    validatedBadge: <>{bandeauApercu}{validatedBadge}</>,
+    selected: selectionAffichee,
     selectionFiche,
     setSelectionFiche,
     relicUsageById,
@@ -3321,10 +3268,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // par un portail : leur place ici ne change rien au DOM de la page.
   const pageBureau = sousLg ? null : (
       <PageBureau
+        tableau={formeResultats === 'tableau'}
         liste={
           <ListeDeTravailBureau
             listes={listesBureau}
-            recherche={<MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />}
+            recherche={<MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} disponibilite={disponibiliteEspece} />}
             monstreActif={selected?.monster ?? null}
             liste={proprietesListe}
           />
@@ -3391,7 +3339,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             sourceSelector={sourceSelector}
             lists={lists}
             ownValidatedBuild={ownValidatedBuild}
-            canValidateDisplayed={canValidateDisplayed}
+            canValidateDisplayed={canValidateOptimise}
             handleValidateArtefacts={handleValidateArtefacts}
             artefactsProposesDejaReserves={artefactsProposesDejaReserves}
           />
@@ -3444,9 +3392,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             />
           </ReglagesAvancesBureau>
         }
-        // La colonne de droite : « Exemplaire », le bloc « Objectif et
-        // Rechercher » (estimation, objectif, lancement, message d'import,
-        // progression compacte) et les résultats, que la page place.
+        // « Exemplaire » suit la liste dans « Monstre ». Le bloc de
+        // recherche et les résultats partagent leur colonne ou pile.
         exemplaire={<ExemplaireBureau {...proprietesExemplaire} />}
         objectif={(presentation) => (
           <ObjectifEtRechercherBureau
@@ -3470,10 +3417,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           />
         )}
         resultats={<ResultatsBureau attente={attenteResultats(selected != null, resultatsPresents, status)}>{blocResultats}</ResultatsBureau>}
-        colonnes={colonnesBureau}
-        onColonnes={setColonnesBureau}
+        onglet={ongletBureau}
+        onOnglet={setOngletBureau}
         rappelAuras={rappelAuras !== null}
         guideComplements={guideComplements}
+        guideCriteres={guideCriteres}
       />
   );
 
@@ -3503,6 +3451,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           <MonstreEquipementTelephone
             allMonsters={allMonsters}
             pickSpecies={pickSpecies}
+            disponibiliteEspece={disponibiliteEspece}
             ligneMonstreTelephoneRef={ligneMonstreTelephoneRef}
             selected={selected}
             sourcesImport={sourcesImport}
@@ -3513,15 +3462,15 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             eclatImport={eclatImport}
             listesTelephone={listesTelephone}
             sourceOptions={sourceOptions}
-            matchesValidatedBuild={matchesValidatedBuild}
-            unowned={unowned}
-            gearSource={gearSource}
+            vuesExemplaire={vuesExemplaire}
+            gearSource={apercu && apercu.source !== 'unowned' ? apercu.source : null}
             pickSource={pickSource}
             allSourcesEmpty={allSourcesEmpty}
             zoneDOpen={zoneDOpen}
             zoneDList={zoneDList}
             zoneCContent={zoneCContent}
-            validatedBadge={validatedBadge}
+            validatedBadge={<>{bandeauApercu}{validatedBadge}</>}
+            selectionAffichee={selectionAffichee}
             selectionFiche={selectionFiche}
             setSelectionFiche={setSelectionFiche}
             relicUsageById={relicUsageById}

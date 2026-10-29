@@ -90,13 +90,13 @@ Ce document décrit les réglages d'artéfacts de la carte « Artéfacts et reli
    « Conditions », soit un clic qui déplace ce qui le suit
    ([03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md)).
    Isolée, la carte ne déplace que ce qui la suit.
-   - **Au bureau**, première section du panneau de la colonne repliable
-     « Artéfacts et relique », 294 px (`ArtefactsEtReliqueBureau`, autour du
+   - **Au bureau**, première section du panneau de la colonne
+     « Artéfacts et relique » (ou de l'onglet « Artéfacts »), 294 px (`ArtefactsEtReliqueBureau`, autour du
      composant partagé dans sa forme `bureau`, sans cadre), suivie de la
      section « Meilleurs artéfacts offensifs pour ce build » (voir
      meilleurs-artefacts-offensifs.md § Affichage et emplacement de la proposition).
-     Elle n'est pas repliée au lancement d'une recherche : seul l'onglet
-     ferme sa colonne ([README.md](README.md#colonnes-repliables-selon-la-largeur)).
+     Lancer une recherche ne la range ni ne change d'onglet : seule la
+     largeur décide ([README.md](README.md#colonnes-et-onglets-selon-la-largeur)).
      ⚠️ **Attribut et Type sur une ligne**, chaque liste à la largeur de son
      contenu : libellés, listes de
      107 px (« Comme équipé » entier), 4 px entre libellé et liste, 8 px

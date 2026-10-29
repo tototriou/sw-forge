@@ -68,7 +68,7 @@ Chaque sujet de l'application vit dans son fichier, dans ce dossier ; le
 moteur et sa vérification vivent côté développeur :
 
 - **Par où commencer** — [routage-par-tache.md](routage-par-tache.md) : quelles sections lire d'abord selon ce qu'on touche
-- **Écran** — [ecran/README.md](ecran/README.md) (contrôles, colonnes du bureau et colonnes repliables, grille du téléphone, adaptation à la largeur, survie à un changement d'onglet), puis une page par boîte :
+- **Écran** — [ecran/README.md](ecran/README.md) (contrôles, colonnes du bureau et groupe d'onglets, grille du téléphone, adaptation à la largeur, survie à un changement d'onglet), puis une page par boîte :
   - [Recherche du monstre à optimiser](ecran/recherche-du-monstre.md)
   - [Meilleurs artéfacts offensifs pour ce build](ecran/meilleurs-artefacts-offensifs.md)
   - [Équipement actuel](ecran/equipement-actuel.md)

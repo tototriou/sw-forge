@@ -1,19 +1,10 @@
 // Sélection d'exemplaire à l'import d'une recette Optimizer : l'import
 // sélectionne un exemplaire dès qu'on en possède PLUSIEURS.
 //
-// ⚠️ Le dépôt ne teste pas les composants React (voir le commentaire de
-// `testOptimizerExclusion` sur `useSiegeState.ts`) : `sourceSelector` vit
-// dans `useOptimizerState`, mais sa résolution reste dans `OptimizerSection`,
-// pas une fonction pure exportée. Même patron ici — contrôle de SOURCE, seule
-// façon de voir un site retomber sur une règle divergente.
-//
-// La règle : le picker (`pickSpecies`) prend TOUJOURS `boxCandidates[0]`, avec
-// repli sur `unownedSelectorIfNoneOwned` seulement si la box n'a AUCUN
-// candidat. L'import de recette et la revérification de `sourceSelector`
-// suivent la même règle, sans cas spécial sur la longueur du tableau :
-// prendre `boxCandidates[0]` seulement pour un SEUL exemplaire ferait
-// retomber, dès 2, sur « non possédé », donc sur des stats de base 6★ sans
-// runes silencieusement fausses.
+// L'import et la revérification au montage prennent le premier Box, avec
+// repli sur `unownedSelectorIfNoneOwned` sans candidat Box. Le picker ajoute
+// le prochain exemplaire absent de la liste par `exemplaireSuivantEspece`.
+// Ce contrôle de source vérifie le branchement de ces règles distinctes.
 
 import { readFileSync } from 'fs';
 import { egal, ok, titre } from './outils';
@@ -27,25 +18,39 @@ import { recipeToRelicIntent } from '../scripts/lib/recipeToSearchParams';
 import { LoadedMonster } from '../scripts/lib/loadMonster';
 import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
 
-const REGLE_PICKER = 'boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned';
+const REGLE_PREMIER_BOX = 'boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned';
 const REGLE_FAUTIVE = /boxCandidates\.length === 1 \? boxCandidates\[0\]\.selector : unowned/;
 
 export default function testOptimizerRecipeImportSelection() {
-  titre('Optimizer · sélection d’exemplaire — import de recette alignée sur le picker');
+  titre('Optimizer · sélection d’exemplaire — premier Box à l’import et au montage, suivant au picker');
 
   const source = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
 
   ok(!REGLE_FAUTIVE.test(source), "aucun site ne retombe sur « non possédé » à cause d'un test de longueur (== 1)");
 
-  const occurrences = source.split(REGLE_PICKER).length - 1;
-  // Les 3 sites concernés : le picker (`pickSpecies`), la revérification de
-  // `sourceSelector` au montage, et l'import de recette.
-  egal(occurrences, 3, 'les 3 sites de résolution (picker, revérification au montage, import de recette) partagent la MÊME règle');
+  const occurrences = source.split(REGLE_PREMIER_BOX).length - 1;
+  egal(occurrences, 2, 'le premier Box reste la règle des deux sites : revérification au montage et import de recette');
+  const debutMontage = source.indexOf('function exemplaireAuMontage(');
+  ok(debutMontage !== -1, 'la revérification au montage existe toujours');
+  const zoneMontage = source.slice(debutMontage, source.indexOf('\n}', debutMontage));
+  ok(zoneMontage.includes(REGLE_PREMIER_BOX), 'le montage applique la règle du premier Box, même avec plusieurs exemplaires');
+
+  const debutPicker = source.indexOf('function pickSpecies(');
+  ok(debutPicker !== -1, 'le picker existe toujours');
+  const zonePicker = source.slice(debutPicker, source.indexOf('\n  }', debutPicker));
+  ok(zonePicker.includes('disponibiliteEspece(monster).suivant') && !zonePicker.includes(REGLE_PREMIER_BOX),
+    'le picker choisit le prochain exemplaire disponible, sans appliquer la règle du premier Box');
+  const debutDisponibilite = source.indexOf('function disponibiliteEspece(');
+  ok(debutDisponibilite !== -1, 'la disponibilité par espèce existe toujours');
+  const zoneDisponibilite = source.slice(debutDisponibilite, source.indexOf('\n  }', debutDisponibilite));
+  ok(zoneDisponibilite.includes('return exemplaireSuivantEspece(monster, speciesCandidatesBySource(')
+    && zoneDisponibilite.includes('lists.members, lists.activeListId)'),
+  'le picker passe par exemplaireSuivantEspece avec les candidats de l’espèce et les membres de la liste active');
 
   const debutImportRecipe = source.indexOf('function importRecipe');
   ok(debutImportRecipe !== -1, "la fonction importRecipe existe toujours (sinon ce test contrôle la mauvaise fonction)");
   const zoneImport = source.slice(debutImportRecipe);
-  ok(zoneImport.includes(REGLE_PICKER), "le site d'import de recette applique bien la règle du picker (pas de cas spécial sur 1 exemplaire)");
+  ok(zoneImport.includes(REGLE_PREMIER_BOX), "l'import de recette partage la règle du montage (pas de cas spécial sur 1 exemplaire)");
 
   // Le corps d'`importRecipe` : jusqu'à son accolade fermante, au niveau de
   // la déclaration (deux espaces).

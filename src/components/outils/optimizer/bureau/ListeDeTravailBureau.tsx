@@ -3,10 +3,10 @@ import MonsterAvatar from '../../../MonsterAvatar';
 import MonstresDeLaListe, { type MonstresDeLaListeProps } from '../MonstresDeLaListe';
 import { type Monster } from '../../../../types';
 
-// La place de la colonne des essentiels (docs/02-app/optimizer/ecran/README.md,
-// « Mise en page d'ensemble ») : son panneau en prend 540, le reste va à
+// La place de « Monstre » (docs/02-app/optimizer/ecran/README.md,
+// « Mise en page d'ensemble ») : son panneau en prend 376, le reste va à
 // l'écart avec la colonne suivante (`RETRAIT_PANNEAU`, src/lib/optimizerColonnes.ts).
-export const LARGEUR_ESSENTIELS = 548;
+export const LARGEUR_MONSTRE = 384;
 
 export interface ListeDeTravailBureauProps {
   // « Liste active » ▾ · « Importer une équipe » : `SelecteurListes` et
@@ -18,9 +18,9 @@ export interface ListeDeTravailBureauProps {
   liste: MonstresDeLaListeProps;
 }
 
-// La liste de travail des essentiels, au bureau : « Ajouter un monstre à la
-// liste », la recherche du monstre et le monstre actif sur la rangée du titre
-// de la carte de la liste ; les membres prennent leur hauteur jusqu'à 308 px,
+// La liste de travail de « Monstre », au bureau : la recherche du monstre,
+// sans titre devant (toute la largeur au champ, décision de l'utilisateur),
+// et le monstre actif ; les membres prennent leur hauteur jusqu'à 308 px,
 // puis défilent. Le téléphone garde « Monstre & équipement ».
 //
 // ⚠️ **Le monstre actif tient sa place, vide ou non** : choisir un monstre ne

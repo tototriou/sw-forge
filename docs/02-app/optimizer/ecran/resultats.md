@@ -3,7 +3,7 @@
 Ce document décrit la liste des résultats et leurs cartes. Au bureau, ils
 vivent dans la section « Résultats » (`ResultatsBureau`), dernière du panneau
 de la colonne de droite, présente dès le départ avec sa place d'attente,
-sous « Exemplaire » et le bloc « Objectif et
+sous le bloc « Objectif et
 Rechercher » : sa largeur, ses messages d'attente et la hauteur qu'elle
 garde à la relance sont dans
 [README.md](README.md#zone-des-résultats-et-place-en-plus). Au téléphone,
@@ -82,7 +82,7 @@ sans relance automatique ni reconstruction d'un résultat depuis l'écran.
     `auto-fill` en fait tenir deux dès que la grille dépasse deux fois 360 px
     plus le creux, davantage sur un écran large. Plus étroite, la grille
     garde une carte, à toute sa largeur : au bureau, la colonne de droite
-    descend jusqu'à 356 px de contenu (fiche d'« Exemplaire » repliée), où
+    descend jusqu'à 356 px de contenu, où
     la carte tient sans déborder (mesuré, relique comprise). La bascule base+bonus ↔ total ne
     déplace jamais les artéfacts, la roue ou la relique voisins : `StatPanel` a une **largeur
     fixe** (`w-[200px]`, voir [rta/feat-sections-runes.md](../../rta/feat-sections-runes.md)).
@@ -94,7 +94,7 @@ sans relance automatique ni reconstruction d'un résultat depuis l'écran.
     stats de base. La table garde 160 px pour 157 au pire cas mesuré (base à
     six chiffres comme les 19 755 PV, la plus haute des données, bonus
     « +40 000 ») : rien n'est tronqué ni replié. Rembourrage de la carte et
-    creux entre cartes inchangés. Mesuré (compte d'exemple, A3) : 3 cartes
+    creux entre cartes inchangés. Mesuré (compte d'exemple, bureau) : 3 cartes
     par rangée au lieu de 2 à 1920 × 940, 2 au lieu de 1 avec « Artéfacts et
     relique » ; 5 au lieu de 4 à 2560 × 1300, 4 au lieu de 3 avec la
     colonne. Au doigt et au téléphone, 360 px et la fiche de 200 px.
@@ -147,7 +147,7 @@ suite (au bureau, sans encadré, chacun sous un trait fin, alors que chaque
 résultat garde sa carte : voir [Panneaux et sections](README.md#panneaux-et-sections)) :
 - **Toujours** : une liste de conditions mathématiquement hors de portée
   (avec leur borne exacte), ou un message neutre orientant vers la
-  conjonction des contraintes ou un pré-filtrage plus large.
+  conjonction des contraintes ou une « Profondeur de recherche » plus grande.
 - **Si « Diagnostic approfondi sur 0 résultat » est coché** (décoché par
   défaut, plus coûteux — voir conditions-et-reglages.md § Réglages avancés) : pour chaque
   condition posée, DE COMBIEN la desserrer suffit à faire grandir le pool
@@ -518,27 +518,35 @@ formats). Les libellés et unités viennent de `filtresAffichage.ts` ;
 - **Décimales** : une borne d'Efficience admet une décimale (« 78.8 »,
   point ou virgule), comme la carte l'écrit (`NumberField decimales`,
   `decimalesColonne`) ; Score SW et les autres colonnes, des entiers.
-- **Page interrompue** : têtes, choix de forme, « Filtrer » et « Effacer »
+- **Page interrompue** : têtes, « Filtrer » et « Effacer »
   désactivés, comme « Comparer » et « Valider » ; le « + » des pages
   s'éteint à sa place (plus aucune page ne viendra).
 
 ### Cartes ou tableau
 
-Au bureau, un `Segmented` « Cartes / Tableau » au-dessus des résultats
-(décision de l'utilisateur, les deux formes au choix), mémorisé comme un
-réglage : `useFormeResultats`, clé `swblacksmith-optimizer-resultats-forme-v1`,
-écrite même sans l'accord de conservation (persistance.md, « Un seul
-interrupteur »), dans la session. **Le téléphone garde les cartes**, sans
-ce choix.
+Au bureau, les deux formes au choix (décision de l'utilisateur), par le
+réglage **« Résultats de l'Optimizer » : `Cartes` / `Tableau`, dans les
+Paramètres** ([compte-et-parametres.md](../../transverse/feat-navigation/compte-et-parametres.md)),
+mémorisé comme un réglage : `useFormeResultats`, clé
+`swblacksmith-optimizer-resultats-forme-v1`, écrite même sans l'accord de
+conservation (persistance.md, « Un seul interrupteur »). **Le téléphone
+garde les cartes** : le réglage s'y affiche aussi, son aide dit « Au bureau
+seulement », et il n'y change rien.
 
-⚠️ **Choisir la forme ne déplace rien** (un clic ne déplace jamais ce qu'on
-vient de cliquer) : à droite de « Cartes / Tableau », une place partagée, de
-la largeur du plus large de ses deux occupants, porte « Filtrer
-l'affichage » (cartes, et tableau sous le seuil) ou « Stats totales / Stats
-bonus » (tableau affiché) ; les deux y sont toujours, superposés, l'absent
-invisible (`VISIBLE_AVEC_LE_TABLEAU`, `INVISIBLE_AVEC_LE_TABLEAU`,
-TableauResultats.tsx). Vérifié au navigateur dans les deux sens, tableau
-affiché (`testRenduFiltresResultatsCartes`).
+⚠️ **Le choix est dans les Paramètres, pas au-dessus des résultats**
+(décision de l'utilisateur) : en tableau, la page range ses réglages en
+onglets, deux piles comprises, pour laisser au tableau sa largeur
+(`configurationBureau`, `RESULTATS_TABLEAU` = 661 + 32 px, voir
+[README.md](README.md#les-quatre-configurations)) ; choisi dans l'en-tête,
+le clic aurait déplacé ce qu'on venait de cliquer. En tableau : 2560 plein
+en colonnes, 1920 plein en groupe de trois (barre latérale repliée :
+« Critères » et le groupe de deux), portable et 2560 scindé en deux piles ;
+1920 scindé reste trop étroit, en cartes avec leur raison. À droite de
+l'en-tête, une place partagée, de la largeur du plus large de ses deux
+occupants, porte « Filtrer l'affichage » (cartes, et tableau sous le seuil)
+ou « Stats totales / Stats bonus » (tableau affiché) ; les deux y sont
+toujours, superposés, l'absent invisible (`VISIBLE_AVEC_LE_TABLEAU`,
+`INVISIBLE_AVEC_LE_TABLEAU`, TableauResultats.tsx).
 
 - **Cartes** : au bureau, la bande des onze têtes de tri (`TetesDeTri.tsx`)
   au-dessus de la grille. Chaque tête réserve la place de son icône de sens
@@ -576,8 +584,7 @@ affiché (`testRenduFiltresResultatsCartes`).
   (tableau) ; 516 à 2560 scindé et 358 au téléphone (cartes). Vérifié sans rognage au seuil
   (tests/rendu/optimizer-tableau-navigateur.test.ts).
 - **« Stats totales / Stats bonus »** (deux choix exclusifs dans l'en-tête,
-  un `Segmented` de la forme de « Cartes / Tableau », à sa droite, à la place
-  de « Filtrer l'affichage » ; forme
+  un `Segmented`, à la place de « Filtrer l'affichage » ; forme
   tableau seulement, visible avec le tableau) : un réglage d'**affichage**,
   distinct de « Stats de base exclues » des conditions, qui reste un réglage
   de recherche. Il part de la valeur de celui-ci **photographiée au

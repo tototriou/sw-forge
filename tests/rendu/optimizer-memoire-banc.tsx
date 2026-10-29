@@ -7,7 +7,8 @@ import { setPersistence } from '../../src/hooks/usePersistence';
 import OptimizerSection from '../../src/components/outils/OptimizerSection';
 import { baseCompleteCriteres, photoCriteres } from '../../src/lib/criteresOptimizer';
 import { cleMemoireMembre, ecrireMembresOptimizer, OPTIMIZER_MEMBERS_STORAGE_KEY, type MemoireMembreOptimizer } from '../../src/lib/optimizerMemberStorage';
-import type { Monster, RtaEntry, SiegeTeam, RuneDetail, ArtifactDetail } from '../../src/types';
+import type { Monster, RtaEntry, SiegeTeam, RuneDetail, ArtifactDetail, RelicDetail } from '../../src/types';
+import { preuvesExemplaireLecture } from './optimizer-exemplaire-lecture-preuves';
 import type { BoxItem } from '../../src/lib/applyAccount';
 import type { ExclusionSelector, ExclusionSourceData } from '../../src/lib/optimizerExclusion';
 import { buildOptimizerRecipe } from '../../src/lib/optimizerRecipe';
@@ -49,6 +50,7 @@ let afficher: (oui: boolean) => void, changerBox: (box: BoxItem[]) => void;
 let changerRunes: (runes: RuneDetail[]) => void, compteActuel: ExclusionSourceData, runesActuelles: RuneDetail[];
 let changerArtefacts: (arts: ArtifactDetail[]) => void, artefactsActuels: ArtifactDetail[];
 let changerDefenses: (teams: SiegeTeam[]) => void;
+let changerReliques: (reliques: RelicDetail[]) => void;
 let avecPoint = false;
 let menuOuvert = false, changerMenu: (ouvert: boolean) => void;
 let rechercheForcee: Record<string, unknown> | null = null, rafraichir: () => void;
@@ -78,6 +80,8 @@ function Banc() {
   changerRunes = setInventaire; runesActuelles = inventaire;
   const [arts, setArts] = useState(() => avecPoint ? artefactsPoint : []);
   changerArtefacts = setArts; artefactsActuels = arts;
+  const [reliques, setReliques] = useState<RelicDetail[]>([]);
+  changerReliques = setReliques;
   const [defenses, setDefenses] = useState(siegeDefenseTeams);
   changerDefenses = setDefenses;
   listes = useOptimizerLists();
@@ -91,7 +95,7 @@ function Banc() {
   const [, setTic] = useState(0);
   rafraichir = () => setTic(n => n + 1);
   const optimizer = rechercheForcee ? { ...etat, search: { ...etat.search, ...rechercheForcee } } as OptimizerState : etat;
-  return visible ? <OptimizerSection box={compte} runes={inventaire} artifacts={arts} relics={[]} relicUsageById={{}}
+  return visible ? <OptimizerSection box={compte} runes={inventaire} artifacts={arts} relics={reliques} relicUsageById={{}}
     optimizer={optimizer} onImporterEquipe={etat.importerEquipe} lists={listes} allMonsters={monstres} rtaEntries={rtaEntries} siegeDefenseTeams={defenses} siegeOffenseTeams={siegeOffenseTeams}
     accountName="Synthétique" menuOuvert={menu} onFermerMenu={() => setMenu(false)} onOuvrirMenu={() => setMenu(true)} /> : <div>Autre onglet</div>;
 }
@@ -164,6 +168,8 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
       }, true) : null;
       rafraichir();
     } };
+  if (nom.startsWith('exemplaire-lecture-')) return preuvesExemplaireLecture({ ...bancEcran, data: () => compteActuel,
+    changerBox, changerRunes, changerArtefacts, changerReliques }, nom.slice('exemplaire-lecture-'.length));
   if (nom === 'ecran-reglages-avances') return preuvesReglagesAvances(bancEcran, () => changerMenu(true));
   if (nom === 'ecran-guidage') return preuvesGuidage(bancEcran);
   if (nom === 'ecran-rappel') return preuvesRappelDeuxRendus(bancEcran);

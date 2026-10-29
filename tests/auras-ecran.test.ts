@@ -290,7 +290,7 @@ export function testAurasEcranRappel() {
   const clic = entre(ecran, 'if (!resolved) return;', 'else setRappelAuras(null);');
   // La restauration est l'action de l'état partagé ; le rappel reste
   // uniquement dans le geste explicite de cette ligne.
-  const chemin = entre(ecran, 'function choisirExemplaire(', 'function handleAddToList(');
+  const chemin = entre(ecran, 'function choisirExemplaire(', 'const ligneMonstreTelephoneRef');
   ok(clic.includes('optimizer.choisirMembre(m.listId, m.selector);')
     && chemin.includes('setSelectedId(id);') && chemin.includes('effacerResultats()'),
   'source : le geste d’un membre de la liste de travail (zone C) est localisé');
@@ -428,14 +428,14 @@ export function testAurasEcranGuidage() {
   // Au bureau, l'interrupteur vit en ligne dans la colonne repliable « Aura,
   // exclusion, avancés » (la refonte du bureau a retiré le flottant des
   // réglages avancés) : le guidage ouvre cette colonne par son jeton, que
-  // `PageBureau` résout avec la largeur (`ouvrirColonne`).
+  // `PageBureau` résout avec la largeur (`ongletOuvert`).
   ok(/setGuideComplements\(\(n\) => \(n \?\? 0\) \+ 1\);/.test(guider) && !guider.includes('setShowAdvanced(true)'),
     'à la souris : la colonne « Aura, exclusion, avancés » s’ouvre (jeton `guideComplements`), plus de flottant');
   ok(/setAttentionResPre\(\(n\) => \(n \?\? 0\) \+ 1\)/.test(guider), '… puis le surlignage, par un jeton');
   ok(/setTimeout\(\(\) => setAttentionResPre\(null\), DUREE_ATTENTION_MS\)/.test(ecran), 'le surlignage s’efface après DUREE_ATTENTION_MS (3 s)');
   ok(/sousLg\s*\?\s*menuOuvert\s*\?\s*interrupteurResPrePanneauRef\.current\s*:\s*null\s*:\s*interrupteurResPreBureauRef\.current/.test(ecran)
     && ecran.includes("el.scrollIntoView({ behavior: 'smooth', block: sousLg ? 'center' : 'nearest' })")
-    && /\}, \[attentionResPre, sousLg, menuOuvert, colonnesBureau\]\);/.test(ecran),
+    && /\}, \[attentionResPre, sousLg, menuOuvert, ongletBureau\]\);/.test(ecran),
   'puis l’interrupteur est amené à l’écran dans sa surface ouverte : centré dans le panneau, au plus près dans la colonne, rejoué quand la colonne s’ouvre');
 
   // La cible — cadre permanent au token d'attention, amené à l'écran dans sa

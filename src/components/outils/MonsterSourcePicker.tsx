@@ -33,6 +33,7 @@ interface BestiaryModeProps {
   mode: 'bestiary';
   candidates: Monster[];
   onPick: (monster: Monster) => void;
+  disponibilite?: (monster: Monster) => { raison: string | null };
   placeholder?: string;
 }
 
@@ -115,7 +116,7 @@ function AccountPicker({ candidates, onPick, placeholder }: AccountModeProps) {
 // non) — résout une ESPÈCE, jamais un exemplaire/build : nom, icône, SPD de base, exactement ce que porte `Monster`.
 // Choisir un exemplaire précis avec un build réel se fait ENSUITE, via les 4
 // puces Box/RTA/Défenses siège/Offenses siège (voir OptimizerSection.tsx).
-function BestiaryPicker({ candidates, onPick, placeholder }: BestiaryModeProps) {
+function BestiaryPicker({ candidates, onPick, placeholder, disponibilite }: BestiaryModeProps) {
   const [query, setQuery] = useState('');
   const idBase = useId();
 
@@ -132,6 +133,7 @@ function BestiaryPicker({ candidates, onPick, placeholder }: BestiaryModeProps) 
     setQuery,
     idBase,
     onValider: (r) => onPick(r.monster),
+    estDesactive: (r) => !!disponibilite?.(r.monster).raison,
   });
 
   return (
@@ -156,20 +158,26 @@ function BestiaryPicker({ candidates, onPick, placeholder }: BestiaryModeProps) 
           ) : (
             results.map((r, i) => {
               const estActif = i === nav.actif;
+              const raison = disponibilite?.(r.monster).raison;
               return (
                 <div
                   key={r.monster.id}
                   {...nav.optionProps(i)}
+                  aria-disabled={!!raison}
                   onMouseDown={(e) => {
                     e.preventDefault();
+                    if (raison) return;
                     onPick(r.monster);
                     nav.reinitialiser();
                   }}
-                  className={`flex w-full cursor-pointer items-center gap-2.5 px-3 py-1.5 text-left transition
+                  className={`flex w-full items-center gap-2.5 px-3 py-1.5 text-left transition ${raison ? 'cursor-default text-ink-dim' : 'cursor-pointer'}
                     ${estActif ? 'bg-accent-soft' : ''}`}
                 >
                   <MonsterAvatar monster={r.monster} size={28} className="flex-none" />
-                  <span className="text-[13px] font-medium truncate flex-1">{r.monster.name}</span>
+                  <span className="min-w-0 flex-1 text-[13px] font-medium">
+                    <span className="block truncate">{r.monster.name}</span>
+                    {raison && <span className="block text-micro text-ink-dim">{raison}</span>}
+                  </span>
                 </div>
               );
             })

@@ -38,6 +38,9 @@
   /* Bandes d'équipes alternées, indépendantes de la sélection et de l'élément. */
   --equipe-a: 255 237 221;
   --equipe-b: 220 234 239;
+  /* Contour du monstre affiché dans sa bande d'équipe : la teinte de la bande, saturée. */
+  --equipe-a-trait: 222 140 80;
+  --equipe-b-trait: 96 150 175;
   /* Barres de l'application (barre latérale, barre du haut). En Atelier,
      la toile la confond avec `panel` : elle se
      détache du fond de page par sa bordure. */
@@ -262,6 +265,8 @@
   --forge-panel2: 46 44 42;
   --forge-equipe-a: 58 36 21;
   --forge-equipe-b: 27 45 56;
+  --forge-equipe-a-trait: 168 98 52;
+  --forge-equipe-b-trait: 70 128 160;
   --forge-border: 90 84 77;
   --forge-border-soft: 58 55 52;
   --forge-ink: 237 227 209;
@@ -365,6 +370,8 @@
     --panel2: var(--forge-panel2);
     --equipe-a: var(--forge-equipe-a);
     --equipe-b: var(--forge-equipe-b);
+    --equipe-a-trait: var(--forge-equipe-a-trait);
+    --equipe-b-trait: var(--forge-equipe-b-trait);
     --border: var(--forge-border);
     --border-soft: var(--forge-border-soft);
     --ink: var(--forge-ink);
@@ -425,6 +432,8 @@
   --panel2: var(--forge-panel2);
   --equipe-a: var(--forge-equipe-a);
   --equipe-b: var(--forge-equipe-b);
+  --equipe-a-trait: var(--forge-equipe-a-trait);
+  --equipe-b-trait: var(--forge-equipe-b-trait);
   --border: var(--forge-border);
   --border-soft: var(--forge-border-soft);
   --ink: var(--forge-ink);

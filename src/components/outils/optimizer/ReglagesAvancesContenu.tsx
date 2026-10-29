@@ -72,7 +72,10 @@ export default function ReglagesAvancesContenu({ slotFilterPreset, handleSlotFil
         monstre » (EtatMonstre.tsx) : deux façons de cadrer un groupe
         dans cet écran se liraient comme deux natures différentes. */}
     <div className={boite}>
-      <p className="text-[11.5px] text-ink-dim mb-1">Pré-filtrage par emplacement</p>
+      {/* « Profondeur de recherche » : le pré-filtrage par emplacement du
+          moteur, nommé par ce qu'il change pour le joueur (décision de
+          l'utilisateur). */}
+      <p className="text-[11.5px] text-ink-dim mb-1">Profondeur de recherche</p>
       <div className="flex flex-wrap items-center gap-2">
         <Segmented
           options={SLOT_FILTER_PRESETS}

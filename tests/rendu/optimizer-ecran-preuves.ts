@@ -49,17 +49,23 @@ const cadreCompter = () => interrupteur(COMPTER)?.parentElement?.parentElement ?
 
 // Au bureau, « Réglages avancés » et les sets d'aura vivent en ligne dans la
 // colonne repliable « Aura, exclusion, avancés », ouverte par son onglet.
-const ONGLET_COMPLEMENTS = 'Aura, exclusion, avancés';
-const ongletComplements = () => [...document.querySelectorAll<HTMLButtonElement>('[role="group"][aria-label="Colonnes repliables"] button')]
-  .find((e) => e.textContent?.trim() === ONGLET_COMPLEMENTS);
-const colonneComplementsOuverte = () => ongletComplements()?.getAttribute('aria-pressed') === 'true';
+const ONGLET_COMPLEMENTS = 'Options';
+const ongletComplements = () => [...document.querySelectorAll<HTMLButtonElement>('[role="tablist"][aria-label="Réglages de recherche"] [role="tab"]')]
+  .find((e) => e.querySelector('[data-libelle-onglet]')?.textContent?.trim() === ONGLET_COMPLEMENTS);
+const colonneComplementsOuverte = () => ongletComplements()?.getAttribute('aria-selected') === 'true';
 async function ouvrirReglages(b: BancEcran) {
   if (telephone()) return; // au doigt, le panneau est ouvert par la guidance ou par le banc
   if (!colonneComplementsOuverte()) await b.geste(() => ongletComplements()!.click());
 }
 async function fermerSurfaces(b: BancEcran) {
   if (b.menuOuvert()) await b.geste(() => b.fermerMenu());
-  if (!telephone() && colonneComplementsOuverte()) await b.geste(() => ongletComplements()!.click());
+  // « Critères » peut être une colonne (groupe « Artéfacts » · « Options ») :
+  // fermer « Options », c'est ouvrir un autre onglet du même groupe.
+  if (!telephone() && colonneComplementsOuverte()) await b.geste(() => {
+    const autre = [...document.querySelectorAll<HTMLButtonElement>('[role="tablist"][aria-label="Réglages de recherche"] [role="tab"]')]
+      .find(e => e.querySelector('[data-libelle-onglet]')?.textContent?.trim() !== ONGLET_COMPLEMENTS);
+    autre?.click();
+  });
 }
 // Au bureau, la grille des sets s'ouvre depuis la liste compacte du set.
 async function ouvrirSets(b: BancEcran) {
@@ -273,9 +279,11 @@ export async function preuvesRappelDeuxRendus(b: BancEcran): Promise<Preuves> {
   preuves.push([(telephone() ? !!dansZone() && !visible(dansZone()!) : !dansZone()) && sansMessage() === avecRappel,
     telephone() ? 'zone C : rappel effacé après trois secondes, et seul le message a changé — rien d’autre n’y est monté sous sa condition'
       : 'zone C : rappel démonté après trois secondes, et seul le message a changé — rien d’autre n’y est monté sous sa condition']);
-  if (!telephone()) {
-    // Au bureau, colonne « Aura, exclusion, avancés » FERMÉE (la carte des
-    // auras démontée) : le rappel s'annonce encore, hors de la colonne.
+  // Le cas « fermée » n'existe que si « Aura, exclusion, avancés » est un
+  // onglet du groupe : affichée en colonne, elle ne se ferme pas.
+  if (!telephone() && ongletComplements()) {
+    // Au bureau, onglet « Options » FERMÉ (la carte des auras démontée) : le
+    // rappel s'annonce encore, hors de la colonne.
     // Le rappel revient en revenant à `cible` (qui porte des auras) depuis
     // un autre membre, une fois l'éventuel rappel de ce détour effacé.
     await fermerSurfaces(b);
@@ -286,7 +294,9 @@ export async function preuvesRappelDeuxRendus(b: BancEcran): Promise<Preuves> {
     await attendre(300);
     const regions = annonces();
     preuves.push([!colonneComplementsOuverte() && regions.length === 1 && !regions[0].closest('[data-colonne]'),
-      `colonne fermée : le rappel s’annonce, une fois, hors de la colonne (${regions.length})`]);
+      `colonne fermée : le rappel s’annonce, une fois, hors de la colonne (${JSON.stringify({
+        regions: regions.length, ongletOuvert: colonneComplementsOuverte(), dansColonne: regions.map((r) => !!r.closest('[data-colonne]')),
+      })})`]);
     await attendre(3100);
   }
   return preuves;

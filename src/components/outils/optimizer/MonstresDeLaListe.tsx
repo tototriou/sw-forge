@@ -1,8 +1,8 @@
 import OptimizerBackupBar from '../OptimizerBackupBar';
 import { Bouton, ZoneCliquable, BoutonIcone } from '../../../ui';
-import { Plus, CheckCircle2, Trash2, Unlock } from 'lucide-react';
+import { CheckCircle2, Trash2, Unlock } from 'lucide-react';
 import OptimizerLeadInactif, { MotifHorsFlux } from '../OptimizerLeadInactif';
-import { resolveExclusionEntry, exclusionSelectorKey, findValidatedBuild, runesManquantesDuBuild, artefactsManquantsDuBuild, type OptimizerList, type OptimizerListMember, type EtatAjoutListe, type ExclusionSourceData, type ExclusionSelector } from '../../../lib/optimizerExclusion';
+import { resolveExclusionEntry, exclusionSelectorKey, findValidatedBuild, runesManquantesDuBuild, artefactsManquantsDuBuild, type OptimizerList, type OptimizerListMember, type ExclusionSourceData, type ExclusionSelector } from '../../../lib/optimizerExclusion';
 import { leadEffectifMembreOptimizer } from '../../../lib/equipesOptimizer';
 import LeadPill, { STAT_LABEL } from '../../siege/LeadPill';
 import MonsterAvatar from '../../MonsterAvatar';
@@ -18,8 +18,6 @@ import { type ArtifactDetail, type RuneDetail, type Monster, type GearSet } from
 export interface MonstresDeLaListeProps {
   activeList: OptimizerList | null;
   activeMembers: OptimizerListMember[];
-  ajoutListe: EtatAjoutListe;
-  handleAddToList: () => void;
   setEquipeOuverte: Dispatch<SetStateAction<{ listId: string; equipe: EquipeOptimizer | null; } | null>>;
   lists: UseOptimizerLists;
   optimizer: OptimizerState;
@@ -30,6 +28,9 @@ export interface MonstresDeLaListeProps {
   runeById: Map<number, RuneDetail>;
   artifactById: Map<number, ArtifactDetail>;
   choisirMembreDeLaListe: (m: OptimizerListMember, resolved: { monster: Monster; gear: GearSet; } | null) => void;
+  // Clé (`exclusionSelectorKey`) de l'exemplaire affiché : sa carte est
+  // mise en évidence dans la liste.
+  membreChoisi: string | null;
   setReleaseConfirm: Dispatch<SetStateAction<{ listId: string; selector: ExclusionSelector; } | null>>;
   setReleaseArtifactsConfirm: Dispatch<SetStateAction<{ listId: string; selector: ExclusionSelector; } | null>>;
   setRemoveMemberConfirm: Dispatch<SetStateAction<{ listId: string; selector: ExclusionSelector; } | null>>;
@@ -37,22 +38,17 @@ export interface MonstresDeLaListeProps {
   rappelAuras: boolean;
   listHasValidated: boolean;
   setReleaseAllConfirm: Dispatch<SetStateAction<string | null>>;
-  // Forme de bureau des essentiels (`bureau/ListeDeTravailBureau.tsx`),
-  // que le téléphone ne prend pas : ce que la rangée du titre porte après lui
-  // (« Rechercher un monstre… », le monstre actif). Le titre y est toujours
-  // « Ajouter un monstre à la liste » : il nomme le champ qui le suit.
+  // Forme de bureau de la colonne « Monstre » (`bureau/ListeDeTravailBureau.tsx`),
+  // que le téléphone ne prend pas : la rangée qui ouvre la liste
+  // (« Rechercher un monstre… », le monstre actif), sans titre devant, pour
+  // laisser au champ toute la largeur (décision de l'utilisateur).
   enTete?: ReactNode;
 }
 
-export default function MonstresDeLaListe({ activeList, activeMembers, ajoutListe, handleAddToList, setEquipeOuverte, lists, optimizer, exclusionData, artifacts, rapportZoneC, groupesMembres, runeById, artifactById, choisirMembreDeLaListe, setReleaseConfirm, setReleaseArtifactsConfirm, setRemoveMemberConfirm, rappelAuras, listHasValidated, setReleaseAllConfirm, enTete }: MonstresDeLaListeProps) {
-  // Au bureau (`enTete`), le titre nomme toujours le champ qui le suit, sur
-  // deux lignes, sans le nom de la liste ni son compte : « Liste active » la
-  // nomme juste au-dessus (décision de l'utilisateur). L'espace avant le
-  // retour à la ligne garde « monstre à » séparés dans le texte lu (copie,
-  // recherche dans la page), sans rien changer à l'affichage.
-  const titre = enTete ? (
-    <p className="text-[12px] font-semibold leading-tight text-ink-dim">Ajouter un monstre{' '}<br />à la liste</p>
-  ) : (
+export default function MonstresDeLaListe({ activeList, activeMembers, setEquipeOuverte, lists, optimizer, exclusionData, artifacts, rapportZoneC, groupesMembres, runeById, artifactById, choisirMembreDeLaListe, membreChoisi, setReleaseConfirm, setReleaseArtifactsConfirm, setRemoveMemberConfirm, rappelAuras, listHasValidated, setReleaseAllConfirm, enTete }: MonstresDeLaListeProps) {
+  // Au téléphone, le titre nomme la liste et son compte ; au bureau
+  // (`enTete`), aucun titre : « Liste active » nomme la liste juste au-dessus.
+  const titre = (
     <>
       <p className="truncate text-[12px] font-semibold text-ink-dim">
         {activeList ? `Monstres de « ${activeList.name} »` : 'Monstres de la liste'}
@@ -68,29 +64,15 @@ export default function MonstresDeLaListe({ activeList, activeMembers, ajoutList
   return (
     <div className={bureau ? 'relative' : 'rounded-lg border border-border-soft bg-panel2/60 p-2.5'}>
       {enTete ? (
-        <div className="mb-1.5 flex items-center gap-2">
-          <div className="flex min-w-0 max-w-[150px] flex-none items-baseline gap-1.5">{titre}</div>
-          {enTete}
-        </div>
+        <div className="mb-1.5 flex items-center gap-2">{enTete}</div>
       ) : (
         <div className="mb-1.5 flex items-baseline justify-between gap-2">{titre}</div>
       )}
 
       {/* Le rapport des critères se lit hors du flux, depuis une icône à place
           réservée au bout de la ligne d'annonce ; la liste garde la hauteur. */}
-      <OptimizerBackupBar debut={<><Bouton
-        trait="pointille"
-        taille="sm"
-        pleineLargeur
-        icone={<Plus size={14} />}
-        libelle={ajoutListe.libelle}
-        title={ajoutListe.libelle}
-        disabled={!ajoutListe.actif}
-        onClick={handleAddToList}
-        className="min-w-0 [&>span]:min-w-0 [&>span]:truncate"
-      />
-      <Bouton libelle="Lier une équipe" title="Lier une équipe" taille="sm" pleineLargeur disabled={!activeList}
-        onClick={() => activeList && setEquipeOuverte({ listId: activeList.id, equipe: null })} /></>} listes={lists} optimizer={optimizer} data={exclusionData} artifactIds={new Set(artifacts.map(a => a.id))}
+      <OptimizerBackupBar debut={<Bouton libelle="Lier une équipe" title="Lier une équipe" taille="sm" pleineLargeur disabled={!activeList}
+        onClick={() => activeList && setEquipeOuverte({ listId: activeList.id, equipe: null })} />} listes={lists} optimizer={optimizer} data={exclusionData} artifactIds={new Set(artifacts.map(a => a.id))}
         fin={<span className="inline-flex h-6 w-6 flex-none compact:h-10 compact:w-10">
           {rapportZoneC.length > 0 && <MotifHorsFlux titre="Rapport des critères" messages={rapportZoneC}
             libelle={`Rapport des critères : ${rapportZoneC.length} message${rapportZoneC.length > 1 ? 's' : ''}`} />}
@@ -135,10 +117,23 @@ export default function MonstresDeLaListe({ activeList, activeMembers, ajoutList
             const build = findValidatedBuild(lists.validated, lists.activeListId, key);
             const absentes = build ? runesManquantesDuBuild(build, runeById) : [];
             const artsAbsents = build ? artefactsManquantsDuBuild(build, artifactById) : [];
+            const choisi = key === membreChoisi;
+            // ⚠️ Sur le voile du monstre affiché, le gris le plus clair, l'ambre
+            // et la braise passent sous 4,5:1 : ses textes secondaires prennent
+            // le gris moyen, les pictogrammes gardent leur couleur.
+            const encreFaible = choisi ? 'text-ink-dim' : 'text-ink-dimmer';
+            const couleurStatut = absentes.length || artsAbsents.length ? 'text-warn' : 'text-accent';
             return (
               // Chaque monstre garde sa carte, au bureau aussi (décision de
               // l'utilisateur : plus lisible que des lignes sous un trait).
-              <div key={key} data-membre-optimizer={resolved?.monster.com2usId} className="flex flex-wrap items-center gap-x-2 rounded-lg border border-border-soft bg-panel/60 px-2 py-1.5">
+              // Le monstre affiché se repère d'un coup d'œil, dans la teinte de
+              // sa bande d'équipe (la première hors équipe) — décision de
+              // l'utilisateur : seules les couleurs du contour et du fond
+              // changent, la carte ne bouge pas. ⚠️ Jamais le fond même de la
+              // bande : la carte s'y fondait et semblait désélectionnée.
+              <div key={key} data-membre-optimizer={resolved?.monster.com2usId} aria-current={choisi || undefined}
+                className={`flex flex-wrap items-center gap-x-2 rounded-lg border px-2 py-1.5 ${!choisi ? 'border-border-soft bg-panel/60'
+                  : g.equipe && numero % 2 === 1 ? 'border-equipe-b-trait bg-equipe-b-trait/25' : 'border-equipe-a-trait bg-equipe-a-trait/25'}`}>
                 <ZoneCliquable
                   imbrique
                   disabled={!resolved}
@@ -149,16 +144,16 @@ export default function MonstresDeLaListe({ activeList, activeMembers, ajoutList
                   <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-ink">
                     {resolved?.monster.name ?? 'Introuvable'}
                     {m.selector.source === 'unowned' && (
-                      <span className="ml-1 text-[10px] font-normal text-ink-dimmer">(non possédé)</span>
+                      <span className={`ml-1 text-[10px] font-normal ${encreFaible}`}>(non possédé)</span>
                     )}
                   </span>
                 </ZoneCliquable>
                 <OptimizerLeadInactif motif={motif} />
                 {build ? (
                   <>
-                    <span className={`flex flex-none items-center gap-1 text-[10.5px] font-semibold ${absentes.length || artsAbsents.length ? 'text-warn' : 'text-accent'}`}
+                    <span className={`flex flex-none items-center gap-1 text-[10.5px] font-semibold ${choisi ? 'text-ink-dim' : couleurStatut}`}
                       title={absentes.length || artsAbsents.length ? 'Build conservé ; les pièces absentes du compte ne sont plus réservées.' : undefined}>
-                      <CheckCircle2 size={12} />
+                      <CheckCircle2 size={12} className={couleurStatut} />
                       {absentes.length || artsAbsents.length ? [absentes.length ? `${absentes.length} rune(s) absente(s)` : '',
                         artsAbsents.length ? `${artsAbsents.length} artéfact(s) absent(s)` : ''].filter(Boolean).join(' · ') : 'Validé'}
                     </span>
@@ -201,7 +196,7 @@ export default function MonstresDeLaListe({ activeList, activeMembers, ajoutList
                     )}
                   </>
                 ) : (
-                  <span className="flex-none text-[10.5px] text-ink-dimmer">pas encore validé</span>
+                  <span className={`flex-none text-[10.5px] ${encreFaible}`}>pas encore validé</span>
                 )}
                 <BoutonIcone
                   cadre

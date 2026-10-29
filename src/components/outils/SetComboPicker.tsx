@@ -164,7 +164,11 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false,
             // Dans le coffre, 4 px de part et d'autre du trait (`colonnesCoffre`
             // en tient compte) : la grille garde ses colonnes plus étroit.
             <div key={groupLabel} className={i > 0 ? `border-l border-border-soft ${coffre ? 'pl-1' : 'pl-3'}` : coffre ? 'pr-1' : 'pr-3'}>
-              <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-ink-dimmer">{groupLabel}</p>
+              {/* ⚠️ Toujours la hauteur de deux lignes, même quand le titre
+                  tient sur une : la première ligne de runes des deux sets
+                  reste à la même hauteur quand l'un des titres passe à la
+                  ligne (décision de l'utilisateur). */}
+              <p className="mb-1 min-h-[28px] text-[10.5px] font-semibold uppercase leading-[14px] tracking-wide text-ink-dimmer">{groupLabel}</p>
               <div
                 className={coffre ? 'grid justify-items-center gap-1' : i === 0 ? 'grid grid-cols-3 gap-1' : 'flex flex-wrap gap-1'}
                 style={coffre ? { gridTemplateColumns: `repeat(${i === 0 ? colonnes.principal : colonnes.secondaire}, minmax(2rem, 1fr))` } : undefined}

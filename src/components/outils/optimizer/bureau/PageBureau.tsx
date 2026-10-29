@@ -253,6 +253,21 @@ export default function PageBureau(props: PageBureauProps) {
     if (guideCriteres != null) onOnglet(ongletOuvert(courant.current.groupe, courant.current.actif, 'criteres'));
   }, [guideCriteres, onOnglet]);
   const setDeplie = useSetDeplie(!disposition.deuxPiles);
+  // En deux piles, la pile défile d'un bloc : le set se déplie dès que
+  // « Critères » pose deux sections par rangée (le set à côté des
+  // Conditions), mesuré sur la largeur de ses sections.
+  const [pileCriteresLarge, setPileCriteresLarge] = useState(false);
+  const observateurPile = useRef<ResizeObserver | null>(null);
+  const pileCriteres = useCallback((el: HTMLDivElement | null) => {
+    observateurPile.current?.disconnect();
+    observateurPile.current = null;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const lire = () => setPileCriteresLarge(el.clientWidth >= 2 * 294 + 16);
+    lire();
+    observateurPile.current = new ResizeObserver(lire);
+    observateurPile.current.observe(el);
+  }, []);
+  const contextePile = useMemo(() => ({ deplie: pileCriteresLarge, reporterEcart: () => {} }), [pileCriteresLarge]);
   const contenus: Record<ColonneReglage, ReactNode> = {
     criteres: <><SetDeplieContext.Provider value={setDeplie.contexte}>{props.set}</SetDeplieContext.Provider>{props.conditions}{props.principales}{props.etat}</>,
     artefacts: <>{props.artefacts}{props.meilleurs}</>,
@@ -261,9 +276,9 @@ export default function PageBureau(props: PageBureauProps) {
   // En deux piles seulement, les sections fixes se partagent les rangées
   // tant que 294 px chacune tiennent. Leur ordre reste celui du DOM.
   const contenuPile = (cle: ColonneReglage) => (
-    <div data-colonne={cle} className="flex flex-wrap items-start gap-4">
+    <div ref={cle === 'criteres' ? pileCriteres : undefined} data-colonne={cle} className="flex flex-wrap items-start gap-4">
       {cle === 'criteres'
-        ? <><div className="w-[294px]"><SetDeplieContext.Provider value={setDeplie.contexte}>{props.set}</SetDeplieContext.Provider></div><div className="w-[294px]">{props.conditions}</div><div className="w-[294px]">{props.principales}</div><div className="w-[294px]">{props.etat}</div></>
+        ? <><div className="w-[294px]"><SetDeplieContext.Provider value={contextePile}>{props.set}</SetDeplieContext.Provider></div><div className="w-[294px]">{props.conditions}</div><div className="w-[294px]">{props.principales}</div><div className="w-[294px]">{props.etat}</div></>
         : cle === 'artefacts'
           ? <><div className="w-[294px]">{props.artefacts}</div>{props.meilleurs && <div className="w-[294px]">{props.meilleurs}</div>}</>
           : <><div className="w-[294px]">{props.auras}</div><div className="w-[294px]">{props.exclusion}</div><div className="w-[294px]">{props.avances}</div></>}

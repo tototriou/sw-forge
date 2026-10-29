@@ -71,9 +71,12 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
      `N/6 runes` est celui de la grille, aucun second compte à droite du
      libellé (décision de l'utilisateur : il faisait doublon), tant que
      « Critères » (sa colonne, ou le panneau du groupe d'onglets) tient sans
-     défiler une fois dépliée ; compacte sinon, et toujours compacte en deux
-     piles, où la pile de droite défile d'un bloc (`useSetDeplie`,
+     défiler une fois dépliée ; compacte sinon (`useSetDeplie`,
      `PageBureau.tsx` ; contexte `setDeplie.ts`). Décision de l'utilisateur.
+     ⚠️ **En deux piles**, où la pile de droite défile d'un bloc, la hauteur
+     ne compte pas : dépliée dès que « Critères » pose ses sections deux par
+     rangée (le set à côté des Conditions, 2 × 294 px et leur écart),
+     compacte sinon (décision de l'utilisateur).
      La page décide sur la hauteur de la boîte de « Critères » et sur ce
      que le dépli ajoute (mesuré sur deux copies invisibles, liste fermée
      et grille vide, indépendant des sets choisis) : jamais sur un clic, et

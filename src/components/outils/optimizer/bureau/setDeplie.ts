@@ -10,7 +10,9 @@ import { createContext } from 'react';
 // (`ecart` : la hauteur de la grille dépliée moins celle de la liste
 // fermée, mesurée sur deux copies invisibles qui ne dépendent d'aucun choix).
 // Hors de la page (banc de gabarits, tests de rendu), pas de contexte : la
-// forme compacte. En deux piles, toujours compact.
+// forme compacte. En deux piles, où la pile défile d'un bloc, la hauteur ne
+// compte pas : déplié dès que « Critères » pose ses sections deux par rangée
+// (le set à côté des Conditions), compact sinon.
 export interface SetDeplieContexte {
   deplie: boolean;
   // Le set annonce ce que son dépli ajoute à la colonne, en pixels.

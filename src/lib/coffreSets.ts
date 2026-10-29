@@ -8,8 +8,9 @@
 
 const BOUTON = 32;
 const ECART = 4;
-// Entre les deux groupes : la marge du principal, le trait, celle du secondaire.
-const SEPARATION = 12 + 1 + 12;
+// Entre les deux groupes : la marge du principal, le trait, celle du
+// secondaire (4 px de chaque côté, décision de l'utilisateur).
+const SEPARATION = 4 + 1 + 4;
 
 const largeurGrille = (colonnes: number) => colonnes * BOUTON + (colonnes - 1) * ECART;
 

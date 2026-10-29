@@ -161,7 +161,9 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false,
             ['Set principal', FOUR_PIECE],
             ['Set secondaire', TWO_PIECE],
           ] as const).map(([groupLabel, group], i) => (
-            <div key={groupLabel} className={i > 0 ? 'border-l border-border-soft pl-3' : 'pr-3'}>
+            // Dans le coffre, 4 px de part et d'autre du trait (`colonnesCoffre`
+            // en tient compte) : la grille garde ses colonnes plus étroit.
+            <div key={groupLabel} className={i > 0 ? `border-l border-border-soft ${coffre ? 'pl-1' : 'pl-3'}` : coffre ? 'pr-1' : 'pr-3'}>
               <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-ink-dimmer">{groupLabel}</p>
               <div
                 className={coffre ? 'grid justify-items-center gap-1' : i === 0 ? 'grid grid-cols-3 gap-1' : 'flex flex-wrap gap-1'}

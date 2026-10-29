@@ -8,13 +8,13 @@ import { egal, ok, titre } from './outils';
 
 // La grille des sets dans son coffre : 3 + 4 colonnes, puis le principal à
 // 2, puis le secondaire à 3 et à 2, puis le principal à 1, et le secondaire
-// à 1 en dernier recours (boutons de 32 px, écarts de 4, 25 px entre les
-// groupes).
+// à 1 en dernier recours (boutons de 32 px, écarts de 4, 9 px entre les
+// groupes : 4 de marge de chaque côté du trait).
 export function testOptimizerColonnesCoffreSets() {
   titre('Optimizer · colonnes de la grille des sets selon la largeur du coffre');
   const cas: [number, number, number][] = [
-    [400, 3, 4], [269, 3, 4], [268, 2, 4], [233, 2, 4], [232, 2, 3], [197, 2, 3], [196, 2, 2], [161, 2, 2],
-    [160, 1, 2], [125, 1, 2], [124, 1, 1], [60, 1, 1],
+    [400, 3, 4], [253, 3, 4], [252, 2, 4], [217, 2, 4], [216, 2, 3], [181, 2, 3], [180, 2, 2], [145, 2, 2],
+    [144, 1, 2], [109, 1, 2], [108, 1, 1], [60, 1, 1],
   ];
   for (const [largeur, principal, secondaire] of cas) {
     egal(colonnesCoffre(largeur), { principal, secondaire }, `${largeur} px : ${principal} + ${secondaire} colonnes`);

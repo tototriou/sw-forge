@@ -1,8 +1,8 @@
 {
   "meta": {
-    "generated_at": "2026-10-07T10:25:49.186Z",
+    "generated_at": "2026-10-29T17:57:11.000Z",
     "source": "live",
-    "count": 3089
+    "count": 3141
   },
   "monsters": [
     {
@@ -89283,7 +89283,8 @@
       "transformsTo": null,
       "swarfarmId": 3027,
       "familyId": 35600,
-      "skillGroupId": 35600
+      "skillGroupId": 35600,
+      "jumeauCollab": 36211
     },
     {
       "id": 3028,
@@ -89475,7 +89476,8 @@
       "transformsTo": null,
       "swarfarmId": 3033,
       "familyId": 35700,
-      "skillGroupId": 35700
+      "skillGroupId": 35700,
+      "jumeauCollab": 36311
     },
     {
       "id": 3034,
@@ -89507,7 +89509,8 @@
       "transformsTo": null,
       "swarfarmId": 3034,
       "familyId": 35700,
-      "skillGroupId": 35700
+      "skillGroupId": 35700,
+      "jumeauCollab": 36312
     },
     {
       "id": 3035,
@@ -89539,7 +89542,8 @@
       "transformsTo": null,
       "swarfarmId": 3035,
       "familyId": 35700,
-      "skillGroupId": 35700
+      "skillGroupId": 35700,
+      "jumeauCollab": 36313
     },
     {
       "id": 3036,
@@ -89571,7 +89575,8 @@
       "transformsTo": null,
       "swarfarmId": 3036,
       "familyId": 35700,
-      "skillGroupId": 35700
+      "skillGroupId": 35700,
+      "jumeauCollab": 36314
     },
     {
       "id": 3037,
@@ -89603,7 +89608,8 @@
       "transformsTo": null,
       "swarfarmId": 3037,
       "familyId": 35700,
-      "skillGroupId": 35700
+      "skillGroupId": 35700,
+      "jumeauCollab": 36315
     },
     {
       "id": 3038,
@@ -89785,7 +89791,8 @@
       "transformsTo": 3086,
       "swarfarmId": 3043,
       "familyId": 35800,
-      "skillGroupId": 35800
+      "skillGroupId": 35800,
+      "jumeauCollab": 36411
     },
     {
       "id": 3044,
@@ -89817,7 +89824,8 @@
       "transformsTo": 3087,
       "swarfarmId": 3044,
       "familyId": 35800,
-      "skillGroupId": 35800
+      "skillGroupId": 35800,
+      "jumeauCollab": 36412
     },
     {
       "id": 3045,
@@ -89849,7 +89857,8 @@
       "transformsTo": 3088,
       "swarfarmId": 3045,
       "familyId": 35800,
-      "skillGroupId": 35800
+      "skillGroupId": 35800,
+      "jumeauCollab": 36413
     },
     {
       "id": 3046,
@@ -89881,7 +89890,8 @@
       "transformsTo": 3089,
       "swarfarmId": 3046,
       "familyId": 35800,
-      "skillGroupId": 35800
+      "skillGroupId": 35800,
+      "jumeauCollab": 36414
     },
     {
       "id": 3047,
@@ -89913,7 +89923,8 @@
       "transformsTo": 3090,
       "swarfarmId": 3047,
       "familyId": 35800,
-      "skillGroupId": 35800
+      "skillGroupId": 35800,
+      "jumeauCollab": 36415
     },
     {
       "id": 3048,
@@ -90095,7 +90106,8 @@
       "transformsTo": null,
       "swarfarmId": 3053,
       "familyId": 35900,
-      "skillGroupId": 35900
+      "skillGroupId": 35900,
+      "jumeauCollab": 36511
     },
     {
       "id": 3054,
@@ -90127,7 +90139,8 @@
       "transformsTo": null,
       "swarfarmId": 3054,
       "familyId": 35900,
-      "skillGroupId": 35900
+      "skillGroupId": 35900,
+      "jumeauCollab": 36512
     },
     {
       "id": 3055,
@@ -90159,7 +90172,8 @@
       "transformsTo": null,
       "swarfarmId": 3055,
       "familyId": 35900,
-      "skillGroupId": 35900
+      "skillGroupId": 35900,
+      "jumeauCollab": 36513
     },
     {
       "id": 3056,
@@ -90191,7 +90205,8 @@
       "transformsTo": null,
       "swarfarmId": 3056,
       "familyId": 35900,
-      "skillGroupId": 35900
+      "skillGroupId": 35900,
+      "jumeauCollab": 36514
     },
     {
       "id": 3057,
@@ -90223,7 +90238,8 @@
       "transformsTo": null,
       "swarfarmId": 3057,
       "familyId": 35900,
-      "skillGroupId": 35900
+      "skillGroupId": 35900,
+      "jumeauCollab": 36515
     },
     {
       "id": 3058,
@@ -90385,7 +90401,8 @@
       "transformsTo": null,
       "swarfarmId": 3063,
       "familyId": 36000,
-      "skillGroupId": 36000
+      "skillGroupId": 36000,
+      "jumeauCollab": 36611
     },
     {
       "id": 3064,
@@ -90412,7 +90429,8 @@
       "transformsTo": null,
       "swarfarmId": 3064,
       "familyId": 36000,
-      "skillGroupId": 36000
+      "skillGroupId": 36000,
+      "jumeauCollab": 36612
     },
     {
       "id": 3065,
@@ -90439,7 +90457,8 @@
       "transformsTo": null,
       "swarfarmId": 3065,
       "familyId": 36000,
-      "skillGroupId": 36000
+      "skillGroupId": 36000,
+      "jumeauCollab": 36613
     },
     {
       "id": 3066,
@@ -90466,7 +90485,8 @@
       "transformsTo": null,
       "swarfarmId": 3066,
       "familyId": 36000,
-      "skillGroupId": 36000
+      "skillGroupId": 36000,
+      "jumeauCollab": 36614
     },
     {
       "id": 3067,
@@ -90493,7 +90513,8 @@
       "transformsTo": null,
       "swarfarmId": 3067,
       "familyId": 36000,
-      "skillGroupId": 36000
+      "skillGroupId": 36000,
+      "jumeauCollab": 36615
     },
     {
       "id": 3068,
@@ -91518,6 +91539,1621 @@
       "swarfarmId": 3104,
       "familyId": 701400,
       "skillGroupId": 701400
+    },
+    {
+      "id": 3105,
+      "com2usId": 36701,
+      "name": "Cosmic Worm",
+      "element": "water",
+      "archetype": "support",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_0_1.png",
+      "stats": {
+        "hp": 10215,
+        "attack": 648,
+        "defense": 648,
+        "speed": 100,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Resistance",
+        "amount": 41,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3105,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3106,
+      "com2usId": 36702,
+      "name": "Cosmic Worm",
+      "element": "fire",
+      "archetype": "hp",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_0_2.png",
+      "stats": {
+        "hp": 11700,
+        "attack": 582,
+        "defense": 615,
+        "speed": 100,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Defense",
+        "amount": 33,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3106,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3107,
+      "com2usId": 36703,
+      "name": "Cosmic Worm",
+      "element": "wind",
+      "archetype": "support",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_0_3.png",
+      "stats": {
+        "hp": 10380,
+        "attack": 659,
+        "defense": 626,
+        "speed": 100,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "HP",
+        "amount": 33,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3107,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3108,
+      "com2usId": 36704,
+      "name": "Cosmic Worm",
+      "element": "light",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_0_4.png",
+      "stats": {
+        "hp": 8895,
+        "attack": 801,
+        "defense": 582,
+        "speed": 100,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Attack Power",
+        "amount": 33,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3108,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3109,
+      "com2usId": 36705,
+      "name": "Cosmic Worm",
+      "element": "dark",
+      "archetype": "hp",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_0_5.png",
+      "stats": {
+        "hp": 11535,
+        "attack": 560,
+        "defense": 648,
+        "speed": 100,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Critical Rate",
+        "amount": 24,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3109,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3110,
+      "com2usId": 36711,
+      "name": "Maris",
+      "element": "water",
+      "archetype": "support",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_1_1.png",
+      "stats": {
+        "hp": 11205,
+        "attack": 703,
+        "defense": 692,
+        "speed": 101,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": {
+        "stat": "Resistance",
+        "amount": 41,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3110,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3111,
+      "com2usId": 36712,
+      "name": "Volcaris",
+      "element": "fire",
+      "archetype": "hp",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_1_2.png",
+      "stats": {
+        "hp": 12840,
+        "attack": 626,
+        "defense": 659,
+        "speed": 101,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": {
+        "stat": "Defense",
+        "amount": 33,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3111,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3112,
+      "com2usId": 36713,
+      "name": "Auraris",
+      "element": "wind",
+      "archetype": "support",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_1_3.png",
+      "stats": {
+        "hp": 11370,
+        "attack": 714,
+        "defense": 670,
+        "speed": 101,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": {
+        "stat": "HP",
+        "amount": 33,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3112,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3113,
+      "com2usId": 36714,
+      "name": "Luminaris",
+      "element": "light",
+      "archetype": "attack",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_1_4.png",
+      "stats": {
+        "hp": 9720,
+        "attack": 878,
+        "defense": 615,
+        "speed": 101,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": {
+        "stat": "Attack Power",
+        "amount": 33,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3113,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3114,
+      "com2usId": 36715,
+      "name": "Noctaris",
+      "element": "dark",
+      "archetype": "hp",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0228_1_5.png",
+      "stats": {
+        "hp": 12675,
+        "attack": 604,
+        "defense": 692,
+        "speed": 101,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": {
+        "stat": "Critical Rate",
+        "amount": 24,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3114,
+      "familyId": 36700,
+      "skillGroupId": 36700
+    },
+    {
+      "id": 3115,
+      "com2usId": 36201,
+      "name": "Kiel",
+      "element": "water",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0233_1_1.png",
+      "stats": {
+        "hp": 9060,
+        "attack": 703,
+        "defense": 670,
+        "speed": 99,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Defense",
+        "amount": 44,
+        "area": "Dungeon",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3115,
+      "familyId": 36200,
+      "skillGroupId": 35600
+    },
+    {
+      "id": 3116,
+      "com2usId": 36211,
+      "name": "Kiel",
+      "element": "water",
+      "archetype": "attack",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0233_1_1.png",
+      "stats": {
+        "hp": 9555,
+        "attack": 790,
+        "defense": 714,
+        "speed": 100,
+        "critRate": 30,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Defense",
+        "amount": 44,
+        "area": "Dungeon",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3116,
+      "familyId": 36200,
+      "skillGroupId": 35600,
+      "jumeauCollab": 35611
+    },
+    {
+      "id": 3117,
+      "com2usId": 36301,
+      "name": "Freu",
+      "element": "water",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0229_1_1.png",
+      "stats": {
+        "hp": 8895,
+        "attack": 801,
+        "defense": 582,
+        "speed": 104,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Attack Power",
+        "amount": 44,
+        "area": "Arena",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3117,
+      "familyId": 36300,
+      "skillGroupId": 35700
+    },
+    {
+      "id": 3118,
+      "com2usId": 36302,
+      "name": "Freu",
+      "element": "fire",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0229_1_2.png",
+      "stats": {
+        "hp": 9555,
+        "attack": 790,
+        "defense": 549,
+        "speed": 104,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "HP",
+        "amount": 44,
+        "area": "Arena",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3118,
+      "familyId": 36300,
+      "skillGroupId": 35700
+    },
+    {
+      "id": 3119,
+      "com2usId": 36303,
+      "name": "Freu",
+      "element": "wind",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0229_1_3.png",
+      "stats": {
+        "hp": 9555,
+        "attack": 747,
+        "defense": 593,
+        "speed": 104,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Resistance",
+        "amount": 55,
+        "area": "Arena",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3119,
+      "familyId": 36300,
+      "skillGroupId": 35700
+    },
+    {
+      "id": 3120,
+      "com2usId": 36304,
+      "name": "Freu",
+      "element": "light",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0229_1_4.png",
+      "stats": {
+        "hp": 9060,
+        "attack": 801,
+        "defense": 571,
+        "speed": 104,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Accuracy",
+        "amount": 55,
+        "area": "Arena",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3120,
+      "familyId": 36300,
+      "skillGroupId": 35700
+    },
+    {
+      "id": 3121,
+      "com2usId": 36305,
+      "name": "Freu",
+      "element": "dark",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0229_1_5.png",
+      "stats": {
+        "hp": 9720,
+        "attack": 747,
+        "defense": 582,
+        "speed": 104,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Critical Rate",
+        "amount": 33,
+        "area": "Arena",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3121,
+      "familyId": 36300,
+      "skillGroupId": 35700
+    },
+    {
+      "id": 3122,
+      "com2usId": 36311,
+      "name": "Freu",
+      "element": "water",
+      "archetype": "attack",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0229_1_1.png",
+      "stats": {
+        "hp": 9555,
+        "attack": 889,
+        "defense": 615,
+        "speed": 105,
+        "critRate": 30,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Attack Power",
+        "amount": 44,
+        "area": "Arena",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3122,
+      "familyId": 36300,
+      "skillGroupId": 35700,
+      "jumeauCollab": 35711
+    },
+    {
+      "id": 3123,
+      "com2usId": 36312,
+      "name": "Freu",
+      "element": "fire",
+      "archetype": "attack",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0229_1_2.png",
+      "stats": {
+        "hp": 10215,
+        "attack": 856,
+        "defense": 604,
+        "speed": 105,
+        "critRate": 30,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "HP",
+        "amount": 44,
+        "area": "Arena",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3123,
+      "familyId": 36300,
+      "skillGroupId": 35700,
+      "jumeauCollab": 35712
+    },
+    {
+      "id": 3124,
+      "com2usId": 36313,
+      "name": "Freu",
+      "element": "wind",
+      "archetype": "attack",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0229_1_3.png",
+      "stats": {
+        "hp": 10380,
+        "attack": 823,
+        "defense": 626,
+        "speed": 105,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": {
+        "stat": "Resistance",
+        "amount": 55,
+        "area": "Arena",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3124,
+      "familyId": 36300,
+      "skillGroupId": 35700,
+      "jumeauCollab": 35713
+    },
+    {
+      "id": 3125,
+      "com2usId": 36314,
+      "name": "Freu",
+      "element": "light",
+      "archetype": "attack",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0229_1_4.png",
+      "stats": {
+        "hp": 9885,
+        "attack": 878,
+        "defense": 604,
+        "speed": 105,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 40,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Accuracy",
+        "amount": 55,
+        "area": "Arena",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3125,
+      "familyId": 36300,
+      "skillGroupId": 35700,
+      "jumeauCollab": 35714
+    },
+    {
+      "id": 3126,
+      "com2usId": 36315,
+      "name": "Freu",
+      "element": "dark",
+      "archetype": "attack",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0229_1_5.png",
+      "stats": {
+        "hp": 10545,
+        "attack": 812,
+        "defense": 626,
+        "speed": 105,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": {
+        "stat": "Critical Rate",
+        "amount": 33,
+        "area": "Arena",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3126,
+      "familyId": 36300,
+      "skillGroupId": 35700,
+      "jumeauCollab": 35715
+    },
+    {
+      "id": 3127,
+      "com2usId": 36401,
+      "name": "Luen",
+      "element": "water",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0231_1_1.png",
+      "stats": {
+        "hp": 8895,
+        "attack": 801,
+        "defense": 582,
+        "speed": 102,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Attack Power",
+        "amount": 38,
+        "area": "Guild",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3127,
+      "familyId": 36400,
+      "skillGroupId": 35800
+    },
+    {
+      "id": 3128,
+      "com2usId": 36402,
+      "name": "Luen",
+      "element": "fire",
+      "archetype": "attack",
+      "stars": 4,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0231_1_2.png",
+      "stats": {
+        "hp": 8895,
+        "attack": 681,
+        "defense": 538,
+        "speed": 102,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": null,
+      "transformsTo": null,
+      "swarfarmId": 3128,
+      "familyId": 36400,
+      "skillGroupId": 35800
+    },
+    {
+      "id": 3129,
+      "com2usId": 36403,
+      "name": "Luen",
+      "element": "wind",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0231_1_3.png",
+      "stats": {
+        "hp": 10050,
+        "attack": 703,
+        "defense": 604,
+        "speed": 102,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "HP",
+        "amount": 38,
+        "area": "Guild",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3129,
+      "familyId": 36400,
+      "skillGroupId": 35800
+    },
+    {
+      "id": 3130,
+      "com2usId": 36404,
+      "name": "Luen",
+      "element": "light",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0231_1_4.png",
+      "stats": {
+        "hp": 10215,
+        "attack": 747,
+        "defense": 549,
+        "speed": 102,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Resistance",
+        "amount": 48,
+        "area": "Guild",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3130,
+      "familyId": 36400,
+      "skillGroupId": 35800
+    },
+    {
+      "id": 3131,
+      "com2usId": 36405,
+      "name": "Luen",
+      "element": "dark",
+      "archetype": "attack",
+      "stars": 4,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0231_1_5.png",
+      "stats": {
+        "hp": 9225,
+        "attack": 670,
+        "defense": 527,
+        "speed": 102,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": null,
+      "transformsTo": null,
+      "swarfarmId": 3131,
+      "familyId": 36400,
+      "skillGroupId": 35800
+    },
+    {
+      "id": 3132,
+      "com2usId": 36411,
+      "name": "Luen",
+      "element": "water",
+      "archetype": "attack",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0231_1_1.png",
+      "stats": {
+        "hp": 9720,
+        "attack": 878,
+        "defense": 615,
+        "speed": 103,
+        "critRate": 30,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Attack Power",
+        "amount": 38,
+        "area": "Guild",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3132,
+      "familyId": 36400,
+      "skillGroupId": 35800,
+      "jumeauCollab": 35811
+    },
+    {
+      "id": 3133,
+      "com2usId": 36412,
+      "name": "Luen",
+      "element": "fire",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0231_1_2.png",
+      "stats": {
+        "hp": 9555,
+        "attack": 769,
+        "defense": 571,
+        "speed": 103,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Accuracy",
+        "amount": 48,
+        "area": "Guild",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3133,
+      "familyId": 36400,
+      "skillGroupId": 35800,
+      "jumeauCollab": 35812
+    },
+    {
+      "id": 3134,
+      "com2usId": 36413,
+      "name": "Luen",
+      "element": "wind",
+      "archetype": "attack",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0231_1_3.png",
+      "stats": {
+        "hp": 10710,
+        "attack": 790,
+        "defense": 637,
+        "speed": 103,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 40,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "HP",
+        "amount": 38,
+        "area": "Guild",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3134,
+      "familyId": 36400,
+      "skillGroupId": 35800,
+      "jumeauCollab": 35813
+    },
+    {
+      "id": 3135,
+      "com2usId": 36414,
+      "name": "Luen",
+      "element": "light",
+      "archetype": "attack",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0231_1_4.png",
+      "stats": {
+        "hp": 10875,
+        "attack": 834,
+        "defense": 582,
+        "speed": 103,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": {
+        "stat": "Resistance",
+        "amount": 48,
+        "area": "Guild",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3135,
+      "familyId": 36400,
+      "skillGroupId": 35800,
+      "jumeauCollab": 35814
+    },
+    {
+      "id": 3136,
+      "com2usId": 36415,
+      "name": "Luen",
+      "element": "dark",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0231_1_5.png",
+      "stats": {
+        "hp": 9885,
+        "attack": 758,
+        "defense": 560,
+        "speed": 103,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Defense",
+        "amount": 38,
+        "area": "Guild",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3136,
+      "familyId": 36400,
+      "skillGroupId": 35800,
+      "jumeauCollab": 35815
+    },
+    {
+      "id": 3137,
+      "com2usId": 36501,
+      "name": "Schporte",
+      "element": "water",
+      "archetype": "hp",
+      "stars": 4,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0230_1_1.png",
+      "stats": {
+        "hp": 10380,
+        "attack": 560,
+        "defense": 560,
+        "speed": 98,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": null,
+      "transformsTo": null,
+      "swarfarmId": 3137,
+      "familyId": 36500,
+      "skillGroupId": 35900
+    },
+    {
+      "id": 3138,
+      "com2usId": 36502,
+      "name": "Schporte",
+      "element": "fire",
+      "archetype": "hp",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0230_1_2.png",
+      "stats": {
+        "hp": 12015,
+        "attack": 560,
+        "defense": 615,
+        "speed": 98,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Defense",
+        "amount": 28,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3138,
+      "familyId": 36500,
+      "skillGroupId": 35900
+    },
+    {
+      "id": 3139,
+      "com2usId": 36503,
+      "name": "Schporte",
+      "element": "wind",
+      "archetype": "hp",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0230_1_3.png",
+      "stats": {
+        "hp": 11205,
+        "attack": 659,
+        "defense": 571,
+        "speed": 98,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "HP",
+        "amount": 28,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3139,
+      "familyId": 36500,
+      "skillGroupId": 35900
+    },
+    {
+      "id": 3140,
+      "com2usId": 36504,
+      "name": "Schporte",
+      "element": "light",
+      "archetype": "hp",
+      "stars": 4,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0230_1_4.png",
+      "stats": {
+        "hp": 10050,
+        "attack": 648,
+        "defense": 494,
+        "speed": 98,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": null,
+      "transformsTo": null,
+      "swarfarmId": 3140,
+      "familyId": 36500,
+      "skillGroupId": 35900
+    },
+    {
+      "id": 3141,
+      "com2usId": 36505,
+      "name": "Schporte",
+      "element": "dark",
+      "archetype": "hp",
+      "stars": 5,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0230_1_5.png",
+      "stats": {
+        "hp": 11205,
+        "attack": 560,
+        "defense": 670,
+        "speed": 98,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Attack Speed",
+        "amount": 21,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3141,
+      "familyId": 36500,
+      "skillGroupId": 35900
+    },
+    {
+      "id": 3142,
+      "com2usId": 36511,
+      "name": "Schporte",
+      "element": "water",
+      "archetype": "hp",
+      "stars": 5,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0230_1_1.png",
+      "stats": {
+        "hp": 11535,
+        "attack": 604,
+        "defense": 604,
+        "speed": 99,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Critical Rate",
+        "amount": 21,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3142,
+      "familyId": 36500,
+      "skillGroupId": 35900,
+      "jumeauCollab": 35911
+    },
+    {
+      "id": 3143,
+      "com2usId": 36512,
+      "name": "Schporte",
+      "element": "fire",
+      "archetype": "hp",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0230_1_2.png",
+      "stats": {
+        "hp": 13170,
+        "attack": 604,
+        "defense": 659,
+        "speed": 99,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 40,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Defense",
+        "amount": 28,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3143,
+      "familyId": 36500,
+      "skillGroupId": 35900,
+      "jumeauCollab": 35912
+    },
+    {
+      "id": 3144,
+      "com2usId": 36513,
+      "name": "Schporte",
+      "element": "wind",
+      "archetype": "hp",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0230_1_3.png",
+      "stats": {
+        "hp": 12180,
+        "attack": 714,
+        "defense": 615,
+        "speed": 99,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 40,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "HP",
+        "amount": 28,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3144,
+      "familyId": 36500,
+      "skillGroupId": 35900,
+      "jumeauCollab": 35913
+    },
+    {
+      "id": 3145,
+      "com2usId": 36514,
+      "name": "Schporte",
+      "element": "light",
+      "archetype": "hp",
+      "stars": 5,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0230_1_4.png",
+      "stats": {
+        "hp": 11040,
+        "attack": 703,
+        "defense": 538,
+        "speed": 99,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Accuracy",
+        "amount": 35,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3145,
+      "familyId": 36500,
+      "skillGroupId": 35900,
+      "jumeauCollab": 35914
+    },
+    {
+      "id": 3146,
+      "com2usId": 36515,
+      "name": "Schporte",
+      "element": "dark",
+      "archetype": "hp",
+      "stars": 6,
+      "naturalStars": 5,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0230_1_5.png",
+      "stats": {
+        "hp": 12345,
+        "attack": 593,
+        "defense": 725,
+        "speed": 99,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 40,
+        "accuracy": 0
+      },
+      "leaderSkill": {
+        "stat": "Attack Speed",
+        "amount": 21,
+        "area": "General",
+        "element": null
+      },
+      "transformsTo": null,
+      "swarfarmId": 3146,
+      "familyId": 36500,
+      "skillGroupId": 35900,
+      "jumeauCollab": 35915
+    },
+    {
+      "id": 3147,
+      "com2usId": 36601,
+      "name": "Wieb",
+      "element": "water",
+      "archetype": "attack",
+      "stars": 4,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0232_1_1.png",
+      "stats": {
+        "hp": 8895,
+        "attack": 670,
+        "defense": 549,
+        "speed": 100,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": null,
+      "transformsTo": null,
+      "swarfarmId": 3147,
+      "familyId": 36600,
+      "skillGroupId": 36000
+    },
+    {
+      "id": 3148,
+      "com2usId": 36602,
+      "name": "Wieb",
+      "element": "fire",
+      "archetype": "attack",
+      "stars": 4,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0232_1_2.png",
+      "stats": {
+        "hp": 9060,
+        "attack": 637,
+        "defense": 571,
+        "speed": 100,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": null,
+      "transformsTo": null,
+      "swarfarmId": 3148,
+      "familyId": 36600,
+      "skillGroupId": 36000
+    },
+    {
+      "id": 3149,
+      "com2usId": 36603,
+      "name": "Wieb",
+      "element": "wind",
+      "archetype": "attack",
+      "stars": 4,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0232_1_3.png",
+      "stats": {
+        "hp": 8400,
+        "attack": 692,
+        "defense": 560,
+        "speed": 100,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": null,
+      "transformsTo": null,
+      "swarfarmId": 3149,
+      "familyId": 36600,
+      "skillGroupId": 36000
+    },
+    {
+      "id": 3150,
+      "com2usId": 36604,
+      "name": "Wieb",
+      "element": "light",
+      "archetype": "attack",
+      "stars": 4,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0232_1_4.png",
+      "stats": {
+        "hp": 8895,
+        "attack": 659,
+        "defense": 560,
+        "speed": 100,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": null,
+      "transformsTo": null,
+      "swarfarmId": 3150,
+      "familyId": 36600,
+      "skillGroupId": 36000
+    },
+    {
+      "id": 3151,
+      "com2usId": 36605,
+      "name": "Wieb",
+      "element": "dark",
+      "archetype": "attack",
+      "stars": 4,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": false,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0232_1_5.png",
+      "stats": {
+        "hp": 8730,
+        "attack": 659,
+        "defense": 571,
+        "speed": 100,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 0
+      },
+      "leaderSkill": null,
+      "transformsTo": null,
+      "swarfarmId": 3151,
+      "familyId": 36600,
+      "skillGroupId": 36000
+    },
+    {
+      "id": 3152,
+      "com2usId": 36611,
+      "name": "Wieb",
+      "element": "water",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0232_1_1.png",
+      "stats": {
+        "hp": 9555,
+        "attack": 758,
+        "defense": 582,
+        "speed": 101,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": null,
+      "transformsTo": null,
+      "swarfarmId": 3152,
+      "familyId": 36600,
+      "skillGroupId": 36000,
+      "jumeauCollab": 36011
+    },
+    {
+      "id": 3153,
+      "com2usId": 36612,
+      "name": "Wieb",
+      "element": "fire",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0232_1_2.png",
+      "stats": {
+        "hp": 9720,
+        "attack": 714,
+        "defense": 615,
+        "speed": 101,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": null,
+      "transformsTo": null,
+      "swarfarmId": 3153,
+      "familyId": 36600,
+      "skillGroupId": 36000,
+      "jumeauCollab": 36012
+    },
+    {
+      "id": 3154,
+      "com2usId": 36613,
+      "name": "Wieb",
+      "element": "wind",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0232_1_3.png",
+      "stats": {
+        "hp": 9060,
+        "attack": 780,
+        "defense": 593,
+        "speed": 101,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": null,
+      "transformsTo": null,
+      "swarfarmId": 3154,
+      "familyId": 36600,
+      "skillGroupId": 36000,
+      "jumeauCollab": 36013
+    },
+    {
+      "id": 3155,
+      "com2usId": 36614,
+      "name": "Wieb",
+      "element": "light",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0232_1_4.png",
+      "stats": {
+        "hp": 9555,
+        "attack": 736,
+        "defense": 604,
+        "speed": 101,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": null,
+      "transformsTo": null,
+      "swarfarmId": 3155,
+      "familyId": 36600,
+      "skillGroupId": 36000,
+      "jumeauCollab": 36014
+    },
+    {
+      "id": 3156,
+      "com2usId": 36615,
+      "name": "Wieb",
+      "element": "dark",
+      "archetype": "attack",
+      "stars": 5,
+      "naturalStars": 4,
+      "secondAwaken": false,
+      "obtainable": true,
+      "image": "https://swarfarm.com/static/herders/images/monsters/unit_icon_0232_1_5.png",
+      "stats": {
+        "hp": 9390,
+        "attack": 725,
+        "defense": 626,
+        "speed": 101,
+        "critRate": 15,
+        "critDamage": 50,
+        "resistance": 15,
+        "accuracy": 25
+      },
+      "leaderSkill": null,
+      "transformsTo": null,
+      "swarfarmId": 3156,
+      "familyId": 36600,
+      "skillGroupId": 36000,
+      "jumeauCollab": 36015
     }
   ]
 }

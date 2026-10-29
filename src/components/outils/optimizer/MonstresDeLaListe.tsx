@@ -121,13 +121,14 @@ export default function MonstresDeLaListe({ activeList, activeMembers, setEquipe
             return (
               // Chaque monstre garde sa carte, au bureau aussi (décision de
               // l'utilisateur : plus lisible que des lignes sous un trait).
-              // Le monstre affiché se repère d'un coup d'œil, aux couleurs de
+              // Le monstre affiché se repère d'un coup d'œil, dans la teinte de
               // sa bande d'équipe (la première hors équipe) — décision de
               // l'utilisateur : seules les couleurs du contour et du fond
-              // changent, la carte ne bouge pas.
+              // changent, la carte ne bouge pas. ⚠️ Jamais le fond même de la
+              // bande : la carte s'y fondait et semblait désélectionnée.
               <div key={key} data-membre-optimizer={resolved?.monster.com2usId} aria-current={choisi || undefined}
                 className={`flex flex-wrap items-center gap-x-2 rounded-lg border px-2 py-1.5 ${!choisi ? 'border-border-soft bg-panel/60'
-                  : g.equipe && numero % 2 === 1 ? 'border-equipe-b-trait bg-equipe-b' : 'border-equipe-a-trait bg-equipe-a'}`}>
+                  : g.equipe && numero % 2 === 1 ? 'border-equipe-b-trait bg-equipe-b-trait/25' : 'border-equipe-a-trait bg-equipe-a-trait/25'}`}>
                 <ZoneCliquable
                   imbrique
                   disabled={!resolved}

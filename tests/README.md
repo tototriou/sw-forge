@@ -138,8 +138,8 @@ déplacement rend l'état non atteint.
 | `artefacts`, `complements` | Même recherche, puis sélection de l'onglet correspondant quand il existe |
 | `toutes-colonnes` | Même recherche aux tailles qui affichent tous les réglages |
 | `guidage-set` | Options, puis Rechercher sans set : Critères et message d'erreur visibles |
-| `pile-collee` | Options en deux piles, défilement jusqu'aux réglages avancés ; capture avec Rechercher visible |
-| `set-flottant` | Liste remplie, ouverture du coffre compact aux tailles en deux piles |
+| `pile-defilee` | Options en deux piles, défilement de la pile jusqu'à Rechercher, qui reste dans le bloc |
+| `set-flottant` | Liste remplie, ouverture du coffre compact à la taille où il existe (1536 × 730) |
 
 Les états de départ, de réglages avancés et de modale « Dégâts réels »
 restent exercés aux deux formats. Le téléphone garde « Gérer mes listes »

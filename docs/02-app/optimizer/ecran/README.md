@@ -431,13 +431,9 @@ l'écran.
   liste de travail et la fiche dépassent la hauteur de la page (portable
   de 1 536 × 730).
 - ⚠️ **En deux piles, « Rechercher » (ou « Arrêter », à sa place exacte)
-  reste collé au bas de la pile de droite** tant que sa place est plus bas
-  (décision de l'utilisateur) : à droite, à 240 px, sans panneau ni
-  progression autour ; lancer et arrêter restent ainsi à un clic sans
-  faire défiler les réglages. Il reprend sa place une fois le bloc atteint.
-  ⚠️ **Sa hauteur ne change jamais** : la progression reste dans le bloc,
-  parce que collé par le bas, un élément qui grandirait ferait monter
-  « Rechercher » / « Arrêter » sous le pointeur.
+  reste à sa place dans le bloc**, à droite, à 240 px, sans coller au bas
+  de la pile de droite (décision de l'utilisateur : un bouton flottant
+  couvrait les réglages) ; on le rejoint en faisant défiler la pile.
 - ⚠️ **La colonne des résultats et la pile de droite réservent leur barre
   de défilement** (`scrollbar-gutter: stable`) : les résultats qui
   arrivent ne les rétrécissent pas, et « Rechercher » ne bouge pas sous le

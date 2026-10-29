@@ -80,7 +80,6 @@ export const RELEASES: Release[] = [
       { kind: 'feat', scope: 'Optimizer', text: '« Artéfacts et relique » et « Aura, exclusion, avancés » s’ouvrent par onglets.' },
       { kind: 'feat', scope: 'Optimizer', text: 'Sets et principales imposées se choisissent dans des listes à choix multiples.' },
       { kind: 'feat', scope: 'Optimizer', text: 'Cartes de résultat plus compactes, « Comparer » et « Valider ce build » en bas.' },
-      { kind: 'feat', scope: 'Optimizer', text: 'En une colonne, « Rechercher » reste en bas de l’écran.' },
       { kind: 'feat', scope: 'Interface', text: 'Listes déroulantes redessinées, parcourables avec Tab.' },
       { kind: 'feat', scope: 'Optimizer', text: 'L’Optimizer n’est plus en bêta.' },
       { kind: 'feat', scope: 'Stats', text: 'Taux Crit, Dmg Crit, RES et Précision s’écrivent toujours en total.' },

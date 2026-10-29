@@ -230,7 +230,7 @@ export function testRenduOptimizerPageBureauDroite() {
     'la pile est un panneau qui défile et réserve sa barre, sans display:contents');
   ok(/data-page-fenetre/.test(html) && !/style="[^"]*height/.test(html.slice(0, html.indexOf('>'))),
     'page à hauteur visible dans toutes les configurations ; la hauteur attend la mesure au navigateur');
-  ok(/data-zone="barre" class="sticky bottom-0/.test(html), 'deux piles : la barre de recherche colle au bas');
+  ok(/data-zone="barre" class="relative /.test(html) && !/data-zone="barre" class="[^"]*sticky/.test(html), 'deux piles : la barre de recherche reste à sa place, sans coller au bas');
   ok(html.includes('rounded-xl border border-border bg-panel p-2') && html.includes('before:border-t before:border-border')
     && !html.includes('linear-gradient') && !html.includes('border-t-[3px]'),
     'panneaux : un contour de 1 px et un haut fixe, sans bande braise en dégradé');

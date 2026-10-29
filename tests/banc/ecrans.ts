@@ -455,8 +455,9 @@ export const ECRANS: Ecran[] = [
         atteint: [repere('[data-colonne="criteres"]'), { role: 'texte', nom: 'Sélectionne au moins un set avant de lancer la recherche.' }],
       },
       {
-        id: 'pile-collee', libelle: 'pile de droite défilée, Rechercher collé', tailles: TAILLES_OPTIMIZER.filter(t => t.optimizer?.configuration === 'deux-piles').map(t => t.id),
-        preparation: [...OPT_LISTE, choisirReglage('Options', 'complements'), { montrer: { role: 'switch', nom: "Rechercher jusqu'à épuisement complet" } }],
+        // « Rechercher » ne colle plus au bas : on fait défiler la pile jusqu'à lui.
+        id: 'pile-defilee', libelle: 'pile de droite défilée jusqu’à Rechercher', tailles: TAILLES_OPTIMIZER.filter(t => t.optimizer?.configuration === 'deux-piles').map(t => t.id),
+        preparation: [...OPT_LISTE, choisirReglage('Options', 'complements'), { montrer: bouton('Rechercher') }],
         atteint: [repere('[data-zone="pile-droite"]'), bouton('Rechercher')],
       },
       {

@@ -206,9 +206,9 @@ const NOMS = {
   complements: { libelle: 'Options', title: 'Aura, exclusion, avancés' },
 };
 
-// Le bouton collé a pour contenant toute la pile, y compris les réglages.
-// Le fond du panneau commence au bloc de recherche, hors du flux : il
-// n'enferme pas le bouton dans un contenant qui commencerait trop bas.
+// « Rechercher » reste à sa place dans le bloc, sans coller au bas de la pile
+// (décision de l'utilisateur). Le fond du panneau commence au bloc de
+// recherche, hors du flux.
 function PileDroite({ groupe, objectif, resultats }: {
   groupe: ReactNode; objectif: PageBureauProps['objectif']; resultats: ReactNode;
 }) {
@@ -230,7 +230,7 @@ function PileDroite({ groupe, objectif, resultats }: {
         <div ref={fond} aria-hidden className={`pointer-events-none absolute inset-x-0 bottom-0 ${PANNEAU}`} />
         <div ref={reglages} className="relative pb-6">{groupe}</div>
         <div ref={bloc} data-zone="objectif" className="relative px-[9px] pt-[9px]">{objectif({ cadre: false, partie: 'reglages' })}</div>
-        <div data-zone="barre" className="sticky bottom-0 z-10 px-[9px] py-2">{objectif({ cadre: false, partie: 'barre' })}</div>
+        <div data-zone="barre" className="relative px-[9px] py-2">{objectif({ cadre: false, partie: 'barre' })}</div>
         <div className="relative px-[9px]">{objectif({ cadre: false, partie: 'progression' })}</div>
         <div className="relative px-[9px] pb-[9px] pt-2"><div data-zone="resultats" className="min-w-0 border-t border-border-soft pt-2">{resultats}</div></div>
       </div>

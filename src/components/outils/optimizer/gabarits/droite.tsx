@@ -221,7 +221,7 @@ export const GABARITS_DROITE: Gabarit[] = [
       'Le résumé du combat paraît sous « Dégâts réels » seulement.',
       '« Rechercher » plus grand (taille lg) ; « Arrêter » prend sa place exacte pendant une recherche (carré plein), inactif 300 ms, au lieu de s\'ajouter à côté de « Recherche… ».',
       '« Exporter » · « Importer » en libellé court au bureau (le libellé long reste le nom et l\'infobulle).',
-      'Progression compacte sans barre, sous les actions ; en deux piles, elle reste hors du bouton collé à 240 px.',
+      'Progression compacte sans barre, sous les actions ; en deux piles, « Rechercher » à 240 px reste à sa place, sans coller au bas.',
       'Aux deux formats : plus de phrase « Le budget de recherche s\'élargit automatiquement… » (l\'escalade n\'existe plus dans le moteur).',
       'Dans cette vue : « Rechercher » bascule sur « Arrêter » sans lancer de recherche.',
     ],

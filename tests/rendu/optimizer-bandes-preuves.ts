@@ -76,6 +76,13 @@ export async function preuvesBandesEquipes(b: Banc): Promise<[boolean, string][]
   const encresChoisie = choisie ? [...new Set([...choisie.querySelectorAll<HTMLElement>('span')]
     .filter(e => visible(e) && surLeVoile(e) && [...e.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent!.trim()))
     .map(e => getComputedStyle(e).color))].map(c => ratio(rgb(c), composite(a, choisie))) : [];
+  // La mise en évidence elle-même : contour du trait de sa bande, fond distinct
+  // d'une carte ordinaire comme de la bande.
+  const styleChoisie = choisie ? getComputedStyle(choisie) : null;
+  verifier(!!styleChoisie && styleChoisie.borderTopColor === jeton('--equipe-a-trait')
+    && styleChoisie.backgroundColor !== getComputedStyle(reference).backgroundColor
+    && composite(a, choisie!).join() !== rgb(styleA.backgroundColor).slice(0, 3).join(),
+  `monstre affiché : contour et fond aux couleurs de sa bande (${styleChoisie?.borderTopColor} · ${styleChoisie?.backgroundColor})`);
   verifier(!!choisie && encresChoisie.length > 0 && encresChoisie.every(r => r >= 4.5),
     `monstre affiché : carte mise en évidence, ses textes lisibles (${encresChoisie.map(r => r.toFixed(2)).join(' / ')})`);
   verifier([a, autre].every(e => ['Top', 'Right', 'Bottom', 'Left'].every(cote => getComputedStyle(e).getPropertyValue(`border-${cote.toLowerCase()}-width`) === '0px')), 'bandes sans contour');

@@ -493,10 +493,12 @@ async function principal(etat) {
             if (prep.length) await attendrePose(page);
             await verifierAtteint(page, atteintPour(st, format));
             resultat.medias = await page.evaluate(medias);
-            // En tableau, la page choisit une autre configuration que celle de
-            // la taille (testOptimizerColonnesTableau la prouve) : le banc garde
-            // ses autres contrôles, pas celui de la configuration.
-            const attenduOptimizer = st.tableau && taille.optimizer ? { ...taille.optimizer, tableau: true } : taille.optimizer;
+            // En tableau, la page choisit la configuration qui lui laisse sa
+            // largeur : celle que la taille déclare pour ce cas.
+            const enTableau = st.tableau ? taille.optimizer?.enTableau : null;
+            const attenduOptimizer = enTableau
+              ? { ...taille.optimizer, ...enTableau, set: enTableau.configuration === 'deux-piles' ? 'deplie' : undefined }
+              : taille.optimizer;
             resultat.optimizer = await verifierOptimizer(page, attenduOptimizer, st.id === 'guidage-set');
           } catch (err) {
             resultat.statut = 'non atteint';

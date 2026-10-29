@@ -46,6 +46,8 @@ export interface Taille extends DefinitionFormat {
     groupe: string[];
     set?: 'compact' | 'deplie';
     volet?: true;
+    /** La configuration que la page choisit quand les résultats sont en tableau. */
+    enTableau?: { configuration: 'colonnes' | 'criteres-et-groupe' | 'groupe' | 'deux-piles'; groupe: string[] };
   };
 }
 
@@ -265,14 +267,22 @@ function tailleOptimizer(id: string, largeur: number, hauteur: number, optimizer
 
 // Les cinq repères de la spec, navigation dépliée ; les seuils se jugent
 // sur le conteneur. Les cas de frontière ajustent la fenêtre par mesure.
+type Configuration = NonNullable<Taille['optimizer']>['configuration'];
+const groupeDe = (configuration: Configuration) =>
+  configuration === 'colonnes' ? [] : configuration === 'criteres-et-groupe' ? ['Artéfacts', 'Options'] : ['Critères', 'Artéfacts', 'Options'];
 function attenduOptimizer(largeur: number, volet = false): NonNullable<Taille['optimizer']> {
   const configuration = largeur >= 1768 ? 'colonnes' : largeur >= 1432 ? 'criteres-et-groupe' : largeur >= 1096 ? 'groupe' : 'deux-piles';
+  // En tableau, la page range ses réglages jusqu'à laisser 693 px aux
+  // résultats : d'autres seuils (tests/banc/contrats.ts les confronte à
+  // `configurationBureau(largeur, true)`).
+  const tableau = largeur >= 2101 ? 'colonnes' : largeur >= 1765 ? 'criteres-et-groupe' : largeur >= 1429 ? 'groupe' : 'deux-piles';
   return {
     configuration, conteneur: [largeur, largeur + 1],
-    groupe: configuration === 'colonnes' ? [] : configuration === 'criteres-et-groupe' ? ['Artéfacts', 'Options'] : ['Critères', 'Artéfacts', 'Options'],
+    groupe: groupeDe(configuration),
     // En deux piles, le set est toujours déplié.
     ...(configuration === 'deux-piles' ? { set: 'deplie' as const } : {}),
     ...(volet ? { volet: true as const } : {}),
+    enTableau: { configuration: tableau, groupe: groupeDe(tableau) },
   };
 }
 export const TAILLES_OPTIMIZER: Taille[] = [

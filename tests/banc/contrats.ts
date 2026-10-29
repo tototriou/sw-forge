@@ -26,6 +26,8 @@ export function verifierContratsBanc() {
     const [min, max] = taille.optimizer.conteneur;
     egal(configurationBureau(min).configuration, taille.optimizer.configuration, `${taille.id} : borne inférieure cohérente`);
     egal(configurationBureau(max - 1).configuration, taille.optimizer.configuration, `${taille.id} : borne supérieure cohérente`);
+    egal([configurationBureau(min, true).configuration, configurationBureau(max - 1, true).configuration],
+      [taille.optimizer.enTableau?.configuration, taille.optimizer.enTableau?.configuration], `${taille.id} : configuration en tableau cohérente`);
     ok(!taille.tactile && taille.format === 'ordinateur', `${taille.id} : pointeur de bureau`);
   }
   for (const st of optimizer.etats) {

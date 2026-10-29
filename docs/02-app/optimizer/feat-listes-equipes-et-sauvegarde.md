@@ -445,7 +445,9 @@ le compte des leads inactifs à place réservée, puis « Modifier l’équipe �
 Le nom tronqué garde son texte complet en infobulle ; l'écart avant les cartes est réduit.
 Les fonds alternent entre les jetons `equipe-a` et `equipe-b`, définis dans les deux thèmes. Les cartes liées et libres gardent
 le même aspect et la même hauteur, au bureau comme au téléphone ; les libres
-suivent sous « Sans équipe ».
+suivent sous « Sans équipe ». La carte du monstre affiché prend le fond de sa
+bande et un contour de la même teinte, plus saturée (jetons `equipe-a-trait` et
+`equipe-b-trait`) ; hors équipe, ceux de la première bande.
 
 Le compte des leads inactifs dérive des motifs des membres affichés, avec une
 place réservée dans l’en-tête. Chaque carte réserve une cible d’icône ⚠ sur

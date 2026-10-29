@@ -245,7 +245,10 @@ colonne. Chaque configuration vaut sur une plage `[a, b[` :
   groupe, les sections se partagent les rangées**, 294 px au moins
   chacune, **centrées**, et s'élargissent pour remplir leur rangée sans
   dépasser 420 px ; le set de runes y est toujours déplié (décision de
-  l'utilisateur).
+  l'utilisateur). Dans « Critères », la disposition à deux sections par
+  rangée tient plus étroit : le set se resserre à côté des Conditions, qui
+  gardent leurs 294 px (sa grille perd des colonnes et s'allonge, jusqu'à
+  177 px), et les principales et l'état du monstre descendent à 228 px.
 
 Chaque seuil se pose là où la configuration suivante tient : 1 768 =
 « Monstre » 384 + trois fois (gouttière 16 + 320) + gouttière 16 +

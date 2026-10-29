@@ -265,14 +265,23 @@ export default function PageBureau(props: PageBureauProps) {
   // En deux piles seulement, les sections se partagent les rangées tant que
   // 294 px chacune tiennent, centrées dans le panneau ; chacune s'élargit pour
   // remplir sa rangée sans s'étirer au-delà de 420 px. Leur ordre reste
-  // celui du DOM.
-  const section = (contenu: ReactNode) => (
-    <div className="min-w-[294px] max-w-[420px] flex-[1_1_294px]">{contenu}</div>
+  // celui du DOM. ⚠️ Dans « Critères », la disposition tient plus étroit
+  // (décision de l'utilisateur) : le set se resserre à côté des Conditions,
+  // qui gardent leurs 294 px (sa grille perd des colonnes et s'allonge,
+  // `colonnesCoffre`, jusqu'à 177 px), et les principales et l'état du
+  // monstre descendent à 228 px côte à côte.
+  const section = (contenu: ReactNode, forme = 'min-w-[294px] flex-[1_1_294px]') => (
+    <div className={`${forme} max-w-[420px]`}>{contenu}</div>
   );
   const contenuPile = (cle: ColonneReglage) => (
     <div data-colonne={cle} className="flex flex-wrap items-start justify-center gap-4">
       {cle === 'criteres'
-        ? <>{section(<SetDeplieContext.Provider value={contextePile}>{props.set}</SetDeplieContext.Provider>)}{section(props.conditions)}{section(props.principales)}{section(props.etat)}</>
+        ? <>
+            {section(<SetDeplieContext.Provider value={contextePile}>{props.set}</SetDeplieContext.Provider>, 'min-w-[177px] flex-[1_1_177px]')}
+            {section(props.conditions, 'w-[294px] flex-none')}
+            {section(props.principales, 'min-w-[228px] flex-[1_1_228px]')}
+            {section(props.etat, 'min-w-[228px] flex-[1_1_228px]')}
+          </>
         : cle === 'artefacts'
           ? <>{section(props.artefacts)}{props.meilleurs && section(props.meilleurs)}</>
           : <>{section(props.auras)}{section(props.exclusion)}{section(props.avances)}</>}

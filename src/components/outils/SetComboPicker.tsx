@@ -1,5 +1,7 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import { RUNE_SETS } from '../../types';
 import { canAddSet, setsCost, FOUR_PIECE_SETS, INTANGIBLE_SET, runeSetIconFilter } from '../../lib/effects';
+import { colonnesCoffre, type ColonnesCoffre } from '../../lib/coffreSets';
 import RuneIcon from '../RuneIcon';
 import { Jeton, BoutonIcone } from '../../ui';
 
@@ -55,6 +57,27 @@ const TWO_PIECE = CHOISISSABLES.filter((s) => !FOUR_PIECE_SETS.has(s.key));
 // sans jamais rien cacher d'utile.
 export default function SetComboPicker({ sets, onChange, reserverJetons = false, coffre = false }: Props) {
   const used = setsCost(sets);
+  // Dans le coffre, les colonnes suivent la largeur du coffre
+  // (`colonnesCoffre`) : la grille se resserre et s'allonge vers le bas. Sa
+  // largeur vient de ce qui le porte, jamais de la grille : aucune boucle.
+  // Avant la mesure (rendu serveur), 3 + 4.
+  const coffreRef = useRef<HTMLDivElement>(null);
+  const [colonnes, setColonnes] = useState<ColonnesCoffre>({ principal: 3, secondaire: 4 });
+  useLayoutEffect(() => {
+    const el = coffreRef.current;
+    if (!coffre || !el || typeof ResizeObserver === 'undefined') return;
+    const lire = () => {
+      const s = getComputedStyle(el);
+      const largeur = el.clientWidth - (parseFloat(s.paddingLeft) || 0) - (parseFloat(s.paddingRight) || 0);
+      if (largeur <= 0) return;
+      const suivant = colonnesCoffre(largeur);
+      setColonnes((prev) => (prev.principal === suivant.principal && prev.secondaire === suivant.secondaire ? prev : suivant));
+    };
+    lire();
+    const obs = new ResizeObserver(lire);
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [coffre]);
   // ⚠️ « Plein » se juge sur ce qu'on peut CHOISIR : compter l'intangible ici
   // laisserait le picker se dire non plein alors qu'aucun set proposé ne
   // rentre plus. ⚠️ En revanche, le rendu du combo courant (juste en dessous)
@@ -102,7 +125,7 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false,
       </div>
 
       {!full && (
-        <div className={`mt-2 grid gap-0 ${coffre ? 'grid-cols-[auto_minmax(0,1fr)] rounded-lg bg-panel2 p-2' : 'grid-cols-[auto_1fr] rounded-lg border border-border bg-panel p-2'}`}>
+        <div ref={coffreRef} className={`mt-2 grid gap-0 ${coffre ? 'grid-cols-[auto_auto] justify-center rounded-lg bg-panel2 p-2' : 'grid-cols-[auto_1fr] rounded-lg border border-border bg-panel p-2'}`}>
           {/* ⚠️ Toujours 2 colonnes, jamais empilé sous un seuil de largeur :
               chaque groupe passe déjà à la ligne en interne (`flex-wrap`), la
               séparation verticale gagne de la place sur le plan VERTICAL —
@@ -116,19 +139,22 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false,
               carte « Critères de recherche » compactée. Set secondaire (17
               sets) récupère cette largeur libérée, ce qui réduit son nombre
               de lignes — c'est lui qui pèse sur la hauteur.
-              ⚠️ **Dans le coffre (bureau), le set secondaire a 4 colonnes au
-              plus** (`max-w-[140px]`), centrées dans leur piste, et en perd
-              pour passer sur plus de lignes quand le coffre se resserre
-              (décision de l'utilisateur) : jamais plus large, plus haut
-              seulement. Les pistes ne rétrécissent jamais : des boutons de
-              32 px, des écarts de 4 px. */}
+              ⚠️ **Dans le coffre (bureau), 3 + 4 colonnes au plus**, les
+              deux groupes centrés ; quand le coffre se resserre, le set
+              principal passe d'abord à 2 colonnes, puis le set secondaire à
+              3, puis à 2 (`colonnesCoffre`, décision de l'utilisateur) : la
+              grille s'allonge vers le bas. Les pistes ne rétrécissent
+              jamais : des boutons de 32 px, des écarts de 4 px. */}
           {([
             ['Set principal', FOUR_PIECE],
             ['Set secondaire', TWO_PIECE],
           ] as const).map(([groupLabel, group], i) => (
             <div key={groupLabel} className={i > 0 ? 'border-l border-border-soft pl-3' : 'pr-3'}>
               <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-ink-dimmer">{groupLabel}</p>
-              <div className={i === 0 ? `${coffre ? 'w-max ' : ''}grid grid-cols-3 gap-1` : coffre ? 'mx-auto grid max-w-[140px] grid-cols-[repeat(auto-fill,2rem)] justify-center gap-1' : 'flex flex-wrap gap-1'}>
+              <div
+                className={coffre ? 'grid w-max gap-1' : i === 0 ? 'grid grid-cols-3 gap-1' : 'flex flex-wrap gap-1'}
+                style={coffre ? { gridTemplateColumns: `repeat(${i === 0 ? colonnes.principal : colonnes.secondaire}, 2rem)` } : undefined}
+              >
                 {group.map((s) => {
                   const fits = canAddSet(sets, s.key);
                   return (

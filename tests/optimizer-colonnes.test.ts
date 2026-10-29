@@ -3,7 +3,21 @@ import { attenteResultats, configurationBureau, ongletOuvert, LARGEURS_BUREAU, R
 import { LARGEUR_MONSTRE } from '../src/components/outils/optimizer/bureau/ListeDeTravailBureau';
 import { LARGEUR_ARTEFACTS } from '../src/components/outils/optimizer/bureau/ArtefactsEtReliqueBureau';
 import { LARGEUR_COMPLEMENTS } from '../src/components/outils/optimizer/bureau/SetsAuraBureau';
+import { colonnesCoffre } from '../src/lib/coffreSets';
 import { egal, ok, titre } from './outils';
+
+// La grille des sets dans son coffre : 3 + 4 colonnes, puis le principal à
+// 2, puis le secondaire à 3 et à 2 (boutons de 32 px, écarts de 4, 25 px
+// entre les groupes).
+export function testOptimizerColonnesCoffreSets() {
+  titre('Optimizer · colonnes de la grille des sets selon la largeur du coffre');
+  const cas: [number, number, number][] = [
+    [400, 3, 4], [269, 3, 4], [268, 2, 4], [233, 2, 4], [232, 2, 3], [197, 2, 3], [196, 2, 2], [120, 2, 2],
+  ];
+  for (const [largeur, principal, secondaire] of cas) {
+    egal(colonnesCoffre(largeur), { principal, secondaire }, `${largeur} px : ${principal} + ${secondaire} colonnes`);
+  }
+}
 
 export function testOptimizerColonnes() {
   titre('Optimizer · configuration des colonnes selon la largeur');

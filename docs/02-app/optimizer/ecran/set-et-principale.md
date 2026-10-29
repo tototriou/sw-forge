@@ -53,10 +53,13 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    place ») en flottant : rien ne bouge dessous. ⚠️ **Au bureau, la grille
    est la même dépliée et dans la liste ouverte** (décision de
    l'utilisateur) : dans son coffre en creux (`coffre`), Set principal sur
-   3 colonnes ; ⚠️ **Set secondaire sur 4 colonnes au plus**, centrées dans
-   leur piste : quand le coffre se resserre, il perd des colonnes et passe
-   sur plus de lignes, jamais l'inverse (décision de l'utilisateur). Boutons
-   de 32 px, écarts de 4 px : les pistes ne rétrécissent jamais. ⚠️ **Une liste, pas deux**
+   3 colonnes et Set secondaire sur 4 au plus, les deux groupes centrés.
+   ⚠️ **Quand le coffre se resserre, la grille perd des colonnes et
+   s'allonge vers le bas** (décision de l'utilisateur) : le set principal
+   passe d'abord à 2 colonnes, puis le set secondaire à 3, puis à 2
+   (`colonnesCoffre`, src/lib/coffreSets.ts, sur la largeur mesurée du
+   coffre). Boutons de 32 px, écarts de 4 px : les pistes ne rétrécissent
+   jamais. ⚠️ **Une liste, pas deux**
    (principal · secondaire) : le choix est un multiensemble (deux fois le
    même set), que la grille sait dire et une case par set non.
    - ⚠️ **La liste reste ouverte pendant la composition** : après un set de

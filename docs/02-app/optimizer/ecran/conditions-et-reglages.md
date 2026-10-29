@@ -8,11 +8,12 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    de « Critères de recherche », sous le set et les principales ; au bureau,
    une section « Conditions » de 294 px de « Critères », sous le set, au-dessus
    des principales et d'« État de mon monstre » (`ConditionsBureau`). La
-   colonne des libellés y prend la largeur du plus long d'entre eux, les
-   colonnes s'écartent de 12 px, et Min et Max s'en rapprochent : les
-   champs gardent leur largeur, et la grille (≈ 292 px mesurés : 328 de
-   section moins deux marges de 17,75) tient sans déborder. ⚠️ La grille
-   est centrée dans la section (décision de l'utilisateur). « Artéfacts et relique » est une carte à
+   colonne des libellés y prend la largeur du plus long d'entre eux et les
+   colonnes s'écartent de 12 px. ⚠️ **« Min » et « Max » y sont des
+   en-têtes de colonne posés une fois**, comme au téléphone : collés à
+   chaque champ, ils faisaient déborder la grille des 294 px de la section.
+   Les champs gardent leur largeur, et la grille est centrée dans la
+   section (décision de l'utilisateur). « Artéfacts et relique » est une carte à
    part (voir artefacts.md § Place de la carte à l'écran).
    - **Interrupteur « Stats de base exclues »**, activé par défaut : n'affecte
      que PV, ATQ, DEF et VIT — ces 4 stats ont une base qui grandit avec le

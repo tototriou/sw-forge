@@ -248,7 +248,7 @@ colonne. Chaque configuration vaut sur une plage `[a, b[` :
   l'utilisateur). Dans « Critères », la disposition à deux sections par
   rangée tient plus étroit : le set se resserre à côté des Conditions, qui
   gardent leurs 294 px (sa grille perd des colonnes et s'allonge, jusqu'à
-  141 px, 1 + 2 colonnes), et les principales (160 px, le texte de leurs
+  171 px, 1 + 2 colonnes), et les principales (160 px, le texte de leurs
   listes passant à la ligne) et l'état du monstre (176 px, ses trois
   vignettes) restent côte à côte le plus longtemps possible (décision de
   l'utilisateur).

@@ -268,7 +268,8 @@ export default function PageBureau(props: PageBureauProps) {
   // celui du DOM. ⚠️ Dans « Critères », la disposition tient plus étroit
   // (décision de l'utilisateur) : le set se resserre à côté des Conditions,
   // qui gardent leurs 294 px (sa grille perd des colonnes et s'allonge,
-  // `colonnesCoffre`, jusqu'à 141 px : 1 + 2 colonnes), et les principales
+  // `colonnesCoffre`, jusqu'à 171 px : 1 + 2 colonnes, le compartiment du
+  // set principal gardant la largeur de son titre), et les principales
   // (160 px : « Slot n » et une liste dont le texte passe à la ligne) et
   // l'état du monstre (176 px : ses trois vignettes de 56 px) restent côte à
   // côte le plus longtemps possible (décision de l'utilisateur).
@@ -279,7 +280,7 @@ export default function PageBureau(props: PageBureauProps) {
     <div data-colonne={cle} className="flex flex-wrap items-start justify-center gap-4">
       {cle === 'criteres'
         ? <>
-            {section(<SetDeplieContext.Provider value={contextePile}>{props.set}</SetDeplieContext.Provider>, 'min-w-[141px] flex-[1_1_141px]')}
+            {section(<SetDeplieContext.Provider value={contextePile}>{props.set}</SetDeplieContext.Provider>, 'min-w-[171px] flex-[1_1_171px]')}
             {section(props.conditions, 'w-[294px] flex-none')}
             {section(props.principales, 'min-w-[160px] flex-[1_1_160px]')}
             {section(props.etat, 'min-w-[176px] flex-[1_1_176px]')}

@@ -56,7 +56,10 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    3 colonnes et Set secondaire sur 4 au plus. ⚠️ **Les deux compartiments
    prennent toute la largeur du coffre**, au prorata de leurs colonnes, et
    chaque rune est centrée dans sa case : toutes les cases ont la même
-   largeur (décision de l'utilisateur).
+   largeur (décision de l'utilisateur). Un compartiment n'est jamais plus
+   étroit que son titre : sur une colonne, « Set principal » passe à la
+   ligne, et le trait qui sépare les deux compartiments se décale vers le
+   set secondaire plutôt que de passer sur le texte.
    ⚠️ **Quand le coffre se resserre, la grille perd des colonnes et
    s'allonge vers le bas** (décision de l'utilisateur) : le set principal
    passe d'abord à 2 colonnes, puis le set secondaire à 3, puis à 2, puis

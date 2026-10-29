@@ -130,8 +130,11 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false,
           className={`mt-2 grid gap-0 ${coffre ? 'rounded-lg bg-panel2 p-2' : 'grid-cols-[auto_1fr] rounded-lg border border-border bg-panel p-2'}`}
           // Dans le coffre, les deux compartiments se partagent toute la
           // largeur au prorata de leurs colonnes : toutes les cases ont la
-          // même largeur, d'un compartiment à l'autre.
-          style={coffre ? { gridTemplateColumns: `minmax(0,${colonnes.principal}fr) minmax(0,${colonnes.secondaire}fr)` } : undefined}
+          // même largeur, d'un compartiment à l'autre. ⚠️ Jamais plus étroit
+          // que son titre (`min-content`) : sur une colonne, « Set principal »
+          // passe à la ligne et son mot le plus long repousse le trait vers le
+          // set secondaire au lieu de passer dessous.
+          style={coffre ? { gridTemplateColumns: `minmax(min-content,${colonnes.principal}fr) minmax(min-content,${colonnes.secondaire}fr)` } : undefined}
         >
           {/* ⚠️ Toujours 2 colonnes, jamais empilé sous un seuil de largeur :
               chaque groupe passe déjà à la ligne en interne (`flex-wrap`), la

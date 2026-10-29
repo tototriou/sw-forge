@@ -53,11 +53,10 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    place ») en flottant : rien ne bouge dessous. ⚠️ **Au bureau, la grille
    est la même dépliée et dans la liste ouverte** (décision de
    l'utilisateur) : dans son coffre en creux (`coffre`), Set principal sur
-   3 colonnes ; ⚠️ **Set secondaire sur la largeur qui reste**, en autant de
-   colonnes qu'il en tient, centrées dans leur piste, et sur plus de lignes
-   quand le coffre se resserre (décision de l'utilisateur) : 4 colonnes dans
-   les 294 px d'une colonne, davantage en deux piles. Boutons de 32 px,
-   écarts de 4 px : les pistes ne rétrécissent jamais. ⚠️ **Une liste, pas deux**
+   3 colonnes ; ⚠️ **Set secondaire sur 4 colonnes au plus**, centrées dans
+   leur piste : quand le coffre se resserre, il perd des colonnes et passe
+   sur plus de lignes, jamais l'inverse (décision de l'utilisateur). Boutons
+   de 32 px, écarts de 4 px : les pistes ne rétrécissent jamais. ⚠️ **Une liste, pas deux**
    (principal · secondaire) : le choix est un multiensemble (deux fois le
    même set), que la grille sait dire et une case par set non.
    - ⚠️ **La liste reste ouverte pendant la composition** : après un set de
@@ -75,9 +74,7 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
      défiler une fois dépliée ; compacte sinon (`useSetDeplie`,
      `PageBureau.tsx` ; contexte `setDeplie.ts`). Décision de l'utilisateur.
      ⚠️ **En deux piles**, où la pile de droite défile d'un bloc, la hauteur
-     ne compte pas : toujours dépliée, sa section large jusqu'à 640 px, et
-     sa grille passe sur plus de lignes quand la pile se resserre (décision
-     de l'utilisateur).
+     ne compte pas : toujours dépliée (décision de l'utilisateur).
      La page décide sur la hauteur de la boîte de « Critères » et sur ce
      que le dépli ajoute (mesuré sur deux copies invisibles, liste fermée
      et grille vide, indépendant des sets choisis) : jamais sur un clic, et

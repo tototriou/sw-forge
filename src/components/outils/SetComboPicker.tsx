@@ -116,20 +116,19 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false,
               carte « Critères de recherche » compactée. Set secondaire (17
               sets) récupère cette largeur libérée, ce qui réduit son nombre
               de lignes — c'est lui qui pèse sur la hauteur.
-              ⚠️ **Dans le coffre (bureau), le set secondaire prend la largeur
-              qui reste** : autant de colonnes de 32 px qu'il en tient,
-              centrées dans leur piste, et il passe sur plus de lignes quand
-              le coffre se resserre (décision de l'utilisateur). Dans les
-              294 px d'une colonne, 4 colonnes à côté des 3 principales ; plus
-              large (deux piles), moins de lignes. Les pistes ne rétrécissent
-              jamais : des boutons de 32 px, des écarts de 4 px. */}
+              ⚠️ **Dans le coffre (bureau), le set secondaire a 4 colonnes au
+              plus** (`max-w-[140px]`), centrées dans leur piste, et en perd
+              pour passer sur plus de lignes quand le coffre se resserre
+              (décision de l'utilisateur) : jamais plus large, plus haut
+              seulement. Les pistes ne rétrécissent jamais : des boutons de
+              32 px, des écarts de 4 px. */}
           {([
             ['Set principal', FOUR_PIECE],
             ['Set secondaire', TWO_PIECE],
           ] as const).map(([groupLabel, group], i) => (
             <div key={groupLabel} className={i > 0 ? 'border-l border-border-soft pl-3' : 'pr-3'}>
               <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-ink-dimmer">{groupLabel}</p>
-              <div className={i === 0 ? `${coffre ? 'w-max ' : ''}grid grid-cols-3 gap-1` : coffre ? 'grid min-w-[140px] grid-cols-[repeat(auto-fill,2rem)] justify-center gap-1' : 'flex flex-wrap gap-1'}>
+              <div className={i === 0 ? `${coffre ? 'w-max ' : ''}grid grid-cols-3 gap-1` : coffre ? 'mx-auto grid max-w-[140px] grid-cols-[repeat(auto-fill,2rem)] justify-center gap-1' : 'flex flex-wrap gap-1'}>
                 {group.map((s) => {
                   const fits = canAddSet(sets, s.key);
                   return (

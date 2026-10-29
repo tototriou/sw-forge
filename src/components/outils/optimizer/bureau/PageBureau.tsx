@@ -264,15 +264,15 @@ export default function PageBureau(props: PageBureauProps) {
   };
   // En deux piles seulement, les sections se partagent les rangées tant que
   // 294 px chacune tiennent, centrées dans le panneau ; chacune s'élargit pour
-  // remplir sa rangée sans s'étirer au-delà de 420 px (640 pour le set, dont
-  // la grille gagne des colonnes). Leur ordre reste celui du DOM.
-  const section = (contenu: ReactNode, large = false) => (
-    <div className={`min-w-[294px] flex-[1_1_294px] ${large ? 'max-w-[640px]' : 'max-w-[420px]'}`}>{contenu}</div>
+  // remplir sa rangée sans s'étirer au-delà de 420 px. Leur ordre reste
+  // celui du DOM.
+  const section = (contenu: ReactNode) => (
+    <div className="min-w-[294px] max-w-[420px] flex-[1_1_294px]">{contenu}</div>
   );
   const contenuPile = (cle: ColonneReglage) => (
     <div data-colonne={cle} className="flex flex-wrap items-start justify-center gap-4">
       {cle === 'criteres'
-        ? <>{section(<SetDeplieContext.Provider value={contextePile}>{props.set}</SetDeplieContext.Provider>, true)}{section(props.conditions)}{section(props.principales)}{section(props.etat)}</>
+        ? <>{section(<SetDeplieContext.Provider value={contextePile}>{props.set}</SetDeplieContext.Provider>)}{section(props.conditions)}{section(props.principales)}{section(props.etat)}</>
         : cle === 'artefacts'
           ? <>{section(props.artefacts)}{props.meilleurs && section(props.meilleurs)}</>
           : <>{section(props.auras)}{section(props.exclusion)}{section(props.avances)}</>}

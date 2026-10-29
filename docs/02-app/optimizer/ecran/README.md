@@ -244,8 +244,8 @@ colonne. Chaque configuration vaut sur une plage `[a, b[` :
   reste, 352 px au moins, sans débordement. ⚠️ **Dans le panneau du
   groupe, les sections se partagent les rangées**, 294 px au moins
   chacune, **centrées**, et s'élargissent pour remplir leur rangée sans
-  dépasser 420 px — 640 pour le set de runes, toujours déplié, dont la
-  grille gagne des colonnes (décision de l'utilisateur).
+  dépasser 420 px ; le set de runes y est toujours déplié (décision de
+  l'utilisateur).
 
 Chaque seuil se pose là où la configuration suivante tient : 1 768 =
 « Monstre » 384 + trois fois (gouttière 16 + 320) + gouttière 16 +

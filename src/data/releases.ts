@@ -60,9 +60,14 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
-    version: null,
-    date: '2026-10-16',
-    title: 'Les attaques conjointes comptent dans les dégâts réels',
+    version: '2.2.0',
+    date: '2026-10-29',
+    title: 'Un Optimizer repensé, et les attaques conjointes comptent dans les dégâts réels',
+    highlights: [
+      'Au bureau, l’Optimizer tient en une page à hauteur de fenêtre, réglages en onglets',
+      'Recherche bien plus rapide, sur tous les cœurs de ta machine',
+      'Les attaques conjointes comptent dans les dégâts réels',
+    ],
     changes: [
       { kind: 'feat', scope: 'Optimizer', text: 'Au bureau, les réglages qui ne tiennent pas se rangent en onglets.' },
       { kind: 'feat', scope: 'Optimizer', text: '« Exemplaire » montre le build actuel, le build validé ou un autre exemplaire, sans rien ajouter.' },

@@ -64,6 +64,9 @@ export const RELEASES: Release[] = [
     date: '2026-10-16',
     title: 'Les attaques conjointes comptent dans les dégâts réels',
     changes: [
+      { kind: 'feat', scope: 'Optimizer', text: 'Au bureau, les réglages qui ne tiennent pas se rangent en onglets.' },
+      { kind: 'feat', scope: 'Optimizer', text: '« Exemplaire » montre le build actuel, le build validé ou un autre exemplaire, sans rien ajouter.' },
+      { kind: 'feat', scope: 'Optimizer', text: 'La recherche ajoute l’exemplaire suivant de l’espèce à la liste.' },
       { kind: 'feat', scope: 'Optimizer', text: 'Recherche bien plus rapide : la vérification des builds utilise tous les cœurs.' },
       { kind: 'feat', scope: 'Optimizer', text: 'Toutes les combinaisons trouvées se confirment en fond, jusqu’à un million.' },
       { kind: 'feat', scope: 'Optimizer', text: 'Résultats en cartes ou en tableau, triés et bornés par colonne.' },

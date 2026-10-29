@@ -248,7 +248,8 @@ colonne. Chaque configuration vaut sur une plage `[a, b[` :
   l'utilisateur). Dans « Critères », la disposition à deux sections par
   rangée tient plus étroit : le set se resserre à côté des Conditions, qui
   gardent leurs 294 px (sa grille perd des colonnes et s'allonge, jusqu'à
-  177 px), et les principales et l'état du monstre descendent à 228 px.
+  141 px, 1 + 2 colonnes), et les principales et l'état du monstre
+  descendent à 228 px.
 
 Chaque seuil se pose là où la configuration suivante tient : 1 768 =
 « Monstre » 384 + trois fois (gouttière 16 + 320) + gouttière 16 +

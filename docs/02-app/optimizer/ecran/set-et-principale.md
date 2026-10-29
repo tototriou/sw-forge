@@ -56,7 +56,8 @@ Ce document décrit le choix du set de runes et des statistiques principales imp
    3 colonnes et Set secondaire sur 4 au plus, les deux groupes centrés.
    ⚠️ **Quand le coffre se resserre, la grille perd des colonnes et
    s'allonge vers le bas** (décision de l'utilisateur) : le set principal
-   passe d'abord à 2 colonnes, puis le set secondaire à 3, puis à 2
+   passe d'abord à 2 colonnes, puis le set secondaire à 3, puis à 2, puis
+   le set principal à 1, et le set secondaire à 1 en dernier recours
    (`colonnesCoffre`, src/lib/coffreSets.ts, sur la largeur mesurée du
    coffre). Boutons de 32 px, écarts de 4 px : les pistes ne rétrécissent
    jamais. ⚠️ **Une liste, pas deux**

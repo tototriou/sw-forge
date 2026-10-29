@@ -268,8 +268,8 @@ export default function PageBureau(props: PageBureauProps) {
   // celui du DOM. ⚠️ Dans « Critères », la disposition tient plus étroit
   // (décision de l'utilisateur) : le set se resserre à côté des Conditions,
   // qui gardent leurs 294 px (sa grille perd des colonnes et s'allonge,
-  // `colonnesCoffre`, jusqu'à 177 px), et les principales et l'état du
-  // monstre descendent à 228 px côte à côte.
+  // `colonnesCoffre`, jusqu'à 141 px : 1 + 2 colonnes), et les principales
+  // et l'état du monstre descendent à 228 px côte à côte.
   const section = (contenu: ReactNode, forme = 'min-w-[294px] flex-[1_1_294px]') => (
     <div className={`${forme} max-w-[420px]`}>{contenu}</div>
   );
@@ -277,7 +277,7 @@ export default function PageBureau(props: PageBureauProps) {
     <div data-colonne={cle} className="flex flex-wrap items-start justify-center gap-4">
       {cle === 'criteres'
         ? <>
-            {section(<SetDeplieContext.Provider value={contextePile}>{props.set}</SetDeplieContext.Provider>, 'min-w-[177px] flex-[1_1_177px]')}
+            {section(<SetDeplieContext.Provider value={contextePile}>{props.set}</SetDeplieContext.Provider>, 'min-w-[141px] flex-[1_1_141px]')}
             {section(props.conditions, 'w-[294px] flex-none')}
             {section(props.principales, 'min-w-[228px] flex-[1_1_228px]')}
             {section(props.etat, 'min-w-[228px] flex-[1_1_228px]')}

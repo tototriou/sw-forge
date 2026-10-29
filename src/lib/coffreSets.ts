@@ -2,7 +2,8 @@
 // (docs/02-app/optimizer/ecran/set-et-principale.md) : 3 colonnes pour le set
 // principal, 4 pour le set secondaire tant qu'elles tiennent ; quand la
 // largeur manque, le set principal passe d'abord à 2 colonnes, puis le set
-// secondaire à 3, puis à 2. La grille s'allonge vers le bas, ses boutons
+// secondaire à 3, puis à 2, puis le set principal à 1, et le set secondaire
+// à 1 en dernier recours. La grille s'allonge vers le bas, ses boutons
 // gardent leur taille.
 
 const BOUTON = 32;
@@ -23,9 +24,11 @@ export function colonnesCoffre(largeur: number): ColonnesCoffre {
     { principal: 3, secondaire: 4 },
     { principal: 2, secondaire: 4 },
     { principal: 2, secondaire: 3 },
+    { principal: 2, secondaire: 2 },
+    { principal: 1, secondaire: 2 },
   ];
   for (const p of paliers) {
     if (largeurGrille(p.principal) + SEPARATION + largeurGrille(p.secondaire) <= largeur) return p;
   }
-  return { principal: 2, secondaire: 2 };
+  return { principal: 1, secondaire: 1 };
 }

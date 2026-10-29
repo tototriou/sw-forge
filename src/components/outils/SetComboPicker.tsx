@@ -142,7 +142,8 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false,
               ⚠️ **Dans le coffre (bureau), 3 + 4 colonnes au plus**, les
               deux groupes centrés ; quand le coffre se resserre, le set
               principal passe d'abord à 2 colonnes, puis le set secondaire à
-              3, puis à 2 (`colonnesCoffre`, décision de l'utilisateur) : la
+              3, puis à 2, puis le set principal à 1 (`colonnesCoffre`,
+              décision de l'utilisateur) : la
               grille s'allonge vers le bas. Les pistes ne rétrécissent
               jamais : des boutons de 32 px, des écarts de 4 px. */}
           {([

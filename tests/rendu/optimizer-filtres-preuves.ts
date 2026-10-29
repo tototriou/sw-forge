@@ -10,6 +10,7 @@ import type { GearSet } from '../../src/types';
 import { computeStats } from '../../src/lib/stats';
 import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs } from '../../src/lib/candidatsCompacts';
 import { setRuneMetric } from '../../src/hooks/useRuneMetric';
+import { setFormeResultats } from '../../src/hooks/useFormeResultats';
 import { SEUIL_TABLEAU_PX } from '../../src/components/outils/optimizer/TableauResultats';
 
 type Preuves = [boolean, string][];
@@ -122,7 +123,7 @@ export async function preuvesFiltresEcran(b: BancEcran): Promise<Preuves> {
     preuves.push([tetes.length === 11 && enAvant(vit?.querySelector('[data-marque-borne]')) && !enAvant(tetes[0].querySelector('[data-marque-borne]')),
       `bureau : bande de onze têtes, le point « borne posée » sur VIT seulement (${tetes.length} têtes)`]);
     preuves.push([!!degats?.disabled && degats.title === 'Aucun sort calculable pour ce monstre', 'bureau : tête « Dégâts réels » grisée sans sort calculable']);
-    preuves.push([!!bouton('Cartes') && !!bouton('Tableau'), 'bureau : le choix cartes / tableau au-dessus des résultats']);
+    preuves.push([!bouton('Cartes') && !bouton('Tableau'), 'bureau : plus de choix cartes / tableau au-dessus des résultats (il est dans les Paramètres)']);
   }
   if (!filtrer) return preuves;
   await b.geste(() => filtrer.click());
@@ -134,23 +135,13 @@ export async function preuvesFiltresEcran(b: BancEcran): Promise<Preuves> {
   preuves.push([!!champ('Dégâts réels minimum affiché')?.disabled && champ('Dégâts réels minimum affiché')?.value === '1000',
     `${format} : borne de Dégâts réels gardée, inactive (champ grisé)`]);
   if (!telephone()) {
-    // Le choix de forme : un réglage écrit dans sa clé, relu par la page.
+    // Le choix de forme : un réglage des Paramètres, écrit dans sa clé, relu
+    // par la page (qui range ses réglages pour lui laisser la place).
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     await attendre(100);
-    // Un clic ne déplace jamais ce qu'on vient de cliquer : « Cartes / Tableau »
-    // garde sa place dans les deux sens, tableau affiché (au-dessus du seuil).
-    const placeForme = () => (['Cartes', 'Tableau'] as const).map((nom) => {
-      const r = bouton(nom)?.getBoundingClientRect();
-      return r ? [r.left, r.top, r.width] : [NaN, NaN, NaN];
-    }).flat();
-    const memePlace = (a: number[], c: number[]) => a.every((v, i) => Math.abs(v - c[i]) < 0.5);
-    const enCartes = placeForme();
-    await b.geste(() => bouton('Tableau')!.click());
-    await attendre(100);
-    const enTableau = placeForme();
+    await b.geste(() => setFormeResultats('tableau'));
+    await attendre(300);
     const tableauVu = [...document.querySelectorAll('[data-tableau-resultats]')].some(visible);
-    preuves.push([memePlace(enCartes, enTableau),
-      `bureau : « Tableau » cliqué, « Cartes / Tableau » ne bouge pas (${enCartes.map(Math.round)} → ${enTableau.map(Math.round)})`]);
     const racine = document.querySelector('[data-forme-resultats]');
     const largeurResultats = racine?.getBoundingClientRect().width ?? 0;
     preuves.push([largeurResultats > 0 && tableauVu === (largeurResultats >= SEUIL_TABLEAU_PX),
@@ -163,8 +154,7 @@ export async function preuvesFiltresEcran(b: BancEcran): Promise<Preuves> {
     if (!tableauVu) {
       preuves.push([[...document.querySelectorAll('[data-tableau-trop-etroit]')].some(visible)
         && !bouton('Stats totales') && !bouton('Stats bonus'), 'colonne étroite : cartes et raison visibles, aucun contrôle propre au tableau']);
-      await b.geste(() => bouton('Cartes')!.click());
-      preuves.push([memePlace(enCartes, placeForme()), 'colonne étroite : revenir à Cartes garde le choix immobile']);
+      await b.geste(() => setFormeResultats('cartes'));
       await b.geste(() => b.forcerRecherche(null));
       return preuves;
     }
@@ -196,12 +186,8 @@ export async function preuvesFiltresEcran(b: BancEcran): Promise<Preuves> {
     await b.geste(() => bouton('Stats totales')!.click());
     preuves.push([presse('Stats totales') && vitMin() === '220', `bureau, tableau : retour à « Stats totales » (« ${vitMin()} »)`]);
     preuves.push([b.etat().excludeBase === (depart === 'Stats bonus'), 'bureau, tableau : « Stats de base exclues » (recherche) inchangé']);
-    const avantRetour = placeForme();
-    await b.geste(() => bouton('Cartes')!.click());
-    await attendre(100);
-    const auRetour = placeForme();
-    preuves.push([memePlace(avantRetour, auRetour) && memePlace(enCartes, auRetour),
-      `bureau : « Cartes » cliqué, « Cartes / Tableau » ne bouge pas (${avantRetour.map(Math.round)} → ${auRetour.map(Math.round)})`]);
+    await b.geste(() => setFormeResultats('cartes'));
+    await attendre(300);
     preuves.push([!bouton('Stats totales') && !bouton('Stats bonus'), 'bureau, cartes : pas de choix Stats totales / Stats bonus']);
     preuves.push([localStorage.getItem('swblacksmith-optimizer-resultats-forme-v1') === 'cartes', 'bureau : retour aux cartes, mémorisé']);
   }
@@ -276,15 +262,15 @@ export async function preuvesFiltresBranchement(b: BancEcran & { fiche: () => Ge
     if (!telephone()) {
       const presse = (nom: string) => bouton(nom)?.getAttribute('aria-pressed') === 'true';
       const attendu = excluAuMontage ? 'Stats totales' : 'Stats bonus';
-      await b.geste(() => bouton('Tableau')!.click());
-      await attendre(100);
+      await b.geste(() => setFormeResultats('tableau'));
+      await attendre(300);
       preuves.push([presse(attendu) && !presse(attendu === 'Stats bonus' ? 'Stats totales' : 'Stats bonus'),
         `bureau, tableau : « ${attendu} », comme « Stats de base exclues » au lancement (${!excluAuMontage}), pas comme au montage`]);
       // Rebasculé sans relancer : le choix ne bouge pas (une photographie du lancement).
       await b.geste(() => interrupteurNomme(EXCLURE)!.click());
       preuves.push([b.etat().excludeBase === excluAuMontage && presse(attendu),
         `bureau, tableau : « Stats de base exclues » rebasculé sans recherche, « ${attendu} » reste`]);
-      await b.geste(() => bouton('Cartes')!.click());
+      await b.geste(() => setFormeResultats('cartes'));
     }
   } finally {
     await b.geste(() => b.etat().effacerResultats());

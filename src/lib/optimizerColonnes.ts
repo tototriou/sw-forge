@@ -24,10 +24,38 @@ export interface DispositionBureau {
   deuxPiles: boolean;
 }
 
-export function configurationBureau(largeur: number): DispositionBureau {
-  if (largeur >= SEUILS_BUREAU.colonnes) return { configuration: 'colonnes', colonnes: ['criteres', 'artefacts', 'complements'], groupe: [], deuxPiles: false };
-  if (largeur >= SEUILS_BUREAU.criteresEtGroupe) return { configuration: 'criteres-et-groupe', colonnes: ['criteres'], groupe: ['artefacts', 'complements'], deuxPiles: false };
-  return { configuration: largeur >= SEUILS_BUREAU.groupe ? 'groupe' : 'deux-piles', colonnes: [], groupe: ['criteres', 'artefacts', 'complements'], deuxPiles: largeur < SEUILS_BUREAU.groupe };
+// La largeur que les résultats demandent pour le tableau : sa largeur
+// minimale (`SEUIL_TABLEAU_PX`, TableauResultats.tsx, 661) plus ce que la
+// colonne des résultats ou la pile de droite prennent autour de la zone
+// (barre réservée 10, écart 4, panneau ou marges 18).
+export const RESULTATS_TABLEAU = 661 + 32;
+
+// Du plus large au plus étroit ; `reglages` : les pistes de 320 px prises à
+// côté de « Monstre » et des résultats (colonnes visibles, puis le groupe).
+const CONFIGURATIONS: { disposition: DispositionBureau; reglages: number; seuil: number }[] = [
+  { disposition: { configuration: 'colonnes', colonnes: ['criteres', 'artefacts', 'complements'], groupe: [], deuxPiles: false }, reglages: 3, seuil: SEUILS_BUREAU.colonnes },
+  { disposition: { configuration: 'criteres-et-groupe', colonnes: ['criteres'], groupe: ['artefacts', 'complements'], deuxPiles: false }, reglages: 2, seuil: SEUILS_BUREAU.criteresEtGroupe },
+  { disposition: { configuration: 'groupe', colonnes: [], groupe: ['criteres', 'artefacts', 'complements'], deuxPiles: false }, reglages: 1, seuil: SEUILS_BUREAU.groupe },
+  { disposition: { configuration: 'deux-piles', colonnes: [], groupe: ['criteres', 'artefacts', 'complements'], deuxPiles: true }, reglages: 0, seuil: 0 },
+];
+
+// La largeur des résultats (colonne, ou pile de droite en deux piles).
+export function largeurResultats(largeur: number, configuration: ConfigurationBureau): number {
+  const c = CONFIGURATIONS.find((x) => x.disposition.configuration === configuration)!;
+  return largeur - L.monstre - L.gouttiere - c.reglages * (L.reglage + L.gouttiere);
+}
+
+// `tableau` (le réglage « Résultats de l'Optimizer », Paramètres) : la page
+// range ses réglages cran par cran, deux piles comprises, jusqu'à laisser
+// `RESULTATS_TABLEAU` aux résultats. Aucune configuration ne le permet (trop
+// étroit) : celle de la largeur seule, et les résultats en cartes.
+export function configurationBureau(largeur: number, tableau = false): DispositionBureau {
+  const possibles = CONFIGURATIONS.filter((c) => largeur >= c.seuil);
+  if (tableau) {
+    const pourTableau = possibles.find((c) => largeurResultats(largeur, c.disposition.configuration) >= RESULTATS_TABLEAU);
+    if (pourTableau) return pourTableau.disposition;
+  }
+  return possibles[0].disposition;
 }
 
 // Un guidage vers une colonne déjà visible ne change pas le groupe.

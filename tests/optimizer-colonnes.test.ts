@@ -4,6 +4,32 @@ import { LARGEUR_MONSTRE } from '../src/components/outils/optimizer/bureau/Liste
 import { LARGEUR_ARTEFACTS } from '../src/components/outils/optimizer/bureau/ArtefactsEtReliqueBureau';
 import { LARGEUR_COMPLEMENTS } from '../src/components/outils/optimizer/bureau/SetsAuraBureau';
 import { colonnesCoffre } from '../src/lib/coffreSets';
+import { RESULTATS_TABLEAU, largeurResultats } from '../src/lib/optimizerColonnes';
+import { SEUIL_TABLEAU_PX } from '../src/components/outils/optimizer/TableauResultats';
+
+// Le réglage « Tableau » : la page range ses réglages, deux piles comprises,
+// jusqu'à laisser au tableau sa largeur ; trop étroit, la configuration de la
+// largeur seule (les résultats passent en cartes).
+export function testOptimizerColonnesTableau() {
+  titre('Optimizer · configuration quand les résultats sont en tableau');
+  egal(RESULTATS_TABLEAU, SEUIL_TABLEAU_PX + 32, 'la largeur du tableau plus la barre, l’écart et le panneau');
+  const cas: [number, string, string][] = [
+    [2288, 'colonnes', 'colonnes'], // 2560 plein
+    [2101, 'colonnes', 'colonnes'],
+    [2100, 'colonnes', 'criteres-et-groupe'],
+    [1840, 'colonnes', 'criteres-et-groupe'], // 1920 plein, barre repliée
+    [1648, 'criteres-et-groupe', 'groupe'], // 1920 plein
+    [1264, 'groupe', 'deux-piles'], // portable
+    [1112, 'groupe', 'deux-piles'], // 2560 scindé
+    [792, 'deux-piles', 'deux-piles'], // 1920 scindé : trop étroit, cartes
+  ];
+  for (const [largeur, cartes, tableau] of cas) {
+    egal([configurationBureau(largeur).configuration, configurationBureau(largeur, true).configuration], [cartes, tableau],
+      `${largeur} px : ${cartes} en cartes, ${tableau} en tableau`);
+  }
+  ok(largeurResultats(1112, 'deux-piles') >= RESULTATS_TABLEAU && largeurResultats(792, 'deux-piles') < RESULTATS_TABLEAU,
+    '2560 scindé tient le tableau en deux piles, 1920 scindé jamais');
+}
 import { egal, ok, titre } from './outils';
 
 // La grille des sets dans son coffre : 3 + 4 colonnes, puis le principal à

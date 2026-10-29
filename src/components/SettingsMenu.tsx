@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Save, Trash2 } from 'lucide-react';
 import { IconeParametres } from './IconesAtelier';
 import { RUNE_METRICS, setRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
+import { setFormeResultats, useFormeResultats, type FormeResultats } from '../hooks/useFormeResultats';
 import { setPersistence, storageAvailable, usePersistence } from '../hooks/usePersistence';
 import { THEME_CHOICES, setTheme, useTheme } from '../hooks/useTheme';
 import { setOvercapDisplay, useOvercapDisplay } from '../hooks/useOvercapDisplay';
@@ -106,6 +107,7 @@ export function SettingsList({
   groupes?: boolean;
 }) {
   const metric = useRuneMetric();
+  const formeResultats = useFormeResultats();
   const keep = usePersistence();
   const storageOk = storageAvailable();
   const theme = useTheme();
@@ -138,6 +140,21 @@ export function SettingsList({
 
       <Setting title="Score">
         <Segmented options={RUNE_METRICS} value={metric} onChange={setRuneMetric} />
+      </Setting>
+
+      {/* ⚠️ Ici, et plus au-dessus des résultats : au bureau, le tableau
+          réorganise la page de l'Optimizer (ses réglages se rangent en
+          onglets pour lui laisser la place) ; choisi dans l'Optimizer, le clic
+          aurait déplacé ce qu'on venait de cliquer. */}
+      <Setting
+        title="Résultats de l'Optimizer"
+        hint="Au bureau seulement. En tableau, l'Optimizer range ses réglages en onglets pour lui laisser la place ; trop étroit malgré tout, il affiche les cartes."
+      >
+        <Segmented<FormeResultats>
+          options={[{ key: 'cartes', label: 'Cartes' }, { key: 'tableau', label: 'Tableau' }]}
+          value={formeResultats}
+          onChange={setFormeResultats}
+        />
       </Setting>
 
       {/* Ce que montre le Résumé des runes. Une fenêtre plutôt qu'un contrôle

@@ -117,6 +117,9 @@ export interface PageBureauProps {
   rappelAuras: boolean;
   guideComplements?: number | null;
   guideCriteres?: number | null;
+  // Le réglage « Résultats de l'Optimizer » vaut « Tableau » : la page range
+  // ses réglages pour laisser au tableau sa largeur (`configurationBureau`).
+  tableau?: boolean;
 }
 
 export interface MesureColonne { boite: number; naturelle: number }
@@ -238,7 +241,8 @@ function PileDroite({ groupe, objectif, resultats }: {
 export default function PageBureau(props: PageBureauProps) {
   const racine = useRef<HTMLDivElement>(null);
   const { largeur, style } = useHauteurVisible(racine);
-  const disposition = useMemo(() => configurationBureau(largeur ?? 752), [largeur]);
+  const tableau = props.tableau ?? false;
+  const disposition = useMemo(() => configurationBureau(largeur ?? 752, tableau), [largeur, tableau]);
   const actif = ongletOuvert(disposition.groupe, props.onglet);
   const { onOnglet, guideComplements, guideCriteres } = props;
   const courant = useRef({ groupe: disposition.groupe, actif });

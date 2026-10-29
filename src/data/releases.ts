@@ -68,6 +68,7 @@ export const RELEASES: Release[] = [
       { kind: 'feat', scope: 'Optimizer', text: '« Exemplaire » montre le build actuel, le build validé ou un autre exemplaire, sans rien ajouter.' },
       { kind: 'feat', scope: 'Optimizer', text: 'La recherche ajoute l’exemplaire suivant de l’espèce à la liste.' },
       { kind: 'feat', scope: 'Optimizer', text: '« Pré-filtrage par emplacement » s’appelle désormais « Profondeur de recherche ».' },
+      { kind: 'feat', scope: 'Optimizer', text: 'Cartes ou tableau se choisit dans les Paramètres ; en tableau, l’écran lui fait la place.' },
       { kind: 'feat', scope: 'Optimizer', text: 'Recherche bien plus rapide : la vérification des builds utilise tous les cœurs.' },
       { kind: 'feat', scope: 'Optimizer', text: 'Toutes les combinaisons trouvées se confirment en fond, jusqu’à un million.' },
       { kind: 'feat', scope: 'Optimizer', text: 'Résultats en cartes ou en tableau, triés et bornés par colonne.' },

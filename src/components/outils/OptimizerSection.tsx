@@ -163,7 +163,7 @@ import GrilleResultats from './optimizer/GrilleResultats';
 import BandeDeTri, { type TriResultats } from './optimizer/TetesDeTri';
 import TableauResultats, { CARTES_SOUS_LE_SEUIL, TABLEAU_VISIBLE } from './optimizer/TableauResultats';
 import BuildCandidateCard from './BuildCandidateCard';
-import { setFormeResultats, useFormeResultats, type FormeResultats } from '../../hooks/useFormeResultats';
+import { useFormeResultats, type FormeResultats } from '../../hooks/useFormeResultats';
 import { libelleColonne } from '../../lib/filtresAffichage';
 import { Modale } from '../../ui';
 import MessageImportRecette from './optimizer/MessageImportRecette';
@@ -3058,7 +3058,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             compteAffiche={compteAffiche}
             bureau={!sousLg}
             filtres={{ bornes: bornesVue, poserBorne, effacer: effacerFiltres, filtre: instantane?.filtre ?? null }}
-            {...(sousLg ? {} : { forme: formeResultats, setForme: setFormeResultats, bonus: bonusTableau, setBonus: setBonusTableau })}
+            // La forme se choisit dans les Paramètres (SettingsMenu.tsx) : elle
+            // réorganise la page, l'en-tête ne la porte plus.
+            {...(sousLg ? {} : { forme: formeResultats, bonus: bonusTableau, setBonus: setBonusTableau })}
           />
   
           <DiagnosticsSansResultat
@@ -3265,6 +3267,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // par un portail : leur place ici ne change rien au DOM de la page.
   const pageBureau = sousLg ? null : (
       <PageBureau
+        tableau={formeResultats === 'tableau'}
         liste={
           <ListeDeTravailBureau
             listes={listesBureau}

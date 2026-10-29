@@ -253,6 +253,13 @@ colonne. Chaque configuration vaut sur une plage `[a, b[` :
   vignettes) restent côte à côte le plus longtemps possible (décision de
   l'utilisateur).
 
+⚠️ **Résultats en tableau** (réglage « Résultats de l'Optimizer » des
+Paramètres, [resultats.md](resultats.md#cartes-ou-tableau)) : la page range
+de plus ses réglages, cran par cran et jusqu'aux deux piles, tant que les
+résultats n'ont pas les 693 px du tableau (661 de zone, plus barre, écart
+et panneau, `RESULTATS_TABLEAU`) ; si aucune configuration ne les leur
+laisse, celle de la largeur seule, et les résultats en cartes.
+
 Chaque seuil se pose là où la configuration suivante tient : 1 768 =
 « Monstre » 384 + trois fois (gouttière 16 + 320) + gouttière 16 +
 résultats 360 ; chaque seuil inférieur retire une colonne de réglages et sa

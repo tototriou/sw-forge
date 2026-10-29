@@ -148,7 +148,7 @@ export function SettingsList({
           aurait déplacé ce qu'on venait de cliquer. */}
       <Setting
         title="Résultats de l'Optimizer"
-        hint="Au bureau seulement. En tableau, l'Optimizer range ses réglages en onglets pour lui laisser la place ; trop étroit malgré tout, il affiche les cartes."
+        hint="Au bureau seulement. En tableau, l'Optimizer regroupe ses réglages pour lui laisser la place ; trop étroit malgré tout, il affiche les cartes."
       >
         <Segmented<FormeResultats>
           options={[{ key: 'cartes', label: 'Cartes' }, { key: 'tableau', label: 'Tableau' }]}

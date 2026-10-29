@@ -7,6 +7,7 @@ import EtatMonstreEssentiels from '../../src/components/outils/optimizer/bureau/
 import ExemplaireBureau from '../../src/components/outils/optimizer/bureau/ExemplaireBureau';
 import ObjectifEtRechercherBureau from '../../src/components/outils/optimizer/bureau/ObjectifEtRechercherBureau';
 import PageBureau from '../../src/components/outils/optimizer/bureau/PageBureau';
+import { SetDeplieContext } from '../../src/components/outils/optimizer/bureau/setDeplie';
 import type { ColonneReglage } from '../../src/lib/optimizerColonnes';
 import { SOURCE_OPTIONS } from '../../src/lib/optimizerExclusion';
 import { DEFAULT_DAMAGE_SETUP, type DamageSetup } from '../../src/lib/damage';
@@ -71,11 +72,14 @@ let root: Root | null = null;
 // montées à la largeur de leur sous-colonne dans les essentiels, le set à
 // celle du panneau ; « Exemplaire » et le bloc large à la largeur demandée
 // (la place que la colonne de droite leur donne).
-export async function monter(nom: 'set' | 'principales' | 'etat' | 'exemplaire' | 'objectif' | 'page', largeur?: number) {
+export async function monter(nom: 'set' | 'coffre' | 'principales' | 'etat' | 'exemplaire' | 'objectif' | 'page', largeur?: number) {
   if (root) { const r = root; flushSync(() => r.unmount()); }
   root = createRoot(document.getElementById('racine')!);
   const r = root;
   const contenu = nom === 'set' ? <div style={{ width: LARGEUR_COLONNE_ETROITE }}><SetBanc /></div>
+    // Le set déplié, à la largeur demandée : son coffre dans la section.
+    : nom === 'coffre' ? <div data-largeur-coffre style={{ width: largeur }}>
+      <SetDeplieContext.Provider value={{ deplie: true, reporterEcart: rien }}><SetBanc /></SetDeplieContext.Provider></div>
     : nom === 'exemplaire' ? <div style={{ width: largeur }}><ExemplaireBanc /></div>
       : nom === 'objectif' ? <div style={{ width: largeur }}><ObjectifBanc /></div>
         : nom === 'page' ? <div style={{ width: largeur }}><PageBanc /></div>

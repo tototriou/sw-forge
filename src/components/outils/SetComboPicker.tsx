@@ -63,6 +63,14 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false,
   // Avant la mesure (rendu serveur), 3 + 4.
   const coffreRef = useRef<HTMLDivElement>(null);
   const [colonnes, setColonnes] = useState<ColonnesCoffre>({ principal: 3, secondaire: 4 });
+  // ⚠️ « Plein » se juge sur ce qu'on peut CHOISIR : compter l'intangible ici
+  // laisserait le picker se dire non plein alors qu'aucun set proposé ne
+  // rentre plus. ⚠️ En revanche, le rendu du combo courant (juste en dessous)
+  // lit bien `RUNE_SETS` entier — une recette ancienne peut en contenir un, et
+  // il doit rester affichable et retirable.
+  const full = !CHOISISSABLES.some((s) => canAddSet(sets, s.key));
+  // ⚠️ Dépend aussi de `full` : le coffre se démonte quand la combinaison est
+  // pleine et revient au premier retrait, un NOUVEL élément à observer.
   useLayoutEffect(() => {
     const el = coffreRef.current;
     if (!coffre || !el || typeof ResizeObserver === 'undefined') return;
@@ -77,13 +85,7 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false,
     const obs = new ResizeObserver(lire);
     obs.observe(el);
     return () => obs.disconnect();
-  }, [coffre]);
-  // ⚠️ « Plein » se juge sur ce qu'on peut CHOISIR : compter l'intangible ici
-  // laisserait le picker se dire non plein alors qu'aucun set proposé ne
-  // rentre plus. ⚠️ En revanche, le rendu du combo courant (juste en dessous)
-  // lit bien `RUNE_SETS` entier — une recette ancienne peut en contenir un, et
-  // il doit rester affichable et retirable.
-  const full = !CHOISISSABLES.some((s) => canAddSet(sets, s.key));
+  }, [coffre, full]);
 
   return (
     <div>

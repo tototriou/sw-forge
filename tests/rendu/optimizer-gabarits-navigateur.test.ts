@@ -209,5 +209,29 @@ export async function testRenduOptimizerGabaritsLargeurs() {
     await page.locator('[data-configuration]').evaluate(e => { e.parentElement!.style.width = '1200px'; });
     await page.waitForTimeout(100);
     ok(await page.getByRole('tab', { name: 'Critères', exact: true }).getAttribute('aria-selected') === 'true', 'retour du groupe : son premier onglet, sans ressusciter Options');
+
+    // Le coffre démonté par une combinaison pleine revient au premier retrait :
+    // ce nouvel élément suit encore la largeur de sa section quand elle se
+    // resserre.
+    await page.evaluate(monterA('coffre', 400));
+    const set = page.locator('[data-set-optimizer="deplie"] > div').first();
+    await set.getByRole('button', { name: 'Violent', exact: true }).click();
+    await set.getByRole('button', { name: 'Will', exact: true }).click();
+    ok(await set.getByText('Set principal', { exact: true }).count() === 0, 'set plein : la grille d’ajout disparaît');
+    await set.getByRole('button', { name: 'Retirer Will' }).click();
+    await page.locator('[data-largeur-coffre]').evaluate(e => { (e as HTMLElement).style.width = '170px'; });
+    await page.waitForTimeout(150);
+    const apres = await set.evaluate((racine) => {
+      const titre = [...racine.querySelectorAll('p')].find((p) => p.textContent === 'Set secondaire')!;
+      const boite = titre.parentElement!.parentElement!, s = getComputedStyle(boite);
+      return {
+        contenu: boite.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight),
+        principal: getComputedStyle(boite.firstElementChild!.querySelector('.grid')!).gridTemplateColumns.split(' ').length,
+        secondaire: getComputedStyle(titre.nextElementSibling!).gridTemplateColumns.split(' ').length,
+      };
+    });
+    const voulues = colonnesCoffre(apres.contenu);
+    ok(voulues.principal < 3 && apres.principal === voulues.principal && apres.secondaire === voulues.secondaire,
+      `coffre revenu après un retrait : ses colonnes suivent encore sa largeur (${JSON.stringify(apres)})`);
   } finally { await browser.close(); }
 }

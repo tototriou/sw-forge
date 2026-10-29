@@ -63,7 +63,12 @@ async function nonRelance(telephone: boolean) {
     await interrupteur.click();
     ok(await interrupteur.getAttribute('aria-checked') === 'true', `${format} : l’interrupteur est activé par un vrai clic`);
     const tout = await inchange('vérifier toutes les combinaisons');
-    if (telephone) await appel(page, 'menuTelephone', false); else await page.getByRole('tab', { name: 'Critères', exact: true }).click();
+    if (telephone) await appel(page, 'menuTelephone', false);
+    else {
+      const criteres = page.getByRole('tab', { name: 'Critères', exact: true });
+      if (await criteres.count()) await criteres.click();
+      else ok(await page.locator('[data-colonne="criteres"]').isVisible(), 'bureau : Critères reste une colonne visible hors du groupe');
+    }
     egal(tout.toutVerifierPhoto, false, `${format} : « Vérifier toutes les combinaisons » reste celui du lancement dans le contexte`);
     // Tri : la tête PV de la bande au bureau, le sélecteur de l'en-tête au téléphone.
     if (telephone) await page.locator('select').filter({ hasText: 'Trier par' }).selectOption('hp');

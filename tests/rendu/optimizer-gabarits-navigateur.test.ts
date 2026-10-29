@@ -1,5 +1,5 @@
 import { navigateurOptimizer } from './optimizer-navigable-banc';
-import { ok, titre } from '../outils';
+import { egal, ok, titre } from '../outils';
 
 // Le sens des listes à choix multiples des essentiels du bureau, après de vrais
 // clics : un rendu serveur n'exécute aucun gestionnaire.
@@ -16,7 +16,7 @@ export async function testRenduOptimizerGabaritsGestes() {
     const ouvert = async () => (await declencheur.getAttribute('aria-expanded')) === 'true';
     await declencheur.click();
     ok(await ouvert(), 'set : la liste s’ouvre au clic');
-    // La grille ouverte, dans son coffre en creux : Set secondaire sur 8
+    // La grille ouverte, dans son coffre en creux : Set secondaire sur 4
     // colonnes, les deux groupes au même écart des deux bords du coffre.
     const coffre = await page.evaluate(() => {
       const titreSecondaire = [...document.querySelectorAll('p')].find((p) => p.textContent === 'Set secondaire')!;
@@ -25,12 +25,13 @@ export async function testRenduOptimizerGabaritsGestes() {
       const premier = boite.firstElementChild!.getBoundingClientRect(), dernier = groupe.getBoundingClientRect();
       return {
         colonnes: getComputedStyle(titreSecondaire.nextElementSibling!).gridTemplateColumns.split(' ').length,
+        principales: getComputedStyle(boite.firstElementChild!.querySelector('.grid')!).gridTemplateColumns.split(' ').length,
         gauche: Math.round(premier.left - b.left - parseFloat(s.paddingLeft)), droite: Math.round(b.right - parseFloat(s.paddingRight) - dernier.right),
         contour: s.borderTopWidth, fond: s.backgroundColor,
       };
     });
-    ok(coffre.colonnes === 8 && Math.abs(coffre.gauche - coffre.droite) <= 1 && coffre.contour === '0px' && coffre.fond !== 'rgba(0, 0, 0, 0)',
-      `set : la grille ouverte dans son coffre (fond, sans contour), Set secondaire sur 8 colonnes, centrée (${JSON.stringify(coffre)})`);
+    ok(coffre.principales === 3 && coffre.colonnes === 4 && Math.abs(coffre.gauche - coffre.droite) <= 1 && coffre.contour === '0px' && coffre.fond !== 'rgba(0, 0, 0, 0)',
+      `set : coffre centré, sans contour, grilles de 3 + 4 colonnes (${JSON.stringify(coffre)})`);
     await page.getByRole('button', { name: 'Violent', exact: true }).click();
     await page.waitForTimeout(100);
     ok(await ouvert(), 'set : la liste reste ouverte après un set de 4 (Violent)');
@@ -117,9 +118,7 @@ export async function testRenduOptimizerGabaritsLargeurs() {
   const { browser, page } = await navigateurOptimizer(false, 'tests/rendu/optimizer-gabarits-banc.tsx');
   const monterA = (nom: string, largeur: number) => `globalThis.bancOptimizer.monter(${JSON.stringify(nom)}, ${largeur})`;
   try {
-    // « Valider ce build » : de la gauche des statistiques à la droite du
-    // groupe (artéfacts, roue, relique) quand la fiche la plus large tient
-    // (564) ; sa rangée la plus large, fiche repliée, en dessous.
+    // La fiche reste repliée au bureau, même si son contenant s'élargit.
     const fiche = () => page.evaluate(() => {
       const bouton = document.querySelector('[data-valider]')!.getBoundingClientRect();
       const racine = document.querySelector('[data-valider]')!.parentElement!.querySelector('.flex-wrap')!;
@@ -130,15 +129,17 @@ export async function testRenduOptimizerGabaritsLargeurs() {
     });
     await page.evaluate(monterA('exemplaire', 598));
     await page.waitForTimeout(100);
-    const deplie = await fiche();
-    ok(deplie.groupe[0] >= deplie.stats[1] && Math.abs(deplie.bouton[0] - deplie.stats[0]) <= 1 && Math.abs(deplie.bouton[1] - deplie.groupe[1]) <= 1,
-      `exemplaire à 598 px : fiche dépliée, « Valider ce build » des statistiques au bord droit du groupe (${JSON.stringify(deplie)})`);
+    const largeFiche = await fiche();
+    const largeurFiche = Math.max(largeFiche.stats[1] - largeFiche.stats[0], largeFiche.groupe[1] - largeFiche.groupe[0]);
+    ok(largeFiche.groupe[2] >= largeFiche.stats[3] && Math.abs(largeFiche.bouton[1] - largeFiche.bouton[0] - largeurFiche) <= 1,
+      `exemplaire à 598 px : fiche repliée, Valider à la largeur de la plus large rangée (${JSON.stringify(largeFiche)})`);
     await page.evaluate(monterA('exemplaire', 420));
     await page.waitForTimeout(100);
     const replie = await fiche();
     const plusLarge = Math.max(replie.stats[1] - replie.stats[0], replie.groupe[1] - replie.groupe[0]);
     ok(replie.groupe[2] >= replie.stats[3] && Math.abs(replie.bouton[1] - replie.bouton[0] - plusLarge) <= 1,
       `exemplaire à 420 px : fiche repliée, « Valider ce build » à la largeur de sa rangée la plus large, ${plusLarge} px (${JSON.stringify(replie)})`);
+    ok(JSON.stringify(replie) === JSON.stringify(largeFiche), 'exemplaire : élargir son contenant ne change ni la fiche ni le bouton');
 
     // « Rechercher », forme large : à droite d'« Exporter » · « Importer » sur
     // leur rangée ; dessous, pleine largeur, quand la rangée fait moins de 448 px.
@@ -155,5 +156,52 @@ export async function testRenduOptimizerGabaritsLargeurs() {
     const etroit = await rangee();
     ok(etroit.rechercher[1] >= etroit.importer[2] && etroit.rechercher[2] === 420,
       `objectif à 420 px : « Rechercher » sous « Exporter » · « Importer », pleine largeur (${JSON.stringify(etroit)})`);
+
+    await page.setViewportSize({ width: 2048, height: 1000 });
+    for (const [largeur, configuration, colonnes, onglets] of [
+      [1800, 'colonnes', ['criteres', 'artefacts', 'complements'], []],
+      [1500, 'criteres-et-groupe', ['criteres', 'artefacts'], ['Artéfacts', 'Options']],
+      [1200, 'groupe', ['criteres'], ['Critères', 'Artéfacts', 'Options']],
+      [752, 'deux-piles', ['criteres'], ['Critères', 'Artéfacts', 'Options']],
+    ] as const) {
+      await page.evaluate(monterA('page', largeur));
+      const racine = page.locator('[data-configuration]');
+      egal(await racine.getAttribute('data-configuration'), configuration, `${largeur} px : configuration mesurée`);
+      egal(await racine.locator('[data-colonne]').evaluateAll(es => es.map(e => e.getAttribute('data-colonne'))), [...colonnes], `${configuration} : réglages présents dans l'ordre`);
+      egal(await racine.getByRole('tab').locator('[data-libelle-onglet]').allTextContents(), [...onglets], `${configuration} : seuls les réglages rangés ont un onglet`);
+      ok(await racine.locator('[data-zone="monstre"]').isVisible() && await racine.locator('[data-zone="resultats"]').isVisible(), `${configuration} : Monstre et résultats visibles`);
+      const confinement = await racine.evaluate(e => ({
+        hauteur: Math.abs(e.getBoundingClientRect().bottom - (innerHeight - 16)) <= 1,
+        deborde: e.scrollWidth > e.clientWidth + 1,
+        panneaux: [...e.querySelectorAll<HTMLElement>('[data-zone="monstre"], [data-zone="pile-droite"], [data-colonne], [data-zone="resultats"]')]
+          .filter(p => getComputedStyle(p).overflowY === 'auto').map(p => ({
+            contient: getComputedStyle(p).overscrollBehaviorY === 'contain',
+            defile: p.scrollHeight > p.clientHeight,
+          })),
+      }));
+      ok(confinement.hauteur && !confinement.deborde && confinement.panneaux.length >= 2
+        && confinement.panneaux.every(p => p.contient && p.defile), `${configuration} : hauteur visible, largeur contenue et défilements indépendants (${JSON.stringify(confinement)})`);
+      if (onglets.length) {
+        const options = racine.getByRole('tab', { name: 'Options', exact: true });
+        const avant = await options.boundingBox();
+        await options.click();
+        egal(await options.boundingBox(), avant, `${configuration} : cliquer Options ne déplace pas l'onglet`);
+        await options.click();
+        ok(await options.getAttribute('aria-selected') === 'true', `${configuration} : recliquer garde Options ouvert`);
+        egal(await racine.getByRole('tabpanel').getAttribute('aria-label'), 'Aura, exclusion, avancés', `${configuration} : panneau correspondant à Options`);
+      }
+    }
+    // Redimensionner la même page conserve un onglet encore présent ; quand
+    // le groupe disparaît, son retour repart du premier onglet.
+    await page.getByRole('tab', { name: 'Options', exact: true }).click();
+    await page.locator('[data-configuration]').evaluate(e => { e.parentElement!.style.width = '1500px'; });
+    await page.waitForTimeout(100);
+    ok(await page.getByRole('tab', { name: 'Options', exact: true }).getAttribute('aria-selected') === 'true', 'redimensionnement : Options reste dans le groupe et reste actif');
+    await page.locator('[data-configuration]').evaluate(e => { e.parentElement!.style.width = '1800px'; });
+    await page.waitForTimeout(100);
+    egal(await page.getByRole('tab').count(), 0, 'cinq colonnes : aucun onglet');
+    await page.locator('[data-configuration]').evaluate(e => { e.parentElement!.style.width = '1200px'; });
+    await page.waitForTimeout(100);
+    ok(await page.getByRole('tab', { name: 'Critères', exact: true }).getAttribute('aria-selected') === 'true', 'retour du groupe : son premier onglet, sans ressusciter Options');
   } finally { await browser.close(); }
 }

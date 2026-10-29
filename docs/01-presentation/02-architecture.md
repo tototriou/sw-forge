@@ -198,7 +198,7 @@ avancés », les sets d'aura (`SetsAuraBureau`), l'exclusion de runes (`Exclusio
 réglages avancés (`ReglagesAvancesBureau`), en ligne ; dans la colonne des résultats,
 le bloc « Objectif et Rechercher » à une forme (`ObjectifEtRechercherBureau`),
 puis les résultats (`ResultatsBureau`, autour des composants des
-résultats plus bas). Elles se voient seules
+résultats plus bas). Elles se voient seules et assemblées dans les quatre configurations
 dans la vue de développement `#/outils/optimizer/gabarits`
 (`src/components/outils/optimizer/gabarits/`, adresse dans `src/lib/optimizerGabarits.ts`) :
 [03-developpeur/vue-des-gabarits.md](../03-developpeur/vue-des-gabarits.md).

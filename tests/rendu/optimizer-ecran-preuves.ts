@@ -59,9 +59,12 @@ async function ouvrirReglages(b: BancEcran) {
 }
 async function fermerSurfaces(b: BancEcran) {
   if (b.menuOuvert()) await b.geste(() => b.fermerMenu());
+  // « Critères » peut être une colonne (groupe « Artéfacts » · « Options ») :
+  // fermer « Options », c'est ouvrir un autre onglet du même groupe.
   if (!telephone() && colonneComplementsOuverte()) await b.geste(() => {
-    const criteres = [...document.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(e => e.querySelector('[data-libelle-onglet]')?.textContent?.trim() === 'Critères');
-    criteres?.click();
+    const autre = [...document.querySelectorAll<HTMLButtonElement>('[role="tablist"][aria-label="Réglages de recherche"] [role="tab"]')]
+      .find(e => e.querySelector('[data-libelle-onglet]')?.textContent?.trim() !== ONGLET_COMPLEMENTS);
+    autre?.click();
   });
 }
 // Au bureau, la grille des sets s'ouvre depuis la liste compacte du set.
@@ -276,9 +279,11 @@ export async function preuvesRappelDeuxRendus(b: BancEcran): Promise<Preuves> {
   preuves.push([(telephone() ? !!dansZone() && !visible(dansZone()!) : !dansZone()) && sansMessage() === avecRappel,
     telephone() ? 'zone C : rappel effacé après trois secondes, et seul le message a changé — rien d’autre n’y est monté sous sa condition'
       : 'zone C : rappel démonté après trois secondes, et seul le message a changé — rien d’autre n’y est monté sous sa condition']);
-  if (!telephone()) {
-    // Au bureau, colonne « Aura, exclusion, avancés » FERMÉE (la carte des
-    // auras démontée) : le rappel s'annonce encore, hors de la colonne.
+  // Le cas « fermée » n'existe que si « Aura, exclusion, avancés » est un
+  // onglet du groupe : affichée en colonne, elle ne se ferme pas.
+  if (!telephone() && ongletComplements()) {
+    // Au bureau, onglet « Options » FERMÉ (la carte des auras démontée) : le
+    // rappel s'annonce encore, hors de la colonne.
     // Le rappel revient en revenant à `cible` (qui porte des auras) depuis
     // un autre membre, une fois l'éventuel rappel de ce détour effacé.
     await fermerSurfaces(b);
@@ -289,7 +294,9 @@ export async function preuvesRappelDeuxRendus(b: BancEcran): Promise<Preuves> {
     await attendre(300);
     const regions = annonces();
     preuves.push([!colonneComplementsOuverte() && regions.length === 1 && !regions[0].closest('[data-colonne]'),
-      `colonne fermée : le rappel s’annonce, une fois, hors de la colonne (${regions.length})`]);
+      `colonne fermée : le rappel s’annonce, une fois, hors de la colonne (${JSON.stringify({
+        regions: regions.length, ongletOuvert: colonneComplementsOuverte(), dansColonne: regions.map((r) => !!r.closest('[data-colonne]')),
+      })})`]);
     await attendre(3100);
   }
   return preuves;

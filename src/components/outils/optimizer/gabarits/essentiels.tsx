@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
-import ListeDeTravailBureau, { LARGEUR_MONSTRE as LARGEUR_ESSENTIELS } from '../bureau/ListeDeTravailBureau';
+import ListeDeTravailBureau from '../bureau/ListeDeTravailBureau';
 import SetDeRunesCompact from '../bureau/SetDeRunesCompact';
 import PrincipalesImposeesBureau, { LARGEUR_COLONNE_ETROITE } from '../bureau/PrincipalesImposeesBureau';
 import ConditionsBureau, { LARGEUR_CONDITIONS } from '../bureau/ConditionsBureau';
@@ -14,7 +14,7 @@ import { exclusionSelectorKey, resolveExclusionEntry, type OptimizerListMember }
 import { leadEffectifMembreOptimizer } from '../../../../lib/equipesOptimizer';
 import { artifactConditionFloor, relicConditionFloor } from '../../../../lib/artifactConditionFloor';
 import { type DamageSetup } from '../../../../lib/damage';
-import type { ColonneReglage } from '../../../../lib/optimizerColonnes';
+import { configurationBureau, ongletOuvert, type ColonneReglage } from '../../../../lib/optimizerColonnes';
 import type { EquipeOptimizer } from '../../../../lib/optimizerMemberStorage';
 import type { StatKey } from '../../../../lib/effects';
 import type { Monster } from '../../../../types';
@@ -137,16 +137,17 @@ function EtatGabarit({ ctx, patch = {}, equipe = false }: { ctx: ContexteGabarit
 }
 
 const LARGEUR_ONGLETS = 320;
-const AUCUNE_COLONNE = { artefacts: false, complements: false, derniere: null };
-function OngletsGabarit({ initial }: { initial: { artefacts: boolean; complements: boolean; derniere: string | null }; deuxTiennent: boolean }) {
-  const [etat, setEtat] = useState<ColonneReglage>(initial.complements ? 'complements' : 'artefacts');
-  return <Onglets aria-label="Réglages de recherche" valeur={etat} onChange={setEtat}
-    options={[{ cle: 'artefacts', libelle: 'Artéfacts' }, { cle: 'complements', libelle: 'Options' }]} />;
+function OngletsGabarit({ largeur, initial }: { largeur: number; initial: ColonneReglage }) {
+  const [etat, setEtat] = useState<ColonneReglage>(initial);
+  const { groupe } = configurationBureau(largeur);
+  const noms = { criteres: 'Critères', artefacts: 'Artéfacts', complements: 'Options' };
+  return <Onglets aria-label="Réglages de recherche" valeur={ongletOuvert(groupe, etat)!} onChange={setEtat}
+    options={groupe.map(cle => ({ cle, libelle: noms[cle] }))} />;
 }
 
 export const GABARITS_ESSENTIELS: Gabarit[] = [
   {
-    id: 'liste', nom: 'Liste de travail (et choix du monstre)', largeur: LARGEUR_ESSENTIELS, hauteurEstimee: 412,
+    id: 'liste', nom: 'Liste de travail (et choix du monstre)', largeur: 358, hauteurEstimee: 412,
     composant: 'ListeDeTravailBureau (bureau/ListeDeTravailBureau.tsx), composant à part',
     telephone: 'Partage MonstresDeLaListe avec le téléphone, par une variante qu\'il ne prend pas (prop enTete) ; SelecteurListes, MonsterSourcePicker et OptimizerImportButton tels quels.',
     changements: [
@@ -163,13 +164,13 @@ export const GABARITS_ESSENTIELS: Gabarit[] = [
     ],
   },
   {
-    id: 'set', nom: 'Set de runes recherché (compact)', largeur: LARGEUR_ESSENTIELS, hauteurEstimee: 110,
+    id: 'set', nom: 'Set de runes recherché (compact)', largeur: LARGEUR_COLONNE_ETROITE, hauteurEstimee: 110,
     composant: 'SetDeRunesCompact (bureau/SetDeRunesCompact.tsx), composant à part',
     telephone: 'Aucun composant modifié : SetComboPicker (partagé) est repris tel quel dans la surface ; le téléphone garde SetDeRunes.',
     changements: [
       'La grille d\'icônes n\'est plus toujours déployée : une liste fermée montre les sets choisis, la grille (jetons, retrait, deux groupes) s\'ouvre en flottant ; un clic de plus pour choisir.',
       'Une seule liste (et non « Set principal » · « Set secondaire ») : deux fois le même set reste possible.',
-      '« Sélectionne au moins un set… » se met sur la ligne du titre (le compte « n/6 runes » n\'y figure que déplié, en A3 quand la colonne tient) : aucune ligne réservée sous la liste, et rien ne bouge quand il paraît.',
+      '« Sélectionne au moins un set… » se met sur la ligne du titre ; le compte reste dans le coffre, compact ou déplié selon la hauteur disponible.',
       'Liste fermée sans set : « Aucun ».',
       'La liste reste ouverte pendant la composition (après un set de 4, il reste un set de 2 à choisir) ; elle se ferme d\'elle-même au choix qui remplit les six emplacements, sinon au clic ailleurs ou à Échap.',
     ],
@@ -227,19 +228,18 @@ export const GABARITS_ESSENTIELS: Gabarit[] = [
     ],
   },
   {
-    id: 'onglets', nom: 'Contrôle à onglets des colonnes repliables', largeur: LARGEUR_ONGLETS, hauteurEstimee: 36,
+    id: 'onglets', nom: 'Groupe des réglages rangés', largeur: LARGEUR_ONGLETS, hauteurEstimee: 36,
     composant: 'Onglets (src/ui/Onglets.tsx)',
     telephone: 'Aucun : le téléphone garde le panneau « Options ».',
     changements: [
-      'Nouveau contrôle : « Artéfacts et relique » · « Aura, exclusion, avancés » ouvrent leur colonne ; recliquer l\'onglet actif la referme.',
-      'Là où une seule colonne tient, ouvrir l\'une ferme l\'autre ; là où les deux tiennent, la seconde s\'ajoute.',
+      '« Critères », « Artéfacts », « Options » : un seul onglet actif, recliquer le garde ouvert.',
+      'La largeur seule décide des réglages rangés : aucun onglet quand les cinq colonnes tiennent.',
       'Exclusion de runes et Réglages avancés ne s\'ouvrent plus en flottant depuis leur en-tête : ils sont en ligne dans leur colonne.',
     ],
     etats: [
-      { id: 'aucune', nom: 'Aucune colonne', rendu: () => <OngletsGabarit initial={AUCUNE_COLONNE} deuxTiennent={false} /> },
-      { id: 'artefacts', nom: '« Artéfacts et relique » ouverte', rendu: () => <OngletsGabarit initial={{ artefacts: true, complements: false, derniere: 'artefacts' }} deuxTiennent={false} /> },
-      { id: 'complements', nom: '« Aura, exclusion, avancés » ouverte', rendu: () => <OngletsGabarit initial={{ artefacts: false, complements: true, derniere: 'complements' }} deuxTiennent={false} /> },
-      { id: 'les-deux', nom: 'Les deux (dès 1 872 px)', rendu: () => <OngletsGabarit initial={{ artefacts: true, complements: true, derniere: 'complements' }} deuxTiennent /> },
+      { id: 'criteres', nom: 'Trois onglets, Critères actif', rendu: () => <OngletsGabarit largeur={1200} initial="criteres" /> },
+      { id: 'artefacts', nom: 'Deux onglets, Artéfacts actif', rendu: () => <OngletsGabarit largeur={1500} initial="artefacts" /> },
+      { id: 'complements', nom: 'Trois onglets, Options actif', rendu: () => <OngletsGabarit largeur={1200} initial="complements" /> },
     ],
   },
 ];

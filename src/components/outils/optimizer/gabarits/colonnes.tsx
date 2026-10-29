@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import ArtefactsEtReliqueBureau, { LARGEUR_ARTEFACTS } from '../bureau/ArtefactsEtReliqueBureau';
+import ArtefactsEtReliqueBureau from '../bureau/ArtefactsEtReliqueBureau';
 import MeilleursArtefactsBureau from '../bureau/MeilleursArtefactsBureau';
-import SetsAuraBureau, { LARGEUR_COMPLEMENTS } from '../bureau/SetsAuraBureau';
+import SetsAuraBureau from '../bureau/SetsAuraBureau';
+import { LARGEUR_COLONNE_ETROITE } from '../bureau/PrincipalesImposeesBureau';
 import ExclusionRunesBureau from '../bureau/ExclusionRunesBureau';
 import ReglagesAvancesBureau from '../bureau/ReglagesAvancesBureau';
 import ExclusionMonstrePrecis from '../ExclusionMonstrePrecis';
@@ -20,7 +21,7 @@ import type { AuraExterne } from '../../../../lib/aurasExternes';
 import type { DamageSetup } from '../../../../lib/damage';
 import type { ArtifactDetail, ArtifactKind } from '../../../../types';
 
-// Les gabarits des deux COLONNES REPLIABLES du bureau : « Artéfacts et relique »
+// Les gabarits des deux colonnes de réglages du bureau : « Artéfacts et relique »
 // (artéfacts et relique, meilleurs artéfacts en carte à part) et « Aura,
 // exclusion, avancés » (sets d'aura, exclusion de runes et réglages avancés en
 // ligne). Chaque état part de l'état réel (`ContexteGabarits`) ; ses gestes
@@ -139,12 +140,12 @@ const TELEPHONE_INCHANGE = 'aucun composant modifié : le téléphone garde sa c
 
 export const GABARITS_COLONNES: Gabarit[] = [
   {
-    id: 'artefacts', nom: 'Artéfacts et relique (colonne « Artéfacts et relique »)', largeur: LARGEUR_ARTEFACTS, hauteurEstimee: 432,
-    composant: 'ArtefactsEtReliqueBureau (bureau/ArtefactsEtReliqueBureau.tsx) : ArtefactsEtReliques à 320 px, sans l\'encart des meilleurs artéfacts',
+    id: 'artefacts', nom: 'Artéfacts et relique (colonne « Artéfacts et relique »)', largeur: LARGEUR_COLONNE_ETROITE, hauteurEstimee: 432,
+    composant: 'ArtefactsEtReliqueBureau (bureau/ArtefactsEtReliqueBureau.tsx) : section de 294 px, sans l\'encart des meilleurs artéfacts',
     telephone: `ArtefactsEtReliques (partagé) repris tel quel ; ${TELEPHONE_INCHANGE}`,
     changements: [
       '« Meilleurs artéfacts offensifs pour ce build » quitte la carte (entre les sous-propriétés et la relique) pour sa propre carte, sous la relique.',
-      'La carte vit dans la colonne repliable « Artéfacts et relique » : ouverte ou fermée par son onglet.',
+      'La section vit dans la colonne « Artéfacts et relique », ou dans son onglet quand la largeur la range.',
       'Aux deux formats : « Garder l\'artéfact équipé » devient « Comme équipé » (listes, aide, messages).',
       'Aux deux formats : « Garder la relique équipée » devient « Comme équipée » (liste, aide, message d\'import).',
       'Aux deux formats : options courtes « ATQ +100 », « DEF +100 », « PV +1500 » (Attribut, Type), « ATQ % », « DEF % », « PV % » (relique), sans « Principale ».',
@@ -159,7 +160,7 @@ export const GABARITS_COLONNES: Gabarit[] = [
     ],
   },
   {
-    id: 'meilleurs', nom: 'Meilleurs artéfacts offensifs pour ce build', largeur: LARGEUR_ARTEFACTS, hauteurEstimee: 420,
+    id: 'meilleurs', nom: 'Meilleurs artéfacts offensifs pour ce build', largeur: LARGEUR_COLONNE_ETROITE, hauteurEstimee: 420,
     composant: 'MeilleursArtefactsBureau (bureau/MeilleursArtefactsBureau.tsx) : MeilleursArtefacts en carte (prop carte)',
     telephone: 'Partage MeilleursArtefacts avec le téléphone, par une variante qu\'il ne prend pas (prop carte) ; replié au doigt comme aujourd\'hui.',
     changements: [
@@ -173,11 +174,11 @@ export const GABARITS_COLONNES: Gabarit[] = [
     ],
   },
   {
-    id: 'auras', nom: 'Sets d\'aura des autres monstres (colonne « Aura, exclusion, avancés »)', largeur: LARGEUR_COMPLEMENTS, hauteurEstimee: 216,
+    id: 'auras', nom: 'Sets d\'aura des autres monstres (colonne « Aura, exclusion, avancés »)', largeur: LARGEUR_COLONNE_ETROITE, hauteurEstimee: 216,
     composant: 'SetsAuraBureau (bureau/SetsAuraBureau.tsx) : AurasExternesSaisie dans sa carte',
     telephone: 'EtatMonstre (partagé) exporte AurasExternesSaisie, rendu inchangé ; le téléphone garde EtatMonstre entier.',
     changements: [
-      'Quitte « État de mon monstre » pour la tête de la colonne repliable « Aura, exclusion, avancés », masquée par défaut.',
+      'En tête de « Aura, exclusion, avancés », colonne ou onglet « Options » selon la largeur.',
     ],
     etats: [
       { id: 'vide', nom: 'Aucun set d\'aura', rendu: (ctx) => <AurasGabarit ctx={ctx} initial={[]} /> },
@@ -187,7 +188,7 @@ export const GABARITS_COLONNES: Gabarit[] = [
     ],
   },
   {
-    id: 'exclusion', nom: 'Exclusion de runes (en ligne)', largeur: LARGEUR_COMPLEMENTS, hauteurEstimee: 440,
+    id: 'exclusion', nom: 'Exclusion de runes (en ligne)', largeur: LARGEUR_COLONNE_ETROITE, hauteurEstimee: 440,
     composant: 'ExclusionRunesBureau (bureau/ExclusionRunesBureau.tsx) : ExclusionRunesContenu dans l\'ordre empilé du panneau, variantes bureau de ExclusionMonstrePrecis et RunesImposees',
     telephone: 'ExclusionRunesContenu et RunesDejaUtilisees repris tels quels ; ExclusionMonstrePrecis (et RuneExclusionPicker) et RunesImposees partagés par une variante que le téléphone ne prend pas (prop bureau) ; le téléphone garde son panneau « Options ».',
     changements: [
@@ -204,7 +205,7 @@ export const GABARITS_COLONNES: Gabarit[] = [
     ],
   },
   {
-    id: 'avances', nom: 'Réglages avancés (en ligne)', largeur: LARGEUR_COMPLEMENTS, hauteurEstimee: 420,
+    id: 'avances', nom: 'Réglages avancés (en ligne)', largeur: LARGEUR_COLONNE_ETROITE, hauteurEstimee: 420,
     composant: 'ReglagesAvancesBureau (bureau/ReglagesAvancesBureau.tsx) : ReglagesAvancesContenu hors panneau',
     telephone: `ReglagesAvancesContenu repris tel quel ; ${TELEPHONE_INCHANGE}`,
     changements: [

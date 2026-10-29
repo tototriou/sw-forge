@@ -197,11 +197,11 @@ export function testRenduOptimizerReglages() {
   // avancés », fermée par défaut (son ouverture au clic de l'onglet :
   // `testRendu…OptimizerEcranReglagesAvances`, au navigateur). Son contenu,
   // le même composant, se lit ici dans le panneau « Options » du téléphone.
-  ok(!t.includes('Pré-filtrage par emplacement') && ongletsBureau(html).some(([nom, actif]) => nom === 'Options' && !actif),
+  ok(!t.includes('Profondeur de recherche') && ongletsBureau(html).some(([nom, actif]) => nom === 'Options' && !actif),
     'au bureau : les réglages avancés attendent l\'ouverture de leur colonne');
   const panneau = auTelephone(() => rendreOptimizer(AVEC_MONSTRE, true));
   const bp = boutons(panneau);
-  ok(texteVisible(panneau).includes('Réglages avancés Pré-filtrage par emplacement'), 'le pré-filtrage par emplacement');
+  ok(texteVisible(panneau).includes('Réglages avancés Profondeur de recherche'), 'la profondeur de recherche');
   for (const p of PALIERS) ok(!!bp.find((x) => x.texte === p && x.title), `le palier « ${p} », expliqué`);
   ok(bp.find((x) => x.texte === 'Moyen')?.presse === true, '« Moyen » par défaut');
   for (const r of ["Rechercher jusqu'à épuisement complet", 'Diagnostic approfondi sur 0 résultat'])
@@ -234,7 +234,7 @@ export function testRenduTelephoneOptimizer() {
   ok(t.includes("Conserver ces slots dans l'optimisation Slot 1 · ATQ Slot 2 · VIT Slot 3 — Slot 4 · Dmg Crit Slot 5 — Slot 6 · RES"), 'les runes imposées, slot par slot');
   // Le panneau masque les intitulés (`[data-tiroir] .label`) ; celui-ci reste.
   ok(/data-intitule-conserve[^>]*>Conserver ces slots dans l(&#x27;|&#39;|')optimisation/.test(html), 'les runes imposées gardent leur intitulé dans le panneau');
-  ok(t.includes('Réglages avancés Pré-filtrage par emplacement') && t.includes('Pool de runes = 8'), 'les réglages avancés et le pool');
+  ok(t.includes('Réglages avancés Profondeur de recherche') && t.includes('Pool de runes = 8'), 'les réglages avancés et le pool');
   ok(t.includes('Objectif de recherche Efficience'), 'l\'objectif de recherche');
   ok(b.some((x) => x.texte === 'Rechercher') && !!bouton(html, 'Exporter les paramètres de recherche') && !!bouton(html, 'Importer les paramètres de recherche'), 'rechercher, exporter, importer');
   // Au téléphone, « Meilleurs artéfacts offensifs » est replié par défaut :

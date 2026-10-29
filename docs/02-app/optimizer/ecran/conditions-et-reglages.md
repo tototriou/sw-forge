@@ -146,7 +146,9 @@ Ce document décrit les conditions, l'inventaire et les réglages avancés.
    panneau « Options »), après « Exclusion de runes », sur une seule colonne : pré-filtrage, puis
    les interrupteurs (voir
    README.md § Réglages avancés et exclusion de runes). La section n'a ni
-   hauteur fixe ni place réservée : elle suit son contenu. **Pré-filtrage par emplacement**, en
+   hauteur fixe ni place réservée : elle suit son contenu. **« Profondeur de
+   recherche »** — le pré-filtrage par emplacement du moteur, nommé par ce
+   qu'il change pour le joueur (décision de l'utilisateur) —, en
    **presets** plutôt qu'un curseur libre — Bas / Moyen
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus
    lent, mais capable de retrouver un build sur un très gros compte),

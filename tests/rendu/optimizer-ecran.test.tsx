@@ -44,7 +44,7 @@ const classes = (balise: string) => (balise.match(/class="([^"]*)"/)?.[1] ?? '')
 
 export function testRenduOptimizerReglagesAvancesContenu() {
   titre('rendu · Optimizer — contenu des réglages avancés, au bureau et au téléphone');
-  const ANCRE = 'Pré-filtrage par emplacement';
+  const ANCRE = 'Profondeur de recherche';
   const noms = (html: string) => interrupteurs(html, ANCRE).map((x) => x.nom);
   // Au bureau, le même contenu vit dans la colonne « Aura, exclusion,
   // avancés », fermée par défaut : un rendu serveur ne l'ouvre pas (son

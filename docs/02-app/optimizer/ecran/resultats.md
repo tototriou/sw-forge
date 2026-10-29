@@ -147,7 +147,7 @@ suite (au bureau, sans encadré, chacun sous un trait fin, alors que chaque
 résultat garde sa carte : voir [Panneaux et sections](README.md#panneaux-et-sections)) :
 - **Toujours** : une liste de conditions mathématiquement hors de portée
   (avec leur borne exacte), ou un message neutre orientant vers la
-  conjonction des contraintes ou un pré-filtrage plus large.
+  conjonction des contraintes ou une « Profondeur de recherche » plus grande.
 - **Si « Diagnostic approfondi sur 0 résultat » est coché** (décoché par
   défaut, plus coûteux — voir conditions-et-reglages.md § Réglages avancés) : pour chaque
   condition posée, DE COMBIEN la desserrer suffit à faire grandir le pool

@@ -319,7 +319,7 @@ ligne.
 au même bord que ceux des « Réglages avancés » (leur carte les écarte de
 9 px du bord : 8 de rembourrage, 1 de contour), et chaque « ? » d'aide
 collé à son interrupteur, au même écart de 12 px dans toutes les rangées.
-Les puces « Bas, Moyen, Haut, Extrême » du pré-filtrage par emplacement
+Les puces « Bas, Moyen, Haut, Extrême » de la « Profondeur de recherche »
 sont centrées dans leur carte, comme la puce « Dégâts supplémentaires /
 Dégâts réels » des meilleurs artéfacts dans « Artéfacts et relique ». Le
 téléphone garde ses rangées.
@@ -525,7 +525,7 @@ les contrôles du panneau prennent toute la largeur.** Points tenus :
   donc leurs contrôles — à la largeur de leur contenu, laissant une colonne vide
   à droite sur tablette. En blocs, cartes et contrôles reprennent toute la
   largeur. Même piège que MobileNavSheet. Les `Segmented` y sont en outre
-  `size="lg"`, dont le **pré-filtrage par emplacement** (serré à son contenu en
+  `size="lg"`, dont la **« Profondeur de recherche »** (serrée à son contenu en
   ligne au bureau, plein dans le panneau).
 - **Barre d'actions** : Exporter/Importer portent un `libelleCourt`
   (« Exporter »/« Importer ») sous `lg`, pour ne pas étaler deux boutons à

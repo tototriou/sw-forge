@@ -1,7 +1,10 @@
 import { useMemo, useRef, useState } from 'react';
 import { Segmented } from '../../../../ui';
-import ExemplaireBureau, { LARGEUR_EXEMPLAIRE } from '../bureau/ExemplaireBureau';
-import ObjectifEtRechercherBureau, { LARGEUR_OBJECTIF_ETROIT, LARGEUR_OBJECTIF_LARGE_MIN, type FormeObjectif } from '../bureau/ObjectifEtRechercherBureau';
+import ExemplaireBureau from '../bureau/ExemplaireBureau';
+import ObjectifEtRechercherBureau, { LARGEUR_OBJECTIF_LARGE_MIN } from '../bureau/ObjectifEtRechercherBureau';
+type FormeObjectif = 'etroite' | 'large';
+const LARGEUR_EXEMPLAIRE = 596;
+const LARGEUR_OBJECTIF_ETROIT = 340;
 import ResultatsBureau, { LARGEUR_RESULTATS_MIN, type AttenteResultats } from '../bureau/ResultatsBureau';
 import BandeauBuildValide from '../BandeauBuildValide';
 import BoutonValiderBuild from '../BoutonValiderBuild';
@@ -95,7 +98,6 @@ function ObjectifGabarit({ ctx, forme, etat }: { ctx: ContexteGabarits; forme: F
   const sets = etat.sansMonstre ? [] : ctx.optimizer.comboSets.length > 0 ? ctx.optimizer.comboSets : ['violent'];
   return (
     <ObjectifEtRechercherBureau
-      forme={forme}
       estimation={exemplaire && sets.length > 0 ? <EstimationPool estimate={estimationDeVue(ctx.runes)} /> : null}
       messageImport={<MessageImportRecette message={etat.message && exemplaire ? { text: `Réglages importés pour ${exemplaire.monster.name} — monstre sélectionné automatiquement.` } : null} />}
       progression={{ progress: statut === 'running' ? etat.progression ?? null : null,

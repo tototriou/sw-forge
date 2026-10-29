@@ -3,7 +3,7 @@
 Ce document décrit la liste des résultats et leurs cartes. Au bureau, ils
 vivent dans la section « Résultats » (`ResultatsBureau`), dernière du panneau
 de la colonne de droite, présente dès le départ avec sa place d'attente,
-sous « Exemplaire » et le bloc « Objectif et
+sous le bloc « Objectif et
 Rechercher » : sa largeur, ses messages d'attente et la hauteur qu'elle
 garde à la relance sont dans
 [README.md](README.md#zone-des-résultats-et-place-en-plus). Au téléphone,

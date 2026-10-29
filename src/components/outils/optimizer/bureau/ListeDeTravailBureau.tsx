@@ -3,10 +3,10 @@ import MonsterAvatar from '../../../MonsterAvatar';
 import MonstresDeLaListe, { type MonstresDeLaListeProps } from '../MonstresDeLaListe';
 import { type Monster } from '../../../../types';
 
-// La place de la colonne des essentiels (docs/02-app/optimizer/ecran/README.md,
-// « Mise en page d'ensemble ») : son panneau en prend 540, le reste va à
+// La place de « Monstre » (docs/02-app/optimizer/ecran/README.md,
+// « Mise en page d'ensemble ») : son panneau en prend 376, le reste va à
 // l'écart avec la colonne suivante (`RETRAIT_PANNEAU`, src/lib/optimizerColonnes.ts).
-export const LARGEUR_ESSENTIELS = 548;
+export const LARGEUR_MONSTRE = 384;
 
 export interface ListeDeTravailBureauProps {
   // « Liste active » ▾ · « Importer une équipe » : `SelecteurListes` et

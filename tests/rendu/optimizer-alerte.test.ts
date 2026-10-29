@@ -54,10 +54,10 @@ export async function testRenduOptimizerAlerteDefilement() {
     await icone.focus();
     await panneau.waitFor({ state: 'visible' });
     await finirAnimations(page);
-    const colonne = page.locator('[data-zone="essentiels"]');
+    const colonne = page.locator('[data-zone="monstre"]');
     const position = await colonne.evaluate(e => e.scrollTop);
     await colonne.evaluate(e => e.scrollBy(0, e.scrollTop >= e.scrollHeight - e.clientHeight - 1 ? -40 : 40));
-    await page.waitForFunction(avant => document.querySelector('[data-zone="essentiels"]')!.scrollTop !== avant, position);
+    await page.waitForFunction(avant => document.querySelector('[data-zone="monstre"]')!.scrollTop !== avant, position);
     await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
     await finirAnimations(page);
     ok(await panneau.count() === 0, 'défilement de la colonne ancêtre : bulle fermée');

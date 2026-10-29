@@ -8,7 +8,7 @@ import { useOptimizerLists } from '../../src/hooks/useOptimizerLists';
 import OutilsPage from '../../src/pages/OutilsPage';
 import VueGabarits from '../../src/components/outils/optimizer/gabarits/VueGabarits';
 import { GABARITS } from '../../src/components/outils/optimizer/gabarits/registre';
-import OngletsColonnes from '../../src/components/outils/optimizer/bureau/OngletsColonnes';
+import Onglets from '../../src/ui/Onglets';
 import PrincipalesImposeesBureau from '../../src/components/outils/optimizer/bureau/PrincipalesImposeesBureau';
 import SetDeRunesCompact from '../../src/components/outils/optimizer/bureau/SetDeRunesCompact';
 import { SetDeplieContext } from '../../src/components/outils/optimizer/bureau/setDeplie';
@@ -32,7 +32,8 @@ export function testRenduOptimizerGabaritsComposants() {
   titre('rendu · Optimizer — gabarits de bureau des essentiels');
 
   // Le contrôle à onglets : deux boutons à deux états, libellés de la direction.
-  const onglets = rendre(<OngletsColonnes affichees={{ artefacts: true, complements: false }} onBasculer={rien} />);
+  const onglets = rendre(<Onglets aria-label="Réglages de recherche" valeur="artefacts" onChange={rien}
+    options={[{ cle: 'artefacts', libelle: 'Artéfacts' }, { cle: 'complements', libelle: 'Options' }]} />);
   egal(boutons(onglets).map((b) => [b.texte, b.presse]), [['Artéfacts et relique', true], ['Aura, exclusion, avancés', false]],
     'onglets : « Artéfacts et relique » enfoncé, « Aura, exclusion, avancés » relâché');
   ok(/role="group"[^>]*aria-label="Colonnes repliables"|aria-label="Colonnes repliables"[^>]*role="group"/.test(onglets), 'onglets : un groupe nommé');

@@ -105,57 +105,55 @@ mesure de l'écran vide.
 
 ### Tailles et états de l'Optimizer
 
-`--ecrans optimizer` exerce le téléphone et les douze fenêtres de bureau
-ci-dessous. La navigation reste dépliée. Les seuils portent sur le
-**conteneur de l'Optimizer**, après la navigation, les marges et les barres
-de défilement. Chaque préparation de volet clique « Écran partagé » ; les
-deux volets sont à parts égales, l'Optimizer à gauche, le sélecteur de page
-à droite. Aucun stockage de disposition n'est injecté.
+`--ecrans optimizer` exerce le téléphone et dix-sept tailles de bureau :
+les cinq repères de la spec, la fenêtre de 1400 × 1000 et onze frontières.
+La navigation reste dépliée. Les volets sont ouverts par « Écran partagé »,
+à parts égales, sans injection de stockage de disposition.
 
-| Taille : pleine page / volet | Fenêtre pleine page | Fenêtre partagée | Agencement attendu dans le conteneur |
+| Taille | Fenêtre | Conteneur attendu | Configuration |
 |---|---|---|---|
-| `bureau-a1` / `volet-a1` | 1120 × 800 | 1920 × 940 | A1, [728, 904[ px ; colonnes ouvertes dans la page |
-| `bureau-a2` / `volet-a2` | 1200 × 900 | 2200 × 1000 | A2, [904, 952[ px ; colonne ouverte à droite des essentiels |
-| `ordinateur` / `volet-fiche-repliee` | 1400 × 1000 | 2560 × 1300 | A3, [952, 1160[ px ; fiche repliée, colonne superposée |
-| `bureau-portable` / `volet-fiche-depliee` | 1536 × 730 | 2880 × 1300 | A3, [1160, 1496[ px ; fiche dépliée, colonne superposée |
-| `bureau-une-colonne` / `volet-une-colonne` | 1920 × 940 | 3840 × 1200 | A3, [1496, 1832[ px ; une colonne insérée |
-| `bureau-deux-colonnes` / `volet-deux-colonnes` | 2560 × 1300 | 5120 × 1440 | A3, ≥ 1832 px ; deux colonnes insérées |
+| `volet-deux-piles` | 1920 × 940 partagée | 792 | deux piles |
+| `volet-groupe` | 2560 × 1300 partagée | 1112 | groupe de trois |
+| `ordinateur` | 1400 × 1000 | 1128 | groupe de trois |
+| `bureau-portable` | 1536 × 730 | 1264 | groupe de trois |
+| `bureau-criteres-groupe` | 1920 × 940 | 1648 | Critères et groupe de deux |
+| `bureau-colonnes` | 2560 × 1300 | 2288 | toutes les colonnes |
 
-Les états `defaut`, `reglages-avances`, `degats-reels` et
-`degats-reels-rempli` existent aux treize tailles. La modale remplie crée
-une liste Arène, y ajoute Vanessa et Cassie par la recherche de monstres,
-puis choisit l'objectif « Dégâts réels » (dialogue et « Non critique »
-exigés). Au téléphone, « Gérer mes listes » découvre d'abord la liste.
-Le choix d'« Arène » vise l'option dans la listbox « Contenu de la liste »
-ouverte, aux deux formats : le `<select>` conservé porte aussi ses options
-natives. Le champ `dans` d'une cible exige un contenant CSS unique et visible.
+Les tailles `conteneur-<largeur>` visent 752, 753, puis 1096, 1432 et 1768
+à −1, au seuil et à +1. L'étape `largeurOptimizer` mesure le conteneur et
+ajuste la fenêtre par l'écart, sans modifier le style de l'app. À 751 px,
+le contenu passe sous la frontière du format bureau : cette borne est
+vérifiée par le calcul pur, le téléphone a son propre banc.
 
-Les états de bureau utilisent la même liste de deux membres :
+Chaque état repart d'une page neuve. Les préparations choisissent les
+onglets par rôle `tab` et libellé court (« Critères », « Artéfacts »,
+« Options »). Si le réglage est déjà une colonne, sa présence est exigée.
+Le clic sur chaque onglet compare sa position avant et après : tout
+déplacement rend l'état non atteint.
 
 | État | Préparation et postcondition |
 |---|---|
-| `liste-remplie` | Nouvelle liste, contenu Arène, choix de Vanessa puis Cassie ; les deux membres doivent être présents |
-| `resultats` | Fermer les colonnes par leurs onglets, importer [optimizer-banc-recette.json](fixtures/optimizer-banc-recette.json), cliquer « Rechercher » ; au moins deux cartes et retour de « Rechercher » exigés, défilement jusqu'à la première carte pour la capture |
-| `artefacts` / `complements` | Même recherche, puis ouvrir la colonne correspondante ; superposition ou insertion vérifiée selon la taille |
-| `deux-colonnes` | Même recherche, puis ouvrir les deux colonnes ; seulement aux deux tailles qui les tiennent ensemble |
-| `set-flottant` | Liste remplie, cliquer la liste compacte « Set de runes recherché : Aucun » ; coffre et déclencheur déplié exigés, seulement aux tailles compactes déclarées |
+| `liste-remplie` | Liste Arène, Vanessa et Cassie ajoutées par la recherche |
+| `resultats`, `resultats-tableau`, `resultats-filtres` | Import de [optimizer-banc-recette.json](fixtures/optimizer-banc-recette.json), recherche Rapide terminée, deux cartes exigées ; tableau et filtre selon l'état |
+| `artefacts`, `complements` | Même recherche, puis sélection de l'onglet correspondant quand il existe |
+| `toutes-colonnes` | Même recherche aux tailles qui affichent tous les réglages |
+| `guidage-set` | Options, puis Rechercher sans set : Critères et message d'erreur visibles |
+| `pile-collee` | Options en deux piles, défilement jusqu'aux réglages avancés ; capture avec Rechercher visible |
+| `set-flottant` | Liste remplie, ouverture du coffre compact aux tailles en deux piles |
 
-Le set doit être compact en A1/A2 et à 1536 × 730 ; déplié à
-2560 × 1300 en pleine page et 5120 × 1440 en volet. Aux autres hauteurs,
-sa forme observée est consignée sans être imposée. La recette synthétique
-demande Rapide sans condition sur le compte du banc ; elle ne contient
-aucune donnée de compte. L'import exige son compte rendu exact.
+Les états de départ, de réglages avancés et de modale « Dégâts réels »
+restent exercés aux deux formats. Le téléphone garde « Gérer mes listes »
+et son panneau « Options ».
 
-Avant toute mesure de bureau, le banc vérifie l'intervalle de largeur,
-`data-agencement`, la disposition réelle de la fiche, la forme attendue du
-set, la présence et l'égalité des volets, et la position des colonnes
-ouvertes. Les repères ajoutés dans l'app sont `data-membre-optimizer`
-(espèce du membre), `data-fiche-optimizer` (boîte de la fiche) et
-`data-set-optimizer` (`compact` ou `deplie`). Ils ne changent pas le rendu.
-Un contrôle absent ou incohérent rend l'état non atteint : code 2, cause et
-capture, aucune mesure de remplacement. Le manifeste porte la taille,
-l'attendu, les rectangles observés et le nombre de cartes. Les états
-réservés à d'autres tailles sont déclarés non exercés avec leur motif.
+Avant la mesure, le banc exige la configuration, les libellés des onglets,
+la fiche repliée dans « Monstre », le confinement des défilements et
+l'absence de débordement horizontal. En deux piles, le set monté est compact ;
+ailleurs, sa forme mesurée est consignée. Le guidage sans set doit rendre
+le set visible dans la partie visible de sa colonne ou de la pile de droite :
+les copies invisibles sont exclues, et le client du défilement est intersecté
+avec la fenêtre et les ancêtres qui le rognent. Les rectangles, l'onglet ouvert et le
+nombre de cartes figurent dans le manifeste. Une incohérence donne le code 2
+avec sa cause et une capture, sans mesure de remplacement.
 
 ### Sélection, compte et sortie
 

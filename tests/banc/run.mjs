@@ -493,7 +493,7 @@ async function principal(etat) {
             if (prep.length) await attendrePose(page);
             await verifierAtteint(page, atteintPour(st, format));
             resultat.medias = await page.evaluate(medias);
-            resultat.optimizer = await verifierOptimizer(page, taille.optimizer);
+            resultat.optimizer = await verifierOptimizer(page, taille.optimizer, st.id === 'guidage-set');
           } catch (err) {
             resultat.statut = 'non atteint';
             resultat.cause =

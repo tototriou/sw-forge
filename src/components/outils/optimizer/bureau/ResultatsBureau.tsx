@@ -3,14 +3,14 @@ import type { AttenteResultats } from '../../../../lib/optimizerColonnes';
 
 export type { AttenteResultats };
 
-// Le contenu de la colonne de droite à sa largeur minimale (388 de place, moins
+// Le contenu de la colonne des résultats à sa largeur minimale (360 de place, moins
 // 32 de barre, d'écart et de cadre) : une carte de résultat s'y tient
 // (resultats.md), et les résultats ne descendent jamais sous cette largeur.
 // Section sans cadre du panneau de la colonne de droite (bureau/panneau.ts),
 // qui porte rembourrage et contour.
-export const LARGEUR_RESULTATS_MIN = 356;
+export const LARGEUR_RESULTATS_MIN = 328;
 
-// Les résultats, au bureau : une boîte ÉLASTIQUE (356 px au moins, sans
+// Les résultats, au bureau : une boîte ÉLASTIQUE (328 px par carte, sans
 // maximum), présente dès le départ dans la colonne de droite. Avant la première
 // recherche, une place d'attente (en-tête et message, ≈ 160 px) tient la place
 // où arrivent les cartes : leur arrivée ne déplace jamais ce qu'on vient de
@@ -44,7 +44,7 @@ export default function ResultatsBureau({ attente, children }: { attente: Attent
     <section
       ref={boite}
       aria-label="Résultats"
-      style={{ minWidth: LARGEUR_RESULTATS_MIN }}
+      style={{ minWidth: `min(${LARGEUR_RESULTATS_MIN}px, 100%)` }}
       className="w-full"
     >
       {attente != null ? (

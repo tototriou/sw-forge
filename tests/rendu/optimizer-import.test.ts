@@ -71,7 +71,7 @@ export async function testRenduOptimizerImportRapportPartage() {
     // Bureau et téléphone sont deux arbres (la page de bureau, `PageBureau`,
     // n'est montée qu'au format bureau) : attendre que le téléphone ait
     // remplacé la page avant de viser son bouton.
-    await page.waitForFunction(() => !document.querySelector('[data-agencement]'));
+    await page.waitForFunction(() => !document.querySelector('[data-configuration]'));
     await bouton().scrollIntoViewIfNeeded();
     const avant = await bouton().boundingBox();
     await bouton().click();

@@ -20,7 +20,7 @@ import { parseAccountBox, parseAccountInventory } from '../../src/lib/importAcco
 import { mapBoxMonsters } from '../../src/lib/applyAccount';
 import type { Monster } from '../../src/types';
 import { egal, exportSynthetique, faussLocalStorage, monstersJson, ok, titre } from '../outils';
-import { auTelephone, bouton, boutons, rendre, texteVisible, valeurs } from './outils-rendu';
+import { auTelephone, bouton, boutons, onglets, rendre, texteVisible, valeurs } from './outils-rendu';
 
 const MONSTRES = monstersJson() as Monster[];
 const PAR_COM2US = new Map(MONSTRES.filter((m) => m.com2usId != null).map((m) => [m.com2usId as number, m]));
@@ -70,6 +70,7 @@ export const AVEC_MONSTRE = { selectedId: CHOISI, comboSets: ['violent'] };
 const SOURCES = 'Box RTA Défenses siège Offenses siège';
 const STATS_CONDITIONS = ['PV', 'ATQ', 'DEF', 'VIT', 'Taux Crit', 'Dmg Crit', 'RES', 'Précision'];
 const PALIERS = ['Bas', 'Moyen', 'Haut', 'Extrême'];
+const ongletsBureau = (html: string) => onglets(html).map(o => [o.texte, o.ouvert]);
 
 export function testRenduOptimizerVide() {
   titre('rendu · Optimizer — aucun compte, puis aucun monstre choisi');
@@ -110,14 +111,17 @@ export function testRenduOptimizerVide() {
   ok(!t.includes('Optimizer en bêta') && !t.includes('en rodage'), 'aucun bandeau « Optimizer en bêta » : l’outil n’est plus en bêta');
   ok(!t.includes('Recherche parmi tes runes possédées'), 'au bureau, aucune phrase d’introduction au-dessus des colonnes');
   // Au bureau (rendu serveur : format bureau, largeur inconnue), la page en
-  // colonnes : essentiels, contrôle à onglets, « Artéfacts et relique »
-  // ouverte par défaut, « Aura, exclusion, avancés » fermée, colonne de droite.
-  for (const carte of ['Set de runes recherché', 'Artéfacts', 'Sous-propriétés verrouillées', 'État de mon monstre', 'Objectif de recherche'])
+  // colonnes : Monstre, groupe sur Critères, bloc de recherche et résultats.
+  for (const carte of ['Set de runes recherché', 'Artéfacts', 'État de mon monstre', 'Objectif de recherche'])
     ok(t.includes(carte), `la carte « ${carte} »`);
   ok(!t.includes('Critères de recherche'), 'au bureau, plus de titre « Critères de recherche » : la colonne des essentiels situe ses sections');
   ok(!t.includes('Monstre & équipement'), 'au bureau, plus de carte « Monstre & équipement » : la liste de travail ouvre les essentiels, « Exemplaire » a sa carte');
-  ok(bouton(html, 'Artéfacts et relique')?.presse === true && bouton(html, 'Aura, exclusion, avancés')?.presse === false,
-    'le contrôle à onglets : « Artéfacts et relique » ouverte, « Aura, exclusion, avancés » fermée');
+  egal(ongletsBureau(html), [['Critères', true], ['Artéfacts', false], ['Options', false]],
+    'largeur inconnue : groupe de trois, premier onglet Critères');
+  ok(!t.includes('Sous-propriétés verrouillées'), 'les artéfacts attendent leur onglet');
+  ok(html.indexOf('data-zone="monstre"') < html.indexOf('data-zone="exemplaire"')
+    && html.indexOf('data-zone="exemplaire"') < html.indexOf('data-zone="onglets"'),
+  'Monstre contient la liste puis Exemplaire, avant les réglages');
   ok(!t.includes('Réglages avancés') && !t.includes('Exclusion de runes') && !t.includes('Sets d\'aura des autres monstres'),
     '« Réglages avancés », « Exclusion de runes » et les sets d\'aura attendent l\'ouverture de leur colonne');
   ok(valeurs(html, 'placeholder').includes('Rechercher un monstre…'), 'la recherche du monstre à optimiser');
@@ -169,10 +173,15 @@ export function testRenduOptimizerMonstre() {
   // bloc : « Artéfacts » est devenu « Artéfacts et reliques », et son
   // interrupteur aussi. Le titre de la carte est depuis « Artéfacts et
   // relique », comme son onglet au bureau ; l'interrupteur garde son libellé.
-  ok(t.includes("Artéfacts et relique Activer l'optimisation d'artéfacts et reliques Attribut Comme équipé Libre ATQ +100 DEF +100 PV +1500 Type"), 'les deux artéfacts : garder, libre, ou une principale (libellés courts)');
-  ok(t.includes('Principale Comme équipée Libre ATQ % DEF % PV %') && !t.includes('Garder la relique équipée'), 'la relique : « Comme équipée », libre, ou une principale');
-  ok(t.includes('Sous-propriétés verrouillées 0 / 8 + Sous-propriété…'), 'les sous-propriétés verrouillées, compteur sur 8');
-  ok(t.includes('Meilleurs artéfacts offensifs pour ce build') && b.find((x) => x.texte === 'Dégâts supplémentaires')?.presse === true, 'les meilleurs artéfacts offensifs, en dégâts supplémentaires');
+  // Au bureau, Artéfacts n'est pas monté tant que Critères est l'onglet
+  // ouvert. Le téléphone garde tous ces contrôles en ligne.
+  const telephone = auTelephone(() => rendreOptimizer(AVEC_MONSTRE));
+  const ta = texteVisible(telephone);
+  ok(!t.includes('Sous-propriétés verrouillées') && ta.includes("Artéfacts et relique Activer l'optimisation d'artéfacts et reliques Attribut Comme équipé Libre ATQ +100 DEF +100 PV +1500 Type"), 'les deux artéfacts : contrôles du téléphone conservés');
+  ok(ta.includes('Principale Comme équipée Libre ATQ % DEF % PV %') && !ta.includes('Garder la relique équipée'), 'la relique : « Comme équipée », libre, ou une principale');
+  ok(ta.includes('Sous-propriétés verrouillées 0 / 8 + Sous-propriété…'), 'les sous-propriétés verrouillées, compteur sur 8');
+  ok(ta.includes('Meilleurs artéfacts offensifs pour ce build') && !!bouton(telephone, 'Meilleurs artéfacts offensifs pour ce build'),
+    'au téléphone : les meilleurs artéfacts offensifs gardent leur titre repliable');
   ok(b.find((x) => x.ariaLabel === 'Buff ATQ — inactif')?.title === 'Augmente l’ATQ du monstre de 50 %.', 'l\'état du monstre : buffs, et ce qu\'ils font');
   ok(t.includes('Lead Aucun') && !t.includes('Invocateur Combat Contenu de guilde'), 'lead présent et choix des compétences d’invocateur retiré');
   ok(t.includes('8 runes gardées après pré-filtrage (pool par emplacement : 1 + 2 + 1 + 2 + 1 + 1)'), 'l\'estimation du pool');
@@ -188,7 +197,7 @@ export function testRenduOptimizerReglages() {
   // avancés », fermée par défaut (son ouverture au clic de l'onglet :
   // `testRendu…OptimizerEcranReglagesAvances`, au navigateur). Son contenu,
   // le même composant, se lit ici dans le panneau « Options » du téléphone.
-  ok(!t.includes('Pré-filtrage par emplacement') && bouton(html, 'Aura, exclusion, avancés')?.presse === false,
+  ok(!t.includes('Pré-filtrage par emplacement') && ongletsBureau(html).some(([nom, actif]) => nom === 'Options' && !actif),
     'au bureau : les réglages avancés attendent l\'ouverture de leur colonne');
   const panneau = auTelephone(() => rendreOptimizer(AVEC_MONSTRE, true));
   const bp = boutons(panneau);

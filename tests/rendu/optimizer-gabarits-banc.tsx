@@ -48,7 +48,7 @@ function ExemplaireBanc() {
 
 function ObjectifBanc() {
   const ref = useRef<HTMLInputElement>(null);
-  return <ObjectifEtRechercherBureau forme="large" cadre={false} estimation={null} messageImport={null}
+  return <ObjectifEtRechercherBureau cadre={false} estimation={null} messageImport={null}
     progression={{ progress: null, refusal: null, compteAffiche: { compte: 0 } }} objective="efficience" setObjective={rien} setSetupOuvert={rien}
     resumeCombat="" handleSearch={rien} selected={null} status="idle" comboSets={['violent']} exportRecipe={rien} importFileRef={ref}
     importRecipe={rien} setStoppedManually={rien} stop={rien} />;

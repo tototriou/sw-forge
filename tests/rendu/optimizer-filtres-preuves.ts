@@ -10,6 +10,7 @@ import type { GearSet } from '../../src/types';
 import { computeStats } from '../../src/lib/stats';
 import { ajouterObjetCandidat, creerColonnesCandidats, extraireBlocs } from '../../src/lib/candidatsCompacts';
 import { setRuneMetric } from '../../src/hooks/useRuneMetric';
+import { SEUIL_TABLEAU_PX } from '../../src/components/outils/optimizer/TableauResultats';
 
 type Preuves = [boolean, string][];
 const visible = (e: Element) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden';
@@ -148,11 +149,25 @@ export async function preuvesFiltresEcran(b: BancEcran): Promise<Preuves> {
     await attendre(100);
     const enTableau = placeForme();
     const tableauVu = [...document.querySelectorAll('[data-tableau-resultats]')].some(visible);
-    preuves.push([tableauVu && memePlace(enCartes, enTableau),
-      `bureau : « Tableau » cliqué, le tableau affiché, « Cartes / Tableau » ne bouge pas (${enCartes.map(Math.round)} → ${enTableau.map(Math.round)})`]);
+    preuves.push([memePlace(enCartes, enTableau),
+      `bureau : « Tableau » cliqué, « Cartes / Tableau » ne bouge pas (${enCartes.map(Math.round)} → ${enTableau.map(Math.round)})`]);
     const racine = document.querySelector('[data-forme-resultats]');
+    const largeurResultats = racine?.getBoundingClientRect().width ?? 0;
+    preuves.push([largeurResultats > 0 && tableauVu === (largeurResultats >= SEUIL_TABLEAU_PX),
+      `bureau : tableau visible exactement quand sa colonne atteint ${SEUIL_TABLEAU_PX} px (${Math.round(largeurResultats)} px)`]);
     preuves.push([racine?.getAttribute('data-forme-resultats') === 'tableau' && localStorage.getItem('swblacksmith-optimizer-resultats-forme-v1') === 'tableau',
       `bureau : « Tableau » choisi et mémorisé (${localStorage.getItem('swblacksmith-optimizer-resultats-forme-v1')})`]);
+    // La colonne des résultats peut être étroite même dans une fenêtre de
+    // bureau : le tableau choisi garde alors les cartes et dit pourquoi.
+    // Le même scénario est rejoué à 2560 px pour les contrôles du tableau.
+    if (!tableauVu) {
+      preuves.push([[...document.querySelectorAll('[data-tableau-trop-etroit]')].some(visible)
+        && !bouton('Stats totales') && !bouton('Stats bonus'), 'colonne étroite : cartes et raison visibles, aucun contrôle propre au tableau']);
+      await b.geste(() => bouton('Cartes')!.click());
+      preuves.push([memePlace(enCartes, placeForme()), 'colonne étroite : revenir à Cartes garde le choix immobile']);
+      await b.geste(() => b.forcerRecherche(null));
+      return preuves;
+    }
     // « Stats totales / Stats bonus » : deux choix exclusifs, avec le tableau seulement ;
     // la borne, gardée en total par le classeur, s'écrit dans le choix courant.
     const presse = (nom: string) => bouton(nom)?.getAttribute('aria-pressed') === 'true';

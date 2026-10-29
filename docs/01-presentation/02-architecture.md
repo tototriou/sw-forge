@@ -180,23 +180,24 @@ partagées : `src/components/outils/optimizer/constantes.ts` ; types :
 
 Au format bureau, `OptimizerSection` rend la page en colonnes
 ([02-app/optimizer/ecran/](../02-app/optimizer/ecran/README.md)) par `PageBureau`
-(`src/components/outils/optimizer/bureau/PageBureau.tsx`) : racine en requêtes de conteneur,
-agencements A1, A2, A3, contrôle à onglets et colonnes repliables, page à hauteur de fenêtre en
-A2 et A3 (chaque colonne défile seule en A3) ; ses
-seuils et l'état de départ des onglets viennent de `src/lib/optimizerColonnes.ts`. Le téléphone
+(`src/components/outils/optimizer/bureau/PageBureau.tsx`) : largeur de conteneur mesurée,
+quatre configurations (toutes les colonnes, Critères et groupe de deux, groupe de trois,
+deux piles), page à hauteur de fenêtre partout. Chaque colonne ou pile défile seule ;
+les places, les seuils calculés et la résolution de l'onglet ouvert viennent de
+`src/lib/optimizerColonnes.ts`. Le groupe utilise `Onglets` de `src/ui/`, et son état reste
+local à `OptimizerSection`, guidages vers Critères et Options compris. Le téléphone
 garde la grille des cartes ci-dessus. Les boîtes de cette page vivent dans
 `src/components/outils/optimizer/bureau/` : la liste de
-travail (`ListeDeTravailBureau`), le set de runes compact (`SetDeRunesCompact`), les principales
+travail (`ListeDeTravailBureau`) puis la fiche repliée (`ExemplaireBureau`) dans « Monstre » ;
+dans « Critères », le set de runes compact ou déplié (`SetDeRunesCompact`), les principales
 imposées (`PrincipalesImposeesBureau`), les conditions (`ConditionsBureau`), l'état du monstre
-réduit aux buffs et au lead (`EtatMonstreEssentiels`) et le contrôle à onglets des colonnes
-repliables (`OngletsColonnes`, décidé par `src/lib/optimizerColonnes.ts`) ; dans la colonne
+réduit aux buffs et au lead (`EtatMonstreEssentiels`) ; dans la colonne
 « Artéfacts et relique », la carte des artéfacts et de la relique (`ArtefactsEtReliqueBureau`) et
 celle des meilleurs artéfacts (`MeilleursArtefactsBureau`) ; dans la colonne « Aura, exclusion,
 avancés », les sets d'aura (`SetsAuraBureau`), l'exclusion de runes (`ExclusionRunesBureau`) et les
-réglages avancés (`ReglagesAvancesBureau`), en ligne ; dans la colonne de droite, « Exemplaire »
-(`ExemplaireBureau`), le bloc « Objectif et Rechercher » en forme étroite ou large
-(`ObjectifEtRechercherBureau`, forme choisie par `formeObjectifBureau` de
-`src/lib/optimizerColonnes.ts`) et les résultats (`ResultatsBureau`, autour des composants des
+réglages avancés (`ReglagesAvancesBureau`), en ligne ; dans la colonne des résultats,
+le bloc « Objectif et Rechercher » à une forme (`ObjectifEtRechercherBureau`),
+puis les résultats (`ResultatsBureau`, autour des composants des
 résultats plus bas). Elles se voient seules
 dans la vue de développement `#/outils/optimizer/gabarits`
 (`src/components/outils/optimizer/gabarits/`, adresse dans `src/lib/optimizerGabarits.ts`) :

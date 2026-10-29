@@ -117,9 +117,11 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false,
               sets) récupère cette largeur libérée, ce qui réduit son nombre
               de lignes — c'est lui qui pèse sur la hauteur.
               ⚠️ **Dans le coffre (bureau), le set secondaire est une grille
-              de 8 colonnes**, dépliée comme dans la liste ouverte, dont la
+              de 4 colonnes**, dépliée comme dans la liste ouverte, dont la
               largeur n'est pas la même (décision de l'utilisateur : la même
-              grille partout), et les deux groupes sont centrés dans le
+              grille partout). Avec les 3 colonnes principales, les boutons
+              de 32 px et leurs écarts de 4 px tiennent dans 294 px sans
+              rétrécir les pistes ; les deux groupes restent centrés dans le
               coffre, au même écart de ses deux bords. */}
           {([
             ['Set principal', FOUR_PIECE],
@@ -127,7 +129,7 @@ export default function SetComboPicker({ sets, onChange, reserverJetons = false,
           ] as const).map(([groupLabel, group], i) => (
             <div key={groupLabel} className={i > 0 ? 'border-l border-border-soft pl-3' : 'pr-3'}>
               <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-ink-dimmer">{groupLabel}</p>
-              <div className={i === 0 ? 'grid grid-cols-3 gap-1' : coffre ? 'grid grid-cols-8 gap-1' : 'flex flex-wrap gap-1'}>
+              <div className={`${coffre ? 'w-max ' : ''}${i === 0 ? 'grid grid-cols-3 gap-1' : coffre ? 'grid grid-cols-4 gap-1' : 'flex flex-wrap gap-1'}`}>
                 {group.map((s) => {
                   const fits = canAddSet(sets, s.key);
                   return (

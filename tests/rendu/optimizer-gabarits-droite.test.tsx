@@ -107,7 +107,7 @@ export function testRenduOptimizerGabaritsColonnes() {
 
 function props(p: Partial<ObjectifEtRechercherBureauProps> = {}): ObjectifEtRechercherBureauProps {
   return {
-    forme: 'etroite', estimation: null, messageImport: null, progression: { progress: null, refusal: null, compteAffiche: { compte: 0 } },
+    estimation: null, messageImport: null, progression: { progress: null, refusal: null, compteAffiche: { compte: 0 } },
     objective: 'efficience', setObjective: rien, setSetupOuvert: rien, resumeCombat: 'S3 · vs Feu', handleSearch: rien,
     selected: { monster: BOX[0].monster, gear: BOX[0].gear! }, status: 'idle', comboSets: ['violent'], exportRecipe: rien,
     importFileRef: ref, importRecipe: rien, setStoppedManually: rien, stop: rien, ...p,
@@ -159,18 +159,18 @@ export function testRenduOptimizerGabaritsDroite() {
   // comprise, sans « Rechercher » ; « Rechercher » / « Arrêter » seul, sans
   // panneau ni progression : collé par le bas, un élément qui grandirait
   // ferait monter le bouton sous le pointeur.
-  const reglages = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large', partie: 'reglages', status: 'running' })} />);
+  const reglages = rendre(<ObjectifEtRechercherBureau {...props({ partie: 'reglages', status: 'running' })} />);
   ok(!bouton(reglages, 'Rechercher') && !bouton(reglages, 'Arrêter') && !!bouton(reglages, 'Exporter') && texteVisible(reglages).includes('Objectif de recherche')
     && texteVisible(reglages).includes('Préparation…'),
     'A1, réglages : objectifs, « Exporter » · « Importer » et la progression, sans « Rechercher »');
-  const barre = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large', partie: 'barre', status: 'running' })} />);
+  const barre = rendre(<ObjectifEtRechercherBureau {...props({ partie: 'barre', status: 'running' })} />);
   ok(!!bouton(barre, 'Arrêter') && !texteVisible(barre).includes('Objectif de recherche') && !texteVisible(barre).includes('Préparation…')
     && !barre.includes('rounded-xl border border-border bg-panel p-2') && !/aria-hidden="true" class="invisible col-start-1 row-start-1"/.test(barre),
     'A1, collé : « Arrêter » à la place de « Rechercher », seul — ni panneau, ni objectifs, ni progression');
   // Forme large : « Rechercher » à droite de « Exporter » · « Importer » (hors d'une colonne superposée, à 1230),
   // ou dessous, pleine largeur, sous 448 px de rangée (requête sur la rangée elle-même ; au navigateur :
   // testRenduOptimizerGabaritsLargeurs).
-  const large = rendre(<ObjectifEtRechercherBureau {...props({ forme: 'large' })} />);
+  const large = rendre(<ObjectifEtRechercherBureau {...props({  })} />);
   ok(/class="@container\/rangee"><div class="flex flex-col-reverse gap-2 @\[448px\]\/rangee:flex-row-reverse/.test(large)
     && /class="grid w-full @\[448px\]\/rangee:w-60 @\[448px\]\/rangee:flex-none"/.test(large),
     'forme large : « Rechercher », 240 px, à droite de sa rangée, dessous et pleine largeur sous 448 px de rangée');
@@ -192,7 +192,7 @@ export function testRenduOptimizerGabaritsDroite() {
   const telephone = rendre(<ProgressionRecherche status="running" progress={appariement} refusal={null} compteAffiche={{ compte: 1_234 }} />);
   ok(/h-2 w-full overflow-hidden rounded-full/.test(telephone) && !/budget de recherche/.test(telephone), 'progression hors bureau : la barre reste, sans la phrase du budget');
 
-  const sansMonstre = rendre(<ObjectifEtRechercherBureau {...props({ selected: null, forme: 'large' })} />);
+  const sansMonstre = rendre(<ObjectifEtRechercherBureau {...props({ selected: null })} />);
   ok(!!bouton(sansMonstre, 'Rechercher')?.desactive && !/grid-template-columns:repeat\(2/.test(sansMonstre), 'large, sans monstre : « Rechercher » désactivé, objectifs sur une ligne');
 
   // Résultats : place d'attente avant la première recherche, contenu ensuite.
@@ -214,8 +214,8 @@ export function testRenduOptimizerPageBureauDroite() {
   const page = (rappelAuras: boolean) => rendre(
     <PageBureau liste={<p>Liste</p>} set={null} conditions={null} principales={null} etat={null} artefacts={<p>Artefacts</p>} meilleurs={null}
       auras={<SetsAuraBureau setup={DEFAULT_DAMAGE_SETUP} maj={rien} rappel={rappelAuras} onGuiderResPre={rien} />} exclusion={null} avances={null}
-      exemplaire={<p>Exemplaire</p>} objectif={({ forme, cadre, partie }) => <p>Bloc {forme} {partie} {cadre ? 'panneau' : 'section'}</p>} resultats={<ResultatsBureau attente="sans-monstre" />}
-      colonnes={{ artefacts: true, complements: true, derniere: 'complements' }} onColonnes={rien} rappelAuras={rappelAuras} />);
+      exemplaire={<p>Exemplaire</p>} objectif={({ cadre, partie }) => <p>Bloc large {partie} {cadre ? 'panneau' : 'section'}</p>} resultats={<ResultatsBureau attente="sans-monstre" />}
+      onglet="complements" onOnglet={rien} rappelAuras={rappelAuras} />);
   const html = page(false);
   const zones = [...html.matchAll(/data-zone="([a-z-]+)"/g)].map((m) => m[1]);
   egal(zones, ['essentiels', 'objectif', 'barre', 'onglets', 'colonnes', 'droite', 'exemplaire', 'resultats'],

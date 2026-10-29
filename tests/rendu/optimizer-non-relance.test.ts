@@ -57,13 +57,13 @@ async function nonRelance(telephone: boolean) {
     // 729 builds au-delà de K, une lecture en direct demanderait aussitôt des résolutions.
     // Au bureau, l'interrupteur vit dans la colonne « Aura, exclusion, avancés », ouverte par son onglet ;
     // au téléphone, dans le panneau que la barre de l'app ouvre (absente du banc).
-    const onglet = page.getByRole('group', { name: 'Colonnes repliables' }).getByRole('button', { name: 'Aura, exclusion, avancés', exact: true });
+    const onglet = page.getByRole('tab', { name: 'Options', exact: true });
     if (telephone) await appel(page, 'menuTelephone', true); else await onglet.click();
     const interrupteur = page.getByRole('switch', { name: 'Vérifier toutes les combinaisons trouvées' });
     await interrupteur.click();
     ok(await interrupteur.getAttribute('aria-checked') === 'true', `${format} : l’interrupteur est activé par un vrai clic`);
     const tout = await inchange('vérifier toutes les combinaisons');
-    if (telephone) await appel(page, 'menuTelephone', false); else await onglet.click();
+    if (telephone) await appel(page, 'menuTelephone', false); else await page.getByRole('tab', { name: 'Critères', exact: true }).click();
     egal(tout.toutVerifierPhoto, false, `${format} : « Vérifier toutes les combinaisons » reste celui du lancement dans le contexte`);
     // Tri : la tête PV de la bande au bureau, le sélecteur de l'en-tête au téléphone.
     if (telephone) await page.locator('select').filter({ hasText: 'Trier par' }).selectOption('hp');

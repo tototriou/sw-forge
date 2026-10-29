@@ -41,10 +41,9 @@ export interface Taille extends DefinitionFormat {
   format: Format;
   preparation?: Etape[];
   optimizer?: {
-    agencement: 'A1' | 'A2' | 'A3';
+    configuration: 'colonnes' | 'criteres-et-groupe' | 'groupe' | 'deux-piles';
     conteneur: [number, number];
-    fiche: 'repliee' | 'depliee';
-    colonnes: 'page' | 'superposees' | 'une-inseree' | 'deux-inserees';
+    groupe: string[];
     set?: 'compact' | 'deplie';
     volet?: true;
   };
@@ -82,7 +81,9 @@ export interface Cible {
 
 export type Etape =
   /** Cliquer la cible ; avec `siPresse`, seulement dans cet état aria-pressed. */
-  | { cliquer: Cible; siPresse?: boolean }
+  | { cliquer: Cible; siPresse?: boolean; sinonPresent?: Cible }
+  /** Ajuster la fenêtre jusqu'à la largeur réelle du conteneur Optimizer. */
+  | { largeurOptimizer: number }
   /** Remplacer le texte d'un champ. */
   | { saisir: Cible; texte: string }
   /** Faire défiler jusqu'à la cible pour que la capture montre ce qui est mesuré. */
@@ -213,9 +214,10 @@ const OBJECTIF_DEGATS_REELS: Cible = {
 
 const repere = (nom: string): Cible => ({ role: 'repere', nom });
 const bouton = (nom: string): Cible => ({ role: 'button', nom });
-// Le titre d'aide « Artéfacts et relique » porte aussi un bouton : les
-// onglets se repèrent par leur rangée, sans dépendre de l'ordre du DOM.
-const onglet = (nom: string): Cible => ({ ...bouton(nom), pres: repere('[data-zone="onglets"]') });
+const onglet = (nom: string): Cible => ({ role: 'tab', nom, dans: '[role="tablist"][aria-label="Réglages de recherche"]' });
+const choisirReglage = (nom: string, colonne: string): Etape => ({
+  cliquer: onglet(nom), sinonPresent: repere(`[data-colonne="${colonne}"]`),
+});
 const OPT_LISTE: Etape[] = [
   { cliquer: bouton('Aucune liste — choisir ou créer') },
   { cliquer: bouton('Nouvelle liste…') },
@@ -233,11 +235,8 @@ const OPT_IMPORT: Etape = {
   importer: bouton('Importer les paramètres de recherche'), fichier: 'optimizer-banc-recette.json',
   confirme: { role: 'texte', nom: 'Réglages importés pour Cassie — monstre sélectionné automatiquement.' },
 };
-// Les panneaux superposés peuvent couvrir l'import et la recherche : on les
-// ferme par leurs onglets avant ces gestes, puis l'état mesuré les rouvre.
-const OPT_FERMER: Etape[] = ['Artéfacts et relique', 'Aura, exclusion, avancés'].map((nom) => ({ cliquer: onglet(nom), siPresse: true }));
 const OPT_RESULTATS: Etape[] = [
-  ...OPT_LISTE, ...OPT_FERMER, OPT_IMPORT,
+  ...OPT_LISTE, OPT_IMPORT,
   { cliquer: bouton('Rechercher') },
   { attendre: repere('[data-carte-resultat]:nth-child(2)'), delaiMs: 30000 },
   { attendre: bouton('Rechercher'), delaiMs: 30000 },
@@ -253,26 +252,33 @@ function tailleOptimizer(id: string, largeur: number, hauteur: number, optimizer
   };
 }
 
-// La navigation reste dépliée (248 px). Les intervalles portent sur le
-// CONTENEUR mesuré, pas la fenêtre ; le volet est ouvert à parts égales.
+// Les cinq repères de la spec, navigation dépliée ; les seuils se jugent
+// sur le conteneur. Les cas de frontière ajustent la fenêtre par mesure.
+function attenduOptimizer(largeur: number, volet = false): NonNullable<Taille['optimizer']> {
+  const configuration = largeur >= 1768 ? 'colonnes' : largeur >= 1432 ? 'criteres-et-groupe' : largeur >= 1096 ? 'groupe' : 'deux-piles';
+  return {
+    configuration, conteneur: [largeur, largeur + 1],
+    groupe: configuration === 'colonnes' ? [] : configuration === 'criteres-et-groupe' ? ['Artéfacts', 'Options'] : ['Critères', 'Artéfacts', 'Options'],
+    ...(configuration === 'deux-piles' ? { set: 'compact' as const } : {}),
+    ...(volet ? { volet: true as const } : {}),
+  };
+}
 export const TAILLES_OPTIMIZER: Taille[] = [
   TAILLES_PAR_DEFAUT[0],
-  tailleOptimizer('bureau-a1', 1120, 800, { agencement: 'A1', conteneur: [728, 904], fiche: 'depliee', colonnes: 'page', set: 'compact' }),
-  tailleOptimizer('bureau-a2', 1200, 900, { agencement: 'A2', conteneur: [904, 952], fiche: 'depliee', colonnes: 'page', set: 'compact' }),
-  tailleOptimizer('ordinateur', 1400, 1000, { agencement: 'A3', conteneur: [952, 1160], fiche: 'repliee', colonnes: 'superposees' }),
-  tailleOptimizer('bureau-portable', 1536, 730, { agencement: 'A3', conteneur: [1160, 1496], fiche: 'depliee', colonnes: 'superposees', set: 'compact' }),
-  tailleOptimizer('bureau-une-colonne', 1920, 940, { agencement: 'A3', conteneur: [1496, 1832], fiche: 'depliee', colonnes: 'une-inseree' }),
-  tailleOptimizer('bureau-deux-colonnes', 2560, 1300, { agencement: 'A3', conteneur: [1832, 3000], fiche: 'depliee', colonnes: 'deux-inserees', set: 'deplie' }),
-  tailleOptimizer('volet-a1', 1920, 940, { agencement: 'A1', conteneur: [728, 904], fiche: 'depliee', colonnes: 'page', set: 'compact', volet: true }),
-  tailleOptimizer('volet-a2', 2200, 1000, { agencement: 'A2', conteneur: [904, 952], fiche: 'depliee', colonnes: 'page', set: 'compact', volet: true }),
-  tailleOptimizer('volet-fiche-repliee', 2560, 1300, { agencement: 'A3', conteneur: [952, 1160], fiche: 'repliee', colonnes: 'superposees', volet: true }),
-  tailleOptimizer('volet-fiche-depliee', 2880, 1300, { agencement: 'A3', conteneur: [1160, 1496], fiche: 'depliee', colonnes: 'superposees', volet: true }),
-  tailleOptimizer('volet-une-colonne', 3840, 1200, { agencement: 'A3', conteneur: [1496, 1832], fiche: 'depliee', colonnes: 'une-inseree', volet: true }),
-  tailleOptimizer('volet-deux-colonnes', 5120, 1440, { agencement: 'A3', conteneur: [1832, 3000], fiche: 'depliee', colonnes: 'deux-inserees', set: 'deplie', volet: true }),
+  tailleOptimizer('ordinateur', 1400, 1000, attenduOptimizer(1128)),
+  tailleOptimizer('bureau-portable', 1536, 730, attenduOptimizer(1264)),
+  tailleOptimizer('bureau-criteres-groupe', 1920, 940, attenduOptimizer(1648)),
+  tailleOptimizer('bureau-colonnes', 2560, 1300, attenduOptimizer(2288)),
+  tailleOptimizer('volet-deux-piles', 1920, 940, attenduOptimizer(792, true)),
+  tailleOptimizer('volet-groupe', 2560, 1300, attenduOptimizer(1112, true)),
+  ...[752, 753, 1095, 1096, 1097, 1431, 1432, 1433, 1767, 1768, 1769].map(largeur => ({
+    ...tailleOptimizer(`conteneur-${largeur}`, largeur + 272, 940, attenduOptimizer(largeur)),
+    preparation: [{ largeurOptimizer: largeur }],
+  })),
 ];
-const OPT_BUREAU = TAILLES_OPTIMIZER.filter((t) => t.format === 'ordinateur').map((t) => t.id);
-const OPT_DEUX = TAILLES_OPTIMIZER.filter((t) => t.optimizer?.colonnes === 'deux-inserees').map((t) => t.id);
-const OPT_COMPACTS = TAILLES_OPTIMIZER.filter((t) => t.optimizer?.set === 'compact').map((t) => t.id);
+const OPT_BUREAU = TAILLES_OPTIMIZER.filter(t => t.format === 'ordinateur').map(t => t.id);
+const OPT_TOUTES = TAILLES_OPTIMIZER.filter(t => t.optimizer?.configuration === 'colonnes').map(t => t.id);
+const OPT_COMPACTS = TAILLES_OPTIMIZER.filter(t => t.optimizer?.set === 'compact').map(t => t.id);
 
 // Écran des recommandations rempli : le fichier synthétique
 // `tests/fixtures/recommandations-banc.json` (3 listes, 6 decks), chargé par le
@@ -352,7 +358,7 @@ export const ECRANS: Ecran[] = [
         // avancés », ouverte par son onglet.
         preparation: {
           telephone: [{ cliquer: { role: 'button', nom: 'Filtres et actions de la page' } }],
-          ordinateur: [{ cliquer: { role: 'button', nom: 'Aura, exclusion, avancés' } }],
+          ordinateur: [choisirReglage('Options', 'complements')],
         },
         atteint: {
           telephone: [{ role: 'dialog', nom: 'Options de recherche' }],
@@ -375,7 +381,7 @@ export const ECRANS: Ecran[] = [
         // fenêtre montre alors le sort, l'adversaire et le critique.
         preparation: {
           telephone: [{ cliquer: bouton('Gérer mes listes') }, ...OPT_LISTE, { cliquer: OBJECTIF_DEGATS_REELS }],
-          ordinateur: [...OPT_LISTE, ...OPT_FERMER, { cliquer: OBJECTIF_DEGATS_REELS }],
+          ordinateur: [...OPT_LISTE, { cliquer: OBJECTIF_DEGATS_REELS }],
         },
         // « Non critique » n'existe que dans la fenêtre remplie (choix du
         // traitement du critique) : sans sort, elle n'en a pas.
@@ -406,22 +412,32 @@ export const ECRANS: Ecran[] = [
       },
       {
         id: 'artefacts', libelle: 'résultats et colonne Artéfacts et relique ouverte', tailles: OPT_BUREAU,
-        preparation: [...OPT_RESULTATS, { cliquer: onglet('Artéfacts et relique'), siPresse: false }],
+        preparation: [...OPT_RESULTATS, choisirReglage('Artéfacts', 'artefacts')],
         atteint: [...OPT_CARTES, repere('[data-colonne="artefacts"]')],
       },
       {
         id: 'complements', libelle: 'résultats et colonne Aura, exclusion, avancés ouverte', tailles: OPT_BUREAU,
-        preparation: [...OPT_RESULTATS, { cliquer: onglet('Aura, exclusion, avancés'), siPresse: false }],
+        preparation: [...OPT_RESULTATS, choisirReglage('Options', 'complements')],
         atteint: [...OPT_CARTES, repere('[data-colonne="complements"]'), { role: 'switch', nom: "Rechercher jusqu'à épuisement complet" }],
       },
       {
-        id: 'deux-colonnes', libelle: 'résultats et deux colonnes insérées', tailles: OPT_DEUX,
-        preparation: [...OPT_RESULTATS, ...['Artéfacts et relique', 'Aura, exclusion, avancés'].map((nom): Etape => ({ cliquer: onglet(nom), siPresse: false }))],
+        id: 'toutes-colonnes', libelle: 'résultats et trois colonnes de réglages', tailles: OPT_TOUTES,
+        preparation: OPT_RESULTATS,
         atteint: [...OPT_CARTES, repere('[data-colonne="artefacts"]'), repere('[data-colonne="complements"]')],
       },
       {
+        id: 'guidage-set', libelle: 'Rechercher sans set ouvre Critères et montre le set', tailles: OPT_BUREAU,
+        preparation: [...OPT_LISTE, choisirReglage('Options', 'complements'), { cliquer: bouton('Rechercher') }],
+        atteint: [repere('[data-colonne="criteres"]'), { role: 'texte', nom: 'Sélectionne au moins un set avant de lancer la recherche.' }],
+      },
+      {
+        id: 'pile-collee', libelle: 'pile de droite défilée, Rechercher collé', tailles: TAILLES_OPTIMIZER.filter(t => t.optimizer?.configuration === 'deux-piles').map(t => t.id),
+        preparation: [...OPT_LISTE, choisirReglage('Options', 'complements'), { montrer: { role: 'switch', nom: "Rechercher jusqu'à épuisement complet" } }],
+        atteint: [repere('[data-zone="pile-droite"]'), bouton('Rechercher')],
+      },
+      {
         id: 'set-flottant', libelle: 'liste remplie et coffre du set compact ouvert', tailles: OPT_COMPACTS,
-        preparation: [...OPT_LISTE, { cliquer: bouton('Set de runes recherché : Aucun') }],
+        preparation: [...OPT_LISTE, choisirReglage('Critères', 'criteres'), { cliquer: bouton('Set de runes recherché : Aucun') }],
         atteint: [...OPT_MEMBRES, repere('[data-set-optimizer="compact"] button[aria-expanded="true"]'), { role: 'texte', nom: 'Set principal' }],
       },
     ],

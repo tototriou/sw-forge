@@ -1,10 +1,10 @@
 import { useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
-import ListeDeTravailBureau, { LARGEUR_ESSENTIELS } from '../bureau/ListeDeTravailBureau';
+import ListeDeTravailBureau, { LARGEUR_MONSTRE as LARGEUR_ESSENTIELS } from '../bureau/ListeDeTravailBureau';
 import SetDeRunesCompact from '../bureau/SetDeRunesCompact';
 import PrincipalesImposeesBureau, { LARGEUR_COLONNE_ETROITE } from '../bureau/PrincipalesImposeesBureau';
 import ConditionsBureau, { LARGEUR_CONDITIONS } from '../bureau/ConditionsBureau';
 import EtatMonstreEssentiels from '../bureau/EtatMonstreEssentiels';
-import OngletsColonnes, { LARGEUR_ONGLETS } from '../bureau/OngletsColonnes';
+import { Onglets } from '../../../../ui';
 import SelecteurListes from '../SelecteurListes';
 import MonsterSourcePicker from '../../MonsterSourcePicker';
 import OptimizerImportButton from '../../OptimizerImportButton';
@@ -14,7 +14,7 @@ import { exclusionSelectorKey, resolveExclusionEntry, type OptimizerListMember }
 import { leadEffectifMembreOptimizer } from '../../../../lib/equipesOptimizer';
 import { artifactConditionFloor, relicConditionFloor } from '../../../../lib/artifactConditionFloor';
 import { type DamageSetup } from '../../../../lib/damage';
-import { AUCUNE_COLONNE, basculerColonne, colonnesAffichees, type ColonnesOuvertes } from '../../../../lib/optimizerColonnes';
+import type { ColonneReglage } from '../../../../lib/optimizerColonnes';
 import type { EquipeOptimizer } from '../../../../lib/optimizerMemberStorage';
 import type { StatKey } from '../../../../lib/effects';
 import type { Monster } from '../../../../types';
@@ -136,9 +136,12 @@ function EtatGabarit({ ctx, patch = {}, equipe = false }: { ctx: ContexteGabarit
     motifLead={equipe && lead.type === 'aucun' ? lead.motif : null} etroit={false} rappelsBuffs={[]} />;
 }
 
-function OngletsGabarit({ initial, deuxTiennent }: { initial: ColonnesOuvertes; deuxTiennent: boolean }) {
-  const [etat, setEtat]: [ColonnesOuvertes, Dispatch<SetStateAction<ColonnesOuvertes>>] = useState(initial);
-  return <OngletsColonnes affichees={colonnesAffichees(etat, deuxTiennent)} onBasculer={(c) => setEtat((e) => basculerColonne(e, c, deuxTiennent))} />;
+const LARGEUR_ONGLETS = 320;
+const AUCUNE_COLONNE = { artefacts: false, complements: false, derniere: null };
+function OngletsGabarit({ initial }: { initial: { artefacts: boolean; complements: boolean; derniere: string | null }; deuxTiennent: boolean }) {
+  const [etat, setEtat] = useState<ColonneReglage>(initial.complements ? 'complements' : 'artefacts');
+  return <Onglets aria-label="Réglages de recherche" valeur={etat} onChange={setEtat}
+    options={[{ cle: 'artefacts', libelle: 'Artéfacts' }, { cle: 'complements', libelle: 'Options' }]} />;
 }
 
 export const GABARITS_ESSENTIELS: Gabarit[] = [
@@ -225,7 +228,7 @@ export const GABARITS_ESSENTIELS: Gabarit[] = [
   },
   {
     id: 'onglets', nom: 'Contrôle à onglets des colonnes repliables', largeur: LARGEUR_ONGLETS, hauteurEstimee: 36,
-    composant: 'OngletsColonnes (bureau/OngletsColonnes.tsx) et basculerColonne (src/lib/optimizerColonnes.ts)',
+    composant: 'Onglets (src/ui/Onglets.tsx)',
     telephone: 'Aucun : le téléphone garde le panneau « Options ».',
     changements: [
       'Nouveau contrôle : « Artéfacts et relique » · « Aura, exclusion, avancés » ouvrent leur colonne ; recliquer l\'onglet actif la referme.',

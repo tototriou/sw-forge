@@ -49,17 +49,20 @@ const cadreCompter = () => interrupteur(COMPTER)?.parentElement?.parentElement ?
 
 // Au bureau, « Réglages avancés » et les sets d'aura vivent en ligne dans la
 // colonne repliable « Aura, exclusion, avancés », ouverte par son onglet.
-const ONGLET_COMPLEMENTS = 'Aura, exclusion, avancés';
-const ongletComplements = () => [...document.querySelectorAll<HTMLButtonElement>('[role="group"][aria-label="Colonnes repliables"] button')]
-  .find((e) => e.textContent?.trim() === ONGLET_COMPLEMENTS);
-const colonneComplementsOuverte = () => ongletComplements()?.getAttribute('aria-pressed') === 'true';
+const ONGLET_COMPLEMENTS = 'Options';
+const ongletComplements = () => [...document.querySelectorAll<HTMLButtonElement>('[role="tablist"][aria-label="Réglages de recherche"] [role="tab"]')]
+  .find((e) => e.querySelector('[data-libelle-onglet]')?.textContent?.trim() === ONGLET_COMPLEMENTS);
+const colonneComplementsOuverte = () => ongletComplements()?.getAttribute('aria-selected') === 'true';
 async function ouvrirReglages(b: BancEcran) {
   if (telephone()) return; // au doigt, le panneau est ouvert par la guidance ou par le banc
   if (!colonneComplementsOuverte()) await b.geste(() => ongletComplements()!.click());
 }
 async function fermerSurfaces(b: BancEcran) {
   if (b.menuOuvert()) await b.geste(() => b.fermerMenu());
-  if (!telephone() && colonneComplementsOuverte()) await b.geste(() => ongletComplements()!.click());
+  if (!telephone() && colonneComplementsOuverte()) await b.geste(() => {
+    const criteres = [...document.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(e => e.querySelector('[data-libelle-onglet]')?.textContent?.trim() === 'Critères');
+    criteres?.click();
+  });
 }
 // Au bureau, la grille des sets s'ouvre depuis la liste compacte du set.
 async function ouvrirSets(b: BancEcran) {

@@ -15,7 +15,7 @@ export interface SetDeRunesCompactProps {
 
 // Le set de runes recherché, au bureau, en forme compacte, sans le titre
 // « Critères de recherche » du téléphone (le panneau de la colonne situe la
-// section), section des essentiels sans cadre (le panneau de la colonne le
+// section), section de « Critères » sans cadre (le panneau de la colonne le
 // porte) : une liste fermée sur les sets choisis ; ouverte, la grille d'ajout
 // du téléphone (`SetComboPicker` : jetons, retrait, deux groupes, « Plus de
 // place »), dans son coffre en creux (`coffre`), en flottant — rien ne bouge
@@ -37,7 +37,7 @@ export interface SetDeRunesCompactProps {
 // la grille sous le pointeur.
 //
 // ⚠️ **Déplié ou compact, selon la place** : la page (`SetDeplieContext`) dit
-// `deplie` quand la première colonne tient sans défiler une fois la grille
+// `deplie` quand « Critères » tient sans défiler une fois la grille
 // du téléphone dépliée à la place de la liste. Elle décide sur la hauteur
 // disponible, jamais sur un clic ni sur ce qui est choisi : la forme ne change
 // donc pas sous le pointeur. Le set mesure ici, sur deux copies invisibles

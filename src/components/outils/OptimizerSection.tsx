@@ -181,7 +181,7 @@ import ReglagesAvancesBureau from './optimizer/bureau/ReglagesAvancesBureau';
 import ExemplaireBureau from './optimizer/bureau/ExemplaireBureau';
 import ObjectifEtRechercherBureau from './optimizer/bureau/ObjectifEtRechercherBureau';
 import ResultatsBureau from './optimizer/bureau/ResultatsBureau';
-import { attenteResultats, type ColonnesOuvertes } from '../../lib/optimizerColonnes';
+import { attenteResultats, type ColonneReglage } from '../../lib/optimizerColonnes';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -1801,7 +1801,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     if (!selected) return;
     if (comboSets.length === 0) {
       setSetPickerInvalid(true);
-      setPickerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (sousLg) setPickerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      else setGuideCriteres((n) => (n ?? 0) + 1);
       return;
     }
     setSetPickerInvalid(false);
@@ -1986,10 +1987,20 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // le panneau « Options » au doigt.
   const interrupteurResPreBureauRef = useRef<HTMLDivElement>(null);
   const interrupteurResPrePanneauRef = useRef<HTMLDivElement>(null);
-  // Les états des onglets du bureau (`PageBureau`) : `null` tant que
-  // l'utilisateur n'y a pas touché, l'état de départ suit alors la largeur.
-  // Local à l'écran, comme tout état d'ouverture (src/lib/optimizerColonnes.ts).
-  const [colonnesBureau, setColonnesBureau] = useState<ColonnesOuvertes | null>(null);
+  // L'onglet du groupe, local à l'écran : une recherche ne le réinitialise pas.
+  const [ongletBureau, setOngletBureau] = useState<ColonneReglage | null>(null);
+  const [guideCriteres, setGuideCriteres] = useState<number | null>(null);
+  const dernierGuideSet = useRef<number | null>(null);
+  useEffect(() => {
+    if (sousLg || guideCriteres == null || guideCriteres === dernierGuideSet.current) return;
+    const el = setPickerSectionRef.current;
+    if (!el) return;
+    const image = requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      dernierGuideSet.current = guideCriteres;
+    });
+    return () => cancelAnimationFrame(image);
+  }, [guideCriteres, ongletBureau, sousLg]);
   // Le jeton du guidage vers « Aura, exclusion, avancés ».
   const [guideComplements, setGuideComplements] = useState<number | null>(null);
 
@@ -2011,19 +2022,19 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   useEffect(() => {
     if (attentionResPre === null) return;
     // Au bureau, l'interrupteur n'est rendu que colonne ouverte : l'effet se
-    // rejoue quand l'état des onglets change (`colonnesBureau`).
+    // rejoue quand l'onglet du groupe change (`ongletBureau`).
     const el = sousLg
       ? menuOuvert
         ? interrupteurResPrePanneauRef.current
         : null
       : interrupteurResPreBureauRef.current;
     if (!el) return;
-    // Au bureau, en A3, c'est la colonne repliable qui défile, seule.
+    // Au bureau, la colonne ou la pile défile seule.
     const image = requestAnimationFrame(() => {
       el.scrollIntoView({ behavior: 'smooth', block: sousLg ? 'center' : 'nearest' });
     });
     return () => cancelAnimationFrame(image);
-  }, [attentionResPre, sousLg, menuOuvert, colonnesBureau]);
+  }, [attentionResPre, sousLg, menuOuvert, ongletBureau]);
 
   function importRecipe(file: File) {
     file.text().then((text) => {
@@ -3377,9 +3388,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             />
           </ReglagesAvancesBureau>
         }
-        // La colonne de droite : « Exemplaire », le bloc « Objectif et
-        // Rechercher » (estimation, objectif, lancement, message d'import,
-        // progression compacte) et les résultats, que la page place.
+        // « Exemplaire » suit la liste dans « Monstre ». Le bloc de
+        // recherche et les résultats partagent leur colonne ou pile.
         exemplaire={<ExemplaireBureau {...proprietesExemplaire} />}
         objectif={(presentation) => (
           <ObjectifEtRechercherBureau
@@ -3403,10 +3413,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           />
         )}
         resultats={<ResultatsBureau attente={attenteResultats(selected != null, resultatsPresents, status)}>{blocResultats}</ResultatsBureau>}
-        colonnes={colonnesBureau}
-        onColonnes={setColonnesBureau}
+        onglet={ongletBureau}
+        onOnglet={setOngletBureau}
         rappelAuras={rappelAuras !== null}
         guideComplements={guideComplements}
+        guideCriteres={guideCriteres}
       />
   );
 

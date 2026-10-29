@@ -2,7 +2,7 @@
 // des écrans et fichiers chargés par les étapes d'import.
 import { readFileSync } from 'fs';
 import { parseOptimizerRecipe } from '../../src/lib/optimizerRecipe';
-import { agencementBureau } from '../../src/lib/optimizerColonnes';
+import { configurationBureau } from '../../src/lib/optimizerColonnes';
 import { egal, ok } from '../outils';
 import { ECRANS, preparationPour, taillesPour } from './ecrans';
 import { ecransPourFichiers } from './selection';
@@ -10,28 +10,22 @@ import { ecransPourFichiers } from './selection';
 export function verifierContratsBanc() {
   const optimizer = ECRANS.find((e) => e.id === 'optimizer')!;
   const tailles = taillesPour(optimizer);
-  egal(tailles.length, 13, 'Optimizer : téléphone et douze tailles de bureau');
-  egal(new Set(tailles.map((t) => t.id)).size, tailles.length, 'tailles distinctes : captures sans collision');
-  for (const ecran of ECRANS.filter((e) => e !== optimizer)) {
-    egal(taillesPour(ecran).map((t) => t.id), ['telephone', 'ordinateur'], `${ecran.id} garde ses deux tailles`);
+  egal(tailles.length, 18, 'Optimizer : téléphone, six repères de bureau et onze frontières');
+  egal(new Set(tailles.map(t => t.id)).size, tailles.length, 'captures sans collision');
+  for (const ecran of ECRANS.filter(e => e !== optimizer)) {
+    egal(taillesPour(ecran).map(t => t.id), ['telephone', 'ordinateur'], `${ecran.id} garde ses deux tailles`);
   }
-  for (const volet of [false, true]) {
-    const bureau = tailles.filter((t) => !!t.optimizer?.volet === volet && t.optimizer);
-    for (const agencement of ['A1', 'A2', 'A3']) {
-      ok(bureau.some((t) => t.optimizer?.agencement === agencement), `${volet ? 'volet' : 'pleine page'} : ${agencement} exercé`);
-    }
-    for (const colonnes of ['superposees', 'une-inseree', 'deux-inserees']) {
-      ok(bureau.some((t) => t.optimizer?.colonnes === colonnes), `${volet ? 'volet' : 'pleine page'} : colonnes ${colonnes}`);
-    }
-    for (const fiche of ['repliee', 'depliee']) {
-      ok(bureau.some((t) => t.optimizer?.agencement === 'A3' && t.optimizer.fiche === fiche), `A3 ${volet ? 'volet' : 'pleine page'} : fiche ${fiche}`);
-    }
+  for (const configuration of ['colonnes', 'criteres-et-groupe', 'groupe', 'deux-piles']) {
+    ok(tailles.some(t => t.optimizer?.configuration === configuration), `${configuration} exercée`);
+  }
+  for (const largeur of [752, 753, 1095, 1096, 1097, 1431, 1432, 1433, 1767, 1768, 1769]) {
+    ok(tailles.some(t => t.preparation?.some(e => 'largeurOptimizer' in e && e.largeurOptimizer === largeur)), `conteneur ${largeur} visé par mesure`);
   }
   for (const taille of tailles) {
     if (!taille.optimizer) continue;
     const [min, max] = taille.optimizer.conteneur;
-    egal(agencementBureau(min), taille.optimizer.agencement, `${taille.id} : borne inférieure cohérente`);
-    egal(agencementBureau(max - 1), taille.optimizer.agencement, `${taille.id} : borne supérieure cohérente`);
+    egal(configurationBureau(min).configuration, taille.optimizer.configuration, `${taille.id} : borne inférieure cohérente`);
+    egal(configurationBureau(max - 1).configuration, taille.optimizer.configuration, `${taille.id} : borne supérieure cohérente`);
     ok(!taille.tactile && taille.format === 'ordinateur', `${taille.id} : pointeur de bureau`);
   }
   for (const st of optimizer.etats) {

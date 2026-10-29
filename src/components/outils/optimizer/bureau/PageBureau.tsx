@@ -269,7 +269,9 @@ export default function PageBureau(props: PageBureauProps) {
   // (décision de l'utilisateur) : le set se resserre à côté des Conditions,
   // qui gardent leurs 294 px (sa grille perd des colonnes et s'allonge,
   // `colonnesCoffre`, jusqu'à 141 px : 1 + 2 colonnes), et les principales
-  // et l'état du monstre descendent à 228 px côte à côte.
+  // (160 px : « Slot n » et une liste dont le texte passe à la ligne) et
+  // l'état du monstre (176 px : ses trois vignettes de 56 px) restent côte à
+  // côte le plus longtemps possible (décision de l'utilisateur).
   const section = (contenu: ReactNode, forme = 'min-w-[294px] flex-[1_1_294px]') => (
     <div className={`${forme} max-w-[420px]`}>{contenu}</div>
   );
@@ -279,8 +281,8 @@ export default function PageBureau(props: PageBureauProps) {
         ? <>
             {section(<SetDeplieContext.Provider value={contextePile}>{props.set}</SetDeplieContext.Provider>, 'min-w-[141px] flex-[1_1_141px]')}
             {section(props.conditions, 'w-[294px] flex-none')}
-            {section(props.principales, 'min-w-[228px] flex-[1_1_228px]')}
-            {section(props.etat, 'min-w-[228px] flex-[1_1_228px]')}
+            {section(props.principales, 'min-w-[160px] flex-[1_1_160px]')}
+            {section(props.etat, 'min-w-[176px] flex-[1_1_176px]')}
           </>
         : cle === 'artefacts'
           ? <>{section(props.artefacts)}{props.meilleurs && section(props.meilleurs)}</>

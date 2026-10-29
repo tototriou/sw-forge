@@ -530,7 +530,8 @@ Paramètres** ([compte-et-parametres.md](../../transverse/feat-navigation/compte
 mémorisé comme un réglage : `useFormeResultats`, clé
 `swblacksmith-optimizer-resultats-forme-v1`, écrite même sans l'accord de
 conservation (persistance.md, « Un seul interrupteur »). **Le téléphone
-garde les cartes**, sans ce choix.
+garde les cartes** : le réglage s'y affiche aussi, son aide dit « Au bureau
+seulement », et il n'y change rien.
 
 ⚠️ **Le choix est dans les Paramètres, pas au-dessus des résultats**
 (décision de l'utilisateur) : en tableau, la page range ses réglages en

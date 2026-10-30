@@ -103,9 +103,15 @@ export async function testExecutionProuveeCas(): Promise<void> {
     ok(sautee.manifeste?.complet === true && sautee.manifeste.succes === false && sautee.manifeste.echecs?.length === 2,
       'entrée sautée : manifeste complet, en échec, deux constats');
 
-    ok(exception.code === 1 && exception.sortie.includes('leve — exception : boum') && exception.sortie.includes('b — attendue, jamais invoquée'),
-      `exception : échec nommé, les entrées suivantes nommées non invoquées (code ${exception.code})`);
-    egal(entree(exception, 'leve')?.etat, 'exception', 'exception : journalisée sur son entrée');
+    ok(exception.code === 1 && exception.sortie.includes('leve — exception : boum') && !exception.sortie.includes('jamais invoquée'),
+      `exception : échec nommé, la suite continue (code ${exception.code})`);
+    egal([entree(exception, 'leve')?.etat, entree(exception, 'b')?.etat, entree(exception, 'b')?.controles], ['exception', 'rendue', 1],
+      'exception : journalisée sur son entrée, la suivante exécutée et contrôlée');
+    ok(exception.sortie.includes("Après l'exception de leve :") && exception.sortie.includes('1 entrée(s) ont tourné ensuite')
+      && exception.manifeste?.premiereException === 'leve' && exception.manifeste.complet === true,
+    'exception : le bilan et le manifeste nomment la première exception et ce qui a tourné après');
+    ok(!temoin.sortie.includes("Après l'exception") && temoin.manifeste?.premiereException === null,
+      'témoin : aucune mention d\'exception');
 
     ok(sortie.code === 1 && sortie.sortie.includes("sort — invoquée, n'a pas rendu la main") && sortie.sortie.includes('b — attendue, jamais invoquée'),
       `process.exit(0) anticipé : code 1, entrée en cours et suivantes nommées (code ${sortie.code})`);

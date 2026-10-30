@@ -293,6 +293,12 @@ attendue, ou rendue sans aucun contrôle, fait échouer le point d'entrée,
 nommée. Une entrée qui n'a que des `ignore` est « entièrement ignorée »,
 pas un échec.
 
+Une entrée qui lève une exception échoue, nommée, **et la série continue** :
+s'arrêter cacherait le reste sous des « jamais invoquée ». Comme l'exception
+peut laisser un état global faux, le bilan nomme la première et compte les
+entrées qui ont tourné après elle (champ `premiereException` du manifeste) :
+un échec parmi elles se relit une fois l'exception corrigée.
+
 - **Emplacement** : hors du worktree, ou dans un dossier ignoré par Git
   (`node_modules/…`) ; sinon refus (code 2). Il n'entre ainsi ni dans la
   sélection ni dans l'empreinte.

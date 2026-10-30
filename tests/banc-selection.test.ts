@@ -3,7 +3,8 @@
 // Git : le lanceur donne les chemins, la vérification en donne d'autres.
 
 import { readdirSync } from 'fs';
-import { ECRANS, MOTIFS_TOUS } from './banc/ecrans';
+import { ECRANS, MOTIFS_TOUS, ORDRE_FORMATS } from './banc/ecrans';
+import { casesExercees, formatsRetenus, lireFiltres, motifFiltre, RefusFiltre } from './banc/filtres';
 import { couvre, ecransPourFichiers, motifsPartages } from './banc/selection';
 import { egal, ok } from './outils';
 import { verifierContratsBanc } from './banc/contrats';
@@ -93,4 +94,34 @@ export default function testBancSelection() {
   const partages = motifsPartages();
   const rta = partages.find((p) => p.motif === 'src/components/rta/');
   egal(rta?.ecrans, ['rta', 'rta-ami'], 'motifsPartages dit les écrans d’un motif commun');
+
+  verifierFiltres();
+}
+
+// Filtres --etats / --tailles du lanceur (banc/filtres.ts).
+function verifierFiltres() {
+  const optimizer = ECRANS.filter((e) => e.id === 'optimizer');
+  const refuse = (brut: { etats?: string; tailles?: string }, motif: RegExp) => {
+    try { lireFiltres(optimizer, brut); return false; } catch (e) { return e instanceof RefusFiltre && motif.test(e.message); }
+  };
+  ok(refuse({ etats: 'resultat-tableau' }, /--etats : inconnu.*resultat-tableau[\s\S]*connus : .*resultats-tableau/), 'un état mal orthographié : refusé, les connus listés');
+  ok(refuse({ tailles: 'bureau' }, /--tailles : inconnu.*bureau/), 'une taille inconnue : refusée');
+  ok(refuse({ etats: 'reco-defense' }, /inconnu des écrans retenus/), 'un état d’un autre écran que ceux retenus : refusé');
+  ok(refuse({ etats: ' , ' }, /au moins un identifiant/), 'une liste vide : refusée');
+
+  const sans = lireFiltres(optimizer, {});
+  const toutes = casesExercees(optimizer, sans);
+  const f = lireFiltres(optimizer, { etats: 'resultats-tableau', tailles: 'ordinateur,volet-groupe' });
+  egal(casesExercees(optimizer, f).map((c) => `${c.etat}@${c.taille}`), ['resultats-tableau@ordinateur', 'resultats-tableau@volet-groupe'],
+    'un état et deux tailles : ces deux cases seules');
+  ok(toutes.length > 100 && casesExercees(optimizer, lireFiltres(optimizer, { etats: 'defaut' })).every((c) => c.etat === 'defaut'),
+    `sans filtre, toute la grille (${toutes.length} cases) ; --etats defaut : cet état seul`);
+  egal(motifFiltre(f, 'defaut', 'ordinateur'), 'état non retenu (--etats)', 'motif d’une case écartée par l’état');
+  egal(motifFiltre(f, 'resultats-tableau', 'telephone'), 'taille non retenue (--tailles)', 'motif d’une case écartée par la taille');
+  egal(motifFiltre(sans, 'resultats', 'telephone'), null, 'sans filtre, aucune case écartée par lui');
+
+  // Un état réservé à d'autres tailles : aucune case, le lanceur refuse avant la construction.
+  egal(casesExercees(optimizer, lireFiltres(optimizer, { etats: 'set-flottant', tailles: 'ordinateur' })), [], 'set-flottant à 1400 × 1000 : aucune case exerçable');
+  egal(formatsRetenus(optimizer, lireFiltres(optimizer, { tailles: 'ordinateur' }), ORDRE_FORMATS), ['ordinateur'], 'une taille de bureau seule : le compte n’est importé qu’au format ordinateur');
+  egal(formatsRetenus(optimizer, sans, ORDRE_FORMATS), ['telephone', 'ordinateur'], 'sans filtre : les deux formats');
 }

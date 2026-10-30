@@ -197,7 +197,7 @@ export async function testSelectionFichiersCasReels(): Promise<void> {
     'docs/README.md : sans effet, seules les vérifications depot et opaque retenues, et la sortie le dit');
 
   // Fichiers sans effet sous les racines : la documentation, le banc d'affichage
-  // (sauf ses deux modules importés par banc-selection.test.ts).
+  // (sauf ses modules importés par banc-selection.test.ts).
   s = sel(['tests/README.md']);
   ok(!s.complet && statut(s, 'tests/README.md') === 'sans effet', 'tests/README.md → sans effet');
   s = sel(['src/lib/notes-essai.md']);

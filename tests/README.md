@@ -63,8 +63,21 @@ node tests/banc/run.mjs --tous                  # tous les écrans, compte du ba
 node tests/banc/run.mjs --ecrans optimizer      # un seul écran
 node tests/banc/run.mjs --depuis origin/main    # les écrans que touchent les fichiers modifiés
 node tests/banc/run.mjs --plage <a>..<b>        # idem, entre deux révisions
+node tests/banc/run.mjs --ecrans optimizer --etats resultats-tableau --tailles ordinateur,volet-groupe
 node tests/banc/cas.mjs                         # la règle sur ses pages de cas
 ```
+
+`--etats <id,…>` et `--tailles <id,…>` restreignent n'importe quelle
+sélection à ces états et à ces tailles (identifiants de
+[banc/ecrans.ts](banc/ecrans.ts) : `telephone`, `ordinateur`,
+`bureau-portable`…) : un état rejoué à une taille prend environ 30 s, la
+grille complète de l'Optimizer plus d'un quart d'heure. Un identifiant
+inconnu des écrans retenus est refusé (code 2, les connus listés), comme des
+filtres qui ne laissent aucune case exerçable (un état réservé à d'autres
+tailles), avant la construction. Les cases écartées figurent dans les non
+exercés du manifeste, motif « non retenu », et le compte n'est importé
+qu'aux formats encore utilisés. Rejouer un état ne remplace pas le passage
+complet avant une fusion.
 
 Il construit l'app (`vite build` dans un dossier temporaire), la sert
 (`vite preview`), l'ouvre dans Chromium sans fenêtre (Playwright) au

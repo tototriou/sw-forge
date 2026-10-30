@@ -19,7 +19,8 @@ interface RecoCounter {                        // une défense adverse que le de
   note: string;                                // « si le Chloe est en lead »
 }
 interface RecoDeck { name: string; note: string; slots: RecoSlot[]; counters: RecoCounter[] } // 3 slots, index 0 = leader
-interface Reco { id: string; origin: 'mine'|'imported'; name: string; author: string; note: string; decks: RecoDeck[] }
+interface Reco { id: string; origin: 'mine'|'imported'; name: string; author: string; note: string; decks: RecoDeck[];
+                 source?: string } // provenance stable, sert à la fusion d'un import (persistance-et-partage.md)
 type RecoPayload = Omit<Reco, 'id' | 'origin'>; // ce qui voyage dans un export
 ```
 

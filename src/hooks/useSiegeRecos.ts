@@ -17,6 +17,7 @@ import {
 import { artifactSubKinds, canAddSet, isArtifactSub } from '../lib/effects';
 import { cleanArtifacts, cleanSetOptions } from '../lib/recoShare';
 import { avecContenuDeck, ContenuDeck } from '../lib/annulerEdition';
+import { appliquerImport, BilanImport } from '../lib/recoFusion';
 import { reinsererA } from '../lib/reinsererA';
 import { saveLocal, usePersistence } from './usePersistence';
 
@@ -131,6 +132,9 @@ function load(): RecoState {
           author: typeof r?.author === 'string' ? r.author : '',
           note: typeof r?.note === 'string' ? r.note : '',
           decks: decks.length ? decks : [emptyRecoDeck()], // jamais zéro deck
+          // Provenance stable (voir lib/recoFusion.ts) : relue, sinon la
+          // prochaine fusion ne la reconnaîtrait plus après un rechargement.
+          ...(typeof r?.source === 'string' && r.source ? { source: r.source } : {}),
         };
       }),
     };
@@ -175,7 +179,10 @@ export interface UseRecoState {
   addSetOption: (id: string, deck: number, idx: number) => void;
   removeSetOption: (id: string, deck: number, idx: number, option: number) => void;
   swapSlots: (id: string, deck: number, from: number, to: number) => void;
-  importRecos: (recos: RecoPayload[]) => number; // AJOUTE toujours (jamais de remplacement)
+  // N'enlève et ne remplace jamais rien. Sans `fusionner`, ajoute tout à la
+  // suite ; avec, complète les recommandations que le fichier prolonge
+  // (lib/recoFusion.ts) et ajoute le reste.
+  importRecos: (recos: RecoPayload[], fusionner?: boolean) => BilanImport;
   clearAll: () => void;
 }
 
@@ -431,17 +438,22 @@ export function useSiegeRecos(): UseRecoState {
     [updateDeck]
   );
 
-  // Import d'un lot reçu d'un ami : **toujours ajouté à la suite**, jamais en
-  // remplacement — c'est du contenu créé à la main, qu'un import ne doit pas
-  // pouvoir détruire. Pour repartir de zéro, « Tout effacer » existe.
-  // Renvoie le nombre de recommandations ajoutées.
-  const importRecos = useCallback((recos: RecoPayload[]) => {
-    // Tout ce qui entre par l'import est marqué « importée » (jamais partagé :
-    // l'origine est propre à chaque joueur).
-    const built: Reco[] = recos.map((r) => ({ ...r, id: newId(), origin: 'imported' as const }));
-    setState((s) => ({ recos: [...s.recos, ...built] }));
-    return built.length;
-  }, []);
+  // Import d'un lot reçu d'un ami : **jamais en remplacement** — c'est du
+  // contenu créé à la main, qu'un import ne doit pas pouvoir détruire. Ajouté à
+  // la suite, ou fusionné dans la recommandation qu'il complète, qui n'y perd
+  // rien (lib/recoFusion.ts). Pour repartir de zéro, « Tout effacer » existe.
+  // Ce qui entre à part est marqué « importée » (l'origine est propre à chaque
+  // joueur) ; une recommandation fusionnée garde la sienne.
+  // ⚠️ Calculé sur l'état du RENDU, pas dans le `setState` : le bilan se rend
+  // aussitôt. Un import est un geste isolé, aucune autre écriture ne court.
+  const importRecos = useCallback(
+    (recos: RecoPayload[], fusionner = false) => {
+      const res = appliquerImport(state.recos, recos, fusionner, newId);
+      setState({ recos: res.recos });
+      return res.bilan;
+    },
+    [state.recos]
+  );
 
   const clearAll = useCallback(() => setState({ recos: [] }), []);
 

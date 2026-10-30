@@ -7,6 +7,7 @@ import { COLONNES_RESULTATS, type ColonneResultat } from '../../../lib/colonnesR
 import type { BornesResultats } from '../../../lib/filtresResultats';
 import type { FiltrePublie } from '../../../lib/classementCompact';
 import type { OptimMetric } from '../../../lib/runeOptim';
+import type { StatKey } from '../../../lib/effects';
 import { colonnesBornees, libelleColonne, ligneDesComptes, resumeDesBornes } from '../../../lib/filtresAffichage';
 import { type CompteConfirme, type CompteAffichable } from '../../../lib/artifactQueue';
 import { type BilanRecherche } from '../../../hooks/useBuildOptimSearch';
@@ -22,6 +23,11 @@ export interface FiltresEntete {
   effacer: () => void;
   // Ce que le classeur a publié : comptes de la vue, bornes actives.
   filtre: FiltrePublie | null;
+  // « Stats de base exclues » de la grille (FiltresResultats.tsx) : le même
+  // réglage d'affichage que « Stats totales / Stats bonus » du tableau.
+  enBonus?: boolean;
+  setBonus?: (bonus: boolean) => void;
+  base?: Partial<Record<StatKey, number>>;
 }
 
 export interface EnteteResultatsProps {
@@ -165,7 +171,8 @@ export default function EnteteResultats({ result, compteConfirmes, avecFile, tri
   const posees = filtres ? colonnesBornees(filtres.bornes).length : 0;
   const libelleFiltrer = `Filtrer l'affichage${posees ? ` (${posees})` : ''}`;
   const grille = filtres && (
-    <FiltresResultats bornes={filtres.bornes} poserBorne={filtres.poserBorne} effacer={filtres.effacer} metric={metric} disponible={disponible} />
+    <FiltresResultats bornes={filtres.bornes} poserBorne={filtres.poserBorne} effacer={filtres.effacer} metric={metric} disponible={disponible}
+      enBonus={filtres.enBonus} setBonus={filtres.setBonus} base={filtres.base} />
   );
   // Ligne de comptes TOUJOURS présente (« Aucun filtre » sans borne) : poser
   // une borne n'ajoute pas de ligne au-dessus des cartes, et rien ne descend.

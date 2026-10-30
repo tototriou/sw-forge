@@ -50,8 +50,8 @@ export const SANS_EFFET: { motif: string; sauf?: string[]; justification: string
   },
   {
     motif: 'tests/banc/**',
-    sauf: ['tests/banc/selection.ts', 'tests/banc/ecrans.ts'],
-    justification: 'le banc d\'affichage ne tourne pas dans la suite (son lanceur est tests/banc/run.mjs) ; tsc et ESLint le couvrent. Ses deux modules importés par banc-selection.test.ts en sont exclus : le graphe les couvre',
+    sauf: ['tests/banc/selection.ts', 'tests/banc/ecrans.ts', 'tests/banc/filtres.ts'],
+    justification: 'le banc d\'affichage ne tourne pas dans la suite (son lanceur est tests/banc/run.mjs) ; tsc et ESLint le couvrent. Ses modules importés par banc-selection.test.ts en sont exclus : le graphe les couvre',
   },
   {
     motif: '.gitignore',

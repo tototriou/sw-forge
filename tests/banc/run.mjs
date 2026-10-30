@@ -4,6 +4,7 @@
 //
 //   node tests/banc/run.mjs --tous
 //   node tests/banc/run.mjs --ecrans optimizer
+//   node tests/banc/run.mjs --ecrans optimizer --etats resultats-tableau --tailles ordinateur
 //
 // Codes de sortie : 0 rien ne déborde ; 1 un débordement ; 2 le banc n'a pas
 // pu mesurer (Chromium absent, construction ou serveur en échec, état
@@ -21,6 +22,7 @@ import { tmpdir } from 'os';
 import { dirname, join, relative, resolve, sep, isAbsolute } from 'path';
 import { fileURLToPath } from 'url';
 import { atteintPour, ECRANS, FORMATS, ORDRE_FORMATS, preparationPour, taillesPour } from './ecrans.ts';
+import { casesExercees, formatsRetenus, lireFiltres, motifFiltre, RefusFiltre } from './filtres.ts';
 import { ecransPourFichiers } from './selection.ts';
 import {
   attendrePose,
@@ -58,8 +60,14 @@ Sélection (une seule, obligatoire) :
   --plage <a>..<b>     les écrans que touchent les fichiers de « git diff --name-only <a> <b> »,
                        quel que soit l'arbre construit ; deux bornes obligatoires
 
+Filtres (facultatifs, avec toute sélection) :
+  --etats <id,…>       seulement ces états (identifiants de tests/banc/ecrans.ts)
+  --tailles <id,…>     seulement ces tailles (telephone, ordinateur, bureau-portable…) ;
+                       un identifiant inconnu des écrans retenus est refusé, et ce
+                       qui est écarté figure dans les non exercés du manifeste
+
 Options :
-  --racine <dossier>   l'arbre à construire et mesurer (défaut : le dépôt qui contient
+  --racine <dossier>  l'arbre à construire et mesurer (défaut : le dépôt qui contient
                        ce lanceur, quel que soit le dossier courant)
   --compte <fichier>   l'export importé (défaut : tests/fixtures/compte-banc.json) ;
                        hors de tests/fixtures/, il est traité comme un compte réel :
@@ -77,9 +85,11 @@ Codes : 0 rien ne déborde · 1 débordement · 2 le banc n'a pas pu mesurer.`;
 class Refus extends Error {}
 
 function lireArguments(argv) {
-  const args = { tous: false, ecrans: null, depuis: null, plage: null, racine: null, compte: null, sortie: null, aide: false };
+  const args = { tous: false, ecrans: null, etats: null, tailles: null, depuis: null, plage: null, racine: null, compte: null, sortie: null, aide: false };
   const AVEC_VALEUR = {
     '--ecrans': 'ecrans',
+    '--etats': 'etats',
+    '--tailles': 'tailles',
     '--depuis': 'depuis',
     '--plage': 'plage',
     '--racine': 'racine',
@@ -334,6 +344,20 @@ async function principal(etat) {
     console.log('banc : aucun écran sélectionné, rien à mesurer.');
     return 0;
   }
+  let filtres;
+  try {
+    filtres = lireFiltres(selection, { etats: args.etats, tailles: args.tailles });
+  } catch (err) {
+    if (err instanceof RefusFiltre) throw new Refus(err.message);
+    throw err;
+  }
+  // Des filtres qui ne croisent aucune case exerçable (un état réservé à
+  // d'autres tailles) ne mesureraient rien : refus avant la construction,
+  // jamais un « rien ne déborde » sur zéro mesure.
+  if ((filtres.etats || filtres.tailles) && casesExercees(selection, filtres).length === 0) {
+    throw new Refus('les filtres --etats / --tailles ne retiennent aucune case exerçable (état réservé à d’autres tailles, ou non préparé pour ce format)');
+  }
+  const formats = formatsRetenus(selection, filtres, ORDRE_FORMATS);
 
   // ── Construction ──
   const vite = join(racine, 'node_modules', 'vite', 'bin', 'vite.js');
@@ -379,7 +403,8 @@ async function principal(etat) {
     date: new Date().toISOString(),
     compte: { nature, sha256: compteEmpreinte },
     ecrans: selection.map((e) => e.id),
-    etats: selection.flatMap((e) => e.etats.map((s) => `${e.id}/${s.id}`)),
+    filtres,
+    etats: selection.flatMap((e) => e.etats.filter((s) => !filtres.etats || filtres.etats.includes(s.id)).map((s) => `${e.id}/${s.id}`)),
     formats: {},
     tailles: selection.map((e) => ({ ecran: e.id, tailles: taillesPour(e) })),
     resultats: [],
@@ -394,7 +419,8 @@ async function principal(etat) {
   }
 
   console.log(
-    `banc d'affichage — ${selection.length} écran(s), ${manifeste.etats.length} état(s), ${ORDRE_FORMATS.length} formats, tailles propres à chaque écran (voir manifeste) ; ` +
+    `banc d'affichage — ${selection.length} écran(s), ${manifeste.etats.length} état(s), ${formats.length} format(s), tailles propres à chaque écran (voir manifeste) ; ` +
+      (filtres.etats || filtres.tailles ? `filtré (${[filtres.etats && `états ${filtres.etats.join(',')}`, filtres.tailles && `tailles ${filtres.tailles.join(',')}`].filter(Boolean).join(' ; ')}) ; ` : '') +
       `compte ${nature === 'exemple' ? 'd’exemple' : 'réel'} (sha256 ${compteEmpreinte.slice(0, 12)}…)`,
   );
   console.log(`arbre : ${racine} @ ${manifeste.arbre.revision?.slice(0, 8) ?? '?'}${manifeste.arbre.propre === false ? ' (modifié)' : ''}`);
@@ -441,7 +467,7 @@ async function principal(etat) {
   const navigateur = etat.navigateur;
   const garderTextes = nature === 'exemple';
   const stockages = {};
-  for (const format of ORDRE_FORMATS) {
+  for (const format of formats) {
     const { contexte, messages } = await ouvrirContexte(navigateur, format, { garderTextes });
     try {
       const page = await contexte.newPage();
@@ -466,10 +492,14 @@ async function principal(etat) {
       for (const st of ecran.etats) {
         const preparation = preparationPour(st, format);
         const nom = `${taille.libelle.padEnd(11)} ${ecran.id} / ${st.libelle}`;
-        const motif = st.tailles && !st.tailles.includes(taille.id) ? 'état réservé à d’autres tailles' : !Array.isArray(preparation) ? preparation.nonExerce : null;
+        // Écarté par un filtre : consigné, pas écrit ligne à ligne (des
+        // centaines de cases sur l'Optimizer).
+        const motifFiltrage = motifFiltre(filtres, st.id, taille.id);
+        const motif = motifFiltrage
+          ?? (st.tailles && !st.tailles.includes(taille.id) ? 'état réservé à d’autres tailles' : !Array.isArray(preparation) ? preparation.nonExerce : null);
         if (motif) {
           manifeste.nonExerces.push({ ecran: ecran.id, etat: st.id, format, taille: taille.id, motif });
-          console.log(`${nom.padEnd(64)} non exercé : ${motif}`);
+          if (!motifFiltrage) console.log(`${nom.padEnd(64)} non exercé : ${motif}`);
           continue;
         }
         const prep = [...(taille.preparation ?? []), ...preparation];

@@ -42,7 +42,7 @@ commit** que le code.
 | Calcul lourd | **Web Workers** (`src/workers/`) : recherche de l'Optimizer, classement, résolution de l'équipement |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé), tous deux opt-in |
 | Bureau | **Electron** + `electron-builder` + `electron-updater` (`bureau/`, hors de `src/`) |
-| Tests | lanceur maison `tests/run.mjs` (registre `tests/index.ts`), `fake-indexeddb`, rendu par `react-dom/server` |
+| Tests | lanceur maison `tests/run.mjs` (registre `tests/index.ts`), `fake-indexeddb`, rendu par `react-dom/server`, polices de l'app pour le Chromium des tests (`@fontsource`) |
 | Qualité | `tsc` strict (couvre `src/`, `scripts/`, `tests/`), ESLint (flat config) |
 
 ## Structure

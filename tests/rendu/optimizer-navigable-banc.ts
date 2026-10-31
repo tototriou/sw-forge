@@ -8,6 +8,10 @@ import type { Browser, Page } from 'playwright';
 
 let cssConstruit: string | undefined;
 
+// Conteneur Linux (claude.ai/code) : Chromium y est préinstallé pour une autre
+// version de Playwright. Même repli que le banc d'affichage (tests/banc/session.mjs).
+const CHROMIUM_PREINSTALLE = '/opt/pw-browsers/chromium';
+
 /**
  * `recharger` : un vrai `page.reload()` (le document, ses Workers et tout l'état
  * JavaScript disparaissent, le stockage de l'origine reste), puis le banc
@@ -79,7 +83,10 @@ export async function navigateurOptimizer(telephone = false, entreeBanc = 'tests
       charger(${entree});`;
   }
   const entree = ajouter(resolve(entreeBanc));
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true }).catch((err) => {
+    if (!existsSync(CHROMIUM_PREINSTALLE)) throw err;
+    return chromium.launch({ headless: true, executablePath: CHROMIUM_PREINSTALLE });
+  });
   try {
     const page = await browser.newPage({ viewport: telephone ? { width: 390, height: 844 } : { width: 1440, height: 1000 }, isMobile: telephone, hasTouch: telephone });
     const erreurs: string[] = [];

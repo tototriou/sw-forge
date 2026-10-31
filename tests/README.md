@@ -33,6 +33,15 @@ l'application
 dont [rendu/optimizer-ecran-navigateur.test.ts](rendu/optimizer-ecran-navigateur.test.ts)),
 soit par le banc d'affichage, plus bas, hors de la suite.
 
+⚠️ **Ce Chromium rend avec les polices de l'app**, pas celles de la
+machine : le banc pose `font-body` sur le `<body>` comme `index.html`,
+déclare Source Sans 3 et JetBrains Mono depuis `@fontsource`
+(dépendances de développement, hors ligne) et attend leur chargement
+avant de rendre la main ; une police absente fait échouer le banc. Sans
+elles, le texte tombait sur la police système (Segoe UI sous Windows,
+une autre sous Linux), et une mesure de largeur — le seuil du tableau
+des résultats — changeait d'une machine à l'autre.
+
 Pour « Exemplaire », [optimizer-recherche.test.ts](rendu/optimizer-recherche.test.ts)
 vérifie aux deux formats les vues et l'aperçu sans effet sur l'équipement
 optimisé (artéfacts et relique transmis compris), la comparaison avec la

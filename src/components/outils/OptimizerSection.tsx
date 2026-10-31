@@ -1811,7 +1811,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     const triDeDepart = triDesResultats(objective);
     optimizer.poserTriRecherche(triDeDepart);
     setResultsPage(1);
-    setBonusTableau(excludeBase);
+    setBonusAffichage(excludeBase);
     const params: SearchParams = {
       base: selected.gear.base,
       artifacts: searchArtifacts,
@@ -1925,11 +1925,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const [pageDraft, setPageDraft] = useState<string | null>(null);
   // Le build ouvert en détail depuis le tableau des résultats (ses runes).
   const [detailTableau, setDetailTableau] = useState<string | null>(null);
-  // « Stats totales / Stats bonus » du tableau des résultats : un réglage d'AFFICHAGE,
-  // distinct de « Stats de base exclues » (réglage de recherche). Il part de
+  // « Stats totales / Stats bonus » du tableau des résultats, et « Stats de
+  // base exclues » de la grille des filtres (cartes) : un seul réglage
+  // d'AFFICHAGE, distinct de « Stats de base exclues » des conditions
+  // (réglage de recherche). Il part de
   // celui-ci, photographié au lancement (`handleSearch`), puis ne change que
   // par l'utilisateur.
-  const [bonusTableau, setBonusTableau] = useState(excludeBase);
+  const [bonusAffichage, setBonusAffichage] = useState(excludeBase);
   const [importMsg, setImportMsg] = useState<MessageImport | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -3009,6 +3011,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // « Dégâts réels » n'a de valeur qu'avec un sort calculable pour le résultat affiché.
   const degatsDuResultat = contexteResultatAffiche ? contexteResultatAffiche.realDamage : realDamage;
   const colonneLibre = (c: ColonneResultat) => colonneDisponible(c, degatsDuResultat);
+  // La base que retire « Stats bonus » : celle du contexte de la recherche.
+  const baseAffichee = contexteResultatAffiche?.recherche.base ?? selected?.gear.base ?? {};
   // La vue vide sous les filtres, dite à la place des cartes ou des lignes :
   // ni corrigée en silence (minimum > maximum), ni confondue avec « Aucune
   // combinaison… », qui reste le constat sur la recherche entière.
@@ -3058,10 +3062,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             interrompu={interrompu}
             compteAffiche={compteAffiche}
             bureau={!sousLg}
-            filtres={{ bornes: bornesVue, poserBorne, effacer: effacerFiltres, filtre: instantane?.filtre ?? null }}
+            filtres={{ bornes: bornesVue, poserBorne, effacer: effacerFiltres, filtre: instantane?.filtre ?? null,
+              enBonus: bonusAffichage, setBonus: setBonusAffichage, base: baseAffichee }}
             // La forme se choisit dans les Paramètres (SettingsMenu.tsx) : elle
             // réorganise la page, l'en-tête ne la porte plus.
-            {...(sousLg ? {} : { forme: formeResultats, bonus: bonusTableau, setBonus: setBonusTableau })}
+            {...(sousLg ? {} : { forme: formeResultats, bonus: bonusAffichage, setBonus: setBonusAffichage })}
           />
   
           <DiagnosticsSansResultat
@@ -3140,8 +3145,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 ouvrirDetail={(i) => { if (!interrompu) setDetailTableau(composition.cartes[i].runeIds.join('-')); }}
                 vide={vueVide}
                 inactif={interrompu}
-                enBonus={bonusTableau}
-                base={contexteResultatAffiche?.recherche.base ?? selected?.gear.base ?? {}}
+                enBonus={bonusAffichage}
+                base={baseAffichee}
               />
             </div>
           )}

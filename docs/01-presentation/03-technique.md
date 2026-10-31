@@ -140,14 +140,22 @@ Source de vérité du rendu : [03-developpeur/interface/](../03-developpeur/inte
 invisible** : vitesse de combat, lecture d'un export, stockage, conservation, tris, Optimizer (dont
 un test différentiel).
 
-⚠️ **Aucun test d'interface** — elle se vérifie à l'œil ; des tests d'affichage ne feraient que
-figer le rendu du jour. `npm test` ne pilote pas de navigateur et ne simule aucun clic : ce qui suit
-une interaction se vérifie à l'écran.
+⚠️ **Aucun test d'apparence** — elle se vérifie à l'œil ; des tests d'affichage ne feraient que
+figer le rendu du jour. Aucune capture n'est comparée.
 
 Une exception, qui ne fige PAS le rendu : les **tests de rendu** (`tests/rendu/`) — un vrai
 composant affiché avec `react-dom/server` et des données d'exemple, interrogé sur le SENS (texte,
 `aria-label`, `title`, `disabled`), jamais sur les classes ou la disposition — ils vérifient
 qu'une fonctionnalité est là, pas à quoi elle ressemble.
+
+Un rendu serveur n'exécute ni effet ni clic : ce qui suit une interaction sur l'**Optimizer** se
+vérifie, dans `npm test` et en CI, par un **Chromium sans fenêtre** (Playwright), sur ses sources
+réelles compilées sans serveur de l'application, avec les polices de l'app
+(`tests/rendu/optimizer-navigable-banc.ts`). Ces vérifications cliquent, saisissent et lisent le
+résultat : la borne d'un filtre qui masque un build, le choix enregistré d'un membre. Les seules
+mesures de forme qu'elles prennent sont des invariants (le tableau des résultats au seuil de sa
+largeur, sans rien rogner). Ailleurs, ce qui suit une interaction se vérifie à l'écran. Détail :
+[tests/README.md](../../tests/README.md).
 
 Seconde exception, qui ne fige pas davantage le rendu : le **banc d'affichage** (`tests/banc/`,
 `node tests/banc/run.mjs`). Il construit l'app, l'ouvre dans Chromium sans fenêtre au téléphone

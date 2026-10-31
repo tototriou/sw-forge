@@ -184,6 +184,10 @@ export function useSpeedTune({
   // L'allié VISÉ par un sort qui n'en touche qu'un (S3 de Sapsaree). Vide = la
   // barre la plus basse, le défaut du moteur.
   const [cibleSort, setCibleSort] = useStickyState<Record<string, string>>('speedTune.cibles', {});
+  // La valeur désignée d'un remplissage de barre AU CHOIX (buffs retirés par
+  // Blade Fan, % de Start of Attacking), en paliers. Absent = 0 : ce que le
+  // sort donne dépend de l'adverse, un speed tune ne l'attend pas.
+  const [atbChoisi, setAtbChoisi] = useStickyState<Record<string, number>>('speedTune.atbChoisi', {});
 
   // Les données de kit sous la forme que la lib partagée attend.
   const donneesKit = useMemo(() => ({ kits, sorts, passifs }), [kits, sorts, passifs]);
@@ -310,6 +314,7 @@ export function useSpeedTune({
     setSortChoisi((m) => oublierCamp(m, camp));
     setSortChoisi2((m) => oublierCamp(m, camp));
     setCibleSort((m) => oublierCamp(m, camp));
+    setAtbChoisi((m) => oublierCamp(m, camp));
     // ⚠️ L'ordre rangé à la main s'en va aussi : il portait sur l'équipe
     // précédente, et le nouveau deck y entrait dans l'ordre de ses slots.
     const ordre = ordreApresImport(camp, { voulu: ordreVoulu, range: ordreRange });
@@ -457,8 +462,8 @@ export function useSpeedTune({
   // explicite), c'est celui que la lecture du kit a retenu ; en analyse poussée,
   // celui qu'on lui a désigné — '' voulant dire « il ne lance rien de tout ça ».
   const choixSorts = useMemo(
-    () => ({ sort: sortChoisi, sort2: sortChoisi2, cible: cibleSort }),
-    [sortChoisi, sortChoisi2, cibleSort]
+    () => ({ sort: sortChoisi, sort2: sortChoisi2, cible: cibleSort, atbChoisi: atbChoisi }),
+    [sortChoisi, sortChoisi2, cibleSort, atbChoisi]
   );
   const sortsDe = (l: Ligne) => sortsDeLigne(l, donneesKit);
   const sortActif = (l: Ligne, choix: Record<string, string> = sortChoisi) =>
@@ -547,7 +552,7 @@ export function useSpeedTune({
         : lignes;
     const plateau = plateauDeLignes(lignesAnalysees, leads);
     const resultat = analyseAutomatique(plateau, 0, donneesKit, {
-      choix: { sort: choix, sort2: sortChoisi2, cible: cibleSort },
+      choix: { sort: choix, sort2: sortChoisi2, cible: cibleSort, atbChoisi: atbChoisi },
       idReference: uidRef,
     });
 
@@ -562,7 +567,7 @@ export function useSpeedTune({
     // Ce qu'on vient d'écrire ne doit pas déclencher une relance en boucle.
     // ⚠️ `choix` prend la place de `sortChoisi` : c'est la valeur qu'on vient de
     // poser par `setSortChoisi`, celle que la signature vaudra au rendu suivant.
-    premiereSignature.current = signatureDes(choix, sortChoisi2, cibleSort);
+    premiereSignature.current = signatureDes(choix, sortChoisi2, cibleSort, atbChoisi);
 
     setAuto(true);
     setLignes((prev) =>
@@ -606,9 +611,10 @@ export function useSpeedTune({
   const signatureDes = (
     sorts: Record<string, string>,
     seconds: Record<string, string>,
-    cibles: Record<string, string>
-  ) => JSON.stringify([sorts, seconds, cibles]);
-  const sortsSignature = signatureDes(sortChoisi, sortChoisi2, cibleSort);
+    cibles: Record<string, string>,
+    auChoix: Record<string, number>
+  ) => JSON.stringify([sorts, seconds, cibles, auChoix]);
+  const sortsSignature = signatureDes(sortChoisi, sortChoisi2, cibleSort, atbChoisi);
   const premiereSignature = useRef(sortsSignature);
   useEffect(() => {
     if (!auto || premiereSignature.current === sortsSignature) {
@@ -778,6 +784,15 @@ export function useSpeedTune({
     setCibleSort((prev) => ({ ...prev, [uid]: valeur }));
   }
 
+  // La valeur désignée du remplissage au choix de ce tour, en paliers. 0 = le
+  // défaut, et il ne se stocke pas : rien de désigné vaut zéro.
+  function choisirAtb(uid: string, n: number) {
+    setAtbChoisi((prev) => {
+      const { [uid]: _, ...reste } = prev;
+      return n > 0 ? { ...reste, [uid]: n } : reste;
+    });
+  }
+
   // ⚠️ **UN TOUR DE PLUS pour un monstre déjà là.** Un combo le fait jouer deux
   // fois avant l'adverse (Racuni se vise au S2, sa barre se remplit, il rejoue
   // et enchaîne son S1) : sans cette ligne, le combo n'est ni descriptible ni
@@ -819,6 +834,10 @@ export function useSpeedTune({
       return reste;
     });
     setCibleSort((prev) => {
+      const { [cle]: _, ...reste } = prev;
+      return reste;
+    });
+    setAtbChoisi((prev) => {
       const { [cle]: _, ...reste } = prev;
       return reste;
     });
@@ -930,6 +949,7 @@ export function useSpeedTune({
     basculerSwift,
     chaine,
     choisirCible,
+    choisirAtb,
     ajouterOccurrence,
     retirerOccurrence,
     choisirSecond,
@@ -937,6 +957,7 @@ export function useSpeedTune({
     choixSorts,
     cibleFenetre,
     cibleSort,
+    atbChoisi,
     combatDe,
     decks,
     deplacer,

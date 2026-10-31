@@ -29,7 +29,7 @@ import {
 } from '../src/lib/speedTune';
 import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
 import { LeadInfo, leadsDeVitesse } from '../src/lib/speed';
-import { kitVitesse, sortsVitesse, SortVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
+import { effetAuChoix, kitVitesse, pourcentBarre, sortsVitesse, SortVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
 import { PassifVitesse } from '../src/lib/speedTunePassif';
 import { passifsVitesse, pointsDeGain } from '../src/lib/speedTunePassif';
 import {
@@ -1821,9 +1821,11 @@ export function testSpeedTuneKit() {
     egal(k.atbCompetence, 'Grosse', "et c'est bien elle qui est nommée");
   }
 
-  // ⚠️ SKILL-UPS : la valeur de SWARFARM est celle du NIVEAU 1. Le Tailwind de
-  // Bernard 2A remplit 30 % au niveau 1 et 45 % maxé (+5 puis +10) — c'est maxé
-  // qu'on le joue, et l'écran doit dire que le chiffre le suppose.
+  // ⚠️ SKILL-UPS : la valeur de SWARFARM est celle du NIVEAU 1, et les
+  // « Attack Bar Recovery +N% » la MULTIPLIENT (règle donnée par l'utilisateur,
+  // pas un relevé). Le Tailwind de Bernard 2A remplit 30 % au niveau 1 et
+  // 34,5 % maxé (30 × 1,15) — les additionner donnait 45. ⚠️ Fige l'hypothèse
+  // « sommées puis appliquées une fois » : composées, elles donneraient 34,65.
   {
     const k = kitVitesse(
       detail([
@@ -1833,9 +1835,10 @@ export function testSpeedTuneKit() {
         ]),
       ])
     );
-    egal(k.atb, 45, 'Tailwind maxé remplit 45 % de barre, pas 30');
+    egal(k.atb, 34.5, 'Tailwind maxé remplit 30 × 1,15 = 34,5 % de barre (hypothèse : skill-ups sommés), pas 45');
     egal(k.atbNiveau1, 30, 'la valeur du niveau 1 reste lisible');
-    egal(k.atbSkillUp, 15, "ce que les skill-ups ajoutent est isolé (pour l'annoncer à l'écran)");
+    egal(k.atbSkillUp, 4.5, "les POINTS que les skill-ups ajoutent sont isolés (pour l'annoncer à l'écran)");
+    egal(pourcentBarre(k.atb), '34,5', "l'écran l'écrit au dixième, virgule décimale");
   }
 
   // Une amélioration qui ne touche pas la barre ne change rien.
@@ -1866,7 +1869,8 @@ export function testSpeedTuneKit() {
       'Petite, Grosse, Frappe, Cri',
       'toutes les compétences non passives sont proposées'
     );
-    egal(sorts[1].effet.atbEquipe, 35, 'la valeur proposée est celle de la compétence maxée');
+    egal(sorts[1].effet.atbEquipe, 31.5, 'la valeur proposée est celle de la compétence maxée (30 × 1,05)');
+    egal(sorts[1].atbSkillUp, 1.5, 'et ce que ses skill-ups ajoutent, en points de barre');
     egal(sorts[2].effet.atbSoi, 50, 'un remplissage sur SOI est rangé comme tel, pas comme un boost de camp');
     egal(sorts[2].effet.atbEquipe, undefined, "et il ne compte pas pour l'équipe");
     egal(sorts[3].effet.buffEquipe, BUFF_SPD_JEU, 'le buff de vitesse figure dans la liste');
@@ -1878,6 +1882,55 @@ export function testSpeedTuneKit() {
     const k = kitVitesse(detail([comp('Cri du prédateur', [effet('Increase ATK SPD', 2, true)])]));
     egal(k.buff, BUFF_SPD_JEU, 'buff de vitesse de zone → +30 % (valeur du jeu)');
     egal(k.buffCompetence, 'Cri du prédateur', 'la compétence source est nommée');
+  }
+
+  // ⚠️ Fiches SWARFARM infidèles (`ATB_DE_ZONE_CONNUS`) : la prose dit « all
+  // allies », l'effet porte `aoe: false`. Chaque entrée se vérifie sur la VRAIE
+  // fiche — retirée de la table, le boost repart sur un seul allié et ce bloc
+  // échoue.
+  {
+    const fiche = (id: number) =>
+      JSON.parse(readFileSync(`public/data/skills/${id}.json`, 'utf8')) as DetailMonstre;
+    const sortNomme = (id: number, nom: string) => sortsVitesse(fiche(id)).find((s) => s.nom === nom);
+
+    const trade = sortNomme(16214, 'Trade');
+    egal(trade?.effet.atbEquipe, 23, 'Trade (Conrad) remplit la barre de TOUTE l’équipe, 20 × 1,15 = 23 %');
+    egal(trade?.effet.atbAllie, undefined, 'et pas celle d’un seul allié');
+    egal(kitVitesse(fiche(16214)).atb, 23, "l'analyse simple le voit comme boost d'équipe");
+    egal(kitVitesse(fiche(16204)).atb, 23, 'Death Knight, qui porte le même sort, aussi');
+
+    const marche = sortNomme(23113, "Devil's Bargain");
+    egal(marche?.effet.atbEquipe, 20, 'Devil’s Bargain (Mephisto) remplit la barre de toute l’équipe, 20 %');
+    egal(kitVitesse(fiche(23103)).atb, 20, 'Demon, qui porte le même sort, aussi');
+
+    // La règle générale tient toujours : un sort de même nom absent de la table
+    // (autre identifiant) reste un boost sur UN allié.
+    const [autre] = sortsVitesse(detail([comp('Trade', [effet('Increase ATB', 20, false, false)])]));
+    egal(autre.effet.atbAllie, 20, 'hors de la table, `aoe: false` reste un boost sur un seul allié');
+
+    // Remplissages AU CHOIX (`ATB_AU_CHOIX_CONNUS`), ZÉRO par défaut. Retiré de
+    // la table, chaque sort repartirait compté d'office : Blade Fan en boost
+    // d'un seul allié à 15 %, Start of Attacking à +50 % pour l'équipe.
+    //
+    // Blade Fan (Mihyang) : 15 % à TOUTE l'équipe par buff retiré, trois au plus.
+    const lames = sortNomme(18311, 'Blade Fan');
+    egal(JSON.stringify(lames?.atbAuChoix), '{"pas":15,"max":3,"unite":"retrait"}', 'Blade Fan remplit 15 % par buff retiré, trois au plus');
+    egal(lames?.effet.atbAllie, undefined, 'sans retrait désigné, il ne remplit la barre de personne');
+    egal(lames?.effet.atbEquipe, undefined, 'ni celle de l’équipe');
+    ok(kitVitesse(fiche(18311)).atbCompetence !== 'Blade Fan', "l'analyse simple, sans le choix, ne le compte pas");
+    egal(effetAuChoix(lames!, 0).atbEquipe, undefined, '0 retrait : rien');
+    egal(effetAuChoix(lames!, 1).atbEquipe, 15, '1 retrait : +15 % à l’équipe');
+    egal(effetAuChoix(lames!, 3).atbEquipe, 45, '3 retraits : +45 %');
+    egal(effetAuChoix(lames!, 4).atbEquipe, 45, 'au-delà de trois : borné');
+
+    // Start of Attacking (Barbara) : de 0 à 50 % pour TOUTE l'équipe, lanceur
+    // compris (règle donnée par l'utilisateur, malgré « other allies »).
+    const charge = sortNomme(23511, 'Start of Attacking');
+    egal(JSON.stringify(charge?.atbAuChoix), '{"pas":1,"max":50,"unite":"pourcent"}', 'Start of Attacking se règle de 0 à 50 %');
+    egal(charge?.effet.atbEquipe, undefined, 'sans valeur désignée, il ne remplit rien — plus de +50 % d’office');
+    egal(kitVitesse(fiche(23511)).atb, 0, "l'analyse simple ne le compte plus");
+    egal(effetAuChoix(charge!, 30).atbEquipe, 30, '30 % désignés : +30 % à toute l’équipe');
+    egal(effetAuChoix(charge!, 70).atbEquipe, 50, 'au-delà de 50 : borné');
   }
 }
 
@@ -2804,6 +2857,42 @@ export function testSpeedTuneAuto() {
       }).cibleIndecise,
       'et une cible DÉSIGNÉE lève l’indécision — c’est le joueur qui a tranché'
     );
+  }
+
+  // ⚠️ **Remplissage d'équipe AU CHOIX** (Blade Fan : par buff retiré ; Start
+  // of Attacking : un pourcentage) : la valeur se désigne par tour
+  // (`choix.atbChoisi`, en paliers). Zéro par défaut : sans désignation,
+  // l'analyse n'écrit rien.
+  {
+    const sortAuChoix = (nom: string, atbAuChoix: SortVitesse['atbAuChoix']): SortVitesse => ({
+      nom, slot: 3, icone: null, effet: {}, rejoue: false, cooldown: 0,
+      atbNiveau1: 0, atbSkillUp: 0, chance: null, neutre: false, buffsEquipe: 0, atbAuChoix,
+    });
+    const donnees: DonneesKit = {
+      kits: new Map(),
+      sorts: new Map([[100, [
+        sortAuChoix('Lames', { pas: 15, max: 3, unite: 'retrait' }),
+        sortAuChoix('Charge', { pas: 1, max: 50, unite: 'pourcent' }),
+      ]]]),
+      passifs: new Map(),
+    };
+    const equipe: EntreeAuto[] = [
+      { id: 'a', monster: monstre(100, 'Lanceur', 100), runeSpeed: 160 },
+      { id: 'b', monster: monstre(101, 'Autre', 100), runeSpeed: 90 },
+    ];
+    const barreDe = (sort: string, atbChoisi?: Record<string, number>) => {
+      const r = analyseAutomatique(equipe, 0, donnees, { choix: { sort: { a: sort, b: '' }, atbChoisi } });
+      // Sans rechargement, le sort repart à chaque tour du lanceur : on lit les
+      // valeurs DISTINCTES écrites pour l'autre allié.
+      return [...new Set(Object.values(r.mods.get('b')?.atbMod ?? {}))];
+    };
+    egal(barreDe('Lames').join(','), '', 'aucun retrait désigné → rien n’est écrit pour l’équipe');
+    egal(barreDe('Lames', { a: 2 }).join(','), '30', 'deux buffs retirés → +30 % de barre à l’équipe');
+    egal(barreDe('Lames', { a: 9 }).join(','), '45', 'borné à trois retraits : +45 % au plus');
+    egal(barreDe('Lames', { 'a#2': 3 }).join(','), '', 'la valeur appartient au TOUR : celle du 2ᵉ ne vaut pas pour le 1ᵉʳ');
+    egal(barreDe('Charge').join(','), '', 'Start of Attacking sans valeur désignée → rien');
+    egal(barreDe('Charge', { a: 35 }).join(','), '35', '35 % désignés → +35 % de barre à l’équipe');
+    egal(barreDe('Charge', { a: 80 }).join(','), '50', 'borné à 50 %');
   }
 
   // ⚠️ **SUR QUI les buffs se comptent — Chilling contre Elsharion.**

@@ -442,7 +442,7 @@ export function estimerCumuls(lignes: Ligne[], d: DonneesKit): Ligne[] {
 // Les sorts choisis d'un camp s'en vont avec sa composition : rangés par
 // monstre, ils survivraient sinon à un import et rejoueraient le choix fait pour
 // l'équipe précédente.
-export const oublierCamp = (m: Record<string, string>, camp: Camp) =>
+export const oublierCamp = <T>(m: Record<string, T>, camp: Camp): Record<string, T> =>
   Object.fromEntries(Object.entries(m).filter(([uid]) => !uid.startsWith(`${camp}:`)));
 
 // L'ordre voulu (« Ordre des sorts ») après l'import d'un deck dans `camp`.

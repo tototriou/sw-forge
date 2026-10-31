@@ -134,6 +134,11 @@ export async function preuvesDialogueElement(b: BancRetouches): Promise<[boolean
   await b.geste(() => bouton('Modifier l’équipe').click());
   await new Promise(r => setTimeout(r, 250));
   const dialogue = document.querySelector<HTMLElement>('[role="dialog"]')!;
+  // ⚠️ L'entrée du dialogue (`dialogue`, 200 ms, translation et échelle 0,98)
+  // peut durer au-delà du délai sur une machine chargée : une position prise
+  // pendant ses dernières images diffère d'un centième de pixel de la finale.
+  await Promise.all(dialogue.getAnimations({ subtree: true })
+    .filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished));
   const menu = dialogue.querySelector<HTMLSelectElement>('[aria-label="Élément du lead de l’équipe"]')!;
   const portee = dialogue.querySelector<HTMLSelectElement>('[aria-label="Portée du lead de l’équipe"]')!;
   const position = menu.getBoundingClientRect();

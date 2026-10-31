@@ -588,7 +588,8 @@ toujours, superposés, l'absent invisible (`VISIBLE_AVEC_LE_TABLEAU`,
   la largeur de la plus grande valeur de sa colonne (`CHIFFRES_MAX_COLONNE`,
   en `ch` de la police du champ : PV à 5 chiffres, PV effectifs et dégâts à
   6, Efficience à « 118.6 »). **Largeur minimale mesurée : 661 px** dans
-  l'app construite, polices chargées, chaque valeur remplacée par la plus
+  l'app construite, polices chargées (le banc des tests rend avec les
+  mêmes, tests/README.md), chaque valeur remplacée par la plus
   large de sa colonne et les bornes « 150000 » posées ; c'est le seuil
   (`SEUIL_TABLEAU_PX`), lu par une requête de conteneur sur la zone des
   résultats (`@container/resultats`) : en dessous, les cartes, avec la ligne

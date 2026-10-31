@@ -349,7 +349,7 @@ import testSiegeStatut from './siege-statut.test';
 import testSiegePastille from './siege-pastille.test';
 import testSiegeSlotSuivant from './siege-slot-suivant.test';
 import testRecoDefenses from './reco-defenses.test';
-import { testRecoFusionCorrespondance, testRecoFusionDecks, testRecoFusionImport, testRecoFusionSource } from './reco-fusion.test';
+import { testRecoFusionCorrespondance, testRecoFusionDecks, testRecoFusionChef, testRecoFusionImport, testRecoFusionSource } from './reco-fusion.test';
 import { testRenduRecoFusionChoix, testRenduRecoFusionStockage } from './rendu/reco-fusion.test';
 import testSiegePartage from './siege-partage.test';
 import testMarque from './marque.test';
@@ -531,6 +531,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRecoDefenses', testRecoDefenses],
   ['testRecoFusionCorrespondance', testRecoFusionCorrespondance],
   ['testRecoFusionDecks', testRecoFusionDecks],
+  ['testRecoFusionChef', testRecoFusionChef],
   ['testRecoFusionImport', testRecoFusionImport],
   ['testRecoFusionSource', testRecoFusionSource],
   ['testRenduRecoFusionChoix', testRenduRecoFusionChoix],

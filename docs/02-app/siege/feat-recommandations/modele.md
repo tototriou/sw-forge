@@ -93,12 +93,36 @@ Règles de la vue Défense :
   analyse, export) ; à l'intérieur, une ligne par défense visée, avec les
   decks de CETTE recommandation qui la battent. Rien ne se mélange entre
   recommandations de joueurs différents.
-- **Même défense = même leader et mêmes deux autres monstres**, dans
-  n'importe quel ordre : un leader différent change la défense en jeu (son
-  lead). Un monstre saisi à la main se reconnaît à son nom, sans casse.
-  Défense entièrement vide : ignorée. Les monstres affichés sont ceux de sa
-  première saisie ; les lignes suivent l'ordre de première apparition (celui
-  de la vue Attaque).
+- **Même défense = même équipe** (`cleEquipe`, la clé que reprend la fusion
+  d'un import, [persistance-et-partage.md](persistance-et-partage.md)). Le
+  **chef** d'une équipe est son premier monstre, **s'il a un lead actif en
+  siège** : seul ce lead change l'équipe en jeu.
+  - avec chef : même chef et mêmes deux autres monstres, dans n'importe quel
+    ordre (clé `chef|les deux autres triés`) ;
+  - sans chef : mêmes trois monstres, dans n'importe quel ordre (clé
+    `|les trois triés`).
+
+  Solveig-Adriana-Odin et Solveig-Odin-Adriana : une seule défense (chef
+  Solveig). Odin-Adriana-Solveig en est une autre (chef Odin). Kinki-Windy-Lulu
+  et Windy-Lulu-Kinki : une seule, ni Kinki (pas de leader skill) ni Windy
+  (portée Dungeon) n'ayant de lead actif en siège.
+- **Lead actif en siège** (`leadActifEnSiege`, la règle de portée de
+  `siegeLeadFor` pour la VIT, étendue à toute leader skill) : portée General
+  ou Guild ; ou portée Element, si au moins un monstre de l'équipe est de cet
+  élément. Arena, Dungeon ou pas de leader skill : pas de lead actif. Dans les
+  données SWARFARM, un lead d'élément porte toujours l'élément de son monstre,
+  qui le remplit seul. Le leader skill et l'élément viennent des données
+  chargées (l'index `monsterByCom2us` de l'écran).
+- ⚠️ **Lead inconnu = chef**, par prudence : un premier monstre saisi à la
+  main, ou absent des données chargées, compte pour chef. La clé distingue
+  alors autant d'équipes que si son lead était actif, jamais moins : deux
+  défenses qui pourraient différer en jeu ne se regroupent pas, au pire une
+  même défense fait deux lignes. Même prudence pour un lead d'élément qu'un
+  allié inconnu pourrait remplir. Un premier emplacement vide : pas de chef.
+- Un monstre saisi à la main se reconnaît à son nom, sans casse. Défense
+  entièrement vide : ignorée. Les monstres affichés sont ceux de sa première
+  saisie ; les lignes suivent l'ordre de première apparition (celui de la vue
+  Attaque).
 - **Lecture seule** : on consulte « contre cette défense, j'ai ces
   offenses ». Dès qu'on édite — la recommandation ou l'un de ses decks —, la
   carte reprend la vue Attaque, où sont les formulaires : changer de vue ne

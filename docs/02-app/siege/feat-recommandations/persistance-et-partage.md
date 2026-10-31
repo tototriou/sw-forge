@@ -152,7 +152,8 @@ y a quelque chose à lire — et se ferme par une croix.
 
 ## Fusion d'un import
 
-Logique : [recoFusion.ts](src/lib/recoFusion.ts), calcul pur testé par
+Logique : [recoFusion.ts](src/lib/recoFusion.ts) (clé d'équipe :
+[recoDefenses.ts](../../../../src/lib/recoDefenses.ts)), calcul pur testé par
 [tests/reco-fusion.test.ts](tests/reco-fusion.test.ts) ; choix :
 [ChoixFusionRecos.tsx](src/components/siege/ChoixFusionRecos.tsx).
 
@@ -209,16 +210,22 @@ correspondent à rien sont ajoutées à part dans les deux cas.
 
 - **Nom, auteur, consignes de la recommandation** : ceux de l'existante, tels
   quels — l'utilisateur a pu les retoucher.
-- **Un deck dont l'équipe existe déjà** — mêmes `com2usId` dans le **même
-  ordre** (le leader change le deck en jeu) — n'est pas dupliqué. Il gagne
-  seulement les **défenses visées** qu'il n'avait pas. Ses builds, ses
-  consignes, ses défenses et leurs précisions restent les siens.
-- ⚠️ **Une défense compte pour la même si ses monstres sont les mêmes, dans
-  n'importe quel ordre** — leader compris. C'est plus large que la vue Défense
-  ([modele.md](modele.md), où le leader distingue deux défenses) : l'ordre
-  d'une défense relevée d'une source à l'autre n'est pas fiable, et une même
-  défense en double sur un deck n'apporte rien. Une défense vide n'est jamais
-  ajoutée.
+- ⚠️ **Un deck et une défense visée se reconnaissent par la même clé
+  d'équipe que la vue Défense** ([modele.md](modele.md), « Vue Attaque /
+  Défense ») : même **chef** — le premier monstre, s'il a un lead actif en
+  siège — et mêmes deux autres monstres dans n'importe quel ordre ; sans chef,
+  mêmes trois monstres dans n'importe quel ordre. Solveig-Odin-Adriana se
+  reconnaît dans Solveig-Adriana-Odin ; Odin-Adriana-Solveig, au chef
+  différent, est une autre équipe ; Windy-Lulu-Kinki se reconnaît dans
+  Kinki-Windy-Lulu.
+- **Un deck dont l'équipe existe déjà** n'est pas dupliqué. Il gagne
+  seulement les **défenses visées** qu'il n'avait pas. Son ordre, ses builds,
+  ses consignes, ses défenses et leurs précisions restent les siens. Une
+  défense vide n'est jamais ajoutée.
+- ⚠️ **Premier monstre au lead inconnu** (saisi à la main, ou absent des
+  données chargées) : compté pour chef. C'est le choix sûr, qui ne fusionne
+  jamais deux équipes qui pourraient différer en jeu : au pire, le même deck
+  revient une fois de plus, à la fin, et se supprime à la main.
 - **Un deck nouveau** est ajouté **à la fin**, tel que le fichier le donne. Un
   deck qui revient plus loin dans le même fichier y réunit ses défenses.
 - Une recommandation réduite à son deck vide (celui que pose la création) :

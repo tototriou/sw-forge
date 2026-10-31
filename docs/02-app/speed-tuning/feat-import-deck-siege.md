@@ -79,6 +79,13 @@ trois vitesses de runes. Calcul pur dans
   (`camp:id`) et survivraient sinon à un import — on rejouerait le choix fait pour
   l'équipe précédente, et l'outil compterait un effet que le siège écarte. Deux
   verdicts sur la même équipe.
+- ⚠️ **Importer dans « Ton équipe » rend l'ordre des sorts aux VITESSES**
+  (`ordreApresImport`) : l'ordre voulu est vidé et n'est plus « rangé ». Sans
+  ça, un ordre figé par un ▲▼ — même sur une équipe d'il y a longtemps, il est
+  conservé — ne suivait plus que la composition : le deck y entrait dans
+  l'ordre de ses slots, leader en tête, et un monstre lent passait « premier »,
+  l'analyse poussée jugeant un ordre que personne n'a choisi. Un import **en
+  face** n'y touche pas : l'ordre ne range que des alliés.
 - ⚠️ **Le deck REMPLACE la composition du camp** où l'on a cliqué : un deck est
   une équipe, pas une liste de monstres à empiler — sans ça, importer une
   deuxième défense entasserait six monstres du même côté. Ce qui est dans **ce

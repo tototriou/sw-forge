@@ -316,6 +316,7 @@ export default function RecoCard({
     () =>
       vueDefenses(
         reco,
+        monsterByCom2us,
         hit
           ? (di, ci) => {
               const h = hit.decks.find((d) => d.deckIndex === di);
@@ -323,7 +324,7 @@ export default function RecoCard({
             }
           : undefined,
       ),
-    [reco, hit],
+    [reco, monsterByCom2us, hit],
   );
 
   // ── Aller d'une ligne du résumé au deck correspondant ────────────────────

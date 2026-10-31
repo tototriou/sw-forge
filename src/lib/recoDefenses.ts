@@ -8,13 +8,14 @@
 // s'affiche dans les deux vues sans conversion, et les fichiers déjà partagés
 // restent lisibles.
 //
-// ⚠️ **Même défense = même LEADER et mêmes deux autres monstres**, dans
-// n'importe quel ordre : un leader différent change la
-// défense en jeu — son lead —, les deux autres se saisissent dans l'ordre
-// qu'on veut. Un monstre sans identifiant (saisi à la main) se reconnaît à son
-// nom, sans casse.
+// ⚠️ **Même défense = même équipe, au sens de `cleEquipe`** : même CHEF et
+// mêmes deux autres monstres dans n'importe quel ordre, ou, sans chef, mêmes
+// trois monstres dans n'importe quel ordre. Le chef est le premier monstre
+// quand son lead est actif en siège : c'est lui seul qui change l'équipe en
+// jeu. Un monstre sans identifiant (saisi à la main) se reconnaît à son nom,
+// sans casse.
 
-import type { Reco, RecoCounter } from '../types';
+import type { ElementKey, LeaderSkill, Monster, Reco, RecoCounter } from '../types';
 
 // Les deux vues de la page : Attaque (deck → défenses battues, où l'on
 // modifie) et Défense (défense → offenses qui la battent, en lecture seule).
@@ -51,19 +52,81 @@ export function cleMonstre(m: { com2usId: number | null; name: string }): string
   return nom ? `@${nom}` : '';
 }
 
-// `null` : défense entièrement vide (trois emplacements non remplis) — elle ne
-// nomme rien, elle ne fait pas de ligne.
-export function cleDefense(monsters: RecoCounter['monsters']): string | null {
-  const cles = monsters.map(cleMonstre);
-  if (cles.every((c) => c === '')) return null;
-  const [leader = '', ...autres] = cles;
-  return `${leader}|${autres.filter(Boolean).sort().join('+')}`;
+// Les monstres connus des données chargées, par `com2usId` : seuls leur leader
+// skill et leur élément servent à la clé. Un paramètre, pas un import : le
+// calcul reste pur, et l'écran passe l'index qu'il a déjà (`monsterByCom2us`).
+export type MonstresConnus = ReadonlyMap<number, Pick<Monster, 'element' | 'leaderSkill'>>;
+
+// Une leader skill est-elle active EN SIÈGE (contenu de guilde) pour cette
+// équipe ? Même règle de portée que `siegeLeadFor` (speed.ts) pour la vitesse,
+// étendue à toute leader skill, quelle que soit sa stat :
+//  - General ou Guild : active ;
+//  - Element : active si au moins un monstre de l'équipe est de cet élément ;
+//  - Arena, Dungeon, ou pas de leader skill : inactive.
+// ⚠️ Dans les données SWARFARM, un lead d'élément porte toujours l'élément de
+// son monstre : le chef le remplit seul. La condition reste écrite pour un
+// lead qui ne le ferait pas.
+export function leadActifEnSiege(lead: LeaderSkill | null | undefined, elements: readonly ElementKey[]): boolean {
+  if (!lead) return false;
+  if (lead.area === 'General' || lead.area === 'Guild') return true;
+  if (lead.area === 'Element') return lead.element != null && elements.includes(lead.element);
+  return false;
 }
 
+// Le premier monstre compte-t-il pour chef ? Oui si son lead est actif en
+// siège ; non s'il n'en a pas, ou si l'emplacement est vide.
+//
+// ⚠️ **Lead inconnu = chef** : un monstre saisi à la main (`com2usId` null, un
+// nom) ou absent des données chargées. Le compter pour chef est le choix sûr :
+// la clé distingue alors autant d'équipes que si son lead était actif, jamais
+// moins — on ne regroupe ni ne fusionne deux équipes qui pourraient différer
+// en jeu. Au pire, une même équipe apparaît deux fois. Même prudence pour un
+// lead d'élément qu'un allié inconnu pourrait remplir.
+function premierEstChef(monsters: readonly { com2usId: number | null; name: string }[], connus: MonstresConnus): boolean {
+  const premier = monsters[0];
+  if (!premier || cleMonstre(premier) === '') return false;
+  const ficheDe = (m: { com2usId: number | null }) => (m.com2usId != null ? connus.get(m.com2usId) : undefined);
+  const fiche = ficheDe(premier);
+  if (!fiche) return true;
+  const presents = monsters.filter((m) => cleMonstre(m) !== '');
+  const elements = presents.flatMap((m) => {
+    const e = ficheDe(m)?.element;
+    return e ? [e] : [];
+  });
+  if (leadActifEnSiege(fiche.leaderSkill, elements)) return true;
+  return fiche.leaderSkill?.area === 'Element' && presents.some((m) => !ficheDe(m));
+}
+
+// L'identité d'une ÉQUIPE de trois monstres — une défense visée, ou l'équipe
+// d'un deck (recoFusion.ts) : une seule clé pour les deux.
+//  - avec chef : `chef|les deux autres triés` ;
+//  - sans chef : `|les trois triés`.
+// Solveig-Adriana-Odin et Solveig-Odin-Adriana : même équipe (chef Solveig) ;
+// Odin-Adriana-Solveig en est une autre (chef Odin) ; Kinki-Windy-Lulu et
+// Windy-Lulu-Kinki : même équipe, aucun des deux premiers n'ayant de lead
+// actif en siège.
+// `null` : équipe entièrement vide (trois emplacements non remplis) — elle ne
+// nomme rien.
+export function cleEquipe(
+  monsters: readonly { com2usId: number | null; name: string }[],
+  connus: MonstresConnus,
+): string | null {
+  const cles = monsters.map(cleMonstre);
+  if (cles.every((c) => c === '')) return null;
+  const tries = (l: string[]) => l.filter(Boolean).sort().join('+');
+  if (premierEstChef(monsters, connus)) {
+    const [chef, ...autres] = cles;
+    return `${chef}|${tries(autres)}`;
+  }
+  return `|${tries(cles)}`;
+}
+
+// `connus` : les monstres des données chargées, pour reconnaître le chef.
 // `garder` : filtre d'une recherche en cours (deck, défense) — `counterIndex`
 // vaut `null` pour un deck sans défense visée. Absent : tout est gardé.
 export function vueDefenses(
   reco: Reco,
+  connus: MonstresConnus,
   garder?: (deckIndex: number, counterIndex: number | null) => boolean,
 ): VueDefenses {
   const parCle = new Map<string, DefenseVisee>();
@@ -72,7 +135,7 @@ export function vueDefenses(
   reco.decks.forEach((deck, deckIndex) => {
     let viseUneDefense = false;
     deck.counters.forEach((counter, counterIndex) => {
-      const cle = cleDefense(counter.monsters);
+      const cle = cleEquipe(counter.monsters, connus);
       if (cle == null) return;
       viseUneDefense = true;
       if (garder && !garder(deckIndex, counterIndex)) return;

@@ -112,6 +112,10 @@ export interface SortVitesse {
   // Vrai si la compétence ne touche ni la barre ni la vitesse (elle reste
   // proposable : c'est un tour où l'on ne fait rien pour le tune).
   neutre: boolean;
+  // Remplissage d'équipe PAR BUFF RETIRÉ à l'adverse (Blade Fan : 15 % chacun,
+  // trois au plus). ⚠️ Absent de `effet` : il ne compte que pour le nombre de
+  // retraits désigné (`effetAvecRetraits`), zéro par défaut.
+  atbParRetrait?: { valeur: number; max: number };
   // ⚠️ Combien de BUFFS elle pose sur son camp (bouclier, immunité, ATQ/DEF,
   // buff de vitesse…). Ça n'a rien à voir avec la vitesse — mais certains
   // passifs COMPTENT les buffs portés (Chilling : +20 de vitesse par buff), et
@@ -196,6 +200,34 @@ const ATB_DE_ZONE_CONNUS = new Map<number, string>([
   [13408, "Devil's Bargain"],
 ]);
 
+// Remplissages de barre d'équipe PROPORTIONNELS au nombre de buffs retirés à
+// l'adverse, par identifiant de compétence, avec le nombre maximal de retraits.
+// ⚠️ **Curé par identifiant, pas lu dans la prose** : « per beneficial effect
+// removed » ne se reconnaît pas sans se tromper, et la borne (trois coups, un
+// retrait possible par coup) n'est écrite nulle part en donnée.
+//
+// ⚠️ **Le défaut est ZÉRO retrait** : ce que le sort retire dépend des buffs de
+// l'adverse et d'un jet à 50 % par coup — un speed tune est ce qui tient sans
+// rien en attendre. Le joueur désigne le nombre dans l'ordre des sorts ;
+// l'analyse simple, qui n'a pas ce choix, n'en compte aucun.
+const ATB_PAR_RETRAIT_CONNUS = new Map<number, { nom: string; max: number }>([
+  // Mihyang : « Increases the Attack Bar of all allies by 15% each per
+  // beneficial effect removed. » Trois coups, 50 % de retrait chacun.
+  [9118, { nom: 'Blade Fan', max: 3 }],
+]);
+
+const parRetraitDe = (c: Competence) =>
+  c.com2usId != null ? ATB_PAR_RETRAIT_CONNUS.get(c.com2usId) ?? null : null;
+
+// L'effet d'un sort pour un nombre donné de buffs retirés : rien de plus qu'un
+// sort ordinaire, sauf s'il remplit la barre par retrait. Borné à [0, max].
+export function effetAvecRetraits(x: SortVitesse, retraits: number): EffetSort {
+  const p = x.atbParRetrait;
+  const n = p ? Math.max(0, Math.min(p.max, Math.round(retraits))) : 0;
+  if (!p || n === 0) return x.effet;
+  return { ...x.effet, atbEquipe: Math.max(x.effet.atbEquipe ?? 0, n * p.valeur) };
+}
+
 // L'effet de barre va-t-il à tout le camp ? Le drapeau de la fiche, ou la table.
 const atbDeZone = (c: Competence, e: Competence['effets'][number]) =>
   e.aoe || (e.nom === EFFET_ATB && c.com2usId != null && ATB_DE_ZONE_CONNUS.has(c.com2usId));
@@ -213,7 +245,8 @@ export function kitVitesse(detail: DetailMonstre | null): KitVitesse {
     for (const e of c.effets) {
       if (!atbDeZone(c, e)) continue;
       if (e.nom === EFFET_ATB) {
-        if (atbSousCondition) continue;
+        // Par retrait : zéro par défaut, et l'analyse simple n'a pas le choix.
+        if (atbSousCondition || parRetraitDe(c)) continue;
         const niveau1 = e.quantite ?? 0;
         const valeur = maxee(niveau1, bonusSkillUp(c));
         if (valeur > out.atb) {
@@ -247,7 +280,9 @@ function lireEffet(c: Competence): { effet: EffetSort; atbNiveau1: number; atbSk
     const q = e.quantite ?? 0;
     switch (e.nom) {
       case EFFET_ATB: {
-        if (atbSousCondition) break;
+        // Par retrait : porté à part (`atbParRetrait`), il ne compte que pour le
+        // nombre désigné.
+        if (atbSousCondition || parRetraitDe(c)) break;
         // ⚠️ Trois cibles bien différentes : tout le camp, UN allié (Breeze de
         // Kroa : celui dont la barre est la plus basse), ou soi-même.
         //
@@ -312,7 +347,13 @@ export function sortsVitesse(detail: DetailMonstre | null): SortVitesse[] {
   for (const c of detail.competences) {
     if (c.passif) continue;
     const { effet, atbNiveau1, atbSkillUp, chance } = lireEffet(c);
-    const neutre = Object.keys(effet).length === 0;
+    const parRetrait = parRetraitDe(c);
+    const effetAtb = c.effets.find((e) => e.nom === EFFET_ATB);
+    const atbParRetrait =
+      parRetrait && effetAtb
+        ? { valeur: maxee(effetAtb.quantite ?? 0, bonusSkillUp(c)), max: parRetrait.max }
+        : undefined;
+    const neutre = Object.keys(effet).length === 0 && !atbParRetrait;
     out.push({
       nom: c.nom,
       slot: c.slot,
@@ -331,6 +372,7 @@ export function sortsVitesse(detail: DetailMonstre | null): SortVitesse[] {
       // que le lanceur en profite (`surSoi`) ou non. Exclure `surSoi` faisait
       // manquer les buffs d'équipe les plus courants au comptage du passif.
       buffsEquipe: c.effets.filter((e) => e.bonus && e.aoe).length,
+      ...(atbParRetrait ? { atbParRetrait } : {}),
     });
   }
   return out;

@@ -40,6 +40,14 @@ par tick**, qui restent la porte de sortie manuelle.
   données, pas une liste blanche — la règle reste le drapeau. Elle sort d'un
   balayage des 380 compétences « Increase ATB » du corpus contre leur prose ;
   chaque entrée est testée sur la vraie fiche.
+- ⚠️ **Un remplissage PAR BUFF RETIRÉ ne se compte pas d'office** : *Blade Fan*
+  (Mihyang, « … all allies by 15% each per beneficial effect removed ») porte
+  `atbParRetrait` (15 %, trois au plus) au lieu d'un `atbEquipe`, et ne vaut que
+  pour le nombre désigné dans l'ordre des sorts — **zéro par défaut**
+  (`effetAvecRetraits`). Table `ATB_PAR_RETRAIT_CONNUS`, par identifiant : la
+  prose ne se lit pas sans se tromper, et la borne (trois coups, un retrait
+  chacun) n'est écrite nulle part en donnée. Sans elle, le sort passait pour un
+  boost de 15 % sur un seul allié, acquis à chaque tour.
 - **Les compétences PASSIVES sont écartées** : elles partent sur une condition
   (quand il est attaqué, à la mort d'un allié…), pas au tour du monstre.
 - **La plus forte l'emporte** quand plusieurs compétences remplissent la barre :

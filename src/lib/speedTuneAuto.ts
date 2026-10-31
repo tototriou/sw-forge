@@ -35,7 +35,7 @@ import {
   simuler,
   vitessesRequises,
 } from './speedTune';
-import { KitVitesse, SortVitesse } from './speedTuneKit';
+import { effetAvecRetraits, KitVitesse, SortVitesse } from './speedTuneKit';
 import { PassifVitesse, pointsDeGain } from './speedTunePassif';
 
 // Un monstre de l'équipe, tel que l'écran le connaît.
@@ -315,6 +315,9 @@ export interface ChoixSorts {
   sort?: Record<string, string>;
   sort2?: Record<string, string>;
   cible?: Record<string, string>;
+  // Combien de buffs le sort retire à l'adverse, pour un sort qui remplit la
+  // barre PAR RETRAIT (Blade Fan). Par tour, comme la cible ; absent = 0.
+  retraits?: Record<string, number>;
 }
 
 export interface OptionsAuto {
@@ -440,7 +443,8 @@ export function analyseAutomatique(
       const enEffet = (x: SortVitesse | null, n: number): EffetSort | undefined =>
         x
           ? {
-              ...sansReductionAdverse(x.effet),
+              // Le nombre de buffs retirés appartient au tour, comme la cible.
+              ...sansReductionAdverse(effetAvecRetraits(x, choix?.retraits?.[cleOccurrence(e.id, n)] ?? 0)),
               cooldown: x.cooldown,
               cle: x.nom,
               // ⚠️ **La cible appartient au couple (tour, sort), pas au

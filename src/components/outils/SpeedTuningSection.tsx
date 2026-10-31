@@ -142,6 +142,7 @@ function libelleSort(x: SortVitesse): string {
   if (e.atbEquipe) bouts.push(`+${pourcentBarre(e.atbEquipe)} % barre équipe`);
   if (e.atbAllie) bouts.push(`+${pourcentBarre(e.atbAllie)} % barre 1 allié`);
   if (e.atbSoi) bouts.push(`+${pourcentBarre(e.atbSoi)} % sa barre`);
+  if (x.atbParRetrait) bouts.push(`+${pourcentBarre(x.atbParRetrait.valeur)} % barre équipe par buff retiré`);
   // ⚠️ Annoncé, mais annoncé comme NON COMPTÉ : le tune se juge sans ce qu'on
   // retire à l'adverse (voir `sansReductionAdverse`). Le taire laisserait croire
   // que le calcul en tient compte.
@@ -257,6 +258,7 @@ export default function SpeedTuningSection({
     basculerSwift,
     chaine,
     choisirCible,
+    choisirRetraits,
     ajouterOccurrence,
     retirerOccurrence,
     choisirSecond,
@@ -264,6 +266,7 @@ export default function SpeedTuningSection({
     choixSorts,
     cibleFenetre,
     cibleSort,
+    retraitsSort,
     combatDe,
     decks,
     deplacer,
@@ -694,6 +697,31 @@ export default function SpeedTuningSection({
                                               {x.uid === uid ? ' (lui-même)' : ''}
                                             </option>
                                           ))}
+                                      </Selecteur>
+                                    </label>
+                                  )}
+                                  {/* ⚠️ Un sort qui remplit la barre de l'équipe PAR
+                                      BUFF RETIRÉ (Blade Fan) : combien il en retire
+                                      dépend de l'adverse et d'un jet par coup. Le
+                                      défaut est zéro — un speed tune ne l'attend
+                                      pas ; on désigne ce qu'on veut tester. */}
+                                  {sortDeLaLigne?.atbParRetrait && (
+                                    <label className="flex items-center gap-1.5">
+                                      <span className="text-micro uppercase tracking-wide text-ink-dimmer">
+                                        buffs retirés
+                                      </span>
+                                      <Selecteur
+                                        taille="sm"
+                                        pleineLargeur={false}
+                                        value={String(retraitsSort[cle] ?? 0)}
+                                        onChange={(e) => choisirRetraits(cle, Number(e.target.value))}
+                                        aria-label={`Buffs retirés par le sort de ${l.monster.name}`}
+                                      >
+                                        {Array.from({ length: sortDeLaLigne.atbParRetrait.max + 1 }, (_, n) => (
+                                          <option key={n} value={n}>
+                                            {n} (+{pourcentBarre(n * sortDeLaLigne.atbParRetrait!.valeur)} % équipe)
+                                          </option>
+                                        ))}
                                       </Selecteur>
                                     </label>
                                   )}

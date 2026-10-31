@@ -79,7 +79,8 @@ exactement comme elle écrit dans les grilles. Ces choix deviennent alors des
 choix comme les autres : on les corrige, et **y toucher relance l'écriture**.
 
 ⚠️ **Ce qui relance l'analyse, c'est TOUT ce qui entre dans son `choix`** — le
-sort du 1ᵉʳ tour, celui du second, **et la CIBLE**. Le reste (vitesses,
+sort du 1ᵉʳ tour, celui du second, **la CIBLE** et le **nombre de buffs
+retirés** (voir plus bas). Le reste (vitesses,
 artéfacts, cases des grilles) est un réglage de l'utilisateur, où
 l'automatisation ne revient jamais.
 
@@ -91,6 +92,17 @@ sur un écran par ailleurs cohérent. Un **contrôle de
 source** ([tests/speed-tune.test.ts](tests/speed-tune.test.ts)) vérifie
 que la signature de relance est le miroir de l'objet passé à
 l'analyse — une entrée ajoutée à l'un et oubliée dans l'autre échoue.
+
+⚠️ **Un sort qui remplit la barre PAR BUFF RETIRÉ** (*Blade Fan* de Mihyang :
+15 % à toute l'équipe par buff retiré à l'adverse, trois au plus) porte un menu
+« buffs retirés » : **0, 1, 2 ou 3**, soit +0, +15, +30 ou +45 % de barre à
+l'équipe. ⚠️ **Le défaut est 0** : ce que le sort retire dépend des buffs de
+l'adverse et d'un jet à 50 % par coup, et un speed tune est ce qui tient sans
+rien en attendre — on désigne le cas qu'on veut tester. Comme la cible, le
+nombre appartient au **tour** (`retraits`, clé d'occurrence), s'oublie à
+l'import d'un deck dans le camp et part avec un tour retiré ; 0 ne se stocke
+pas. L'analyse simple, qui n'a pas ce choix, ne compte aucun retrait. Détection
+dans [feat-competences.md](feat-competences.md).
 
 ⚠️ **Mais un sort déjà choisi n'est JAMAIS réécrit** : l'analyse ne remplit que
 les cases vides. Sans ça, changer un sort relancerait l'analyse, qui reposerait

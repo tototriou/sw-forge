@@ -183,6 +183,10 @@ export function useSpeedTune({
   // L'allié VISÉ par un sort qui n'en touche qu'un (S3 de Sapsaree). Vide = la
   // barre la plus basse, le défaut du moteur.
   const [cibleSort, setCibleSort] = useStickyState<Record<string, string>>('speedTune.cibles', {});
+  // Le nombre de buffs retirés à l'adverse par un sort qui remplit la barre PAR
+  // RETRAIT (Blade Fan de Mihyang). Absent = 0 : ce que le sort retire dépend
+  // de l'adverse, un speed tune ne l'attend pas.
+  const [retraitsSort, setRetraitsSort] = useStickyState<Record<string, number>>('speedTune.retraits', {});
 
   // Les données de kit sous la forme que la lib partagée attend.
   const donneesKit = useMemo(() => ({ kits, sorts, passifs }), [kits, sorts, passifs]);
@@ -309,6 +313,7 @@ export function useSpeedTune({
     setSortChoisi((m) => oublierCamp(m, camp));
     setSortChoisi2((m) => oublierCamp(m, camp));
     setCibleSort((m) => oublierCamp(m, camp));
+    setRetraitsSort((m) => oublierCamp(m, camp));
     setLignes((prev) => [
       // ⚠️ La référence saute AUSSI quand on importe dans l'autre camp : elle
       // copiait une équipe qui vient de changer.
@@ -451,8 +456,8 @@ export function useSpeedTune({
   // explicite), c'est celui que la lecture du kit a retenu ; en analyse poussée,
   // celui qu'on lui a désigné — '' voulant dire « il ne lance rien de tout ça ».
   const choixSorts = useMemo(
-    () => ({ sort: sortChoisi, sort2: sortChoisi2, cible: cibleSort }),
-    [sortChoisi, sortChoisi2, cibleSort]
+    () => ({ sort: sortChoisi, sort2: sortChoisi2, cible: cibleSort, retraits: retraitsSort }),
+    [sortChoisi, sortChoisi2, cibleSort, retraitsSort]
   );
   const sortsDe = (l: Ligne) => sortsDeLigne(l, donneesKit);
   const sortActif = (l: Ligne, choix: Record<string, string> = sortChoisi) =>
@@ -541,7 +546,7 @@ export function useSpeedTune({
         : lignes;
     const plateau = plateauDeLignes(lignesAnalysees, leads);
     const resultat = analyseAutomatique(plateau, 0, donneesKit, {
-      choix: { sort: choix, sort2: sortChoisi2, cible: cibleSort },
+      choix: { sort: choix, sort2: sortChoisi2, cible: cibleSort, retraits: retraitsSort },
       idReference: uidRef,
     });
 
@@ -556,7 +561,7 @@ export function useSpeedTune({
     // Ce qu'on vient d'écrire ne doit pas déclencher une relance en boucle.
     // ⚠️ `choix` prend la place de `sortChoisi` : c'est la valeur qu'on vient de
     // poser par `setSortChoisi`, celle que la signature vaudra au rendu suivant.
-    premiereSignature.current = signatureDes(choix, sortChoisi2, cibleSort);
+    premiereSignature.current = signatureDes(choix, sortChoisi2, cibleSort, retraitsSort);
 
     setAuto(true);
     setLignes((prev) =>
@@ -600,9 +605,10 @@ export function useSpeedTune({
   const signatureDes = (
     sorts: Record<string, string>,
     seconds: Record<string, string>,
-    cibles: Record<string, string>
-  ) => JSON.stringify([sorts, seconds, cibles]);
-  const sortsSignature = signatureDes(sortChoisi, sortChoisi2, cibleSort);
+    cibles: Record<string, string>,
+    retraits: Record<string, number>
+  ) => JSON.stringify([sorts, seconds, cibles, retraits]);
+  const sortsSignature = signatureDes(sortChoisi, sortChoisi2, cibleSort, retraitsSort);
   const premiereSignature = useRef(sortsSignature);
   useEffect(() => {
     if (!auto || premiereSignature.current === sortsSignature) {
@@ -772,6 +778,15 @@ export function useSpeedTune({
     setCibleSort((prev) => ({ ...prev, [uid]: valeur }));
   }
 
+  // Le nombre de buffs que le sort de ce tour retire à l'adverse. 0 = le
+  // défaut, et il ne se stocke pas : rien de désigné vaut zéro.
+  function choisirRetraits(uid: string, n: number) {
+    setRetraitsSort((prev) => {
+      const { [uid]: _, ...reste } = prev;
+      return n > 0 ? { ...reste, [uid]: n } : reste;
+    });
+  }
+
   // ⚠️ **UN TOUR DE PLUS pour un monstre déjà là.** Un combo le fait jouer deux
   // fois avant l'adverse (Racuni se vise au S2, sa barre se remplit, il rejoue
   // et enchaîne son S1) : sans cette ligne, le combo n'est ni descriptible ni
@@ -813,6 +828,10 @@ export function useSpeedTune({
       return reste;
     });
     setCibleSort((prev) => {
+      const { [cle]: _, ...reste } = prev;
+      return reste;
+    });
+    setRetraitsSort((prev) => {
       const { [cle]: _, ...reste } = prev;
       return reste;
     });
@@ -924,6 +943,7 @@ export function useSpeedTune({
     basculerSwift,
     chaine,
     choisirCible,
+    choisirRetraits,
     ajouterOccurrence,
     retirerOccurrence,
     choisirSecond,
@@ -931,6 +951,7 @@ export function useSpeedTune({
     choixSorts,
     cibleFenetre,
     cibleSort,
+    retraitsSort,
     combatDe,
     decks,
     deplacer,

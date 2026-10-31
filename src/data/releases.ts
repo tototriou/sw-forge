@@ -65,6 +65,7 @@ export const RELEASES: Release[] = [
     title: 'Réimporter une recommandation la complète au lieu de la doubler',
     changes: [
       { kind: 'feat', scope: 'Recommandations', text: 'Un fichier qui prolonge une de tes recommandations peut s’y fusionner : nouveaux decks et défenses seulement.' },
+      { kind: 'fix', scope: 'Recommandations', text: 'Vue Défense : sans lead actif en siège, l’ordre des monstres ne sépare plus une défense.' },
       { kind: 'fix', scope: 'Speed tuning', text: 'Importer un deck remet l’ordre des sorts dans l’ordre des vitesses.' },
     ],
   },

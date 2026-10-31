@@ -17,6 +17,7 @@ import {
 import { artifactSubKinds, canAddSet, isArtifactSub } from '../lib/effects';
 import { cleanArtifacts, cleanSetOptions } from '../lib/recoShare';
 import { avecContenuDeck, ContenuDeck } from '../lib/annulerEdition';
+import type { MonstresConnus } from '../lib/recoDefenses';
 import { appliquerImport, BilanImport } from '../lib/recoFusion';
 import { reinsererA } from '../lib/reinsererA';
 import { saveLocal, usePersistence } from './usePersistence';
@@ -182,7 +183,9 @@ export interface UseRecoState {
   // N'enlève et ne remplace jamais rien. Sans `fusionner`, ajoute tout à la
   // suite ; avec, complète les recommandations que le fichier prolonge
   // (lib/recoFusion.ts) et ajoute le reste.
-  importRecos: (recos: RecoPayload[], fusionner?: boolean) => BilanImport;
+  // `connus` : les monstres des données chargées, qui reconnaissent le chef
+  // d'une équipe (lib/recoDefenses.ts, `cleEquipe`).
+  importRecos: (recos: RecoPayload[], fusionner: boolean, connus: MonstresConnus) => BilanImport;
   clearAll: () => void;
 }
 
@@ -447,8 +450,8 @@ export function useSiegeRecos(): UseRecoState {
   // ⚠️ Calculé sur l'état du RENDU, pas dans le `setState` : le bilan se rend
   // aussitôt. Un import est un geste isolé, aucune autre écriture ne court.
   const importRecos = useCallback(
-    (recos: RecoPayload[], fusionner = false) => {
-      const res = appliquerImport(state.recos, recos, fusionner, newId);
+    (recos: RecoPayload[], fusionner: boolean, connus: MonstresConnus) => {
+      const res = appliquerImport(state.recos, recos, fusionner, newId, connus);
       setState({ recos: res.recos });
       return res.bilan;
     },

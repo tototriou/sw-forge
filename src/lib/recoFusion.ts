@@ -14,7 +14,7 @@
 // ne se perd.
 
 import type { Reco, RecoCounter, RecoDeck, RecoPayload } from '../types';
-import { cleMonstre } from './recoDefenses';
+import { cleEquipe, type MonstresConnus } from './recoDefenses';
 
 /* --------------------------------------------------------------------------
  * Correspondance : quelle recommandation un fichier complète-t-il ?
@@ -72,20 +72,16 @@ export function trouverCorrespondances(existantes: Reco[], entrantes: RecoPayloa
  * Fusion d'une recommandation dans une autre
  * ----------------------------------------------------------------------- */
 
-// Même équipe = mêmes monstres dans le MÊME ordre : le leader (slot 0) change
-// le deck en jeu (son lead), et c'est l'ordre dans lequel l'app le compose.
-function cleEquipe(deck: RecoDeck): string {
-  return deck.slots.map((s) => (s.com2usId == null ? '_' : String(s.com2usId))).join('-');
-}
-
-// Même défense = mêmes monstres, DANS N'IMPORTE QUEL ORDRE. ⚠️ Plus large que
-// la vue Défense (recoDefenses.ts, où le leader compte) : l'ordre d'une défense
-// relevée d'une source à l'autre n'est pas fiable, et une défense en double
-// sur le même deck n'apporte rien. `null` : défense vide, jamais ajoutée.
-export function cleDefenseSansOrdre(monsters: RecoCounter['monsters']): string | null {
-  const cles = monsters.map(cleMonstre).filter(Boolean);
-  return cles.length ? cles.sort().join('+') : null;
-}
+// ⚠️ **Un deck et une défense visée se reconnaissent par la même clé**, celle
+// de la vue Défense (`cleEquipe`, recoDefenses.ts) : même chef — le premier
+// monstre, quand son lead est actif en siège — et mêmes autres monstres dans
+// n'importe quel ordre ; sans chef, mêmes trois monstres dans n'importe quel
+// ordre. Seul le chef change l'équipe en jeu : Solveig-Adriana-Odin et
+// Solveig-Odin-Adriana sont un seul deck, Odin-Adriana-Solveig un autre.
+// Un deck reconnu garde son ordre à lui.
+//
+// Deck entièrement vide (clé `null`) : il se reconnaît dans un autre deck vide.
+const cleDeck = (deck: RecoDeck, connus: MonstresConnus): string => cleEquipe(deck.slots, connus) ?? '';
 
 const deckVide = (d: RecoDeck) =>
   !d.note && d.counters.length === 0 && d.slots.every((s) => s.com2usId == null && !s.name);
@@ -105,13 +101,18 @@ const bilanVide = (): BilanFusion => ({ decksAjoutes: 0, decksEnrichis: 0, defen
 // recommandation, `existante` n'est pas touchée.
 //
 // - Nom, auteur, consignes : ceux de l'existante, tels quels.
-// - Un deck dont l'équipe existe déjà n'est pas dupliqué : il gagne seulement
-//   les défenses qu'il ne visait pas. Ses builds, ses consignes, ses défenses
-//   et leurs précisions restent les siens.
+// - Un deck dont l'équipe existe déjà (même clé) n'est pas dupliqué : il gagne
+//   seulement les défenses qu'il ne visait pas (même clé). Son ordre, ses
+//   builds, ses consignes, ses défenses et leurs précisions restent les siens.
 // - Un deck nouveau est ajouté à la fin, tel que le fichier le donne.
 // - La `source` : celle de l'existante, ou à défaut celle du fichier — la
 //   prochaine fusion se reconnaîtra ainsi sans dépendre du nom.
-export function fusionnerReco(existante: Reco, entrante: RecoPayload): { reco: Reco; bilan: BilanFusion } {
+// `connus` : les monstres des données chargées, pour reconnaître le chef.
+export function fusionnerReco(
+  existante: Reco,
+  entrante: RecoPayload,
+  connus: MonstresConnus,
+): { reco: Reco; bilan: BilanFusion } {
   const bilan = bilanVide();
   // Une recommandation réduite à son deck vide (celui que pose la création) :
   // les decks reçus le remplacent, comme une restauration (useSiegeRecos).
@@ -122,8 +123,8 @@ export function fusionnerReco(existante: Reco, entrante: RecoPayload): { reco: R
   const vusAvant = new Set<number>();
 
   for (const recu of entrante.decks) {
-    const cle = cleEquipe(recu);
-    const i = decks.findIndex((d) => cleEquipe(d) === cle);
+    const cle = cleDeck(recu, connus);
+    const i = decks.findIndex((d) => cleDeck(d, connus) === cle);
     if (i < 0) {
       decks.push(copieDeck(recu));
       bilan.decksAjoutes++;
@@ -133,10 +134,11 @@ export function fusionnerReco(existante: Reco, entrante: RecoPayload): { reco: R
     // n'est pas compté comme « déjà là ».
     const dejaLa = i < nbAvant;
     if (dejaLa) vusAvant.add(i);
-    const connues = new Set(decks[i].counters.map((c) => cleDefenseSansOrdre(c.monsters)));
+    // Une défense vide (clé `null`) n'est jamais ajoutée.
+    const connues = new Set(decks[i].counters.map((c) => cleEquipe(c.monsters, connus)));
     const nouvelles: RecoCounter[] = [];
     for (const c of recu.counters) {
-      const k = cleDefenseSansOrdre(c.monsters);
+      const k = cleEquipe(c.monsters, connus);
       if (k == null || connues.has(k)) continue;
       connues.add(k);
       nouvelles.push(structuredClone(c));
@@ -177,6 +179,7 @@ export function appliquerImport(
   entrantes: RecoPayload[],
   fusionner: boolean,
   newId: () => string,
+  connus: MonstresConnus,
 ): { recos: Reco[]; bilan: BilanImport } {
   const bilan: BilanImport = { ...bilanVide(), recosAjoutees: 0, recosFusionnees: 0 };
   const recos = [...existantes];
@@ -188,7 +191,7 @@ export function appliquerImport(
       bilan.recosAjoutees++;
       continue;
     }
-    const { reco, bilan: b } = fusionnerReco(cible, e);
+    const { reco, bilan: b } = fusionnerReco(cible, e, connus);
     recos[recos.indexOf(cible)] = reco;
     fusionnees.add(reco.id);
     bilan.decksAjoutes += b.decksAjoutes;

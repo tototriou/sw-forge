@@ -131,7 +131,7 @@ Hooks : `useRtaState`, `useRtaCategories`, `useRtaBackup`, `useRuneMetric`, `use
 `RecoBoard.tsx` + `RecoCard.tsx` (recommandations), `ChoixFusionRecos.tsx` (fusionner ou ajouter
 à part un import qui complète une recommandation), `LeadPill.tsx`. Hooks `useSiegeState`,
 `useSiegeRecos`. Lib `recoMatch`, `recoSearch`, `recoShare`, `recoFromSiege`, `recoDefenses` (la
-vue Défense, calculée à partir des decks), `recoFusion` (la fusion d'un import), `ownedBuilds`, **`siegeStatut`** (le statut
+vue Défense, calculée à partir des decks, et la clé d'une équipe que la fusion reprend), `recoFusion` (la fusion d'un import), `ownedBuilds`, **`siegeStatut`** (le statut
 vert / orange / rouge d'une équipe en mode « Vérifier mes tick ATB » — pur et testé, il ne vit pas
 dans la carte).
 

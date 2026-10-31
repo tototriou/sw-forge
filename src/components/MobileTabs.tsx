@@ -6,6 +6,7 @@ import MonsterAvatar from './MonsterAvatar';
 import type { Monster } from '../types';
 import { useClavierOuvert } from '../hooks/useClavierOuvert';
 import { HAUTEUR_ONGLETS } from '../lib/layout';
+import { useTraduction } from '../hooks/useLangue';
 
 // Barre d'onglets du BAS — la navigation sous `lg`.
 //
@@ -67,6 +68,7 @@ export default function MobileTabs({
   // un défaut à corriger en CSS — c'est le comportement voulu pour une barre
   // d'outils. La seule sortie est de la retirer, ce qui rend au passage une
   // quarantaine de pixels à un écran qui en manque.
+  const t = useTraduction().onglets;
   const clavierOuvert = useClavierOuvert();
   // Le dernier monstre reste rendu pendant que son icône glisse hors du bouton.
   const dernierMonstre = useRef<Monster | null>(null);
@@ -90,7 +92,7 @@ export default function MobileTabs({
         <Bouton
           onClick={onOuvrirActions}
           aria-expanded={actionsOuvertes}
-          aria-label="Filtres et actions de la page"
+          aria-label={t.actionsPage}
           fond="plein"
           forme="pilule"
           taille="sm"
@@ -106,7 +108,7 @@ export default function MobileTabs({
             </span>
             <SlidersHorizontal size={15} />
           </span>}
-          libelle="Options"
+          libelle={t.options}
           // ⚠️ L'OMBRE est ici justifiée, contrairement à la règle générale : ce
           // bouton FLOTTE réellement au-dessus de la page qui défile dessous.
           // C'est le seul cas où l'élévation dit quelque chose de vrai.
@@ -121,7 +123,7 @@ export default function MobileTabs({
       <nav
       className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-border bg-panel"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      aria-label="Navigation principale"
+      aria-label={t.navigationPrincipale}
     >
       <div className="grid grid-cols-5">
         {onglets.map((o) => {

@@ -3,6 +3,7 @@ import { ArrowLeftRight, ChevronRight, Lock, LockOpen, SlidersHorizontal, X } fr
 import { Bouton, BoutonIcone } from '../ui';
 import { LargeurVolet } from '../hooks/useMediaQuery';
 import { palierContenu, SEUIL_CONTENU_BUREAU } from '../lib/volets';
+import { useTraduction } from '../hooks/useLangue';
 
 // Un volet de l'écran partagé : son en-tête, puis la page, qui défile seule
 // (docs/02-app/transverse/feat-navigation/ecran-partage.md).
@@ -71,6 +72,7 @@ export default function VoletEcran({
   corpsRef,
   children,
 }: VoletEcranProps) {
+  const t = useTraduction().ecranPartage;
   const page = fil[fil.length - 1] ?? '';
   // Avant toute mesure (et au rendu serveur) : le seuil de bureau, la largeur
   // d'un volet à 50/50 sur la plupart des écrans de bureau.
@@ -97,7 +99,7 @@ export default function VoletEcran({
 
   return (
     <section
-      aria-label={`Volet ${actif ? 'actif' : 'inactif'} : ${page}`}
+      aria-label={t.volet(actif, page)}
       data-volet-actif={actif || undefined}
       onPointerDownCapture={onActiver}
       onFocusCapture={onActiver}
@@ -107,7 +109,7 @@ export default function VoletEcran({
     >
       <div className="flex h-9 flex-none items-center gap-2 border-b border-border-soft bg-bar pl-3 pr-1.5">
         <span aria-hidden className={`h-1.5 w-1.5 flex-none rounded-full ${actif ? 'bg-accent' : 'bg-border'}`} />
-        <nav aria-label="Fil d'Ariane du volet" className="flex min-w-0 items-center gap-1.5 text-sm">
+        <nav aria-label={t.filAriane} className="flex min-w-0 items-center gap-1.5 text-sm">
           {fil.map((etape, i) => (
             <Fragment key={i}>
               {i > 0 && <ChevronRight size={13} aria-hidden className="flex-none text-ink-dimmer" />}
@@ -120,7 +122,7 @@ export default function VoletEcran({
             </Fragment>
           ))}
         </nav>
-        {verrouille && <span className="flex-none text-xs text-ink-dim">Verrouillé</span>}
+        {verrouille && <span className="flex-none text-xs text-ink-dim">{t.verrouille}</span>}
         <div className="ml-auto flex flex-none items-center gap-0.5">
           {etroit && onOptions && (
             <Bouton
@@ -129,8 +131,8 @@ export default function VoletEcran({
               trait="aucun"
               actif={optionsOuvertes}
               icone={<SlidersHorizontal size={15} className="flex-none" />}
-              libelle="Options"
-              title="Les actions de la page, rangées comme au téléphone dans ce volet étroit"
+              libelle={t.options}
+              title={t.optionsAide}
               onClick={onOptions}
             />
           )}
@@ -138,11 +140,7 @@ export default function VoletEcran({
             <BoutonIcone
               icone={verrouille ? <Lock size={15} /> : <LockOpen size={15} />}
               libelle={
-                verrouille
-                  ? 'Déverrouiller ce volet'
-                  : verrouIndisponible
-                    ? 'Un seul volet verrouillé à la fois'
-                    : 'Verrouiller ce volet : sa page ne changera plus en naviguant'
+                verrouille ? t.deverrouiller : verrouIndisponible ? t.unSeulVerrou : t.verrouiller
               }
               actif={verrouille}
               aria-pressed={verrouille}
@@ -150,10 +148,10 @@ export default function VoletEcran({
               onClick={onVerrouiller}
             />
           )}
-          <BoutonIcone icone={<ArrowLeftRight size={15} />} libelle="Inverser les volets" onClick={onInverser} />
+          <BoutonIcone icone={<ArrowLeftRight size={15} />} libelle={t.inverser} onClick={onInverser} />
           <BoutonIcone
             icone={<X size={15} />}
-            libelle={verrouille ? 'Déverrouiller pour fermer' : 'Fermer ce volet'}
+            libelle={verrouille ? t.deverrouillerPourFermer : t.fermer}
             disabled={verrouille}
             onClick={onFermer}
           />

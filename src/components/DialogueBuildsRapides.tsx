@@ -18,14 +18,14 @@ import {
 } from '../hooks/useBuildsRapides';
 import { Bouton, BoutonIcone, Jeton, Modale, NumberField } from '../ui';
 import RuneIcon from './RuneIcon';
+import type { Dictionnaire } from '../i18n';
 import SymbolesCombo, { nomCombo } from './SymbolesCombo';
 
 const label = (key: string) => RUNE_SETS.find((s) => s.key === key)?.label ?? key;
 
 // Résumé d'une ligne, sous l'intitulé du réglage.
-export function resumeBuildsRapides(r: ReglageBuildsRapides): string {
-  const n = r.combos.length;
-  return `${n} combinaison${n > 1 ? 's' : ''} · ${r.nombre} build${r.nombre > 1 ? 's' : ''} par combinaison, au Résumé des runes.`;
+export function resumeBuildsRapides(r: ReglageBuildsRapides, t: Dictionnaire['parametres']): string {
+  return t.resumeBuildsRapides(r.combos.length, r.nombre);
 }
 
 // Fenêtre du réglage « Builds les plus rapides » : le nombre de builds par

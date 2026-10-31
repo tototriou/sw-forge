@@ -1,5 +1,9 @@
 import { Gauge, List, LineChart, GitCompare, Wand2, Hammer, Gem } from 'lucide-react';
 import type { AccountSub, AccountView } from '../App';
+import type { Dictionnaire } from '../i18n';
+
+// Une clé de `navigation` dans le dictionnaire : une destination nommée.
+export type CleNavigation = keyof Dictionnaire['navigation'];
 
 // Les VUES de chaque inventaire — troisième niveau de navigation.
 //
@@ -14,7 +18,8 @@ import type { AccountSub, AccountView } from '../App';
 
 export interface VueInventaire {
   key: AccountView;
-  label: string;
+  // Le libellé, par sa clé dans `navigation` du dictionnaire (src/i18n/).
+  texte: CleNavigation;
   icon: typeof List;
 }
 
@@ -22,28 +27,28 @@ export interface VueInventaire {
 // dans cette table pour que la barre traite les trois inventaires de la même
 // façon — un cas particulier « pas de troisième niveau ici » se serait glissé
 // partout.
-const MONSTRES: VueInventaire[] = [{ key: 'liste', label: 'Ma box', icon: List }];
+const MONSTRES: VueInventaire[] = [{ key: 'liste', texte: 'maBox', icon: List }];
 
 const RUNES: VueInventaire[] = [
-  { key: 'resume', label: 'Résumé', icon: Gauge },
-  { key: 'liste', label: 'Liste', icon: List },
-  { key: 'courbes', label: 'Courbes', icon: LineChart },
-  { key: 'comparaison', label: 'Comparaison', icon: GitCompare },
-  { key: 'optimisation', label: 'Optimisation', icon: Wand2 },
+  { key: 'resume', texte: 'resume', icon: Gauge },
+  { key: 'liste', texte: 'liste', icon: List },
+  { key: 'courbes', texte: 'courbes', icon: LineChart },
+  { key: 'comparaison', texte: 'comparaison', icon: GitCompare },
+  { key: 'optimisation', texte: 'optimisation', icon: Wand2 },
   // ⚠️ Ces deux-là ne refont pas l'Optimisation : « quelles runes puis-je
   // améliorer avec ce que j'ai » y est un simple FILTRE, sans quoi il faudrait
   // y réimplémenter potentiels et gains. Ils porteront la question inverse —
   // ce qui MANQUE, et où aller le chercher.
-  { key: 'meules', label: 'Meules', icon: Hammer },
-  { key: 'gemmes', label: 'Gemmes', icon: Gem },
+  { key: 'meules', texte: 'meules', icon: Hammer },
+  { key: 'gemmes', texte: 'gemmes', icon: Gem },
 ];
 
 // ⚠️ Pas d'« Optimisation » côté artéfacts, et il n'y en aura pas : il n'existe
 // ni meule ni gemme pour eux. Une ligne tombée est définitive, le seul levier
 // est de monter la pièce au +15. Voir docs/02-app/compte/.
 const ARTEFACTS: VueInventaire[] = [
-  { key: 'resume', label: 'Résumé', icon: Gauge },
-  { key: 'liste', label: 'Liste', icon: List },
+  { key: 'resume', texte: 'resume', icon: Gauge },
+  { key: 'liste', texte: 'liste', icon: List },
 ];
 
 export const VUES_INVENTAIRE: Record<AccountSub, VueInventaire[]> = {

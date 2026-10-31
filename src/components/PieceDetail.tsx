@@ -13,7 +13,8 @@ import {
 } from '../lib/effects';
 import { artifactScore, artifactEfficiency } from '../lib/artifacts';
 import { COMPACT, useMediaQuery } from '../hooks/useMediaQuery';
-import { RUNE_METRICS, formatRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
+import { choixMesure, formatRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
+import { useTraduction } from '../hooks/useLangue';
 import { ZoneCliquable } from '../ui';
 
 // Détail d'une PIÈCE ÉQUIPÉE — une rune, un artéfact —, façon jeu.
@@ -356,7 +357,7 @@ export function RuneDetailBox({
   const bonus = SET_BONUS[rune.set];
   const ancient = rune.rank > 10;
   const metric = useRuneMetric();
-  const metricHint = RUNE_METRICS.find((m) => m.key === metric)?.hint;
+  const metricHint = choixMesure(useTraduction()).find((m) => m.key === metric)?.hint;
 
   // ── Détail / total, au clic ─────────────────────────────────────────────
   //
@@ -493,7 +494,7 @@ export function ArtifactDetailBox({
   const rarity = RARITY_META[artifact.rarity] ?? RARITY_META[1];
   // Réglage global (menu ⚙), partagé avec les runes — pas un état local.
   const metric = useRuneMetric();
-  const metricHint = RUNE_METRICS.find((m) => m.key === metric)?.hint;
+  const metricHint = choixMesure(useTraduction()).find((m) => m.key === metric)?.hint;
 
   return (
     <PieceDetailBox

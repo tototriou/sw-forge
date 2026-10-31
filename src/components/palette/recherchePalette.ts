@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Monster, SiegeTeam } from '../../types';
+import type { Dictionnaire } from '../../i18n';
 
 // Ce que la palette Ctrl K propose pour une saisie — voir docs/02-app/transverse/ §
 // Palette Ctrl K. Pur : les
@@ -25,7 +26,9 @@ export interface EntreePalette {
 }
 
 export interface GroupePalette {
-  titre: 'Pages' | 'Monstres' | 'Actions';
+  // L'intitulé du groupe, dans la langue affichée (« Pages », « Monstres »,
+  // « Actions »).
+  titre: string;
   entrees: EntreePalette[];
 }
 
@@ -44,6 +47,7 @@ export interface EquipeCherchable {
 
 export function resultatsPalette({
   saisie,
+  textes,
   pages,
   actions,
   monstres,
@@ -53,6 +57,8 @@ export function resultatsPalette({
   ouvrirSpeedTune,
 }: {
   saisie: string;
+  // Les textes de la palette, dans la langue affichée.
+  textes: Dictionnaire['palette'];
   pages: EntreePalette[];
   actions: EntreePalette[];
   monstres: Monster[];
@@ -67,7 +73,7 @@ export function resultatsPalette({
   const groupes: GroupePalette[] = [];
 
   const pagesTrouvees = pages.filter(correspond);
-  if (pagesTrouvees.length) groupes.push({ titre: 'Pages', entrees: pagesTrouvees });
+  if (pagesTrouvees.length) groupes.push({ titre: textes.pages, entrees: pagesTrouvees });
 
   if (q.length >= MIN_LETTRES_MONSTRES) {
     // Un nom par entrée : les formes d'un même monstre partagent souvent leur
@@ -79,9 +85,9 @@ export function resultatsPalette({
       const cle = `${m.name}|${m.element}`;
       if (vus.has(cle) || !normaliser(m.name).includes(q)) continue;
       vus.add(cle);
-      trouves.push({ cle: `m-${m.id}`, libelle: m.name, contexte: 'Fiche', monstre: m, faire: () => ouvrirFiche(m) });
+      trouves.push({ cle: `m-${m.id}`, libelle: m.name, contexte: textes.fiche, monstre: m, faire: () => ouvrirFiche(m) });
     }
-    if (trouves.length) groupes.push({ titre: 'Monstres', entrees: trouves });
+    if (trouves.length) groupes.push({ titre: textes.monstres, entrees: trouves });
   }
 
   // Les actions fixes filtrées, puis le speed tuning des équipes dont un
@@ -103,14 +109,14 @@ export function resultatsPalette({
           .join(', ');
         return {
           cle: `st-${e.cote}-${e.team.id}`,
-          libelle: `Speed tuning · ${noms}`,
-          contexte: `${e.cote === 'defense' ? 'Défense' : 'Offense'} · équipe ${e.rang}`,
+          libelle: textes.speedTuning(noms),
+          contexte: e.cote === 'defense' ? textes.equipeDefense(e.rang) : textes.equipeOffense(e.rang),
           faire: () => ouvrirSpeedTune(e),
         };
       });
     actionsTrouvees.push(...speed);
   }
-  if (actionsTrouvees.length) groupes.push({ titre: 'Actions', entrees: actionsTrouvees });
+  if (actionsTrouvees.length) groupes.push({ titre: textes.actions, entrees: actionsTrouvees });
 
   return groupes;
 }

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import MobileSheet from '../ui/MobileSheet';
 import { COURBE, GLISSEMENT, SidebarGroupe, SidebarSection } from './Sidebar';
+import { useTraduction } from '../hooks/useLangue';
 
 // Choix de la SOUS-SECTION sur téléphone — le second niveau de navigation.
 //
@@ -61,6 +62,7 @@ export default function MobileNavSheet({
   // Le groupe ouvert, par son TITRE. ⚠️ Le titre et non l'objet, pour la même
   // raison que partout ailleurs dans la navigation : un objet mémorisé se fige
   // à l'instant du clic et cesse de suivre les rendus suivants.
+  const t = useTraduction().panneauNavigation;
   const [groupeOuvert, setGroupeOuvert] = useState<string | null>(null);
 
   // ⚠️ On repart du PREMIER temps à chaque ouverture, et à chaque changement de
@@ -132,7 +134,7 @@ export default function MobileNavSheet({
             >
               {groupeCourant ? (
                 /* ── Second temps : les vues du groupe choisi ─────────────── */
-                <nav className={LISTE} aria-label={`Vues de ${groupeCourant.titre}`}>
+                <nav className={LISTE} aria-label={t.vuesDe(groupeCourant.titre ?? '')}>
                   {/* ⚠️ Le RETOUR est la PREMIÈRE rangée de la liste, en haut
                       du panneau — même gabarit que les autres :
                       **toutes les cibles ont la même taille.** Ce qui le
@@ -163,7 +165,7 @@ export default function MobileNavSheet({
                    quelques centaines de millisecondes d'intervalle : deux
                    gabarits de cible pour un seul geste, et le panneau
                    changerait de nature en descendant d'un niveau. */
-                <nav className={LISTE} aria-label={`Sections de ${section.titre}`}>
+                <nav className={LISTE} aria-label={t.sectionsDe(section.titre)}>
                   {aDesGroupes
                     ? groupes.map((g) => <EntreeGroupe key={g.titre} groupe={g} onOuvrir={() => setGroupeOuvert(g.titre!)} onFermer={onFermer} />)
                     : groupes.flatMap((g) =>

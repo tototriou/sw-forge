@@ -6,7 +6,8 @@
 import HomePage from '../../src/pages/HomePage';
 import { SettingsList } from '../../src/components/SettingsMenu';
 import { KeepAccountDialog } from '../../src/ui/Dialogs';
-import { THEME_CHOICES } from '../../src/hooks/useTheme';
+import { choixTheme } from '../../src/hooks/useTheme';
+import { fr } from '../../src/i18n/fr';
 import { ok, titre } from '../outils';
 import { auTelephone, rendre, texteVisible } from './outils-rendu';
 
@@ -18,7 +19,7 @@ function textes(): { accueil: string; reglages: string; question: string; theme:
     reglages: texteVisible(rendre(<SettingsList onClearData={rien} onSauvegarderSession={rien} onKeepAccount={rien} accountExportedAt={null} />)),
     // La `Modale` passe par un portail : `auTelephone` le pose en place.
     question: texteVisible(auTelephone(() => rendre(<KeepAccountDialog onChoose={rien} onDismiss={rien} />))),
-    theme: THEME_CHOICES.find((c) => c.key === 'auto')!.hint,
+    theme: choixTheme(fr).find((c) => c.key === 'auto')!.hint,
   };
 }
 

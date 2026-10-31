@@ -3,6 +3,7 @@ import { Search } from 'lucide-react';
 import { Modale } from '../ui/Dialogs';
 import MonsterAvatar from './MonsterAvatar';
 import { GroupePalette, EntreePalette } from './palette/recherchePalette';
+import { useTraduction } from '../hooks/useLangue';
 
 // PALETTE Ctrl K (la maquette) — voir
 // docs/02-app/transverse/ § Palette Ctrl K. Une seule recherche pour l'app :
@@ -42,6 +43,7 @@ export function RecherchePalette({
   onEchap?: () => void;
   saisieInitiale?: string;
 }) {
+  const t = useTraduction().palette;
   const [saisie, setSaisie] = useState(saisieInitiale);
   const [actif, setActif] = useState(0);
   const champ = useRef<HTMLInputElement>(null);
@@ -96,7 +98,7 @@ export function RecherchePalette({
           className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-dimmer"
         />
         <kbd aria-hidden className="flex-none rounded-md border border-border bg-panel px-1.5 font-mono text-micro text-ink-dim">
-          Échap
+          {t.echap}
         </kbd>
       </div>
 
@@ -104,12 +106,12 @@ export function RecherchePalette({
         ref={liste}
         id={`${id}-liste`}
         role="listbox"
-        aria-label="Résultats"
+        aria-label={t.resultats}
         className="mt-3 flex max-h-[min(60vh,440px)] flex-col gap-3 overflow-y-auto"
       >
         {plat.length === 0 ? (
           <div className="flex flex-col items-center gap-1 py-6 text-center">
-            <span className="text-sm text-ink">Aucun résultat pour « {saisie.trim()} »</span>
+            <span className="text-sm text-ink">{t.aucunResultat(saisie.trim())}</span>
             <span className="text-xs text-ink-dim">{aide}</span>
           </div>
         ) : (
@@ -160,11 +162,12 @@ export default function Palette({
   // Pour les tests : ouvrir sur une saisie déjà tapée.
   saisieInitiale?: string;
 }) {
+  const t = useTraduction().palette;
   return (
     <Modale
       onClose={onFermer}
       labelledBy="palette-titre"
-      titre={<span id="palette-titre">Rechercher</span>}
+      titre={<span id="palette-titre">{t.titre}</span>}
       croix
       largeur="max-w-[640px]"
       padding="p-4"
@@ -176,8 +179,8 @@ export default function Palette({
           onFermer();
           e.faire();
         }}
-        invite="Rechercher une page, un monstre, une action…"
-        aide="Essaie un nom de monstre, de page ou d'action."
+        invite={t.invite}
+        aide={t.aide}
         saisieInitiale={saisieInitiale}
         idBase="palette"
       />

@@ -34,7 +34,19 @@ texte du code suffit à vérifier :
 | --- | --- | --- |
 | `confirm()`, `prompt()`, `window.confirm()`, `window.prompt()` | `no-restricted-globals`, `no-restricted-syntax` | les dialogues de `src/ui/Dialogs.tsx` |
 | un attribut `type="number"` | `no-restricted-syntax` | `NumberField` de `src/ui/` |
-| `localStorage.setItem` | `no-restricted-properties` | `saveLocal` ([persistance.md](../02-app/transverse/feat-import-compte/persistance.md)) ; permis dans `usePersistence.ts` et les hooks des clés de réglage (`useTheme`, `useOvercapDisplay`, `useRuneMetric`, `useAdversaireReference`, `useBuildsRapides`) |
+| `localStorage.setItem` | `no-restricted-properties` | `saveLocal` ([persistance.md](../02-app/transverse/feat-import-compte/persistance.md)) ; permis dans `usePersistence.ts` et les hooks des clés de réglage (`useTheme`, `useLangue`, `useOvercapDisplay`, `useRuneMetric`, `useAdversaireReference`, `useBuildsRapides`) |
+
+Dans les fichiers traduits — la liste `FICHIERS_TRADUITS` d'`eslint.config.js`, qui grandit
+écran par écran jusqu'à couvrir `src/` —, la règle locale `swblacksmith/texte-en-dur`
+(`scripts/lib/regleTexteEnDur.mjs`) est en erreur :
+
+| Refusé | À la place |
+| --- | --- |
+| un texte entre balises qui contient un mot ; une chaîne littérale en enfant (`{ok ? 'Oui' : 'Non'}`) ; la même chose dans `title`, `aria-label`, `placeholder`, `alt`, `libelle`, `label`, `hint`, `titre`, `invite` ou `aide` | le dictionnaire de `src/i18n/`, lu par `useTraduction()` ([feat-langues.md](../02-app/transverse/feat-langues.md)) |
+
+Un « mot » est fait de deux lettres qui se suivent : symboles, ponctuation et nombres passent. Une
+chaîne rangée dans une variable avant d'être affichée échappe à la règle ; la relecture la voit.
+Test : `node tests/run.mjs LangueTexteEnDur`.
 
 Choix assumés :
 

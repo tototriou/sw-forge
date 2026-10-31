@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { Search } from 'lucide-react';
+import { useTraduction } from '../hooks/useLangue';
 
 // Recherche dans la NAVIGATION, en tête de la barre latérale.
 //
@@ -34,13 +35,14 @@ export default function SidebarSearch({
   // loupe ouvre la palette directement, sans déplier la barre.
   onOuvrir: () => void;
 }) {
+  const t = useTraduction().barreLaterale;
   if (retractee) {
     return (
       <button
         type="button"
         onClick={onOuvrir}
-        title="Rechercher une page (⌘K)"
-        aria-label="Rechercher une page"
+        title={t.rechercherPageAide}
+        aria-label={t.rechercherPage}
         className="mx-auto mb-1 flex aspect-square h-8 w-8 items-center justify-center rounded-md
                    text-ink-dim transition-colors hoverable:bg-panel2 hoverable:text-ink"
       >
@@ -54,13 +56,13 @@ export default function SidebarSearch({
       <button
         type="button"
         onClick={onOuvrir}
-        aria-label="Rechercher une page"
-        title="Rechercher une page (⌘K)"
+        aria-label={t.rechercherPage}
+        title={t.rechercherPageAide}
         className="flex w-full items-center gap-2 rounded-lg border border-border-soft bg-panel py-1.5 pl-2.5
                    pr-1.5 text-left transition-colors hoverable:border-border"
       >
         <Search size={16} className="flex-none text-ink-dimmer" />
-        <span className="min-w-0 flex-1 truncate text-sm text-ink-dimmer">Aller à…</span>
+        <span className="min-w-0 flex-1 truncate text-sm text-ink-dimmer">{t.allerA}</span>
         {/* Le raccourci, affiché comme dans la maquette de la refonte
             graphique. */}
         <kbd
@@ -68,7 +70,7 @@ export default function SidebarSearch({
           className="flex-none rounded-md border border-border bg-panel2 px-1.5 font-mono text-micro
                      text-ink-dim"
         >
-          Ctrl K
+          {t.raccourci}
         </kbd>
       </button>
     </div>

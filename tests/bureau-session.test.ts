@@ -25,6 +25,7 @@ import {
   texteSessionValide,
 } from '../bureau/sessionPur';
 import { presentationDossierSwblacksmith } from '../src/components/SettingsMenu';
+import { fr } from '../src/i18n/fr';
 import { FORMAT_SESSION, nomFichierSession } from '../src/lib/session';
 import { egal, ok, titre } from './outils';
 
@@ -45,8 +46,8 @@ export default async function testBureauSession() {
   egal(lireDossierRetenu({ dossier: 'Documents' }), null, 'un chemin relatif : refusé');
   egal(lireDossierRetenu({ dossier: null }), null, 'retiré : rien');
   egal(dossierSessions(racine), join(racine, 'sessions'), 'les sessions vont dans son sous-dossier « sessions »');
-  ok(presentationDossierSwblacksmith(null).includes('sous-dossier « sessions »'), 'Paramètres, sans dossier : ce qu’il sert à faire');
-  egal(presentationDossierSwblacksmith(etatDe(null, racine)), racine, 'Paramètres, avec : le chemin');
+  ok(presentationDossierSwblacksmith(null, fr.parametres).includes('sous-dossier « sessions »'), 'Paramètres, sans dossier : ce qu’il sert à faire');
+  egal(presentationDossierSwblacksmith(etatDe(null, racine), fr.parametres), racine, 'Paramètres, avec : le chemin');
   const pris = new Set([join(racine, 'a.json'), join(racine, 'a (2).json')]);
   egal(cheminLibre(racine, 'b.json', (c) => pris.has(c)), join(racine, 'b.json'), 'nom libre : tel quel');
   egal(cheminLibre(racine, 'a.json', (c) => pris.has(c)), join(racine, 'a (3).json'), 'nom pris : le premier numéro libre, jamais d’écrasement');

@@ -67,7 +67,7 @@ s'en serait aperçu puisqu'on n'ouvre jamais les deux à la fois.
   ses réglages portent trois lignes d'explication, illisibles dans 260 px.
 - ⚠️ **À la souris** : le titre
   « Paramètres », la carte du compte, puis **deux blocs intitulés** —
-  « Réglages » (thème, score, builds les plus rapides, overcap, adversaire de
+  « Réglages » (langue, thème, score, builds les plus rapides, overcap, adversaire de
   référence) et « Mes
   données » (garder mes données, âge des données, tout supprimer) — chacun
   dans sa carte. Même liste, même ordre (`SettingsList groupes`). **Au doigt
@@ -111,6 +111,8 @@ barre latérale au bureau, dans la barre supérieure au téléphone.
 Contenu actuel, dans l'ordre :
 
 - Bloc **« Réglages »** :
+  - **Langue** → trois options (`Auto`, `Français`, `English`), voir
+    [feat-langues.md](../feat-langues.md) ;
   - **Thème** → trois options (`Auto` et les deux thèmes), voir
     [design/reglage-du-theme.md](../../../03-developpeur/interface/design/reglage-du-theme.md) ;
   - **Score** → `Efficience` / `Score SW` (voir

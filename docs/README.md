@@ -72,7 +72,8 @@
 
 ### Conventions de rédaction
 
-- **Français partout** : documentation, commentaires et messages de commit.
+- **Français pour le dépôt** : documentation, commentaires et messages de commit. L'interface,
+  elle, existe en plusieurs langues ([feat-langues.md](02-app/transverse/feat-langues.md)).
 - **Ce qui est décidé ou fait, jamais ce qui se faisait avant** : ni une fiche ni un ADR ne garde
   d'historique ; l'historique Git garde le texte remplacé.
 - Dates **absolues** (jamais « récemment », « la semaine dernière »).

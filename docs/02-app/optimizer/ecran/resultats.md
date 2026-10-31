@@ -490,6 +490,19 @@ toutes les bornes (dans l'en-tête au bureau, au pied de la grille aux deux
 formats). Les libellés et unités viennent de `filtresAffichage.ts` ;
 « Efficience » devient « Score SW » avec le réglage.
 
+- **« Stats de base exclues »**, au-dessus de la grille : le même
+  interrupteur que « Conditions » (libellé, aide, `Interrupteur`), aux deux
+  formats. Il porte le réglage d'**affichage** de « Stats totales / Stats
+  bonus » du tableau (§ Cartes ou tableau), jamais celui de la recherche :
+  parti de « Stats de base exclues » des conditions photographié au
+  lancement, il ne change ensuite que par l'utilisateur, et le basculer ne
+  touche pas aux conditions. Activé, PV, ATQ, DEF et VIT se saisissent et
+  s'écrivent sans la base du monstre, par la même conversion que le tableau
+  (`versAffichage`, `depuisAffichage`) ; le classeur garde la borne en
+  total, et basculer ne masque ni ne révèle aucun build. Sans lui, une borne
+  pensée « au-dessus de la base » (VIT ≥ 150) se lisait en total et ne
+  masquait presque rien. Le résumé des bornes reste écrit en total.
+
 - **Ligne de comptes, toujours présente** sous l'en-tête dès qu'il y a des
   résultats : « Aucun filtre » sans borne, sinon « Filtres : 12 visibles ·
   30 masquées · 8 à vérifier · 2 indéterminées » (comptes de la vue
@@ -575,7 +588,8 @@ toujours, superposés, l'absent invisible (`VISIBLE_AVEC_LE_TABLEAU`,
   la largeur de la plus grande valeur de sa colonne (`CHIFFRES_MAX_COLONNE`,
   en `ch` de la police du champ : PV à 5 chiffres, PV effectifs et dégâts à
   6, Efficience à « 118.6 »). **Largeur minimale mesurée : 661 px** dans
-  l'app construite, polices chargées, chaque valeur remplacée par la plus
+  l'app construite, polices chargées (le banc des tests rend avec les
+  mêmes, tests/README.md), chaque valeur remplacée par la plus
   large de sa colonne et les bornes « 150000 » posées ; c'est le seuil
   (`SEUIL_TABLEAU_PX`), lu par une requête de conteneur sur la zone des
   résultats (`@container/resultats`) : en dessous, les cartes, avec la ligne
@@ -598,7 +612,9 @@ toujours, superposés, l'absent invisible (`VISIBLE_AVEC_LE_TABLEAU`,
   base, un minimum de 3500 s'écrit 2600 en Stats bonus, et basculer ne masque ni ne
   révèle aucun build. Une borne en total sous la base s'écrit négative en
   Stats bonus : le plancher du champ est un total de 0 (−base), rien ne la
-  réécrit à la sortie du champ. Le tri ne change pas. Les cartes gardent leur bascule
+  réécrit à la sortie du champ. Le tri ne change pas. Le même réglage est
+  « Stats de base exclues » de la grille des filtres en cartes (§ À l'écran) :
+  basculer l'un bascule l'autre. Les valeurs des cartes gardent leur bascule
   propre (clic sur la fiche).
 
 ## Valeur d'objectif affichée sur les cartes

@@ -65,6 +65,7 @@ export const RELEASES: Release[] = [
     title: 'Réimporter une recommandation la complète au lieu de la doubler',
     changes: [
       { kind: 'feat', scope: 'Recommandations', text: 'Un fichier qui prolonge une de tes recommandations peut s’y fusionner : nouveaux decks et défenses seulement.' },
+      { kind: 'fix', scope: 'Optimizer', text: 'En cartes, « Filtrer l’affichage » peut exclure les stats de base, comme le tableau.' },
     ],
   },
   {

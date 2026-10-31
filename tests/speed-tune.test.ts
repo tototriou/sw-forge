@@ -47,6 +47,7 @@ import {
   plateauDeLignes,
   majMod,
   oublierCamp,
+  ordreApresImport,
   plusRapideAllie,
   tuneDe,
   type Leads,
@@ -4026,6 +4027,17 @@ export function testSpeedTuneModele() {
   {
     const choix = { 'allie:1': 'A', 'ennemi:2': 'B' };
     egal(JSON.stringify(oublierCamp(choix, 'allie')), '{"ennemi:2":"B"}', "l'import d'un deck oublie les sorts du camp");
+  }
+
+  // L'ordre rangé à la main s'en va avec « Ton équipe » : sinon le deck suivant
+  // y entrait dans l'ordre de ses slots, et son leader passait « premier »
+  // quelle que soit sa vitesse.
+  {
+    const range = { voulu: ['allie:3', 'allie:1#2', 'allie:1'], range: true };
+    const apres = ordreApresImport('allie', range);
+    egal(apres.range, false, "importer dans « Ton équipe » rend l'ordre aux vitesses");
+    egal(apres.voulu.length, 0, "et vide l'ordre de l'équipe précédente, tours ajoutés compris");
+    egal(ordreApresImport('ennemi', range), range, "un import en face ne touche pas l'ordre de « Ton équipe »");
   }
 
   // Une vitesse de combat inconnue (base absente) ne casse rien.

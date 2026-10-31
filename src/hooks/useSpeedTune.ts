@@ -39,6 +39,7 @@ import {
   lignesDeDeck,
   majMod,
   oublierCamp,
+  ordreApresImport,
   passifActifDe as passifActifDeLigne,
   passifDe as passifDeLigne,
   plusRapideAllie as plusRapideAllieDe,
@@ -314,6 +315,11 @@ export function useSpeedTune({
     setSortChoisi2((m) => oublierCamp(m, camp));
     setCibleSort((m) => oublierCamp(m, camp));
     setAtbChoisi((m) => oublierCamp(m, camp));
+    // ⚠️ L'ordre rangé à la main s'en va aussi : il portait sur l'équipe
+    // précédente, et le nouveau deck y entrait dans l'ordre de ses slots.
+    const ordre = ordreApresImport(camp, { voulu: ordreVoulu, range: ordreRange });
+    setOrdreVoulu(ordre.voulu);
+    setOrdreRange(ordre.range);
     setLignes((prev) => [
       // ⚠️ La référence saute AUSSI quand on importe dans l'autre camp : elle
       // copiait une équipe qui vient de changer.

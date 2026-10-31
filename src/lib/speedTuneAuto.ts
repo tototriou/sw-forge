@@ -35,7 +35,7 @@ import {
   simuler,
   vitessesRequises,
 } from './speedTune';
-import { KitVitesse, SortVitesse } from './speedTuneKit';
+import { effetAuChoix, KitVitesse, SortVitesse } from './speedTuneKit';
 import { PassifVitesse, pointsDeGain } from './speedTunePassif';
 
 // Un monstre de l'équipe, tel que l'écran le connaît.
@@ -315,6 +315,10 @@ export interface ChoixSorts {
   sort?: Record<string, string>;
   sort2?: Record<string, string>;
   cible?: Record<string, string>;
+  // La valeur désignée d'un remplissage de barre AU CHOIX (`atbAuChoix` : buffs
+  // retirés par Blade Fan, % de Start of Attacking), en paliers. Par tour,
+  // comme la cible ; absent = 0.
+  atbChoisi?: Record<string, number>;
 }
 
 export interface OptionsAuto {
@@ -440,7 +444,8 @@ export function analyseAutomatique(
       const enEffet = (x: SortVitesse | null, n: number): EffetSort | undefined =>
         x
           ? {
-              ...sansReductionAdverse(x.effet),
+              // La valeur au choix appartient au tour, comme la cible.
+              ...sansReductionAdverse(effetAuChoix(x, choix?.atbChoisi?.[cleOccurrence(e.id, n)] ?? 0)),
               cooldown: x.cooldown,
               cle: x.nom,
               // ⚠️ **La cible appartient au couple (tour, sort), pas au

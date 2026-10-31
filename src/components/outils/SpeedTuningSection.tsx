@@ -49,7 +49,7 @@ import {
   uidDe,
   visibles,
 } from '../../lib/speedTuneLignes';
-import { kitVitesse, sortsVitesse, KitVitesse, SortVitesse, KIT_VIDE } from '../../lib/speedTuneKit';
+import { kitVitesse, pourcentBarre, sortsVitesse, KitVitesse, SortVitesse, KIT_VIDE } from '../../lib/speedTuneKit';
 import { passifsVitesse, pointsDeGain, PassifVitesse } from '../../lib/speedTunePassif';
 import { analyseAutomatique, cumulsEstimes, sortRetenu, sortSecondRetenu, EntreeAuto } from '../../lib/speedTuneAuto';
 import { chargerDetail } from '../../lib/monsterSkills';
@@ -139,9 +139,12 @@ const signe = (v: number) => (v > 0 ? `+${v}` : `−${Math.abs(v)}`);
 function libelleSort(x: SortVitesse): string {
   const bouts: string[] = [];
   const e = x.effet;
-  if (e.atbEquipe) bouts.push(`+${e.atbEquipe} % barre équipe`);
-  if (e.atbAllie) bouts.push(`+${e.atbAllie} % barre 1 allié`);
-  if (e.atbSoi) bouts.push(`+${e.atbSoi} % sa barre`);
+  if (e.atbEquipe) bouts.push(`+${pourcentBarre(e.atbEquipe)} % barre équipe`);
+  if (e.atbAllie) bouts.push(`+${pourcentBarre(e.atbAllie)} % barre 1 allié`);
+  if (e.atbSoi) bouts.push(`+${pourcentBarre(e.atbSoi)} % sa barre`);
+  if (x.atbAuChoix?.unite === 'retrait')
+    bouts.push(`+${pourcentBarre(x.atbAuChoix.pas)} % barre équipe par buff retiré`);
+  if (x.atbAuChoix?.unite === 'pourcent') bouts.push(`jusqu'à +${x.atbAuChoix.max} % barre équipe`);
   // ⚠️ Annoncé, mais annoncé comme NON COMPTÉ : le tune se juge sans ce qu'on
   // retire à l'adverse (voir `sansReductionAdverse`). Le taire laisserait croire
   // que le calcul en tient compte.
@@ -257,6 +260,7 @@ export default function SpeedTuningSection({
     basculerSwift,
     chaine,
     choisirCible,
+    choisirAtb,
     ajouterOccurrence,
     retirerOccurrence,
     choisirSecond,
@@ -264,6 +268,7 @@ export default function SpeedTuningSection({
     choixSorts,
     cibleFenetre,
     cibleSort,
+    atbChoisi,
     combatDe,
     decks,
     deplacer,
@@ -695,6 +700,47 @@ export default function SpeedTuningSection({
                                             </option>
                                           ))}
                                       </Selecteur>
+                                    </label>
+                                  )}
+                                  {/* ⚠️ Un sort dont le remplissage d'équipe DÉPEND
+                                      DU COMBAT : buffs retirés (Blade Fan), PV
+                                      ôtés à l'ennemi (Start of Attacking). Le
+                                      défaut est zéro — un speed tune ne l'attend
+                                      pas ; on désigne ce qu'on veut tester. */}
+                                  {sortDeLaLigne?.atbAuChoix?.unite === 'retrait' && (
+                                    <label className="flex items-center gap-1.5">
+                                      <span className="text-micro uppercase tracking-wide text-ink-dimmer">
+                                        buffs retirés
+                                      </span>
+                                      <Selecteur
+                                        taille="sm"
+                                        pleineLargeur={false}
+                                        value={String(atbChoisi[cle] ?? 0)}
+                                        onChange={(e) => choisirAtb(cle, Number(e.target.value))}
+                                        aria-label={`Buffs retirés par le sort de ${l.monster.name}`}
+                                      >
+                                        {Array.from({ length: sortDeLaLigne.atbAuChoix.max + 1 }, (_, n) => (
+                                          <option key={n} value={n}>
+                                            {n} (+{pourcentBarre(n * sortDeLaLigne.atbAuChoix!.pas)} % équipe)
+                                          </option>
+                                        ))}
+                                      </Selecteur>
+                                    </label>
+                                  )}
+                                  {sortDeLaLigne?.atbAuChoix?.unite === 'pourcent' && (
+                                    <label className="flex items-center gap-1.5">
+                                      <span className="text-micro uppercase tracking-wide text-ink-dimmer">
+                                        barre équipe
+                                      </span>
+                                      <NumberField
+                                        value={atbChoisi[cle] ?? 0}
+                                        onChange={(v) => choisirAtb(cle, v ?? 0)}
+                                        min={0}
+                                        max={sortDeLaLigne.atbAuChoix.max}
+                                        step={5}
+                                        suffix="%"
+                                        ariaLabel={`Barre rendue à l'équipe par le sort de ${l.monster.name}`}
+                                      />
                                     </label>
                                   )}
                                   {/* ⚠️ Sa compétence lui REND son tour (Kroa) : il
@@ -1464,13 +1510,13 @@ function CampPanneau({
                   )}
 
                   {/* ⚠️ Le gain de barre retenu suppose la compétence MONTÉE
-                      (Tailwind de Bernard : 30 % au niveau 1, 45 % maxé). On le
+                      (Tailwind de Bernard : 30 % au niveau 1, 34,5 % maxé). On le
                       dit à l'écran : autrement on règle sa vitesse sur un gain
                       qu'on n'a pas encore. */}
                   {kit.atbSkillUp > 0 && (
                     <p className="mt-1.5 text-micro leading-snug text-warn">
-                      ⚠ « {kit.atbCompetence} » compte MAXÉE : {kit.atb} % de barre, dont +{kit.atbSkillUp} % de
-                      skill-up — sans les skill-up, {kit.atbNiveau1} %.
+                      ⚠ « {kit.atbCompetence} » compte MAXÉE : {pourcentBarre(kit.atb)} % de barre, dont +
+                      {pourcentBarre(kit.atbSkillUp)} % de skill-up — sans les skill-up, {pourcentBarre(kit.atbNiveau1)} %.
                     </p>
                   )}
                 </div>

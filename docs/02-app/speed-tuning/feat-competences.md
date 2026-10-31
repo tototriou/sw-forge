@@ -31,17 +31,48 @@ par tick**, qui restent la porte de sortie manuelle.
   que sa **durée**). ⚠️ Un « remplit **TA** barre » (`surSoi`) ou un boost sur
   **un** allié est **écarté** : le modèle applique l'effet à tout le camp, les y
   verser gonflerait l'équipe entière.
+- ⚠️ **Le drapeau `aoe` ment parfois** : *Trade* (Conrad, Death Knight) et
+  *Devil's Bargain* (Mephisto, Demon) remplissent la barre de « **all allies** »
+  selon leur prose, mais SWARFARM marque l'effet `aoe: false` — l'outil donnait
+  donc le boost à **un seul** allié, et l'analyse simple ne le voyait pas.
+  `ATB_DE_ZONE_CONNUS` ([speedTuneKit.ts](src/lib/speedTuneKit.ts)) les
+  rattrape **par identifiant de compétence** : c'est une table d'exceptions aux
+  données, pas une liste blanche — la règle reste le drapeau. Elle sort d'un
+  balayage des 380 compétences « Increase ATB » du corpus contre leur prose ;
+  chaque entrée est testée sur la vraie fiche.
+- ⚠️ **Un remplissage qui DÉPEND DU COMBAT ne se compte pas d'office** : il
+  porte `atbAuChoix` au lieu d'un `atbEquipe`, et ne vaut que pour la valeur
+  désignée dans l'ordre des sorts — **zéro par défaut** (`effetAuChoix`). Table
+  `ATB_AU_CHOIX_CONNUS`, par identifiant : la prose ne se lit pas sans se
+  tromper, et les bornes ne sont pas toutes en donnée.
+
+  | Sort | Monstre | Se règle | Sans la table |
+  |---|---|---|---|
+  | *Blade Fan* | Mihyang | 0 à 3 buffs retirés, 15 % chacun (`retrait`) | +15 % sur un seul allié, à chaque tour |
+  | *Start of Attacking* | Barbara | 0 à 50 % (`pourcent`), selon les PV ôtés | +50 % à toute l'équipe, d'office |
+
+  ⚠️ *Start of Attacking* dit « **other** allies » : il est compté pour **toute
+  l'équipe, lanceur compris** — règle donnée par l'utilisateur, pas un relevé.
 - **Les compétences PASSIVES sont écartées** : elles partent sur une condition
   (quand il est attaqué, à la mort d'un allié…), pas au tour du monstre.
 - **La plus forte l'emporte** quand plusieurs compétences remplissent la barre :
   c'est celle qu'on joue pour lancer le combo.
 - ⚠️ **SKILL-UPS : la compétence compte MAXÉE.** La valeur de SWARFARM est celle
-  du **niveau 1** ; les améliorations « Attack Bar Recovery +N% » s'y ajoutent —
-  le **Tailwind de Bernard 2A** remplit **30 %** au niveau 1 et **45 %** maxé
-  (+5 puis +10). Même convention que les rechargements (`paliersCooldown`) : on
-  joue maxé. **L'écran le DIT** — une ligne d'avertissement sur la card («
-  Tailwind compte MAXÉE : 45 %, dont +15 % de skill-up ») — sans quoi on
-  règlerait sa vitesse sur un gain qu'on n'a pas encore.
+  du **niveau 1** ; les améliorations « Attack Bar Recovery +N% » la
+  **MULTIPLIENT**, elles ne s'y ajoutent pas (comme pour les soins) — le
+  **Trade de Conrad** remplit **20 %** au niveau 1 et **23 %** maxé (20 × 1,15),
+  le **Tailwind de Bernard 2A** **30 %** et **34,5 %** (+5 puis +10). Même
+  convention que les rechargements (`paliersCooldown`) : on joue maxé. **L'écran
+  le DIT** — une ligne d'avertissement sur la card (« Tailwind compte MAXÉE :
+  34,5 %, dont +4,5 % de skill-up »), au dixième — sans quoi on règlerait sa
+  vitesse sur un gain qu'on n'a pas encore.
+
+  > ⚠️ **Règle donnée par l'utilisateur, pas encore relevée en jeu.** Les
+  > additionner surestimait chaque boost monté (Conrad à 35 %, Bernard à 45 %).
+  > Hypothèse retenue : les améliorations se **somment**, puis multiplient une
+  > fois ; composées une à une, elles donneraient 23,15 % et 34,65 %. La
+  > simulation garde la valeur exacte, seul l'affichage arrondit
+  > (`pourcentBarre`).
 - Une valeur déjà posée n'est **jamais** réécrite par une relecture (`kitLu`).
 
 ### Ce qu'un sort fait, CIBLE par cible

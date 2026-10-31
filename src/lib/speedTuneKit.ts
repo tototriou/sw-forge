@@ -27,11 +27,20 @@ const EFFET_SPD_MOINS = 'Decrease ATK SPD';
 export const RALENTI_SPD_JEU = 30;
 
 // ⚠️ **La valeur donnée par SWARFARM est celle du NIVEAU 1**, comme pour les
-// rechargements (voir `paliersCooldown` dans monsterSkills.ts). Les skill-ups
-// « Attack Bar Recovery +N% » s'y AJOUTENT : le Tailwind de Bernard 2A remplit
-// 30 % au niveau 1 et **45 %** maxé (+5 puis +10). On compte la compétence
-// MAXÉE — c'est maxée qu'on la joue, et c'est sur cette valeur que le speed tune
-// se règle.
+// rechargements (voir `paliersCooldown` dans monsterSkills.ts). On compte la
+// compétence MAXÉE — c'est maxée qu'on la joue, et c'est sur cette valeur que le
+// speed tune se règle.
+//
+// ⚠️ **Les skill-ups « Attack Bar Recovery +N% » MULTIPLIENT la valeur, ils ne
+// s'y ajoutent pas** (règle du jeu donnée par l'utilisateur, comme pour les
+// soins) : le Trade de Conrad remplit 20 % au niveau 1 et **23 %** maxé
+// (20 × 1,15), pas 35 %. Les additionner surestimait chaque boost monté — le
+// Tailwind de Bernard 2A passait pour 45 % au lieu de 34,5 %.
+//
+// ⚠️ Hypothèse retenue : les améliorations se SOMMENT, puis s'appliquent une
+// fois (× (1 + Σ/100)), comme les autres skill-ups du jeu. Composées une à une,
+// elles donneraient 23,15 % pour Conrad et 34,65 % pour Bernard — un écart
+// qu'un relevé en jeu au dixième départagerait.
 const SKILL_UP_ATB = /Attack Bar Recovery \+(\d+)\s*%/i;
 
 function bonusSkillUp(c: Competence): number {
@@ -43,12 +52,23 @@ function bonusSkillUp(c: Competence): number {
   return total;
 }
 
+// La valeur MAXÉE d'un remplissage de barre, à partir de celle du niveau 1.
+// Écrit `n + n × b / 100` et non `n × (1 + b / 100)` : 1,15 n'a pas d'écriture
+// binaire exacte, et 30 × 1,15 donnerait 34,499999… au lieu de 34,5.
+const maxee = (niveau1: number, bonus: number) => niveau1 + (niveau1 * bonus) / 100;
+
+// Un pourcentage de barre pour l'écran : au dixième, virgule décimale. La
+// valeur maxée n'est plus un entier (34,5 % pour Bernard) ; la simulation garde
+// la valeur exacte, seul l'affichage arrondit.
+export const pourcentBarre = (n: number) => String(Math.round(n * 10) / 10).replace('.', ',');
+
 export interface KitVitesse {
   // +% de barre d'attaque posé à TOUT son camp (0 = aucun), compétence MAXÉE,
   // et la compétence d'où ça vient.
   atb: number;
   atbCompetence: string | null;
-  // La valeur au niveau 1, et ce que les skill-ups ajoutent. `atbSkillUp > 0`
+  // La valeur au niveau 1, et les POINTS de barre que les skill-ups y ajoutent
+  // (`atb − atbNiveau1`, pas leur pourcentage). `atbSkillUp > 0`
   // veut dire que le chiffre retenu SUPPOSE la compétence montée — l'écran doit
   // le dire, sans quoi on règle sa vitesse sur un gain qu'on n'a pas encore.
   atbNiveau1: number;
@@ -92,6 +112,12 @@ export interface SortVitesse {
   // Vrai si la compétence ne touche ni la barre ni la vitesse (elle reste
   // proposable : c'est un tour où l'on ne fait rien pour le tune).
   neutre: boolean;
+  // Remplissage d'équipe dont la valeur DÉPEND DU COMBAT, à désigner : `n`
+  // paliers de `pas` %, `n` de 0 à `max`. `retrait` : n buffs retirés à
+  // l'adverse (Blade Fan : 15 % chacun, trois au plus) ; `pourcent` : n % de
+  // barre (Start of Attacking : 0 à 50). ⚠️ Absent de `effet` : il ne compte
+  // que pour le nombre désigné (`effetAuChoix`), zéro par défaut.
+  atbAuChoix?: { pas: number; max: number; unite: 'retrait' | 'pourcent' };
   // ⚠️ Combien de BUFFS elle pose sur son camp (bouclier, immunité, ATQ/DEF,
   // buff de vitesse…). Ça n'a rien à voir avec la vitesse — mais certains
   // passifs COMPTENT les buffs portés (Chilling : +20 de vitesse par buff), et
@@ -163,6 +189,60 @@ function boostAtbConditionnel(c: Competence): boolean {
   return ph.length > 0 && ph.every((p) => CONDITION.test(p));
 }
 
+// Remplissages de barre DE ZONE que SWARFARM marque `aoe: false`, par
+// identifiant de compétence. ⚠️ **Une exception aux données, pas une liste
+// blanche** : la règle reste le drapeau `aoe` ; cette table ne rattrape que les
+// fiches infidèles, relevées en balayant les 380 compétences « Increase ATB » du
+// corpus contre leur prose. Sans elle, le boost d'équipe partait sur UN allié,
+// celui à la barre la plus basse, et l'analyse simple ne le voyait pas du tout.
+const ATB_DE_ZONE_CONNUS = new Map<number, string>([
+  // Conrad, Death Knight : « … increases the Attack Bar of all allies by 20%. »
+  [7414, 'Trade'],
+  // Mephisto, Demon : « Recovers the Attack Bar of all allies by 20% afterwards. »
+  [13408, "Devil's Bargain"],
+]);
+
+// Remplissages de barre d'équipe dont la valeur DÉPEND DU COMBAT, par
+// identifiant de compétence. ⚠️ **Curé par identifiant, pas lu dans la
+// prose** : « per beneficial effect removed », « up to … in proportion to the
+// HP lost » ne se reconnaissent pas sans se tromper, et les bornes ne sont pas
+// toutes en donnée.
+//
+// ⚠️ **Le défaut est ZÉRO** : ce que le sort donne dépend de l'adverse (ses
+// buffs, ses PV) et de jets — un speed tune est ce qui tient sans rien en
+// attendre. Le joueur désigne la valeur dans l'ordre des sorts ; l'analyse
+// simple, qui n'a pas ce choix, n'en compte aucune.
+//
+// `retrait` : la donnée donne le gain PAR retrait, la table le nombre maximal.
+// `pourcent` : la donnée donne le gain MAXIMAL, choisi au pour cent près.
+type AuChoix = { nom: string; unite: 'retrait'; max: number } | { nom: string; unite: 'pourcent' };
+const ATB_AU_CHOIX_CONNUS = new Map<number, AuChoix>([
+  // Mihyang : « Increases the Attack Bar of all allies by 15% each per
+  // beneficial effect removed. » Trois coups, 50 % de retrait chacun.
+  [9118, { nom: 'Blade Fan', unite: 'retrait', max: 3 }],
+  // Barbara : « … increases the Attack Bar of other allies by up to 50% in
+  // proportion to the HP the enemy lost from this attack. » ⚠️ Compté pour
+  // TOUT le camp, lanceur compris, malgré « other allies » : règle donnée par
+  // l'utilisateur, pas un relevé.
+  [13611, { nom: 'Start of Attacking', unite: 'pourcent' }],
+]);
+
+const auChoixDe = (c: Competence) =>
+  c.com2usId != null ? ATB_AU_CHOIX_CONNUS.get(c.com2usId) ?? null : null;
+
+// L'effet d'un sort pour `n` paliers désignés : rien de plus qu'un sort
+// ordinaire, sauf s'il remplit la barre au choix. Borné à [0, max].
+export function effetAuChoix(x: SortVitesse, n: number): EffetSort {
+  const p = x.atbAuChoix;
+  const k = p ? Math.max(0, Math.min(p.max, Math.round(n))) : 0;
+  if (!p || k === 0) return x.effet;
+  return { ...x.effet, atbEquipe: Math.max(x.effet.atbEquipe ?? 0, k * p.pas) };
+}
+
+// L'effet de barre va-t-il à tout le camp ? Le drapeau de la fiche, ou la table.
+const atbDeZone = (c: Competence, e: Competence['effets'][number]) =>
+  e.aoe || (e.nom === EFFET_ATB && c.com2usId != null && ATB_DE_ZONE_CONNUS.has(c.com2usId));
+
 // c'est celle qu'on joue pour lancer le combo. Les champs restent modifiables à
 // la main — la détection propose, elle n'impose pas.
 export function kitVitesse(detail: DetailMonstre | null): KitVitesse {
@@ -174,15 +254,16 @@ export function kitVitesse(detail: DetailMonstre | null): KitVitesse {
     // Un boost sous condition ne se propose pas (voir `boostAtbConditionnel`).
     const atbSousCondition = boostAtbConditionnel(c);
     for (const e of c.effets) {
-      if (!e.aoe) continue;
+      if (!atbDeZone(c, e)) continue;
       if (e.nom === EFFET_ATB) {
-        if (atbSousCondition) continue;
+        // Au choix : zéro par défaut, et l'analyse simple n'a pas le choix.
+        if (atbSousCondition || auChoixDe(c)) continue;
         const niveau1 = e.quantite ?? 0;
-        const skillUp = bonusSkillUp(c);
-        if (niveau1 + skillUp > out.atb) {
-          out.atb = niveau1 + skillUp;
+        const valeur = maxee(niveau1, bonusSkillUp(c));
+        if (valeur > out.atb) {
+          out.atb = valeur;
           out.atbNiveau1 = niveau1;
-          out.atbSkillUp = skillUp;
+          out.atbSkillUp = valeur - niveau1;
           out.atbCompetence = c.nom;
           if (rejoue) out.rejoue = true;
         }
@@ -210,7 +291,9 @@ function lireEffet(c: Competence): { effet: EffetSort; atbNiveau1: number; atbSk
     const q = e.quantite ?? 0;
     switch (e.nom) {
       case EFFET_ATB: {
-        if (atbSousCondition) break;
+        // Au choix : porté à part (`atbAuChoix`), il ne compte que pour la
+        // valeur désignée.
+        if (atbSousCondition || auChoixDe(c)) break;
         // ⚠️ Trois cibles bien différentes : tout le camp, UN allié (Breeze de
         // Kroa : celui dont la barre est la plus basse), ou soi-même.
         //
@@ -226,9 +309,9 @@ function lireEffet(c: Competence): { effet: EffetSort; atbNiveau1: number; atbSk
         // Dova). Stocker 0 rendrait le champ falsy et la simulation ignorerait
         // complètement le remplissage.
         const qEff = q === 0 ? 100 : q;
-        const v = qEff + skillUp;
+        const v = maxee(qEff, skillUp);
         atbNiveau1 = Math.max(atbNiveau1, qEff);
-        if (e.aoe) effet.atbEquipe = Math.max(effet.atbEquipe ?? 0, v);
+        if (atbDeZone(c, e)) effet.atbEquipe = Math.max(effet.atbEquipe ?? 0, v);
         else if (e.surSoi) effet.atbSoi = Math.max(effet.atbSoi ?? 0, v);
         else effet.atbAllie = Math.max(effet.atbAllie ?? 0, v);
         chance = e.chance && e.chance > 0 && e.chance < 100 ? e.chance : chance;
@@ -262,7 +345,7 @@ function lireEffet(c: Competence): { effet: EffetSort; atbNiveau1: number; atbSk
         break;
     }
   }
-  return { effet, atbNiveau1, atbSkillUp: atbNiveau1 > 0 ? skillUp : 0, chance };
+  return { effet, atbNiveau1, atbSkillUp: atbNiveau1 > 0 ? maxee(atbNiveau1, skillUp) - atbNiveau1 : 0, chance };
 }
 
 // TOUTES les compétences lançables du monstre (les passives exclues : elles ne
@@ -275,7 +358,16 @@ export function sortsVitesse(detail: DetailMonstre | null): SortVitesse[] {
   for (const c of detail.competences) {
     if (c.passif) continue;
     const { effet, atbNiveau1, atbSkillUp, chance } = lireEffet(c);
-    const neutre = Object.keys(effet).length === 0;
+    const auChoix = auChoixDe(c);
+    const effetAtb = c.effets.find((e) => e.nom === EFFET_ATB);
+    const valeur = effetAtb ? maxee(effetAtb.quantite ?? 0, bonusSkillUp(c)) : 0;
+    const atbAuChoix: SortVitesse['atbAuChoix'] =
+      !auChoix || !effetAtb
+        ? undefined
+        : auChoix.unite === 'retrait'
+          ? { pas: valeur, max: auChoix.max, unite: 'retrait' }
+          : { pas: 1, max: Math.floor(valeur), unite: 'pourcent' };
+    const neutre = Object.keys(effet).length === 0 && !atbAuChoix;
     out.push({
       nom: c.nom,
       slot: c.slot,
@@ -294,6 +386,7 @@ export function sortsVitesse(detail: DetailMonstre | null): SortVitesse[] {
       // que le lanceur en profite (`surSoi`) ou non. Exclure `surSoi` faisait
       // manquer les buffs d'équipe les plus courants au comptage du passif.
       buffsEquipe: c.effets.filter((e) => e.bonus && e.aoe).length,
+      ...(atbAuChoix ? { atbAuChoix } : {}),
     });
   }
   return out;

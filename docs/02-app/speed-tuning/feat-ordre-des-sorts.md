@@ -79,7 +79,8 @@ exactement comme elle écrit dans les grilles. Ces choix deviennent alors des
 choix comme les autres : on les corrige, et **y toucher relance l'écriture**.
 
 ⚠️ **Ce qui relance l'analyse, c'est TOUT ce qui entre dans son `choix`** — le
-sort du 1ᵉʳ tour, celui du second, **et la CIBLE**. Le reste (vitesses,
+sort du 1ᵉʳ tour, celui du second, **la CIBLE** et la **valeur d'un
+remplissage au choix** (voir plus bas). Le reste (vitesses,
 artéfacts, cases des grilles) est un réglage de l'utilisateur, où
 l'automatisation ne revient jamais.
 
@@ -91,6 +92,24 @@ sur un écran par ailleurs cohérent. Un **contrôle de
 source** ([tests/speed-tune.test.ts](tests/speed-tune.test.ts)) vérifie
 que la signature de relance est le miroir de l'objet passé à
 l'analyse — une entrée ajoutée à l'un et oubliée dans l'autre échoue.
+
+⚠️ **Un sort dont le remplissage d'équipe DÉPEND DU COMBAT** porte son réglage
+sur la ligne :
+
+- *Blade Fan* (Mihyang, 15 % par buff retiré à l'adverse, trois au plus) : un
+  menu « buffs retirés » — **0, 1, 2 ou 3**, soit +0, +15, +30 ou +45 % de barre
+  à l'équipe ;
+- *Start of Attacking* (Barbara, « jusqu'à 50 % » selon les PV ôtés à
+  l'ennemi) : un champ « barre équipe » de **0 à 50 %** (pas de 5 aux boutons,
+  toute valeur à la frappe), pour **toute l'équipe, lanceur compris**.
+
+⚠️ **Le défaut est 0** : ce que le sort donne dépend de l'adverse (ses buffs,
+ses PV) et de jets, et un speed tune est ce qui tient sans rien en attendre —
+on désigne le cas qu'on veut tester. Comme la cible, la valeur appartient au
+**tour** (`atbChoisi`, en paliers, clé d'occurrence), s'oublie à l'import d'un
+deck dans le camp et part avec un tour retiré ; 0 ne se stocke pas. L'analyse
+simple, qui n'a pas ce choix, n'en compte aucune. Détection dans
+[feat-competences.md](feat-competences.md).
 
 ⚠️ **Mais un sort déjà choisi n'est JAMAIS réécrit** : l'analyse ne remplit que
 les cases vides. Sans ça, changer un sort relancerait l'analyse, qui reposerait
@@ -128,7 +147,7 @@ sorts, et « Aucun sort ».
   proposées, y compris celles qui ne touchent ni la barre ni la vitesse : on doit
   pouvoir dire « à ce tour-là il lance son S1 », c'est le sens même d'un ordre de
   sorts. Seules les **passives** sont écartées (elles ne partent pas à son tour).
-  Chaque entrée dit ce qu'elle fait (« S3 Tailwind — +45 % barre équipe · buff
+  Chaque entrée dit ce qu'elle fait (« S3 Tailwind — +34,5 % barre équipe · buff
   VIT ») et, s'il y en a un, son **taux de réussite**. Le choix entre dans la
   simulation, donc dans tous les tableaux et dans le verdict.
 - **Tour RENDU** : quand la compétence choisie rend son tour au lanceur (Kroa,

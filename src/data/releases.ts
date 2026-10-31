@@ -65,6 +65,7 @@ export const RELEASES: Release[] = [
     title: 'Réimporter une recommandation la complète au lieu de la doubler',
     changes: [
       { kind: 'feat', scope: 'Recommandations', text: 'Un fichier qui prolonge une de tes recommandations peut s’y fusionner : nouveaux decks et défenses seulement.' },
+      { kind: 'fix', scope: 'Recommandations', text: 'Vue Défense : sans lead actif en siège, l’ordre des monstres ne sépare plus une défense.' },
       { kind: 'feat', scope: 'Speed tuning', text: 'Blade Fan de Mihyang : choisis combien de buffs il retire (0 à 3).' },
       { kind: 'feat', scope: 'Speed tuning', text: 'Start of Attacking de Barbara : choisis le boost de barre de l’équipe (0 à 50 %).' },
       { kind: 'fix', scope: 'Speed tuning', text: 'Les skill-ups des remplissages de barre multiplient la valeur au lieu de s’y ajouter.' },

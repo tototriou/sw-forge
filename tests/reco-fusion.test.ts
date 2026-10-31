@@ -1,11 +1,13 @@
 // Recommandations — import qui FUSIONNE dans la recommandation existante :
 // correspondance (source, puis auteur et nom de base), fusion des decks et
-// des défenses visées, bilan, et la `source` dans le fichier partagé.
+// des défenses visées, bilan, et la `source` dans le fichier partagé. Un deck
+// et une défense se reconnaissent par la clé d'équipe de la vue Défense
+// (`cleEquipe`) : le chef compte, l'ordre des autres non.
 
+import { cleEquipe, type MonstresConnus } from '../src/lib/recoDefenses';
 import {
   apercuFusion,
   appliquerImport,
-  cleDefenseSansOrdre,
   correspond,
   fusionnerReco,
   messageFusion,
@@ -13,8 +15,20 @@ import {
   trouverCorrespondances,
 } from '../src/lib/recoFusion';
 import { encodeRecosJson, SOURCE_MAX, validateRecosImport } from '../src/lib/recoShare';
-import type { Reco, RecoCounter, RecoDeck, RecoPayload, RecoSlot } from '../src/types';
+import type { Monster, Reco, RecoCounter, RecoDeck, RecoPayload, RecoSlot } from '../src/types';
 import { egal, ok, titre } from './outils';
+import { connusReels, monstreExemple } from './reco-defenses.test';
+
+// Index FICTIF : 1, 4 et 40 ont un lead de Guilde (actif en siège) ; 2, 3, 5 à
+// 12 n'en ont pas. Les autres identifiants sont absents des données : leur lead
+// est inconnu, le premier compte donc pour chef.
+type Fiche = Pick<Monster, 'element' | 'leaderSkill'>;
+const avecLead: Fiche = { element: 'fire', leaderSkill: { stat: 'Attack Power', amount: 20, area: 'Guild', element: null } };
+const sansLead: Fiche = { element: 'fire', leaderSkill: null };
+const fictifs: MonstresConnus = new Map<number, Fiche>([
+  ...[1, 4, 40].map((id): [number, Fiche] => [id, avecLead]),
+  ...[2, 3, 5, 6, 7, 8, 9, 10, 11, 12].map((id): [number, Fiche] => [id, sansLead]),
+]);
 
 const m = (id: number | null, name = '') => ({ com2usId: id, name });
 const def = (ids: (number | null)[], note = ''): RecoCounter => ({ monsters: ids.map((i) => m(i)), note });
@@ -76,8 +90,8 @@ export function testRecoFusionCorrespondance() {
 export function testRecoFusionDecks() {
   titre('Recommandations — fusion : decks et défenses visées');
 
-  egal(cleDefenseSansOrdre(def([1, 2, 3]).monsters), cleDefenseSansOrdre(def([3, 1, 2]).monsters), 'même défense dans un autre ordre, leader compris');
-  egal(cleDefenseSansOrdre(def([null, null, null]).monsters), null, 'défense vide : pas de clé');
+  egal(cleEquipe(def([7, 8, 9]).monsters, fictifs), cleEquipe(def([9, 7, 8]).monsters, fictifs), 'défense sans lead actif en premier : même défense dans un autre ordre');
+  egal(cleEquipe(def([null, null, null]).monsters, fictifs), null, 'défense vide : pas de clé');
 
   const existante = reco({
     name: 'Mes offs',
@@ -97,7 +111,7 @@ export function testRecoFusionDecks() {
       deck([1, 2, 3], [def([9, 7, 8], 'autre précision'), def([20, 21, 22], 'nouvelle')], 'consignes du fichier', { spd: 200 }),
       // même équipe, rien de nouveau
       deck([4, 5, 6], [def([12, 10, 11])]),
-      // mêmes monstres, autre leader : une autre équipe
+      // mêmes monstres, le chef (lead actif) passé en deuxième : une autre équipe
       deck([2, 1, 3], [def([30, 31, 32])]),
       // nouvelle, revue plus loin dans le même fichier
       deck([40, 41, 42], [def([50, 51, 52])]),
@@ -105,7 +119,7 @@ export function testRecoFusionDecks() {
     ],
   });
 
-  const { reco: r, bilan } = fusionnerReco(existante, entrante);
+  const { reco: r, bilan } = fusionnerReco(existante, entrante, fictifs);
   egal(JSON.stringify(existante), avant, 'la recommandation existante n\'est pas modifiée (fonction pure)');
   egal(r.decks.length, 4, 'deux decks ajoutés, aucun doublon');
   egal(r.decks.map((d) => d.slots.map((s) => s.com2usId).join('-')), ['1-2-3', '4-5-6', '2-1-3', '40-41-42'], 'les nouveaux à la fin, dans l\'ordre du fichier');
@@ -118,9 +132,55 @@ export function testRecoFusionDecks() {
   egal(r.source, 'outil:abc', 'la source du fichier est adoptée : la prochaine fusion ne dépendra plus du nom');
   egal(bilan, { decksAjoutes: 2, decksEnrichis: 1, defensesAjoutees: 1, decksInchanges: 1 }, 'bilan : 2 ajoutés, 1 enrichi d\'1 défense, 1 inchangé');
 
-  egal(fusionnerReco({ ...existante, source: 'outil:ancienne' }, entrante).reco.source, 'outil:ancienne', 'une source existante n\'est jamais remplacée');
-  const vide = fusionnerReco(reco({ decks: [deck([null, null, null])] }), payload({ decks: [deck([1, 2, 3])] })).reco;
+  egal(fusionnerReco({ ...existante, source: 'outil:ancienne' }, entrante, fictifs).reco.source, 'outil:ancienne', 'une source existante n\'est jamais remplacée');
+  const vide = fusionnerReco(reco({ decks: [deck([null, null, null])] }), payload({ decks: [deck([1, 2, 3])] }), fictifs).reco;
   egal(vide.decks.map((d) => d.slots[0].com2usId), [1], 'une recommandation réduite à son deck vide : les decks reçus le remplacent');
+}
+
+// Les exemples de la règle, sur les vrais monstres de public/data/monsters.json.
+export function testRecoFusionChef() {
+  titre('Recommandations — fusion : le chef d\'une équipe, lead actif en siège');
+  const id = (nom: string) => monstreExemple(nom).com2usId;
+  const equipe = (...noms: string[]) => noms.map(id);
+  const existante = reco({
+    decks: [
+      deck(equipe('Solveig', 'Adriana', 'Odin'), [def(equipe('Kinki', 'Windy', 'Lulu'), 'ma précision'), def(equipe('Solveig', 'Adriana', 'Odin'))], 'mes consignes', { spd: 250 }),
+    ],
+  });
+  const entrante = payload({
+    decks: [
+      // même chef, les deux autres inversés : le même deck
+      deck(equipe('Solveig', 'Odin', 'Adriana'), [
+        def(equipe('Windy', 'Lulu', 'Kinki'), 'autre précision'), // aucun lead actif : déjà visée
+        def(equipe('Solveig', 'Odin', 'Adriana')), // même chef : déjà visée
+        def(equipe('Odin', 'Adriana', 'Solveig'), 'chef Odin'), // autre chef : nouvelle
+      ], 'consignes du fichier', { spd: 200 }),
+      // chef Odin : un autre deck
+      deck(equipe('Odin', 'Adriana', 'Solveig')),
+    ],
+  });
+  const { reco: r, bilan } = fusionnerReco(existante, entrante, connusReels);
+  egal(r.decks.length, 2, 'Solveig-Odin-Adriana reconnu ; Odin-Adriana-Solveig ajouté');
+  egal(r.decks[0].slots.map((s) => s.com2usId), equipe('Solveig', 'Adriana', 'Odin'), 'le deck existant garde son ordre');
+  egal([r.decks[0].note, r.decks[0].slots[0].stats], ['mes consignes', { spd: 250 }], 'le deck existant garde ses consignes et ses builds');
+  egal(r.decks[0].counters.map((c) => c.note), ['ma précision', '', 'chef Odin'], 'seule la défense au chef différent est ajoutée');
+  egal(r.decks[1].slots.map((s) => s.com2usId), equipe('Odin', 'Adriana', 'Solveig'), 'le deck au chef différent est ajouté à la fin');
+  egal(bilan, { decksAjoutes: 1, decksEnrichis: 1, defensesAjoutees: 1, decksInchanges: 0 }, 'bilan');
+
+  // Sans lead actif : l'ordre ne compte pas, le deck est le même.
+  const kwl = fusionnerReco(reco({ decks: [deck(equipe('Kinki', 'Windy', 'Lulu'))] }), payload({ decks: [deck(equipe('Windy', 'Lulu', 'Kinki'), [def(equipe('Solveig', 'Adriana', 'Odin'))])] }), connusReels);
+  egal(kwl.reco.decks.map((d) => d.slots.map((s) => s.com2usId)), [equipe('Kinki', 'Windy', 'Lulu')], 'Windy-Lulu-Kinki reconnu dans Kinki-Windy-Lulu, qui garde son ordre');
+  egal(kwl.bilan.decksEnrichis, 1, '… et gagne la défense qu\'il ne visait pas');
+
+  // Premier monstre au lead inconnu : compté pour chef, on ne fusionne pas.
+  const inconnu = (premier: boolean): RecoDeck => ({
+    ...deck([]),
+    slots: premier
+      ? [{ ...sl(null), name: 'Monstre perso' }, sl(id('Adriana')), sl(id('Lulu'))]
+      : [sl(id('Adriana')), { ...sl(null), name: 'Monstre perso' }, sl(id('Lulu'))],
+  });
+  egal(fusionnerReco(reco({ decks: [inconnu(true)] }), payload({ decks: [inconnu(false)] }), connusReels).bilan.decksAjoutes, 1, 'monstre au lead inconnu en premier : chef, les deux decks restent séparés');
+  egal(fusionnerReco(reco({ decks: [deck([999, id('Adriana'), id('Lulu')])] }), payload({ decks: [deck([id('Adriana'), 999, id('Lulu')])] }), connusReels).bilan.decksAjoutes, 1, 'monstre absent des données en premier : chef, pas de fusion');
 }
 
 export function testRecoFusionImport() {
@@ -134,12 +194,12 @@ export function testRecoFusionImport() {
     payload({ name: 'Inconnue', author: 'Personne', decks: [deck([70, 71, 72])] }),
   ];
 
-  const aPart = appliquerImport([mienne, autre], fichier, false, id);
+  const aPart = appliquerImport([mienne, autre], fichier, false, id, fictifs);
   egal(aPart.recos.map((r) => r.id), ['a', 'b', 'n1', 'n2'], 'sans fusion : tout est ajouté à la suite, comme avant');
   ok(aPart.recos.slice(2).every((r) => r.origin === 'imported'), 'sans fusion : marquées « importée »');
   egal(aPart.recos[0], mienne, 'sans fusion : l\'existante n\'est pas touchée');
 
-  const fus = appliquerImport([mienne, autre], fichier, true, id);
+  const fus = appliquerImport([mienne, autre], fichier, true, id, fictifs);
   egal(fus.recos.map((r) => r.id), ['a', 'b', 'n3'], 'avec fusion : la correspondante complétée à sa place, l\'autre ajoutée');
   egal(fus.recos[0].origin, 'mine', 'une recommandation fusionnée garde son origine');
   egal(fus.recos[0].decks.length, 2, 'le deck nouveau est ajouté');

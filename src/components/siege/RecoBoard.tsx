@@ -342,7 +342,7 @@ export default function RecoBoard({
       return existante ? [{ entrante, existante }] : [];
     });
     if (paires.length > 0) {
-      const apercu = appliquerImport(all, rep.recos, true, () => '').bilan;
+      const apercu = appliquerImport(all, rep.recos, true, () => '', monsterByCom2us).bilan;
       setFusionAProposer({ recos: rep.recos, counts: rep.counts, paires, apercu });
       return;
     }
@@ -354,7 +354,7 @@ export default function RecoBoard({
   // du contenu créé à la main, non re-dérivable. Pour repartir de zéro,
   // « Tout effacer » est là — c'est un geste explicite et séparé.
   function importer(payloads: RecoPayload[], counts: ImportReport['counts'], fusionner: boolean) {
-    const bilan = recos.importRecos(payloads, fusionner);
+    const bilan = recos.importRecos(payloads, fusionner, monsterByCom2us);
     setMsg({
       text: fusionner
         ? messageFusion(bilan)

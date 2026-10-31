@@ -33,6 +33,11 @@ l'application
 dont [rendu/optimizer-ecran-navigateur.test.ts](rendu/optimizer-ecran-navigateur.test.ts)),
 soit par le banc d'affichage, plus bas, hors de la suite.
 
+Les deux lancent le Chromium de Playwright et, s'il manque, retombent sur
+celui du conteneur cloud (`/opt/pw-browsers/chromium`, préinstallé pour une
+autre version de Playwright) : rien à installer dans une session
+claude.ai/code.
+
 Pour « Exemplaire », [optimizer-recherche.test.ts](rendu/optimizer-recherche.test.ts)
 vérifie aux deux formats les vues et l'aperçu sans effet sur l'équipement
 optimisé (artéfacts et relique transmis compris), la comparaison avec la

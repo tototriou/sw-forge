@@ -89,7 +89,9 @@ export async function importerCompte(page, compte) {
 // lisibles une fois la capture réduite.
 export async function ouvrirSession({ compte, format = 'bureau', echelle = 1 } = {}) {
   const browser = await lancerChromium();
-  const page = await browser.newPage({ viewport: FORMATS[format], deviceScaleFactor: echelle });
+  // `locale` : l'app suit la langue du navigateur (« Auto ») ; les pilotes
+  // cherchent des libellés français, quelle que soit la langue de la machine.
+  const page = await browser.newPage({ viewport: FORMATS[format], deviceScaleFactor: echelle, locale: 'fr-FR' });
   page.on('pageerror', (err) => console.error('[pageerror]', err.message));
   page.on('console', (msg) => {
     if (msg.type() === 'error') console.error('[console.error]', msg.text());

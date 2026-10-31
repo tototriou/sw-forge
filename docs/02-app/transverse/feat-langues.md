@@ -90,3 +90,8 @@ Un écran qu'on traduit entre dans `FICHIERS_TRADUITS` dans le même commit.
   l'app entière (`#/parametres`) en anglais, puis de retour en français.
 - Le rendu serveur n'a pas de navigateur : « Auto » y donne le français, langue des tests
   existants. Un test qui vérifie l'anglais choisit la langue, puis revient à « Auto ».
+- ⚠️ **Un vrai navigateur, lui, a une langue** : tout Chromium piloté par les tests, le banc
+  d'affichage ou le skill `run-swblacksmith` s'ouvre avec `locale: 'fr-FR'`. Sans elle, celui de
+  la CI, en anglais, afficherait l'app en anglais, et les libellés français cherchés
+  n'existeraient plus (`optimizer-navigable-banc.ts`, `tests/banc/session.mjs`,
+  `.claude/skills/run-swblacksmith/session.mjs`).

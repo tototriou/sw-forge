@@ -128,7 +128,7 @@ sorts, et « Aucun sort ».
   proposées, y compris celles qui ne touchent ni la barre ni la vitesse : on doit
   pouvoir dire « à ce tour-là il lance son S1 », c'est le sens même d'un ordre de
   sorts. Seules les **passives** sont écartées (elles ne partent pas à son tour).
-  Chaque entrée dit ce qu'elle fait (« S3 Tailwind — +45 % barre équipe · buff
+  Chaque entrée dit ce qu'elle fait (« S3 Tailwind — +34,5 % barre équipe · buff
   VIT ») et, s'il y en a un, son **taux de réussite**. Le choix entre dans la
   simulation, donc dans tous les tableaux et dans le verdict.
 - **Tour RENDU** : quand la compétence choisie rend son tour au lanceur (Kroa,

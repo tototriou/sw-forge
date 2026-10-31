@@ -49,7 +49,7 @@ import {
   uidDe,
   visibles,
 } from '../../lib/speedTuneLignes';
-import { kitVitesse, sortsVitesse, KitVitesse, SortVitesse, KIT_VIDE } from '../../lib/speedTuneKit';
+import { kitVitesse, pourcentBarre, sortsVitesse, KitVitesse, SortVitesse, KIT_VIDE } from '../../lib/speedTuneKit';
 import { passifsVitesse, pointsDeGain, PassifVitesse } from '../../lib/speedTunePassif';
 import { analyseAutomatique, cumulsEstimes, sortRetenu, sortSecondRetenu, EntreeAuto } from '../../lib/speedTuneAuto';
 import { chargerDetail } from '../../lib/monsterSkills';
@@ -139,9 +139,9 @@ const signe = (v: number) => (v > 0 ? `+${v}` : `−${Math.abs(v)}`);
 function libelleSort(x: SortVitesse): string {
   const bouts: string[] = [];
   const e = x.effet;
-  if (e.atbEquipe) bouts.push(`+${e.atbEquipe} % barre équipe`);
-  if (e.atbAllie) bouts.push(`+${e.atbAllie} % barre 1 allié`);
-  if (e.atbSoi) bouts.push(`+${e.atbSoi} % sa barre`);
+  if (e.atbEquipe) bouts.push(`+${pourcentBarre(e.atbEquipe)} % barre équipe`);
+  if (e.atbAllie) bouts.push(`+${pourcentBarre(e.atbAllie)} % barre 1 allié`);
+  if (e.atbSoi) bouts.push(`+${pourcentBarre(e.atbSoi)} % sa barre`);
   // ⚠️ Annoncé, mais annoncé comme NON COMPTÉ : le tune se juge sans ce qu'on
   // retire à l'adverse (voir `sansReductionAdverse`). Le taire laisserait croire
   // que le calcul en tient compte.
@@ -1464,13 +1464,13 @@ function CampPanneau({
                   )}
 
                   {/* ⚠️ Le gain de barre retenu suppose la compétence MONTÉE
-                      (Tailwind de Bernard : 30 % au niveau 1, 45 % maxé). On le
+                      (Tailwind de Bernard : 30 % au niveau 1, 34,5 % maxé). On le
                       dit à l'écran : autrement on règle sa vitesse sur un gain
                       qu'on n'a pas encore. */}
                   {kit.atbSkillUp > 0 && (
                     <p className="mt-1.5 text-micro leading-snug text-warn">
-                      ⚠ « {kit.atbCompetence} » compte MAXÉE : {kit.atb} % de barre, dont +{kit.atbSkillUp} % de
-                      skill-up — sans les skill-up, {kit.atbNiveau1} %.
+                      ⚠ « {kit.atbCompetence} » compte MAXÉE : {pourcentBarre(kit.atb)} % de barre, dont +
+                      {pourcentBarre(kit.atbSkillUp)} % de skill-up — sans les skill-up, {pourcentBarre(kit.atbNiveau1)} %.
                     </p>
                   )}
                 </div>

@@ -27,11 +27,20 @@ const EFFET_SPD_MOINS = 'Decrease ATK SPD';
 export const RALENTI_SPD_JEU = 30;
 
 // ⚠️ **La valeur donnée par SWARFARM est celle du NIVEAU 1**, comme pour les
-// rechargements (voir `paliersCooldown` dans monsterSkills.ts). Les skill-ups
-// « Attack Bar Recovery +N% » s'y AJOUTENT : le Tailwind de Bernard 2A remplit
-// 30 % au niveau 1 et **45 %** maxé (+5 puis +10). On compte la compétence
-// MAXÉE — c'est maxée qu'on la joue, et c'est sur cette valeur que le speed tune
-// se règle.
+// rechargements (voir `paliersCooldown` dans monsterSkills.ts). On compte la
+// compétence MAXÉE — c'est maxée qu'on la joue, et c'est sur cette valeur que le
+// speed tune se règle.
+//
+// ⚠️ **Les skill-ups « Attack Bar Recovery +N% » MULTIPLIENT la valeur, ils ne
+// s'y ajoutent pas** (règle du jeu donnée par l'utilisateur, comme pour les
+// soins) : le Trade de Conrad remplit 20 % au niveau 1 et **23 %** maxé
+// (20 × 1,15), pas 35 %. Les additionner surestimait chaque boost monté — le
+// Tailwind de Bernard 2A passait pour 45 % au lieu de 34,5 %.
+//
+// ⚠️ Hypothèse retenue : les améliorations se SOMMENT, puis s'appliquent une
+// fois (× (1 + Σ/100)), comme les autres skill-ups du jeu. Composées une à une,
+// elles donneraient 23,15 % pour Conrad et 34,65 % pour Bernard — un écart
+// qu'un relevé en jeu au dixième départagerait.
 const SKILL_UP_ATB = /Attack Bar Recovery \+(\d+)\s*%/i;
 
 function bonusSkillUp(c: Competence): number {
@@ -43,12 +52,23 @@ function bonusSkillUp(c: Competence): number {
   return total;
 }
 
+// La valeur MAXÉE d'un remplissage de barre, à partir de celle du niveau 1.
+// Écrit `n + n × b / 100` et non `n × (1 + b / 100)` : 1,15 n'a pas d'écriture
+// binaire exacte, et 30 × 1,15 donnerait 34,499999… au lieu de 34,5.
+const maxee = (niveau1: number, bonus: number) => niveau1 + (niveau1 * bonus) / 100;
+
+// Un pourcentage de barre pour l'écran : au dixième, virgule décimale. La
+// valeur maxée n'est plus un entier (34,5 % pour Bernard) ; la simulation garde
+// la valeur exacte, seul l'affichage arrondit.
+export const pourcentBarre = (n: number) => String(Math.round(n * 10) / 10).replace('.', ',');
+
 export interface KitVitesse {
   // +% de barre d'attaque posé à TOUT son camp (0 = aucun), compétence MAXÉE,
   // et la compétence d'où ça vient.
   atb: number;
   atbCompetence: string | null;
-  // La valeur au niveau 1, et ce que les skill-ups ajoutent. `atbSkillUp > 0`
+  // La valeur au niveau 1, et les POINTS de barre que les skill-ups y ajoutent
+  // (`atb − atbNiveau1`, pas leur pourcentage). `atbSkillUp > 0`
   // veut dire que le chiffre retenu SUPPOSE la compétence montée — l'écran doit
   // le dire, sans quoi on règle sa vitesse sur un gain qu'on n'a pas encore.
   atbNiveau1: number;
@@ -178,11 +198,11 @@ export function kitVitesse(detail: DetailMonstre | null): KitVitesse {
       if (e.nom === EFFET_ATB) {
         if (atbSousCondition) continue;
         const niveau1 = e.quantite ?? 0;
-        const skillUp = bonusSkillUp(c);
-        if (niveau1 + skillUp > out.atb) {
-          out.atb = niveau1 + skillUp;
+        const valeur = maxee(niveau1, bonusSkillUp(c));
+        if (valeur > out.atb) {
+          out.atb = valeur;
           out.atbNiveau1 = niveau1;
-          out.atbSkillUp = skillUp;
+          out.atbSkillUp = valeur - niveau1;
           out.atbCompetence = c.nom;
           if (rejoue) out.rejoue = true;
         }
@@ -226,7 +246,7 @@ function lireEffet(c: Competence): { effet: EffetSort; atbNiveau1: number; atbSk
         // Dova). Stocker 0 rendrait le champ falsy et la simulation ignorerait
         // complètement le remplissage.
         const qEff = q === 0 ? 100 : q;
-        const v = qEff + skillUp;
+        const v = maxee(qEff, skillUp);
         atbNiveau1 = Math.max(atbNiveau1, qEff);
         if (e.aoe) effet.atbEquipe = Math.max(effet.atbEquipe ?? 0, v);
         else if (e.surSoi) effet.atbSoi = Math.max(effet.atbSoi ?? 0, v);
@@ -262,7 +282,7 @@ function lireEffet(c: Competence): { effet: EffetSort; atbNiveau1: number; atbSk
         break;
     }
   }
-  return { effet, atbNiveau1, atbSkillUp: atbNiveau1 > 0 ? skillUp : 0, chance };
+  return { effet, atbNiveau1, atbSkillUp: atbNiveau1 > 0 ? maxee(atbNiveau1, skillUp) - atbNiveau1 : 0, chance };
 }
 
 // TOUTES les compétences lançables du monstre (les passives exclues : elles ne

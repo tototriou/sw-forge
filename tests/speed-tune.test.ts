@@ -29,7 +29,7 @@ import {
 } from '../src/lib/speedTune';
 import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
 import { LeadInfo, leadsDeVitesse } from '../src/lib/speed';
-import { kitVitesse, sortsVitesse, SortVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
+import { kitVitesse, pourcentBarre, sortsVitesse, SortVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
 import { PassifVitesse } from '../src/lib/speedTunePassif';
 import { passifsVitesse, pointsDeGain } from '../src/lib/speedTunePassif';
 import {
@@ -1820,9 +1820,11 @@ export function testSpeedTuneKit() {
     egal(k.atbCompetence, 'Grosse', "et c'est bien elle qui est nommée");
   }
 
-  // ⚠️ SKILL-UPS : la valeur de SWARFARM est celle du NIVEAU 1. Le Tailwind de
-  // Bernard 2A remplit 30 % au niveau 1 et 45 % maxé (+5 puis +10) — c'est maxé
-  // qu'on le joue, et l'écran doit dire que le chiffre le suppose.
+  // ⚠️ SKILL-UPS : la valeur de SWARFARM est celle du NIVEAU 1, et les
+  // « Attack Bar Recovery +N% » la MULTIPLIENT (règle donnée par l'utilisateur,
+  // pas un relevé). Le Tailwind de Bernard 2A remplit 30 % au niveau 1 et
+  // 34,5 % maxé (30 × 1,15) — les additionner donnait 45. ⚠️ Fige l'hypothèse
+  // « sommées puis appliquées une fois » : composées, elles donneraient 34,65.
   {
     const k = kitVitesse(
       detail([
@@ -1832,9 +1834,10 @@ export function testSpeedTuneKit() {
         ]),
       ])
     );
-    egal(k.atb, 45, 'Tailwind maxé remplit 45 % de barre, pas 30');
+    egal(k.atb, 34.5, 'Tailwind maxé remplit 30 × 1,15 = 34,5 % de barre (hypothèse : skill-ups sommés), pas 45');
     egal(k.atbNiveau1, 30, 'la valeur du niveau 1 reste lisible');
-    egal(k.atbSkillUp, 15, "ce que les skill-ups ajoutent est isolé (pour l'annoncer à l'écran)");
+    egal(k.atbSkillUp, 4.5, "les POINTS que les skill-ups ajoutent sont isolés (pour l'annoncer à l'écran)");
+    egal(pourcentBarre(k.atb), '34,5', "l'écran l'écrit au dixième, virgule décimale");
   }
 
   // Une amélioration qui ne touche pas la barre ne change rien.
@@ -1865,7 +1868,8 @@ export function testSpeedTuneKit() {
       'Petite, Grosse, Frappe, Cri',
       'toutes les compétences non passives sont proposées'
     );
-    egal(sorts[1].effet.atbEquipe, 35, 'la valeur proposée est celle de la compétence maxée');
+    egal(sorts[1].effet.atbEquipe, 31.5, 'la valeur proposée est celle de la compétence maxée (30 × 1,05)');
+    egal(sorts[1].atbSkillUp, 1.5, 'et ce que ses skill-ups ajoutent, en points de barre');
     egal(sorts[2].effet.atbSoi, 50, 'un remplissage sur SOI est rangé comme tel, pas comme un boost de camp');
     egal(sorts[2].effet.atbEquipe, undefined, "et il ne compte pas pour l'équipe");
     egal(sorts[3].effet.buffEquipe, BUFF_SPD_JEU, 'le buff de vitesse figure dans la liste');

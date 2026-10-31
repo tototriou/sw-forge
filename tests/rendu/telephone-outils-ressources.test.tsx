@@ -53,12 +53,16 @@ export function testRenduTelephoneOutilsRessources() {
   });
   const tp = texteVisible(param);
   ok(tp.includes('Compte chargé Tototriou Importer un JSON'), 'Paramètres : le compte et l\'import');
-  ok(tp.includes('Thème Auto Clair Sombre') && tp.includes('Mes données Garder mes données') && tp.endsWith('Mes données Tout supprimer'), 'Paramètres : réglages, puis données, jusqu\'à « Tout supprimer »');
+  ok(
+    tp.includes('Langue Auto Français English') && tp.indexOf('Langue') < tp.indexOf('Thème Auto Clair Sombre') &&
+      tp.includes('Mes données Garder mes données') && tp.endsWith('Mes données Tout supprimer'),
+    'Paramètres : la langue en premier, les réglages, puis les données, jusqu\'à « Tout supprimer »'
+  );
   ok(
     tp.includes('Builds les plus rapides Choisir… 9 combinaisons · 5 builds par combinaison, au Résumé des runes.'),
     'Paramètres : le réglage des builds les plus rapides, et son résumé'
   );
-  egal(boutons(param).length, 13, 'Paramètres : les treize boutons (dont Cartes · Tableau des résultats de l’Optimizer)');
+  egal(boutons(param).length, 16, 'Paramètres : les seize boutons (dont Auto · Français · English de la langue, Cartes · Tableau des résultats de l’Optimizer)');
 
   egal(texteVisible(auTelephone(() => rendre(<ComingSoon title="Arène" icon={Trophy} />))), 'Bientôt disponible Cet outil est en cours de construction.', 'Bientôt : le message');
 }

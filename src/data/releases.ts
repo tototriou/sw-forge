@@ -60,6 +60,14 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: null,
+    date: '2026-10-31',
+    title: 'Réimporter une recommandation la complète au lieu de la doubler',
+    changes: [
+      { kind: 'feat', scope: 'Recommandations', text: 'Un fichier qui prolonge une de tes recommandations peut s’y fusionner : nouveaux decks et défenses seulement.' },
+    ],
+  },
+  {
     version: '2.2.0',
     date: '2026-10-29',
     title: 'Un Optimizer repensé, et les attaques conjointes comptent dans les dégâts réels',

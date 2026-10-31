@@ -43,7 +43,9 @@ export interface VueDefenses {
   sansDefense: number[];
 }
 
-function cleMonstre(m: { com2usId: number | null; name: string }): string {
+// Exportée pour la fusion d'un import (recoFusion.ts) : un monstre de défense
+// s'y reconnaît de la même façon.
+export function cleMonstre(m: { com2usId: number | null; name: string }): string {
   if (m.com2usId != null) return `#${m.com2usId}`;
   const nom = m.name.trim().toLowerCase();
   return nom ? `@${nom}` : '';

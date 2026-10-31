@@ -40,14 +40,19 @@ par tick**, qui restent la porte de sortie manuelle.
   données, pas une liste blanche — la règle reste le drapeau. Elle sort d'un
   balayage des 380 compétences « Increase ATB » du corpus contre leur prose ;
   chaque entrée est testée sur la vraie fiche.
-- ⚠️ **Un remplissage PAR BUFF RETIRÉ ne se compte pas d'office** : *Blade Fan*
-  (Mihyang, « … all allies by 15% each per beneficial effect removed ») porte
-  `atbParRetrait` (15 %, trois au plus) au lieu d'un `atbEquipe`, et ne vaut que
-  pour le nombre désigné dans l'ordre des sorts — **zéro par défaut**
-  (`effetAvecRetraits`). Table `ATB_PAR_RETRAIT_CONNUS`, par identifiant : la
-  prose ne se lit pas sans se tromper, et la borne (trois coups, un retrait
-  chacun) n'est écrite nulle part en donnée. Sans elle, le sort passait pour un
-  boost de 15 % sur un seul allié, acquis à chaque tour.
+- ⚠️ **Un remplissage qui DÉPEND DU COMBAT ne se compte pas d'office** : il
+  porte `atbAuChoix` au lieu d'un `atbEquipe`, et ne vaut que pour la valeur
+  désignée dans l'ordre des sorts — **zéro par défaut** (`effetAuChoix`). Table
+  `ATB_AU_CHOIX_CONNUS`, par identifiant : la prose ne se lit pas sans se
+  tromper, et les bornes ne sont pas toutes en donnée.
+
+  | Sort | Monstre | Se règle | Sans la table |
+  |---|---|---|---|
+  | *Blade Fan* | Mihyang | 0 à 3 buffs retirés, 15 % chacun (`retrait`) | +15 % sur un seul allié, à chaque tour |
+  | *Start of Attacking* | Barbara | 0 à 50 % (`pourcent`), selon les PV ôtés | +50 % à toute l'équipe, d'office |
+
+  ⚠️ *Start of Attacking* dit « **other** allies » : il est compté pour **toute
+  l'équipe, lanceur compris** — règle donnée par l'utilisateur, pas un relevé.
 - **Les compétences PASSIVES sont écartées** : elles partent sur une condition
   (quand il est attaqué, à la mort d'un allié…), pas au tour du monstre.
 - **La plus forte l'emporte** quand plusieurs compétences remplissent la barre :

@@ -142,7 +142,9 @@ function libelleSort(x: SortVitesse): string {
   if (e.atbEquipe) bouts.push(`+${pourcentBarre(e.atbEquipe)} % barre équipe`);
   if (e.atbAllie) bouts.push(`+${pourcentBarre(e.atbAllie)} % barre 1 allié`);
   if (e.atbSoi) bouts.push(`+${pourcentBarre(e.atbSoi)} % sa barre`);
-  if (x.atbParRetrait) bouts.push(`+${pourcentBarre(x.atbParRetrait.valeur)} % barre équipe par buff retiré`);
+  if (x.atbAuChoix?.unite === 'retrait')
+    bouts.push(`+${pourcentBarre(x.atbAuChoix.pas)} % barre équipe par buff retiré`);
+  if (x.atbAuChoix?.unite === 'pourcent') bouts.push(`jusqu'à +${x.atbAuChoix.max} % barre équipe`);
   // ⚠️ Annoncé, mais annoncé comme NON COMPTÉ : le tune se juge sans ce qu'on
   // retire à l'adverse (voir `sansReductionAdverse`). Le taire laisserait croire
   // que le calcul en tient compte.
@@ -258,7 +260,7 @@ export default function SpeedTuningSection({
     basculerSwift,
     chaine,
     choisirCible,
-    choisirRetraits,
+    choisirAtb,
     ajouterOccurrence,
     retirerOccurrence,
     choisirSecond,
@@ -266,7 +268,7 @@ export default function SpeedTuningSection({
     choixSorts,
     cibleFenetre,
     cibleSort,
-    retraitsSort,
+    atbChoisi,
     combatDe,
     decks,
     deplacer,
@@ -700,12 +702,12 @@ export default function SpeedTuningSection({
                                       </Selecteur>
                                     </label>
                                   )}
-                                  {/* ⚠️ Un sort qui remplit la barre de l'équipe PAR
-                                      BUFF RETIRÉ (Blade Fan) : combien il en retire
-                                      dépend de l'adverse et d'un jet par coup. Le
+                                  {/* ⚠️ Un sort dont le remplissage d'équipe DÉPEND
+                                      DU COMBAT : buffs retirés (Blade Fan), PV
+                                      ôtés à l'ennemi (Start of Attacking). Le
                                       défaut est zéro — un speed tune ne l'attend
                                       pas ; on désigne ce qu'on veut tester. */}
-                                  {sortDeLaLigne?.atbParRetrait && (
+                                  {sortDeLaLigne?.atbAuChoix?.unite === 'retrait' && (
                                     <label className="flex items-center gap-1.5">
                                       <span className="text-micro uppercase tracking-wide text-ink-dimmer">
                                         buffs retirés
@@ -713,16 +715,32 @@ export default function SpeedTuningSection({
                                       <Selecteur
                                         taille="sm"
                                         pleineLargeur={false}
-                                        value={String(retraitsSort[cle] ?? 0)}
-                                        onChange={(e) => choisirRetraits(cle, Number(e.target.value))}
+                                        value={String(atbChoisi[cle] ?? 0)}
+                                        onChange={(e) => choisirAtb(cle, Number(e.target.value))}
                                         aria-label={`Buffs retirés par le sort de ${l.monster.name}`}
                                       >
-                                        {Array.from({ length: sortDeLaLigne.atbParRetrait.max + 1 }, (_, n) => (
+                                        {Array.from({ length: sortDeLaLigne.atbAuChoix.max + 1 }, (_, n) => (
                                           <option key={n} value={n}>
-                                            {n} (+{pourcentBarre(n * sortDeLaLigne.atbParRetrait!.valeur)} % équipe)
+                                            {n} (+{pourcentBarre(n * sortDeLaLigne.atbAuChoix!.pas)} % équipe)
                                           </option>
                                         ))}
                                       </Selecteur>
+                                    </label>
+                                  )}
+                                  {sortDeLaLigne?.atbAuChoix?.unite === 'pourcent' && (
+                                    <label className="flex items-center gap-1.5">
+                                      <span className="text-micro uppercase tracking-wide text-ink-dimmer">
+                                        barre équipe
+                                      </span>
+                                      <NumberField
+                                        value={atbChoisi[cle] ?? 0}
+                                        onChange={(v) => choisirAtb(cle, v ?? 0)}
+                                        min={0}
+                                        max={sortDeLaLigne.atbAuChoix.max}
+                                        step={5}
+                                        suffix="%"
+                                        ariaLabel={`Barre rendue à l'équipe par le sort de ${l.monster.name}`}
+                                      />
                                     </label>
                                   )}
                                   {/* ⚠️ Sa compétence lui REND son tour (Kroa) : il

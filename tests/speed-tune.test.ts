@@ -29,7 +29,7 @@ import {
 } from '../src/lib/speedTune';
 import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
 import { LeadInfo, leadsDeVitesse } from '../src/lib/speed';
-import { effetAvecRetraits, kitVitesse, pourcentBarre, sortsVitesse, SortVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
+import { effetAuChoix, kitVitesse, pourcentBarre, sortsVitesse, SortVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
 import { PassifVitesse } from '../src/lib/speedTunePassif';
 import { passifsVitesse, pointsDeGain } from '../src/lib/speedTunePassif';
 import {
@@ -1907,18 +1907,29 @@ export function testSpeedTuneKit() {
     const [autre] = sortsVitesse(detail([comp('Trade', [effet('Increase ATB', 20, false, false)])]));
     egal(autre.effet.atbAllie, 20, 'hors de la table, `aoe: false` reste un boost sur un seul allié');
 
-    // Blade Fan (Mihyang) : 15 % de barre à TOUTE l'équipe par buff retiré, trois
-    // au plus, ZÉRO par défaut (`ATB_PAR_RETRAIT_CONNUS`). Retiré de la table, le
-    // sort repartirait en boost d'un seul allié à 15 %, compté d'office.
+    // Remplissages AU CHOIX (`ATB_AU_CHOIX_CONNUS`), ZÉRO par défaut. Retiré de
+    // la table, chaque sort repartirait compté d'office : Blade Fan en boost
+    // d'un seul allié à 15 %, Start of Attacking à +50 % pour l'équipe.
+    //
+    // Blade Fan (Mihyang) : 15 % à TOUTE l'équipe par buff retiré, trois au plus.
     const lames = sortNomme(18311, 'Blade Fan');
-    egal(JSON.stringify(lames?.atbParRetrait), '{"valeur":15,"max":3}', 'Blade Fan remplit 15 % par buff retiré, trois au plus');
+    egal(JSON.stringify(lames?.atbAuChoix), '{"pas":15,"max":3,"unite":"retrait"}', 'Blade Fan remplit 15 % par buff retiré, trois au plus');
     egal(lames?.effet.atbAllie, undefined, 'sans retrait désigné, il ne remplit la barre de personne');
     egal(lames?.effet.atbEquipe, undefined, 'ni celle de l’équipe');
     ok(kitVitesse(fiche(18311)).atbCompetence !== 'Blade Fan', "l'analyse simple, sans le choix, ne le compte pas");
-    egal(effetAvecRetraits(lames!, 0).atbEquipe, undefined, '0 retrait : rien');
-    egal(effetAvecRetraits(lames!, 1).atbEquipe, 15, '1 retrait : +15 % à l’équipe');
-    egal(effetAvecRetraits(lames!, 3).atbEquipe, 45, '3 retraits : +45 %');
-    egal(effetAvecRetraits(lames!, 4).atbEquipe, 45, 'au-delà de trois : borné');
+    egal(effetAuChoix(lames!, 0).atbEquipe, undefined, '0 retrait : rien');
+    egal(effetAuChoix(lames!, 1).atbEquipe, 15, '1 retrait : +15 % à l’équipe');
+    egal(effetAuChoix(lames!, 3).atbEquipe, 45, '3 retraits : +45 %');
+    egal(effetAuChoix(lames!, 4).atbEquipe, 45, 'au-delà de trois : borné');
+
+    // Start of Attacking (Barbara) : de 0 à 50 % pour TOUTE l'équipe, lanceur
+    // compris (règle donnée par l'utilisateur, malgré « other allies »).
+    const charge = sortNomme(23511, 'Start of Attacking');
+    egal(JSON.stringify(charge?.atbAuChoix), '{"pas":1,"max":50,"unite":"pourcent"}', 'Start of Attacking se règle de 0 à 50 %');
+    egal(charge?.effet.atbEquipe, undefined, 'sans valeur désignée, il ne remplit rien — plus de +50 % d’office');
+    egal(kitVitesse(fiche(23511)).atb, 0, "l'analyse simple ne le compte plus");
+    egal(effetAuChoix(charge!, 30).atbEquipe, 30, '30 % désignés : +30 % à toute l’équipe');
+    egal(effetAuChoix(charge!, 70).atbEquipe, 50, 'au-delà de 50 : borné');
   }
 }
 
@@ -2847,30 +2858,40 @@ export function testSpeedTuneAuto() {
     );
   }
 
-  // ⚠️ **Blade Fan : la barre de l'équipe se remplit PAR BUFF RETIRÉ**, et le
-  // nombre se désigne par tour (`choix.retraits`). Zéro par défaut : sans
-  // désignation, l'analyse n'écrit rien.
+  // ⚠️ **Remplissage d'équipe AU CHOIX** (Blade Fan : par buff retiré ; Start
+  // of Attacking : un pourcentage) : la valeur se désigne par tour
+  // (`choix.atbChoisi`, en paliers). Zéro par défaut : sans désignation,
+  // l'analyse n'écrit rien.
   {
-    const lames = {
-      nom: 'Lames', slot: 3, icone: null, effet: {}, rejoue: false, cooldown: 0,
-      atbNiveau1: 0, atbSkillUp: 0, chance: null, neutre: false, buffsEquipe: 0,
-      atbParRetrait: { valeur: 15, max: 3 },
+    const sortAuChoix = (nom: string, atbAuChoix: SortVitesse['atbAuChoix']): SortVitesse => ({
+      nom, slot: 3, icone: null, effet: {}, rejoue: false, cooldown: 0,
+      atbNiveau1: 0, atbSkillUp: 0, chance: null, neutre: false, buffsEquipe: 0, atbAuChoix,
+    });
+    const donnees: DonneesKit = {
+      kits: new Map(),
+      sorts: new Map([[100, [
+        sortAuChoix('Lames', { pas: 15, max: 3, unite: 'retrait' }),
+        sortAuChoix('Charge', { pas: 1, max: 50, unite: 'pourcent' }),
+      ]]]),
+      passifs: new Map(),
     };
-    const donnees: DonneesKit = { kits: new Map(), sorts: new Map([[100, [lames]]]), passifs: new Map() };
     const equipe: EntreeAuto[] = [
       { id: 'a', monster: monstre(100, 'Lanceur', 100), runeSpeed: 160 },
       { id: 'b', monster: monstre(101, 'Autre', 100), runeSpeed: 90 },
     ];
-    const barreDe = (retraits?: Record<string, number>) => {
-      const r = analyseAutomatique(equipe, 0, donnees, { choix: { sort: { a: 'Lames', b: '' }, retraits } });
+    const barreDe = (sort: string, atbChoisi?: Record<string, number>) => {
+      const r = analyseAutomatique(equipe, 0, donnees, { choix: { sort: { a: sort, b: '' }, atbChoisi } });
       // Sans rechargement, le sort repart à chaque tour du lanceur : on lit les
       // valeurs DISTINCTES écrites pour l'autre allié.
       return [...new Set(Object.values(r.mods.get('b')?.atbMod ?? {}))];
     };
-    egal(barreDe().join(','), '', 'aucun retrait désigné → rien n’est écrit pour l’équipe');
-    egal(barreDe({ a: 2 }).join(','), '30', 'deux buffs retirés → +30 % de barre à l’équipe');
-    egal(barreDe({ a: 9 }).join(','), '45', 'borné à trois retraits : +45 % au plus');
-    egal(barreDe({ 'a#2': 3 }).join(','), '', 'le nombre appartient au TOUR : celui du 2ᵉ ne vaut pas pour le 1ᵉʳ');
+    egal(barreDe('Lames').join(','), '', 'aucun retrait désigné → rien n’est écrit pour l’équipe');
+    egal(barreDe('Lames', { a: 2 }).join(','), '30', 'deux buffs retirés → +30 % de barre à l’équipe');
+    egal(barreDe('Lames', { a: 9 }).join(','), '45', 'borné à trois retraits : +45 % au plus');
+    egal(barreDe('Lames', { 'a#2': 3 }).join(','), '', 'la valeur appartient au TOUR : celle du 2ᵉ ne vaut pas pour le 1ᵉʳ');
+    egal(barreDe('Charge').join(','), '', 'Start of Attacking sans valeur désignée → rien');
+    egal(barreDe('Charge', { a: 35 }).join(','), '35', '35 % désignés → +35 % de barre à l’équipe');
+    egal(barreDe('Charge', { a: 80 }).join(','), '50', 'borné à 50 %');
   }
 
   // ⚠️ **SUR QUI les buffs se comptent — Chilling contre Elsharion.**

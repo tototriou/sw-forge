@@ -112,7 +112,9 @@ sorts, et « Aucun sort ».
   ⚠️ **Le premier ▲▼ le FIGE** (`ordreRange`) : à partir de là c'est un choix, la
   liste ne suit plus les vitesses et se contente de suivre la composition (un
   allié ajouté entre à la fin, un retiré en sort). Le réécrire après coup serait
-  une perte silencieuse.
+  une perte silencieuse. ⚠️ **Sauf à l'import d'un deck dans « Ton équipe »** :
+  le rangement portait sur l'équipe précédente, l'ordre repart des vitesses
+  (voir [feat-import-deck-siege.md](feat-import-deck-siege.md)).
 - **Sort par monstre**, dans un **menu à icônes** (Bouton + `FlottantAuto` +
   rangées à plat, la grammaire des listes ancrées de l'app) — ⚠️ **`FlottantAuto`
   et non `Flottant`** : le bouton se promène au bout d'une rangée, et un flottant

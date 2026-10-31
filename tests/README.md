@@ -33,6 +33,11 @@ l'application
 dont [rendu/optimizer-ecran-navigateur.test.ts](rendu/optimizer-ecran-navigateur.test.ts)),
 soit par le banc d'affichage, plus bas, hors de la suite.
 
+Les deux lancent le Chromium de Playwright et, s'il manque, retombent sur
+celui du conteneur cloud (`/opt/pw-browsers/chromium`, préinstallé pour une
+autre version de Playwright) : rien à installer dans une session
+claude.ai/code.
+
 ⚠️ **Ce Chromium rend avec les polices de l'app**, pas celles de la
 machine : le banc pose `font-body` sur le `<body>` comme `index.html`,
 déclare Source Sans 3 et JetBrains Mono depuis `@fontsource`

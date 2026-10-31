@@ -31,6 +31,15 @@ par tick**, qui restent la porte de sortie manuelle.
   que sa **durée**). ⚠️ Un « remplit **TA** barre » (`surSoi`) ou un boost sur
   **un** allié est **écarté** : le modèle applique l'effet à tout le camp, les y
   verser gonflerait l'équipe entière.
+- ⚠️ **Le drapeau `aoe` ment parfois** : *Trade* (Conrad, Death Knight) et
+  *Devil's Bargain* (Mephisto, Demon) remplissent la barre de « **all allies** »
+  selon leur prose, mais SWARFARM marque l'effet `aoe: false` — l'outil donnait
+  donc le boost à **un seul** allié, et l'analyse simple ne le voyait pas.
+  `ATB_DE_ZONE_CONNUS` ([speedTuneKit.ts](src/lib/speedTuneKit.ts)) les
+  rattrape **par identifiant de compétence** : c'est une table d'exceptions aux
+  données, pas une liste blanche — la règle reste le drapeau. Elle sort d'un
+  balayage des 380 compétences « Increase ATB » du corpus contre leur prose ;
+  chaque entrée est testée sur la vraie fiche.
 - **Les compétences PASSIVES sont écartées** : elles partent sur une condition
   (quand il est attaqué, à la mort d'un allié…), pas au tour du monstre.
 - **La plus forte l'emporte** quand plusieurs compétences remplissent la barre :

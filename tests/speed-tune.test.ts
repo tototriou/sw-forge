@@ -1882,6 +1882,31 @@ export function testSpeedTuneKit() {
     egal(k.buff, BUFF_SPD_JEU, 'buff de vitesse de zone → +30 % (valeur du jeu)');
     egal(k.buffCompetence, 'Cri du prédateur', 'la compétence source est nommée');
   }
+
+  // ⚠️ Fiches SWARFARM infidèles (`ATB_DE_ZONE_CONNUS`) : la prose dit « all
+  // allies », l'effet porte `aoe: false`. Chaque entrée se vérifie sur la VRAIE
+  // fiche — retirée de la table, le boost repart sur un seul allié et ce bloc
+  // échoue.
+  {
+    const fiche = (id: number) =>
+      JSON.parse(readFileSync(`public/data/skills/${id}.json`, 'utf8')) as DetailMonstre;
+    const sortNomme = (id: number, nom: string) => sortsVitesse(fiche(id)).find((s) => s.nom === nom);
+
+    const trade = sortNomme(16214, 'Trade');
+    egal(trade?.effet.atbEquipe, 23, 'Trade (Conrad) remplit la barre de TOUTE l’équipe, 20 × 1,15 = 23 %');
+    egal(trade?.effet.atbAllie, undefined, 'et pas celle d’un seul allié');
+    egal(kitVitesse(fiche(16214)).atb, 23, "l'analyse simple le voit comme boost d'équipe");
+    egal(kitVitesse(fiche(16204)).atb, 23, 'Death Knight, qui porte le même sort, aussi');
+
+    const marche = sortNomme(23113, "Devil's Bargain");
+    egal(marche?.effet.atbEquipe, 20, 'Devil’s Bargain (Mephisto) remplit la barre de toute l’équipe, 20 %');
+    egal(kitVitesse(fiche(23103)).atb, 20, 'Demon, qui porte le même sort, aussi');
+
+    // La règle générale tient toujours : un sort de même nom absent de la table
+    // (autre identifiant) reste un boost sur UN allié.
+    const [autre] = sortsVitesse(detail([comp('Trade', [effet('Increase ATB', 20, false, false)])]));
+    egal(autre.effet.atbAllie, 20, 'hors de la table, `aoe: false` reste un boost sur un seul allié');
+  }
 }
 
 /* ------------------------------------------ Séquence imposée (analyse+) --- */

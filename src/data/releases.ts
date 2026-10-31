@@ -65,6 +65,7 @@ export const RELEASES: Release[] = [
     title: 'Corrections',
     changes: [
       { kind: 'fix', scope: 'Speed tuning', text: 'Les skill-ups des remplissages de barre multiplient la valeur au lieu de s’y ajouter.' },
+      { kind: 'fix', scope: 'Speed tuning', text: 'Conrad, Death Knight, Mephisto et Demon remplissent la barre de toute l’équipe.' },
     ],
   },
   {

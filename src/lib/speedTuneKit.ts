@@ -183,6 +183,23 @@ function boostAtbConditionnel(c: Competence): boolean {
   return ph.length > 0 && ph.every((p) => CONDITION.test(p));
 }
 
+// Remplissages de barre DE ZONE que SWARFARM marque `aoe: false`, par
+// identifiant de compétence. ⚠️ **Une exception aux données, pas une liste
+// blanche** : la règle reste le drapeau `aoe` ; cette table ne rattrape que les
+// fiches infidèles, relevées en balayant les 380 compétences « Increase ATB » du
+// corpus contre leur prose. Sans elle, le boost d'équipe partait sur UN allié,
+// celui à la barre la plus basse, et l'analyse simple ne le voyait pas du tout.
+const ATB_DE_ZONE_CONNUS = new Map<number, string>([
+  // Conrad, Death Knight : « … increases the Attack Bar of all allies by 20%. »
+  [7414, 'Trade'],
+  // Mephisto, Demon : « Recovers the Attack Bar of all allies by 20% afterwards. »
+  [13408, "Devil's Bargain"],
+]);
+
+// L'effet de barre va-t-il à tout le camp ? Le drapeau de la fiche, ou la table.
+const atbDeZone = (c: Competence, e: Competence['effets'][number]) =>
+  e.aoe || (e.nom === EFFET_ATB && c.com2usId != null && ATB_DE_ZONE_CONNUS.has(c.com2usId));
+
 // c'est celle qu'on joue pour lancer le combo. Les champs restent modifiables à
 // la main — la détection propose, elle n'impose pas.
 export function kitVitesse(detail: DetailMonstre | null): KitVitesse {
@@ -194,7 +211,7 @@ export function kitVitesse(detail: DetailMonstre | null): KitVitesse {
     // Un boost sous condition ne se propose pas (voir `boostAtbConditionnel`).
     const atbSousCondition = boostAtbConditionnel(c);
     for (const e of c.effets) {
-      if (!e.aoe) continue;
+      if (!atbDeZone(c, e)) continue;
       if (e.nom === EFFET_ATB) {
         if (atbSousCondition) continue;
         const niveau1 = e.quantite ?? 0;
@@ -248,7 +265,7 @@ function lireEffet(c: Competence): { effet: EffetSort; atbNiveau1: number; atbSk
         const qEff = q === 0 ? 100 : q;
         const v = maxee(qEff, skillUp);
         atbNiveau1 = Math.max(atbNiveau1, qEff);
-        if (e.aoe) effet.atbEquipe = Math.max(effet.atbEquipe ?? 0, v);
+        if (atbDeZone(c, e)) effet.atbEquipe = Math.max(effet.atbEquipe ?? 0, v);
         else if (e.surSoi) effet.atbSoi = Math.max(effet.atbSoi ?? 0, v);
         else effet.atbAllie = Math.max(effet.atbAllie ?? 0, v);
         chance = e.chance && e.chance > 0 && e.chance < 100 ? e.chance : chance;

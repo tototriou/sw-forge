@@ -453,6 +453,12 @@ export interface Reco {
   author: string; // auteur de la recommandation (facultatif)
   note: string; // consignes globales, valables pour tous les decks (multi-lignes)
   decks: RecoDeck[];
+  // Identifiant STABLE de la provenance, posé par celui qui produit le fichier
+  // (un outil qui republie la même recommandation enrichie de semaine en
+  // semaine). Facultatif, jamais affiché ni saisi : il sert à reconnaître, à
+  // l'import, la recommandation qu'un fichier complète — malgré un renommage ou
+  // une date dans le nom (voir lib/recoFusion.ts). Transporté dans l'export.
+  source?: string;
 }
 
 // Contenu transportable d'une recommandation : ni l'id (régénéré), ni l'origine

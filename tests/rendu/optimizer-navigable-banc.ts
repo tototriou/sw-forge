@@ -7,6 +7,24 @@ import ts from 'typescript';
 import type { Browser, Page } from 'playwright';
 
 let cssConstruit: string | undefined;
+let cssPolices: string | undefined;
+
+// ⚠️ Les polices de l'app, celles qu'`index.html` charge (Google Fonts) et
+// que le `<body>` applique par `font-body` : sans elles, le texte tombe sur
+// la police système de la machine (Segoe UI sous Windows, une autre sous
+// Linux), et une mesure de largeur — le seuil du tableau des résultats —
+// change d'une machine à l'autre. Lues dans `@fontsource` (dépendances de
+// développement), pour rester hors ligne.
+const POLICES = [
+  { famille: 'Source Sans 3', paquet: 'source-sans-3', graisses: [400, 500, 600, 700] },
+  { famille: 'JetBrains Mono', paquet: 'jetbrains-mono', graisses: [400, 500, 700] },
+];
+function declarerPolices(): string {
+  return POLICES.flatMap(({ famille, paquet, graisses }) => graisses.map((g) => {
+    const woff2 = readFileSync(resolve('node_modules', '@fontsource', paquet, 'files', `${paquet}-latin-${g}-normal.woff2`)).toString('base64');
+    return `@font-face{font-family:"${famille}";font-style:normal;font-weight:${g};font-display:block;src:url(data:font/woff2;base64,${woff2}) format("woff2");}`;
+  })).join('\n');
+}
 
 // Conteneur Linux (claude.ai/code) : Chromium y est préinstallé pour une autre
 // version de Playwright. Même repli que le banc d'affichage (tests/banc/session.mjs).
@@ -26,6 +44,7 @@ export async function navigateurOptimizer(telephone = false, entreeBanc = 'tests
     cssConstruit = (await postcss([tailwind({ config: resolve('tailwind.config.js') })])
       .process(readFileSync('src/index.css', 'utf8'), { from: resolve('src/index.css') })).css;
   }
+  cssPolices ??= declarerPolices();
   const modules: { code: string; liens: Record<string, number> }[] = [];
   const ids = new Map<string, number>();
   const workers = new Map<string, number>();
@@ -100,15 +119,25 @@ export async function navigateurOptimizer(telephone = false, entreeBanc = 'tests
       // de 48 px et marge de 20, App.tsx) : la page de bureau de l'Optimizer
       // colle ses essentiels à cette hauteur (`HAUT_PAGE`, PageBureau.tsx), et
       // un contenu posé plus haut serait poussé par le collage.
-      if (chemin === '/') return route.fulfill({ contentType: 'text/html', body: `<meta name="viewport" content="width=device-width, initial-scale=1.0"><div id="racine"${telephone ? '' : ' style="padding-top:68px"'}></div>` });
+      // `font-body` sur le `<body>`, comme `index.html`.
+      if (chemin === '/') return route.fulfill({ contentType: 'text/html', body: `<meta name="viewport" content="width=device-width, initial-scale=1.0"><body class="font-body"><div id="racine"${telephone ? '' : ' style="padding-top:68px"'}></div></body>` });
       const fichier = resolve(publicRoot, `.${decodeURIComponent(chemin)}`);
       if (!fichier.startsWith(publicRoot + sep) || !existsSync(fichier)) return route.fulfill({ status: 404, body: '' });
       const contentType = fichier.endsWith('.svg') ? 'image/svg+xml' : fichier.endsWith('.png') ? 'image/png' :
         fichier.endsWith('.webp') ? 'image/webp' : fichier.endsWith('.woff2') ? 'font/woff2' : 'application/octet-stream';
       return route.fulfill({ contentType, body: readFileSync(fichier) });
     });
+    // Les polices chargées AVANT tout rendu : une mesure prise pendant leur
+    // chargement lirait celle de repli.
+    const styler = async () => {
+      await page.addStyleTag({ content: cssConstruit });
+      await page.addStyleTag({ content: cssPolices });
+      const absentes = await page.evaluate(async (polices) => (await Promise.all(polices.flatMap(({ famille, graisses }) =>
+        graisses.map(async (g) => (await document.fonts.load(`${g} 16px "${famille}"`)).length ? null : `${famille} ${g}`)))).filter(Boolean), POLICES);
+      if (absentes.length) throw new Error(`Polices du banc non chargées : ${absentes.join(', ')}`);
+    };
     await page.goto('http://optimizer.test/');
-    await page.addStyleTag({ content: cssConstruit });
+    await styler();
     const script = `
       globalThis.process = { env: { NODE_ENV: 'development' } };
       globalThis.__APP_VERSION__ = 'test';
@@ -127,7 +156,7 @@ export async function navigateurOptimizer(telephone = false, entreeBanc = 'tests
     page.on('pageerror', erreur => { throw erreur; });
     const recharger = async () => {
       await page.reload();
-      await page.addStyleTag({ content: cssConstruit });
+      await styler();
       await page.addScriptTag({ content: script });
     };
     return { browser, page, recharger };

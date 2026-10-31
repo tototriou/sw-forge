@@ -349,6 +349,8 @@ import testSiegeStatut from './siege-statut.test';
 import testSiegePastille from './siege-pastille.test';
 import testSiegeSlotSuivant from './siege-slot-suivant.test';
 import testRecoDefenses from './reco-defenses.test';
+import { testRecoFusionCorrespondance, testRecoFusionDecks, testRecoFusionChef, testRecoFusionImport, testRecoFusionSource } from './reco-fusion.test';
+import { testRenduRecoFusionChoix, testRenduRecoFusionStockage } from './rendu/reco-fusion.test';
 import testSiegePartage from './siege-partage.test';
 import testMarque from './marque.test';
 import testSpeedTune, { testSpeedTuneDeck, testSpeedTuneChaine, testSpeedTuneKit, testSpeedTuneSequence, testSpeedTuneReference, testSpeedTunePassif, testSpeedTuneAuto, testSpeedTuneModele } from './speed-tune.test';
@@ -527,6 +529,13 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testSiegePastille', testSiegePastille],
   ['testSiegeSlotSuivant', testSiegeSlotSuivant],
   ['testRecoDefenses', testRecoDefenses],
+  ['testRecoFusionCorrespondance', testRecoFusionCorrespondance],
+  ['testRecoFusionDecks', testRecoFusionDecks],
+  ['testRecoFusionChef', testRecoFusionChef],
+  ['testRecoFusionImport', testRecoFusionImport],
+  ['testRecoFusionSource', testRecoFusionSource],
+  ['testRenduRecoFusionChoix', testRenduRecoFusionChoix],
+  ['testRenduRecoFusionStockage', testRenduRecoFusionStockage],
   ['testSiegePartage', testSiegePartage],
   ['testMarque', testMarque],
   ['testRenduSiegeDefense', testRenduSiegeDefense],

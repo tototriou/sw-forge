@@ -11,6 +11,23 @@ export interface BancRetouches {
 const visible = (e: Element) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden';
 export const bouton = (nom: string, racine: ParentNode = document) => [...racine.querySelectorAll<HTMLButtonElement>('button')]
   .find(e => visible(e) && ((e.querySelector('[data-libelle-onglet]') ?? e).textContent?.trim() === nom || e.getAttribute('aria-label') === nom))!;
+/**
+ * Les animations et transitions CSS d'un élément et de ses descendants,
+ * finies. ⚠️ Un délai fixe ne suffit pas sur une machine chargée : une mesure
+ * prise pendant leurs dernières images (position, couleur) n'est pas la
+ * finale. Les animations infinies ne s'attendent pas.
+ */
+export async function animationsFinies(element: Element) {
+  await Promise.all(element.getAnimations({ subtree: true })
+    .filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished));
+}
+/** Le dialogue ouvert, une fois son entrée (`dialogue`, 200 ms, translation et échelle 0,98) finie. */
+export async function dialoguePose(): Promise<HTMLElement> {
+  await new Promise(r => setTimeout(r, 250));
+  const dialogue = document.querySelector<HTMLElement>('[role="dialog"]')!;
+  await animationsFinies(dialogue);
+  return dialogue;
+}
 export async function deplierListes(b: BancRetouches) {
   const gerer = bouton('Gérer mes listes');
   if (gerer?.getAttribute('aria-expanded') === 'false') await b.geste(() => gerer.click());
@@ -24,8 +41,7 @@ export async function preuvesCreationObligatoire(b: BancRetouches): Promise<[boo
   });
   const choix = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(e => visible(e) && e.textContent?.includes('Second'))!;
   await b.geste(() => choix.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true })));
-  await new Promise(r => setTimeout(r, 250));
-  const dialogue = document.querySelector<HTMLElement>('[role="dialog"]')!;
+  const dialogue = await dialoguePose();
   const menu = dialogue.querySelector<HTMLSelectElement>('[aria-label="Contenu de la liste"]')!;
   const creer = bouton('Créer', dialogue), styleVide = getComputedStyle(menu);
   const couleurVide = styleVide.borderTopColor;
@@ -41,6 +57,8 @@ export async function preuvesCreationObligatoire(b: BancRetouches): Promise<[boo
   const avant = creer.getBoundingClientRect();
   await b.geste(() => { menu.focus(); menu.value = 'guilde'; menu.dispatchEvent(new Event('change', { bubbles: true })); });
   await new Promise(r => setTimeout(r, 200));
+  // Le contour passe de l'accent au neutre par une transition : la couleur se lit à son terme.
+  await animationsFinies(menu);
   const apres = creer.getBoundingClientRect();
   preuves.push([!creer.disabled && !creer.title && menu.classList.contains('border-border') && getComputedStyle(menu).borderTopColor !== couleurVide,
     'contenu choisi : contour normal et Créer actif sans infobulle de blocage']);
@@ -132,8 +150,7 @@ export async function preuvesEnteteEquipe(b: BancRetouches): Promise<[boolean, s
 export async function preuvesDialogueElement(b: BancRetouches): Promise<[boolean, string][]> {
   await preparerEquipe(b);
   await b.geste(() => bouton('Modifier l’équipe').click());
-  await new Promise(r => setTimeout(r, 250));
-  const dialogue = document.querySelector<HTMLElement>('[role="dialog"]')!;
+  const dialogue = await dialoguePose();
   const menu = dialogue.querySelector<HTMLSelectElement>('[aria-label="Élément du lead de l’équipe"]')!;
   const portee = dialogue.querySelector<HTMLSelectElement>('[aria-label="Portée du lead de l’équipe"]')!;
   const position = menu.getBoundingClientRect();

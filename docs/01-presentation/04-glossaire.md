@@ -71,6 +71,11 @@ fiche qui fait foi : les règles détaillées et les valeurs chiffrées restent 
 - **Leader skill, lead, leader** : la leader skill est l'effet que le leader d'une équipe donne à
   ses alliés ; le lead est cet effet (« lead VIT +24 % »), le leader le monstre qui le porte. Sa
   zone : General, Element, Arena, Guild, Dungeon. Code : `LeaderSkill`, `speedLeadOf`.
+- **Lead actif (en siège), chef** : en siège, un lead de zone General ou Guild est actif, un lead
+  d'élément l'est si un monstre de l'équipe est de cet élément ; Arena et Dungeon ne le sont pas.
+  Le chef d'une équipe est son premier monstre, s'il a un lead actif : deux équipes aux mêmes
+  monstres ne diffèrent que par lui. Code : `leadActifEnSiege`, `cleEquipe`, `siegeLeadFor`.
+  → [modele.md](../02-app/siege/feat-recommandations/modele.md)
 - **Compétences d'invocateur** : bonus de compte qui s'ajoutent aux stats en combat. À éviter :
   « totem ». → [feat-formules-et-combat.md](../02-app/degats-reels/feat-formules-et-combat.md)
 - **Set d'aura** : set dont l'effet s'applique à toute l'équipe. Code : `aurasExternes.ts`.

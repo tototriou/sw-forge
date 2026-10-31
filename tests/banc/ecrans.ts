@@ -336,6 +336,17 @@ const RECO_DEPLIER: Etape[] = [
 ];
 const RECO_IMPORTEES: Cible = { role: 'texte', nom: '3 recommandation(s) · 6 deck(s) · 18 monstre(s) importés.' };
 const RECO_LISTES: Cible[] = RECO_LISTES_NOMS.map((nom) => ({ role: 'heading', nom }));
+// Réimport du même fichier : le choix de la fusion, puis son rapport.
+const RECO_FUSION_TITRE: Cible = { role: 'heading', nom: 'Ce fichier complète tes recommandations' };
+// Les options du choix se repèrent par leur attribut : leur nom accessible
+// porte toute leur description.
+const RECO_FUSIONNER: Cible = { role: 'repere', nom: '[data-choix-fusion="fusionner"]' };
+const RECO_A_PART: Cible = { role: 'repere', nom: '[data-choix-fusion="a-part"]' };
+const RECO_REIMPORT: Etape = { ...RECO_IMPORT, confirme: RECO_FUSION_TITRE };
+const RECO_FUSION_FAITE: Cible = {
+  role: 'texte',
+  nom: "Fusion : rien de nouveau, tous ses decks et leurs défenses étaient déjà là. Rien n'a été retiré ni modifié.",
+};
 // Lignes d'artéfacts propres à un seul deck du fichier.
 const RECO_DETAIL: Cible[] = [
   { role: 'texte', nom: 'Dgts de bombe +X%' },
@@ -515,6 +526,26 @@ export const ECRANS: Ecran[] = [
           ordinateur: [RECO_IMPORT, { cliquer: { role: 'button', nom: 'Défense' } }, ...RECO_CONSULTER.ordinateur],
         },
         atteint: [RECO_IMPORTEES, ...RECO_LISTES, ...RECO_CONTRES],
+      },
+      // Le même fichier importé deux fois : il complète les trois listes (même
+      // auteur, même nom), l'import propose de fusionner ou d'ajouter à part.
+      {
+        id: 'reco-fusion-choix',
+        libelle: 'même fichier réimporté, choix « fusionner » ou « ajouter à part »',
+        preparation: {
+          telephone: [...RECO_IMPORT_TELEPHONE, { cliquer: RECO_OPTIONS }, RECO_REIMPORT],
+          ordinateur: [RECO_IMPORT, RECO_REIMPORT],
+        },
+        atteint: [RECO_FUSION_TITRE, RECO_FUSIONNER, RECO_A_PART],
+      },
+      {
+        id: 'reco-fusion-faite',
+        libelle: 'même fichier réimporté puis fusionné : rien de nouveau, rien de doublé',
+        preparation: {
+          telephone: [...RECO_IMPORT_TELEPHONE, { cliquer: RECO_OPTIONS }, RECO_REIMPORT, { cliquer: RECO_FUSIONNER }, RECO_FERMER_PANNEAU],
+          ordinateur: [RECO_IMPORT, RECO_REIMPORT, { cliquer: RECO_FUSIONNER }],
+        },
+        atteint: [RECO_FUSION_FAITE, ...RECO_LISTES],
       },
     ],
   },

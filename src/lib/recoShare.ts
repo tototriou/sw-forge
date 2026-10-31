@@ -292,6 +292,30 @@ export const JSON_VERSION = 5;
 // jouer — c'est le rôle des consignes du deck.
 export const COUNTER_NOTE_MAX = 200;
 
+// `source` d'une recommandation : l'identifiant stable de sa provenance, qui
+// sert à reconnaître la recommandation qu'un fichier complète (recoFusion.ts).
+// ⚠️ **Un champ en plus, pas une version de plus** : facultatif, il est ignoré
+// en silence par une app qui ne le connaît pas, et un fichier sans lui se lit
+// comme avant. Une version de plus ferait dire « réexporte-le » à chaque
+// fichier v5 en circulation, pour rien.
+// ⚠️ Trop longue, elle est IGNORÉE plutôt que tronquée : une source coupée ne
+// reconnaîtrait plus rien et pourrait en confondre deux.
+export const SOURCE_MAX = 200;
+
+function cleanSource(raw: unknown, ctx: Issues, where: string): string | undefined {
+  if (raw == null) return undefined;
+  if (typeof raw !== 'string') {
+    warn(ctx, `${where} : « source » n'est pas un texte — ignorée.`);
+    return undefined;
+  }
+  const t = raw.trim();
+  if (t.length > SOURCE_MAX) {
+    warn(ctx, `${where} : « source » de plus de ${SOURCE_MAX} caractères — ignorée.`);
+    return undefined;
+  }
+  return t || undefined;
+}
+
 // Clés en clair (français, comme l'interface) pour qu'un joueur puisse ouvrir
 // le fichier, le relire et le corriger sans décodeur.
 function recoToJson(r: Reco) {
@@ -299,6 +323,10 @@ function recoToJson(r: Reco) {
   return {
     nom: texteSortant(r.name, 60),
     auteur: texteSortant(r.author, 40),
+    // ⚠️ Repartie telle quelle : une recommandation reçue puis repartagée garde
+    // sa provenance, et se fusionne encore chez celui qui la reçoit. Omise
+    // quand il n'y en a pas, comme une liste vide.
+    ...(r.source?.trim() ? { source: texteSortant(r.source, SOURCE_MAX) } : {}),
     consignes: texteSortant(r.note, NOTE_MAX),
     decks: r.decks
       .filter((d) => d.slots.some((s) => s.com2usId != null))
@@ -456,11 +484,13 @@ export function decodeRecosJson(text: string, ctx: Issues = noIssues()): RecoPay
     }
     const auteur = r.auteur ?? r.author;
     const consignes = r.consignes ?? r.note;
+    const source = cleanSource(r.source, ctx, label);
     out.push({
       name,
       author: typeof auteur === 'string' ? auteur.trim().slice(0, 40) : '',
       note: cleanText(consignes, NOTE_MAX, ctx, label),
       decks,
+      ...(source ? { source } : {}),
     });
   });
 

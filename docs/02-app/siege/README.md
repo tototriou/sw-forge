@@ -29,7 +29,7 @@ persistance : voir [feat-recommandations/](feat-recommandations/README.md).
 | `src/pages/SiegePage.tsx`, `src/components/siege/SiegeBoard.tsx`, `src/components/siege/ChoixExportSiege.tsx`, `src/hooks/useSiegeState.ts`, `src/lib/siegeShare.ts`, `src/lib/equipementPartage.ts` | ce README |
 | `src/components/siege/SiegeTeam.tsx`, `src/components/siege/LeadPill.tsx`, `src/components/siege/slotVideSuivant.ts`, `src/components/MonsterPicker.tsx` | [feat-equipes.md](feat-equipes.md) |
 | la vitesse d'une équipe, les ticks, `src/components/siege/pastilleStatut.ts`, `src/lib/siegeStatut.ts`, `src/components/outils/SpeedTuneModale.tsx` | [feat-speed-tick.md](feat-speed-tick.md), [../transverse/feat-calcul-vitesse.md](../transverse/feat-calcul-vitesse.md) |
-| `src/components/siege/RecoBoard.tsx`, `src/components/siege/RecoCard.tsx`, `src/hooks/useSiegeRecos.ts`, les `reco…` de `src/lib/`, `src/lib/ownedBuilds.ts` | [feat-recommandations/](feat-recommandations/README.md) |
+| `src/components/siege/RecoBoard.tsx`, `src/components/siege/RecoCard.tsx`, `src/components/siege/ChoixFusionRecos.tsx`, `src/hooks/useSiegeRecos.ts`, les `reco…` de `src/lib/`, `src/lib/ownedBuilds.ts` | [feat-recommandations/](feat-recommandations/README.md) |
 
 ## Vue d'ensemble
 

@@ -8,6 +8,7 @@ import { ecrireMembresOptimizer, OPTIMIZER_MEMBERS_STORAGE_KEY, type EquipeOptim
 import { exclusionSelectorKey, type ExclusionSelector } from '../../src/lib/optimizerExclusion';
 import type { Monster } from '../../src/types';
 import type { BoxItem } from '../../src/lib/applyAccount';
+import { dialoguePose } from './optimizer-retouches-preuves';
 
 const base = { hp: 10000, atk: 800, def: 700, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 const box: BoxItem[] = Array.from({ length: 28 }, (_, i) => {
@@ -52,7 +53,8 @@ export async function preparer(modification = false, avecReferences = false) {
   }));
   root = createRoot(document.getElementById('racine')!);
   await geste(() => root.render(<Banc modification={modification} />));
-  await new Promise(r => setTimeout(r, 250));
+  // Les mesures suivent l'entrée du dialogue, finie (voir `dialoguePose`, optimizer-retouches-preuves.ts).
+  await dialoguePose();
 }
 const dialogue = () => document.querySelector<HTMLElement>('[role="dialog"]')!;
 const menu = (label: string) => dialogue().querySelector<HTMLSelectElement>(`[aria-label="${label}"]`)!;

@@ -7,6 +7,26 @@ import js from '@eslint/js';
 import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
+import { pluginSwblacksmith } from './scripts/lib/regleTexteEnDur.mjs';
+
+// Les fichiers dont les textes viennent du dictionnaire (src/i18n/) : la règle
+// `swblacksmith/texte-en-dur` y refuse tout texte écrit en dur. ⚠️ La liste
+// grandit à mesure que les écrans sont traduits, jusqu'à couvrir `src/` entier
+// (docs/02-app/transverse/feat-langues.md).
+const FICHIERS_TRADUITS = [
+  'src/components/AccountFreshness.tsx',
+  'src/components/DrapeauLangue.tsx',
+  'src/components/MobileNavSheet.tsx',
+  'src/components/MobileTabs.tsx',
+  'src/components/Palette.tsx',
+  'src/components/SettingsMenu.tsx',
+  'src/components/Sidebar.tsx',
+  'src/components/SidebarCompte.tsx',
+  'src/components/SidebarSearch.tsx',
+  'src/components/TopBar.tsx',
+  'src/components/VoletEcran.tsx',
+  'src/pages/SettingsPage.tsx',
+];
 
 export default tseslint.config(
   {
@@ -84,6 +104,7 @@ export default tseslint.config(
     files: [
       'src/hooks/usePersistence.ts',
       'src/hooks/useTheme.ts',
+      'src/hooks/useLangue.ts',
       'src/hooks/useOvercapDisplay.ts',
       'src/hooks/useRuneMetric.ts',
       'src/hooks/useAdversaireReference.ts',
@@ -91,6 +112,11 @@ export default tseslint.config(
       'src/hooks/useFormeResultats.ts',
     ],
     rules: { 'no-restricted-properties': 'off' },
+  },
+  {
+    files: FICHIERS_TRADUITS,
+    plugins: { swblacksmith: pluginSwblacksmith },
+    rules: { 'swblacksmith/texte-en-dur': 'error' },
   },
   {
     files: ['bureau/**/*.ts', 'scripts/**/*.{ts,mjs,js}', 'tests/**/*.{ts,tsx,mjs}', '.claude/**/*.mjs', '*.{js,mjs,ts}'],

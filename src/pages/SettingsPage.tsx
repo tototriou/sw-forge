@@ -1,6 +1,7 @@
 import { Settings } from 'lucide-react';
 import { SettingsList } from '../components/SettingsMenu';
 import AccountImportControl from '../components/AccountImportControl';
+import { useTraduction } from '../hooks/useLangue';
 
 // Page des RÉGLAGES (`#/parametres`).
 //
@@ -38,6 +39,7 @@ export default function SettingsPage({
   // « lequel est chargé ? » appelle « en charger un autre ».
   onImport: (texte: string) => void;
 }) {
+  const t = useTraduction().parametres;
   // ⚠️ **Colonne CENTRÉE**, contrairement aux autres pages. Celles-ci portent
   // des grilles et des tableaux qui se lisent en largeur ; les réglages sont une
   // pile de lignes courtes « intitulé / contrôle ». Alignés à gauche dans un
@@ -49,9 +51,9 @@ export default function SettingsPage({
       {/* ⚠️ À la SOURIS, le titre de la page (la
           maquette), au gabarit des autres pages. Au doigt, la barre du haut
           le dit déjà. */}
-      <h1 className="mb-1 hidden font-display text-xl tracking-wide text-ink lg:block">Paramètres</h1>
+      <h1 className="mb-1 hidden font-display text-xl tracking-wide text-ink lg:block">{t.titre}</h1>
       <p className="mb-4 text-sm leading-relaxed text-ink-dim">
-        Ces réglages valent pour toute l'application et restent sur cet appareil.
+        {t.intro}
       </p>
 
       {/* QUEL compte est chargé. Il précède les réglages : c'est ce sur quoi
@@ -63,14 +65,14 @@ export default function SettingsPage({
           <>
             <span className="h-2 w-2 flex-none rounded-full bg-good" aria-hidden />
             <div className="min-w-0 flex-1">
-              <span className="label">Compte chargé</span>
+              <span className="label">{t.compteCharge}</span>
               <div className="truncate text-sm font-semibold text-ink">{accountName}</div>
             </div>
           </>
         ) : (
           <div className="min-w-0 flex-1">
-            <span className="label">Compte</span>
-            <div className="text-sm text-ink-dim">Aucun compte chargé</div>
+            <span className="label">{t.compte}</span>
+            <div className="text-sm text-ink-dim">{t.aucunCompte}</div>
           </div>
         )}
         <AccountImportControl onImport={onImport} variant="desktop" />

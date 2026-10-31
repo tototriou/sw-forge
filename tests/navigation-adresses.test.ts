@@ -141,7 +141,7 @@ export function testNavigationVuesCompte() {
   for (const sub of Object.keys(VUES_INVENTAIRE) as AccountSub[]) {
     for (const v of VUES_INVENTAIRE[sub]) {
       const hash = hashVue(sub, v.key);
-      egal(destination(hash), `compte/${sub}/${v.key}`, `${hash} se relit en ${sub} · ${v.label}`);
+      egal(destination(hash), `compte/${sub}/${v.key}`, `${hash} se relit en ${sub} · ${v.texte}`);
       ok(hash in ADRESSES, `${hash} figure dans la table des adresses`);
     }
   }

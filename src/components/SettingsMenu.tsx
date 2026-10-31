@@ -1,10 +1,12 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Save, Trash2 } from 'lucide-react';
 import { IconeParametres } from './IconesAtelier';
-import { RUNE_METRICS, setRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
+import { choixMesure, setRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 import { setFormeResultats, useFormeResultats, type FormeResultats } from '../hooks/useFormeResultats';
 import { setPersistence, storageAvailable, usePersistence } from '../hooks/usePersistence';
-import { THEME_CHOICES, setTheme, useTheme } from '../hooks/useTheme';
+import { choixTheme, setTheme, useTheme } from '../hooks/useTheme';
+import { setChoixLangue, useChoixLangue, useTraduction } from '../hooks/useLangue';
+import { LANGUES, NOM_LANGUE, type ChoixLangue, type Dictionnaire } from '../i18n';
 import { setOvercapDisplay, useOvercapDisplay } from '../hooks/useOvercapDisplay';
 import { setAdversaireReference, useAdversaireReference } from '../hooks/useAdversaireReference';
 import { useBuildsRapides } from '../hooks/useBuildsRapides';
@@ -17,6 +19,7 @@ import Segmented from '../ui/Segmented';
 import Bouton from '../ui/Bouton';
 import Flottant from '../ui/Flottant';
 import Switch from './Switch';
+import DrapeauLangue from './DrapeauLangue';
 
 /* --------------------------------------------------------------------------
  * Briques de réglage — ajouter un paramètre = ajouter un <Setting>, rien d'autre
@@ -43,17 +46,16 @@ function Setting({ title, hint, repere, children }: { title: string; hint?: stri
 // ── Le dossier SW Blacksmith (docs/02-app/transverse/) ────────────
 
 // Pure : la ligne sous « Dossier SW Blacksmith » (`null` : rien reçu).
-export function presentationDossierSwblacksmith(etat: EtatSession | null): string {
-  return etat?.dossier
-    ? etat.dossier
-    : 'Choisis le dossier de SW Blacksmith : les sessions s’enregistrent dans son sous-dossier « sessions ».';
+export function presentationDossierSwblacksmith(etat: EtatSession | null, t: Dictionnaire['parametres']): string {
+  return etat?.dossier ? etat.dossier : t.dossierVide;
 }
 
 // Application de bureau seulement : le site n'écrit dans aucun dossier.
 function ReglageDossierSwblacksmith() {
   const { etat, agir } = useEtatSession();
+  const t = useTraduction().parametres;
   return (
-    <Setting title="Dossier SW Blacksmith" hint={presentationDossierSwblacksmith(etat)} repere="dossier-swblacksmith">
+    <Setting title={t.dossier} hint={presentationDossierSwblacksmith(etat, t)} repere="dossier-swblacksmith">
       <div className="flex flex-none gap-2">
         {/* Toujours affiché, désactivé sans dossier : il ne disparaît pas
             selon l'état. */}
@@ -61,12 +63,12 @@ function ReglageDossierSwblacksmith() {
           taille="sm"
           fond="vide"
           trait="aucun"
-          libelle="Retirer"
-          title="Ne plus utiliser ce dossier : la prochaine session le redemandera"
+          libelle={t.retirer}
+          title={t.retirerAide}
           disabled={!etat?.dossier}
           onClick={() => void agir((s) => s.oublierDossier())}
         />
-        <Bouton taille="sm" libelle="Choisir…" onClick={() => void agir((s) => s.choisirDossier())} />
+        <Bouton taille="sm" libelle={t.choisir} onClick={() => void agir((s) => s.choisirDossier())} />
       </div>
     </Setting>
   );
@@ -106,6 +108,9 @@ export function SettingsList({
   // page, comme avant. Le popover ⚙ n'en a pas l'usage.
   groupes?: boolean;
 }) {
+  const textes = useTraduction();
+  const t = textes.parametres;
+  const choixLangue = useChoixLangue();
   const metric = useRuneMetric();
   const formeResultats = useFormeResultats();
   const keep = usePersistence();
@@ -123,23 +128,37 @@ export function SettingsList({
   return (
     <div className={groupes ? 'flex flex-col gap-5' : ''}>
       <section>
-      {intitule('Réglages')}
+      {intitule(t.blocReglages)}
       {/* ⚠️ `border-b` : le filet qui séparait « Adversaire de référence » de
           « Garder mes données » doit rester (popover ⚙, et la page au doigt) —
           le dernier réglage du bloc perd le sien (`last:border-0`). À la
           souris, la carte du bloc le remplace. */}
       <div className={`border-b border-border/60 ${carteLg}`}>
-      {/* Le réglage le plus global de tous : il change l'app entière, il vient
-          donc en premier. ⚠️ TROIS options, pas un interrupteur — « Auto » doit
-          rester un choix explicite, sinon quelqu'un dont le système bascule le
-          soir perd ce comportement sans l'avoir demandé.
-          Voir docs/03-developpeur/interface/. */}
-      <Setting title="Thème">
-        <Segmented options={THEME_CHOICES} value={theme} onChange={setTheme} />
+      {/* Les réglages les plus globaux de tous : ils changent l'app entière, ils
+          viennent donc en premier, la langue d'abord — c'est elle qui rend les
+          autres lisibles. ⚠️ TROIS options chacun, pas un interrupteur — « Auto »
+          doit rester un choix explicite, sinon quelqu'un dont le système change
+          perd ce comportement sans l'avoir demandé.
+          Voir docs/02-app/transverse/feat-langues.md et docs/03-developpeur/interface/.
+          ⚠️ Chaque langue s'écrit DANS sa langue (« English », pas « Anglais ») :
+          on reconnaît la sienne même dans une interface qu'on ne lit pas. */}
+      <Setting title={textes.langue.titre}>
+        <Segmented<ChoixLangue>
+          options={[
+            { key: 'auto', label: textes.langue.auto, hint: selonSupport(textes.langue.autoNavigateur, textes.langue.autoSysteme) },
+            ...LANGUES.map((l) => ({ key: l, label: NOM_LANGUE[l], icon: <DrapeauLangue langue={l} /> })),
+          ]}
+          value={choixLangue}
+          onChange={setChoixLangue}
+        />
       </Setting>
 
-      <Setting title="Score">
-        <Segmented options={RUNE_METRICS} value={metric} onChange={setRuneMetric} />
+      <Setting title={t.theme}>
+        <Segmented options={choixTheme(textes)} value={theme} onChange={setTheme} />
+      </Setting>
+
+      <Setting title={t.score}>
+        <Segmented options={choixMesure(textes)} value={metric} onChange={setRuneMetric} />
       </Setting>
 
       {/* ⚠️ Ici, et plus au-dessus des résultats : au bureau, le tableau
@@ -147,11 +166,11 @@ export function SettingsList({
           onglets pour lui laisser la place) ; choisi dans l'Optimizer, le clic
           aurait déplacé ce qu'on venait de cliquer. */}
       <Setting
-        title="Résultats de l'Optimizer"
-        hint="Au bureau seulement. En tableau, l'Optimizer regroupe ses réglages pour lui laisser la place ; trop étroit malgré tout, il affiche les cartes."
+        title={t.resultatsOptimizer}
+        hint={t.resultatsOptimizerAide}
       >
         <Segmented<FormeResultats>
-          options={[{ key: 'cartes', label: 'Cartes' }, { key: 'tableau', label: 'Tableau' }]}
+          options={[{ key: 'cartes', label: t.cartes }, { key: 'tableau', label: t.tableau }]}
           value={formeResultats}
           onChange={setFormeResultats}
         />
@@ -159,11 +178,11 @@ export function SettingsList({
 
       {/* Ce que montre le Résumé des runes. Une fenêtre plutôt qu'un contrôle
           en ligne : une liste de combinaisons ne tient pas dans le popover. */}
-      <Setting title="Builds les plus rapides" hint={resumeBuildsRapides(buildsRapides)}>
+      <Setting title={t.buildsRapides} hint={resumeBuildsRapides(buildsRapides, t)}>
         <Bouton
           taille="sm"
-          libelle="Choisir…"
-          title="Choisir les combinaisons de sets et le nombre de builds"
+          libelle={t.choisir}
+          title={t.buildsRapidesAide}
           onClick={() => setDialogueBuildsRapides(true)}
           className="flex-none"
         />
@@ -171,48 +190,41 @@ export function SettingsList({
       {dialogueBuildsRapides && <DialogueBuildsRapides onClose={() => setDialogueBuildsRapides(false)} />}
 
       <Setting
-        title="Overcap Taux Crit/RES/Précision"
-        hint="Ces trois stats sont plafonnées à 100 % dans le jeu. Désactivé, leur TOTAL affiché s'arrête à 100 % même si la somme brute des runes dépasse — la donnée elle-même n'est jamais tronquée, seul l'affichage change."
+        title={t.overcap}
+        hint={t.overcapAide}
       >
         <Switch
           checked={overcap}
           onChange={setOvercapDisplay}
-          label="Afficher le total au-delà de 100 % pour Taux Crit, RES et Précision"
+          label={t.overcapInterrupteur}
         />
       </Setting>
 
       <Setting
-        title="Adversaire de référence (speed tuning)"
-        hint="À chaque analyse, l'outil pose en face une copie de ton monstre le plus rapide — même lead, même vitesse de runes, même set, même passif. On tune alors contre soi-même : « est-ce que toute mon équipe joue avant un monstre aussi rapide que mon plus rapide ? » Sans ce réglage, il n'est posé que si personne n'est en face."
+        title={t.adversaire}
+        hint={t.adversaireAide}
       >
         <Switch
           checked={adversaireRef}
           onChange={setAdversaireReference}
-          label="Toujours ajouter en face mon monstre le plus rapide"
+          label={t.adversaireInterrupteur}
         />
       </Setting>
       </div>
       </section>
 
       <section>
-      {intitule('Mes données')}
+      {intitule(t.blocDonnees)}
       <div className={carteLg}>
       <Setting
-        title="Garder mes données"
-        hint={
-          storageOk
-            ? selonSupport(
-                'Recommandé : sans ça, tout est perdu en fermant l’onglet — prépa RTA, équipes de siège, recommandations et compte. Tout reste dans ton navigateur, sur cet appareil : à éviter sur un ordinateur partagé.',
-                'Recommandé : sans ça, tout est perdu en fermant l’application — prépa RTA, équipes de siège, recommandations et compte. Tout reste sur cette machine : à éviter sur un ordinateur partagé.'
-              )
-            : "Ton navigateur n'autorise pas le stockage (navigation privée ?). L'import reste valable le temps de la session."
-        }
+        title={t.garder}
+        hint={storageOk ? selonSupport(t.garderAideNavigateur, t.garderAideBureau) : t.garderIndisponible}
       >
         <Switch
           checked={keep && storageOk}
           disabled={!storageOk}
           onChange={(v) => setPersistence(v, onKeepAccount)}
-          label="Garder mes données sur cet appareil"
+          label={t.garderInterrupteur}
         />
       </Setting>
 
@@ -226,16 +238,16 @@ export function SettingsList({
           la fournit que dans l'application de bureau. */}
       {onSauvegarderSession && (
         <Setting
-          title="Session"
-          hint="Tout l’état de l’app dans un fichier, enregistré où tu veux : le compte, ton travail, les réglages et l’état des outils."
+          title={t.session}
+          hint={t.sessionAide}
         >
           <Bouton
             taille="sm"
             icone={<Save size={12} />}
-            libelle="Sauvegarder"
+            libelle={t.sauvegarder}
             onClick={onSauvegarderSession}
             disabled={!!sauvegardeIndisponible}
-            title={sauvegardeIndisponible ?? 'Sauvegarder la session dans un fichier'}
+            title={sauvegardeIndisponible ?? t.sauvegarderAide}
             className="flex-none"
           />
         </Setting>
@@ -248,7 +260,7 @@ export function SettingsList({
       {/* Dans l'application de bureau, c'est le SEUL moyen de tout effacer :
           elle n'a pas « Se déconnecter » dans la barre du haut. */}
       {onClearData && (
-        <Setting title="Mes données">
+        <Setting title={t.mesDonnees}>
           {/* ⚠️ Le `Bouton` de la LIBRAIRIE, ton `danger` : il était dessiné à la main,
               et ne disait son danger
               qu'au survol. */}
@@ -256,9 +268,9 @@ export function SettingsList({
             taille="sm"
             ton="danger"
             icone={<Trash2 size={12} />}
-            libelle="Tout supprimer"
+            libelle={t.toutSupprimer}
             onClick={onClearData}
-            title="Efface la prépa RTA, les équipes de siège, les recommandations, les monstres perso et le compte importé"
+            title={t.toutSupprimerAide}
             className="flex-none"
           />
         </Setting>
@@ -272,7 +284,7 @@ export function SettingsList({
           autre app. */}
       {estBureau() && (
         <BlocApplication
-          intitule={intitule('Application')}
+          intitule={intitule(t.blocApplication)}
           classeCarte={groupes ? carteLg : 'border-t border-border/60'}
         />
       )}
@@ -298,6 +310,7 @@ export default function SettingsMenu({
   onKeepAccount?: () => void;
   accountExportedAt?: number | null;
 }) {
+  const t = useTraduction().parametres;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -333,8 +346,8 @@ export default function SettingsMenu({
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        aria-label="Réglages"
-        title="Réglages"
+        aria-label={t.blocReglages}
+        title={t.blocReglages}
         className={`flex items-center justify-center transition ${btnClass}`}
       >
         {/* Les curseurs de Paramètres. */}
@@ -354,7 +367,7 @@ export default function SettingsMenu({
           rembourrage="md"
         >
           <div className="flex items-baseline gap-3 border-b border-border pb-1.5">
-            <span className="label">Réglages</span>
+            <span className="label">{t.blocReglages}</span>
             {/* ⚠️ Vers la PAGE : ce popover porte sept réglages dont deux à
                 explication longue, et 260 px ne suffisent pas à les lire. Il
                 reste le geste rapide ; la page est là pour s'y attarder. */}
@@ -363,7 +376,7 @@ export default function SettingsMenu({
               onClick={() => setOpen(false)}
               className="ml-auto text-micro text-accent transition hoverable:text-ink"
             >
-              Tout voir
+              {t.toutVoir}
             </a>
           </div>
           <SettingsList

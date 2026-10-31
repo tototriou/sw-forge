@@ -1,4 +1,7 @@
 import { CalendarClock } from 'lucide-react';
+import { useLangue, useTraduction } from '../hooks/useLangue';
+import { formatDate } from '../i18n/format';
+import type { Langue } from '../i18n';
 
 // Date de l'export chargé.
 //
@@ -21,10 +24,9 @@ export function joursDepuis(exportedAt: number, maintenant = Date.now()): number
 
 // « le 9 août » — et l'année seulement si ce n'est pas la courante, sinon elle
 // alourdit une information qu'on lit en passant.
-export function dateCourte(exportedAt: number, maintenant = Date.now()): string {
-  const d = new Date(exportedAt);
-  const memeAnnee = d.getFullYear() === new Date(maintenant).getFullYear();
-  return d.toLocaleDateString('fr-FR', {
+export function dateCourte(exportedAt: number, langue: Langue, maintenant = Date.now()): string {
+  const memeAnnee = new Date(exportedAt).getFullYear() === new Date(maintenant).getFullYear();
+  return formatDate(exportedAt, langue, {
     day: 'numeric',
     month: 'long',
     ...(memeAnnee ? {} : { year: 'numeric' }),
@@ -38,6 +40,8 @@ export default function AccountFreshness({
   exportedAt: number | null;
   className?: string;
 }) {
+  const t = useTraduction().fraicheur;
+  const langue = useLangue();
   if (exportedAt == null) return null;
 
   const jours = joursDepuis(exportedAt);
@@ -51,11 +55,12 @@ export default function AccountFreshness({
     >
       <CalendarClock size={13} className="flex-none" />
       <span>
-        Compte exporté le {dateCourte(exportedAt)}
+        {t.exporteLe(dateCourte(exportedAt, langue))}
         {vieux && (
           <>
-            {' '}
-            — <b>réexporte ton compte</b> pour des chiffres à jour.
+            {' — '}
+            <b>{t.rappel}</b>
+            {t.rappelSuite}
           </>
         )}
       </span>

@@ -26,6 +26,8 @@ flowchart TD
 - **L'état partagé entre pages est instancié dans `src/App.tsx`** puis passé en prop : c'est ce qui
   permet à un import de compte d'alimenter RTA, siège et compte d'un seul geste.
 - **Le calcul lourd tourne hors du fil principal**, dans les Web Workers de `src/workers/`.
+- **Les textes affichés viennent de `src/i18n/`**, un dictionnaire par langue lu par
+  `useTraduction()` : [feat-langues.md](../02-app/transverse/feat-langues.md).
 
 ## Le chemin d'un import de compte
 
@@ -294,6 +296,7 @@ exemptés.
 | `useStickyState` | état conservé en mémoire à travers la navigation, sans persister |
 | `useSessionEnCours`, `useEtatSession` | la session en cours de l'application de bureau (`null` sur le site), redit « Garder mes données » au bureau ; l'état complet, dossier SW Blacksmith compris |
 | `useRuneMetric`, `useOvercapDisplay`, `useTheme` | réglages globaux (menu ⚙) |
+| `useLangue`, `useTraduction` | réglage global de la langue ; la langue affichée et ses textes (dictionnaires de `src/i18n/`) : [feat-langues.md](../02-app/transverse/feat-langues.md) |
 | `useMediaQuery` | une media query lue depuis React ; ⚠️ dans un volet de l'écran partagé, une requête de largeur répond selon le volet (`LargeurVolet`) |
 | `useScrollBloque` | ⚠️ **compteur de verrous** — blocage du défilement, verrou `position: fixed` sur `body` (iOS ignore `overflow: hidden` au toucher) |
 | `useClavierOuvert` | clavier virtuel déployé ? via `visualViewport` |

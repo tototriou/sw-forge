@@ -40,6 +40,7 @@ commit** que le code.
 | Build & style | **Vite 5**, **Tailwind 3** (PostCSS + autoprefixer, déclarés dans `vite.config.ts` avec le plugin de l'écran partagé `scripts/lib/postcssVolets.ts` ; requêtes de conteneur `@container` par `@tailwindcss/container-queries`), tokens CSS dans `src/index.css` |
 | Dépendances runtime | `lucide-react` (icônes), `framer-motion` (animation), `react-resizable-panels` (séparateur de l'écran partagé, derrière `src/ui/DeuxVolets.tsx`) — aucune mesure d'audience |
 | Calcul lourd | **Web Workers** (`src/workers/`) : recherche de l'Optimizer, classement, résolution de l'équipement |
+| Langues | **français et anglais**, par dictionnaires TypeScript typés (`src/i18n/`), sans bibliothèque de traduction |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé), tous deux opt-in |
 | Bureau | **Electron** + `electron-builder` + `electron-updater` (`bureau/`, hors de `src/`) |
 | Tests | lanceur maison `tests/run.mjs` (registre `tests/index.ts`), `fake-indexeddb`, rendu par `react-dom/server` |
@@ -55,7 +56,8 @@ src/
                  # ce qui sert plusieurs pages (Sidebar, TopBar, MobileTabs, RuneWheel, MonsterAvatar…)
   ui/            # la librairie d'interface : TOUT contrôle vient d'ici (Bouton, Champ, Selecteur,
                  # Modale, Flottant, Pastille…) — point d'entrée src/ui/index.ts
-  hooks/         # état et persistance (usePersistence, useOptimizerState, useSpeedTune…)
+  hooks/         # état et persistance (usePersistence, useOptimizerState, useSpeedTune, useLangue…)
+  i18n/          # les textes de l'interface : un dictionnaire par langue (fr.ts source, en.ts), formats
   lib/           # calcul pur, testé : vitesse (speed.ts), runes, artéfacts, reliques, dégâts réels
                  # (damage.ts), moteur de l'Optimizer (runeBuildOptim.ts), import de compte, session
   workers/       # Web Workers de l'Optimizer (recherche, appariement parallèle, classement, résolution)
@@ -124,6 +126,7 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 | `src/lib/session.ts`, `src/lib/sessionOptimizer.ts`, `src/hooks/useSessionEnCours.ts` | [transverse/feat-sauvegarde-session.md](docs/02-app/transverse/feat-sauvegarde-session.md) |
 | `src/hooks/useMonsters.ts`, `src/components/CreateMonster.tsx`, `src/components/MonsterAvatar.tsx`, `public/data/` | [transverse/feat-donnees-monstres.md](docs/02-app/transverse/feat-donnees-monstres.md) |
 | `src/hooks/useComboboxNav.ts`, une barre de recherche à suggestions | [transverse/feat-recherche-clavier.md](docs/02-app/transverse/feat-recherche-clavier.md) |
+| `src/i18n/`, `src/hooks/useLangue.ts`, `scripts/lib/regleTexteEnDur.mjs`, un texte affiché | [transverse/feat-langues.md](docs/02-app/transverse/feat-langues.md) |
 | `src/pages/BestiaryPage.tsx`, `src/components/MonsterGrid.tsx`, `src/components/FilterBar.tsx` | [bestiaire/](docs/02-app/bestiaire/README.md) |
 | `src/pages/MechanicsPage.tsx` | [mecaniques/](docs/02-app/mecaniques/README.md) |
 | `bureau/`, `src/lib/bureau.ts`, `electron-builder.yml`, `src/pages/TelechargerPage.tsx` | [bureau/](docs/02-app/bureau/README.md), [telecharger/](docs/02-app/telecharger/README.md) |
@@ -134,8 +137,11 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 
 ## Conventions de code
 
-- **Français partout** : interface, commentaires, documentation, messages de commit. Les **libellés
-  affichés sont ceux du jeu**, jamais reformulés.
+- **Français pour le dépôt** : commentaires, documentation, messages de commit. **L'interface
+  existe en français et en anglais** : un texte affiché vient du dictionnaire de `src/i18n/`
+  (`useTraduction()`), écrit dans `fr.ts` et dans `en.ts` — jamais en dur dans un composant. Les
+  **libellés affichés sont ceux du jeu dans la langue choisie**, jamais reformulés ni traduits par
+  nous ([feat-langues.md](docs/02-app/transverse/feat-langues.md)).
 - **Un commentaire donne la raison et l'invariant**, sans récit.
 - **Calcul pur dans `src/lib/`**, testé ; un composant ne calcule pas ce qu'une fonction de `src/lib/`
   peut porter (ex. `src/lib/speedTuneLignes.ts` pour l'écran du speed tuning).

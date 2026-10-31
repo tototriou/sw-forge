@@ -756,6 +756,20 @@
       "statut": "stock"
     },
     {
+      "fichier": "tests/langue.test.ts",
+      "cible": "src/components/RuneIcon.tsx",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Nom de fichier passé à ESLint par --stdin-filename, avec un code écrit dans le test : le fichier n'est pas lu, son chemin dit seulement qu'il n'est pas encore dans la liste des fichiers traduits."
+    },
+    {
+      "fichier": "tests/langue.test.ts",
+      "cible": "src/components/TopBar.tsx",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Nom de fichier passé à ESLint par --stdin-filename, avec un code écrit dans le test : le fichier n'est pas lu, son chemin le place dans la liste des fichiers traduits, où la règle texte-en-dur s'applique."
+    },
+    {
       "fichier": "tests/lecture-source.test.ts",
       "cible": "src",
       "occurrences": 1,

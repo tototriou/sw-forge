@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { selonSupport } from '../lib/bureau';
+import type { Dictionnaire } from '../i18n';
 
 // Thème de l'application : **Forge** (sombre) ou **Atelier** (clair).
 // Voir docs/03-developpeur/interface/.
@@ -10,21 +11,16 @@ import { selonSupport } from '../lib/bureau';
 export type ThemeChoice = 'auto' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
 
-export const THEME_CHOICES: { key: ThemeChoice; label: string; hint: string }[] = [
-  // Un ACCESSEUR, lu à l'affichage : dans l'app de bureau, c'est le thème du
-  // système que suit « Auto » (application de bureau).
-  {
-    key: 'auto',
-    label: 'Auto',
-    get hint() {
-      return selonSupport('Suit le thème de ton navigateur', 'Suit le thème de ton système');
-    },
-  },
-  // Rebranding R1 : l'encre de l'atelier est CHAUDE, l'accent est la BRAISE
-  // (ils disaient « encre froide », « accent cuivre » — l'ancienne identité).
-  { key: 'light', label: 'Clair', hint: 'Atelier — fond clair, encre chaude' },
-  { key: 'dark', label: 'Sombre', hint: 'Forge — fond profond, accent braise' },
-];
+// Les trois choix et leurs textes, dans la langue affichée. ⚠️ Lu à
+// l'affichage : dans l'app de bureau, c'est le thème du système que suit
+// « Auto » (application de bureau).
+export function choixTheme(t: Dictionnaire): { key: ThemeChoice; label: string; hint: string }[] {
+  return [
+    { key: 'auto', label: t.theme.auto, hint: selonSupport(t.theme.autoNavigateur, t.theme.autoSysteme) },
+    { key: 'light', label: t.theme.clair, hint: t.theme.clairAide },
+    { key: 'dark', label: t.theme.sombre, hint: t.theme.sombreAide },
+  ];
+}
 
 // **Persisté** dans `localStorage`, même si la conservation est refusée : c'est
 // un RÉGLAGE, pas une donnée de l'utilisateur — au même titre que la mesure de

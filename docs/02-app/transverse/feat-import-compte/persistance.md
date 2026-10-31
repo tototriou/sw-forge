@@ -213,7 +213,7 @@ Rien n'est envoyé à un serveur. Aucune authentification.
   tout passe par `saveLocal`. C'est ce qui garantit qu'un refus vaut pour l'app
   entière, et qu'un futur état persistant n'ouvrira pas une fuite.
 - **Exception** : les **réglages** restent écrits, par leur propre hook — choix
-  de conservation, mesure de score, thème, overcap, adversaire de référence,
+  de conservation, mesure de score, langue, thème, overcap, adversaire de référence,
   builds les plus rapides, forme des résultats de l'Optimizer (cartes ou
   tableau). Ce
   ne sont pas les données de l'utilisateur, et le refus lui-même doit être
@@ -249,7 +249,7 @@ Ce qui part :
 Ce qui reste :
 
 - les **réglages** (`CLES_DE_REGLAGE`) : choix de conservation, mesure de
-  score, thème, overcap, adversaire de référence, builds les plus rapides ;
+  score, langue, thème, overcap, adversaire de référence, builds les plus rapides ;
 - les **fichiers** : sessions de l'application de bureau, exports.
 
 ## Migration des clés d'un autre préfixe — [migrationStockage.ts](src/lib/migrationStockage.ts)

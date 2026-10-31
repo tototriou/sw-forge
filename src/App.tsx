@@ -24,12 +24,15 @@ import {
   IconeSpeedTuning,
 } from './components/IconesAtelier';
 import Palette, { RecherchePalette } from './components/Palette';
+import DrapeauLangue from './components/DrapeauLangue';
 import { resultatsPalette } from './components/palette/recherchePalette';
 import SpeedTuneModale from './components/outils/SpeedTuneModale';
 import MonsterDetailDialog from './components/MonsterDetailDialog';
 import { autreForme, jumeauDeCollab } from './lib/monsterForms';
-import { THEME_CHOICES, setTheme } from './hooks/useTheme';
-import { RUNE_METRICS, setRuneMetric } from './hooks/useRuneMetric';
+import { choixTheme, setTheme } from './hooks/useTheme';
+import { choixMesure, setRuneMetric } from './hooks/useRuneMetric';
+import { setChoixLangue, useTraduction } from './hooks/useLangue';
+import { LANGUES, NOM_LANGUE } from './i18n';
 import type { DeckInitial } from './hooks/useSpeedTune';
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
@@ -149,7 +152,7 @@ import {
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
 import { photographierMemoire, reinitialiserSticky, useStickyState } from './hooks/useStickyState';
 import { PREFIXE_SPEED_TUNE } from './hooks/useSpeedTune';
-import { VUES_INVENTAIRE, hashVue, vueParDefaut, vueValide } from './lib/accountViews';
+import { VUES_INVENTAIRE, hashVue, vueParDefaut, vueValide, type CleNavigation } from './lib/accountViews';
 import { NOM_APP } from './marque';
 import { CLASSE_NOM, SymboleLogo } from './components/Logo';
 
@@ -306,24 +309,24 @@ export function memePage(a: string, b: string): boolean {
 // actif ou non.
 // ⚠️ Icônes « objets d'atelier » : une par
 // section, au contrat de lucide (`size`, `color`) — voir IconesAtelier.tsx.
-type NavItem = { key: Route; label: string; icon: IconeAtelier; hash: string; couleur: string };
+type NavItem = { key: Route; texte: CleNavigation; icon: IconeAtelier; hash: string; couleur: string };
 
 // Onglets principaux (outils). Arène est à part (voir ARENE_ITEM) : elle se
 // positionne entre les dropdowns Outils et Ressources, pas dans ce groupe.
 const NAV: NavItem[] = [
-  { key: 'home', label: 'Accueil', icon: IconeAccueil, hash: '#/', couleur: COULEUR_SECTION.home },
-  { key: 'rta', label: 'RTA', icon: IconeRta, hash: '#/rta', couleur: COULEUR_SECTION.rta },
-  { key: 'siege', label: 'Siège', icon: IconeSiege, hash: '#/siege/defense', couleur: COULEUR_SECTION.siege },
+  { key: 'home', texte: 'accueil', icon: IconeAccueil, hash: '#/', couleur: COULEUR_SECTION.home },
+  { key: 'rta', texte: 'rta', icon: IconeRta, hash: '#/rta', couleur: COULEUR_SECTION.rta },
+  { key: 'siege', texte: 'siege', icon: IconeSiege, hash: '#/siege/defense', couleur: COULEUR_SECTION.siege },
 ];
 
-const ARENE_ITEM: NavItem = { key: 'arene', label: 'Arène', icon: IconeArene, hash: '#/arene', couleur: COULEUR_SECTION.arene };
+const ARENE_ITEM: NavItem = { key: 'arene', texte: 'arene', icon: IconeArene, hash: '#/arene', couleur: COULEUR_SECTION.arene };
 
 // Sous-sections de « RTA » (dropdown de nav).
 // ⚠️ `prepa` porte le hash NU `#/rta` : c'est l'écran historique, et les liens
 // déjà partagés doivent continuer d'y mener. `#/rta/prepa` n'existe donc pas.
-const RTA_SUBS: { sub: RtaSub; label: string; icon: IconeAtelier; hash: string; couleur: string }[] = [
-  { sub: 'prepa', label: 'Ma prépa', icon: IconeRta, hash: '#/rta', couleur: COULEUR_RTA_SUB.prepa },
-  { sub: 'ami', label: 'Ami', icon: IconeAmi, hash: '#/rta/ami', couleur: COULEUR_RTA_SUB.ami },
+const RTA_SUBS: { sub: RtaSub; texte: CleNavigation; icon: IconeAtelier; hash: string; couleur: string }[] = [
+  { sub: 'prepa', texte: 'prepa', icon: IconeRta, hash: '#/rta', couleur: COULEUR_RTA_SUB.prepa },
+  { sub: 'ami', texte: 'ami', icon: IconeAmi, hash: '#/rta/ami', couleur: COULEUR_RTA_SUB.ami },
 ];
 
 // Sous-sections de « Mon compte » (dropdown de nav).
@@ -334,26 +337,26 @@ const RTA_SUBS: { sub: RtaSub; label: string; icon: IconeAtelier; hash: string; 
 // ⚠️ Plus de `hash` ici : les liens passent par `hashVue`, qui compose
 // `#/compte/<inventaire>/<vue>`. Deux façons d'écrire la même URL auraient
 // divergé — l'une menant à la vue par défaut, l'autre à la vue courante.
-const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: IconeAtelier; couleur: string }[] = [
-  { sub: 'monstres', label: 'Monstres', icon: IconeMonstres, couleur: COULEUR_COMPTE_SUB.monstres },
-  { sub: 'runes', label: 'Runes', icon: IconeRunes, couleur: COULEUR_COMPTE_SUB.runes },
-  { sub: 'artefacts', label: 'Artéfacts', icon: IconeArtefacts, couleur: COULEUR_COMPTE_SUB.artefacts },
+const ACCOUNT_SUBS: { sub: AccountSub; texte: CleNavigation; icon: IconeAtelier; couleur: string }[] = [
+  { sub: 'monstres', texte: 'monstres', icon: IconeMonstres, couleur: COULEUR_COMPTE_SUB.monstres },
+  { sub: 'runes', texte: 'runes', icon: IconeRunes, couleur: COULEUR_COMPTE_SUB.runes },
+  { sub: 'artefacts', texte: 'artefacts', icon: IconeArtefacts, couleur: COULEUR_COMPTE_SUB.artefacts },
 ];
 
 // Sous-sections d'« Outils » (dropdown de nav) — un seul outil pour l'instant,
 // structuré pour en accueillir d'autres sans retoucher la nav.
-const OUTILS_SUBS: { sub: ToolSub; label: string; icon: IconeAtelier; hash: string; couleur: string }[] = [
-  { sub: 'optimizer', label: 'Optimizer', icon: IconeOptimizer, hash: '#/outils/optimizer', couleur: COULEUR_SECTION.outils },
-  { sub: 'speed-tuning', label: 'Speed tuning', icon: IconeSpeedTuning, hash: '#/outils/speed-tuning', couleur: COULEUR_SECTION.outils },
+const OUTILS_SUBS: { sub: ToolSub; texte: CleNavigation; icon: IconeAtelier; hash: string; couleur: string }[] = [
+  { sub: 'optimizer', texte: 'optimizer', icon: IconeOptimizer, hash: '#/outils/optimizer', couleur: COULEUR_SECTION.outils },
+  { sub: 'speed-tuning', texte: 'speedTuning', icon: IconeSpeedTuning, hash: '#/outils/speed-tuning', couleur: COULEUR_SECTION.outils },
 ];
 
 // Sous-sections de « Siège ». ⚠️ Remontées ICI depuis SiegePage : elles
 // étaient des onglets posés en haut de la page, et chaque section avait le sien
 // avec son propre rendu. La barre latérale les porte toutes de la même façon.
-const SIEGE_SUBS: { tab: SiegeTab; label: string; icon: IconeAtelier; hash: string; couleur: string }[] = [
-  { tab: 'defense', label: 'Défense', icon: IconeDefense, hash: '#/siege/defense', couleur: COULEUR_SIEGE_SUB.defense },
-  { tab: 'offense', label: 'Offense', icon: IconeOffense, hash: '#/siege/offense', couleur: COULEUR_SIEGE_SUB.offense },
-  { tab: 'recos', label: 'Recommandations', icon: IconeRecos, hash: '#/siege/recommandations', couleur: COULEUR_SIEGE_SUB.recos },
+const SIEGE_SUBS: { tab: SiegeTab; texte: CleNavigation; icon: IconeAtelier; hash: string; couleur: string }[] = [
+  { tab: 'defense', texte: 'defense', icon: IconeDefense, hash: '#/siege/defense', couleur: COULEUR_SIEGE_SUB.defense },
+  { tab: 'offense', texte: 'offense', icon: IconeOffense, hash: '#/siege/offense', couleur: COULEUR_SIEGE_SUB.offense },
+  { tab: 'recos', texte: 'recommandations', icon: IconeRecos, hash: '#/siege/recommandations', couleur: COULEUR_SIEGE_SUB.recos },
 ];
 
 // Regroupées sous « Ressources ».
@@ -363,12 +366,12 @@ const SIEGE_SUBS: { tab: SiegeTab; label: string; icon: IconeAtelier; hash: stri
 // Barre latérale, panneau mobile, palette et titre dérivent tous de cette
 // liste : l'entrée y apparaît (ou non) partout d'un coup.
 const RESOURCES: NavItem[] = [
-  { key: 'bestiary', label: 'Bestiaire', icon: IconeBestiaire, hash: '#/bestiary', couleur: COULEUR_SECTION.bestiary },
-  { key: 'mecaniques', label: 'Mécaniques', icon: IconeMecaniques, hash: '#/mecaniques', couleur: COULEUR_SECTION.mecaniques },
-  { key: 'releases', label: 'Nouveautés', icon: IconeNouveautes, hash: '#/releases', couleur: COULEUR_SECTION.releases },
+  { key: 'bestiary', texte: 'bestiaire', icon: IconeBestiaire, hash: '#/bestiary', couleur: COULEUR_SECTION.bestiary },
+  { key: 'mecaniques', texte: 'mecaniques', icon: IconeMecaniques, hash: '#/mecaniques', couleur: COULEUR_SECTION.mecaniques },
+  { key: 'releases', texte: 'nouveautes', icon: IconeNouveautes, hash: '#/releases', couleur: COULEUR_SECTION.releases },
   ...(estBureau()
     ? []
-    : [{ key: 'telecharger' as const, label: 'Télécharger', icon: IconeTelecharger, hash: '#/telecharger', couleur: COULEUR_SECTION.telecharger }]),
+    : [{ key: 'telecharger' as const, texte: 'telecharger' as const, icon: IconeTelecharger, hash: '#/telecharger', couleur: COULEUR_SECTION.telecharger }]),
 ];
 
 // ⚠️ La notification « … · Annuler » enveloppe toute
@@ -383,6 +386,10 @@ export default function App() {
 }
 
 function Application() {
+  // Les textes de l'interface dans la langue affichée ; `nomNav` nomme une
+  // destination de la navigation par sa clé.
+  const textes = useTraduction();
+  const nomNav = (c: CleNavigation) => textes.navigation[c];
   const data = useMonsters();
   const custom = useCustomMonsters();
 
@@ -1233,13 +1240,13 @@ function Application() {
   // fois de niveau ouvert par la route ET de cible des entrées du premier
   // niveau (`ouvre`). Deux définitions auraient divergé.
   const sectionSiege: SidebarSection = {
-    titre: 'Siège',
+    titre: nomNav('siege'),
     icon: <IconeSiege size={17} color={COULEUR_SECTION.siege} />,
     groupes: [
       {
         liens: SIEGE_SUBS.map((t) => ({
           key: t.tab,
-          label: t.label,
+          label: nomNav(t.texte),
           hash: t.hash,
           icon: <t.icon size={17} color={t.couleur} />,
           actif: route === 'siege' && siegeTab === t.tab,
@@ -1249,13 +1256,13 @@ function Application() {
   };
 
   const sectionRta: SidebarSection = {
-    titre: 'RTA',
+    titre: nomNav('rta'),
     icon: <IconeRta size={17} color={COULEUR_SECTION.rta} />,
     groupes: [
       {
         liens: RTA_SUBS.map((s) => ({
           key: s.sub,
-          label: s.label,
+          label: nomNav(s.texte),
           hash: s.hash,
           icon: <s.icon size={17} color={s.couleur} />,
           actif: route === 'rta' && rtaSub === s.sub,
@@ -1265,7 +1272,7 @@ function Application() {
   };
 
   const sectionCompte: SidebarSection = {
-    titre: 'Mon compte',
+    titre: nomNav('monCompte'),
     icon: <IconeCompte size={17} color={COULEUR_SECTION.compte} />,
     // ⚠️ **Un groupe par INVENTAIRE, ses vues en entrées.** Les trois
     // inventaires étaient trois liens, et leurs vues (Résumé, Liste, Courbes…)
@@ -1275,7 +1282,7 @@ function Application() {
     // au premier niveau : il annonce, il ne mène nulle part. C'est la vue qu'on
     // choisit, pas l'inventaire.
     groupes: ACCOUNT_SUBS.map((sub) => ({
-      titre: sub.label,
+      titre: nomNav(sub.texte),
       // Pour le panneau mobile, qui fait choisir l'inventaire AVANT sa vue.
       icone: <sub.icon size={17} color={sub.couleur} />,
       // ⚠️ Les VUES d'un inventaire portent la couleur de leur inventaire :
@@ -1283,7 +1290,7 @@ function Application() {
       // Courbes… toutes en cyan), pas neuf teintes sans lien entre elles.
       liens: VUES_INVENTAIRE[sub.sub].map((v) => ({
         key: `${sub.sub}-${v.key}`,
-        label: v.label,
+        label: nomNav(v.texte),
         hash: hashVue(sub.sub, v.key),
         icon: <v.icon size={17} color={sub.couleur} />,
         actif: route === 'compte' && accountSub === sub.sub && accountView === v.key,
@@ -1292,13 +1299,13 @@ function Application() {
   };
 
   const sectionOutils: SidebarSection = {
-    titre: 'Outils',
+    titre: nomNav('outils'),
     icon: <IconeOutils size={17} color={COULEUR_SECTION.outils} />,
     groupes: [
       {
         liens: OUTILS_SUBS.map((sub) => ({
           key: sub.sub,
-          label: sub.label,
+          label: nomNav(sub.texte),
           hash: sub.hash,
           icon: <sub.icon size={17} color={sub.couleur} />,
           actif: route === 'outils' && toolSub === sub.sub,
@@ -1348,21 +1355,21 @@ function Application() {
   const VUES_BIENTOT = new Set<AccountView>(['meules', 'gemmes']);
 
   const sectionRtaBureau: SidebarSection = {
-    titre: 'RTA',
+    titre: nomNav('rta'),
     icon: <IconeRta size={16} />,
-    groupes: [{ liens: RTA_SUBS.map((s) => ({ key: s.sub, label: s.label, hash: s.hash, icon: <s.icon size={16} />, actif: route === 'rta' && rtaSub === s.sub })) }],
+    groupes: [{ liens: RTA_SUBS.map((s) => ({ key: s.sub, label: nomNav(s.texte), hash: s.hash, icon: <s.icon size={16} />, actif: route === 'rta' && rtaSub === s.sub })) }],
   };
   const sectionSiegeBureau: SidebarSection = {
-    titre: 'Siège',
+    titre: nomNav('siege'),
     icon: <IconeSiege size={16} />,
-    groupes: [{ liens: SIEGE_SUBS.map((t) => ({ key: t.tab, label: t.label, hash: t.hash, icon: <t.icon size={16} />, actif: route === 'siege' && siegeTab === t.tab })) }],
+    groupes: [{ liens: SIEGE_SUBS.map((t) => ({ key: t.tab, label: nomNav(t.texte), hash: t.hash, icon: <t.icon size={16} />, actif: route === 'siege' && siegeTab === t.tab })) }],
   };
   // Un inventaire à plusieurs vues devient une section à part entière (Runes,
   // Artéfacts) : ses vues en entrées, sans le niveau « Mon compte » au-dessus.
   const sectionInventaireBureau = (sub: AccountSub): SidebarSection => {
     const inv = ACCOUNT_SUBS.find((s) => s.sub === sub)!;
     return {
-      titre: inv.label,
+      titre: nomNav(inv.texte),
       icon: <inv.icon size={18} />,
       groupes: [
         {
@@ -1370,7 +1377,7 @@ function Application() {
             .filter((v) => !VUES_BIENTOT.has(v.key))
             .map((v) => ({
               key: `${sub}-${v.key}`,
-              label: v.label,
+              label: nomNav(v.texte),
               hash: hashVue(sub, v.key),
               icon: <v.icon size={16} />,
               actif: route === 'compte' && accountSub === sub && accountView === v.key,
@@ -1386,44 +1393,44 @@ function Application() {
   // (RTA, Siège, Arène), le compte, les outils, les ressources — mais Arène
   // rejoint « Jouer », à côté du siège : c'est un mode de jeu.
   const groupesBureau: SidebarGroupe[] = [
-    { liens: [{ key: 'home', label: 'Accueil', hash: '#/', icon: <IconeAccueil size={16} />, actif: route === 'home' }] },
+    { liens: [{ key: 'home', label: nomNav('accueil'), hash: '#/', icon: <IconeAccueil size={16} />, actif: route === 'home' }] },
     {
-      titre: 'Jouer',
+      titre: nomNav('jouer'),
       liens: [
-        { key: 'rta', label: 'RTA', icon: <IconeRta size={16} />, ouvre: sectionRtaBureau, actif: route === 'rta' },
-        { key: 'siege', label: 'Siège', icon: <IconeSiege size={16} />, ouvre: sectionSiegeBureau, actif: route === 'siege' },
-        { key: ARENE_ITEM.key, label: ARENE_ITEM.label, hash: ARENE_ITEM.hash, icon: <ARENE_ITEM.icon size={16} />, badge: 'Bientôt', actif: route === 'arene' },
+        { key: 'rta', label: nomNav('rta'), icon: <IconeRta size={16} />, ouvre: sectionRtaBureau, actif: route === 'rta' },
+        { key: 'siege', label: nomNav('siege'), icon: <IconeSiege size={16} />, ouvre: sectionSiegeBureau, actif: route === 'siege' },
+        { key: ARENE_ITEM.key, label: nomNav(ARENE_ITEM.texte), hash: ARENE_ITEM.hash, icon: <ARENE_ITEM.icon size={16} />, badge: nomNav('bientot'), actif: route === 'arene' },
       ],
     },
     {
-      titre: 'Mon compte',
+      titre: nomNav('monCompte'),
       liens: [
         {
           key: 'monstres',
-          label: 'Monstres',
+          label: nomNav('monstres'),
           hash: hashVue('monstres', vueParDefaut('monstres')),
           icon: <IconeMonstres size={18} />,
           actif: route === 'compte' && accountSub === 'monstres',
         },
-        { key: 'runes', label: 'Runes', icon: <IconeRunes size={18} />, ouvre: sectionRunesBureau, actif: route === 'compte' && accountSub === 'runes' },
-        { key: 'artefacts', label: 'Artéfacts', icon: <IconeArtefacts size={18} />, ouvre: sectionArtefactsBureau, actif: route === 'compte' && accountSub === 'artefacts' },
+        { key: 'runes', label: nomNav('runes'), icon: <IconeRunes size={18} />, ouvre: sectionRunesBureau, actif: route === 'compte' && accountSub === 'runes' },
+        { key: 'artefacts', label: nomNav('artefacts'), icon: <IconeArtefacts size={18} />, ouvre: sectionArtefactsBureau, actif: route === 'compte' && accountSub === 'artefacts' },
       ],
     },
     {
-      titre: 'Outils',
+      titre: nomNav('outils'),
       liens: OUTILS_SUBS.map((sub) => ({
         key: sub.sub,
-        label: sub.label,
+        label: nomNav(sub.texte),
         hash: sub.hash,
         icon: <sub.icon size={16} />,
         actif: route === 'outils' && toolSub === sub.sub,
       })),
     },
     {
-      titre: 'Ressources',
+      titre: nomNav('ressources'),
       liens: RESOURCES.map((item) => ({
         key: item.key,
-        label: item.label,
+        label: nomNav(item.texte),
         hash: item.hash,
         icon: <item.icon size={16} />,
         actif: route === item.key,
@@ -1457,15 +1464,18 @@ function Application() {
   // qu'une, « Monstres · Ma box » répéterait la même chose deux fois.
   const compteVue =
     compteSub && VUES_INVENTAIRE[accountSub].length > 1
-      ? VUES_INVENTAIRE[accountSub].find((v) => v.key === vueValide(accountSub, accountView))?.label
+      ? (() => {
+          const vue = VUES_INVENTAIRE[accountSub].find((v) => v.key === vueValide(accountSub, accountView));
+          return vue ? nomNav(vue.texte) : null;
+        })()
       : null;
   const titreSection =
-    (compteSub ? `${compteSub.label}${compteVue ? ` · ${compteVue}` : ''}` : null) ??
-    rtaSubItem?.label ??
-    siegeSub?.label ??
+    (compteSub ? `${nomNav(compteSub.texte)}${compteVue ? ` · ${compteVue}` : ''}` : null) ??
+    (rtaSubItem ? nomNav(rtaSubItem.texte) : null) ??
+    (siegeSub ? nomNav(siegeSub.texte) : null) ??
     sectionOuverte?.titre ??
-    entreeCourante?.label ??
-    (route === 'parametres' ? 'Paramètres' : NOM_APP);
+    (entreeCourante ? nomNav(entreeCourante.texte) : null) ??
+    (route === 'parametres' ? nomNav('parametres') : NOM_APP);
   // Fil d'Ariane de la barre du haut, BUREAU : le chemin du menu bureau jusqu'à
   // la page — intitulé de groupe, entrée, sous-section (« Jouer › Siège ›
   // Défense », « Mon compte › Runes › Liste »). ⚠️ Tiré de `groupesBureau`,
@@ -1513,9 +1523,9 @@ function Application() {
     if (!voletsVisibles) return undefined;
     if (volets.autre && memePage(adresse, volets.autre.adresse)) {
       const cote = oppose(volets.actif);
-      return `${cote === 'droite' ? 'à droite' : 'à gauche'}${volets.verrou === cote ? ' · verrouillé' : ''}`;
+      return `${cote === 'droite' ? textes.volet.droite : textes.volet.gauche}${volets.verrou === cote ? ` · ${textes.volet.verrouille}` : ''}`;
     }
-    if (memePage(adresse, hashCourant.current) && volets.verrou === volets.actif) return 'verrouillé';
+    if (memePage(adresse, hashCourant.current) && volets.verrou === volets.actif) return textes.volet.verrouille;
     return undefined;
   };
   const decorerLien = (l: SidebarLien): SidebarLien => {
@@ -1564,23 +1574,23 @@ function Application() {
   const ciblesRecherche: CibleNav[] = [
     ...NAV.map((i) => ({
       key: i.key,
-      label: i.label,
+      label: nomNav(i.texte),
       hash: i.hash,
       icon: <i.icon size={16} />,
     })),
     ...RTA_SUBS.map((s) => ({
       key: `rta-${s.sub}`,
-      label: s.label,
+      label: nomNav(s.texte),
       hash: s.hash,
       icon: <s.icon size={16} />,
-      contexte: 'RTA',
+      contexte: nomNav('rta'),
     })),
     ...SIEGE_SUBS.map((t) => ({
       key: `siege-${t.tab}`,
-      label: t.label,
+      label: nomNav(t.texte),
       hash: t.hash,
       icon: <t.icon size={16} />,
-      contexte: 'Siège',
+      contexte: nomNav('siege'),
     })),
     // ⚠️ Chaque VUE de chaque inventaire, pas seulement les trois inventaires :
     // c'est tout l'intérêt du champ. On tape « courbes » pour y aller, sans
@@ -1590,35 +1600,35 @@ function Application() {
     ...ACCOUNT_SUBS.flatMap((sub) =>
       VUES_INVENTAIRE[sub.sub].map((v) => ({
         key: `compte-${sub.sub}-${v.key}`,
-        label: v.label,
+        label: nomNav(v.texte),
         hash: hashVue(sub.sub, v.key),
         icon: <v.icon size={16} />,
-        contexte: sub.label,
+        contexte: nomNav(sub.texte),
       }))
     ),
     ...OUTILS_SUBS.map((sub) => ({
       key: `outils-${sub.sub}`,
-      label: sub.label,
+      label: nomNav(sub.texte),
       hash: sub.hash,
       icon: <sub.icon size={16} />,
-      contexte: 'Outils',
+      contexte: nomNav('outils'),
     })),
     {
       key: ARENE_ITEM.key,
-      label: ARENE_ITEM.label,
+      label: nomNav(ARENE_ITEM.texte),
       hash: ARENE_ITEM.hash,
       icon: <ARENE_ITEM.icon size={16} />,
     },
     ...RESOURCES.map((i) => ({
       key: i.key,
-      label: i.label,
+      label: nomNav(i.texte),
       hash: i.hash,
       icon: <i.icon size={16} />,
-      contexte: 'Ressources',
+      contexte: nomNav('ressources'),
     })),
     {
       key: 'parametres',
-      label: 'Paramètres',
+      label: nomNav('parametres'),
       hash: '#/parametres',
       icon: <IconeParametres size={16} />,
     },
@@ -1641,35 +1651,43 @@ function Application() {
   const groupesPalette = (saisie: string) =>
     resultatsPalette({
       saisie,
+      textes: textes.palette,
       pages: pagesPalette,
       actions: [
-        { cle: 'a-import', libelle: 'Importer mon compte', icone: <Download size={16} />, faire: () => fichierCompte.current?.click() },
+        { cle: 'a-import', libelle: textes.palette.importerCompte, icone: <Download size={16} />, faire: () => fichierCompte.current?.click() },
         // Dans l'app de bureau seulement, comme tous les accès à la session.
         ...(estBureau()
           ? [
-              { cle: 'a-session-sauver', libelle: 'Sauvegarder la session', contexte: 'Tout l’état de l’app dans un fichier', icone: <Save size={16} />, faire: sauvegarderSession },
-              { cle: 'a-session-sous', libelle: 'Sauvegarder sous…', contexte: 'Un autre fichier, qui devient la session en cours', icone: <FilePlus size={16} />, faire: sauvegarderSessionSous },
+              { cle: 'a-session-sauver', libelle: textes.palette.sauvegarderSession, contexte: textes.palette.sauvegarderSessionAide, icone: <Save size={16} />, faire: sauvegarderSession },
+              { cle: 'a-session-sous', libelle: textes.palette.sauvegarderSous, contexte: textes.palette.sauvegarderSousAide, icone: <FilePlus size={16} />, faire: sauvegarderSessionSous },
             ]
           : []),
-        ...THEME_CHOICES.map((t) => ({
+        ...choixTheme(textes).map((t) => ({
           cle: `a-theme-${t.key}`,
-          libelle: `Thème ${t.label.toLowerCase()}`,
+          libelle: textes.palette.theme(t.label),
           contexte: t.hint,
           icone: <SunMoon size={16} />,
           faire: () => setTheme(t.key),
         })),
+        // Une langue de l'interface, par son nom DANS cette langue.
+        ...LANGUES.map((l) => ({
+          cle: `a-langue-${l}`,
+          libelle: textes.palette.langue(NOM_LANGUE[l]),
+          icone: <DrapeauLangue langue={l} />,
+          faire: () => setChoixLangue(l),
+        })),
         {
           cle: 'a-reco',
-          libelle: 'Créer une recommandation',
+          libelle: textes.palette.creerRecommandation,
           icone: <Plus size={16} />,
           faire: () => {
             recos.addReco();
             window.location.hash = '#/siege/recommandations';
           },
         },
-        ...RUNE_METRICS.map((m) => ({
+        ...choixMesure(textes).map((m) => ({
           cle: `a-mesure-${m.key}`,
-          libelle: `Mesure : ${m.label}`,
+          libelle: textes.palette.mesure(m.label),
           contexte: m.hint,
           icone: <Gauge size={16} />,
           faire: () => setRuneMetric(m.key),
@@ -1701,11 +1719,11 @@ function Application() {
   // à l'une d'elles. (Tant qu'il n'y en avait qu'une, il restait un simple lien
   // — un panneau pour un seul choix n'ajoutait qu'un geste.)
   const ongletsMobile: OngletMobile[] = [
-    { key: 'home', label: 'Accueil', hash: '#/', icon: <IconeAccueil size={17} color={COULEUR_SECTION.home} />, actif: route === 'home' },
-    { key: 'rta', label: 'RTA', ouvre: sectionRta.titre, icon: <IconeRta size={17} color={COULEUR_SECTION.rta} />, actif: route === 'rta' },
-    { key: 'siege', label: 'Siège', ouvre: sectionSiege.titre, icon: <IconeSiege size={17} color={COULEUR_SECTION.siege} />, actif: route === 'siege' },
-    { key: 'compte', label: 'Compte', ouvre: sectionCompte.titre, icon: <IconeCompte size={17} color={COULEUR_SECTION.compte} />, actif: route === 'compte' },
-    { key: 'outils', label: 'Outils', ouvre: sectionOutils.titre, icon: <IconeOutils size={17} color={COULEUR_SECTION.outils} />, actif: route === 'outils' || route === 'bestiary' || route === 'mecaniques' || route === 'releases' || route === 'telecharger' || route === 'arene' },
+    { key: 'home', label: nomNav('accueil'), hash: '#/', icon: <IconeAccueil size={17} color={COULEUR_SECTION.home} />, actif: route === 'home' },
+    { key: 'rta', label: nomNav('rta'), ouvre: sectionRta.titre, icon: <IconeRta size={17} color={COULEUR_SECTION.rta} />, actif: route === 'rta' },
+    { key: 'siege', label: nomNav('siege'), ouvre: sectionSiege.titre, icon: <IconeSiege size={17} color={COULEUR_SECTION.siege} />, actif: route === 'siege' },
+    { key: 'compte', label: nomNav('compte'), ouvre: sectionCompte.titre, icon: <IconeCompte size={17} color={COULEUR_SECTION.compte} />, actif: route === 'compte' },
+    { key: 'outils', label: nomNav('outils'), ouvre: sectionOutils.titre, icon: <IconeOutils size={17} color={COULEUR_SECTION.outils} />, actif: route === 'outils' || route === 'bestiary' || route === 'mecaniques' || route === 'releases' || route === 'telecharger' || route === 'arene' },
   ];
 
   // La section dont on choisit la sous-section, sur téléphone.
@@ -1868,6 +1886,7 @@ function Application() {
   const groupesPagesVolet = (saisie: string) =>
     resultatsPalette({
       saisie,
+      textes: textes.palette,
       pages: pagesPalette.filter((p) => !memePage(p.hash, hashCourant.current)),
       actions: [],
       monstres: [],
@@ -1880,7 +1899,7 @@ function Application() {
     const nav = navDuCote(cote);
     return (
       <VoletEcran
-        fil={cote === vide ? ['Nouveau volet'] : cote === volets.actif || !volets.autre ? filBureau : volets.autre.fil}
+        fil={cote === vide ? [textes.ecranPartage.nouveauVolet] : cote === volets.actif || !volets.autre ? filBureau : volets.autre.fil}
         // Un volet vide est LE volet marqué : c'est là qu'ira la navigation.
         actif={vide ? cote === vide : cote === volets.actif}
         verrouille={volets.verrou === cote}
@@ -1906,12 +1925,12 @@ function Application() {
           // Au centre du volet, comme la palette Ctrl K au centre de l'écran.
           <div className="flex justify-center pt-[10vh]">
             <div className="w-full max-w-[560px] rounded-xl border border-border bg-panel p-4">
-              <h2 className="mb-3 text-md font-semibold text-ink">Ouvrir une page dans ce volet</h2>
+              <h2 className="mb-3 text-md font-semibold text-ink">{textes.ecranPartage.ouvrirPage}</h2>
               <RecherchePalette
                 groupesPour={groupesPagesVolet}
                 onChoisir={(e) => e.faire()}
-                invite="Rechercher une page…"
-                aide="Essaie le nom d'une page : RTA, Siège, Runes…"
+                invite={textes.ecranPartage.rechercherPage}
+                aide={textes.ecranPartage.rechercherPageAide}
                 onEchap={() => fermerCote(cote)}
               />
             </div>

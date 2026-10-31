@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { RuneDetail } from '../types';
 import { runeEfficiency, runeScore } from '../lib/effects';
 import { chiffresMesureRune } from '../lib/valeursAffichees';
+import type { Dictionnaire } from '../i18n';
 
 // Mesure de la qualité d'une rune, au choix de l'utilisateur :
 //  - `eff`   : efficience (convention communautaire, principale incluse, /2,8) ;
@@ -9,10 +10,13 @@ import { chiffresMesureRune } from '../lib/valeursAffichees';
 // Voir docs/02-app/compte/ §3 et §3 bis.
 export type RuneMetric = 'eff' | 'score';
 
-export const RUNE_METRICS: { key: RuneMetric; label: string; hint: string }[] = [
-  { key: 'eff', label: 'Efficience', hint: 'Efficience communautaire (principale incluse, /2,8)' },
-  { key: 'score', label: 'Score SW', hint: 'Score affiché dans le jeu (stats secondaires uniquement)' },
-];
+// Les deux mesures et leurs textes, dans la langue affichée.
+export function choixMesure(t: Dictionnaire): { key: RuneMetric; label: string; hint: string }[] {
+  return [
+    { key: 'eff', label: t.mesure.efficience, hint: t.mesure.efficienceAide },
+    { key: 'score', label: t.mesure.score, hint: t.mesure.scoreAide },
+  ];
+}
 
 // **Paramètre global de l'application** (réglé une fois dans la barre de nav),
 // et non une préférence par page.

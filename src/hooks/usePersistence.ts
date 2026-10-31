@@ -31,6 +31,8 @@ const CLES_DE_REGLAGE = new Set([
   ANCIENNE_CLE,
   'swblacksmith-rune-metric-v1',
   'swblacksmith-theme-v1',
+  // La langue de l'interface (useLangue.ts).
+  'swblacksmith-langue-v1',
   'swblacksmith-overcap-display-v1',
   'swblacksmith-adversaire-reference-v1',
   'swblacksmith-builds-rapides-v1',

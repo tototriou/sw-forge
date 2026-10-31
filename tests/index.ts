@@ -356,6 +356,8 @@ import { testRenduSiegeDefense, testRenduSiegeOffense, testRenduSiegeEnTete, tes
 import { testRenduUiBouton, testRenduUiEtats, testRenduUiMenu, testRenduUiSelecteurMultiple, testRenduUiNotification, testRenduUiOnglets, testRenduPalette } from './rendu/ui.test';
 import { testRenduUiSelecteurTab, testRenduTelephoneUiSelecteurListe, testRenduUiFlottantBoiteQuiDefile, testRenduUiSegmentedDeuxLignes } from './rendu/ui-flottants.test';
 import { testPalette } from './palette.test';
+import { testLangueResolution, testLangueDictionnaires, testLangueFormats, testLangueReglage, testLangueTexteEnDur } from './langue.test';
+import { testRenduLangueReglage, testRenduLangueParametres, testRenduLangueApp } from './rendu/langue.test';
 import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile, testRenduAppFil, testRenduAppLiensMorts } from './rendu/app.test';
 import { testEcranPartageMediaQueryVolet, testEcranPartageMemePage, testRenduEcranPartageApp,
   testRenduEcranPartageBarre, testRenduEcranPartageBouton, testRenduEcranPartageSelecteur,
@@ -628,6 +630,14 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduUiOnglets', testRenduUiOnglets],
   ['testRenduPalette', testRenduPalette],
   ['testPalette', testPalette],
+  ['testLangueResolution', testLangueResolution],
+  ['testLangueDictionnaires', testLangueDictionnaires],
+  ['testLangueFormats', testLangueFormats],
+  ['testLangueReglage', testLangueReglage],
+  ['testLangueTexteEnDur', testLangueTexteEnDur],
+  ['testRenduLangueReglage', testRenduLangueReglage],
+  ['testRenduLangueParametres', testRenduLangueParametres],
+  ['testRenduLangueApp', testRenduLangueApp],
   ['testRenduAppRoutes', testRenduAppRoutes],
   ['testRenduAppNavigation', testRenduAppNavigation],
   ['testRenduAppMobile', testRenduAppMobile],

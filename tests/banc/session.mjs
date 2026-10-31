@@ -41,6 +41,9 @@ export function optionsFormat(format) {
     deviceScaleFactor: 1,
     isMobile: f.tactile,
     hasTouch: f.tactile,
+    // ⚠️ L'app suit la langue du navigateur (« Auto ») : le banc mesure l'app
+    // en français, quelle que soit la langue de la machine.
+    locale: 'fr-FR',
   };
 }
 

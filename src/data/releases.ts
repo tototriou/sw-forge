@@ -60,6 +60,16 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: null,
+    date: '2026-10-31',
+    title: 'SW Blacksmith en anglais',
+    highlights: ['L’app s’affiche en français ou en anglais, dans la langue de ton navigateur'],
+    changes: [
+      { kind: 'feat', scope: 'Paramètres', text: 'Nouveau réglage « Langue » : Auto, Français ou English.' },
+      { kind: 'feat', scope: 'Navigation', text: 'Menus, barre du haut, recherche et Paramètres traduits en anglais.' },
+    ],
+  },
+  {
     version: '2.2.0',
     date: '2026-10-29',
     title: 'Un Optimizer repensé, et les attaques conjointes comptent dans les dégâts réels',

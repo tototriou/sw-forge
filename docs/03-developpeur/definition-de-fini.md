@@ -32,6 +32,14 @@ d'écriture : [documentation.md](documentation.md).
 - **Les mentions de l'ancien comportement** : `grep -rn` des noms changés dans `docs/`,
   `AGENTS.md`, `README.md` et `tests/` — une mise à jour remplace le texte périmé.
 
+## Les textes
+
+- **Chaque texte affiché existe dans toutes les langues** : écrit dans `src/i18n/fr.ts` et dans
+  `src/i18n/en.ts`, jamais en dur dans un composant ; un terme du jeu reprend le libellé officiel
+  du client dans chaque langue ([feat-langues.md](../02-app/transverse/feat-langues.md)).
+- **Un écran traduit entre dans `FICHIERS_TRADUITS`** (`eslint.config.js`), où la règle
+  `swblacksmith/texte-en-dur` refuse un texte écrit en dur.
+
 ## Les tests
 
 Chaque niveau que la fonctionnalité touche a sa vérification, inscrite au registre

@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Columns2, PanelLeftClose, PanelLeftOpen } fr
 import { useStickyState } from '../hooks/useStickyState';
 import { BoutonIcone } from '../ui';
 import Logo from './Logo';
+import { useTraduction } from '../hooks/useLangue';
 
 // Barre de navigation LATÉRALE (bureau) — docs/04-decisions/adr/barre-laterale.md
 // (maquette « Barre latérale » ; docs/02-app/transverse/).
@@ -58,11 +59,12 @@ export interface SidebarLien {
 // SURVOL de l'entrée ou au focus clavier seulement : douze boutons permanents
 // doubleraient le poids de la barre pour un geste occasionnel.
 function OuvrirACote({ lien }: { lien: SidebarLien }) {
+  const t = useTraduction().barreLaterale;
   if (!lien.aCote) return null;
   return (
     <BoutonIcone
       icone={<Columns2 size={14} />}
-      libelle={`Ouvrir « ${lien.label} » à côté`}
+      libelle={t.ouvrirACote(lien.label)}
       onClick={lien.aCote}
       className="absolute right-0.5 top-1/2 -translate-y-1/2 opacity-0 transition-opacity
                  group-hoverable:opacity-100 focus-visible:opacity-100"
@@ -157,6 +159,7 @@ export default function Sidebar({
   // Bas de barre : Paramètres. Rendu par l'appelant.
   pied?: ReactNode;
 }) {
+  const t = useTraduction().barreLaterale;
   // La section que la ROUTE déroule : celle de l'entrée active.
   const sectionRoute =
     groupes.flatMap((g) => g.liens).find((l) => l.actif && l.ouvre)?.ouvre ?? null;
@@ -231,7 +234,7 @@ export default function Sidebar({
             coûtait un écart de 10 px de plus, et « SW Blacksmith » n'a que
             130 px pour tenir (rebranding R2). */}
         <BoutonIcone
-          libelle={retractee ? 'Déplier la navigation' : 'Replier la navigation'}
+          libelle={retractee ? t.deplier : t.replier}
           icone={retractee ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
           onClick={onToggleRetract}
           className={`flex-none text-ink-dimmer ${retractee ? '' : 'ml-auto'}`}

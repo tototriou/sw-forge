@@ -3,6 +3,7 @@
 
 import { MAX_EQUIPES, MAX_MONSTRES, resultatsPalette, type EntreePalette } from '../src/components/palette/recherchePalette';
 import type { Monster, SiegeTeam } from '../src/types';
+import { fr } from '../src/i18n/fr';
 import { egal, monstersJson, ok, titre } from './outils';
 
 const MONSTRES = monstersJson() as Monster[];
@@ -21,7 +22,7 @@ const EQUIPES = [
 ];
 
 const chercher = (saisie: string) =>
-  resultatsPalette({ saisie, pages: PAGES, actions: ACTIONS, monstres: MONSTRES, equipes: EQUIPES, monsterById: parId, ouvrirFiche: rien, ouvrirSpeedTune: rien });
+  resultatsPalette({ saisie, textes: fr.palette, pages: PAGES, actions: ACTIONS, monstres: MONSTRES, equipes: EQUIPES, monsterById: parId, ouvrirFiche: rien, ouvrirSpeedTune: rien });
 const titres = (saisie: string) => chercher(saisie).map((g) => g.titre);
 const libelles = (saisie: string, groupe: string) => chercher(saisie).find((g) => g.titre === groupe)?.entrees.map((e) => e.libelle) ?? [];
 

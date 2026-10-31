@@ -17,6 +17,10 @@ partagées, dont la navigation et le pied de page, dans
 
 ## Conventions communes (toutes les pages)
 
+- **Un texte affiché vient du dictionnaire** (`src/i18n/`, `useTraduction()`), dans chaque langue
+  de l'interface, jamais en dur dans un composant ; un nombre ou une date passe par
+  `src/i18n/format.ts`. Détail :
+  [feat-langues.md](../02-app/transverse/feat-langues.md).
 - **Un texte saisi est trimé à la sortie du champ** (`onBlur`), jamais à la
   frappe ; les espaces intérieurs sont conservés. Détail :
   [composants.md](interface/librairie-ui/composants.md), « `Champ` ».

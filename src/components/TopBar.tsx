@@ -2,6 +2,7 @@ import { Fragment, ReactNode } from 'react';
 import { ChevronRight, Columns2, FilePlus, LogOut, Save, Search } from 'lucide-react';
 import { IconeParametres } from './IconesAtelier';
 import { Bouton, BoutonIcone } from '../ui';
+import { useTraduction } from '../hooks/useLangue';
 
 // Barre SUPÉRIEURE, fixe.
 //
@@ -87,9 +88,9 @@ export default function TopBar({
   ecranPartage?: { actif: boolean; disponible: boolean; onBasculer: () => void };
   decalage: number;
 }) {
+  const t = useTraduction().barreHaut;
   const titreSauvegarder =
-    sauvegardeIndisponible ??
-    (sessionEnCours ? `Sauvegarder dans ${sessionEnCours} (Ctrl+S)` : 'Sauvegarder la session dans un fichier (Ctrl+S)');
+    sauvegardeIndisponible ?? (sessionEnCours ? t.sauvegarderDans(sessionEnCours) : t.sauvegarderFichier);
   return (
     <header
       // ⚠️ `left` suit la barre latérale, à la MÊME durée qu'elle : les deux
@@ -157,7 +158,7 @@ export default function TopBar({
             ⚠️ Construit par l'appelant À PARTIR DU MENU lui-même, jamais
             ressaisi : le fil ne peut pas contredire la barre latérale. */}
         {fil && fil.length > 0 && (
-          <nav aria-label="Fil d'Ariane" className="hidden min-w-0 items-center gap-1.5 text-sm lg:flex">
+          <nav aria-label={t.filAriane} className="hidden min-w-0 items-center gap-1.5 text-sm lg:flex">
             {fil.map((etape, i) => (
               <Fragment key={i}>
                 {i > 0 && <ChevronRight size={14} aria-hidden className="flex-none text-ink-dimmer" />}
@@ -196,15 +197,15 @@ export default function TopBar({
             actif={ecranPartage.actif}
             title={
               ecranPartage.actif
-                ? 'Revenir à une seule page'
+                ? t.revenirUnePage
                 : ecranPartage.disponible
-                  ? 'Ouvrir une seconde page à côté'
-                  : 'Fenêtre trop étroite pour deux pages : agrandis-la ou replie la barre latérale'
+                  ? t.ouvrirSecondePage
+                  : t.fenetreEtroite
             }
             fond="vide"
             trait="aucun"
             icone={<Columns2 size={16} className="flex-none" />}
-            libelle="Écran partagé"
+            libelle={t.ecranPartage}
             className="relative z-10 hidden lg:inline-flex"
           />
         )}
@@ -216,7 +217,7 @@ export default function TopBar({
             fond="vide"
             trait="aucun"
             icone={<Save size={16} className="flex-none" />}
-            libelle="Sauvegarder"
+            libelle={t.sauvegarder}
             className="relative z-10 hidden lg:inline-flex"
           />
         )}
@@ -224,11 +225,11 @@ export default function TopBar({
           <Bouton
             onClick={onSauvegarderSous}
             disabled={!!sauvegardeIndisponible}
-            title={sauvegardeIndisponible ?? 'Enregistrer la session dans un autre fichier, qui devient la session en cours (l’ancien n’est plus modifié)'}
+            title={sauvegardeIndisponible ?? t.sauvegarderSousAide}
             fond="vide"
             trait="aucun"
             icone={<FilePlus size={16} className="flex-none" />}
-            libelle="Sauvegarder sous…"
+            libelle={t.sauvegarderSous}
             className="relative z-10 hidden lg:inline-flex"
           />
         )}
@@ -237,12 +238,12 @@ export default function TopBar({
         {onDeconnexion && (
           <Bouton
             onClick={onDeconnexion}
-            title="Effacer mes données de cet appareil"
+            title={t.deconnexionAide}
             ton="danger"
             fond="vide"
             trait="aucun"
             icone={<LogOut size={16} className="flex-none" />}
-            libelle="Se déconnecter"
+            libelle={t.deconnexion}
             className="relative z-10 hidden lg:inline-flex"
           />
         )}
@@ -253,7 +254,7 @@ export default function TopBar({
           <BoutonIcone
             onClick={onSauvegarder}
             disabled={!!sauvegardeIndisponible}
-            libelle="Sauvegarder la session (Ctrl+S)"
+            libelle={t.sauvegarderSession}
             icone={<Save size={16} />}
             className="relative z-10 h-8 w-8 lg:hidden"
           />
@@ -265,8 +266,8 @@ export default function TopBar({
           <button
             type="button"
             onClick={onRecherche}
-            title="Rechercher une page, un monstre, une action"
-            aria-label="Rechercher"
+            title={t.rechercherAide}
+            aria-label={t.rechercher}
             className="relative z-10 flex aspect-square h-8 w-8 items-center justify-center rounded-md
                        text-ink-dim transition-colors hoverable:bg-panel2 hoverable:text-ink lg:hidden"
           >
@@ -277,8 +278,8 @@ export default function TopBar({
         <button
           type="button"
           onClick={onToggleParametres}
-          title={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
-          aria-label={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
+          title={parametresActifs ? t.fermerParametres : t.parametres}
+          aria-label={parametresActifs ? t.fermerParametres : t.parametres}
           aria-pressed={parametresActifs}
           // ⚠️ `lg:hidden` : sur bureau, le pied de la barre latérale porte le
           // même accès, à côté du nom du compte. Le garder ici aurait fait deux

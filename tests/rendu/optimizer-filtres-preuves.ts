@@ -134,6 +134,30 @@ export async function preuvesFiltresEcran(b: BancEcran): Promise<Preuves> {
     `${format} : les deux champs de VIT en ton « bad », les autres neutres`]);
   preuves.push([!!champ('Dégâts réels minimum affiché')?.disabled && champ('Dégâts réels minimum affiché')?.value === '1000',
     `${format} : borne de Dégâts réels gardée, inactive (champ grisé)`]);
+  // « Stats de base exclues » de la grille : le réglage d'affichage du
+  // tableau, parti de celui des conditions ; la borne reste en total dans le classeur.
+  const BASE_FILTRES = 'Stats de base exclues des filtres PV/ATQ/DEF/VIT';
+  const interrupteur = () => interrupteurNomme(BASE_FILTRES);
+  const coche = () => interrupteur()?.getAttribute('aria-checked') === 'true';
+  const vitMinCartes = () => champ('VIT minimum affiché')?.value ?? '';
+  const exclueRecherche = b.etat().excludeBase;
+  preuves.push([!!interrupteur() && coche() === exclueRecherche,
+    `${format}, cartes : « Stats de base exclues » dans la grille, au départ comme les conditions (${coche()})`]);
+  if (coche()) await b.geste(() => interrupteur()!.click());
+  preuves.push([!coche() && vitMinCartes() === '220', `${format}, cartes : désactivé, VIT ≥ 220 écrite en total (« ${vitMinCartes()} »)`]);
+  await b.geste(() => interrupteur()!.click());
+  const enBonusCartes = vitMinCartes(), baseVitCartes = 220 - Number(enBonusCartes);
+  preuves.push([coche() && enBonusCartes !== '' && baseVitCartes > 0,
+    `${format}, cartes : activé, la même borne écrite sans la base (« ${enBonusCartes} »)`]);
+  preuves.push([json(b.etat().bornesResultats.spd) === json({ min: 220, max: 200 }), `${format}, cartes : la borne du classeur reste en total`]);
+  await b.geste(() => saisirChamp(champ('VIT minimum affiché')!, '130'));
+  await attendre(100);
+  preuves.push([json(b.etat().bornesResultats.spd) === json({ min: 130 + baseVitCartes, max: 200 }),
+    `${format}, cartes : 130 saisi sans la base, le classeur garde ${130 + baseVitCartes} — ${json(b.etat().bornesResultats.spd)}`]);
+  await b.geste(() => saisirChamp(champ('VIT minimum affiché')!, enBonusCartes));
+  await attendre(100);
+  preuves.push([b.etat().excludeBase === exclueRecherche, `${format}, cartes : « Stats de base exclues » des conditions inchangé`]);
+  if (coche() !== exclueRecherche) await b.geste(() => interrupteur()!.click());
   if (!telephone()) {
     // Le choix de forme : un réglage des Paramètres, écrit dans sa clé, relu
     // par la page (qui range ses réglages pour lui laisser la place).
@@ -252,7 +276,11 @@ export async function preuvesFiltresBranchement(b: BancEcran & { fiche: () => Ge
     preuves.push([cartesVisibles() === 0 && texteDe('[data-vue-vide]') === 'Aucune combinaison confirmée ne passe ces filtres.',
       `${format} : VIT ≥ 999 saisie, le classeur masque le build (« ${texteDe('[data-vue-vide]')} »)`]);
     preuves.push([/^Filtres : 0 visible · 1 masquée/.test(texteDe('[data-ligne-comptes]')), `${format} : comptes de la vue publiés (${texteDe('[data-ligne-comptes]')})`]);
-    preuves.push([json(b.etat().bornesResultats) === json({ spd: { min: 999, max: null } }), `${format} : la borne est celle du membre (${json(b.etat().bornesResultats)})`]);
+    // La grille suit « Stats de base exclues » du lancement : sans la base, le classeur garde 999 + base.
+    const sansBase = interrupteurNomme('Stats de base exclues des filtres PV/ATQ/DEF/VIT')?.getAttribute('aria-checked') === 'true';
+    const attendue = 999 + (sansBase ? fiche.base.spd ?? 0 : 0);
+    preuves.push([sansBase === b.etat().excludeBase && json(b.etat().bornesResultats) === json({ spd: { min: attendue, max: null } }),
+      `${format} : la borne est celle du membre, ${sansBase ? 'saisie sans la base' : 'saisie en total'} (${json(b.etat().bornesResultats)})`]);
 
     await b.geste(() => saisirChamp(champ('VIT minimum affiché')!, ''));
     for (let t = 0; t < 100 && cartesVisibles() === 0; t++) await attendre(100);

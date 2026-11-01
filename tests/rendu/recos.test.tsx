@@ -247,6 +247,21 @@ export function testRenduRecosVueDefense() {
   ok(t.includes('Aucune défense visée Galleon - Belladeon - Chasun'), 'le deck sans défense visée reste affiché, à part');
   egal((html.match(/data-offense-contre/g) ?? []).length, 2, 'chaque deck apparaît : 1 contre la défense, 1 sans défense');
 
+  // Le chef : le premier monstre, s'il a un lead actif en siège. Kinki et Windy
+  // n'en ont pas : Kinki-Windy-Lulu et Windy-Lulu-Kinki font une seule ligne.
+  // Solveig et Odin en ont un : en chef, deux défenses.
+  const equipe = (...l: [string, string][]) => ({ monsters: l.map(([nom, el]) => ({ com2usId: c2u(nom, el), name: nom })), note: '' });
+  const kwl = equipe(['Kinki', 'light'], ['Windy', 'wind'], ['Lulu', 'water']);
+  const wlk = equipe(['Windy', 'wind'], ['Lulu', 'water'], ['Kinki', 'light']);
+  const sao = equipe(['Solveig', 'fire'], ['Adriana', 'water'], ['Odin', 'wind']);
+  const oas = equipe(['Odin', 'wind'], ['Adriana', 'water'], ['Solveig', 'fire']);
+  const deckContre = (contre: object) => ({ ...RECOS.recos[0].decks[1], counters: [contre] });
+  const chefs = rendreCarte(true, false, undefined, 'defense', {
+    recos: [{ ...RECOS.recos[0], decks: [kwl, wlk, sao, oas].map(deckContre) }],
+  });
+  egal((chefs.match(/data-defense-visee/g) ?? []).length, 3, 'chef : Kinki-Windy-Lulu et Windy-Lulu-Kinki réunies, Solveig et Odin en chef séparées');
+  ok(texteVisible(chefs).includes('Kinki - Windy - Lulu'), 'la défense réunie s\'affiche dans l\'ordre de sa première saisie');
+
   // Lecture seule : en édition, la carte reprend la vue Attaque.
   const edition = rendreCarte(true, true, undefined, 'defense');
   ok(!edition.includes('data-defense-visee'), 'en édition : plus de vue Défense');

@@ -442,5 +442,21 @@ export function estimerCumuls(lignes: Ligne[], d: DonneesKit): Ligne[] {
 // Les sorts choisis d'un camp s'en vont avec sa composition : rangés par
 // monstre, ils survivraient sinon à un import et rejoueraient le choix fait pour
 // l'équipe précédente.
-export const oublierCamp = (m: Record<string, string>, camp: Camp) =>
+export const oublierCamp = <T>(m: Record<string, T>, camp: Camp): Record<string, T> =>
   Object.fromEntries(Object.entries(m).filter(([uid]) => !uid.startsWith(`${camp}:`)));
+
+// L'ordre voulu (« Ordre des sorts ») après l'import d'un deck dans `camp`.
+//
+// ⚠️ **Importer dans « Ton équipe » rend l'ordre aux VITESSES.** Rangé à la
+// main (`range`), il ne suivait plus que la composition : les monstres du deck
+// entraient en fin de liste dans l'ordre de leurs slots, leader en tête, et un
+// monstre lent passait « premier » — l'analyse poussée jugeait alors un ordre
+// que personne n'a choisi pour cette équipe. Le rangement portait sur l'équipe
+// précédente, il s'en va avec elle. L'ordre ne range que des alliés : un import
+// en face n'y touche pas.
+export function ordreApresImport(
+  camp: Camp,
+  ordre: { voulu: string[]; range: boolean }
+): { voulu: string[]; range: boolean } {
+  return camp === 'allie' ? { voulu: [], range: false } : ordre;
+}

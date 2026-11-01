@@ -33,6 +33,20 @@ l'application
 dont [rendu/optimizer-ecran-navigateur.test.ts](rendu/optimizer-ecran-navigateur.test.ts)),
 soit par le banc d'affichage, plus bas, hors de la suite.
 
+Les deux lancent le Chromium de Playwright et, s'il manque, retombent sur
+celui du conteneur cloud (`/opt/pw-browsers/chromium`, préinstallé pour une
+autre version de Playwright) : rien à installer dans une session
+claude.ai/code.
+
+⚠️ **Ce Chromium rend avec les polices de l'app**, pas celles de la
+machine : le banc pose `font-body` sur le `<body>` comme `index.html`,
+déclare Source Sans 3 et JetBrains Mono depuis `@fontsource`
+(dépendances de développement, hors ligne) et attend leur chargement
+avant de rendre la main ; une police absente fait échouer le banc. Sans
+elles, le texte tombait sur la police système (Segoe UI sous Windows,
+une autre sous Linux), et une mesure de largeur — le seuil du tableau
+des résultats — changeait d'une machine à l'autre.
+
 Pour « Exemplaire », [optimizer-recherche.test.ts](rendu/optimizer-recherche.test.ts)
 vérifie aux deux formats les vues et l'aperçu sans effet sur l'équipement
 optimisé (artéfacts et relique transmis compris), la comparaison avec la
@@ -63,8 +77,21 @@ node tests/banc/run.mjs --tous                  # tous les écrans, compte du ba
 node tests/banc/run.mjs --ecrans optimizer      # un seul écran
 node tests/banc/run.mjs --depuis origin/main    # les écrans que touchent les fichiers modifiés
 node tests/banc/run.mjs --plage <a>..<b>        # idem, entre deux révisions
+node tests/banc/run.mjs --ecrans optimizer --etats resultats-tableau --tailles ordinateur,volet-groupe
 node tests/banc/cas.mjs                         # la règle sur ses pages de cas
 ```
+
+`--etats <id,…>` et `--tailles <id,…>` restreignent n'importe quelle
+sélection à ces états et à ces tailles (identifiants de
+[banc/ecrans.ts](banc/ecrans.ts) : `telephone`, `ordinateur`,
+`bureau-portable`…) : un état rejoué à une taille prend environ 30 s, la
+grille complète de l'Optimizer plus d'un quart d'heure. Un identifiant
+inconnu des écrans retenus est refusé (code 2, les connus listés), comme des
+filtres qui ne laissent aucune case exerçable (un état réservé à d'autres
+tailles), avant la construction. Les cases écartées figurent dans les non
+exercés du manifeste, motif « non retenu », et le compte n'est importé
+qu'aux formats encore utilisés. Rejouer un état ne remplace pas le passage
+complet avant une fusion.
 
 Il construit l'app (`vite build` dans un dossier temporaire), la sert
 (`vite preview`), l'ouvre dans Chromium sans fenêtre (Playwright) au
@@ -292,6 +319,12 @@ validation finale. Une entrée attendue jamais invoquée, non rendue, non
 attendue, ou rendue sans aucun contrôle, fait échouer le point d'entrée,
 nommée. Une entrée qui n'a que des `ignore` est « entièrement ignorée »,
 pas un échec.
+
+Une entrée qui lève une exception échoue, nommée, **et la série continue** :
+s'arrêter cacherait le reste sous des « jamais invoquée ». Comme l'exception
+peut laisser un état global faux, le bilan nomme la première et compte les
+entrées qui ont tourné après elle (champ `premiereException` du manifeste) :
+un échec parmi elles se relit une fois l'exception corrigée.
 
 - **Emplacement** : hors du worktree, ou dans un dossier ignoré par Git
   (`node_modules/…`) ; sinon refus (code 2). Il n'entre ainsi ni dans la

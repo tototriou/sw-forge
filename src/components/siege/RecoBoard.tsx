@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Download, Upload, Trash2, AlertTriangle, XCircle, X, Gauge } from 'lucide-react';
 import { IconeRecos } from '../IconesAtelier';
-import { Monster, Reco } from '../../types';
+import { Monster, Reco, RecoPayload } from '../../types';
 import { UseRecoState } from '../../hooks/useSiegeRecos';
 import { UseSiegeState } from '../../hooks/useSiegeState';
 import { useStickyState } from '../../hooks/useStickyState';
 import { teamSummary, isTeamUsable } from '../../lib/recoFromSiege';
 import { encodeRecosJson, validateRecosImport, ImportReport, slugify } from '../../lib/recoShare';
+import { appliquerImport, BilanImport, messageFusion, trouverCorrespondances } from '../../lib/recoFusion';
+import ChoixFusionRecos from './ChoixFusionRecos';
 import { contexteConfrontationReco, matchReco, RecoMatch } from '../../lib/recoMatch';
 import { chercheMonstre, RecoHit, RecoSearchMode } from '../../lib/recoSearch';
 import type { VueRecos } from '../../lib/recoDefenses';
@@ -331,14 +333,40 @@ export default function RecoBoard({
     setReport(rep);
     if (!rep.recos) return; // erreurs bloquantes : on n'importe rien
 
-    // Un import AJOUTE toujours, il ne remplace jamais : les recommandations
-    // sont du contenu créé à la main, non re-dérivable. Pour repartir de zéro,
-    // « Tout effacer » est là — c'est un geste explicite et séparé.
-    const n = recos.importRecos(rep.recos);
+    // Le fichier complète-t-il une recommandation qu'on a déjà ? Alors on
+    // DEMANDE : fusionner ou ajouter à part (ChoixFusionRecos). Sinon, rien à
+    // choisir, l'import ajoute comme toujours.
+    const cibles = trouverCorrespondances(all, rep.recos);
+    const paires = rep.recos.flatMap((entrante, i) => {
+      const existante = cibles[i];
+      return existante ? [{ entrante, existante }] : [];
+    });
+    if (paires.length > 0) {
+      const apercu = appliquerImport(all, rep.recos, true, () => '', monsterByCom2us).bilan;
+      setFusionAProposer({ recos: rep.recos, counts: rep.counts, paires, apercu });
+      return;
+    }
+    importer(rep.recos, rep.counts, false);
+  }
+
+  // Un import ne remplace jamais : il ajoute à la suite, ou fusionne dans la
+  // recommandation qu'il complète, qui n'y perd rien. Les recommandations sont
+  // du contenu créé à la main, non re-dérivable. Pour repartir de zéro,
+  // « Tout effacer » est là — c'est un geste explicite et séparé.
+  function importer(payloads: RecoPayload[], counts: ImportReport['counts'], fusionner: boolean) {
+    const bilan = recos.importRecos(payloads, fusionner, monsterByCom2us);
     setMsg({
-      text: `${n} recommandation(s) · ${rep.counts.decks} deck(s) · ${rep.counts.monstres} monstre(s) importés.`,
+      text: fusionner
+        ? messageFusion(bilan)
+        : `${bilan.recosAjoutees} recommandation(s) · ${counts.decks} deck(s) · ${counts.monstres} monstre(s) importés.`,
     });
   }
+  const [fusionAProposer, setFusionAProposer] = useState<{
+    recos: RecoPayload[];
+    counts: ImportReport['counts'];
+    paires: { entrante: RecoPayload; existante: Reco }[];
+    apercu: BilanImport;
+  } | null>(null);
 
   const all = recos.state.recos;
 
@@ -632,6 +660,21 @@ export default function RecoBoard({
           libelleAction="Exporter"
           onCancel={() => setExportAConfirmer(null)}
           onConfirm={handleExport}
+        />
+      )}
+
+      {fusionAProposer && (
+        <ChoixFusionRecos
+          paires={fusionAProposer.paires}
+          apercu={fusionAProposer.apercu}
+          onChoisir={(fusionner) => {
+            importer(fusionAProposer.recos, fusionAProposer.counts, fusionner);
+            setFusionAProposer(null);
+          }}
+          onAnnuler={() => {
+            setFusionAProposer(null);
+            setMsg({ text: 'Import annulé : rien n’a été ajouté.' });
+          }}
         />
       )}
 

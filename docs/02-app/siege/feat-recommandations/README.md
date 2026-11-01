@@ -11,6 +11,8 @@ Fichiers :
 - [RecoCard.tsx](src/components/siege/RecoCard.tsx) — une recommandation (vue & édition).
 - [useSiegeRecos.ts](src/hooks/useSiegeRecos.ts) — état + persistance.
 - [recoShare.ts](src/lib/recoShare.ts) — export/import JSON + validation.
+- [recoFusion.ts](src/lib/recoFusion.ts) — import qui fusionne dans la recommandation qu'il complète (calcul pur).
+- [ChoixFusionRecos.tsx](src/components/siege/ChoixFusionRecos.tsx) — le choix « fusionner » ou « ajouter à part » à l'import.
 - [recoMatch.ts](src/lib/recoMatch.ts) — confrontation avec le compte (calcul pur).
 - [ownedBuilds.ts](src/lib/ownedBuilds.ts) — collecte de tous les builds du joueur.
 - [recoFromSiege.ts](src/lib/recoFromSiege.ts) — deck pré-rempli depuis une équipe d'offense.
@@ -27,7 +29,7 @@ Fichiers :
 | les sets de runes recommandés | [sets-de-runes.md](sets-de-runes.md) |
 | les défenses visées (« Fort contre ») | [defenses-visees.md](defenses-visees.md) |
 | les propriétés d'artéfact recommandées | [proprietes-artefact.md](proprietes-artefact.md) |
-| `src/lib/recoShare.ts`, `src/hooks/useSiegeRecos.ts`, l'export, l'import et sa validation | [persistance-et-partage.md](persistance-et-partage.md) |
+| `src/lib/recoShare.ts`, `src/hooks/useSiegeRecos.ts`, `src/lib/recoFusion.ts`, `src/components/siege/ChoixFusionRecos.tsx`, l'export, l'import, sa validation et sa fusion | [persistance-et-partage.md](persistance-et-partage.md) |
 | `src/lib/recoMatch.ts`, `src/lib/ownedBuilds.ts`, « Analyser mes decks » | [confrontation.md](confrontation.md) |
 | le repli, l'édition, `src/lib/annulerEdition.ts` | [interactions.md](interactions.md) |
 | `src/lib/recoFromSiege.ts`, « Importer un deck d'offense » | [import-deck-offense.md](import-deck-offense.md) |
@@ -43,7 +45,7 @@ Fichiers :
 | [sets-de-runes.md](sets-de-runes.md) | Les sets de runes recommandés : plusieurs runages au choix, choix par icônes, activation côté joueur. |
 | [defenses-visees.md](defenses-visees.md) | Les défenses visées (« Fort contre ») : précision en popover, recherche sans précision ouverte, bouton « + », défense vide non conservée. |
 | [proprietes-artefact.md](proprietes-artefact.md) | Les propriétés d'artéfact recommandées : présence seule exigée, quelle propriété sur quelle sorte d'artéfact, choix par liste déroulante, confrontation. |
-| [persistance-et-partage.md](persistance-et-partage.md) | La persistance (`localStorage`), le partage par fichier JSON (format et versions) et la validation d'un fichier importé. |
+| [persistance-et-partage.md](persistance-et-partage.md) | La persistance (`localStorage`), le partage par fichier JSON (format et versions), la validation d'un fichier importé, et sa fusion dans la recommandation qu'il complète (champ `source`). |
 | [confrontation.md](confrontation.md) | « Analyser mes decks » : à la demande, depuis « Options » au doigt, ce que l'analyse affiche (ordre, filtres de verdict, « réalisable N fois »), source des builds, causes d'un `ko`. |
 | [interactions.md](interactions.md) | Le repli de la recommandation et deck par deck, les trois niveaux d'édition, « Annuler les modifications », la rangée du titre et des icônes d'action. |
 | [import-deck-offense.md](import-deck-offense.md) | « Importer un deck d'offense » : un deck pré-rempli depuis une équipe d'offense existante. |

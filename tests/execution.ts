@@ -180,6 +180,8 @@ export class Execution {
   private constatsFinaux: string[] | null = null;
   private derniereEcriture = 0;
   private minuterie: ReturnType<typeof setTimeout> | null = null;
+  private premiereException: string | null = null;
+  private apresException = 0;
 
   // Refuse un emplacement de manifeste interdit (RefusManifeste) et un registre
   // aux noms en double (l'identifiant d'une entrée est son nom).
@@ -233,7 +235,7 @@ export class Execution {
       } catch (err) {
         j.etat = 'exception';
         j.exception = String((err as Error)?.message ?? err).split('\n')[0];
-        console.error(`\n\x1b[31mLes vérifications se sont interrompues dans ${nom} :\x1b[0m`, err);
+        console.error(`\n\x1b[31mException dans ${nom} (la série continue) :\x1b[0m`, err);
       } finally {
         const apres = this.o.bilan();
         j.controles = apres.total - avant.total;
@@ -241,9 +243,12 @@ export class Execution {
         j.ignores = apres.ignores - avant.ignores;
         j.dureeMs = Date.now() - t;
       }
-      // Comme avant ce contrôle : une exception arrête la suite (un test levé
-      // peut laisser un état global faux) ; les suivantes sont nommées.
-      if (j.etat === 'exception') break;
+      // Une exception ne coupe pas la suite : s'arrêter là cacherait tout ce
+      // qui suit sous des « jamais invoquée ». Mais un test levé peut laisser
+      // un état global faux : les entrées suivantes sont comptées, et le bilan
+      // le dit.
+      if (j.etat === 'exception') this.premiereException ??= nom;
+      else if (this.premiereException) this.apresException++;
       this.planifier();
     }
     return this.valider();
@@ -274,6 +279,10 @@ export class Execution {
     if (echecsDetail.length + constats.length > 0) {
       console.log('\n\x1b[31mÉchecs :\x1b[0m');
       for (const ligne of [...echecsDetail, ...constats]) console.log('  \x1b[31mKO\x1b[0m   ' + ligne);
+    }
+    if (this.premiereException && this.apresException) {
+      console.log(`\n\x1b[33mAprès l'exception de ${this.premiereException} :\x1b[0m ${this.apresException} entrée(s) ont tourné ensuite ; `
+        + 'un échec parmi elles peut venir de l\'état laissé par l\'exception — corriger celle-ci d\'abord.');
     }
     console.log(
       `\nEntrées : ${this.attendues!.length} attendue(s), ${rendues.length} exécutée(s) — ` +
@@ -347,6 +356,7 @@ export class Execution {
         ...(({ total, echecs, ignores }) => ({ controles: total, echecs, ignores }))(this.o.bilan()),
       },
       echecs: this.constatsFinaux,
+      premiereException: this.premiereException,
       entrees,
     };
     writeFileSync(this.chemin, JSON.stringify(document));

@@ -129,9 +129,12 @@ y a quelque chose à lire — et se ferme par une croix.
   fichier** `.json` — pas d'écran intermédiaire, pas de zone de collage. Le
   contenu passe par le validateur (voir ci-dessous) ; espaces et retours ligne
   autour du JSON tolérés.
-- ⚠️ **Un import AJOUTE toujours à la suite. Il ne remplace jamais.**
-  - Aucune option, aucune confirmation : l'import ne peut pas détruire de
-    données, donc il n'a rien à demander.
+- ⚠️ **Un import ne remplace jamais.** Il AJOUTE à la suite, ou — quand le
+  fichier complète une recommandation qu'on a déjà, et seulement si on le
+  choisit — il la **fusionne** dans celle-ci, qui n'y perd rien (voir « Fusion
+  d'un import » ci-dessous).
+  - Sans correspondance, aucune option, aucune confirmation : l'import ne peut
+    pas détruire de données, donc il n'a rien à demander.
   - Les recommandations sont du **contenu créé à la main**, non re-dérivable d'un
     export de compte : un import ne doit pas pouvoir les effacer.
   - Pour repartir de zéro, **« Tout effacer »** existe — geste explicite, séparé,
@@ -146,3 +149,112 @@ y a quelque chose à lire — et se ferme par une croix.
 
 > Convention d'icônes, identique à la comparaison de courbes de runes :
 > **Exporter = Upload ↑**, **Importer = Download ↓**.
+
+## Fusion d'un import
+
+Logique : [recoFusion.ts](src/lib/recoFusion.ts) (clé d'équipe :
+[recoDefenses.ts](../../../../src/lib/recoDefenses.ts)), calcul pur testé par
+[tests/reco-fusion.test.ts](tests/reco-fusion.test.ts) ; choix :
+[ChoixFusionRecos.tsx](src/components/siege/ChoixFusionRecos.tsx).
+
+Un même auteur — un joueur, ou un fichier produit par un outil externe —
+republie de semaine en semaine **la même recommandation, enrichie**. Ajouter
+à chaque fois accumulerait les decks en double : une même équipe reviendrait
+une fois par fichier. La fusion n'apporte que ce qui manque.
+
+### La correspondance : quelle recommandation un fichier complète
+
+Deux règles, dans cet ordre :
+
+1. **Les deux portent une `source`** (champ facultatif d'une recommandation,
+   ci-dessous) : elle seule décide. Elle est faite pour ça — stable malgré un
+   renommage par l'utilisateur ou une date dans le nom —, et deux sources
+   différentes disent deux provenances, même si les noms se ressemblent.
+2. **Sinon : même auteur (non vide) ET même nom de base (non vide).** Le nom de
+   base est le nom sans sa date finale (« Défenses — 30/10/2026 »,
+   « Offs 2026-10-30 », « Siège (30.10) »), sans casse ni accents. C'est le
+   repli d'un fichier partagé par un ami, ou d'une recommandation importée
+   avant que son fichier ne porte de source. ⚠️ Un tiret seul ne fait une date
+   qu'avec l'année : « Équipe 3-2 » n'est pas daté.
+
+Une correspondance par la source passe avant une correspondance par le nom ; à
+égalité, la première de la liste. L'origine ne compte pas : une
+recommandation « à moi » se complète comme une importée.
+
+### Le choix proposé
+
+Quand au moins une recommandation du fichier en complète une existante,
+l'import **demande** avant d'écrire quoi que ce soit — un dialogue de
+**choix** (comme le choix d'export du siège) : les options sont les actions,
+la croix ferme sans rien importer (« Import annulé : rien n'a été ajouté »).
+
+- **« Fusionner dans la recommandation existante »** — en premier, avec le
+  focus : c'est la raison de la question. Sa description dit d'avance ce qui
+  arrivera (« 3 decks nouveaux, à la fin ; 2 decks que tu as déjà gagnent
+  5 défenses visées. ») et ce qui est gardé.
+- **« Ajouter à part »** — le comportement d'avant : une recommandation de
+  plus, à côté.
+- Le sous-titre nomme chaque paire (« « Offs — 06/11/2026 » prolonge ta
+  recommandation « Mes offs » ») et dit ce qui n'est PAS touché : « Dans les
+  deux cas, rien de ce que tu as n'est retiré ni réécrit. »
+
+⚠️ **Le défaut ne perd rien, quelle que soit la réponse** — c'est ce qui
+permet de mettre « Fusionner » en avant. La fusion n'enlève et ne réécrit
+rien ; ajouter à part ne touche à rien. Ce n'est PAS la confirmation interdite
+plus haut (« OK = remplacer ») : aucune des deux options ne détruit.
+
+Le choix vaut pour tout le fichier. Les recommandations du fichier qui ne
+correspondent à rien sont ajoutées à part dans les deux cas.
+
+### Les règles de la fusion
+
+- **Nom, auteur, consignes de la recommandation** : ceux de l'existante, tels
+  quels — l'utilisateur a pu les retoucher.
+- ⚠️ **Un deck et une défense visée se reconnaissent par la même clé
+  d'équipe que la vue Défense** ([modele.md](modele.md), « Vue Attaque /
+  Défense ») : même **chef** — le premier monstre, s'il a un lead actif en
+  siège — et mêmes deux autres monstres dans n'importe quel ordre ; sans chef,
+  mêmes trois monstres dans n'importe quel ordre. Solveig-Odin-Adriana se
+  reconnaît dans Solveig-Adriana-Odin ; Odin-Adriana-Solveig, au chef
+  différent, est une autre équipe ; Windy-Lulu-Kinki se reconnaît dans
+  Kinki-Windy-Lulu.
+- **Un deck dont l'équipe existe déjà** n'est pas dupliqué. Il gagne
+  seulement les **défenses visées** qu'il n'avait pas. Son ordre, ses builds,
+  ses consignes, ses défenses et leurs précisions restent les siens. Une
+  défense vide n'est jamais ajoutée.
+- ⚠️ **Premier monstre au lead inconnu** (saisi à la main, ou absent des
+  données chargées) : compté pour chef. C'est le choix sûr, qui ne fusionne
+  jamais deux équipes qui pourraient différer en jeu : au pire, le même deck
+  revient une fois de plus, à la fin, et se supprime à la main.
+- **Un deck nouveau** est ajouté **à la fin**, tel que le fichier le donne. Un
+  deck qui revient plus loin dans le même fichier y réunit ses défenses.
+- Une recommandation réduite à son deck vide (celui que pose la création) :
+  les decks reçus le remplacent.
+- La recommandation fusionnée **garde sa place et son origine** : c'est la
+  même, complétée, pas une nouvelle reçue.
+- **Sa `source`** : la sienne, ou à défaut celle du fichier — la prochaine
+  fusion se reconnaîtra sans dépendre du nom.
+
+**Rapport** (message éphémère, comme un import) : « Fusion : 2 decks ajoutés,
+1 deck enrichi de 3 défenses · 1 recommandation ajoutée à part. Rien n'a été
+retiré ni modifié. » — ou « rien de nouveau » quand le fichier n'apporte
+rien. Le rapport de validation reste affiché comme pour tout import.
+
+### Le champ `source`
+
+```json
+{ "nom": "…", "auteur": "…", "source": "outil:identifiant-stable", "decks": [ … ] }
+```
+
+- **Facultatif**, jamais affiché ni saisi : l'identifiant stable de la
+  provenance, posé par celui qui produit le fichier. Un texte de 200
+  caractères au plus.
+- ⚠️ **Un champ en plus, pas une version de plus** (le format reste en v5) :
+  une app qui ne le connaît pas l'ignore en silence, un fichier sans lui se lit
+  comme avant. Une version de plus ferait dire « réexporte-le » à chaque
+  fichier v5 en circulation, pour rien.
+- Pas un texte, ou trop long : **ignoré** et signalé. ⚠️ Pas tronqué : une
+  source coupée ne reconnaîtrait plus rien et pourrait en confondre deux.
+- **Gardée** dans le stockage et **repartie** à l'export : une recommandation
+  reçue puis repartagée garde sa provenance, et se fusionne encore chez celui
+  qui la reçoit.

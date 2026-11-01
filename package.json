@@ -1,7 +1,7 @@
 {
   "name": "swblacksmith",
   "private": true,
-  "version": "2.2.0",
+  "version": "2.2.1",
   "type": "module",
   "main": "dist-bureau/main.cjs",
   "description": "SW Blacksmith — boîte à outils Summoners War : siège, RTA, runes et analyse de compte. 100 % local, aucune donnée envoyée.",
@@ -38,6 +38,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/source-sans-3": "^5.3.1",
     "@tailwindcss/container-queries": "0.1.1",
     "@types/node": "^26.4.0",
     "@types/react": "^18.3.3",

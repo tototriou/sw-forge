@@ -42,7 +42,7 @@ commit** que le code.
 | Calcul lourd | **Web Workers** (`src/workers/`) : recherche de l'Optimizer, classement, résolution de l'équipement |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé), tous deux opt-in |
 | Bureau | **Electron** + `electron-builder` + `electron-updater` (`bureau/`, hors de `src/`) |
-| Tests | lanceur maison `tests/run.mjs` (registre `tests/index.ts`), `fake-indexeddb`, rendu par `react-dom/server` |
+| Tests | lanceur maison `tests/run.mjs` (registre `tests/index.ts`), `fake-indexeddb`, rendu par `react-dom/server`, polices de l'app pour le Chromium des tests (`@fontsource`) |
 | Qualité | `tsc` strict (couvre `src/`, `scripts/`, `tests/`), ESLint (flat config) |
 
 ## Structure
@@ -82,6 +82,7 @@ node tests/run.mjs --lister <filtre>        # prévisualise la sélection finale
 node tests/run.mjs --max-entrees 30 <filtre> # refuse avant lancement si la sélection dépasse 30 entrées
 node tests/run.mjs --silencieux …           # sortie réduite aux échecs et au bilan (ajoutable aux lignes ci-dessus)
 node tests/banc/run.mjs --ecrans <id>       # le banc d'affichage, aux deux formats (il construit l'app)
+node tests/banc/run.mjs --ecrans <id> --etats <id> --tailles <id>   # un état, une taille : environ 30 s
 npm test                       # TOUTES les vérifications — seulement avant une fusion sur main ou dans une release
 npm run test:suivi [-- …]      # les mêmes, suivies en direct dans le terminal (--web : aussi dans le navigateur)
 npm run fetch-data             # régénère les données SWARFARM de public/data

@@ -20,8 +20,9 @@ suit le sort lit après ses coups).
 ## Quels sorts
 
 Un sort **actif calculé** à **plusieurs coups** (au moins deux, plage de coups
-comprise), hors séquence curée, propose chaque effet néfaste que **sa donnée**
-pose sur l'ennemi (`type: 'Debuff'`, `surSoi: false`) :
+et groupes d'une séquence curée comptés) propose chaque effet néfaste que **sa
+donnée** pose sur l'ennemi (`type: 'Debuff'`, `surSoi: false`), plus ceux
+qu'un passif du monstre pose à chaque attaque (plus bas) :
 
 - **toujours** la Réduction de DEF (`Decrease DEF`) et la Marque (`Brand`) :
   elles changent la DEF ou les dégâts subis des coups suivants ;
@@ -30,8 +31,8 @@ pose sur l'ennemi (`type: 'Debuff'`, `surSoi: false`) :
   sort lui-même (bonus par effet nocif, condition « la cible porte un effet
   nocif ») ou par le monstre (passif, modificateur monstre-wide : Spirit's
   Wrath d'Aeilene, Tiger's Appearance de Naomi, Ancient Power de Tesarion,
-  Backup Code de 570RM). Sans lecteur, il ne change aucun chiffre et n'est pas
-  proposé.
+  King of the Ruins de Manannan, Backup Code de 570RM). Sans lecteur, il ne
+  change aucun chiffre et n'est pas proposé.
 
 La règle lit la donnée de **chaque identifiant**, jamais un nom : « Blackout
 Kick » compte quinze homonymes au texte différent, et seul 3454 (Sia) pose une
@@ -59,12 +60,17 @@ dans la prose du passif) ; le libellé nomme le passif :
 | Might · Thunder | Dyeus lumière | Réduction de DEF en état Thunderer (son Étourdissement, sans lecteur, n'est pas proposé) |
 | Blood Talon, Heaven's Might | Hwoarang feu, Taebaek feu | Marque |
 | Ancient Power | Tesarion feu | Oubli, compté par son +30 % contre une cible affligée |
-| King of the Ruins | Manannan ténèbres | Dégâts continus, comptés par son +100 % contre une cible affligée |
 
 Ne sont pas retenus : Eagle Deception (Bayek ténèbres) et Eye of the Desert
 (Salah), dont la bête frappe « a random enemy … when you attack on your
 turn » sans dire ni la cible ni l'instant ; Severing Edge et Dimension
-Shatter (Übel et Wieb vent), dont les coups en plus sont ceux du passif.
+Shatter (Übel et Wieb vent), dont les coups en plus sont ceux du passif ;
+King of the Ruins (Manannan ténèbres), dont les dégâts continus « after each
+hit » suivent « decreases the HP of all enemies except the target » (effet
+`aoe: true`) et semblent viser les autres ennemis — relevé attendu
+([piste](../../05-feuille-de-route/pistes-degats-reels.md#poses-entre-les-coups--buff-posé-par-le-sort-eightfold-bonus-du-coup-2)) ;
+Blessing of Curse (Jessica lumière), qui donne à la cible « 1 of the harmful
+effects granted on yourself » : l'effet n'est pas connu d'avance.
 
 Scratch de Raoq (« attacks consecutively with a 30% chance ») se règle par un
 nombre total de coups saisi de 1 à 10 (décision de l'utilisateur,
@@ -86,6 +92,11 @@ est posable dès deux coups.
 Un effet posé au **seul dernier coup** ne change rien au sort et n'est pas
 proposé (Domain Expansion de Megumi, Continuous Summoning Technique de
 Tetsuya, Crushing Swipe de Daisy et Christine : « the last hit decreases… »).
+Le Gel de Grinding (Espresso Cookie eau) et de Spinning Tea Spoon (Rosemary
+eau), « attacks once more to freeze them », vient lui aussi au dernier coup ;
+il n'est pas proposé parce que rien ne lit son compte, la donnée n'ayant pas
+de note de rang : si Cold Brew ou Iced Tea (+200 % contre une cible gelée)
+devenait un lecteur, il faudrait l'exception « dernier coup ».
 
 Une note qui pose une **condition** plutôt qu'un rang s'affiche après le
 libellé (`PRECISION_PAR_NOTE`) : « un seul des effets possibles par coup, au
@@ -200,7 +211,18 @@ son dernier coup, poses comprises
   Blade (Leah lumière, 14809) et Swift Slash (Sonia vent, 15903) baissent la
   VIT à chaque coup, alors que leur passif croît avec l'écart de VIT ; le
   calcul ne modélise aucune baisse de VIT de la cible, l'écart reste celui
-  du réglage.
+  du réglage. Spear of Thunder (Asbolus ténèbres, 23415) lit lui-même l'écart
+  de VIT, mais ce bonus n'est pas compté du tout (formule `1.4*{ATK}` seule).
+- **Détonation des dégâts continus** : Rage of Helheim (Eivor vent, 17513) et
+  Stormy Axe (Astrid vent, 18013) posent des dégâts continus aux coups 1 à 3,
+  que le coup 4 fait exploser ; la détonation est hors du total
+  (`CALCUL_PARTIEL_PAR_ID`), les dégâts continus ne changent donc rien.
+- **Coups non comptés** : Tempest Sword (Lupinus, 10613) pose sa Marque à
+  chacun de ses deux coups, mais sa phase de zone, le 3ᵉ coup (note « 3rd hit
+  only » de l'absorption), n'est pas comptée : seule la pose du coup 1 est
+  proposée. Cleave (19910) et Exorcism Orb (20510), « the number of hits
+  increases up to 6 times », se calculent sur 2 coups
+  ([piste](../../05-feuille-de-route/pistes-degats-reels.md#plages-de-coups-à-relever-et-coups--au-hasard-)).
 - **Enchaînement vers un autre sort** (Shoryuken puis Hadoken, Iron Uppercut
   puis Mach Punch, Energy Ball, Wield) : chaque sort n'a qu'un coup, rien
   n'est posé entre les coups d'un même sort. La Marque de Shoryuken et

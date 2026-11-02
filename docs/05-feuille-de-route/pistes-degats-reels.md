@@ -282,7 +282,11 @@ codée porte « Calcul partiel »
   coup, environ 2,36 → après. Bayek ténèbres ou Salah, S2 à deux coups contre
   une cible seule à ~3 000 de DEF, coups non critiques : coup 2 / coup 1
   environ 2,7 → la Réduction de DEF de la bête précède le coup 2, environ 1
-  → elle le suit.
+  → elle le suit. Manannan ténèbres, King of the Ruins (`10515`) : Spear of
+  Devastation contre deux ennemis sans effet nocif, l'icône de dégâts
+  continus après le coup 1 sur la cible visée → elle les reçoit, et le +100 %
+  vaut pour le coup 2 (ses dégâts continus deviennent posables entre les
+  coups) ; sur les seuls autres ennemis → rien à poser.
 
 ### Comptes propres et jauge absorbée
 

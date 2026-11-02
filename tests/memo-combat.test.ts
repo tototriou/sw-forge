@@ -78,7 +78,7 @@ const PROPRES: AurasPropres = { fight: 1, determination: 1, enhance: 0, accuracy
 // la donne) et le dire dans le commit. Sinon : un défaut du code commun au
 // calcul avec et sans memo.
 const EMPREINTE_ANCIEN_CALCUL = {
-  contextes: 12426, notes: 310650, sha256: '65a1c1c26e5d8c36d168012884d7fb94efc01516d110f6df097971fa099ad853',
+  contextes: 12426, notes: 310650, sha256: '8e8c91265b18bf40fa7333563d56f8b531a6b0912cda59535c0b103f1cec2678',
 };
 
 // Quatre pièces par sorte, deux principales par sorte : des paires partagent

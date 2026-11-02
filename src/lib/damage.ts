@@ -2825,9 +2825,10 @@ const BONUS_STACK_PROPRE_CONNUS: Record<string, NonNullable<SkillDamageProfile['
 // pose une Marque — chaque identifiant lit SA donnée.
 //
 // Règle (`effetsEntreCoupsDuSort`) : un sort ACTIF calculé, à plusieurs coups
-// (au moins deux, plage de coups comprise), hors séquence curée, propose
-// chaque effet néfaste de sa donnée posé sur l'ennemi (`type: 'Debuff'`,
-// `surSoi: false`) :
+// (au moins deux, plage de coups et groupes d'une séquence curée comptés),
+// propose chaque effet néfaste de sa donnée posé sur l'ennemi (`type:
+// 'Debuff'`, `surSoi: false`), plus ceux qu'un passif du monstre pose à
+// chaque attaque (`EFFETS_ENTRE_COUPS_PAR_PASSIF_PAR_ID`) :
 // - toujours la Réduction de DEF (`Decrease DEF`) et la Marque (`Brand`), qui
 //   changent la DEF ou les dégâts subis des coups suivants ;
 // - un autre effet seulement quand le compte des effets nocifs de la cible est
@@ -2956,6 +2957,18 @@ const EFFETS_ENTRE_COUPS_EXCEPTIONS_PAR_ID: Readonly<Record<number, ExceptionEff
   // recovery », comme Virus — la note qui le dit manque.
   11507: { precision: { 'decrease-def': 'un seul des effets possibles par coup, au hasard' } },
   11509: { precision: { 'decrease-def': 'un seul des effets possibles par coup, au hasard' } },
+  // Roll Dice (Reno, Ludo, Morris, Tablo, Monte) : « grants an effect according
+  // to each number you get … 5: Decrease DEF » — un dé par coup.
+  12101: { precision: { 'decrease-def': 'sur un 5 au dé' } },
+  12102: { precision: { 'decrease-def': 'sur un 5 au dé' } },
+  12103: { precision: { 'decrease-def': 'sur un 5 au dé' } },
+  12104: { precision: { 'decrease-def': 'sur un 5 au dé' } },
+  12105: { precision: { 'decrease-def': 'sur un 5 au dé' } },
+  // Fatal Mortar Bullet (Scarlett, séquence) : « Attacks the enemy with a cannon
+  // gun and weakens the Defense and leaves a Branding effect … Afterwards,
+  // attacks all enemies » — Réduction de DEF et Marque au coup 1, comme la note
+  // « Only first hit » de la Marque (le calcul est le même, le libellé le dit).
+  13312: { coups: { 'decrease-def': [1] } },
   // Soul Summoning (Rigel, Fuco) : la donnée porte `Decrease DEF`, la prose dit
   // « Each attack has a 40% chance to decrease the enemy's Attack Speed » — la
   // prose fait foi : aucune Réduction de DEF.
@@ -3030,9 +3043,11 @@ const EFFETS_ENTRE_COUPS_PAR_PASSIF_PAR_ID: Readonly<Record<number, readonly { e
   // Ancient Power (Tesarion) : « Grants Oblivion for 2 turns when you attack the
   // enemy » — et le passif lit les effets nocifs (+30 %).
   10011: [{ effet: 'Oblivion', precision: 'par Ancient Power' }],
-  // King of the Ruins (Manannan) : « inflicts Continuous Damage for 1 turn after
-  // each hit » — et le passif lit les effets nocifs (+100 %).
-  10515: [{ effet: 'Continuous DMG', precision: 'par King of the Ruins' }],
+  // ⚠️ King of the Ruins (Manannan, 10515) n'est PAS ici : « decreases the HP of
+  // all enemies except the target by 40% of the damage dealt and inflicts
+  // Continuous Damage for 1 turn after each hit », effet `aoe: true` — les
+  // dégâts continus semblent viser les ennemis autres que la cible. Relevé
+  // attendu (pistes-degats-reels.md, « Poses entre les coups »).
 };
 
 // Les effets que les passifs de la fiche posent à chaque attaque.

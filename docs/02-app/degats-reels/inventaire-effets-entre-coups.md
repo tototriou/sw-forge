@@ -8,7 +8,7 @@ est écarté : [feat-poses-entre-les-coups.md](feat-poses-entre-les-coups.md).
 Cette liste est figée par `testInventaireEffetsEntreCoups`
 ([tests/degats-effets-entre-coups.test.ts](../../../tests/degats-effets-entre-coups.test.ts),
 fixture [tests/fixtures/effets-entre-coups-inventaire.json](../../../tests/fixtures/effets-entre-coups-inventaire.json)) :
-260 sorts, 148 lignes ci-dessous (un même nom aux effets identiques sur une
+259 sorts, 147 lignes ci-dessous (un même nom aux effets identiques sur une
 ligne). Un sort que des données régénérées ajoutent ou retirent fait échouer
 le test : relire sa prose, puis mettre à jour la fixture et cette page dans le
 même commit.
@@ -78,7 +78,7 @@ compte des effets nocifs de la cible est lu, par le sort ou par le monstre.
 | Exorcist Shuriken Formation | 20915 | Aya ténèbres | Réduction de DEF — coup 1 |
 | Explosive Fist | 22807 | Daimon feu | Réduction de DEF — chaque coup |
 | Fast Link | 13606, 13607, 13610 | Barbara eau, Masha feu, Xiana ténèbres | Réduction de DEF — coup 1 |
-| Fatal Mortar Bullet | 13312 | Scarlett feu | Réduction de DEF — chaque coup<br>Marque — coup 1 |
+| Fatal Mortar Bullet | 13312 | Scarlett feu | Réduction de DEF — coup 1<br>Marque — coup 1 |
 | Fire Strike | 17411 | Kassandra eau | Marque — chaque coup |
 | Flame Slash | 8032 | Jun feu | Réduction de DEF — chaque coup |
 | Flame Strike | 17911 | Kalantatze eau | Marque — chaque coup |
@@ -117,7 +117,7 @@ compte des effets nocifs de la cible est lu, par le sort ou par le monstre.
 | Rat Hunt | 1601, 1602, 1603, 1604, 1605 | Ramira eau, Lucasha feu, Prilea vent, Kabilla lumière, Hellea ténèbres | Réduction de DEF — chaque coup |
 | Reelseiden・Flurry | 25206, 25210 | Übel eau, Übel ténèbres | Réduction de DEF — coup 1 |
 | Revolver Kick | 23206, 23207, 23210 | Shasha eau, Shasha feu, Shasha ténèbres | Réduction de DEF — coup 2 |
-| Roll Dice | 12101, 12102, 12103, 12104, 12105 | Reno eau, Ludo feu, Morris vent, Tablo lumière, Monte ténèbres | Réduction de DEF — chaque coup |
+| Roll Dice | 12101, 12102, 12103, 12104, 12105 | Reno eau, Ludo feu, Morris vent, Tablo lumière, Monte ténèbres | Réduction de DEF — chaque coup (sur un 5 au dé) |
 | Roundhouse Kick Combo | 23007 | Taebaek feu | Marque — chaque coup (par Heaven’s Might) |
 | Run!! | 18722, 18725 | Yeji and Sapsaree feu, Damee and Sapsaree ténèbres | Réduction de DEF — chaque coup |
 | Scratch | 2052 | Raoq feu | Réduction de DEF — chaque coup |
@@ -131,7 +131,6 @@ compte des effets nocifs de la cible est lu, par le sort ou par le monstre.
 | Shred | 5661 | Vigor eau | Réduction de DEF — chaque coup |
 | Silver-plated Bullet | 10129 | Loren lumière | Réduction de DEF — chaque coup (par Chaser) |
 | Simple Solution | 4815 | Han ténèbres | Réduction de DEF — chaque coup |
-| Spear of Devastation | 10510 | Manannan ténèbres | Dégâts continus — chaque coup (par King of the Ruins) |
 | Spinning Slash | 5513 | Sophia vent | Réduction de DEF — chaque coup |
 | Start Battle | 9506, 9507, 9509 | Toma eau, Naki feu, Dona lumière | Réduction de DEF — chaque coup |
 | Steel Swordsmanship | 17707, 17708, 17710 | Patrick feu, Hector vent, Evan ténèbres | Réduction de DEF — chaque coup |

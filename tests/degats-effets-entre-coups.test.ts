@@ -170,7 +170,7 @@ export function testInventaireEffetsEntreCoups() {
     if (porteurs.join('|') !== [...a.porteurs].sort().join('|')) ecarts.push(`${id} ${v.nom} : porteurs ${porteurs.join(', ')}`);
   }
   egal(ecarts, [], 'chaque sort de l’inventaire garde ses effets, leurs rangs et ses porteurs');
-  egal(trouve.size, 260, 'témoin : 260 sorts des formes jouables proposent une pose entre leurs coups');
+  egal(trouve.size, 259, 'témoin : 259 sorts des formes jouables proposent une pose entre leurs coups');
 }
 
 /** Chaque effet néfaste du corpus entier a sa traduction dans le calcul. */
@@ -300,7 +300,7 @@ export function testEffetsEntreCoupsRegle() {
   // Séquence curée : Fatal Mortar Bullet (Scarlett) pose Réduction de DEF et
   // Marque au coup 1, mono-cible ; la phase de zone (coup 2) les subit.
   const scarlett = profil(13312);
-  egal(scarlett.effetsEntreCoups?.map(signature), ['decrease-def', 'brand@1'], 'Fatal Mortar Bullet : Réduction de DEF et Marque, avant la phase de zone');
+  egal(scarlett.effetsEntreCoups?.map(signature), ['decrease-def@1', 'brand@1'], 'Fatal Mortar Bullet : Réduction de DEF et Marque au coup 1, avant la phase de zone');
   egal(rangsDePoseProposes(scarlett, scarlett.effetsEntreCoups![1], CIBLE), [1], 'Fatal Mortar Bullet : la séquence compte deux coups');
   const scarlettSans = total(scarlett, CIBLE);
   const scarlettMarque = total(scarlett, avecPose(scarlett, { brand: 1 }));
@@ -330,6 +330,9 @@ export function testEffetsEntreCoupsRegle() {
   ok(total(shaina, avecPose(shaina, { 'decrease-def': 1 })) > total(shaina, CIBLE), 'Crescent Moon Slash : posée au coup 1, le coup 2 la subit');
   egal(profil(10007).effetsEntreCoups?.map((e) => e.id), ['decrease-def', 'oblivion'], 'Triple Crush (Tesarion) : l’Oubli d’Ancient Power compte pour son +30 %');
   egal(profil(5660).effetsEntreCoups?.map((e) => e.id), ['decrease-def'], 'Surprise Attack (Jultan) : sans lecteur, les dégâts continus du passif ne sont pas proposés');
+  ok(!profil(10510).effetsEntreCoups?.length,
+    'Spear of Devastation (Manannan) : les dégâts continus de King of the Ruins, qui semblent viser les autres ennemis, ne sont pas proposés (relevé attendu)');
+  egal(libelleEffetEntreCoups(profil(12101).effetsEntreCoups![0]), 'Réduction de DEF (sur un 5 au dé)', 'Roll Dice : la Réduction de DEF sur un 5 au dé');
   egal(profil(18129).effetsEntreCoups?.map((e) => libelleEffetEntreCoups(e)),
     ['Marque (en état Thunderer)', 'Réduction de DEF (par Might · Thunder, en état Thunderer)'], 'Wild Bolt (Dyeus) : la Marque du sort et la Réduction de DEF du passif');
 

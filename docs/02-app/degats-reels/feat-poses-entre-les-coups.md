@@ -123,6 +123,8 @@ jamais ne complète la règle :
 | Water Dragon Attack (Xiao Lin 8211) | Réduction de DEF aux coups 2 et 3 (le coup 4 est le dernier) | « Attacks the enemy target and randomly attacks 3 more times to decrease Defense for 2 turns each » |
 | Undefeated Warrior (Kuna 9515, séquence) | aucune Réduction de DEF | « You sequentially attack all enemies and decrease their Defense » : la phase de zone, la dernière |
 | Ghost Appearance (Smokey 11507, Misty 11509) | « un seul des effets possibles par coup, au hasard » | « Each hit has a 50% chance to cast one random effect among … » |
+| Roll Dice (Reno 12101, Ludo 12102, Morris 12103, Tablo 12104, Monte 12105) | Réduction de DEF « sur un 5 au dé » | « grants an effect according to each number you get … 5: Decrease DEF » |
+| Fatal Mortar Bullet (Scarlett 13312, séquence) | Réduction de DEF au coup 1, comme la Marque (note « Only first hit ») | « Attacks the enemy with a cannon gun and weakens the Defense and leaves a Branding effect … Afterwards, attacks all enemies » |
 | Soul Summoning (Rigel 7501, Fuco 7503) | pas de Réduction de DEF, une Réduction de VIT | « Each attack has a 40% chance to decrease the enemy's Attack Speed » (la donnée dit `Decrease DEF`) |
 | Crushed Hopes (Cichlid 10413) | Réduction de DEF au coup 2 | « the second attack decreases the Defense » |
 | Fast Link (Barbara 13606, Masha 13607, Xiana 13610) | Réduction de DEF au coup 1 | « The beast's attack decreases the enemy's Defense » ; la bête attaque en premier, sans relevé |
@@ -184,9 +186,19 @@ son dernier coup, poses comprises
   et leur Marque deviendront proposables d'elles-mêmes avec le bon nombre de
   coups ([Crow Hunt de Prilea](../../05-feuille-de-route/pistes-degats-reels.md#crow-hunt-de-prilea--deux-coups-annoncés-pour-un),
   [Splash Splash de Noctaris](../../05-feuille-de-route/pistes-degats-reels.md#splash-splash-de-noctaris--un-coup-en-donnée-trois-ou-quatre-en-prose)).
-- **Sans dégâts** : Harmless Prank d'Orion (8811), qui pose sans frapper ;
-  Rolling Cannon de Christina (13313), dont la formule n'est pas prise en
-  charge.
+- **Sans dégâts calculés** : Harmless Prank d'Orion (8811), qui pose sans
+  frapper ; Rolling Cannon de Christina (13313), qui frappe mais dont la
+  formule (`5.7*{Alive Allies %}*{ATK}`) n'est pas prise en charge.
+- **Couvert autrement** : Guilty Sentence (Agrenia feu 23507, Driana vent
+  23508, Theonia ténèbres 23510) n'a qu'un coup ; son attaque en plus est une
+  attaque auxiliaire qui suit le sort et lit la Réduction de DEF qu'il pose
+  par le réglage « Ce sort pose le def break »
+  ([feat-passifs-offensifs.md](feat-passifs-offensifs.md#la-réduction-de-défense--avant-nest-pas-après)).
+- **Préfixe d'enchaînement** : Hunting Hawk (Hwoarang feu, 22507) et
+  Roundhouse Kick Combo (Taebaek feu, 23007) frappent d'abord avec Backlash
+  ou Triple Kick contre une cible sans effet bénéfique ; ce préfixe n'est pas
+  compté, la Marque de leur passif n'est proposée qu'après leur coup 1
+  ([piste](../../05-feuille-de-route/pistes-degats-reels.md#chaînes-ordonnées)).
 - **Lecteur non modélisé** : les effets nocifs que posent Critical Link
   (Savannah, Narsha), les sorts d'Amber, Bullet Assassination et Shining
   Butterfly, Chemical Gas Spray, Yoga Sunburst et les deux « Havoc » ne

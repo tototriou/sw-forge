@@ -99,7 +99,13 @@ codée porte « Calcul partiel »
   Backlash quand la cible n'a aucun effet bénéfique, et Trinity Claymore
   (`22515`) enchaîne Backlash, Hunting Hawk puis trois coups ; Taebaek
   ténèbres, son jumeau, porte Roundhouse Kick Combo (`23010`) et Endless
-  Kick Combo (`23015`). Shoot n' Slash de Barque (`10223`, sans formule)
+  Kick Combo (`23015`). Les versions feu, Hunting Hawk (`22507`, Hwoarang) et
+  Roundhouse Kick Combo (`23007`, Taebaek), frappent de même d'abord avec
+  Backlash ou Triple Kick contre une cible sans effet bénéfique : la Marque
+  que leur passif (Blood Talon, Heaven's Might) pose pendant ce préfixe
+  vaudrait pour leurs trois coups, alors que le calcul ne propose que la pose
+  après leur coup 1 ([02-app/degats-reels/feat-poses-entre-les-coups.md](../02-app/degats-reels/feat-poses-entre-les-coups.md)).
+  Shoot n' Slash de Barque (`10223`, sans formule)
   enchaîne Backspin Slash et Pirate's Strike.
 - **Idée** : ce que décide chaque chaîne
   ([02-app/degats-reels/](../02-app/degats-reels/)). Kung Fu Girls :

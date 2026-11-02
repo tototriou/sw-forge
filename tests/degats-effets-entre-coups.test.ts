@@ -170,7 +170,7 @@ export function testInventaireEffetsEntreCoups() {
     if (porteurs.join('|') !== [...a.porteurs].sort().join('|')) ecarts.push(`${id} ${v.nom} : porteurs ${porteurs.join(', ')}`);
   }
   egal(ecarts, [], 'chaque sort de l’inventaire garde ses effets, leurs rangs et ses porteurs');
-  egal(trouve.size, 243, 'témoin : 243 sorts des formes jouables proposent une pose entre leurs coups');
+  egal(trouve.size, 260, 'témoin : 260 sorts des formes jouables proposent une pose entre leurs coups');
 }
 
 /** Chaque effet néfaste du corpus entier a sa traduction dans le calcul. */
@@ -209,7 +209,7 @@ export function testEffetsEntreCoupsRegle() {
   const ppk = profil(13915);
   const ppkDef = ppk.effetsEntreCoups!.find((e) => e.id === 'decrease-def')!;
   egal(rangsDePoseProposes(ppk, ppkDef, CIBLE), [4, 5], 'PPK Combo : après le coup 4 ou 5 seulement');
-  egal(libelleEffetEntreCoups(ppkDef), 'Réduction de DEF (au coup 5, si ce coup retire un effet bénéfique)', 'PPK Combo : la condition du coup 5 est affichée');
+  egal(libelleEffetEntreCoups(ppkDef), 'Réduction de DEF', 'PPK Combo : la note « 5th hit if removed buff » pose une condition que la prose n’a pas (la prose fait foi)');
   const ppkSans = total(ppk, CIBLE);
   egal(total(ppk, avecPose(ppk, { 'decrease-def': 1 })), ppkSans, 'PPK Combo : une pose après le coup 1 est ignorée');
   ok(total(ppk, avecPose(ppk, { 'decrease-def': 4 })) > ppkSans, 'PPK Combo : posée après le coup 4, les coups 5 et 6 la subissent');
@@ -289,6 +289,55 @@ export function testEffetsEntreCoupsRegle() {
     const interrupteur = total(p, { ...CIBLE, passifsOffensifs: { [id]: true } });
     ok(Math.abs(total(p, pose) - interrupteur) < 1e-6, `${p.nom} : Gel posé au coup 1 = l’interrupteur « la cible porte un effet nocif »`);
   }
+
+  // La prose restreint les coups : Water Dragon Attack, « attacks 3 more times
+  // to decrease Defense » — les coups 2 à 4 posent, pas le premier.
+  const xiaoLin = profil(8211);
+  egal(rangsDePoseProposes(xiaoLin, xiaoLin.effetsEntreCoups![0], CIBLE), [2, 3], 'Water Dragon Attack : après le coup 2 ou 3');
+  egal(libelleEffetEntreCoups(profil(11507).effetsEntreCoups![0]), 'Réduction de DEF (un seul des effets possibles par coup, au hasard)',
+    'Ghost Appearance : un seul effet au hasard par coup, comme Virus');
+
+  // Séquence curée : Fatal Mortar Bullet (Scarlett) pose Réduction de DEF et
+  // Marque au coup 1, mono-cible ; la phase de zone (coup 2) les subit.
+  const scarlett = profil(13312);
+  egal(scarlett.effetsEntreCoups?.map(signature), ['decrease-def', 'brand@1'], 'Fatal Mortar Bullet : Réduction de DEF et Marque, avant la phase de zone');
+  egal(rangsDePoseProposes(scarlett, scarlett.effetsEntreCoups![1], CIBLE), [1], 'Fatal Mortar Bullet : la séquence compte deux coups');
+  const scarlettSans = total(scarlett, CIBLE);
+  const scarlettMarque = total(scarlett, avecPose(scarlett, { brand: 1 }));
+  ok(scarlettMarque > scarlettSans, 'Fatal Mortar Bullet : la Marque du coup 1 majore la phase de zone');
+  ok(scarlettMarque < total(scarlett, { ...CIBLE, brand: true }), 'Fatal Mortar Bullet : … mais pas le coup 1 lui-même');
+  const secondaire: DamageSetup = { ...CIBLE, cibleDegatsParSort: { 13312: 'secondaire' } };
+  egal(total(scarlett, avecPose(scarlett, { brand: 1 }, secondaire)), total(scarlett, secondaire),
+    'Fatal Mortar Bullet, autres ennemis : la Marque posée sur la cible visée ne les touche pas');
+  ok(!profil(9515).effetsEntreCoups?.length, 'Undefeated Warrior : la Réduction de DEF de la phase de zone, la dernière, n’est pas proposée');
+
+  // L'Étourdissement d'un coup allume le +50 % « cible sous incapacité » des suivants.
+  for (const id of [6811, 2910]) {
+    const p = profil(id);
+    const stun = p.effetsEntreCoups?.find((e) => e.id === 'stun');
+    ok(!!stun?.allumeLeBoutonDuSort, `${p.nom} : l’Étourdissement est proposé et allume le bonus du sort`);
+    const sans = total(p, CIBLE);
+    const bonus = total(p, { ...CIBLE, passifsOffensifs: { [id]: true } });
+    const pose = total(p, avecPose(p, { stun: 1 }));
+    // Coups égaux : coup 1 sans bonus, les (n − 1) suivants avec.
+    ok(Math.abs(pose - (sans + (p.hits - 1) * bonus) / p.hits) < 1e-6 * sans,
+      `${p.nom} : Étourdissement posé au coup 1 = coup 1 sans le +50 %, les ${p.hits - 1} suivants avec`);
+  }
+
+  // Effets posés par un PASSIF à chaque attaque.
+  const shaina = profil(12602);
+  egal(shaina.effetsEntreCoups?.map((e) => libelleEffetEntreCoups(e)), ['Réduction de DEF (par Precision)'], 'Crescent Moon Slash (Shaina) : la Réduction de DEF de Precision');
+  ok(total(shaina, avecPose(shaina, { 'decrease-def': 1 })) > total(shaina, CIBLE), 'Crescent Moon Slash : posée au coup 1, le coup 2 la subit');
+  egal(profil(10007).effetsEntreCoups?.map((e) => e.id), ['decrease-def', 'oblivion'], 'Triple Crush (Tesarion) : l’Oubli d’Ancient Power compte pour son +30 %');
+  egal(profil(5660).effetsEntreCoups?.map((e) => e.id), ['decrease-def'], 'Surprise Attack (Jultan) : sans lecteur, les dégâts continus du passif ne sont pas proposés');
+  egal(profil(18129).effetsEntreCoups?.map((e) => libelleEffetEntreCoups(e)),
+    ['Marque (en état Thunderer)', 'Réduction de DEF (par Might · Thunder, en état Thunderer)'], 'Wild Bolt (Dyeus) : la Marque du sort et la Réduction de DEF du passif');
+
+  // Scratch (Raoq) : 1 à 10 coups saisis, la réduction de DEF à chaque coup.
+  const scratch = profil(2052);
+  egal(rangsDePoseProposes(scratch, scratch.effetsEntreCoups![0], CIBLE), [], 'Scratch : un coup par défaut, rien à poser');
+  egal(rangsDePoseProposes(scratch, scratch.effetsEntreCoups![0], { ...CIBLE, coupsPersonnalises: { 2052: 4 } }), [1, 2, 3],
+    'Scratch, 4 coups saisis : après les coups 1 à 3');
 
   // Sans pose réussie, rien ne change, sur tout l'inventaire.
   const ecarts: string[] = [];

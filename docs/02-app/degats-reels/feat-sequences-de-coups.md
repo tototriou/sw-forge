@@ -196,11 +196,13 @@ avant chaque coup.
 
 ## Ce qu’une séquence n’admet pas
 
-Une séquence n’admet ni coups variables (`hitsRange`) ni effets entre coups
-(`effetsEntreCoups`), et ses porteurs n’ont aucun passif offensif : rien de
-cela n’est modélisé pour une séquence. Le test vérifie sur le corpus qu’aucun
-porteur n’en a besoin ; un porteur futur qui en aurait besoin le fera échouer
-et demandera une curation.
+Une séquence n’admet pas de coups variables (`hitsRange`), et ses porteurs
+n’ont aucun passif offensif : rien de cela n’est modélisé pour une séquence.
+Le test vérifie sur le corpus qu’aucun porteur n’en a besoin ; un porteur
+futur qui en aurait besoin le fera échouer et demandera une curation. Les
+effets posés entre les coups, eux, valent pour une séquence : sous scénario,
+chaque coup d’un groupe lit l’état qui le précède, la cible secondaire jamais
+([feat-poses-entre-les-coups.md](feat-poses-entre-les-coups.md)).
 
 `hits` et `aoe` du profil gardent la donnée SWARFARM (celle de l’empreinte ;
 pour Blade Surge, deux coups mono-cible) et ne servent plus au calcul de ce

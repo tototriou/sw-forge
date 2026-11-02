@@ -260,7 +260,13 @@ codée porte « Calcul partiel »
   coup 2 si la cible porte un effet nocif. Fast Link (`13606`, `13607`,
   `13610`) pose sa Réduction de DEF au coup 1, celui de la bête, sans relevé.
   Un effet posé au dernier coup n'est jamais proposé, même quand un passif
-  qui suit le sort le lirait.
+  qui suit le sort le lirait. Les effets que pose une bête ou un disque « on
+  a random enemy … when you attack on your turn » (Eagle Deception `17315`,
+  Eye of the Desert `17815`) ne sont pas proposés : ni la cible ni l'instant
+  ne sont dits. Un sort à un coup qui en enchaîne un autre (Shoryuken puis
+  Hadoken, Iron Uppercut puis Mach Punch, Energy Ball, Wield) ne transmet pas
+  sa Réduction de DEF ou sa Marque au sort enchaîné : aucune attaque
+  conditionnelle n'est codée.
 - **Idée** : Eightfold : à partir du coup choisi, comme l'ignore DEF des
   Blade Dancers ([02-app/degats-reels/](../02-app/degats-reels/)). Un buff
   que le sort se pose : un interrupteur allumé par défaut quand ce sort est
@@ -273,18 +279,33 @@ codée porte « Calcul partiel »
   de 1 → la cavalière est le coup 2 ; Savannah sous k débuffs : environ
   1 + 0,15k. Hellfire sans puis
   avec Brise DEF (~1 500 de DEF) : environ 1 → la Brise DEF précède le
-  coup, environ 2,36 → après.
+  coup, environ 2,36 → après. Bayek ténèbres ou Salah, S2 à deux coups contre
+  une cible seule à ~3 000 de DEF, coups non critiques : coup 2 / coup 1
+  environ 2,7 → la Réduction de DEF de la bête précède le coup 2, environ 1
+  → elle le suit.
 
 ### Comptes propres et jauge absorbée
 
 - **Constat** : aucun compte propre des dégâts continus sur la cible
-  (Yoga Sunburst `14213`, Chemical Gas Spray `14713`), ni des effets
+  (Yoga Sunburst `14213`, Chemical Gas Spray `14728` de Jarrett ;
+  Reelseiden・Havoc `25212` et Dimension Slash・Havoc `25712`, « 5% of its
+  MAX HP for each Continuous Damage »), ni des effets
   retirés aux alliés, ni de la jauge d'attaque absorbée (Xiana, Theodora)
-  n'existe dans `src/lib/damage.ts`.
+  n'existe dans `src/lib/damage.ts`. D'autres lecteurs des effets nocifs de
+  la cible manquent aussi : Critical Link (`13608` Savannah, `13609` Narsha :
+  l'attaque du cavalier +15 % par effet nocif), Nano Vision d'Amber
+  (`15911` : 4 % des PV max par effet nocif), le dernier coup de Bullet
+  Assassination et Shining Butterfly (`22714`, `23214` : 25 % des PV max si
+  la cible porte un effet nocif) et Hammer Punch (`11651` à `11655` : le coup
+  en plus contre une cible SANS effet nocif, seulement un interrupteur). Sans
+  eux, les effets que ces sorts posent entre leurs coups ne sont pas
+  proposés (`effetsEntreCoupsDuSort`).
 - **Idée** : un compteur propre « dégâts continus sur la cible », +50 % par
   dégât continu, la prose faisant foi
   ([02-app/degats-reels/](../02-app/degats-reels/), « DHALSIM,
-  Jarrett ») ; les autres comptes sur le même modèle.
+  Jarrett ») ; les autres comptes sur le même modèle. Chaque lecteur ajouté
+  rend proposables, sans autre curation, les effets nocifs que le sort pose
+  entre ses coups.
 - **Bloque** : des relevés. Yoga Sunburst et Chemical Gas Spray, coup 2 /
   coup 1 après un dégât continu posé par le coup 1 : 1,3 à 1,5 → ceux du
   sort comptent. Satoru Gojo ou Werner, alliés portant 0, 1, 2 puis 4

@@ -4,7 +4,8 @@ Un sort à plusieurs coups peut poser un effet néfaste (Marque, Réduction de
 DEF…) dès un de ses premiers coups : les coups suivants le subissent. Ce
 document dit quels sorts le proposent, quels coups posent, comment le joueur
 le règle, et ce que le calcul en fait. Code : `effetsEntreCoupsDuSort`,
-`EFFETS_ENTRE_COUPS_EXCEPTIONS_PAR_ID`, `rangsDePoseProposes` et
+`EFFETS_ENTRE_COUPS_EXCEPTIONS_PAR_ID`, `EFFETS_ENTRE_COUPS_PAR_PASSIF_PAR_ID`,
+`rangsDePoseProposes` et
 `calculerChronologie` dans [damage.ts](../../../src/lib/damage.ts) ; écran :
 [DamageSetupCard.tsx](../../../src/components/outils/DamageSetupCard.tsx).
 
@@ -39,7 +40,36 @@ données régénérées est proposé s'il porte l'effet, et l'inventaire figé
 (`testInventaireEffetsEntreCoups`) le signale pour relecture.
 
 Les sorts du mode archer des anges jumeaux (Focus Shot, Air Shot), venus de
-leur compétence auxiliaire, suivent la même règle.
+leur compétence auxiliaire, suivent la même règle, comme les séquences curées
+(Fatal Mortar Bullet de Scarlett : Réduction de DEF et Marque au coup 1, que
+subit la phase de zone ; la cible secondaire, « Dégâts sur les autres
+ennemis », ne les reçoit pas, posées sur la seule cible visée).
+
+**Un passif qui pose un effet à chaque attaque** le rend posable entre les
+coups de chaque sort du monstre (`EFFETS_ENTRE_COUPS_PAR_PASSIF_PAR_ID`, lu
+dans la prose du passif) ; le libellé nomme le passif :
+
+| Passif | Monstre | Effet |
+| --- | --- | --- |
+| Chaser | Loren lumière | Réduction de DEF |
+| Feast of Blood | Cadiz ténèbres | Marque |
+| Precision | Shaina feu | Réduction de DEF |
+| Contaminated Blood | Jultan ténèbres | Réduction de DEF (ses dégâts continus, sans lecteur, ne sont pas proposés) |
+| Wild Chase | Narsha lumière | Réduction de DEF |
+| Might · Thunder | Dyeus lumière | Réduction de DEF en état Thunderer (son Étourdissement, sans lecteur, n'est pas proposé) |
+| Blood Talon, Heaven's Might | Hwoarang feu, Taebaek feu | Marque |
+| Ancient Power | Tesarion feu | Oubli, compté par son +30 % contre une cible affligée |
+| King of the Ruins | Manannan ténèbres | Dégâts continus, comptés par son +100 % contre une cible affligée |
+
+Ne sont pas retenus : Eagle Deception (Bayek ténèbres) et Eye of the Desert
+(Salah), dont la bête frappe « a random enemy … when you attack on your
+turn » sans dire ni la cible ni l'instant ; Severing Edge et Dimension
+Shatter (Übel et Wieb vent), dont les coups en plus sont ceux du passif.
+
+Scratch de Raoq (« attacks consecutively with a 30% chance ») se règle par un
+nombre total de coups saisi de 1 à 10 (décision de l'utilisateur,
+[valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md)) : sa Réduction de DEF
+est posable dès deux coups.
 
 ## Quels coups posent
 
@@ -61,7 +91,10 @@ Une note qui pose une **condition** plutôt qu'un rang s'affiche après le
 libellé (`PRECISION_PAR_NOTE`) : « un seul des effets possibles par coup, au
 hasard » (Virus), « en état Thunderer » (Wild Bolt), les deux branches de
 Divine Judgment (Arella) ; un effet de la donnée marqué `surCritique` porte
-« sur coup critique » (Triple Attack de Cogma).
+« sur coup critique » (Triple Attack de Cogma). Une condition de la note que
+la prose n'écrit pas est ignorée, la prose faisant foi : « 5th hit if removed
+buff » (PPK Combo, Chain Combo Attack) ne garde que son rang. Un effet posé
+aussi sans condition (par un passif, par exemple) ne garde pas de condition.
 
 Deux entrées du même effet s'unissent : des rangs différents donnent tous
 leurs rangs (Triple Combo de RYU : coups 1 et 2) ; deux entrées identiques
@@ -75,6 +108,10 @@ jamais ne complète la règle :
 
 | Sort | Correction | Prose |
 | --- | --- | --- |
+| Arrow of Water (Sharron 6811), Dark Storm (Grogen 2910) | Étourdissement proposé ; posé, il allume le +50 % du sort (interrupteur « la cible est sous un effet d'incapacité ») pour les coups suivants | « each having a 25% chance to stun the enemy. The damage increases by 50% if the target is under inability effects » |
+| Water Dragon Attack (Xiao Lin 8211) | Réduction de DEF aux coups 2 et 3 (le coup 4 est le dernier) | « Attacks the enemy target and randomly attacks 3 more times to decrease Defense for 2 turns each » |
+| Undefeated Warrior (Kuna 9515, séquence) | aucune Réduction de DEF | « You sequentially attack all enemies and decrease their Defense » : la phase de zone, la dernière |
+| Ghost Appearance (Smokey 11507, Misty 11509) | « un seul des effets possibles par coup, au hasard » | « Each hit has a 50% chance to cast one random effect among … » |
 | Soul Summoning (Rigel 7501, Fuco 7503) | pas de Réduction de DEF, une Réduction de VIT | « Each attack has a 40% chance to decrease the enemy's Attack Speed » (la donnée dit `Decrease DEF`) |
 | Crushed Hopes (Cichlid 10413) | Réduction de DEF au coup 2 | « the second attack decreases the Defense » |
 | Fast Link (Barbara 13606, Masha 13607, Xiana 13610) | Réduction de DEF au coup 1 | « The beast's attack decreases the enemy's Defense » ; la bête attaque en premier, sans relevé |
@@ -111,6 +148,13 @@ au compte (le nombre de la pose pour un effet cumulable, un seul pour un effet
 non cumulable déjà présent : aucun). Une pose demandée à un coup qui ne pose
 pas l'effet (recette importée, données régénérées) n'a pas lieu.
 
+Un effet qui allume l'interrupteur propre au sort (Arrow of Water, Dark
+Storm) l'allume pour les coups qui suivent la pose seulement, sans toucher au
+réglage : le +50 % vaut alors pour eux, comme si l'interrupteur était allumé.
+
+Une séquence curée se calcule groupe par groupe ; sous scénario, chaque coup
+d'un groupe lit l'état qui le précède.
+
 Whirlpool et Water Dragon Surge n'ont qu'un coup de base : leurs deux coups en
 plus ne frappent qu'une cible affligée. Le Gel posé au coup 1 les donne
 (`poseAvantLesCoupsEnPlus`), exactement comme l'interrupteur « La cible porte
@@ -129,7 +173,21 @@ son dernier coup, poses comprises
   et leur Marque deviendront proposables d'elles-mêmes avec le bon nombre de
   coups ([Crow Hunt de Prilea](../../05-feuille-de-route/pistes-degats-reels.md#crow-hunt-de-prilea--deux-coups-annoncés-pour-un),
   [Splash Splash de Noctaris](../../05-feuille-de-route/pistes-degats-reels.md#splash-splash-de-noctaris--un-coup-en-donnée-trois-ou-quatre-en-prose)).
-- **Sans dégâts** : Harmless Prank d'Orion (8811), qui pose sans frapper.
+- **Sans dégâts** : Harmless Prank d'Orion (8811), qui pose sans frapper ;
+  Rolling Cannon de Christina (13313), dont la formule n'est pas prise en
+  charge.
+- **Lecteur non modélisé** : les effets nocifs que posent Critical Link
+  (Savannah, Narsha), les sorts d'Amber, Bullet Assassination et Shining
+  Butterfly, Chemical Gas Spray, Yoga Sunburst et les deux « Havoc » ne
+  comptent pour rien tant que leur bonus par effet nocif n'est pas codé
+  ([piste](../../05-feuille-de-route/pistes-degats-reels.md#comptes-propres-et-jauge-absorbée)) ;
+  leur Réduction de DEF ou leur Marque, elle, est proposée.
+- **Enchaînement vers un autre sort** (Shoryuken puis Hadoken, Iron Uppercut
+  puis Mach Punch, Energy Ball, Wield) : chaque sort n'a qu'un coup, rien
+  n'est posé entre les coups d'un même sort.
+- **Lightning Storm** de Yennefer (19113) est proposé sur la foi de la donnée
+  (`coups: 2`), que le calcul suit aussi, alors que sa prose ne dit qu'une
+  attaque.
 - **Bonus au seul coup 2** de Hairpin: Black Flash et Exorcist Shuriken
   Formation (20315, 20915 : +100 % si la cible porte un effet nocif) : leur
   Réduction de DEF du coup 1 est proposée, le bonus n'est pas compté
@@ -141,8 +199,9 @@ son dernier coup, poses comprises
   (`tests/fixtures/effets-entre-coups-inventaire.json`) : sorts, effets,
   rangs, porteurs ; toute note d'un effet proposé est classée.
 - `testEffetsPosablesConnus` : chaque effet `Debuff` du corpus a son libellé.
-- `testEffetsEntreCoupsRegle` : rangs, exceptions, coups en plus, compte et
-  invariance sans réussite sur tout l'inventaire.
+- `testEffetsEntreCoupsRegle` : rangs, exceptions, séquence, interrupteur
+  allumé par l'Étourdissement, passifs poseurs, coups saisis, coups en plus,
+  compte et invariance sans réussite sur tout l'inventaire.
 - `testRenduEffetsEntreCoupsEcran` : interrupteur, sélecteur limité, section
   absente, aux deux formats.
 

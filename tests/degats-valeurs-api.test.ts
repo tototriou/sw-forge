@@ -123,7 +123,12 @@ export function testDegatsSequencesApi() {
         `${s.id} sur ${forme} : profil = donnée (empreinte ${JSON.stringify(s.donnee)}), séquence = ${s.phase1} × ATQ mono-cible puis ${s.phase2} × ATQ en zone`,
       );
       egal(resumeSequenceDeCoups(p.sequenceDeCoups ?? []), '1 coup · Cible unique, puis 1 coup · Zone', `${s.id} sur ${forme} : résumé de la séquence`);
-      ok(!p.hitsRange && !p.effetsEntreCoups, `${s.id} sur ${forme} : ni coups variables ni effets entre coups (non modélisés pour une séquence)`);
+      ok(!p.hitsRange, `${s.id} sur ${forme} : pas de coups variables (non modélisés pour une séquence)`);
+      // Effets entre les coups : seule Fatal Mortar Bullet (Scarlett) pose avant
+      // sa phase de zone ; Undefeated Warrior pose dans la sienne, la dernière
+      // (tests/degats-effets-entre-coups.test.ts).
+      egal(p.effetsEntreCoups?.map((e) => e.id) ?? [], s.id === 13312 ? ['decrease-def', 'brand'] : [],
+        `${s.id} sur ${forme} : effets posés avant la dernière phase`);
       egal(monsterOffensivePassives(fiche(forme)).length, 0, `${forme} : aucun passif offensif`);
 
       const calcul = (x: DamageSetup, art: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE) =>

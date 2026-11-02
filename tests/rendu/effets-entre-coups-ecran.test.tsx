@@ -21,6 +21,8 @@ const CRUSHING_ROCKS = { monstre: 12811, sort: 4006 }; // Tigresse : chaque coup
 const MEGUMI = 30515; // Domain Expansion 20215 : Réduction de DEF au dernier coup
 const TANJIRO = 31811; // Whirlpool 21311 : Gel au coup 1, deux coups en plus
 const VENDHAN = 28312; // Wild Bolt 18127 : Marque en état Thunderer
+const SCARLETT = 22912; // Fatal Mortar Bullet 13312 : séquence, Marque au coup 1
+const SHAINA = 21912; // Crescent Moon Slash 12602 : Réduction de DEF de Precision (passif)
 
 const SECTION = 'Prendre en compte les débuffs posés entre les coups';
 
@@ -91,6 +93,14 @@ function verifier(etroit: boolean) {
   const tanjiro = carte(TANJIRO, 21311, etroit, actif(21311));
   ok(texteVisible(tanjiro).includes(SECTION) && texteVisible(tanjiro).includes('Gel') && texteVisible(tanjiro).includes('Posé au coup 1'),
     `${format} : Whirlpool — le Gel du coup 1 est proposé`);
+
+  // Séquence curée : la Marque du coup 1 de Fatal Mortar Bullet.
+  const scarlett = texteVisible(carte(SCARLETT, 13312, etroit, actif(13312)));
+  ok(scarlett.includes(SECTION) && scarlett.includes('Marque') && scarlett.includes('Posé au coup 1'),
+    `${format} : Fatal Mortar Bullet — la Marque du coup 1 est proposée`);
+  // Effet posé par un passif : le libellé le nomme.
+  ok(texteVisible(carte(SHAINA, 12602, etroit, actif(12602))).includes('Réduction de DEF (par Precision)'),
+    `${format} : Crescent Moon Slash — « Réduction de DEF (par Precision) »`);
 
   // La condition de la pose suit le libellé.
   ok(texteVisible(carte(VENDHAN, 18127, etroit, actif(18127))).includes('Marque (en état Thunderer)'), `${format} : Wild Bolt — « Marque (en état Thunderer) »`);

@@ -70,14 +70,15 @@ const PROPRES: AurasPropres = { fight: 1, determination: 1, enhance: 0, accuracy
 // ajoutés, compétences rafraîchies), sans changement de code : 12 170 → 12 426
 // contextes. Relevée de nouveau le 2026-11-02 : les poses entre les coups
 // dérivées de la donnée (`effetsEntreCoupsDuSort`, damage.ts) donnent un
-// scénario au réglage riche de bien plus de sorts ; le réglage par défaut, sans
+// scénario au réglage riche de bien plus de sorts (séquences curées, effets
+// posés par un passif à chaque attaque compris) ; le réglage par défaut, sans
 // scénario, n'a pas changé.
 // ⚠️ Un écart veut dire qu'une note a changé. Voulu (modèle de dégâts, données
 // SWARFARM régénérées) : relever l'empreinte de nouveau (le message d'échec
 // la donne) et le dire dans le commit. Sinon : un défaut du code commun au
 // calcul avec et sans memo.
 const EMPREINTE_ANCIEN_CALCUL = {
-  contextes: 12426, notes: 310650, sha256: '7a0f1323eef4c41beeb1a7a3c3a89949811e8213d18e8153236f84a0e8fe1584',
+  contextes: 12426, notes: 310650, sha256: '65a1c1c26e5d8c36d168012884d7fb94efc01516d110f6df097971fa099ad853',
 };
 
 // Quatre pièces par sorte, deux principales par sorte : des paires partagent

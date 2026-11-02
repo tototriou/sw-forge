@@ -8,7 +8,7 @@ est écarté : [feat-poses-entre-les-coups.md](feat-poses-entre-les-coups.md).
 Cette liste est figée par `testInventaireEffetsEntreCoups`
 ([tests/degats-effets-entre-coups.test.ts](../../../tests/degats-effets-entre-coups.test.ts),
 fixture [tests/fixtures/effets-entre-coups-inventaire.json](../../../tests/fixtures/effets-entre-coups-inventaire.json)) :
-243 sorts, 129 lignes ci-dessous (un même nom aux effets identiques sur une
+260 sorts, 148 lignes ci-dessous (un même nom aux effets identiques sur une
 ligne). Un sort que des données régénérées ajoutent ou retirent fait échouer
 le test : relire sa prose, puis mettre à jour la fixture et cette page dans le
 même commit.
@@ -24,7 +24,9 @@ compte des effets nocifs de la cible est lu, par le sort ou par le monstre.
 | Air Shot | 18830 | Jaduel and Aepiah ténèbres | Réduction de DEF — chaque coup |
 | Amputate | 18001, 18002, 18003, 18004, 18005 | Brita eau, Solveig feu, Astrid vent, Berghild lumière, Sigrid ténèbres | Réduction de DEF — chaque coup |
 | Arcane Burst | 23311 | Cecilia eau | Réduction de DEF — chaque coup |
+| Arrow of Water | 6811 | Sharron eau | Étourdissement — chaque coup (allume le +50 % contre une cible sous incapacité) |
 | Axe Technique of the Mercenary Queen | 18007, 18009 | Solveig feu, Berghild lumière | Marque — coup 1 |
+| Backlash | 22502 | Hwoarang feu | Marque — chaque coup (par Blood Talon) |
 | Band of Blades | 23806, 23808, 23810 | Aragorn eau, Aragorn vent, Aragorn ténèbres | Réduction de DEF — chaque coup |
 | Big Sigh | 25807, 25808, 25809 | Volcaris feu, Auraris vent, Luminaris lumière | Réduction de DEF — chaque coup |
 | Bittersweet Knight | 16915 | Truffle ténèbres | Réduction de DEF — chaque coup |
@@ -35,7 +37,8 @@ compte des effets nocifs de la cible est lu, par le sort ou par le monstre.
 | Brutal Fists | 18301, 18302, 18303, 18304, 18305 | Mayasura eau, Varuna feu, Usha vent, Danu lumière, Vritra ténèbres | Marque — chaque coup |
 | Burst Shot | 15915 | Destiny ténèbres | Réduction de DEF — chaque coup |
 | Chain Attack | 6158 | Naomi vent | Marque — chaque coup |
-| Chain Combo Attack | 14415 | Vancliffe ténèbres | Réduction de DEF — coups 4, 5 (au coup 5, si ce coup retire un effet bénéfique) |
+| Chain Combo Attack | 14415 | Vancliffe ténèbres | Réduction de DEF — coups 4, 5 |
+| Chakram Crush | 12607 | Shaina feu | Réduction de DEF — chaque coup (par Precision) |
 | Check and Destroy | 7406, 7410 | Fedora eau, Dias ténèbres | Réduction de DEF — chaque coup |
 | Cleave | 19910 | Ryomen Sukuna ténèbres | Réduction de DEF — chaque coup |
 | Coffin Bash | 21106, 21108, 21109 | Mork eau, Gronn vent, Ramon lumière | Réduction de DEF — chaque coup |
@@ -43,12 +46,16 @@ compte des effets nocifs de la cible est lu, par le sort ou par le monstre.
 | Constant Flux | 21315 | Tanjiro Kamado ténèbres | Réduction de DEF — chaque coup |
 | Continuous Slash | 20401, 20402, 20403, 20404, 20405 | Solvark eau, Deragron feu, Ereshion vent, Fridrion lumière, Drakar ténèbres | Réduction de DEF — chaque coup |
 | Crazy Cutting | 21514 | Inosuke Hashibira lumière | Réduction de DEF — coup 1 |
+| Crescent Moon Slash | 12602 | Shaina feu | Réduction de DEF — chaque coup (par Precision) |
+| Critical Link | 13609 | Narsha lumière | Réduction de DEF — chaque coup (par Wild Chase) |
+| Cross Fire | 10124 | Loren lumière | Réduction de DEF — chaque coup (par Chaser) |
 | Crumble | 9014 | Asima lumière | Réduction de DEF — chaque coup |
 | Crushed Hopes | 10413 | Cichlid vent | Réduction de DEF — coup 2 |
 | Crushing Rocks | 4006, 4007, 4008, 4009, 4010 | Tigresse eau, Lamor feu, Samour vent, Varis lumière, Havana ténèbres | Réduction de DEF — chaque coup |
 | Curse of the Beautiful | 11306, 11307, 11310 | Bastet eau, Sekhmet feu, Nephthys ténèbres | Réduction de DEF — chaque coup |
 | Cursed Energy Kicks | 20106, 20109 | Yuji Itadori eau, Yuji Itadori lumière | Marque — coups 1, 2, 3 |
 | Dark Dragon Descent | 21915 | Azure Dragon Swordsman ténèbres | Réduction de DEF — chaque coup |
+| Dark Storm | 2910 | Grogen ténèbres | Étourdissement — chaque coup (allume le +50 % contre une cible sous incapacité) |
 | Darkslayer Knight | 16415 | Madeleine Cookie ténèbres | Réduction de DEF — chaque coup |
 | Deadly Dart | 3457 | Colleen feu | Marque — chaque coup |
 | Deadly Touch | 7506, 7508, 7510 | Rigel eau, Fuco vent, Grego ténèbres | Réduction de DEF — chaque coup |
@@ -71,6 +78,7 @@ compte des effets nocifs de la cible est lu, par le sort ou par le monstre.
 | Exorcist Shuriken Formation | 20915 | Aya ténèbres | Réduction de DEF — coup 1 |
 | Explosive Fist | 22807 | Daimon feu | Réduction de DEF — chaque coup |
 | Fast Link | 13606, 13607, 13610 | Barbara eau, Masha feu, Xiana ténèbres | Réduction de DEF — coup 1 |
+| Fatal Mortar Bullet | 13312 | Scarlett feu | Réduction de DEF — chaque coup<br>Marque — coup 1 |
 | Fire Strike | 17411 | Kassandra eau | Marque — chaque coup |
 | Flame Slash | 8032 | Jun feu | Réduction de DEF — chaque coup |
 | Flame Strike | 17911 | Kalantatze eau | Marque — chaque coup |
@@ -78,13 +86,14 @@ compte des effets nocifs de la cible est lu, par le sort ou par le monstre.
 | Flying Impact Combo | 23114 | Duke lumière | Marque — coup 2 |
 | Focus Shot | 18826 | Ramael and Judiah eau | Réduction de DEF — chaque coup |
 | Full Burst | 15315 | ROBO-F29 ténèbres | Dégâts continus — chaque coup |
-| Ghost Appearance | 11507, 11509 | Smokey feu, Misty lumière | Réduction de DEF — chaque coup |
+| Ghost Appearance | 11507, 11509 | Smokey feu, Misty lumière | Réduction de DEF — chaque coup (un seul des effets possibles par coup, au hasard) |
 | Ghost Slash | 15001, 15002, 15003, 15004, 15005 | Suiki eau, Kaki feu, Fuuki vent, Kinki lumière, Ongyouki ténèbres | Réduction de DEF — chaque coup |
 | Gouge | 9009, 9017 | Asima lumière, Beth eau | Dégâts continus — chaque coup |
 | Gust | 1153 | Aeilene vent | Étourdissement — chaque coup |
 | Hairpin: Black Flash | 20315 | Nobara Kugisaki ténèbres | Réduction de DEF — coup 1 |
 | Harpoon Impalement | 17507, 17509 | Eivor feu, Eivor lumière | Marque — coup 1 |
 | Horn of the Ancient Beetle | 21715 | Actaeon ténèbres | Marque — chaque coup |
+| Hunting Hawk | 22507 | Hwoarang feu | Marque — chaque coup (par Blood Talon) |
 | Killing Wave | 6511 | Liesel eau | Réduction de DEF — chaque coup |
 | Light Dragon Frenzy | 21914 | Azure Dragon Swordsman lumière | Marque — chaque coup |
 | Lightning Storm | 19113 | Yennefer vent | Marque — chaque coup |
@@ -101,7 +110,7 @@ compte des effets nocifs de la cible est lu, par le sort ou par le monstre.
 | Phoenix Kick | 8113 | Huan vent | Réduction de DEF — chaque coup |
 | Pierce Soul | 11219 | Amarna lumière | Réduction de DEF — chaque coup |
 | Poisonous Teeth | 8701, 8702, 8703, 8704, 8705 | Kernodon eau, Igmanodon feu, Velfinodon vent, Glinodon lumière, Devinodon ténèbres | Réduction de DEF — chaque coup |
-| PPK Combo | 13915 | RYU ténèbres | Réduction de DEF — coups 4, 5 (au coup 5, si ce coup retire un effet bénéfique) |
+| PPK Combo | 13915 | RYU ténèbres | Réduction de DEF — coups 4, 5 |
 | Pride Will Fall | 9112 | Hwahee feu | Réduction de DEF — chaque coup |
 | Rain of Stones | 10512 | Okeanos feu | Étourdissement — chaque coup |
 | Rampage of Rage | 17312 | Bayek feu | Réduction de DEF — chaque coup |
@@ -109,7 +118,9 @@ compte des effets nocifs de la cible est lu, par le sort ou par le monstre.
 | Reelseiden・Flurry | 25206, 25210 | Übel eau, Übel ténèbres | Réduction de DEF — coup 1 |
 | Revolver Kick | 23206, 23207, 23210 | Shasha eau, Shasha feu, Shasha ténèbres | Réduction de DEF — coup 2 |
 | Roll Dice | 12101, 12102, 12103, 12104, 12105 | Reno eau, Ludo feu, Morris vent, Tablo lumière, Monte ténèbres | Réduction de DEF — chaque coup |
+| Roundhouse Kick Combo | 23007 | Taebaek feu | Marque — chaque coup (par Heaven’s Might) |
 | Run!! | 18722, 18725 | Yeji and Sapsaree feu, Damee and Sapsaree ténèbres | Réduction de DEF — chaque coup |
+| Scratch | 2052 | Raoq feu | Réduction de DEF — chaque coup |
 | Sequential Attack | 12001, 12002, 12003, 12004, 12005 | Mo Long eau, Xiong Fei feu, Feng Yan vent, Tian Lang lumière, Mi Ying ténèbres | Réduction de DEF — chaque coup |
 | Shadow Blade | 14512 | Bernadotte feu | Marque — chaque coup |
 | Shadowless Movement | 15515 | Maximilian ténèbres | Réduction de DEF — chaque coup |
@@ -118,35 +129,43 @@ compte des effets nocifs de la cible est lu, par le sort ou par le monstre.
 | Shockwave Fist | 20707, 20708, 20710 | Rick feu, Rick vent, Rick ténèbres | Réduction de DEF — coup 1 |
 | Shooting Star | 1361 | Kacey eau | Marque — chaque coup |
 | Shred | 5661 | Vigor eau | Réduction de DEF — chaque coup |
+| Silver-plated Bullet | 10129 | Loren lumière | Réduction de DEF — chaque coup (par Chaser) |
 | Simple Solution | 4815 | Han ténèbres | Réduction de DEF — chaque coup |
+| Spear of Devastation | 10510 | Manannan ténèbres | Dégâts continus — chaque coup (par King of the Ruins) |
 | Spinning Slash | 5513 | Sophia vent | Réduction de DEF — chaque coup |
 | Start Battle | 9506, 9507, 9509 | Toma eau, Naki feu, Dona lumière | Réduction de DEF — chaque coup |
 | Steel Swordsmanship | 17707, 17708, 17710 | Patrick feu, Hector vent, Evan ténèbres | Réduction de DEF — chaque coup |
 | Summon Clouds | 7915 | Son Zhang Lao ténèbres | Réduction de DEF — chaque coup |
 | Sun Halo Dragon | 21314 | Tanjiro Kamado lumière | Marque — chaque coup |
+| Surprise Attack | 5660 | Jultan ténèbres | Réduction de DEF — chaque coup (par Contaminated Blood) |
 | Swirling | 19306, 19307, 19309 | Anders eau, Magnus feu, Lars lumière | Réduction de DEF — chaque coup |
 | Tempest Sword | 10613 | Lupinus vent | Marque — chaque coup |
 | Thunder God Fist | 22307 | Heihachi Mishima feu | Réduction de DEF — chaque coup |
 | Triple Attack | 1212 | Cogma feu | Réduction de DEF — chaque coup (sur coup critique) |
 | Triple Combo | 13913 | RYU vent | Réduction de DEF — coups 1, 2 |
-| Triple Crush | 10006, 10007, 10009 | Theomars eau, Tesarion feu, Elsharion lumière | Réduction de DEF — chaque coup |
+| Triple Crush | 10006, 10009 | Theomars eau, Elsharion lumière | Réduction de DEF — chaque coup |
+| Triple Crush | 10007 | Tesarion feu | Réduction de DEF — chaque coup<br>Oubli — chaque coup (par Ancient Power) |
 | Triple Crush | 14413 | Kashmir vent | Réduction de DEF — coups 1, 2 |
+| Triple Kick | 23002 | Taebaek feu | Marque — chaque coup (par Heaven’s Might) |
 | Triple Spear Strike | 23407, 23408, 23409 | Agrius feu, Pholus vent, Chiron lumière | Marque — chaque coup |
 | Triple Strike | 12706, 12710 | Sabrina eau, Martina ténèbres | Réduction de DEF — chaque coup |
+| Vampire Bat | 6516 | Cadiz ténèbres | Marque — chaque coup (par Feast of Blood) |
 | Vanguard's Combo | 25114 | Stark lumière | Réduction de DEF — chaque coup |
 | Vengeance of Thor | 17501, 17502, 17503, 17504, 17505 | Eivor eau, Eivor feu, Eivor vent, Eivor lumière, Eivor ténèbres | Réduction de DEF — chaque coup |
 | Violent Friends | 3465 | Seren ténèbres | Réduction de DEF — chaque coup |
 | Virus | 19707, 19710 | 7R1X feu, N1X ténèbres | Réduction de DEF — chaque coup (un seul des effets possibles par coup, au hasard) |
 | Virus | 19708 | 570RM vent | Réduction de DEF — chaque coup (un seul des effets possibles par coup, au hasard)<br>Réduction de VIT — chaque coup (un seul des effets possibles par coup, au hasard)<br>Blocage des effets bénéfiques — chaque coup (un seul des effets possibles par coup, au hasard) |
-| Water Dragon Attack | 8211 | Xiao Lin eau | Réduction de DEF — chaque coup |
+| Water Dragon Attack | 8211 | Xiao Lin eau | Réduction de DEF — coups 2, 3 |
 | Water Dragon Surge | 21911 | Azure Dragon Swordsman eau | Gel — coup 1 |
 | Water Guardian Angel | 7211 | Anavel eau | Réduction de DEF — chaque coup |
 | Wave Harpoon | 10312 | Ignicus feu | Réduction de DEF — chaque coup |
+| Weaken | 6510 | Cadiz ténèbres | Marque — chaque coup (par Feast of Blood) |
 | Weakness Shot | 15507, 15508, 15509 | Carlos feu, Dominic vent, Benedict lumière | Marque — coup 1 |
 | Whirl | 18906, 18907, 18909 | Geralt eau, Geralt feu, Geralt lumière | Réduction de DEF — chaque coup |
 | Whirlpool | 21311 | Tanjiro Kamado eau | Gel — coup 1 |
 | White Tiger Cyclone | 22114 | White Tiger Blade Master lumière | Réduction de DEF — coup 1 |
-| Wild Bolt | 18127, 18128, 18129 | Vendhan feu, Chakra vent, Dyeus lumière | Marque — chaque coup (en état Thunderer) |
+| Wild Bolt | 18127, 18128 | Vendhan feu, Chakra vent | Marque — chaque coup (en état Thunderer) |
+| Wild Bolt | 18129 | Dyeus lumière | Marque — chaque coup (en état Thunderer)<br>Réduction de DEF — chaque coup (par Might · Thunder, en état Thunderer) |
 | Wild Shot! | 13306, 13307, 13309 | Abigail eau, Scarlett feu, Emily lumière | Réduction de DEF — chaque coup |
 | Will-o'-the-Wisp | 2216, 2217, 2218, 2219, 2220 | Soha eau, Shihwa feu, Arang vent, Chamie lumière, Kamiya ténèbres | Marque — chaque coup |
 | Zoltraak・Barrage | 25006, 25008, 25010 | Fern eau, Fern vent, Fern ténèbres | Réduction de DEF — chaque coup |

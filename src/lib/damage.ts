@@ -2212,6 +2212,10 @@ export interface EffetEntreCoupsProfile {
   // Effets nocifs qu'une pose ajoute au compte (Meteor Strike : deux dégâts
   // continus par coup) ; absent = 1. Seul un effet cumulable en porte plus.
   nombre?: number;
+  // La pose allume, pour les coups suivants, l'interrupteur propre au sort
+  // (`passifsOffensifs[sort]`) : Arrow of Water et Dark Storm, « +50 % si la
+  // cible est sous un effet d'incapacité », après un Étourdissement posé.
+  allumeLeBoutonDuSort?: true;
   // Condition de la pose écrite par la donnée ou la prose (« sur coup
   // critique », « en état Thunderer »), affichée après le libellé.
   precision?: string;
@@ -2897,8 +2901,10 @@ const RANGS_PAR_NOTE: Readonly<Record<string, readonly number[] | 'dernier'>> = 
   'First 3 hits': [1, 2, 3],
   '4th hit only': [4],
   // PPK Combo / Chain Combo Attack : « the 5th hit removes 1 beneficial effect
-  // … and decreases Defense » ; la condition va dans la précision.
+  // … and decreases Defense for 1 turn each ». La condition de la note n'est
+  // pas dans la prose, qui fait foi : le rang seul.
   '5th hit if removed buff': [5],
+  'Only first hit': [1],
   '6th hit': [6],
   'Last hit': 'dernier',
   'Final hit': 'dernier',
@@ -2906,7 +2912,6 @@ const RANGS_PAR_NOTE: Readonly<Record<string, readonly number[] | 'dernier'>> = 
 
 // Une `note` qui pose une CONDITION, pas un rang : affichée à côté du libellé.
 const PRECISION_PAR_NOTE: Readonly<Record<string, string>> = {
-  '5th hit if removed buff': 'au coup 5, si ce coup retire un effet bénéfique',
   'one random per hit': 'un seul des effets possibles par coup, au hasard',
   'When used during the Thunderer state': 'en état Thunderer',
   'If enemies have received more damage than allies': 'si les ennemis ont subi au moins autant de dégâts que les alliés',
@@ -2922,12 +2927,35 @@ interface ExceptionEffetsEntreCoups {
   ajouter?: readonly { effet: string; coups?: readonly number[] }[];
   // Condition que seule la prose écrit, par identifiant d'effet.
   precision?: Readonly<Record<string, string>>;
+  // Effets qui allument l'interrupteur propre au sort pour les coups suivants
+  // (`EffetEntreCoupsProfile.allumeLeBoutonDuSort`) : proposés même sans
+  // lecteur du compte des effets nocifs.
+  allumeLeBouton?: readonly string[];
 }
 
 // Exceptions à la règle, chacune avec la prose qui la fonde. ⚠️ Rôle : corriger
 // la donnée d'UN identifiant, jamais compléter la règle (un effet de la donnée
 // est déjà pris sans entrée ici).
 const EFFETS_ENTRE_COUPS_EXCEPTIONS_PAR_ID: Readonly<Record<number, ExceptionEffetsEntreCoups>> = {
+  // Arrow of Water (Sharron) et Dark Storm (Grogen) : « each having a 25% chance
+  // to stun the enemy. The damage increases by 50% if the target is under
+  // inability effects » — l'Étourdissement d'un coup allume le +50 %
+  // (`BONUS_CONDITIONNEL_AUDIT_*`, interrupteur du sort) des coups suivants.
+  6811: { allumeLeBouton: ['stun'], precision: { stun: 'allume le +50 % contre une cible sous incapacité' } }, // Arrow of Water — Sharron
+  2910: { allumeLeBouton: ['stun'], precision: { stun: 'allume le +50 % contre une cible sous incapacité' } }, // Dark Storm — Grogen
+  // Water Dragon Attack (Xiao Lin) : « Attacks the enemy target and randomly
+  // attacks 3 more times to decrease Defense for 2 turns each » — la Réduction
+  // de DEF suit les trois coups au hasard (coups 2 à 4), pas le premier.
+  8211: { coups: { 'decrease-def': [2, 3] } },
+  // Undefeated Warrior (Kuna, séquence) : « You sequentially attack all enemies
+  // and decrease their Defense » — la Réduction de DEF est posée par la phase
+  // de zone, la dernière : rien entre les coups.
+  9515: { retirer: ['decrease-def'] },
+  // Ghost Appearance (Smokey, Misty) : « Each hit has a 50% chance to cast one
+  // random effect among weaken the Defense, weaken the Attack Power or disturb
+  // recovery », comme Virus — la note qui le dit manque.
+  11507: { precision: { 'decrease-def': 'un seul des effets possibles par coup, au hasard' } },
+  11509: { precision: { 'decrease-def': 'un seul des effets possibles par coup, au hasard' } },
   // Soul Summoning (Rigel, Fuco) : la donnée porte `Decrease DEF`, la prose dit
   // « Each attack has a 40% chance to decrease the enemy's Attack Speed » — la
   // prose fait foi : aucune Réduction de DEF.
@@ -2966,20 +2994,72 @@ const EFFETS_ENTRE_COUPS_EXCEPTIONS_PAR_ID: Readonly<Record<number, ExceptionEff
   21911: { coups: { freeze: [1] }, retirer: ['continuous-damage'] }, // Azure Dragon Swordsman
 };
 
+// Passifs qui posent un effet à CHAQUE attaque du monstre : pendant un sort à
+// plusieurs coups, l'effet du coup 1 vaut pour les suivants, comme si le sort le
+// posait à chaque coup. Lus dans la prose du passif, par identifiant ; nom
+// d'effet SWARFARM et condition éventuelle. Un effet qui ne fait que compter
+// reste soumis à un lecteur du compte (Ancient Power, King of the Ruins : le
+// monstre le lit).
+// ⚠️ Écartés : Eagle Deception (Bayek ténèbres, 17315) et Eye of the Desert
+// (Salah, 17815), dont la bête frappe « a random enemy … when you attack on
+// your turn » — ni la cible ni l'instant (avant le coup 2 ?) ne sont dits ;
+// Severing Edge et Dimension Shatter (Übel vent, Wieb vent) : les coups en plus
+// sont ceux du passif, après un sort à un coup.
+const EFFETS_ENTRE_COUPS_PAR_PASSIF_PAR_ID: Readonly<Record<number, readonly { effet: string; precision?: string }[]>> = {
+  // Chaser (Loren) : « weakens the enemy's defense for 1 turn with a 75% chance » avec chaque attaque.
+  10134: [{ effet: 'Decrease DEF', precision: 'par Chaser' }],
+  // Feast of Blood (Cadiz) : « Leaves a Branding Effect for 2 turns when you attack ».
+  6515: [{ effet: 'Brand', precision: 'par Feast of Blood' }],
+  // Precision (Shaina) : « Weakens the enemy's Defense for 1 turn with every attack ».
+  12612: [{ effet: 'Decrease DEF', precision: 'par Precision' }],
+  // Contaminated Blood (Jultan) : « inflicts Continuous Damage for 1 turn with a
+  // 50% chance and decreases the Defense for 1 turn with every attack ».
+  5665: [{ effet: 'Decrease DEF', precision: 'par Contaminated Blood' }, { effet: 'Continuous DMG', precision: 'par Contaminated Blood' }],
+  // Wild Chase (Narsha) : « decreases the enemy's Defense for 1 turn with each attack ».
+  13614: [{ effet: 'Decrease DEF', precision: 'par Wild Chase' }],
+  // Might · Thunder (Dyeus) : « Stuns the enemy … whenever you attack the enemy.
+  // While under the Thunderer state, decreases the enemy's Defense ».
+  18134: [
+    { effet: 'Decrease DEF', precision: 'par Might · Thunder, en état Thunderer' },
+    { effet: 'Stun', precision: 'par Might · Thunder' },
+  ],
+  // Blood Talon (Hwoarang) et Heaven's Might (Taebaek) : « Leaves a Branding
+  // effect for 2 turns with a 30% chance on each attack ».
+  22512: [{ effet: 'Brand', precision: 'par Blood Talon' }],
+  23012: [{ effet: 'Brand', precision: 'par Heaven’s Might' }],
+  // Ancient Power (Tesarion) : « Grants Oblivion for 2 turns when you attack the
+  // enemy » — et le passif lit les effets nocifs (+30 %).
+  10011: [{ effet: 'Oblivion', precision: 'par Ancient Power' }],
+  // King of the Ruins (Manannan) : « inflicts Continuous Damage for 1 turn after
+  // each hit » — et le passif lit les effets nocifs (+100 %).
+  10515: [{ effet: 'Continuous DMG', precision: 'par King of the Ruins' }],
+};
+
+// Les effets que les passifs de la fiche posent à chaque attaque.
+function effetsPosesParLesPassifs(detail: DetailMonstre): { effet: string; precision?: string }[] {
+  const out: { effet: string; precision?: string }[] = [];
+  for (const c of detail.competences) {
+    if (c.passif && c.com2usId != null) out.push(...(EFFETS_ENTRE_COUPS_PAR_PASSIF_PAR_ID[c.com2usId] ?? []));
+  }
+  return out;
+}
+
 /**
  * Les effets qu'un coup de `c` peut poser pour les coups suivants (voir la
  * règle plus haut). `coupsMax` : le plus grand nombre de coups du sort (plage
- * comprise) ; `avecCompteur` : le compte des effets nocifs de la cible est lu.
- * `undefined` quand rien n'est proposable.
+ * et séquence comprises) ; `avecCompteur` : le compte des effets nocifs de la
+ * cible est lu ; `parLesPassifs` : effets que les passifs du monstre posent à
+ * chaque attaque. `undefined` quand rien n'est proposable.
  */
 function effetsEntreCoupsDuSort(
   c: Competence,
   coupsMax: number,
-  avecCompteur: boolean
+  avecCompteur: boolean,
+  parLesPassifs: readonly { effet: string; precision?: string }[] = []
 ): EffetEntreCoupsProfile[] | undefined {
   if (coupsMax < 2 || c.com2usId == null) return undefined;
   const exception = EFFETS_ENTRE_COUPS_EXCEPTIONS_PAR_ID[c.com2usId];
-  const sources: { nom: string; coups: readonly number[] | null; precision?: string }[] = [];
+  const sources: { nom: string; coups: readonly number[] | null; precision?: string; passif?: true }[] = [];
   for (const e of c.effets) {
     if (e.type !== 'Debuff' || e.surSoi || !e.nom) continue;
     const rang = e.note ? RANGS_PAR_NOTE[e.note] : undefined;
@@ -2989,6 +3069,7 @@ function effetsEntreCoupsDuSort(
     sources.push({ nom: e.nom, coups: rang ?? null, ...(precision ? { precision } : {}) });
   }
   for (const a of exception?.ajouter ?? []) sources.push({ nom: a.effet, coups: a.coups ?? null });
+  for (const p of parLesPassifs) sources.push({ nom: p.effet, coups: null, ...(p.precision ? { precision: p.precision } : {}), passif: true });
 
   // Plusieurs entrées du même effet : des rangs différents s'unissent (Triple
   // Combo de RYU : coup 1 et coup 2) ; des entrées identiques d'un effet
@@ -2999,7 +3080,7 @@ function effetsEntreCoupsDuSort(
     const base = EFFETS_POSABLES_PAR_NOM[s.nom];
     if (!base) continue;
     if (exception?.retirer?.includes(base.id)) continue;
-    if (!base.effetCombat && !avecCompteur) continue;
+    if (!base.effetCombat && !avecCompteur && !exception?.allumeLeBouton?.includes(base.id)) continue;
     const vu = parId.get(base.id);
     if (vu) vu.entrees.push(s);
     else parId.set(base.id, { base, entrees: [s] });
@@ -3008,24 +3089,46 @@ function effetsEntreCoupsDuSort(
   for (const [id, { base, entrees }] of parId) {
     const cle = (x: (typeof entrees)[number]) => (x.coups ? x.coups.join(',') : '*');
     const memes = entrees.every((x) => cle(x) === cle(entrees[0]));
-    const deLaDonnee = entrees.some((x) => !x.coups)
+    // Les rangs du SORT (la note, ou la prose qui la remplace) ; un passif qui
+    // pose l'effet à chaque attaque le rend posable à chaque coup.
+    const duSort = entrees.filter((x) => !x.passif);
+    const rangsDuSort = duSort.length === 0 || duSort.some((x) => !x.coups)
       ? null
-      : Array.from(new Set(entrees.flatMap((x) => x.coups ?? []))).sort((a, b) => a - b);
-    const coups = exception?.coups?.[id] ?? deLaDonnee;
+      : Array.from(new Set(duSort.flatMap((x) => x.coups ?? []))).sort((a, b) => a - b);
+    const coups = entrees.some((x) => x.passif) ? null : exception?.coups?.[id] ?? rangsDuSort;
     // Un rang au-delà du DERNIER coup possible, ou le dernier lui-même, ne
     // change rien au sort.
     const utiles = coups?.filter((n) => n >= 1 && n < coupsMax);
     if (utiles && utiles.length === 0) continue;
     const nombre = base.cumulable && memes ? entrees.length : 1;
-    const precision = exception?.precision?.[id] ?? entrees.find((x) => x.precision)?.precision;
+    // Une condition ne s'affiche que si TOUTES les sources de l'effet en ont
+    // une : une seule pose sans condition rend l'effet posable sans elle.
+    const conditions = Array.from(new Set(entrees.map((x) => x.precision)));
+    const precision = exception?.precision?.[id] ?? (conditions.every((p) => !!p) ? conditions.join(' ; ') : undefined);
     out.push({
       ...base,
       ...(utiles ? { coups: utiles } : {}),
       ...(nombre > 1 ? { nombre } : {}),
       ...(precision ? { precision } : {}),
+      ...(exception?.allumeLeBouton?.includes(id) ? { allumeLeBoutonDuSort: true as const } : {}),
     });
   }
   return out.length > 0 ? out : undefined;
+}
+
+// Le plus grand nombre de coups du sort : la somme des groupes d'une séquence
+// curée, sinon le maximum de la plage, sinon ses coups.
+function coupsMaxDuProfil(p: Pick<SkillDamageProfile, 'hits' | 'hitsRange' | 'sequenceDeCoups'>): number {
+  if (p.sequenceDeCoups) return p.sequenceDeCoups.reduce((s, g) => s + g.coups, 0);
+  return p.hitsRange?.max ?? p.hits;
+}
+
+/**
+ * Le nombre de coups que le scénario des poses parcourt : tous les coups d'une
+ * séquence curée (ses groupes), sinon les coups que le réglage retient.
+ */
+export function coupsDuScenario(profile: SkillDamageProfile, setup: DamageSetup): number {
+  return profile.sequenceDeCoups ? coupsMaxDuProfil(profile) : resolvedHits(profile, setup);
 }
 
 // Le compte des effets nocifs de la cible est-il lu par CE profil ? Les seuls
@@ -3079,7 +3182,7 @@ export function rangsDePoseProposes(
 ): number[] {
   const plafond = coupsEnPlusDeCondition(profile) && profile.hitsRange
     ? profile.hitsRange.max
-    : resolvedHits(profile, setup);
+    : coupsDuScenario(profile, setup);
   const tous = Array.from({ length: Math.max(0, plafond - 1) }, (_, i) => i + 1);
   return effet.coups ? effet.coups.filter((n) => n < plafond) : tous;
 }
@@ -3528,6 +3631,7 @@ export function clesDesTablesParId(): Record<string, number[]> {
     BONUS_CONDITIONNEL_AUDIT_PAR_ID_CONNUS: cles(BONUS_CONDITIONNEL_AUDIT_PAR_ID_CONNUS),
     CRIT_DAMAGE_PROPRE_PAR_ID_CONNUS: cles(CRIT_DAMAGE_PROPRE_PAR_ID_CONNUS),
     EFFETS_ENTRE_COUPS_EXCEPTIONS_PAR_ID: cles(EFFETS_ENTRE_COUPS_EXCEPTIONS_PAR_ID),
+    EFFETS_ENTRE_COUPS_PAR_PASSIF_PAR_ID: cles(EFFETS_ENTRE_COUPS_PAR_PASSIF_PAR_ID),
     FORMULES_CUREES_PAR_ID: cles(FORMULES_CUREES_PAR_ID),
     PORTEE_CORRIGEE_PAR_ID: cles(PORTEE_CORRIGEE_PAR_ID),
     COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID: cles(COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID),
@@ -3658,6 +3762,13 @@ const COUPS_VARIABLES_PAR_ID_CONNUS: Record<number, { min: number; max: number; 
   18306: { min: 3, max: 6 },
   18307: { min: 3, max: 6 },
   18309: { min: 3, max: 6 },
+  // Scratch (Raoq, 2052) : « weaken the enemy's defense for 2 turns with a 70%
+  // chance and attacks consecutively with a 30% chance » — répétition sans
+  // plafond connu : nombre total de coups saisi de 1 à 10, et le joueur choisit
+  // après quel coup la réduction de DEF réussit (décision de l'utilisateur du
+  // 2026-09-23, valeurs-de-jeu-curees.md, « Répétitions sans plafond connu »).
+  // Par identifiant : d'autres « Scratch » n'ont pas cette prose.
+  2052: { min: 1, max: 10 },
 };
 
 // Nombre de coups d'un sort ou passif : l'identifiant, puis le nom.
@@ -3800,12 +3911,12 @@ function coupsFixesCorrigesDe(c: { com2usId: number | null; nom: string }): numb
 // `computeSkillDamageDetail`) : 224 sur les coups 1 et 2, 400 sur les trois,
 // 411 sur le premier coup du tour seulement (confirmation du 2026-10-02).
 //
-// ⚠️ Une séquence n'admet ni coups variables (`hitsRange`) ni effets entre
-// coups (`effetsEntreCoups`), et ses porteurs n'ont aucun passif offensif :
-// rien de cela n'est modélisé pour une séquence, et
-// `tests/degats-blade-surge.test.ts` (Blade Surge) et
+// ⚠️ Une séquence n'admet pas de coups variables (`hitsRange`), et ses
+// porteurs n'ont aucun passif offensif : rien de cela n'est modélisé pour une
+// séquence, et `tests/degats-blade-surge.test.ts` (Blade Surge) et
 // `tests/degats-valeurs-api.test.ts` (séquences à valeur de l'API) vérifient
-// sur le corpus qu'aucun porteur n'en a besoin.
+// sur le corpus qu'aucun porteur n'en a besoin. Ses effets entre les coups
+// sont découpés coup par coup (`decoupeDuSort`).
 type SequenceCuree = {
   // La donnée de la fiche sur laquelle la séquence a été curée, telle quelle.
   empreinte: { formule: string; coups: number | null; aoe: boolean };
@@ -4309,12 +4420,13 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     critRatePoints: CRIT_RATE_PROPRE_CONNUS[c.nom],
     critDamagePoints: CRIT_DAMAGE_PROPRE_PAR_ID_CONNUS[c.com2usId] ?? CRIT_DAMAGE_PROPRE_CONNUS[c.nom],
     bonusStackPropre: BONUS_STACK_PROPRE_PAR_ID_CONNUS[c.com2usId] ?? BONUS_STACK_PROPRE_CONNUS[c.nom],
-    // Une séquence curée n'admet aucun effet entre les coups (voir
-    // `SEQUENCES_DE_COUPS_PAR_ID_CONNUS`). Le lecteur monstre-wide s'ajoute
-    // dans `monsterDamageSkills`.
-    effetsEntreCoups: sequenceDeCoups
-      ? undefined
-      : effetsEntreCoupsDuSort(c, coupsVariables?.max ?? hits, litLeCompteDesDebuffs({ bonusParEffetCible, conditionsCombat })),
+    // Le lecteur monstre-wide et les passifs poseurs s'ajoutent dans
+    // `monsterDamageSkills`.
+    effetsEntreCoups: effetsEntreCoupsDuSort(
+      c,
+      coupsMaxDuProfil({ hits, hitsRange: coupsVariables, sequenceDeCoups }),
+      litLeCompteDesDebuffs({ bonusParEffetCible, conditionsCombat })
+    ),
     bonusConditionnelPropre:
       BONUS_CONDITIONNEL_PROPRE_PAR_ID_CONNUS[c.com2usId] ??
       BONUS_CONDITIONNEL_PROPRE_CONNUS[c.nom] ??
@@ -5207,12 +5319,16 @@ export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageP
   // Un passif ou un modificateur monstre-wide qui lit le compte des effets
   // nocifs de la cible rend proposables, entre les coups de CHAQUE sort, les
   // effets qui ne font que compter (voir `effetsEntreCoupsDuSort`).
+  // Un passif qui pose un effet à chaque attaque le rend posable entre les
+  // coups de chaque sort (`EFFETS_ENTRE_COUPS_PAR_PASSIF_PAR_ID`).
   const lecteurMonstre = monstreLitLeCompteDesDebuffs(detail);
+  const parLesPassifs = effetsPosesParLesPassifs(detail);
   for (const c of detail.competences) {
     const p = skillDamageProfile(c);
     if (!p) continue;
-    if (lecteurMonstre && estPrisEnCharge(p) && !p.sequenceDeCoups && !litLeCompteDesDebuffs(p)) {
-      out.push({ ...p, effetsEntreCoups: effetsEntreCoupsDuSort(c, p.hitsRange?.max ?? p.hits, true) });
+    if ((lecteurMonstre || parLesPassifs.length > 0) && estPrisEnCharge(p)) {
+      const avecCompteur = lecteurMonstre || litLeCompteDesDebuffs(p);
+      out.push({ ...p, effetsEntreCoups: effetsEntreCoupsDuSort(c, coupsMaxDuProfil(p), avecCompteur, parLesPassifs) });
     } else out.push(p);
   }
   out.push(...sortsDeLAutreForme(detail));
@@ -6548,7 +6664,10 @@ export class PreparationReglage {
     if (liste) liste.push({ setup, monsterWide, valeur });
     else this.decoupes.set(profile, [{ setup, monsterWide, valeur }]);
     this.nbDecoupes++;
-    for (const g of valeur?.groupes ?? []) this.ajouterProfil(g.profil);
+    for (const g of valeur?.groupes ?? []) {
+      this.ajouterProfil(g.profil);
+      if (g.setup) this.ajouterReglage(g.setup);
+    }
     for (const t of valeur?.troncons ?? []) {
       this.ajouterProfil(t.profil);
       this.ajouterReglage(t.setup);
@@ -6721,7 +6840,7 @@ function preparerSort(
  * état de DEF (`troncons`) ; `null` pour un calcul simple.
  */
 export type DecoupeDuSort =
-  | { groupes: { profil: SkillDamageProfile; rang: number }[]; troncons: null }
+  | { groupes: { profil: SkillDamageProfile; rang: number; setup?: DamageSetup }[]; troncons: null }
   | { groupes: null; troncons: { profil: SkillDamageProfile; setup: DamageSetup; premier: number }[] };
 
 function decoupeDuSort(
@@ -6736,24 +6855,30 @@ function decoupeDuSort(
   const sequence = profile.sequenceDeCoups;
   if (sequence) {
     const secondaire = cibleDegatsRetenue(profile, setup) === 'secondaire';
-    const groupes: { profil: SkillDamageProfile; rang: number }[] = [];
+    // Sous scénario de poses, chaque coup lit l'état qui le précède : un groupe
+    // de plusieurs coups se découpe coup par coup. ⚠️ Pas pour la cible
+    // secondaire : elle ne reçoit que les groupes de zone, et les poses des
+    // séquences curées viennent d'un groupe sur la seule cible visée (Fatal
+    // Mortar Bullet : la Marque du coup 1 n'est pas sur les autres ennemis).
+    const setupsScenario = secondaire ? null : setupsAvantChaqueCoup(profile, setup, monsterWide, [], reglage);
+    const groupes: { profil: SkillDamageProfile; rang: number; setup?: DamageSetup }[] = [];
     let rang = 0;
     for (const groupe of sequence) {
       if (!secondaire || groupe.zone) {
-        groupes.push({
-          profil: {
-            ...profile,
-            formule: groupe.formule,
-            noeud: groupe.noeud,
-            variables: groupe.variables,
-            hits: groupe.coups,
-            hitsRange: undefined,
-            aoe: groupe.zone,
-            effetsEntreCoups: undefined,
-            sequenceDeCoups: undefined,
-          },
-          rang,
+        const profilGroupe = (coups: number): SkillDamageProfile => ({
+          ...profile,
+          formule: groupe.formule,
+          noeud: groupe.noeud,
+          variables: groupe.variables,
+          hits: coups,
+          hitsRange: undefined,
+          aoe: groupe.zone,
+          effetsEntreCoups: undefined,
+          sequenceDeCoups: undefined,
         });
+        if (setupsScenario) {
+          for (let k = 0; k < groupe.coups; k++) groupes.push({ profil: profilGroupe(1), rang: rang + k, setup: setupsScenario[rang + k] });
+        } else groupes.push({ profil: profilGroupe(groupe.coups), rang });
       }
       rang += groupe.coups;
     }
@@ -7179,8 +7304,9 @@ function chronologieEffetsEntreCoups(
   reglage?: PreparationReglage
 ): { avant: DamageSetup[]; apres: DamageSetup } | null {
   const scenario = setup.scenariosEffetsEntreCoups?.[profile.skillCom2usId];
-  const coups = resolvedHits(profile, setup);
-  if (!scenario?.actif || !profile.effetsEntreCoups?.length || coups <= 1) return null;
+  if (!scenario?.actif || !profile.effetsEntreCoups?.length) return null;
+  const coups = coupsDuScenario(profile, setup);
+  if (coups <= 1) return null;
   const effetsEntreCoups = profile.effetsEntreCoups;
   const calculer = () => calculerChronologie(profile, setup, monsterWide, profilsSupplementaires, scenario, coups, effetsEntreCoups);
   return reglage ? reglage.chronologie(profile, setup, monsterWide, profilsSupplementaires, calculer) : calculer();
@@ -7254,6 +7380,9 @@ function calculerChronologie(
         setupCoup = { ...setupCoup, effetsCibleCount: comptes };
       }
       presents.add(effet.id);
+      if (effet.allumeLeBoutonDuSort) {
+        setupCoup = { ...setupCoup, passifsOffensifs: { ...(setupCoup.passifsOffensifs ?? {}), [profile.skillCom2usId]: true } };
+      }
       if (effet.effetCombat === 'brand') setupCoup = { ...setupCoup, brand: true };
       if (effet.effetCombat === 'defBreak') setupCoup = { ...setupCoup, defBreak: true };
     }
@@ -7375,12 +7504,13 @@ export function computeSkillDamageDetail(
     let additionnelSequence = 0;
     let fixeProtegeSequence = 0;
     let pvSequence = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
-    for (const { profil, rang } of decoupe.groupes) {
+    for (const { profil, rang, setup: setupGroupe } of decoupe.groupes) {
       const artefactsGroupe =
         rang === 0 || artefacts.cdPointsPremiereAttaque === 0
           ? artefacts
           : { ...artefacts, cdPointsPremiereAttaque: 0 };
-      const detail = computeSkillDamageDetail(profil, stats, setup, propres, element, pvSequence, artefactsGroupe, monsterWide, reliqueDmgPct, memo);
+      // Sous scénario de poses : l'état avant ce coup (`decoupeDuSort`).
+      const detail = computeSkillDamageDetail(profil, stats, setupGroupe ?? setup, propres, element, pvSequence, artefactsGroupe, monsterWide, reliqueDmgPct, memo);
       totalSequence += detail.total;
       additionnelSequence += detail.additionnel;
       fixeProtegeSequence += detail.fixeProtege;

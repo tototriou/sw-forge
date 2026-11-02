@@ -132,7 +132,9 @@ les coups. La forme d'une piste et des relevés en jeu est celle de
   Disdain), de Mandrake (Hyanes), du S3 de Jin et Kai ne sont pas comptées.
 - **Idée** : une clause « la cible porte un effet » en interrupteur ;
   Lucifer, un effet actif saisi de 0 à 50 % avec l'équivalent en dégâts
-  reçus ; Kiki, un choix de 0, 1 ou 2 effets nocifs sur la cible ; le
+  reçus ; Kiki, un choix de 0, 1 ou 2 effets nocifs sur la cible (la baisse
+  d'ATQ que Magical Eye, `15105`, pose à chaque coup deviendra alors
+  proposable entre ses coups sans autre curation) ; le
   bonus du S4 de Zenitsu et de Qilin Slasher, lié à un seuil de PV de la
   cible, en interrupteur.
 - **Bloque** : des relevés. Nina ou Shasha, S3, valeurs par coup. Shakan, PV % égaux puis cible entamée, et Disdain

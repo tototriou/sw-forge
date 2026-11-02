@@ -181,10 +181,32 @@ son dernier coup, poses comprises
   Butterfly, Chemical Gas Spray, Yoga Sunburst et les deux « Havoc » ne
   comptent pour rien tant que leur bonus par effet nocif n'est pas codé
   ([piste](../../05-feuille-de-route/pistes-degats-reels.md#comptes-propres-et-jauge-absorbée)) ;
-  leur Réduction de DEF ou leur Marque, elle, est proposée.
+  leur Réduction de DEF ou leur Marque, elle, est proposée. De même la baisse
+  d'ATQ que Magical Eye de Kiki ténèbres (15105) pose à chaque coup : Start of
+  Pain, qui compte les effets nocifs de la cible à chaque coup (valeur fournie,
+  [valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md), « Kiki, Start of
+  Pain »), n'est pas codé
+  ([piste](../../05-feuille-de-route/pistes-degats-reels-stats.md#composantes-conditionnelles-et-comptées)).
+- **Lecteur inverse** : Hammer Punch (Tractor, Bulldozer, Crane, Driller,
+  Crawler ; 11651 à 11655) frappe une fois de plus « If the target is not
+  suffering any harmful effects » ; ce coup en plus est un interrupteur, que
+  l'Étourdissement d'un coup précédent n'éteint pas
+  ([piste](../../05-feuille-de-route/pistes-degats-reels.md#comptes-propres-et-jauge-absorbée)).
+- **Effet tiré au hasard parmi ceux du combat** : Empathy (Übel ténèbres,
+  25215) et Dimensional Memory (Wieb ténèbres, 25715) « Grants 1 random
+  harmful effect that was applied in the current battle » à chaque attaque ;
+  l'effet n'est pas connu d'avance, rien n'est proposé pour leurs sorts.
+- **Baisse de VIT** : Spinning Bird Kick (Chun-Li lumière, 14309), Crescent
+  Blade (Leah lumière, 14809) et Swift Slash (Sonia vent, 15903) baissent la
+  VIT à chaque coup, alors que leur passif croît avec l'écart de VIT ; le
+  calcul ne modélise aucune baisse de VIT de la cible, l'écart reste celui
+  du réglage.
 - **Enchaînement vers un autre sort** (Shoryuken puis Hadoken, Iron Uppercut
   puis Mach Punch, Energy Ball, Wield) : chaque sort n'a qu'un coup, rien
-  n'est posé entre les coups d'un même sort.
+  n'est posé entre les coups d'un même sort. La Marque de Shoryuken et
+  d'Iron Uppercut pour le sort enchaîné relève de l'interrupteur « Marque
+  posée » déjà décidé, à coder
+  ([feat-attaque-apres-un-sort.md](feat-attaque-apres-un-sort.md#ce-quil-faudra-fournir-pour-un-autre-cas)).
 - **Lightning Storm** de Yennefer (19113) est proposé sur la foi de la donnée
   (`coups: 2`), que le calcul suit aussi, alors que sa prose ne dit qu'une
   attaque.

@@ -56,6 +56,8 @@ import {
   resolvedDebuffsCibleCount,
   resolvedEffetsCibleCount,
   resolvedHits,
+  rangsDePoseProposes,
+  libelleEffetEntreCoups,
   resolvedPvActuelsAvantSacrificePctMonstre,
   resolvedStackPct,
   resolvedStackTrigger,
@@ -1688,7 +1690,13 @@ export default function DamageSetupCard({
               />
             </label>
           )}
-          {resolved.effetsEntreCoups && resolved.effetsEntreCoups.length > 0 && resolvedHits(resolved, setup) > 1 && (() => {
+          {(() => {
+            // Chaque effet avec les coups qui peuvent le poser (`rangsDePoseProposes`) ;
+            // un effet sans rang possible (sort ramené à un coup) disparaît.
+            const effetsProposes = (resolved.effetsEntreCoups ?? [])
+              .map((effet) => ({ effet, rangs: rangsDePoseProposes(resolved, effet, setup) }))
+              .filter((x) => x.rangs.length > 0);
+            if (effetsProposes.length === 0) return null;
             const scenario = setup.scenariosEffetsEntreCoups?.[resolved.skillCom2usId] ?? {};
             const majScenario = (patch: Partial<typeof scenario>) =>
               maj({
@@ -1706,13 +1714,16 @@ export default function DamageSetupCard({
                 />
                 {scenario.actif && (
                   <div className="space-y-2 border-t border-border-soft pt-2">
-                    {resolved.effetsEntreCoups.map((effet) => {
+                    {effetsProposes.map(({ effet, rangs }) => {
                       const presents = scenario.presentsInitialement ?? [];
                       const initialDerive =
                         effet.effetCombat === 'brand' ? setup.brand : effet.effetCombat === 'defBreak' ? setup.defBreak : false;
+                      const choisi = scenario.apresCoup?.[effet.id];
+                      const poserApres = (coup: number | null) =>
+                        majScenario({ apresCoup: { ...(scenario.apresCoup ?? {}), [effet.id]: coup } });
                       return (
                         <div key={effet.id} className="flex flex-wrap items-center gap-2">
-                          <span className="min-w-40 text-xs text-ink-dim">{effet.label}</span>
+                          <span className="min-w-40 text-xs text-ink-dim">{libelleEffetEntreCoups(effet)}</span>
                           {!effet.cumulable && !effet.effetCombat && (
                             <Interrupteur
                               actif={presents.includes(effet.id)}
@@ -1731,25 +1742,27 @@ export default function DamageSetupCard({
                               {initialDerive ? 'déjà présent et inclus dans le compteur' : 'absent au départ'}
                             </span>
                           )}
-                          <Selecteur
-                            taille="sm"
-                            pleineLargeur={false}
-                            value={scenario.apresCoup?.[effet.id] ?? ''}
-                            onChange={(e) =>
-                              majScenario({
-                                apresCoup: {
-                                  ...(scenario.apresCoup ?? {}),
-                                  [effet.id]: e.target.value === '' ? null : Number(e.target.value),
-                                },
-                              })
-                            }
-                            aria-label={`Moment de pose réussie : ${effet.label}`}
-                          >
-                            <option value="">Aucune réussite</option>
-                            {Array.from({ length: resolvedHits(resolved, setup) - 1 }, (_, i) => i + 1).map((hit) => (
-                              <option key={hit} value={hit}>Après le coup {hit}</option>
-                            ))}
-                          </Selecteur>
+                          {rangs.length === 1 ? (
+                            // Un seul coup pose l'effet (prose ou note) : posé ou non.
+                            <Interrupteur
+                              actif={choisi === rangs[0]}
+                              onChange={(actif) => poserApres(actif ? rangs[0] : null)}
+                              libelle={`Posé au coup ${rangs[0]}`}
+                            />
+                          ) : (
+                            <Selecteur
+                              taille="sm"
+                              pleineLargeur={false}
+                              value={choisi != null && rangs.includes(choisi) ? choisi : ''}
+                              onChange={(e) => poserApres(e.target.value === '' ? null : Number(e.target.value))}
+                              aria-label={`Moment de pose réussie : ${effet.label}`}
+                            >
+                              <option value="">Aucune réussite</option>
+                              {rangs.map((hit) => (
+                                <option key={hit} value={hit}>Après le coup {hit}</option>
+                              ))}
+                            </Selecteur>
+                          )}
                         </div>
                       );
                     })}

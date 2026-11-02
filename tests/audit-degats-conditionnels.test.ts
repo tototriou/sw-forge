@@ -457,44 +457,9 @@ export default function testAuditDegatsConditionnels() {
     }, AUCUNE_AURA_PROPRE);
   ok(ceciliaNu < ceciliaApres(2) && ceciliaApres(2) < ceciliaApres(1), 'Cecilia : la DEF change après le coup choisi');
 
-  // Le relevé exhaustif des profils éligibles est figé. Une nouvelle entrée
-  // exige une décision de curation, jamais une inclusion par ressemblance.
-  const effetsEntreCoupsAttendus = new Set([
-    'Arcane Burst',
-    'Blackout Kick', // Sia 3454 seul, par identifiant
-    'Chain Attack',
-    'Crushed Hopes', // Cichlid 10413
-    'Death Blow',
-    'Divergent Fist', // Yuji S2 — curé comme effet entre les coups
-    'Double Strike', // Melissa 12608
-    'Fast Link', // Barbara, Masha, Xiana 13606/13607/13610
-    'Full Burst',
-    'Ghost Slash',
-    'Gouge',
-    'Gust',
-    'Harpoon Impalement', // Eivor 17507/17509
-    'Mach Crush',
-    'Panda Supremacy',
-    'Phantom Light', // Shihwa S3 2212
-    'Rain of Stones',
-    'Reelseiden・Flurry', // Übel 25206/25210
-    'Sequential Attack',
-    'Shadow Blade',
-    'Shinryuken',
-    'Shockwave Fist', // Rick S2 — curé comme celui de Yuji S2
-    'Triple Crush',
-    'Water Dragon Attack',
-    'Weakness Shot', // Carlos, Dominic, Benedict 15507/15508/15509
-    "Will-o'-the-Wisp",
-  ]);
-  const effetsEntreCoupsTrouves = new Set<string>();
-  for (const fichier of readdirSync(dossierSorts)) {
-    const detail: DetailMonstre = JSON.parse(readFileSync(resolve(dossierSorts, fichier), 'utf8'));
-    for (const p of monsterDamageSkills(detail)) {
-      if (estPrisEnCharge(p) && p.effetsEntreCoups?.length) effetsEntreCoupsTrouves.add(p.nom);
-    }
-  }
-  egal([...effetsEntreCoupsTrouves].sort(), [...effetsEntreCoupsAttendus].sort(), 'corpus complet des profils inter-coups curés');
+  // Le relevé exhaustif des sorts qui proposent une pose entre leurs coups est
+  // figé, sort par sort, par `testInventaireEffetsEntreCoups`
+  // (tests/degats-effets-entre-coups.test.ts).
 
   const baekdu = profilDe(18514, 9314);
   ok(baekdu.variables.includes('Target SPD'), 'Target SPD est accepté par le parseur');
@@ -1562,9 +1527,10 @@ function testSuiteDuSortVoitLesPosesP4b() {
 }
 
 // Treize sorts dont la donnée
-// pose un `Decrease DEF` ou une `Brand` sur un coup précis sont curés PAR
-// IDENTIFIANT dans `EFFETS_ENTRE_COUPS_PAR_ID_CONNUS`, jamais par nom : un
-// nom (« Blackout Kick ») a des homonymes au texte différent. Chaque entrée a
+// pose un `Decrease DEF` ou une `Brand` sur un coup précis, lus PAR
+// IDENTIFIANT (`effetsEntreCoupsDuSort`, rang de la note ou exception de la
+// prose), jamais par nom : un nom (« Blackout Kick ») a des homonymes au
+// texte différent. Chaque entrée a
 // son test : l'effet de la donnée, aucun changement sans scénario, et la pose
 // après le coup qui la fait réellement (coup 1, sauf Cichlid : coup 2) vaut
 // « les coups d'avant sans l'effet, les suivants avec ». Les ratios sont
@@ -1598,6 +1564,7 @@ function testEffetsEntreCoups322() {
     egal(p.effetsEntreCoups?.length, 1, `${nom} : un seul effet curé (Brise DEF ou Marque, rien d'autre)`);
     egal(p.effetsEntreCoups?.[0]?.id, effet, `${nom} : effet de la donnée`);
     egal(p.effetsEntreCoups?.[0]?.effetCombat, effetCombat, `${nom} : change l'état de la cible (${effetCombat})`);
+    egal(p.effetsEntreCoups?.[0]?.coups, [poseur], `${nom} : seul le coup ${poseur} pose l'effet`);
     ok(coups > 1, `${nom} : sort à plusieurs coups`);
 
     const sans = total(p, cible);

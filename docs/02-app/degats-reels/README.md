@@ -30,6 +30,7 @@ Tout le calcul vit dans `src/lib/damage.ts` ; on choisit le document selon la r�
 | une attaque conjointe (lignes 209 et 225, effet `Ally Attack`, interrupteur « Attaque conjointe », S1 appelé par un sort coopératif) | [feat-attaques-conjointes.md](feat-attaques-conjointes.md) |
 | un effet d'équipe, un set d'aura, un leader skill, `src/lib/aurasExternes.ts` | [feat-effets-equipe-et-leaders.md](feat-effets-equipe-et-leaders.md) |
 | un dégât conditionnel, une portée corrigée par la prose, un nombre de coups variable saisi | [feat-conditions-et-audit.md](feat-conditions-et-audit.md) |
+| un effet néfaste posé entre les coups d'un sort (`effetsEntreCoupsDuSort`, `EFFETS_ENTRE_COUPS_EXCEPTIONS_PAR_ID`, le scénario `scenariosEffetsEntreCoups`) | [feat-poses-entre-les-coups.md](feat-poses-entre-les-coups.md), [inventaire-effets-entre-coups.md](inventaire-effets-entre-coups.md) |
 | une compétence auxiliaire de SWARFARM (`Competence.auxiliaires`, `formuleRetenue`) | [feat-competences-auxiliaires.md](feat-competences-auxiliaires.md) |
 | un modificateur monstre-wide d'un passif (compteur, effets sur la cible, sacrifice…) | [catalogue-des-passifs.md](catalogue-des-passifs.md) |
 | une valeur de jeu curée à la main, et sa source | [valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md) |
@@ -47,6 +48,8 @@ Tout le calcul vit dans `src/lib/damage.ts` ; on choisit le document selon la r�
 - [Dégâts réels — attaques conjointes](feat-attaques-conjointes.md) — état actuel
 - [Dégâts réels — effets d’équipe et leaders](feat-effets-equipe-et-leaders.md) — état actuel
 - [Dégâts réels — conditions et audit](feat-conditions-et-audit.md) — état actuel
+- [Dégâts réels — effets posés entre les coups](feat-poses-entre-les-coups.md) — état actuel
+- [Dégâts réels — inventaire des effets posés entre les coups](inventaire-effets-entre-coups.md) — liste figée, sort par sort
 - [Dégâts réels — compétences auxiliaires](feat-competences-auxiliaires.md) — état actuel
 - [Dégâts réels — catalogue des passifs](catalogue-des-passifs.md) — état actuel
 - [Dégâts réels — valeurs de jeu curées](valeurs-de-jeu-curees.md) — état actuel

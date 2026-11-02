@@ -2204,6 +2204,17 @@ export interface EffetEntreCoupsProfile {
   label: string;
   cumulable: boolean;
   effetCombat?: 'brand' | 'defBreak';
+  // Rangs des coups (à partir de 1) qui PEUVENT poser l'effet, tous avant le
+  // dernier ; absent = chaque coup. Un seul rang se règle par un interrupteur,
+  // plusieurs par un sélecteur limité à eux ; une pose à un autre rang est
+  // ignorée par le calcul (`calculerChronologie`).
+  coups?: readonly number[];
+  // Effets nocifs qu'une pose ajoute au compte (Meteor Strike : deux dégâts
+  // continus par coup) ; absent = 1. Seul un effet cumulable en porte plus.
+  nombre?: number;
+  // Condition de la pose écrite par la donnée ou la prose (« sur coup
+  // critique », « en état Thunderer »), affichée après le libellé.
+  precision?: string;
 }
 
 export interface ScenarioEffetsEntreCoups {
@@ -2695,8 +2706,8 @@ const CONDITIONS_COMBAT_PAR_ID_CONNUS: Record<number, ConditionCombatProfile[]> 
   // Divergent Fist (Yuji) et Shockwave Fist (Rick), S2 : « the Critical Rate
   // increases to 100% when attacking an enemy with harmful effects ». Le
   // critique du coup 2 après la réduction de DEF posée par le coup 1 passe
-  // par le scénario des poses entre les coups (`EFFETS_ENTRE_COUPS_PAR_ID_CONNUS`
-  // ci-dessous), jamais par défaut.
+  // par le scénario des poses entre les coups (`effetsEntreCoupsDuSort`, note
+  // « 1st hit » de la donnée), jamais par défaut.
   20107: [{ type: 'debuffCiblePresent', critiqueGaranti: true }], // Yuji feu
   20108: [{ type: 'debuffCiblePresent', critiqueGaranti: true }], // Yuji vent
   20110: [{ type: 'debuffCiblePresent', critiqueGaranti: true }], // Yuji ténèbres
@@ -2802,93 +2813,281 @@ const BONUS_STACK_PROPRE_CONNUS: Record<string, NonNullable<SkillDamageProfile['
   },
 };
 
-const EFFETS_ENTRE_COUPS_CONNUS: Record<string, EffetEntreCoupsProfile[]> = {
-  'Arcane Burst': [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
-  'Ghost Slash': [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
-  'Death Blow': [
-    { id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' },
-    { id: 'beneficial-effects-blocked', label: 'Blocage des effets bénéfiques', cumulable: false },
-  ],
-  'Full Burst': [{ id: 'continuous-damage', label: 'Dégâts continus', cumulable: true }],
-  Gouge: [{ id: 'continuous-damage', label: 'Dégâts continus', cumulable: true }],
-  Gust: [{ id: 'stun', label: 'Étourdissement', cumulable: false }],
-  // Shihwa S3 (2212, seul sort de ce nom) : « Each attack has a 50% chance to
-  // leave a Branding effect » — comme Will-o'-the-Wisp, son S1.
-  'Phantom Light': [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }],
-  'Panda Supremacy': [
-    { id: 'increase-glancing', label: 'Chances de coup glancing augmentées', cumulable: false },
-    { id: 'decrease-atk', label: 'Réduction d’ATQ', cumulable: false },
-    { id: 'decrease-spd', label: 'Réduction de VIT', cumulable: false },
-    { id: 'unrecoverable', label: 'Irrécupérable', cumulable: false },
-  ],
-  'Rain of Stones': [{ id: 'stun', label: 'Étourdissement', cumulable: false }],
-  Shinryuken: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }],
-  'Shadow Blade': [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }],
-  'Sequential Attack': [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
-  'Triple Crush': [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
-  'Water Dragon Attack': [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
-  "Will-o'-the-Wisp": [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }],
+// ── Effets néfastes posés ENTRE les coups d'un sort ─────────────────────────
+// Règle DÉRIVÉE de la donnée de chaque identifiant, plus une table
+// d'exceptions lues dans la prose (`EFFETS_ENTRE_COUPS_EXCEPTIONS_PAR_ID`).
+// Jamais par nom : « Blackout Kick » compte quinze homonymes au texte
+// différent, et Chain Attack 6106 (Mina) ne pose rien quand 6158 (Naomi)
+// pose une Marque — chaque identifiant lit SA donnée.
+//
+// Règle (`effetsEntreCoupsDuSort`) : un sort ACTIF calculé, à plusieurs coups
+// (au moins deux, plage de coups comprise), hors séquence curée, propose
+// chaque effet néfaste de sa donnée posé sur l'ennemi (`type: 'Debuff'`,
+// `surSoi: false`) :
+// - toujours la Réduction de DEF (`Decrease DEF`) et la Marque (`Brand`), qui
+//   changent la DEF ou les dégâts subis des coups suivants ;
+// - un autre effet seulement quand le compte des effets nocifs de la cible est
+//   LU (`avecCompteur`) : par le sort (bonus par effet nocif, condition « la
+//   cible porte un effet nocif »), ou par le monstre (passif ou modificateur
+//   monstre-wide, `monsterDamageSkills`). Sans lecteur, il ne change aucun
+//   chiffre et n'est pas proposé.
+// Coups qui posent : le rang que la `note` de l'effet nomme (`RANGS_PAR_NOTE`),
+// sinon celui que la prose donne (exceptions), sinon CHAQUE coup — règle de
+// l'utilisateur : une prose qui ne précise pas le coup pose à chacun, et le
+// joueur choisit après lequel la pose réussit. Un effet posé au seul DERNIER
+// coup ne change rien au sort : il n'est pas proposé.
+//
+// Rien n'est jamais supposé posé : sans scénario actif (`DamageSetup.
+// scenariosEffetsEntreCoups`), le total ne change pas.
+//
+// Liste des sorts couverts, sort par sort : docs/02-app/degats-reels/
+// inventaire-effets-entre-coups.md, figée par `testInventaireEffetsEntreCoups`.
+
+// Ce qu'une pose de l'effet SWARFARM fait dans le calcul. ⚠️ Toute la liste
+// des effets `type: 'Debuff'` du corpus, pour qu'un effet ne soit jamais
+// perdu faute de libellé (`testEffetsPosablesConnus`). Seuls la Réduction de
+// DEF et la Marque changent l'état de combat (`effetCombat`) ; les autres ne
+// comptent que comme un effet nocif de plus. Cumulables : les dégâts continus
+// (chaque pose en ajoute un). Bombe, Sceau et les autres restent non cumulables :
+// non établi, et aucun sort qui en pose n'a de lecteur du compte à ce jour.
+const EFFETS_POSABLES_PAR_NOM: Readonly<Record<string, Omit<EffetEntreCoupsProfile, 'coups' | 'nombre' | 'precision'>>> = {
+  'Decrease DEF': { id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' },
+  Brand: { id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' },
+  'Continuous DMG': { id: 'continuous-damage', label: 'Dégâts continus', cumulable: true },
+  Stun: { id: 'stun', label: 'Étourdissement', cumulable: false },
+  Freeze: { id: 'freeze', label: 'Gel', cumulable: false },
+  Sleep: { id: 'sleep', label: 'Sommeil', cumulable: false },
+  'Decrease ATK': { id: 'decrease-atk', label: 'Réduction d’ATQ', cumulable: false },
+  'Decrease ATK SPD': { id: 'decrease-spd', label: 'Réduction de VIT', cumulable: false },
+  Unrecoverable: { id: 'unrecoverable', label: 'Irrécupérable', cumulable: false },
+  'Increase Glancing Hit Chance': { id: 'increase-glancing', label: 'Chances de coup glancing augmentées', cumulable: false },
+  'Beneficial Effects Blocked': { id: 'beneficial-effects-blocked', label: 'Blocage des effets bénéfiques', cumulable: false },
+  'Harmful Effect Removal Blocked': { id: 'harmful-effect-removal-blocked', label: 'Blocage du retrait des effets nocifs', cumulable: false },
+  Silence: { id: 'silence', label: 'Silence', cumulable: false },
+  Provoke: { id: 'provoke', label: 'Provocation', cumulable: false },
+  Oblivion: { id: 'oblivion', label: 'Oubli', cumulable: false },
+  Unrevivable: { id: 'unrevivable', label: 'Résurrection impossible', cumulable: false },
+  Irresistible: { id: 'irresistible', label: 'Irrésistible', cumulable: false },
+  Suppression: { id: 'suppression', label: 'Suppression', cumulable: false },
+  Seal: { id: 'seal', label: 'Sceau', cumulable: false },
+  'Scroll Seal': { id: 'scroll-seal', label: 'Sceau du parchemin', cumulable: false },
+  Bomb: { id: 'bomb', label: 'Bombe', cumulable: false },
+  Mark: { id: 'mark', label: 'Marque de la cible', cumulable: false },
+  'Curse of Death': { id: 'curse-of-death', label: 'Malédiction de mort', cumulable: false },
+  'Demon Bag': { id: 'demon-bag', label: 'Sac du démon', cumulable: false },
 };
 
-const EFFETS_ENTRE_COUPS_PAR_ID_CONNUS: Record<number, EffetEntreCoupsProfile[]> = {
-  6158: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }], // Naomi 2A
-  // (6173, même prose, n'est porté que par le Martial Cat 2A générique `47603`,
-  // non obtenable : hors curation.)
-  10013: [{ id: 'unrecoverable', label: 'Irrécupérable', cumulable: false }], // Akhamamir 2A
-  // Divergent Fist / Shockwave Fist (S2 de Yuji et Rick) : « The first hit
-  // decreases its Defense for 2 turns » (effet `Decrease DEF`, note « 1st
-  // hit »). Règle retenue (valeurs-de-jeu-curees.md) :
-  // cette réduction de DEF garantit le critique du coup 2,
-  // posée sans relevé. Elle est comptée ici comme un DÉBUFF (la condition
-  // `debuffCiblePresent` + `critiqueGaranti` du sort la lit) ET, par
-  // `effetCombat: 'defBreak'`, comme une réduction de la DEF que subit le
-  // coup 2,
-  // comme les cinq sorts « decrease-def » indexés par nom plus haut. Sans
-  // scénario, rien n'est supposé posé : le total ne change pas.
-  20107: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Yuji feu
-  20108: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Yuji vent
-  20110: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Yuji ténèbres
-  20707: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Rick feu
-  20708: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Rick vent
-  20710: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Rick ténèbres
-  // Treize sorts dont la
-  // donnée porte un effet `Decrease DEF` ou `Brand` posé par un coup précis,
-  // curés PAR IDENTIFIANT et jamais par nom (« Blackout Kick » compte quinze
-  // homonymes au texte différent). L'effet vient de la donnée de l'identifiant
-  // (`Decrease DEF` → defBreak, `Brand` → brand), le rang du coup de la note
-  // ou de la prose citée. Sans scénario rien n'est supposé posé : le total
-  // ne change pas. D'autres effets de ces sorts (Decrease ATK, Stun,
-  // Unrecoverable) ne sont pas curés ici.
+// Le coup qu'une `note` d'effet désigne, chaîne EXACTE de la donnée (jamais
+// une expression régulière) ; `'dernier'` = le dernier coup, qui ne change rien
+// au sort. Une note absente d'ici et de `PRECISION_PAR_NOTE` sur un effet
+// proposé fait échouer `testInventaireEffetsEntreCoups` : à lire, puis classer.
+const RANGS_PAR_NOTE: Readonly<Record<string, readonly number[] | 'dernier'>> = {
+  '1st hit': [1],
+  'First hit': [1],
+  'First hit only': [1],
+  'First attack': [1],
+  'First attack only': [1],
+  'The first attack': [1],
+  '2nd hit': [2],
+  'Second hit': [2],
+  'Second hit only': [2],
+  'The second attack': [2],
+  '3rd hit': [3],
+  '2nd and 3rd hit': [2, 3],
+  'First 3 hits': [1, 2, 3],
+  '4th hit only': [4],
+  // PPK Combo / Chain Combo Attack : « the 5th hit removes 1 beneficial effect
+  // … and decreases Defense » ; la condition va dans la précision.
+  '5th hit if removed buff': [5],
+  '6th hit': [6],
+  'Last hit': 'dernier',
+  'Final hit': 'dernier',
+};
+
+// Une `note` qui pose une CONDITION, pas un rang : affichée à côté du libellé.
+const PRECISION_PAR_NOTE: Readonly<Record<string, string>> = {
+  '5th hit if removed buff': 'au coup 5, si ce coup retire un effet bénéfique',
+  'one random per hit': 'un seul des effets possibles par coup, au hasard',
+  'When used during the Thunderer state': 'en état Thunderer',
+  'If enemies have received more damage than allies': 'si les ennemis ont subi au moins autant de dégâts que les alliés',
+  'If allies have received more damage than enemies': 'si les alliés ont subi plus de dégâts que les ennemis',
+};
+
+interface ExceptionEffetsEntreCoups {
+  // Rangs lus dans la PROSE (la donnée n'a pas de note), par identifiant d'effet.
+  coups?: Readonly<Record<string, readonly number[]>>;
+  // Identifiants d'effet que la prose dément ou qui ne peuvent rien changer.
+  retirer?: readonly string[];
+  // Effets que seule la prose porte : nom d'effet SWARFARM, rangs.
+  ajouter?: readonly { effet: string; coups?: readonly number[] }[];
+  // Condition que seule la prose écrit, par identifiant d'effet.
+  precision?: Readonly<Record<string, string>>;
+}
+
+// Exceptions à la règle, chacune avec la prose qui la fonde. ⚠️ Rôle : corriger
+// la donnée d'UN identifiant, jamais compléter la règle (un effet de la donnée
+// est déjà pris sans entrée ici).
+const EFFETS_ENTRE_COUPS_EXCEPTIONS_PAR_ID: Readonly<Record<number, ExceptionEffetsEntreCoups>> = {
+  // Soul Summoning (Rigel, Fuco) : la donnée porte `Decrease DEF`, la prose dit
+  // « Each attack has a 40% chance to decrease the enemy's Attack Speed » — la
+  // prose fait foi : aucune Réduction de DEF.
+  7501: { retirer: ['decrease-def'], ajouter: [{ effet: 'Decrease ATK SPD' }] },
+  7503: { retirer: ['decrease-def'], ajouter: [{ effet: 'Decrease ATK SPD' }] },
   // Crushed Hopes (Cichlid) : « the second attack decreases the Defense for
   // 2 turns with an 80% chance » (coup 2, sans note).
-  10413: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
-  // Double Strike (Melissa) : note « First hit only » ; prose « decrease the
-  // Defense with the first attack ».
-  12608: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
+  10413: { coups: { 'decrease-def': [2] } },
   // Fast Link (Barbara, Masha, Xiana) : « The beast's attack decreases the
-  // enemy's Defense for 1 turn » ; la bête attaque en premier (coup 1).
-  13606: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Barbara
-  13607: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Masha
-  13610: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Xiana
-  // Weakness Shot (Carlos, Dominic, Benedict) : « Attacks the enemy to leave
-  // a Branding effect for 2 turns and attacks 3 more times » (effet `Brand`
-  // 100 %, coup 1).
-  15507: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }], // Carlos
-  15508: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }], // Dominic
-  15509: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }], // Benedict
-  // Harpoon Impalement (Eivor) : effet `Brand`, note « 1st hit » ; prose
-  // « The first attack leaves a Branding effect for 1 turn with a 100% chance ».
-  17507: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }],
-  17509: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }],
-  // Blackout Kick (Sia, S1) : effet `Decrease DEF`, note « First hit » ;
-  // prose « The first hit decreases Defense for 2 turns with a 50% chance ».
-  3454: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
-  // Reelseiden・Flurry (Übel) : effet `Decrease DEF`, note « 1st hit » ;
-  // prose « The first hit decreases their Defense for 2 turns with a 50%
-  // chance » (en zone).
-  25206: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
-  25210: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
+  // enemy's Defense for 1 turn » ; la bête attaque en premier (coup 1), sans
+  // relevé (piste « Poses entre les coups », pistes-degats-reels.md).
+  13606: { coups: { 'decrease-def': [1] } }, // Barbara
+  13607: { coups: { 'decrease-def': [1] } }, // Masha
+  13610: { coups: { 'decrease-def': [1] } }, // Xiana
+  // Weakness Shot (Carlos, Dominic, Benedict) : « Attacks the enemy to leave a
+  // Branding effect for 2 turns and attacks 3 more times » (coup 1).
+  15507: { coups: { brand: [1] } }, // Carlos
+  15508: { coups: { brand: [1] } }, // Dominic
+  15509: { coups: { brand: [1] } }, // Benedict
+  // Axe Technique of the Mercenary Queen (Solveig, Berghild) : la donnée n'a
+  // pas l'effet `Brand`, la prose le pose au coup 1 : « The first attack leaves
+  // a Branding effect for 1 turn with a 100% chance and stuns for 1 turn ».
+  18007: { ajouter: [{ effet: 'Brand', coups: [1] }], coups: { stun: [1] } }, // Solveig
+  18009: { ajouter: [{ effet: 'Brand', coups: [1] }], coups: { stun: [1] } }, // Berghild
+  // Wild Bolt (Vendhan, Dyeus) : « When used during the Thunderer state, leaves
+  // a Branding effect » — la note qui le dit ne figure que sur Chakra (18128).
+  18127: { precision: { brand: 'en état Thunderer' } }, // Vendhan
+  18129: { precision: { brand: 'en état Thunderer' } }, // Dyeus
+  // Whirlpool / Water Dragon Surge (Tanjiro, Azure Dragon Swordsman) : « Attacks
+  // all enemies to Freeze them for 1 turn. Deals additional damage 2 more
+  // times to targets with harmful effects » — le Gel du coup 1 donne les deux
+  // coups en plus (`coupsEnPlusActifs`). Les dégâts continus sont posés PAR
+  // ces coups en plus, qui n'existent que contre une cible déjà affligée : ils
+  // ne changent rien.
+  21311: { coups: { freeze: [1] }, retirer: ['continuous-damage'] }, // Tanjiro
+  21911: { coups: { freeze: [1] }, retirer: ['continuous-damage'] }, // Azure Dragon Swordsman
 };
+
+/**
+ * Les effets qu'un coup de `c` peut poser pour les coups suivants (voir la
+ * règle plus haut). `coupsMax` : le plus grand nombre de coups du sort (plage
+ * comprise) ; `avecCompteur` : le compte des effets nocifs de la cible est lu.
+ * `undefined` quand rien n'est proposable.
+ */
+function effetsEntreCoupsDuSort(
+  c: Competence,
+  coupsMax: number,
+  avecCompteur: boolean
+): EffetEntreCoupsProfile[] | undefined {
+  if (coupsMax < 2 || c.com2usId == null) return undefined;
+  const exception = EFFETS_ENTRE_COUPS_EXCEPTIONS_PAR_ID[c.com2usId];
+  const sources: { nom: string; coups: readonly number[] | null; precision?: string }[] = [];
+  for (const e of c.effets) {
+    if (e.type !== 'Debuff' || e.surSoi || !e.nom) continue;
+    const rang = e.note ? RANGS_PAR_NOTE[e.note] : undefined;
+    if (rang === 'dernier') continue;
+    const precision = [e.surCritique ? 'sur coup critique' : null, e.note ? PRECISION_PAR_NOTE[e.note] : null]
+      .filter((p): p is string => !!p).join(', ');
+    sources.push({ nom: e.nom, coups: rang ?? null, ...(precision ? { precision } : {}) });
+  }
+  for (const a of exception?.ajouter ?? []) sources.push({ nom: a.effet, coups: a.coups ?? null });
+
+  // Plusieurs entrées du même effet : des rangs différents s'unissent (Triple
+  // Combo de RYU : coup 1 et coup 2) ; des entrées identiques d'un effet
+  // cumulable posent chacune le leur (Meteor Strike : deux dégâts continus
+  // par coup).
+  const parId = new Map<string, { base: (typeof EFFETS_POSABLES_PAR_NOM)[string]; entrees: typeof sources }>();
+  for (const s of sources) {
+    const base = EFFETS_POSABLES_PAR_NOM[s.nom];
+    if (!base) continue;
+    if (exception?.retirer?.includes(base.id)) continue;
+    if (!base.effetCombat && !avecCompteur) continue;
+    const vu = parId.get(base.id);
+    if (vu) vu.entrees.push(s);
+    else parId.set(base.id, { base, entrees: [s] });
+  }
+  const out: EffetEntreCoupsProfile[] = [];
+  for (const [id, { base, entrees }] of parId) {
+    const cle = (x: (typeof entrees)[number]) => (x.coups ? x.coups.join(',') : '*');
+    const memes = entrees.every((x) => cle(x) === cle(entrees[0]));
+    const deLaDonnee = entrees.some((x) => !x.coups)
+      ? null
+      : Array.from(new Set(entrees.flatMap((x) => x.coups ?? []))).sort((a, b) => a - b);
+    const coups = exception?.coups?.[id] ?? deLaDonnee;
+    // Un rang au-delà du DERNIER coup possible, ou le dernier lui-même, ne
+    // change rien au sort.
+    const utiles = coups?.filter((n) => n >= 1 && n < coupsMax);
+    if (utiles && utiles.length === 0) continue;
+    const nombre = base.cumulable && memes ? entrees.length : 1;
+    const precision = exception?.precision?.[id] ?? entrees.find((x) => x.precision)?.precision;
+    out.push({
+      ...base,
+      ...(utiles ? { coups: utiles } : {}),
+      ...(nombre > 1 ? { nombre } : {}),
+      ...(precision ? { precision } : {}),
+    });
+  }
+  return out.length > 0 ? out : undefined;
+}
+
+// Le compte des effets nocifs de la cible est-il lu par CE profil ? Les seuls
+// lecteurs du calcul : un bonus par effet (hors buffs seuls) et la condition
+// « la cible porte un effet nocif » (`calculerChronologie`, `clesDebuffs`).
+function litLeCompteDesDebuffs(p: Pick<SkillDamageProfile, 'bonusParEffetCible' | 'conditionsCombat'>): boolean {
+  return (!!p.bonusParEffetCible && p.bonusParEffetCible.source !== 'buffs') ||
+    !!p.conditionsCombat?.some((condition) => condition.type === 'debuffCiblePresent');
+}
+
+// Le monstre lit-il le compte des effets nocifs de la cible, quel que soit le
+// sort : modificateur monstre-wide, ou passif offensif qui le lit ?
+function monstreLitLeCompteDesDebuffs(detail: DetailMonstre): boolean {
+  const mw = monsterBonusParEffetCible(detail);
+  if (mw && mw.source !== 'buffs') return true;
+  if (monsterConditionsCombat(detail).some((p) => p.condition.type === 'debuffCiblePresent')) return true;
+  return monsterOffensivePassives(detail).some((p) => litLeCompteDesDebuffs(p.profile));
+}
+
+/** Identifiants des exceptions (test qui exige une forme jouable par entrée). */
+export function idsExceptionsEffetsEntreCoups(): number[] {
+  return Object.keys(EFFETS_ENTRE_COUPS_EXCEPTIONS_PAR_ID).map(Number);
+}
+
+/** Noms d'effet SWARFARM que la règle sait poser (test du corpus). */
+export function nomsEffetsPosables(): string[] {
+  return Object.keys(EFFETS_POSABLES_PAR_NOM);
+}
+
+/** Identifiant d'effet entre les coups d'un nom d'effet SWARFARM, ou `null`. */
+export function idEffetPosable(nom: string): string | null {
+  return EFFETS_POSABLES_PAR_NOM[nom]?.id ?? null;
+}
+
+/** Notes d'effet reconnues, rang ou condition (test du corpus). */
+export function notesEffetsEntreCoupsConnues(): string[] {
+  return Array.from(new Set([...Object.keys(RANGS_PAR_NOTE), ...Object.keys(PRECISION_PAR_NOTE)]));
+}
+
+/**
+ * Les rangs proposés pour poser `effet` dans le sort `profile` : ceux qu'il
+ * porte (`coups`), sinon chaque coup, toujours AVANT le dernier coup que le
+ * réglage retient. Pour un sort dont les coups en plus viennent d'une
+ * condition (Tanjiro : le Gel du coup 1 donne deux coups de plus), le plafond
+ * est la plage entière : la pose crée elle-même les coups qui suivent.
+ */
+export function rangsDePoseProposes(
+  profile: SkillDamageProfile,
+  effet: EffetEntreCoupsProfile,
+  setup: DamageSetup
+): number[] {
+  const plafond = coupsEnPlusDeCondition(profile) && profile.hitsRange
+    ? profile.hitsRange.max
+    : resolvedHits(profile, setup);
+  const tous = Array.from({ length: Math.max(0, plafond - 1) }, (_, i) => i + 1);
+  return effet.coups ? effet.coups.filter((n) => n < plafond) : tous;
+}
+
+/** Libellé affiché d'un effet posable : le libellé, puis sa condition. */
+export function libelleEffetEntreCoups(effet: EffetEntreCoupsProfile): string {
+  return effet.precision ? `${effet.label} (${effet.precision})` : effet.label;
+}
 
 // Formule exacte confirmée par l'utilisateur, avec démonstration algébrique :
 // « Si Crawler subit N attaques avant de lancer son S1 (qui frappe
@@ -3328,7 +3527,7 @@ export function clesDesTablesParId(): Record<string, number[]> {
     CONDITIONS_COMBAT_PAR_ID_CONNUS: cles(CONDITIONS_COMBAT_PAR_ID_CONNUS),
     BONUS_CONDITIONNEL_AUDIT_PAR_ID_CONNUS: cles(BONUS_CONDITIONNEL_AUDIT_PAR_ID_CONNUS),
     CRIT_DAMAGE_PROPRE_PAR_ID_CONNUS: cles(CRIT_DAMAGE_PROPRE_PAR_ID_CONNUS),
-    EFFETS_ENTRE_COUPS_PAR_ID_CONNUS: cles(EFFETS_ENTRE_COUPS_PAR_ID_CONNUS),
+    EFFETS_ENTRE_COUPS_EXCEPTIONS_PAR_ID: cles(EFFETS_ENTRE_COUPS_EXCEPTIONS_PAR_ID),
     FORMULES_CUREES_PAR_ID: cles(FORMULES_CUREES_PAR_ID),
     PORTEE_CORRIGEE_PAR_ID: cles(PORTEE_CORRIGEE_PAR_ID),
     COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID: cles(COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID),
@@ -4065,6 +4264,8 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
   // Les rangs curés ne valent que pour le nombre de coups qu'ils supposent :
   // des données régénérées qui en annonceraient un autre (ou une plage) font
   // refuser le sort, avec sa raison, plutôt qu'appliquer des rangs faux.
+  const bonusParEffetCible = BONUS_PAR_EFFET_CIBLE_PAR_ID_CONNUS[c.com2usId] ?? BONUS_PAR_EFFET_CIBLE_CONNUS[c.nom];
+  const conditionsCombat = CONDITIONS_COMBAT_PAR_ID_CONNUS[c.com2usId] ?? CONDITIONS_COMBAT_CONNUS[c.nom];
   const ignoreDefAPartirDuCoup = IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID[c.com2usId];
   if (ignoreDefAPartirDuCoup && (coupsVariables || hits !== ignoreDefAPartirDuCoup.coups)) {
     return { ...entete, raison: 'Le nombre de coups ne correspond plus à la règle d’ignore DEF curée pour ce sort.' };
@@ -4102,13 +4303,18 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     critiqueGaranti: CRITIQUES_GARANTIS_INCONDITIONNELS.has(c.com2usId),
     bombe: estBombeSansCoupDirect(c),
     skillupDamagePct,
-    bonusParEffetCible: BONUS_PAR_EFFET_CIBLE_PAR_ID_CONNUS[c.com2usId] ?? BONUS_PAR_EFFET_CIBLE_CONNUS[c.nom],
+    bonusParEffetCible,
     bonusParEffetPropre: BONUS_PAR_EFFET_PROPRE_CONNUS[c.nom],
-    conditionsCombat: CONDITIONS_COMBAT_PAR_ID_CONNUS[c.com2usId] ?? CONDITIONS_COMBAT_CONNUS[c.nom],
+    conditionsCombat,
     critRatePoints: CRIT_RATE_PROPRE_CONNUS[c.nom],
     critDamagePoints: CRIT_DAMAGE_PROPRE_PAR_ID_CONNUS[c.com2usId] ?? CRIT_DAMAGE_PROPRE_CONNUS[c.nom],
     bonusStackPropre: BONUS_STACK_PROPRE_PAR_ID_CONNUS[c.com2usId] ?? BONUS_STACK_PROPRE_CONNUS[c.nom],
-    effetsEntreCoups: EFFETS_ENTRE_COUPS_PAR_ID_CONNUS[c.com2usId] ?? EFFETS_ENTRE_COUPS_CONNUS[c.nom],
+    // Une séquence curée n'admet aucun effet entre les coups (voir
+    // `SEQUENCES_DE_COUPS_PAR_ID_CONNUS`). Le lecteur monstre-wide s'ajoute
+    // dans `monsterDamageSkills`.
+    effetsEntreCoups: sequenceDeCoups
+      ? undefined
+      : effetsEntreCoupsDuSort(c, coupsVariables?.max ?? hits, litLeCompteDesDebuffs({ bonusParEffetCible, conditionsCombat })),
     bonusConditionnelPropre:
       BONUS_CONDITIONNEL_PROPRE_PAR_ID_CONNUS[c.com2usId] ??
       BONUS_CONDITIONNEL_PROPRE_CONNUS[c.nom] ??
@@ -4998,9 +5204,16 @@ function sortsDeLAutreForme(detail: DetailMonstre): (SkillDamageProfile | SkillD
 export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageProfile | SkillDamageUnsupported)[] {
   if (!detail) return [];
   const out: (SkillDamageProfile | SkillDamageUnsupported)[] = [];
+  // Un passif ou un modificateur monstre-wide qui lit le compte des effets
+  // nocifs de la cible rend proposables, entre les coups de CHAQUE sort, les
+  // effets qui ne font que compter (voir `effetsEntreCoupsDuSort`).
+  const lecteurMonstre = monstreLitLeCompteDesDebuffs(detail);
   for (const c of detail.competences) {
     const p = skillDamageProfile(c);
-    if (p) out.push(p);
+    if (!p) continue;
+    if (lecteurMonstre && estPrisEnCharge(p) && !p.sequenceDeCoups && !litLeCompteDesDebuffs(p)) {
+      out.push({ ...p, effetsEntreCoups: effetsEntreCoupsDuSort(c, p.hitsRange?.max ?? p.hits, true) });
+    } else out.push(p);
   }
   out.push(...sortsDeLAutreForme(detail));
   out.push(...sortsEnModeAuxiliaire(detail));
@@ -5555,11 +5768,31 @@ function coupsEnPlusActifs(
       if (combat) extra += coupsParTranche(combat.atk, combat.atkBase, c.tranchePct, c.coupsEnPlus ?? 0);
       continue;
     }
-    if (c.coupsEnPlus && conditionCombatActive(c, setup, profile.skillCom2usId, null, setup.enemyHpPct, combat)) {
+    if (
+      c.coupsEnPlus &&
+      (conditionCombatActive(c, setup, profile.skillCom2usId, null, setup.enemyHpPct, combat) ||
+        (c.type === 'debuffCiblePresent' && poseAvantLesCoupsEnPlus(profile, setup)))
+    ) {
       extra += c.coupsEnPlus;
     }
   }
   return extra;
+}
+
+/**
+ * Le scénario des poses entre les coups pose-t-il un effet nocif pendant les
+ * coups de BASE du sort (au plus tard après son dernier coup de base) ? Alors
+ * la cible en porte un quand viennent les coups en plus « contre une cible
+ * affligée » (Whirlpool de Tanjiro : le Gel du coup 1 donne deux coups de
+ * plus). Sans scénario actif : non, rien n'est supposé posé.
+ */
+function poseAvantLesCoupsEnPlus(profile: SkillDamageProfile, setup: DamageSetup): boolean {
+  const scenario = setup.scenariosEffetsEntreCoups?.[profile.skillCom2usId];
+  if (!scenario?.actif || !profile.effetsEntreCoups?.length) return false;
+  return profile.effetsEntreCoups.some((effet) => {
+    const rang = scenario.apresCoup?.[effet.id];
+    return rang != null && rang >= 1 && rang <= profile.hits && (!effet.coups || effet.coups.includes(rang));
+  });
 }
 
 /**
@@ -7010,11 +7243,14 @@ function calculerChronologie(
   for (let i = 1; i <= coups; i++) {
     resultats.push(setupCoup);
     for (const effet of effetsEntreCoups) {
-      if (scenario.apresCoup?.[effet.id] !== i) continue;
+      // Une pose à un rang que le sort n'a pas (recette importée, données
+      // régénérées) n'a pas lieu.
+      if (scenario.apresCoup?.[effet.id] !== i || (effet.coups && !effet.coups.includes(i))) continue;
       const dejaPresent = presents.has(effet.id);
       if ((effet.cumulable || !dejaPresent) && !effet.effetCombat) {
         const comptes = { ...(setupCoup.effetsCibleCount ?? {}) };
-        for (const key of clesDebuffs) comptes[key] = Math.min(plafondCompte(key), Math.max(0, comptes[key] ?? 0) + 1);
+        const ajout = effet.cumulable ? effet.nombre ?? 1 : 1;
+        for (const key of clesDebuffs) comptes[key] = Math.min(plafondCompte(key), Math.max(0, comptes[key] ?? 0) + ajout);
         setupCoup = { ...setupCoup, effetsCibleCount: comptes };
       }
       presents.add(effet.id);

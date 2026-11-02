@@ -152,6 +152,7 @@ import testRechargement from './rechargement.test';
 import testCollabPaires from './collab-paires.test';
 import testDegats, { testFormesEquivalentes } from './degats.test';
 import testAuditDegatsConditionnels from './audit-degats-conditionnels.test';
+import { testInventaireEffetsEntreCoups, testEffetsPosablesConnus, testEffetsEntreCoupsRegle } from './degats-effets-entre-coups.test';
 import { testCritiqueMoyenneImport, testCritiqueMoyenneEcranEtCli, testCritiqueMoyenneMessageImport } from './critique-moyenne-supprime.test';
 import {
   testDegatsTempestFormule,
@@ -370,6 +371,7 @@ import { testRenduBarreSession } from './rendu/barre-session.test';
 import { testRenduChangementCompte } from './rendu/changement-compte.test';
 import { testRenduIcones } from './rendu/icones.test';
 import { testRenduAttaqueConjointeEcran } from './rendu/attaque-conjointe-ecran.test';
+import { testRenduEffetsEntreCoupsEcran } from './rendu/effets-entre-coups-ecran.test';
 import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense, testRenduRecosTicks, testRenduRecosAnnulerEdition, testRenduRecosStatsEnTotal } from './rendu/recos.test';
 import testAnnulerEdition from './annuler-edition.test';
 import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testRenduRunesComparaison, testRenduRunesOptimisation, testRenduRunesAVenir, testRenduRunesFiltresLigne, testRenduRunesTriOnglets, testRenduRunesResumeSouris, testRenduRunesListeSouris, testRenduRunesVuesSouris } from './rendu/runes.test';
@@ -660,6 +662,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduChangementCompte', testRenduChangementCompte],
   ['testRenduIcones', testRenduIcones],
   ['testRenduAttaqueConjointeEcran', testRenduAttaqueConjointeEcran],
+  ['testRenduEffetsEntreCoupsEcran', testRenduEffetsEntreCoupsEcran],
   ['testRenduRtaPrepa', testRenduRtaPrepa],
   ['testRenduRtaMenu', testRenduRtaMenu],
   ['testRenduRtaVide', testRenduRtaVide],
@@ -714,6 +717,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testCollabPaires', testCollabPaires],
   ['testDegats', testDegats],
   ['testAuditDegatsConditionnels', testAuditDegatsConditionnels],
+  ['testInventaireEffetsEntreCoups', testInventaireEffetsEntreCoups],
+  ['testEffetsPosablesConnus', testEffetsPosablesConnus],
+  ['testEffetsEntreCoupsRegle', testEffetsEntreCoupsRegle],
   ['testCritiqueMoyenneImport', testCritiqueMoyenneImport],
   ['testCritiqueMoyenneEcranEtCli', testCritiqueMoyenneEcranEtCli],
   ['testCritiqueMoyenneMessageImport', testCritiqueMoyenneMessageImport],

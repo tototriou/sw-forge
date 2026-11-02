@@ -178,9 +178,26 @@ codée porte « Calcul partiel »
   (`src/lib/damage.ts`) est vide, le calcul compte un coup. Ses homonymes
   jouables `1607` et `1609` portent `coups: 4`
   (`tests/degats-coups-saisis.test.ts`).
-- **Idée** : l'entrée `1618: 2` dans `COUPS_FIXES_CORRIGES_PAR_ID`.
+- **Idée** : l'entrée `1618: 2` dans `COUPS_FIXES_CORRIGES_PAR_ID`. Sa
+  Réduction de DEF (`Decrease DEF` de la donnée) devient alors proposable
+  entre les coups sans autre curation (`effetsEntreCoupsDuSort`).
 - **Bloque** : un relevé, les nombres de dégâts affichés sur la cible :
   deux → 2 coups, un → la donnée dit vrai.
+
+### Splash Splash de Noctaris : un coup en donnée, trois ou quatre en prose
+
+- **Constat** : Splash Splash (`25815`, Noctaris `36715`) « Attacks the enemy
+  to stun for 1 turn and leave a Branding effect for 2 turns. Afterwards,
+  attacks random enemies 2 to 3 times » porte `coups: 1` et un effet
+  `Additional Attack` ; le calcul compte un coup, et la Marque du coup 1
+  (note « 1st hit ») ne peut rien majorer.
+- **Idée** : une plage de 3 à 4 coups (`COUPS_VARIABLES_PAR_ID_CONNUS`), les
+  coups en plus portés « au hasard » comme les autres sorts de ce cas
+  (« Plages de coups à relever et coups « au hasard » », plus haut). La Marque
+  devient alors proposable au coup 1 sans autre curation.
+- **Bloque** : un relevé sur une cible seule : le nombre de dégâts affichés
+  (3 ou 4 → la plage), et le rapport d'un coup en plus au premier (≈ 1 → même
+  formule, sinon la formule de l'`Additional Attack`).
 
 ### Séquences à valeur relevée
 
@@ -233,27 +250,28 @@ codée porte « Calcul partiel »
   (±1 %) malgré B → copie ; sinon recalcul par cible ; Crush : D_B critique
   → copie, et la ligne 224 porte-t-elle sur son coup principal ?
 
-### Poses entre les coups : rang, buff posé par le sort, Eightfold
+### Poses entre les coups : buff posé par le sort, Eightfold, bonus du coup 2
 
-- **Constat** : le sélecteur de pose propose tous les rangs, même un coup
-  qui ne pose rien (Crushed Hopes `10413`, `EFFETS_ENTRE_COUPS_PAR_ID_CONNUS`,
-  `src/lib/damage.ts`). Eightfold (`21607`, `21609`, `22207`, `22209`) ne
-  compte pas son +50 % quand la jauge d'attaque de la cible est à 0. La
-  Marque d'Axe Technique of the Mercenary Queen (`18007`, `18009`) n'est que
-  dans la prose : non curée.
-- **Idée** : ne proposer que les coups qui posent l'effet. Eightfold : à
-  partir du coup choisi, comme l'ignore DEF des Blade Dancers
-  ([02-app/degats-reels/](../02-app/degats-reels/)). Un buff que le sort se
-  pose : un interrupteur allumé par défaut quand ce sort est choisi.
-  Hairpin: Black Flash et Exorcist Shuriken Formation (`20315`, `20915`,
-  Nobara et Aya ténèbres) : +100 % au seul coup 2 si la cible porte un
-  effet nocif, comme le disent la donnée et la prose.
+- **Constat** : Eightfold (`21607`, `21609`, `22207`, `22209`) ne compte pas
+  son +50 % quand la jauge d'attaque de la cible est à 0. Hairpin: Black
+  Flash et Exorcist Shuriken Formation (`20315`, `20915`, Nobara et Aya
+  ténèbres) proposent la Réduction de DEF de leur coup 1
+  (`effetsEntreCoupsDuSort`, `src/lib/damage.ts`), sans leur +100 % au seul
+  coup 2 si la cible porte un effet nocif. Fast Link (`13606`, `13607`,
+  `13610`) pose sa Réduction de DEF au coup 1, celui de la bête, sans relevé.
+  Un effet posé au dernier coup n'est jamais proposé, même quand un passif
+  qui suit le sort le lirait.
+- **Idée** : Eightfold : à partir du coup choisi, comme l'ignore DEF des
+  Blade Dancers ([02-app/degats-reels/](../02-app/degats-reels/)). Un buff
+  que le sort se pose : un interrupteur allumé par défaut quand ce sort est
+  choisi. Nobara et Aya : +100 % au coup 2, lu sur l'état après le coup 1,
+  comme le disent la donnée et la prose.
 - **Bloque** : un changement de code, et des relevés. Buff posé par le
   sort : la prose le place avant l'attaque ; un relevé (monstre déjà sous
   ce buff puis sans, environ 1,00 → actif avant) seulement en cas de doute.
   Barbara contre ~3 000 de DEF et 4 buffs : coup 2 / coup 1 très au-dessus
   de 1 → la cavalière est le coup 2 ; Savannah sous k débuffs : environ
-  1 + 0,15k. Solveig ou Berghild : l'icône de Marque après le sort. Hellfire sans puis
+  1 + 0,15k. Hellfire sans puis
   avec Brise DEF (~1 500 de DEF) : environ 1 → la Brise DEF précède le
   coup, environ 2,36 → après.
 
@@ -295,16 +313,6 @@ codée porte « Calcul partiel »
   lancer. Coup k / coup 1 constant → aucune escalade ; croissance régulière
   → l'incrément. Pour Baleygr, compter aussi les coups selon le nombre de
   Connaissances.
-
-### Effets entre coups hors inventaire
-
-- **Constat** : `EFFETS_ENTRE_COUPS_CONNUS` et
-  `EFFETS_ENTRE_COUPS_PAR_ID_CONNUS` (`src/lib/damage.ts`) ne portent que
-  des sorts examinés un par un ; deux familles hors de l'inventaire de
-  l'audit, de l'ordre de 200 et de 80 sorts, restent à trier.
-- **Idée** : les trier par un balayage du corpus, puis curer par
-  identifiant ce qui pèse sur un total.
-- **Bloque** : le triage, à refaire sur `public/data/skills/`.
 
 ## Ajouter une piste
 

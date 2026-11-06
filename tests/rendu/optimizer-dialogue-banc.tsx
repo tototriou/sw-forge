@@ -27,21 +27,21 @@ const especeDe = (i: number) => String(box[i].monster.com2usId);
 const autre: EquipeOptimizer = { id: 'autre', listId: 'a', members: membres.slice(-2), lead: null };
 const cible: EquipeOptimizer = { id: 'cible', listId: 'a', members: membres.slice(0, 3),
   lead: { stat: 'HP', amount: 44, area: 'Arena', element: null }, leader: membres[0] };
-let listes: UseOptimizerLists, root: Root, fermee = false;
+let listes: UseOptimizerLists, root: Root, fermee = false, versMesEquipes: EquipeOptimizer | null = null;
 
 function Banc({ modification }: { modification: boolean }) {
   listes = useOptimizerLists();
   const [ouvert, setOuvert] = useState(true);
   return ouvert ? <OptimizerEquipeDialog contexte={listes} listId="a" equipe={modification ? cible : null}
     data={{ box, rtaEntries: {}, siegeDefenseTeams: [], siegeOffenseTeams: [], monsterById: new Map([['101', espece]]) }}
-    onValider={listes.setTeams} onClose={() => { fermee = true; setOuvert(false); }} /> : <p>Dialogue fermé</p>;
+    onValider={listes.setTeams} onClose={() => { fermee = true; setOuvert(false); }} onEnregistrerMesEquipes={e => { versMesEquipes = e; }} /> : <p>Dialogue fermé</p>;
 }
 async function geste(action: () => void) {
   flushSync(action); await new Promise(r => setTimeout(r, 0)); flushSync(() => {});
 }
 export async function preparer(modification = false, avecReferences = false) {
   if (root) await geste(() => root.unmount());
-  fermee = false; localStorage.clear(); setPersistence(true);
+  fermee = false; versMesEquipes = null; localStorage.clear(); setPersistence(true);
   localStorage.setItem('swblacksmith-optimizer-lists-v1', JSON.stringify({
     lists: [{ id: 'a', name: 'Alpha' }, { id: 'b', name: 'Bêta' }], activeListId: 'a', validated: [],
     members: ['a', 'b'].flatMap(listId => [...membres, ...(avecReferences ? references : [])].map(selector => ({ listId, selector }))),
@@ -160,6 +160,15 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     const fin = mesurer();
     verifier(fixes.every(i => JSON.stringify(avant[i]) === JSON.stringify(fin[i])), 'les positions fixes restent identiques jusqu’au bas de la liste');
     verifier(document.documentElement.scrollWidth <= window.innerWidth, 'aucun débordement horizontal');
+  } else if (nom === 'mes-equipes') {
+    await preparer(false);
+    verifier(!bouton('Enregistrer dans Mes équipes'), 'création : pas d’enregistrement dans Mes équipes avant que l’équipe existe');
+    await preparer(true);
+    await cocher(3);
+    await geste(() => bouton('Enregistrer dans Mes équipes').click());
+    const publiee = listes.teams.find(e => e.id === 'cible')!;
+    verifier(fermee && publiee.members.length === 4, 'le brouillon est appliqué à l’équipe et le dialogue fermé');
+    verifier(versMesEquipes?.id === 'cible' && versMesEquipes.members.length === 4, 'Mes équipes reçoit l’équipe telle qu’enregistrée');
   } else throw new Error(`Scénario de dialogue inconnu : ${nom}`);
   return preuves;
 }

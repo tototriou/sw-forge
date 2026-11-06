@@ -57,6 +57,7 @@ export const COULEUR_COMPTE_SUB = {
   monstres: '#E86A8C',
   runes: '#4AD8D8',
   artefacts: '#E08A3C',
+  equipes: '#7C9CF2',
 } as const;
 
 // ⚠️ **Variante THÈME CLAIR de chaque couleur ci-dessus** (le mainteneur, sur une
@@ -82,6 +83,7 @@ export const TEINTE_CLAIRE: Record<string, string> = {
   '#4AD8D8': '#2E8686', // compte, runes
   '#E86A8C': '#C15874', // monstres
   '#E08A3C': '#AC6A2E', // artefacts
+  '#7C9CF2': '#637DC2', // equipes
   '#FFA94D': '#A66E32', // outils
   '#F2C24C': '#94762E', // arene
   '#2FA0E0': '#2682B5', // bestiary

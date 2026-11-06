@@ -99,7 +99,7 @@ tous les autres dans n'importe quelle analyse de dépendances.
 | Accueil | `#/` | `src/pages/HomePage.tsx` | `ElementIcon`, `src/data/releases.ts` | [accueil/](../02-app/accueil/README.md) |
 | **RTA** | `#/rta`, `#/rta/ami` | `src/pages/RtaPage.tsx` | tout `src/components/rta/` | [rta/](../02-app/rta/README.md) |
 | **Siège** | `#/siege/defense`, `/offense`, `/recommandations` | `src/pages/SiegePage.tsx` | tout `src/components/siege/` | [siege/](../02-app/siege/README.md) |
-| **Mon compte** | `#/compte`, `/runes`, `/artefacts` | `src/pages/AccountPage.tsx` | tout `src/components/account/` | [compte/](../02-app/compte/README.md) |
+| **Mon compte** | `#/compte`, `/runes`, `/artefacts`, `/equipes` | `src/pages/AccountPage.tsx` ; « Mes équipes » : `EquipesSection`, rendue par `App.tsx` avant elle | tout `src/components/account/` | [compte/](../02-app/compte/README.md) |
 | **Outils** | `#/outils/optimizer`, `/speed-tuning` | `src/pages/OutilsPage.tsx` | tout `src/components/outils/` | [outils/](../02-app/outils/README.md), [optimizer/](../02-app/optimizer/README.md), [speed-tuning/](../02-app/speed-tuning/README.md), [degats-reels/](../02-app/degats-reels/README.md) |
 | Bestiaire | `#/bestiary` | `src/pages/BestiaryPage.tsx` | `MonsterGrid`, `FilterBar`, `SearchBar`, `MonsterDetailDialog`, `Pager` | [bestiaire/](../02-app/bestiaire/README.md) |
 | Paramètres | `#/parametres` | `src/pages/SettingsPage.tsx` | `SettingsMenu`, `AccountImportControl` | [feat-navigation/compte-et-parametres.md](../02-app/transverse/feat-navigation/compte-et-parametres.md) |
@@ -141,9 +141,13 @@ dans la carte).
 sont les deux racines ; dessous : `RunesList`, `RunesSummary` + `BuildsRapides`, `RunesCurve` +
 `CurveChart` + `curveColors`, `RunesCompare`, `RunesOptim`, `SetFilter`, `SlotFilter`,
 `SubSearchBar` + `SubSearchDialog`, `Pager`, `SummaryBits`, `ArtifactsList`, `ArtifactsSummary`,
-`ArtifactsTop`.
+`ArtifactsTop` ; « Mes équipes » dans `src/components/account/equipes/` : `EquipesSection` (racine), `CarteEquipe`,
+`DetailEquipe`, `AjoutMonstreModale`, `ImportEquipeModale`.
 Lib `accountStore` (IndexedDB), `accountViews`, `runeSort`, `runeOptim`, `buildsRapides`,
-`artifactsTop`, `monsterSort`, `crafts`.
+`artifactsTop`, `monsterSort`, `crafts` ; « Mes équipes » : `equipesEnregistrees` (modèle pur),
+`equipesStore` (sa base IndexedDB), `equipesFichier`, `sourcesEquipesEnregistrees` (équipement d'un
+monstre ajouté, imports), `importEquipesEnregistrees` (aller-retour avec l'Optimizer) ; hook
+`useEquipesEnregistrees`.
 
 **Optimizer** — dans `src/components/outils/` : `OptimizerSection.tsx` (racine),
 `MonsterSourcePicker` (recherche — deux modes, bestiaire ou compte réel), `OptimizerListPicker`
@@ -324,7 +328,8 @@ Fonctions **pures**, testables sans rendu. C'est ici que va toute logique, jamai
 | Tri | `tri.ts` (le SENS d'un tri, partagé par toutes les listes) |
 | Artéfacts | `artifacts.ts` |
 | Dégâts réels | `damage.ts` ([degats-reels/](../02-app/degats-reels/README.md)) |
-| Import de compte | `importAccount.ts` (parse SWEX), `applyAccount.ts` (→ états), `accountStore.ts` (IndexedDB), `accountViews.ts` |
+| Import de compte | `importAccount.ts` (parse SWEX, decks d'arène compris), `applyAccount.ts` (→ états), `accountStore.ts` (IndexedDB), `accountViews.ts` |
+| Mes équipes | `equipesEnregistrees.ts` (modèle, comparaison au compte, opérations), `equipesStore.ts` (IndexedDB `swblacksmith-equipes`), `equipesFichier.ts` (format `swblacksmith/equipes`), `sourcesEquipesEnregistrees.ts` (sources d'équipement et d'import), `importEquipesEnregistrees.ts` (export vers l'Optimizer et mise à jour au retour) |
 | Monstres | `monsterForms.ts`, `monsterSkills.ts`, `monsterSort.ts`, `collabPairs.ts` |
 | Siège / recos | `recoMatch.ts`, `recoSearch.ts`, `recoShare.ts`, `recoFromSiege.ts`, `recoDefenses.ts`, `recoFusion.ts` (import qui fusionne dans la recommandation qu'il complète), `ownedBuilds.ts`, `annulerEdition.ts` (« Annuler les modifications » d'une reco ou d'un deck en édition), `reinsererA.ts` (« Annuler » une suppression : l'élément revient à sa place, équipes et recos) |
 | Optimizer — listes et équipes | `optimizerMemberStorage.ts` (stockage indépendant des membres, de leurs identités et des équipes ; contenu de liste), `equipesOptimizer.ts` (équipes, lead effectif d'un membre selon le contenu), `criteresOptimizer.ts` (classement des champs en critères personnels du membre ou globaux), `optimizerCriteriaOwner.ts` (à quel membre appartiennent les critères affichés), `optimizerRattachement.ts` (re-rattachement des membres et revérification au réimport du compte), `optimizerBackup.ts` (point de sauvegarde des listes), `optimizerListNames.ts` (premier nom « Liste N » libre), `combatListeOptimizer.ts` + `competencesInvocateur.ts` (le contenu de la liste décide des compétences d'invocateur ; lecture commune de ce réglage) |

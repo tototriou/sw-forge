@@ -16,6 +16,11 @@ import {
 // Le lecteur des listes historiques ignore cette clé et ne peut pas la réécrire.
 export const OPTIMIZER_MEMBERS_STORAGE_KEY = 'swblacksmith-optimizer-members-v1';
 export type ContenuListeOptimizer = 'guilde' | 'donjon' | 'arene';
+// Une équipe de l'Optimizer compte 2 à 6 membres (6 : décision de l'utilisateur,
+// pour les équipes de raid et les équipes complètes de Mes équipes).
+export const MEMBRES_MIN_EQUIPE_OPTIMIZER = 2;
+export const MEMBRES_MAX_EQUIPE_OPTIMIZER = 6;
+
 export interface EquipeOptimizer {
   id: string;
   listId: string;
@@ -119,7 +124,7 @@ export function validerEquipesOptimizer(valeur: unknown, t: Dictionnaire): { tea
   if (!Array.isArray(valeur)) return { teams, rejets: valeur === undefined ? [] : [valeur], rapport: [r.equipesIllisibles] };
   const ids = new Set<string>(), affectes = new Set<string>();
   for (const [index, v] of valeur.entries()) {
-    if (!objet(v) || !texte(v.id) || !texte(v.listId) || !Array.isArray(v.members) || v.members.length < 2 || v.members.length > 5
+    if (!objet(v) || !texte(v.id) || !texte(v.listId) || !Array.isArray(v.members) || v.members.length < MEMBRES_MIN_EQUIPE_OPTIMIZER || v.members.length > MEMBRES_MAX_EQUIPE_OPTIMIZER
       || !v.members.every(selecteurValide) || !leadValide(v.lead)
       || (v.leader !== undefined && (!selecteurValide(v.leader) || !v.members.some((s) => exclusionSelectorKey(s) === exclusionSelectorKey(v.leader as ExclusionSelector))))) {
       rejets.push(v); rapport.push(r.equipeMalformee(index + 1)); continue;

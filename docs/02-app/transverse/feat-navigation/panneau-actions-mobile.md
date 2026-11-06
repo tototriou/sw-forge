@@ -75,6 +75,7 @@ reste :
 | Mon compte → Monstres | Recherche et tri | Élément, étoiles, doublons, 2A |
 | Mon compte → Runes → Liste | Le compteur et la pagination | Sets, slots, antiques, propriété secondaire, tri |
 | Mon compte → Artéfacts → Liste | Le compteur et la pagination | Catégorie, sous-filtre, stat principale, propriétés |
+| Mon compte → Mes équipes | Les onglets, la recherche, « Nouvelle équipe » | Importer une équipe, exporter et importer le fichier |
 
 ⚠️ **Le bouton dépend de l'ÉCRAN, pas de la page** (`pageAPanneau` dans
 `App.tsx`). Sur « Mon compte », seules les vues en *liste* ont des filtres : le

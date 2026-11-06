@@ -4,7 +4,7 @@ import { appliquerCriteres, baseCompleteCriteres, type LeadEffectifOptimizer } f
 import { LEADER_SKILL_STATS, type DamageSetup, type LeaderSkillStat } from './damage';
 import { exclusionSelectorKey, resolveExclusionEntry, type ExclusionSelector, type ExclusionSourceData } from './optimizerExclusion';
 import {
-  cleMemoireMembre, enregistrerMemoireMembre, validerEquipesOptimizer,
+  MEMBRES_MAX_EQUIPE_OPTIMIZER, MEMBRES_MIN_EQUIPE_OPTIMIZER, cleMemoireMembre, enregistrerMemoireMembre, validerEquipesOptimizer,
   type ContenuListeOptimizer, type EquipeOptimizer, type StockageOptimizer,
 } from './optimizerMemberStorage';
 
@@ -200,8 +200,8 @@ export function equipeApresFiltrageOptimizer(
 ): { equipe: EquipeOptimizer | null; rapport: string[] } {
   const r = t.optimizer.rapportsEquipe;
   const nombre = creation.members.length;
-  if (nombre < 2 || nombre > 5) {
-    const raison = nombre === 0 ? r.aucunMembre : nombre === 1 ? r.unSeulMembre : r.plusDeCinq;
+  if (nombre < MEMBRES_MIN_EQUIPE_OPTIMIZER || nombre > MEMBRES_MAX_EQUIPE_OPTIMIZER) {
+    const raison = nombre === 0 ? r.aucunMembre : nombre === 1 ? r.unSeulMembre : r.plusDeSix;
     return { equipe: null, rapport: [`${raison} ${r.aucuneEquipeCreee}`] };
   }
   const resultat = creerEquipeOptimizer(contexte, creation, t);

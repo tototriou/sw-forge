@@ -174,6 +174,7 @@ compact (`composerSession`, `ecrireSession`, `src/lib/session.ts`) :
 | `enregistreeLe`, `versionApp` | date ISO du clic ; version de l'app | — |
 | `stockage` | clé → valeur brute, pour les clés de `CLES_SESSION` : prépa RTA, ses catégories, ses deux points de retour ; siège défense et offense ; recommandations ; monstres perso ; listes de l'Optimizer ; thème, langue, score, overcap, adversaire de référence, builds les plus rapides (du JSON, relu et validé par `lireReglageBuildsRapides`) | `lireTravail` (`usePersistence.ts`) : la dernière valeur écrite par `saveLocal`, gardée en mémoire même conservation refusée (`saveLocal` n'écrit alors rien sur le disque), sinon le stockage local ; `oublierLocal` efface les deux |
 | `compte` | le compte importé (`StoredAccount`, schéma 7), ou `null` | le compte en mémoire de `App.tsx`, pas IndexedDB |
+| `equipes` | les équipes de « Mes équipes » ([feat-equipes.md](../compte/feat-equipes.md)) ; absent d'une session plus ancienne, relu comme un tableau vide | `useEquipesEnregistrees` (`App.tsx`), en mémoire, pas IndexedDB |
 | `outils.memoire` | clé → valeur de chaque `useStickyState`, sauf `STICKY_HORS_SESSION` (`sidebar.retractee`, `mobileNotice.ferme`, `ecranPartage.volets`) | `photographierMemoire` (`useStickyState.ts`) |
 | `outils.optimizer` | les champs `CHAMPS_OPTIMIZER_SESSION` de `useOptimizerState` : monstre choisi et son exemplaire, set, conditions min/max, principales imposées, runes imposées, sous-propriétés verrouillées, artéfacts, relique, objectif et réglages de combat, exclusions, réglages avancés, tri | `photoOptimizer` (`sessionOptimizer.ts`) |
 
@@ -223,7 +224,8 @@ plus que par la colonne VIT) s'y relit `spd`, sans avertissement, par
   `light`, `dark` ; score `eff`, `score` ; overcap et adversaire `0`, `1` ;
   le reste du JSON, sauf le texte opaque du point de sauvegarde Optimizer).
 - **Lu, avec un avertissement** : un compte qui ne passe pas `compteValide`
-  (schéma périmé) devient `null` ; un `outils.optimizer` qui n'est pas un
+  (schéma périmé) devient `null` ; une équipe qui ne passe pas
+  `lireEquipeEnregistree` est laissée ; un `outils.optimizer` qui n'est pas un
   objet devient `null`.
 - **Ignoré** : un champ inconnu ; une clé de stockage hors `CLES_SESSION` ;
   une clé de mémoire de `STICKY_HORS_SESSION` ; dans l'Optimizer, un champ

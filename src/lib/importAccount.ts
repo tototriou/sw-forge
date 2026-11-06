@@ -1219,3 +1219,73 @@ export function parseSiegeOffense(src: AccountSource, t: Dictionnaire): SiegePar
   }
   return { decks };
 }
+
+/* --------------------------------------------------------------------------
+ * Import DECKS D'ARÈNE — défenses et attaques
+ *
+ * Sources de « Mes équipes » (docs/02-app/compte/feat-equipes.md, « Imports ») :
+ *  - Défenses : `defense_deck_info` (arène) et `server_arena_defense_deck_info`
+ *    (arène de serveur), chacune avec son propre preset dans `equip`. ⚠️ Leurs
+ *    `unit_id_list` n'ont pas la même forme : ids nus, ou `{ unit_id, pos_id }`.
+ *  - Attaques : `deck_list` au `deck_type` 1 ; un monstre sans preset dans
+ *    `equip` prend ce qu'il porte à l'export (même règle que les runes utilisées).
+ * ----------------------------------------------------------------------- */
+
+export type CleDeckArene = 'defense' | 'defense-serveur' | 'attaque';
+
+export interface SlotDeckArene {
+  unitId: number;
+  com2usId: number;
+  gear: GearSet;
+}
+
+export interface DeckArene {
+  cle: CleDeckArene;
+  // Rang du deck parmi ceux de sa clé (0 pour une défense).
+  rang: number;
+  // Leader en tête quand l'export le désigne.
+  slots: SlotDeckArene[];
+}
+
+export function parseArenaDecks(src: AccountSource): DeckArene[] {
+  const data = parseAccountSource(src);
+  if (!data || !Array.isArray(data?.unit_list)) return [];
+  const runeById = indexRunes(data);
+  const unitById = indexUnits(data);
+  const artById = indexArtifacts(data);
+  const markers = indexRuneMarkers(data);
+
+  const slot = (uid: number, presets: Map<number, any[]> | null, artefacts: Map<number, any[]> | null): SlotDeckArene | null => {
+    const unit = unitById.get(uid);
+    const com2usId = Number(unit?.unit_master_id);
+    if (!unit || !Number.isFinite(com2usId)) return null;
+    const preset = presets?.get(uid);
+    // Un preset présent fait foi, même vide (comme les decks de siège) ;
+    // sans entrée, ce que porte le monstre.
+    const avecPreset = preset !== undefined;
+    const runeIds = avecPreset ? preset : Array.isArray(unit.runes) ? unit.runes.map((r: any) => r?.rune_id) : [];
+    const artIds = avecPreset ? artefacts?.get(uid) ?? [] : null;
+    const artObjs = artIds ? artIds.map((a) => artById.get(Number(a))).filter(Boolean) : Array.isArray(unit.artifacts) ? unit.artifacts : [];
+    return { unitId: uid, com2usId, gear: buildGear(unit, runeIds, artObjs, runeById, markers) };
+  };
+  const ids = (liste: any[]): number[] =>
+    liste.map((u) => Number(u && typeof u === 'object' ? u.unit_id : u)).filter((x) => Number.isFinite(x) && x !== 0);
+
+  const decks: DeckArene[] = [];
+  for (const [cle, champ] of [['defense', 'defense_deck_info'], ['defense-serveur', 'server_arena_defense_deck_info']] as const) {
+    const info = data?.[champ];
+    if (!info || typeof info !== 'object' || !Array.isArray(info.unit_id_list)) continue;
+    const slots = ids(info.unit_id_list).map((u) => slot(u, equipArrayToMap(info.equip), equipArtifactMap(info.equip)))
+      .filter((s): s is SlotDeckArene => s !== null);
+    if (slots.length) decks.push({ cle, rang: 0, slots });
+  }
+  const attaques = (Array.isArray(data?.deck_list) ? data.deck_list : []).filter((dk: any) => Number(dk?.deck_type) === ARENA_OFFENSE_DECK_TYPE);
+  attaques.forEach((dk: any) => {
+    const tous = ids(Array.isArray(dk?.unit_id_list) ? dk.unit_id_list : []);
+    const lead = Number(dk?.leader_unit_id);
+    const ordre = Number.isFinite(lead) && lead !== 0 ? [lead, ...tous.filter((x) => x !== lead)] : tous;
+    const slots = ordre.map((u) => slot(u, equipArrayToMap(dk?.equip), equipArtifactMap(dk?.equip))).filter((s): s is SlotDeckArene => s !== null);
+    if (slots.length) decks.push({ cle: 'attaque', rang: decks.filter((d) => d.cle === 'attaque').length, slots });
+  });
+  return decks;
+}

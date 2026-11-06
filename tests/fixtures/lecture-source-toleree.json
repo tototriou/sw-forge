@@ -606,6 +606,27 @@
       "statut": "stock"
     },
     {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/lib/equipes*",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Motif de sélection de l’écran Mes équipes du banc d’affichage ; aucune lecture de source."
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/lib/sourcesEquipesEnregistrees",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Motif de sélection de l’écran Mes équipes du banc d’affichage ; aucune lecture de source."
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/hooks/useEquipesEnregistrees",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Motif de sélection de l’écran Mes équipes du banc d’affichage ; aucune lecture de source."
+    },
+    {
       "fichier": "tests/banc/selection.ts",
       "cible": "src/",
       "occurrences": 1,

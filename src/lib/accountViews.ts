@@ -55,6 +55,8 @@ export const VUES_INVENTAIRE: Record<AccountSub, VueInventaire[]> = {
   monstres: MONSTRES,
   runes: RUNES,
   artefacts: ARTEFACTS,
+  // Une seule vue, comme les monstres : la page des équipes elle-même.
+  equipes: [{ key: 'liste', texte: 'mesEquipes', icon: List }],
 };
 
 // Vue par défaut d'un inventaire : la première de sa liste.

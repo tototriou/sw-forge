@@ -1,10 +1,11 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Wrench } from 'lucide-react';
 import { ArtifactDetail, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../types';
 import { BoxItem } from '../lib/applyAccount';
 import { LoadState } from '../hooks/useMonsters';
 import { OptimizerState } from '../hooks/useOptimizerState';
 import { UseOptimizerLists } from '../hooks/useOptimizerLists';
+import type { EquipeOptimizer } from '../lib/optimizerMemberStorage';
 import { ToolSub } from '../App';
 import OptimizerSection from '../components/outils/OptimizerSection';
 import SpeedTuningSection from '../components/outils/SpeedTuningSection';
@@ -57,12 +58,14 @@ interface Props {
   // props ci-dessus.
   onOuvrirMenu: () => void;
   onMonstreHorsVue?: (monstre: Monster | null) => void;
+  // « Enregistrer dans Mes équipes », sur chaque équipe de l'Optimizer.
+  onEnregistrerEquipe?: (equipe: EquipeOptimizer) => void;
 }
 
 // Shell fin, miroir d'AccountPage.tsx : un seul outil aujourd'hui
 // (Optimizer), structuré pour en accueillir d'autres sans retoucher la nav
 // ni ce fichier (ajouter une branche = ajouter un outil).
-export default function OutilsPage({ recommandations, sub, box, runes, artifacts, relics, relicUsageById, loadState, hydrating, optimizer, onImporterEquipe, onExporterEquipe, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu, onMonstreHorsVue }: Props) {
+export default function OutilsPage({ recommandations, sub, box, runes, artifacts, relics, relicUsageById, loadState, hydrating, optimizer, onImporterEquipe, onExporterEquipe, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu, onMonstreHorsVue, onEnregistrerEquipe }: Props) {
   // Speed tuning ne dépend PAS d'un compte importé : on ajoute n'importe quel
   // monstre du bestiaire et on saisit sa vitesse de runes à la main. Il passe
   // donc AVANT la garde « aucune donnée de compte » (propre à l'Optimizer).
@@ -119,6 +122,7 @@ export default function OutilsPage({ recommandations, sub, box, runes, artifacts
     <div>
       {sub === 'optimizer' && (
         <OptimizerSection
+          onEnregistrerEquipe={onEnregistrerEquipe}
           recommandations={recommandations}
           box={box}
           runes={runes}

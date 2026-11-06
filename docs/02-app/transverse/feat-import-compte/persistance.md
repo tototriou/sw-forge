@@ -26,7 +26,7 @@ IndexedDB n'a aucun de ces défauts, et son **structured clone** évite le
 ### Ce qu'on stocke
 
 Une base `swblacksmith`, un store `account`, **une clé fixe** `current` :
-`{ schema, savedAt, box, runes, artifacts, relics, crafts, usedRuneIds, relicUsageById, runeMarkerLabels }`.
+`{ schema, savedAt, box, runes, artifacts, relics, crafts, usedRuneIds, relicUsageById, runeMarkerLabels, arenaDecks? }`.
 
 - ⚠️ **Une base nommée `sw-forge` est reprise.**
   À la première ouverture, `reprendreAncienneBase` recopie son compte dans la
@@ -53,6 +53,10 @@ Une base `swblacksmith`, un store `account`, **une clé fixe** `current` :
   la lecture.
 - ⚠️ **`runeMarkerLabels` aussi** : `markers` ne vit que dans l'export brut. Le
   marqueur de chaque rune, lui, voyage dans `runes` (`RuneDetail.marker`).
+- ⚠️ **`arenaDecks` est facultatif**, sans incrément du schéma : les decks
+  d'arène (`parseArenaDecks`), sources de « Mes équipes ». Un compte conservé
+  avant ce champ se relit sans eux, et la page dit de réimporter pour les lire ;
+  l'incrément aurait rejeté tous les comptes conservés pour une source d'import.
 - `schema` (`ACCOUNT_SCHEMA`, **7**) est à **incrémenter dès qu'un extracteur
   produit un champ de plus** : un enregistrement d'un autre schéma est ignoré à
   la lecture, et l'app invite à réimporter — sinon elle afficherait des
@@ -243,6 +247,8 @@ Ce qui part :
   [usePersistence.ts](src/hooks/usePersistence.ts)) ;
 - **le compte importé**, en IndexedDB (`clearAccount()`, attendu avant le
   rechargement) ;
+- **les équipes de « Mes équipes »**, dans leur propre base IndexedDB
+  (`viderEquipes()`, attendu avec le compte) ;
 - dans l'**application de bureau**, la **session en cours** est oubliée : l'app
   repart vide, et un Ctrl+S réécrirait le fichier avec ce vide.
 

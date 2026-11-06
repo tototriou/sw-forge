@@ -358,6 +358,44 @@ const RECO_CONTRES: Cible[] = [
   { role: 'texte', nom: '— défense lente' },
 ];
 
+// « Mes équipes » remplie par ses propres imports : la défense de siège 1 du
+// compte du banc (deux monstres). Au téléphone, « Importer une équipe » vit
+// dans le panneau d'actions de la page.
+const EQ_OPTIONS: Cible = { role: 'button', nom: 'Filtres et actions de la page' };
+const EQ_SOURCES: Cible = { role: 'dialog', nom: 'Importer une équipe' };
+// La source se repère dans la modale des sources (le panneau d'actions qui
+// se referme est encore un dialogue visible) ; l'import ouvre l'onglet de
+// l'équipe et dit ce qu'il a créé, dans une modale qu'on ferme.
+const EQ_SOURCE_DEFENSE: Etape = { cliquer: repere('[role="dialog"]:has-text("Défenses de siège") [aria-label="Défense 1"]') };
+const EQ_FERMER_RAPPORT: Etape = { cliquer: repere('[role="dialog"]:has-text("créée dans") button:has-text("Fermer")') };
+const EQ_IMPORT: Record<Format, Etape[]> = {
+  telephone: [{ cliquer: EQ_OPTIONS }, { cliquer: bouton('Importer une équipe') }, EQ_SOURCE_DEFENSE, EQ_FERMER_RAPPORT],
+  ordinateur: [{ cliquer: bouton('Importer une équipe') }, EQ_SOURCE_DEFENSE, EQ_FERMER_RAPPORT],
+};
+const EQ_CARTE: Cible = { role: 'button', nom: 'Ouvrir Défense 1' };
+// L'équipe envoyée à l'Optimizer : la fenêtre de son équipe de liste porte
+// « Enregistrer dans Mes équipes », comme toute équipe de l'Optimizer.
+// Au téléphone, les équipes de la liste vivent dans « Gérer mes listes », replié.
+const EQ_LISTES_TELEPHONE: Etape = { cliquer: { role: 'button', nom: 'Gérer mes listes', etendu: false } };
+// « Enregistrer dans Mes équipes » vit dans la fenêtre de l'équipe.
+const EQ_MODIFIER: Etape = { cliquer: bouton('Modifier l’équipe') };
+const EQ_EXPORTER: Etape[] = [
+  { cliquer: { role: 'button', nom: 'Actions de l’équipe', pres: EQ_CARTE } },
+  { cliquer: repere('[role="menuitem"]:has-text("Exporter vers l’Optimizer")') },
+  // Le compte rendu de l'export, sur l'Optimizer, se ferme : on mesure la page, pas lui.
+  { attendre: repere('[role="dialog"]:has-text("Export vers l")') },
+  { cliquer: repere('[role="dialog"]:has-text("Export vers l") button[aria-label="Fermer"]') },
+];
+// Depuis l'Optimizer : la barre latérale au bureau, l'onglet « Compte » au téléphone.
+const EQ_ALLER: Record<Format, Etape[]> = {
+  telephone: [{ cliquer: { role: 'button', nom: 'Compte' } }, { cliquer: { role: 'link', nom: 'Mes équipes' } }],
+  ordinateur: [{ cliquer: { role: 'link', nom: 'Mes équipes' } }],
+};
+const EQ_LIEE: Record<Format, Etape[]> = {
+  telephone: [...EQ_ALLER.telephone, ...EQ_IMPORT.telephone, ...EQ_EXPORTER, EQ_LISTES_TELEPHONE],
+  ordinateur: [...EQ_ALLER.ordinateur, ...EQ_IMPORT.ordinateur, ...EQ_EXPORTER],
+};
+
 export const ECRANS: Ecran[] = [
   {
     id: 'accueil',
@@ -383,6 +421,14 @@ export const ECRANS: Ecran[] = [
     ],
     etats: [
       DEFAUT,
+      {
+        id: 'equipe-liee',
+        libelle: 'équipe exportée depuis Mes équipes, sa fenêtre ouverte : « Enregistrer dans Mes équipes »',
+        // Pas en écran partagé : la barre latérale y mène le volet principal.
+        tailles: ['telephone', 'ordinateur', 'bureau-portable', 'bureau-colonnes', 'conteneur-752', 'conteneur-1096'],
+        preparation: { telephone: [...EQ_LIEE.telephone, EQ_MODIFIER], ordinateur: [...EQ_LIEE.ordinateur, EQ_MODIFIER] },
+        atteint: [bouton('Enregistrer dans Mes équipes'), { role: 'dialog', nom: 'Modifier l’équipe' }],
+      },
       {
         id: 'reglages-avances',
         libelle: 'réglages avancés ouverts',
@@ -564,6 +610,52 @@ export const ECRANS: Ecran[] = [
     '#/compte/artefacts',
   ]),
   ouverture('compte-artefacts-liste', 'Mon compte — Artéfacts, Liste', '#/compte/artefacts/liste', MOTIFS_COMPTE),
+  {
+    id: 'compte-equipes',
+    libelle: 'Mon compte — Mes équipes',
+    hash: '#/compte/equipes/liste',
+    alias: ['#/compte/equipes'],
+    motifs: [...MOTIFS_COMPTE, 'src/lib/equipes*', 'src/lib/sourcesEquipesEnregistrees', 'src/hooks/useEquipesEnregistrees'],
+    etats: [
+      DEFAUT,
+      {
+        id: 'imports',
+        libelle: 'sources d’import ouvertes',
+        preparation: {
+          telephone: [{ cliquer: EQ_OPTIONS }, { cliquer: bouton('Importer une équipe') }],
+          ordinateur: [{ cliquer: bouton('Importer une équipe') }],
+        },
+        atteint: [EQ_SOURCES],
+      },
+      {
+        id: 'equipe-importee',
+        libelle: 'une défense de siège importée, dans son onglet',
+        preparation: EQ_IMPORT,
+        atteint: [EQ_CARTE],
+      },
+      {
+        id: 'detail',
+        libelle: 'détail d’une équipe ouvert',
+        preparation: { telephone: [...EQ_IMPORT.telephone, { cliquer: EQ_CARTE }], ordinateur: [...EQ_IMPORT.ordinateur, { cliquer: EQ_CARTE }] },
+        atteint: [{ role: 'textbox', nom: 'Note' }],
+      },
+      {
+        id: 'brouillon',
+        libelle: '« Nouvelle équipe » : le brouillon, avant son deuxième monstre',
+        preparation: { telephone: [{ cliquer: bouton('Nouvelle équipe') }], ordinateur: [{ cliquer: bouton('Nouvelle équipe') }] },
+        atteint: [repere('[role="status"]:has-text("deux monstres")'), bouton('Ajouter un monstre')],
+      },
+      {
+        id: 'retour-optimizer',
+        libelle: 'exportée, puis « Enregistrer dans Mes équipes » depuis son équipe de l’Optimizer',
+        preparation: {
+          telephone: [...EQ_IMPORT.telephone, ...EQ_EXPORTER, EQ_LISTES_TELEPHONE, EQ_MODIFIER, { cliquer: bouton('Enregistrer dans Mes équipes') }],
+          ordinateur: [...EQ_IMPORT.ordinateur, ...EQ_EXPORTER, EQ_MODIFIER, { cliquer: bouton('Enregistrer dans Mes équipes') }],
+        },
+        atteint: [{ role: 'dialog', nom: 'Mettre à jour depuis l’Optimizer ?' }],
+      },
+    ],
+  },
   ouverture('bestiaire', 'Bestiaire', '#/bestiary', [
     'src/pages/BestiaryPage',
     'src/components/MonsterGrid',

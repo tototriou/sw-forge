@@ -261,6 +261,8 @@ export function useOptimizerLists(): UseOptimizerLists {
       if (identifiantListeImportOccupe({ ...s, ...s.memberStorage }, activeListId)) return s;
       return { ...s, lists: [...s.lists, liste], activeListId,
         members: [...s.members, ...importe.members.filter(m => m.listId === activeListId)],
+        // Seul l'export d'une équipe de « Mes équipes » valide des builds à l'import.
+        validated: [...s.validated, ...importe.validated.filter(v => v.listId === activeListId)],
         memberStorage: { ...s.memberStorage, raw: null,
           identities: new Map([...s.memberStorage.identities, ...[...importe.identities].filter(([, m]) => m.listId === activeListId)]),
           memories: new Map([...s.memberStorage.memories, ...[...importe.memories].filter(([, m]) => m.listId === activeListId)]),

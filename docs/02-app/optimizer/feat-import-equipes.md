@@ -200,7 +200,7 @@ Il propose une liste « Speed tuning » de contenu `guilde` et une équipe
 « Ton équipe ». Toutes les lignes du camp allié sont prises, même masquées ;
 les adversaires ne sont pas exportés. Une ligne sans monstre résolu ou sans
 vitesse saisie valide est ignorée et comptée avec sa raison. Zéro est une
-vitesse saisie. Après filtrage, 0 membre ne crée rien ; 1 ou plus de 5 membres
+vitesse saisie. Après filtrage, 0 membre ne crée rien ; 1 ou plus de 6 membres
 restent sans équipe. Le rapport nomme le lead du camp appliqué à personne.
 
 Le minimum `vitesse.minimum` est la VIT de fiche :
@@ -260,7 +260,7 @@ le leader et fournit son `leaderSkill` entier, avec sa portée et son élément 
 le leader n’est pas déduit de l’ordre du deck réel. Un slot vide ne compte
 pas comme ignoré. Un monstre inconnu ou une identité inutilisable est
 ignoré avec sa raison. Après filtrage, 0 membre ne crée rien ; 1 ou plus de
-5 membres restent sans équipe, avec le lead de la source nommé comme non
+6 membres restent sans équipe, avec le lead de la source nommé comme non
 appliqué à quiconque. Le producteur n’écrit aucun lead dans les critères
 personnels.
 
@@ -344,14 +344,24 @@ le remplacement de copie n’est pas détectable.
 
 Seule une nouvelle liste et ses membres, mémoires, équipes et contenu sont ajoutés.
 Aucune liste existante, mémoire existante, équipe existante, valeur rejetée,
-contenu existant ou build validé n’est remplacé ni supprimé. Aucun build n’est validé par
-l’import ; aucune rune ni paire d’artéfacts n’est réservée.
+contenu existant ou build validé n’est remplacé ni supprimé. Les producteurs du
+siège, de la prépa RTA et des recommandations ne valident aucun build : aucune rune
+ni paire d’artéfacts n’est réservée.
+
+Seul l’export d’une équipe de « Mes équipes »
+([feat-equipes.md](../compte/feat-equipes.md)) propose des builds à valider
+(`buildsAValider`) : les 6 runes, la paire et la relique enregistrées d’un membre
+accepté. Ils se valident dans la nouvelle liste, dans leur ordre ; une rune ou un
+artéfact **présent** déjà pris par un build précédent de la proposition refuse le
+build suivant, et le rapport le dit. Une pièce absente de l’inventaire reste dans
+le build comme manquante, sans réservation. Le rapport donne les identifiants des
+équipes créées (`equipesCreeesIds`), qui fixent le lien de retour.
 
 ## Équipes et leads après filtrage
 
 Les équipes sont créées par `equipeApresFiltrageOptimizer`, après le filtrage
-des membres : 2 à 5 membres distincts, chacun dans une équipe au plus.
-Avec 0, 1 ou plus de 5 membres, aucune équipe n’est créée ; les membres
+des membres : 2 à 6 membres distincts, chacun dans une équipe au plus.
+Avec 0, 1 ou plus de 6 membres, aucune équipe n’est créée ; les membres
 acceptés restent dans la nouvelle liste. Le rapport nomme l’équipe et le
 lead de la source non appliqué, même si aucun membre ne reste. Un leader
 écarté n’est pas remplacé automatiquement.

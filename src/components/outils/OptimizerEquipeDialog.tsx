@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { Save } from 'lucide-react';
 import { Bouton, Case, Modale, Selecteur } from '../../ui';
 import { ELEMENTS, type LeaderSkill } from '../../types';
 import { LEADER_SKILL_STATS, LEADER_SKILL_VALEURS, type LeaderSkillStat } from '../../lib/damage';
 import { exclusionSelectorKey, resolveExclusionEntry, exclusionCandidatesFor, SOURCE_OPTIONS, type ExclusionSelector, type ExclusionSourceData } from '../../lib/optimizerExclusion';
-import type { EquipeOptimizer } from '../../lib/optimizerMemberStorage';
+import { MEMBRES_MAX_EQUIPE_OPTIMIZER, MEMBRES_MIN_EQUIPE_OPTIMIZER, type EquipeOptimizer } from '../../lib/optimizerMemberStorage';
 import { creerEquipeOptimizer, modifierEquipeOptimizer, dissoudreEquipeOptimizer, type ContexteEquipesOptimizer } from '../../lib/equipesOptimizer';
 import { nomStatLead } from '../siege/LeadPill';
 import ExclusionCandidateRow from './ExclusionCandidateRow';
@@ -11,13 +12,15 @@ import { SOUS_LG, useMediaQuery } from '../../hooks/useMediaQuery';
 import { useTraduction } from '../../hooks/useLangue';
 import { nomElement } from '../../i18n/jeu';
 
-export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, onValider, onClose }: {
+export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, onValider, onClose, onEnregistrerMesEquipes }: {
   contexte: ContexteEquipesOptimizer;
   listId: string;
   equipe: EquipeOptimizer | null;
   data: ExclusionSourceData;
   onValider: (teams: EquipeOptimizer[]) => void;
   onClose: () => void;
+  // « Enregistrer dans Mes équipes » : applique le brouillon, puis passe l'équipe à Mes équipes.
+  onEnregistrerMesEquipes?: (equipe: EquipeOptimizer) => void;
 }) {
   const textes = useTraduction();
   const jeu = textes.jeu;
@@ -56,13 +59,16 @@ export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, 
     : equipe?.leader && members.some(s => exclusionSelectorKey(s) === exclusionSelectorKey(equipe.leader!)) && memeEspece(equipe.leader)
       ? members.find(s => exclusionSelectorKey(s) === exclusionSelectorKey(equipe.leader!))
       : members.find(memeEspece);
-  function appliquer() {
+  function appliquer(versMesEquipes = false) {
     const proposition = { id, listId, members, lead, ...(leaderRetenu ? { leader: leaderRetenu } : {}) };
-    const resultat = equipe && members.length < 2 ? dissoudreEquipeOptimizer(contexte.teams, equipe.id, textes)
+    const resultat = equipe && members.length < MEMBRES_MIN_EQUIPE_OPTIMIZER ? dissoudreEquipeOptimizer(contexte.teams, equipe.id, textes)
       : equipe ? modifierEquipeOptimizer(contexte, proposition, textes) : creerEquipeOptimizer(contexte, proposition, textes);
     if (resultat.teams === contexte.teams) { setRapport(resultat.rapport); return; }
     onValider(resultat.teams); onClose();
+    const enregistree = versMesEquipes ? resultat.teams.find(t => t.id === id) : undefined;
+    if (enregistree) onEnregistrerMesEquipes?.(enregistree);
   }
+  const tailleValide = members.length >= MEMBRES_MIN_EQUIPE_OPTIMIZER && members.length <= MEMBRES_MAX_EQUIPE_OPTIMIZER;
   const champsLead = <>
       <label className="flex flex-col gap-1 text-xs text-ink-dim">{q.leader}
         <Selecteur aria-label={q.leaderAria} value={leaderRetenu ? leader : ''} onChange={e => {
@@ -116,10 +122,15 @@ export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, 
     actions={<>
       {equipe && <Bouton libelle={q.delier} onClick={() => { onValider(dissoudreEquipeOptimizer(contexte.teams, equipe.id, textes).teams); onClose(); }} />}
       <Bouton libelle={textes.commun.annuler} fond="plein" onClick={onClose} />
-      <Bouton libelle={equipe ? o.listes.enregistrer : q.lierAction} ton="accent" fond="doux" disabled={creationImpossible || members.length > 5 || (!equipe && members.length < 2)} onClick={appliquer} />
+      <Bouton libelle={equipe ? o.listes.enregistrer : q.lierAction} ton="accent" fond="doux" disabled={creationImpossible || members.length > MEMBRES_MAX_EQUIPE_OPTIMIZER || (!equipe && members.length < MEMBRES_MIN_EQUIPE_OPTIMIZER)} onClick={() => appliquer()} />
     </>}>
     <div className="space-y-3">
-      <p className="text-xs text-ink-dim">{q.membres(members.length)}{equipe && members.length < 2 ? q.dissoudra : ''}</p>
+      {/* Dans la fenêtre de l'équipe : l'en-tête de sa bande n'a plus de place au téléphone. */}
+      <div className="flex min-h-7 flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-ink-dim">{q.membres(members.length)}{equipe && members.length < MEMBRES_MIN_EQUIPE_OPTIMIZER ? q.dissoudra : ''}</p>
+        {equipe && onEnregistrerMesEquipes && <Bouton taille="xs" fond="vide" icone={<Save size={12} />} libelle={q.enregistrerMesEquipes}
+          disabled={!tailleValide} onClick={() => appliquer(true)} />}
+      </div>
       <div className="space-y-2">
         {creationImpossible && <p role="status" className="text-sm text-ink-dim">{q.pasAssez}</p>}
         {options.map(m => { const cle = exclusionSelectorKey(m.selector), resolu = resolveExclusionEntry(m.selector, data);
@@ -127,7 +138,7 @@ export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, 
           return <Case key={cle} className="items-start"
           libelle={<span className="min-w-0 flex-1 space-y-1"><span className="block text-xs">{source(m.selector)}</span>
             <span className="flex min-w-0 items-center gap-2">{candidat ? <ExclusionCandidateRow candidate={candidat} /> : nom(m.selector)}</span></span>} checked={selection.has(cle)}
-          disabled={!selection.has(cle) && members.length >= 5}
+          disabled={!selection.has(cle) && members.length >= MEMBRES_MAX_EQUIPE_OPTIMIZER}
           onChange={e => setMembers(e.target.checked ? [...members, m.selector] : members.filter(s => exclusionSelectorKey(s) !== cle))} />; })}
       </div>
       {telephone && champsLead}

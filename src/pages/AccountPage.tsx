@@ -36,9 +36,10 @@ import MobileSheet from '../ui/MobileSheet';
 import Champ from '../ui/Champ';
 import Pastille from '../ui/Pastille';
 import Bouton from '../ui/Bouton';
-import type { AccountView } from '../App';
+import type { AccountSub, AccountView } from '../App';
 
-type Sub = 'monstres' | 'runes' | 'artefacts';
+// « Mes équipes » est rendue par App avant cette page : elle se lit sans compte.
+type Sub = AccountSub;
 
 interface Props {
   sub: Sub; // inventaire courant, piloté par la barre latérale

@@ -20,6 +20,8 @@ export const testRenduOptimizerDialogueMembresDisponibles = () => verifier('memb
 export const testRenduTelephoneOptimizerDialogueMembresDisponibles = () => verifier('membres', true);
 export const testRenduOptimizerDialogueDefilement = () => verifier('defilement');
 export const testRenduTelephoneOptimizerDialogueDefilement = () => verifier('defilement', true);
+export const testRenduOptimizerDialogueMesEquipes = () => verifier('mes-equipes');
+export const testRenduTelephoneOptimizerDialogueMesEquipes = () => verifier('mes-equipes', true);
 
 async function verifierHauteur(hauteur: number) {
   titre(`rendu · dialogue d’équipe au bureau — 1440 × ${hauteur}`);

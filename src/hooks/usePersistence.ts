@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { clearAccount, isAvailable, requestPersistence } from '../lib/accountStore';
+import { viderEquipes } from '../lib/equipesStore';
 import { PREFIXE_STOCKAGE } from '../lib/migrationStockage';
 
 // **Conservation des données entre deux sessions** — un seul interrupteur pour
@@ -149,7 +150,8 @@ export function lireTravail(key: string): string | null {
   return miroir.get(key) ?? loadLocal(key);
 }
 
-// Efface tout ce qui a été conservé, réglages exclus (voir `CLES_DE_REGLAGE`).
+// Efface tout ce qui a été conservé, réglages exclus (voir `CLES_DE_REGLAGE`),
+// compte et équipes enregistrées compris.
 export async function purgeDonneesConservees(oublierTravail = true) {
   // Refuser le disque garde le travail de la session ; « Tout supprimer »
   // oublie aussi le miroir, y compris les valeurs jamais écrites sur disque.
@@ -161,7 +163,8 @@ export async function purgeDonneesConservees(oublierTravail = true) {
       /* ignoré */
     }
   }
-  await clearAccount();
+  // Les équipes de « Mes équipes » vivent dans leur propre base IndexedDB.
+  await Promise.all([clearAccount(), viderEquipes()]);
 }
 
 /* --------------------------------------------------------------------------
@@ -206,6 +209,12 @@ export function usePersistence(): boolean {
 
 export function persistenceEnabled(): boolean {
   return current;
+}
+
+// La question a-t-elle déjà été tranchée ? `false` : jamais demandé, la
+// première équipe créée la pose (docs/02-app/compte/feat-equipes.md).
+export function persistenceChoisie(): boolean {
+  return choisi;
 }
 
 // ⚠️ **La question est reposée à CHAQUE import**, tant que l'utilisateur n'a pas

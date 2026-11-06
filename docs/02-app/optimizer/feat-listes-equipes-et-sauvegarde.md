@@ -254,7 +254,7 @@ Une équipe porte `id`, `listId`, `members` (sélecteurs), un `leader` facultati
 ou `null`). Elle ne porte aucun contenu de combat ; l’ancien champ d’équipe
 est ignoré à la lecture, sans rejeter l’équipe ni inventer un contenu de liste.
 
-La validation au chargement impose 2 à 5 membres distincts, tous rattachés à la
+La validation au chargement impose 2 à 6 membres distincts, tous rattachés à la
 liste indiquée par l’équipe ; un membre ne figure que dans une équipe par liste.
 Un leader désigné appartient à ses membres. Les identifiants d’équipes sont
 uniques ; portée et élément sont validés. Chaque champ texte doit être
@@ -322,10 +322,10 @@ leurs critères personnels intacts. Une opération visant une équipe ou un
 membre absent est sans changement et le rapporte.
 
 `equipeApresFiltrageOptimizer` reçoit les membres déjà filtrés d’une source :
-0, 1 ou plus de 5 membres ne produisent aucune équipe, avec un motif explicite
+0, 1 ou plus de 6 membres ne produisent aucune équipe, avec un motif explicite
 et l’annonce que le lead de la source n’est appliqué à personne. Les membres
 gardent leur base complète de critères ; le producteur ne copie jamais ce
-lead dans leurs critères personnels. De 2 à 5 membres, la création suit les
+lead dans leurs critères personnels. De 2 à 6 membres, la création suit les
 mêmes validations que la création manuelle.
 
 ## Lead effectif d’un membre
@@ -404,7 +404,7 @@ affichée telle quelle, jamais remplacée en silence.
 
 « Lier une équipe » reste actif dès qu'une liste est active, quel que soit son nombre de membres, et ouvre `OptimizerEquipeDialog` hors du flux aux deux formats.
 Avec moins de deux membres libres, le corps affiche « Pas assez de monstres pour faire une équipe : rajoute des monstres dans la liste. » à la place des propositions vides, ou au-dessus du membre restant visible. « Lier » est désactivé ; Annuler et la croix ferment. La modification d'une équipe existante n'affiche pas ce message.
-La fenêtre propose deux à cinq membres, un leader facultatif (« Leader ») et le lead (type, valeur, portée et élément).
+La fenêtre propose deux à six membres, un leader facultatif (« Leader ») et le lead (type, valeur, portée et élément). En modification, « Enregistrer dans Mes équipes » (à droite du compte des membres) applique le brouillon puis passe l'équipe à Mes équipes ([feat-equipes.md](../compte/feat-equipes.md)) ; l'en-tête de la bande n'a pas la place d'un geste de plus au téléphone.
 Hors portée « Élément », le menu Élément reste affiché, désactivé et sans texte.
 Les membres déjà liés à une autre équipe de cette liste sont absents des propositions, à la création comme à la modification ; ceux de l’équipe modifiée restent proposés.
 Le leader se choisit par **espèce** : une seule option par espèce cochée,

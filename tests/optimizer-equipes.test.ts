@@ -12,7 +12,7 @@ import { cleMemoireMembre, type ContenuListeOptimizer, type EquipeOptimizer, typ
 import { sourcesComposition, stockageComposition } from './import-composition-fixtures';
 import { fr } from '../src/i18n/fr';
 
-const membres: ExclusionSelector[] = Array.from({ length: 6 }, (_, i) => ({ source: 'box', unitKey: String(i) }));
+const membres: ExclusionSelector[] = Array.from({ length: 7 }, (_, i) => ({ source: 'box', unitKey: String(i) }));
 const lead: LeaderSkill = { stat: 'Attack Speed', amount: 24, area: 'General', element: null };
 const equipe = (skill: LeaderSkill | null = lead): EquipeOptimizer =>
   ({ id: 'e1', listId: 'l1', members: membres.slice(0, 2), lead: skill && { ...skill } });
@@ -101,12 +101,12 @@ export function testOptimizerEquipesLeadsNonCalculablesEtHorsListe() {
   ok(leadEffectifMembreOptimizer(stockageLead([equipe(null)]), 'l1', membres[0], 'fire').type === 'aucun', 'équipe sans lead : aucun');
 }
 
-export const verificationsOptimizerEquipesCardinalites: [string, () => void][] = [0, 1, 2, 5, 6].map(nombre =>
+export const verificationsOptimizerEquipesCardinalites: [string, () => void][] = [0, 1, 2, 6, 7].map(nombre =>
   [`testOptimizerEquipesCardinalite${nombre}`, () => {
     titre(`Optimizer · cardinalité après filtrage ${nombre}`);
     const c = contexte();
     const resultat = equipeApresFiltrageOptimizer(c, { id: 'e1', listId: 'l1', members: membres.slice(0, nombre), lead }, fr);
-    egal(resultat.equipe !== null, nombre >= 2 && nombre <= 5, 'équipe créée seulement de 2 à 5 membres');
+    egal(resultat.equipe !== null, nombre >= 2 && nombre <= 6, 'équipe créée seulement de 2 à 6 membres');
     if (resultat.equipe) {
       egal(resultat.equipe.members.length, nombre, 'tous les membres sont liés');
       ok(!('contenu' in resultat.equipe), 'le contenu appartient à la liste');
@@ -128,13 +128,13 @@ export function testOptimizerEquipesOperationsEtExclusivite() {
   const cree = creerEquipeOptimizer(c, { id: 'e1', listId: 'l1', members: membres.slice(0, 2) }, fr);
   egal(cree.rapport, [], 'création sans leader');
   egal(cree.teams[0].lead, null, 'lead facultatif');
-  const complet = creerEquipeOptimizer(c, { ...equipe(), members: membres.slice(0, 5), leader: membres[0] }, fr);
-  egal(complet.rapport, [], 'cinq membres et leader valides');
+  const complet = creerEquipeOptimizer(c, { ...equipe(), members: membres.slice(0, 6), leader: membres[0] }, fr);
+  egal(complet.rapport, [], 'six membres et leader valides');
   const initial = structuredClone(complet.teams);
   const ajout = ajouterMembreEquipeOptimizer({ ...c, teams: cree.teams }, 'e1', membres[2], fr);
   egal(ajout.teams[0].members.length, 3, 'ajout du troisième membre');
-  const six = ajouterMembreEquipeOptimizer({ ...c, teams: complet.teams }, 'e1', membres[5], fr);
-  egal(six.teams, initial, 'sixième membre refusé sans perte'); ok(six.rapport.length > 0, 'sixième membre : rapport');
+  const sept = ajouterMembreEquipeOptimizer({ ...c, teams: complet.teams }, 'e1', membres[6], fr);
+  egal(sept.teams, initial, 'septième membre refusé sans perte'); ok(sept.rapport.length > 0, 'septième membre : rapport');
   const lie = { ...c, teams: cree.teams };
   for (const creation of [
     { ...equipe(), id: 'e2' },
@@ -152,11 +152,11 @@ export function testOptimizerEquipesOperationsEtExclusivite() {
   const autreListe = creerEquipeOptimizer(lie, { ...equipe(), id: 'e2', listId: 'l2' }, fr);
   egal(autreListe.teams.length, 2, 'même sélecteur dans deux listes : indépendant');
   const retire = retirerMembreEquipeOptimizer(complet.teams, 'e1', { ...membres[0] }, fr);
-  egal(retire.teams[0].members.length, 4, 'retrait d’un membre');
+  egal(retire.teams[0].members.length, 5, 'retrait d’un membre');
   egal(retire.teams[0].leader, undefined, 'leader retiré sans remplacement');
   egal(complet.teams, initial, 'retrait et ajout ne mutent pas les entrées');
   egal(dissoudreEquipeOptimizer(complet.teams, 'e1', fr).teams, [], 'dissolution');
-  egal(c.members.length, 12, 'membres des listes intacts après dissolution');
+  egal(c.members.length, 14, 'membres des listes intacts après dissolution');
   const inconnue = ajouterMembreEquipeOptimizer(lie, 'absente', membres[2], fr);
   egal(inconnue.teams, cree.teams, 'équipe absente : aucun ajout');
   ok(inconnue.rapport.length > 0, 'équipe absente : dit');

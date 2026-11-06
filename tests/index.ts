@@ -22,6 +22,11 @@ import { testRenduOptimizerBandesEquipesClair, testRenduOptimizerBandesEquipesSo
   testOptimizerEquipesJetons } from './rendu/optimizer-bandes.test';
 import testImport from './import.test';
 import { verificationsImportEquipes } from './import-equipes.test';
+import { verificationsEquipesEnregistrees } from './equipes-enregistrees.test';
+import { verificationsEquipesStockage } from './equipes-stockage.test';
+import { verificationsEquipesOptimizer } from './equipes-optimizer.test';
+import { verificationsEquipesSources } from './equipes-sources.test';
+import { verificationsRenduEquipes } from './rendu/equipes.test';
 import { testOptimizerImportNavigation } from './optimizer-import-navigation.test';
 import { testOptimizerColonnes, testOptimizerColonnesOnglet, testOptimizerColonnesGuidages, testOptimizerColonnesAttenteResultats, testOptimizerColonnesCoffreSets, testOptimizerColonnesTableau } from './optimizer-colonnes.test';
 import { testRenduRtaExportOptimizer, testRenduTelephoneRtaExportOptimizer, testRenduRecoExportOptimizer,
@@ -66,6 +71,7 @@ import { testRenduOptimizerDialogueLeaderSkill, testRenduTelephoneOptimizerDialo
   testRenduOptimizerDialogueDefilement, testRenduTelephoneOptimizerDialogueDefilement,
   testRenduOptimizerDialogueHauteur400, testRenduOptimizerDialogueHauteur600,
   testRenduOptimizerDialogueReferencesLeader, testRenduTelephoneOptimizerDialogueReferencesLeader,
+  testRenduOptimizerDialogueMesEquipes, testRenduTelephoneOptimizerDialogueMesEquipes,
   testRenduOptimizerDialogueChangementFormat } from './rendu/optimizer-dialogue.test';
 import {
   testMemoireOptimizerJson, testMemoireOptimizerCopie, testMemoireOptimizerLecteurListes,
@@ -884,6 +890,11 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testOptimizerContenuListeImportPreserveEtCollisions', testOptimizerContenuListeImportPreserveEtCollisions],
   ...verificationsOptimizerEquipesActivite,
   ...verificationsImportEquipes,
+  ...verificationsEquipesEnregistrees,
+  ...verificationsEquipesStockage,
+  ...verificationsEquipesOptimizer,
+  ...verificationsEquipesSources,
+  ...verificationsRenduEquipes,
   ...verificationsImportSpeedTune,
   ...verificationsPlanSpeedTune,
   ...verificationsSpeedTuneDepuisPlan,
@@ -1220,6 +1231,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduOptimizerDialogueHauteur600', testRenduOptimizerDialogueHauteur600],
   ['testRenduOptimizerDialogueReferencesLeader', testRenduOptimizerDialogueReferencesLeader],
   ['testRenduTelephoneOptimizerDialogueReferencesLeader', testRenduTelephoneOptimizerDialogueReferencesLeader],
+  ['testRenduOptimizerDialogueMesEquipes', testRenduOptimizerDialogueMesEquipes],
+  ['testRenduTelephoneOptimizerDialogueMesEquipes', testRenduTelephoneOptimizerDialogueMesEquipes],
   ['testRenduOptimizerDialogueChangementFormat', testRenduOptimizerDialogueChangementFormat],
   ['testRenduOptimizerCreationContenu', testRenduOptimizerCreationContenu],
   ['testRenduTelephoneOptimizerCreationContenu', testRenduTelephoneOptimizerCreationContenu],

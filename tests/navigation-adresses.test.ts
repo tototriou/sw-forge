@@ -48,9 +48,11 @@ export const ADRESSES: Record<string, string> = {
   '#/compte/runes/gemmes': 'compte/runes/gemmes',
   '#/compte/artefacts/resume': 'compte/artefacts/resume',
   '#/compte/artefacts/liste': 'compte/artefacts/liste',
+  '#/compte/equipes/liste': 'compte/equipes/liste',
   // Adresses tronquées, utilisées par les cartes de l'accueil.
   '#/compte/runes': 'compte/runes/resume',
   '#/compte/artefacts': 'compte/artefacts/resume',
+  '#/compte/equipes': 'compte/equipes/liste',
   '#/outils/optimizer': 'outils/optimizer',
   '#/outils/speed-tuning': 'outils/speed-tuning',
   '#/arene': 'arene',
@@ -69,7 +71,7 @@ export function testNavigationAdresses() {
 
   // Deux adresses distinctes de la table ne mènent jamais à la même page, sauf
   // les formes tronquées, qui mènent par construction au défaut de leur section.
-  const tronquees = new Set(['#/compte/runes', '#/compte/artefacts']);
+  const tronquees = new Set(['#/compte/runes', '#/compte/artefacts', '#/compte/equipes']);
   const pages = Object.entries(ADRESSES).filter(([h]) => !tronquees.has(h)).map(([, p]) => p);
   egal(pages.length, new Set(pages).size, 'chaque adresse complète mène à une page différente');
 
@@ -130,6 +132,7 @@ export function testNavigationVuesCompte() {
   egal(vueParDefaut('monstres'), 'liste', 'Monstres : la box');
   egal(vueParDefaut('runes'), 'resume', 'Runes : le Résumé');
   egal(vueParDefaut('artefacts'), 'resume', 'Artéfacts : le Résumé');
+  egal(vueParDefaut('equipes'), 'liste', 'Mes équipes : la page elle-même');
 
   // `vueValide` garde une vue qui existe, remplace celle qui n'existe pas.
   egal(vueValide('runes', 'courbes'), 'courbes', 'Runes · Courbes existe : gardée');

@@ -25,6 +25,7 @@ import { lireCompetencesInvocateur } from './competencesInvocateur';
 import { triDesResultats } from './colonnesResultats';
 import { CLE_ECRAN_PARTAGE } from './volets';
 import { LANGUES } from '../i18n/langue';
+import { lireEquipeEnregistree, type EquipeEnregistree } from './equipesEnregistrees';
 
 export const FORMAT_SESSION = formatExport('session');
 export const VERSION_SESSION = 2;
@@ -97,6 +98,9 @@ export interface Session {
   // Clé du stockage local → sa valeur brute, telle que l'app l'écrit.
   stockage: Partial<Record<(typeof CLES_SESSION)[number], string>>;
   compte: StoredAccount | null;
+  // Les équipes de « Mes équipes » (IndexedDB, hors du stockage local). Une
+  // session écrite avant ce champ se relit avec un tableau vide.
+  equipes: EquipeEnregistree[];
   outils: {
     // Clé `useStickyState` → valeur ; `Set` et `Map` encodés (`encoder`).
     memoire: Record<string, unknown>;
@@ -111,6 +115,8 @@ export interface SourcesSession {
   versionApp: string;
   stockage: Record<string, string | null | undefined>;
   compte: StoredAccount | null;
+  // Absent : aucune équipe (les appelants qui n'en ont pas, comme les tests).
+  equipes?: readonly EquipeEnregistree[];
   memoire: Record<string, unknown>;
   optimizer: Record<string, unknown> | null;
 }
@@ -192,6 +198,7 @@ export function composerSession(s: SourcesSession): Session {
     versionApp: s.versionApp,
     stockage,
     compte: s.compte,
+    equipes: [...(s.equipes ?? [])],
     outils: { memoire, optimizer: s.optimizer ? (encoder(garderChampsOptimizer(s.optimizer)) as Record<string, unknown>) : null },
   };
 }
@@ -205,7 +212,7 @@ export const ecrireSession = (session: Session): string => JSON.stringify({ ...s
 
 // L'empreinte du TRAVAIL d'une session : tout, sauf sa date, la version de
 // l'app et le compte — un instantané du jeu, que l'export redonne.
-export const empreinteTravail = (s: Session): string => JSON.stringify({ stockage: s.stockage, outils: s.outils });
+export const empreinteTravail = (s: Session): string => JSON.stringify({ stockage: s.stockage, equipes: s.equipes, outils: s.outils });
 
 // `derniere` : l'empreinte de la dernière sauvegarde, `null` sans sauvegarde
 // depuis le lancement. Alors tout travail que le changement de compte
@@ -276,6 +283,19 @@ export function lireSession(texte: string): LectureSession {
     if (!compte) avertissements.push('Le compte importé de cette sauvegarde n’est plus lisible : réimporte ton export SWEX.');
   }
 
+  // Les équipes : chacune validée comme à la relecture d'IndexedDB ; une
+  // équipe illisible est laissée et dite, sans refuser le fichier.
+  const equipes: EquipeEnregistree[] = [];
+  if (Array.isArray(o.equipes)) {
+    let illisibles = 0;
+    for (const e of o.equipes) {
+      const lu = lireEquipeEnregistree(e);
+      if (lu) equipes.push(lu.equipe);
+      else illisibles++;
+    }
+    if (illisibles) avertissements.push(`${illisibles} équipe(s) de « Mes équipes » illisible(s) dans cette sauvegarde : ignorée(s).`);
+  }
+
   // Les outils.
   const out = (o.outils ?? {}) as Record<string, unknown>;
   const mem = out.memoire;
@@ -304,6 +324,7 @@ export function lireSession(texte: string): LectureSession {
       versionApp: typeof o.versionApp === 'string' ? o.versionApp : '',
       stockage,
       compte,
+      equipes,
       outils: { memoire, optimizer },
     },
   };

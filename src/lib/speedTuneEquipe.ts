@@ -95,7 +95,9 @@ function choix(v: unknown): v is ChoixSorts {
     && (v.atbChoisi === undefined || dictionnaire(v.atbChoisi, nombre));
 }
 
-function plan(v: unknown): v is PlanSpeedTune {
+// Exportée pour les équipes de « Mes équipes », qui gardent le même plan sous
+// une autre désignation des membres (equipesEnregistrees.ts).
+export function planSpeedTuneValide(v: unknown): v is PlanSpeedTune {
   if (!objet(v) || v.version !== 1 || !Array.isArray(v.lignes) || !v.lignes.every(ligne) || !choix(v.choix)) return false;
   if (!Array.isArray(v.ordre) || !v.ordre.every(texte) || !objet(v.leads) || !lead(v.leads.allie) || !lead(v.leads.ennemi)) return false;
   const uids = new Set((v.lignes as LignePlan[]).map((l) => l.uid));
@@ -115,7 +117,7 @@ export function lireSpeedTuneEquipe(
   selecteurValide: (s: unknown) => s is ExclusionSelector
 ): SpeedTuneEquipe | null {
   if (!objet(v) || !Array.isArray(v.membres)) return null;
-  const p = plan(v.plan) ? v.plan : null;
+  const p = planSpeedTuneValide(v.plan) ? v.plan : null;
   const allies = p ? new Set(p.lignes.filter((l) => l.camp === 'allie').map((l) => l.uid)) : null;
   const vusUid = new Set<string>();
   const vusMembre = new Set<string>();

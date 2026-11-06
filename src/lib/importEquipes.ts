@@ -2,7 +2,7 @@ import type { LeaderSkill, SiegeTeam } from '../types';
 import { completerCriteresImport, type CriteresPartielsOptimizer } from './criteresOptimizer';
 import { equipeApresFiltrageOptimizer, leadEffectifMembreOptimizer } from './equipesOptimizer';
 import type { Dictionnaire } from '../i18n/fr';
-import { exclusionSelectorKey, resolveExclusionEntry, type ExclusionSelector, type ExclusionSourceData } from './optimizerExclusion';
+import { exclusionSelectorKey, resolveExclusionEntry, type ExclusionSelector, type ExclusionSourceData, type ValidatedBuild } from './optimizerExclusion';
 import { contenuListeValide, enregistrerMemoireMembre, type ContenuListeOptimizer, type StockageOptimizer } from './optimizerMemberStorage';
 import { enregistrerIdentiteMembre } from './optimizerRattachement';
 import type { SpeedTuneEquipe } from './speedTuneEquipe';
@@ -27,7 +27,20 @@ export interface MonstreIgnoreImportOptimizer {
   libelle: string;
   raison: string;
 }
+// Un build à valider à l'import : seul l'export d'une équipe de « Mes
+// équipes » en propose (docs/02-app/compte/feat-equipes.md). Les autres
+// producteurs laissent `buildsAValider` absent : ils ne valident rien.
+export interface BuildAValiderImport {
+  selector: ExclusionSelector;
+  libelle: string;
+  runeIds: number[];
+  runesManquantes: number[];
+  artifactIds: number[];
+  artefactsManquants: number[];
+  reliqueId?: number;
+}
 export interface ImportOptimizer {
+  buildsAValider?: BuildAValiderImport[];
   nomListe: string;
   contenu: ContenuListeOptimizer;
   membres: MembreImportOptimizer[];
@@ -41,6 +54,9 @@ export type ProducteurImportOptimizer = (data: ExclusionSourceData, t: Dictionna
 
 export interface RapportImportOptimizer {
   listeCreee: { id: string; name: string } | null;
+  // Les équipes créées, dans l'ordre de la proposition (absent : aucune).
+  equipesCreeesIds?: string[];
+  buildsValides?: number;
   membresImportes: number;
   equipesCreees: number;
   ignores: MonstreIgnoreImportOptimizer[];
@@ -199,6 +215,7 @@ export function consommerImportOptimizer(
         membres: structuredClone(equipe.speedTune.membres.filter((l) => acceptes.has(exclusionSelectorKey(l.selector)))) };
       nouveau.teams.push(speedTune ? { ...creation.equipe, speedTune } : creation.equipe);
       idsEquipes.add(id);
+      (rapport.equipesCreeesIds ??= []).push(id);
       rapport.equipesCreees++;
       for (const selector of members) {
         const membre = acceptes.get(exclusionSelectorKey(selector))!;
@@ -211,6 +228,29 @@ export function consommerImportOptimizer(
   if (!acceptes.size) {
     rapport.messages.push(m.importVide);
     return { stockage, activeListId, rapport };
+  }
+  // Les builds proposés, dans leur ordre : un build dont une pièce présente
+  // est déjà réservée par un build précédent de la liste n'est pas validé,
+  // comme la validation sans recherche (feat-listes-et-reservation.md).
+  if (proposition.buildsAValider?.length) {
+    const runesPrises = new Map<number, string>(), artefactsPris = new Map<number, string>();
+    const valides: ValidatedBuild[] = [];
+    for (const b of proposition.buildsAValider) {
+      if (!acceptes.has(exclusionSelectorKey(b.selector))) continue;
+      const runes = b.runeIds.filter(id => id > 0 && !b.runesManquantes.includes(id));
+      const arts = b.artifactIds.filter(id => id > 0 && !b.artefactsManquants.includes(id));
+      const conflit = runes.map(id => runesPrises.get(id)).find(Boolean) ?? arts.map(id => artefactsPris.get(id)).find(Boolean);
+      if (conflit) { rapport.messages.push(m.buildNonValide(b.libelle, conflit)); continue; }
+      for (const id of runes) runesPrises.set(id, b.libelle);
+      for (const id of arts) artefactsPris.set(id, b.libelle);
+      valides.push({ listId, selector: { ...b.selector }, runeIds: [...b.runeIds],
+        ...(b.runesManquantes.length ? { runesManquantes: [...b.runesManquantes] } : {}),
+        artifactIds: b.artifactIds.filter(id => id > 0),
+        ...(b.artefactsManquants.length ? { artefactsManquants: [...b.artefactsManquants] } : {}),
+        ...(b.reliqueId !== undefined && b.reliqueId > 0 ? { reliqueId: b.reliqueId } : {}) });
+    }
+    nouveau.validated = [...stockage.validated, ...valides];
+    rapport.buildsValides = valides.length;
   }
   rapport.listeCreee = { id: listId, name };
   return { stockage: nouveau, activeListId: listId, rapport };

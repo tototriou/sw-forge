@@ -23,6 +23,7 @@ Fichiers : [importAccount.ts](src/lib/importAccount.ts) (parseurs) ·
 | `parseAccountJson` de `src/lib/importAccount.ts`, la box RTA importée | [box-rta.md](box-rta.md) |
 | `parseSiegeDefense`, `parseSiegeOffense`, le mapping de `src/lib/applyAccount.ts` | [equipes-siege.md](equipes-siege.md) |
 | `parseAccountBox`, `parseAccountInventory`, les marqueurs et les runes utilisées | [mon-compte.md](mon-compte.md) |
+| `parseArenaDecks` de `src/lib/importAccount.ts`, les decks d'arène | [../../compte/feat-equipes.md](../../compte/feat-equipes.md) (« Imports ») |
 | `src/lib/accountStore.ts`, `src/hooks/usePersistence.ts`, « Garder mes données », « Tout supprimer » (`clearAllData`), `src/lib/migrationStockage.ts`, `src/components/AccountFreshness.tsx` | [persistance.md](persistance.md) |
 
 ## Parties

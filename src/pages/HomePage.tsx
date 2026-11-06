@@ -10,6 +10,7 @@ import {
   IconeAmi,
   IconeArene,
   IconeArtefacts,
+  IconeEquipes,
   IconeBestiaire,
   IconeDefense,
   IconeMecaniques,
@@ -240,6 +241,7 @@ export default function HomePage({ stats, onImport }: Props) {
           <Feature href="#/siege/recommandations" icon={IconeRecos} accent={COULEUR_SIEGE_SUB.recos} carte={a.cartes.recos} />
           <Feature href="#/compte/runes" icon={IconeRunes} accent={COULEUR_COMPTE_SUB.runes} carte={a.cartes.runes} />
           <Feature href="#/compte/artefacts" icon={IconeArtefacts} accent={COULEUR_COMPTE_SUB.artefacts} carte={a.cartes.artefacts} />
+          <Feature href="#/compte/equipes" icon={IconeEquipes} accent={COULEUR_COMPTE_SUB.equipes} carte={a.cartes.equipes} />
           <Feature href="#/outils/optimizer" icon={IconeOptimizer} accent={COULEUR_SECTION.outils} carte={a.cartes.optimizer} />
           <Feature href="#/outils/speed-tuning" icon={IconeSpeedTuning} accent={COULEUR_SECTION.outils} carte={a.cartes.speedTuning} />
           <Feature href="#/bestiary" icon={IconeBestiaire} accent={COULEUR_SECTION.bestiary} carte={a.cartes.bestiaire} />

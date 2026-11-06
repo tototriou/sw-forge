@@ -17,17 +17,19 @@ prop depuis [App.tsx](src/App.tsx) : `box` (6★), `runes`, `artifacts`.
 | `src/components/account/ArtifactsSection.tsx`, `src/components/account/ArtifactsList.tsx`, `src/components/account/ArtifactsSummary.tsx`, `src/components/account/ArtifactsTop.tsx`, `src/lib/artifactsTop.ts` | [feat-artefacts.md](feat-artefacts.md) |
 | `src/lib/runeOptim.ts`, `src/lib/stats.ts`, `src/lib/effects.ts`, une formule d'efficience ou le décodage SWEX | [feat-calcul-runes.md](feat-calcul-runes.md) |
 | `src/lib/artifacts.ts`, le score ou l'efficience d'un artéfact | [feat-calcul-artefacts.md](feat-calcul-artefacts.md) |
+| `src/components/account/equipes/`, `src/lib/equipesEnregistrees.ts`, `src/lib/equipesStore.ts`, `src/lib/equipesFichier.ts`, `src/lib/importEquipesEnregistrees.ts`, `src/lib/sourcesEquipesEnregistrees.ts`, `src/hooks/useEquipesEnregistrees.ts` | [feat-equipes.md](feat-equipes.md) |
 
 ## Navigation par dropdown
 
 « Mon compte » n'est **pas un onglet simple** mais un **dropdown de nav** (comme
-« Ressources »), avec trois sous-sections adressables par hash :
+« Ressources »), avec quatre sous-sections adressables par hash :
 
 | Sous-section | Route | Spec |
 |--------------|-------|------|
 | Monstres (box 6★) | `#/compte` | [feat-monstres.md](feat-monstres.md) |
 | Runes | `#/compte/runes` | [feat-runes/](feat-runes/README.md) |
 | Artéfacts | `#/compte/artefacts` | [feat-artefacts.md](feat-artefacts.md) |
+| Mes équipes | `#/compte/equipes` | [feat-equipes.md](feat-equipes.md) |
 
 **Référence de calcul** (auto-suffisante : formules, tables, décodage SWEX,
 algorithme d'optimisation) : [feat-calcul-runes.md](feat-calcul-runes.md) ; pour

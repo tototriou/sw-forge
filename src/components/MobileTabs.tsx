@@ -99,7 +99,8 @@ export default function MobileTabs({
           // L'icône du monstre entre en glissant depuis la gauche pendant que
           // le bouton s'élargit, et ressort de même ; rien sans mouvement réduit.
           icone={<span className="flex items-center">
-            <span className={`inline-flex overflow-hidden transition-[width] duration-500 ease-out motion-reduce:transition-none ${monstre ? 'w-7' : 'w-0'}`}>
+            {/* Fermé, `invisible` à la fin du glissement : l'icône repliée ne compte plus comme un contenu coupé. */}
+            <span className={`inline-flex overflow-hidden transition-[width,visibility] duration-500 ease-out motion-reduce:transition-none ${monstre ? 'visible w-7' : 'invisible w-0'}`}>
               {dernierMonstre.current && (
                 <span className={`flex flex-none transition duration-500 ease-out motion-reduce:transition-none ${monstre ? 'translate-x-0 opacity-100' : '-translate-x-5 opacity-0'}`}>
                   <MonsterAvatar monster={dernierMonstre.current} size={22} element={false} />

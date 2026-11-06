@@ -16,7 +16,7 @@ l'application de bureau. Les fichiers de code à ouvrir pour changer une page :
 | [accueil/](accueil/README.md) | `#/` | Live | La page d'entrée : premier import du compte, reprise là où l'habitué s'était arrêté, cartes et ordre des pages |
 | [rta/](rta/README.md) | `#/rta`, `#/rta/ami` | Live | La prépa RTA (Ma prépa / Ami) : recherche et import, classement par sets, ordre de tour, catégories, sauvegarde et partage |
 | [siege/](siege/README.md) | `#/siege/defense`, `#/siege/offense`, `#/siege/recommandations` | Live | Le siège : composition des équipes de défense et d'offense, vitesse et ticks, lots de decks recommandés |
-| [compte/](compte/README.md) | `#/compte`, `#/compte/runes`, `#/compte/artefacts` | Live | Mon compte : box 6★, inventaire des runes et des artéfacts, références de calcul (efficience, score) |
+| [compte/](compte/README.md) | `#/compte`, `#/compte/runes`, `#/compte/artefacts`, `#/compte/equipes` | Live | Mon compte : box 6★, inventaire des runes et des artéfacts, références de calcul (efficience, score), et « Mes équipes », le stockage des équipes construites |
 | [outils/](outils/README.md) | `#/outils` | Live | La page Outils : navigation entre les outils, garde d'accès aux données de compte, briques de calcul partagées |
 | [optimizer/](optimizer/README.md) | `#/outils/optimizer` | Live | L'Optimizer : écran carte par carte, listes de travail et équipes, import d'équipes, exclusion, interruption, limites connues |
 | [speed-tuning/](speed-tuning/README.md) | `#/outils/speed-tuning` | Live | Le speed tuning : formule ATB, chaîne d'ouverture, écran, export vers l'Optimizer, inventaire des passifs de vitesse |

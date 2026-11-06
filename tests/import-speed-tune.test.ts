@@ -118,7 +118,7 @@ export function testImportSpeedTuneLignesIgnorees() {
 function cardinalite(nombre: number) {
   const data = sources(), p = importerSpeedTuneOptimizer(Array.from({ length: nombre }, (_, i) => ligne(i + 1)), lead, data, fr), r = consommer(p, data);
   egal(r.rapport.membresImportes, nombre, 'tous les membres retenus sont importés');
-  egal(r.rapport.equipesCreees, 0, 'aucune équipe hors de 2 à 5 membres');
+  egal(r.rapport.equipesCreees, 0, 'aucune équipe hors de 2 à 6 membres');
   egal(r.rapport.listeCreee !== null, nombre > 0, 'liste créée seulement si non vide');
   egal(r.rapport.equipesNonCreees[0].lead, p.equipes[0].lead, 'lead du camp nommé même sans équipe');
   ok(r.rapport.messages.some(m => m.includes('n’est appliqué à personne')), 'absence d’application dite');
@@ -129,7 +129,7 @@ function cardinalite(nombre: number) {
 }
 export function testImportSpeedTuneZeroMembre() { titre('Import speed tuning · zéro membre'); cardinalite(0); }
 export function testImportSpeedTuneUnMembre() { titre('Import speed tuning · un membre sans équipe'); cardinalite(1); }
-export function testImportSpeedTuneSixMembres() { titre('Import speed tuning · six espèces sans équipe'); cardinalite(6); }
+export function testImportSpeedTuneSeptMembres() { titre('Import speed tuning · sept espèces sans équipe'); cardinalite(7); }
 export function testImportSpeedTuneAvecDeckOrigine() {
   titre('Import speed tuning · exemplaires du deck d’origine facultatif');
   for (const source of ['defense', 'offense'] as const) {
@@ -320,7 +320,7 @@ export function testImportSpeedTunePlanMasqueEtRefus() {
 export const verificationsImportSpeedTune: [string, () => void][] = [
   testImportSpeedTuneFicheSwift, testImportSpeedTuneFicheSansSwift, testImportSpeedTuneEcartSwift,
   testImportSpeedTuneLigne206, testImportSpeedTuneLeadElement, testImportSpeedTuneLignesIgnorees,
-  testImportSpeedTuneZeroMembre, testImportSpeedTuneUnMembre, testImportSpeedTuneSixMembres,
+  testImportSpeedTuneZeroMembre, testImportSpeedTuneUnMembre, testImportSpeedTuneSeptMembres,
   testImportSpeedTuneAvecDeckOrigine, testImportSpeedTuneSansDeckOrigine, testImportSpeedTunePureteEtAnalyse,
   testImportSpeedTuneCopiesDeckEtReverification,
   testImportSpeedTuneCompositionRetrouvee, testImportSpeedTuneCompositionAmbigue,

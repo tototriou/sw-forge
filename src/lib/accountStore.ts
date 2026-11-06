@@ -22,7 +22,7 @@
 // quels, sans `JSON.stringify` à l'écriture ni re-parse à la lecture.
 
 import { ArtifactDetail, CraftLine, RelicDetail, RuneDetail } from '../types';
-import { BoxMonster, PERIMETRES_UTILISES, RunesUtilisees } from './importAccount';
+import { BoxMonster, DeckArene, PERIMETRES_UTILISES, RunesUtilisees } from './importAccount';
 
 /* --------------------------------------------------------------------------
  * Ce qu'on stocke
@@ -71,6 +71,15 @@ export interface StoredAccount {
   // `parseRuneMarkerLabels`. Au niveau du compte, pas recopié dans chaque rune :
   // un marqueur sans libellé en est absent, l'écran affiche alors son numéro.
   runeMarkerLabels: Record<number, string>;
+  // Les decks d'arène (défenses et attaques), sources de « Mes équipes » —
+  // voir `parseArenaDecks`. Même raison de stockage que `usedRuneIds`.
+  //
+  // ⚠️ **Facultatif, sans incrément de `ACCOUNT_SCHEMA`** : l'incrément
+  // rejetterait tous les comptes conservés pour une source d'import qui n'a
+  // rien de faux en son absence. Absent (compte enregistré avant ce champ) :
+  // « Mes équipes » dit de réimporter pour lire les decks d'arène, plutôt que
+  // de montrer une liste vide comme si le compte n'en avait pas.
+  arenaDecks?: DeckArene[];
 }
 
 // À incrémenter dès qu'un extracteur produit un champ de plus — ou en produit
@@ -319,6 +328,8 @@ export function compteValide(brut: unknown): StoredAccount | null {
   if (!PERIMETRES_UTILISES.every((p) => Array.isArray((used as RunesUtilisees)[p.key]))) return null;
   if (!rec.relicUsageById || typeof rec.relicUsageById !== 'object') return null;
   if (!rec.runeMarkerLabels || typeof rec.runeMarkerLabels !== 'object') return null;
+  // Un champ facultatif mal formé est oublié, pas le compte avec lui.
+  if (rec.arenaDecks !== undefined && !Array.isArray(rec.arenaDecks)) return { ...rec, arenaDecks: undefined };
   return rec;
 }
 
@@ -343,6 +354,7 @@ export function saveAccount(
     | 'runeMarkerLabels'
     | 'exportedAt'
     | 'wizardName'
+    | 'arenaDecks'
   >
 ): Promise<boolean> {
   return enqueue(async () => {
@@ -359,6 +371,7 @@ export function saveAccount(
       usedRuneIds: data.usedRuneIds,
       relicUsageById: data.relicUsageById,
       runeMarkerLabels: data.runeMarkerLabels,
+      ...(data.arenaDecks ? { arenaDecks: data.arenaDecks } : {}),
     };
     // `put` sur une clé fixe : un nouvel import remplace, il ne s'ajoute pas.
     const res = await tx<IDBValidKey>('readwrite', (s) => s.put(rec, KEY));
